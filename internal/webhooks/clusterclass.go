@@ -19,6 +19,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -140,6 +141,14 @@ func (webhook *ClusterClass) validate(ctx context.Context, old, new *clusterv1.C
 	// Ensure all MachineDeployment classes are unique.
 	allErrs = append(allErrs, check.MachineDeploymentClassesAreUnique(new)...)
 
+	// Validate variables.
+	allErrs = append(allErrs,
+		variables.ValidateClusterClassVariables(new.Spec.Variables, field.NewPath("spec", "variables"))...,
+	)
+
+	// Validate patches.
+	allErrs = append(allErrs, validatePatches(new)...)
+
 	// If this is an update run additional validation.
 	if old != nil {
 		// Ensure spec changes are compatible.
@@ -154,18 +163,190 @@ func (webhook *ClusterClass) validate(ctx context.Context, old, new *clusterv1.C
 		}
 
 		// Ensure no MachineDeploymentClass currently in use has been removed from the ClusterClass.
-		allErrs = append(allErrs, webhook.validateRemovedMachineDeploymentClassesAreNotUsed(clusters, old, new)...)
-	}
-	// Validate variables.
-	allErrs = append(allErrs, variables.ValidateClusterClassVariables(new.Spec.Variables, field.NewPath("spec", "variables"))...)
+		allErrs = append(allErrs,
+			webhook.validateRemovedMachineDeploymentClassesAreNotUsed(clusters, old, new)...)
 
-	// Validate patches.
-	allErrs = append(allErrs, validatePatches(new)...)
+		// Ensure no Variable would be invalidated by the update in spec
+		allErrs = append(allErrs,
+			validateVariableUpdates(clusters, old, new, field.NewPath("spec", "variables"))...)
+	}
 
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), new.Name, allErrs)
 	}
 	return nil
+}
+
+// validateVariableUpdates checks if the updates made to ClusterClassVariables are valid.
+// It retrieves a list of variables of interest and validates:
+// 1) Altered ClusterClassVariables defined on any exiting Cluster are still valid with the updated Schema.
+// 2) Removed ClusterClassVariables are not in use on any Cluster using the ClusterClass.
+// 3) Added ClusterClassVariables defined on any exiting Cluster are still valid with the updated Schema.
+// 4) Required ClusterClassVariables are defined on each Cluster using the ClusterClass.
+func validateVariableUpdates(clusters []clusterv1.Cluster, old, new *clusterv1.ClusterClass, path *field.Path) field.ErrorList {
+	tracker := map[string][]string{}
+
+	// Get the old ClusterClassVariables as a map
+	oldVars, _ := getClusterClassVariablesMapWithReverseIndex(old.Spec.Variables)
+
+	// Get the new ClusterClassVariables as a map with an index linking them to their place in the ClusterClass Variable array.
+	// Note: The index is used to improve the error recording below.
+	newVars, clusterClassVariablesIndex := getClusterClassVariablesMapWithReverseIndex(new.Spec.Variables)
+
+	// Compute the diff between old and new ClusterClassVariables.
+	varsDiff := getClusterClassVariablesForValidation(oldVars, newVars)
+
+	errorInfo := errorAggregator{}
+	allClusters := make([]string, len(clusters))
+
+	// Validate the variable values on each Cluster ensuring they are still compatible with the new ClusterClass.
+	for _, cluster := range clusters {
+		allClusters = append(allClusters, cluster.Name)
+		for _, c := range cluster.Spec.Topology.Variables {
+			// copy variable to avoid memory aliasing.
+			clusterVar := c
+
+			// Add Cluster Variable entry in clusterVariableReferences to track where it is in use.
+			tracker[clusterVar.Name] = append(tracker[clusterVar.Name], cluster.Name)
+
+			// 1) Error if a variable with a schema altered in the update is no longer valid on the Cluster.
+			if alteredVar, ok := varsDiff[variableValidationKey{clusterVar.Name, altered}]; ok {
+				if errs := variables.ValidateClusterVariable(&clusterVar, alteredVar, field.NewPath("")); len(errs) > 0 {
+					errorInfo.add(alteredVar.Name, altered, cluster.Name)
+				}
+				continue
+			}
+
+			// 2) Error if a variable removed in the update is still in use in some Clusters.
+			if _, ok := varsDiff[variableValidationKey{clusterVar.Name, removed}]; ok {
+				errorInfo.add(clusterVar.Name, removed, cluster.Name)
+				continue
+			}
+
+			// 3) Error if a variable has been added in the update check is no longer valid on the Cluster.
+			// NOTE: This can't occur in normal circumstances as a variable must be defined in a ClusterClass in order to be introduced in
+			// a Cluster. This check may catch errors in cases involving broken Clusters.
+			if addedVar, ok := varsDiff[variableValidationKey{clusterVar.Name, added}]; ok {
+				if errs := variables.ValidateClusterVariable(&clusterVar, addedVar, field.NewPath("")); len(errs) > 0 {
+					errorInfo.add(addedVar.Name, added, cluster.Name)
+				}
+				continue
+			}
+		}
+	}
+
+	// 4) Error if a required variable is not defined in every cluster using the ClusterClass.
+	for v := range varsDiff {
+		if v.action == required {
+			clustersMissingVariable := clustersWithoutVar(allClusters, tracker[v.name])
+			if len(clustersMissingVariable) > 0 {
+				errorInfo.add(v.name, v.action, clustersMissingVariable...)
+			}
+		}
+	}
+
+	// Aggregate the errors from the validation checks and return one error message of each type for each variable with a list of violating clusters.
+	return aggregateErrors(errorInfo, clusterClassVariablesIndex, path)
+}
+
+type errorAggregator map[variableValidationKey][]string
+
+func (e errorAggregator) add(name string, action variableValidationType, references ...string) {
+	e[variableValidationKey{name, action}] = append(e[variableValidationKey{name, action}], references...)
+}
+
+func aggregateErrors(errs map[variableValidationKey][]string, clusterClassVariablesIndex map[string]int, path *field.Path) field.ErrorList {
+	var allErrs, addedErrs, alteredErrs, removedErrs, requiredErrs field.ErrorList
+	// Look through the errors and append aggregated error messages naming the Clusters blocking changes to existing variables.
+	for variable, clusters := range errs {
+		switch variable.action {
+		case altered:
+			alteredErrs = append(alteredErrs,
+				field.Forbidden(path.Index(clusterClassVariablesIndex[variable.name]),
+					fmt.Sprintf("variable schema change for %s is invalid. It failed validation in Clusters %v", variable.name, clusters),
+				))
+		case removed:
+			removedErrs = append(removedErrs,
+				field.Forbidden(path.Index(clusterClassVariablesIndex[variable.name]),
+					fmt.Sprintf("variable %s can not be removed. It is used in Clusters %v", variable.name, clusters),
+				))
+		case added:
+			addedErrs = append(addedErrs,
+				field.Forbidden(path.Index(clusterClassVariablesIndex[variable.name]),
+					fmt.Sprintf("variable %s can not be added. It failed validation in Clusters %v", variable.name, clusters),
+				))
+		case required:
+			requiredErrs = append(requiredErrs,
+				field.Forbidden(path.Index(clusterClassVariablesIndex[variable.name]),
+					fmt.Sprintf("variable %v is required but is not defined in Clusters %v", variable.name, clusters),
+				))
+		}
+	}
+
+	// Add the slices of errors one by one to maintain a defined order.
+	allErrs = append(allErrs, alteredErrs...)
+	allErrs = append(allErrs, removedErrs...)
+	allErrs = append(allErrs, addedErrs...)
+	allErrs = append(allErrs, requiredErrs...)
+
+	return allErrs
+}
+
+func clustersWithoutVar(allClusters, clustersWithVar []string) []string {
+	clustersWithVarMap := make(map[string]interface{})
+	for _, cluster := range clustersWithVar {
+		clustersWithVarMap[cluster] = nil
+	}
+	var clusterDiff []string
+	for _, cluster := range allClusters {
+		if _, found := clustersWithVarMap[cluster]; !found {
+			clusterDiff = append(clusterDiff, cluster)
+		}
+	}
+	return clusterDiff
+}
+
+type variableValidationType int
+
+const (
+	added variableValidationType = iota
+	altered
+	removed
+	required
+)
+
+// variableValidationKey holds the name of the variable and a validation action to perform on it.
+type variableValidationKey struct {
+	name   string
+	action variableValidationType
+}
+
+// getClusterClassVariablesForValidation returns a struct with the four classes of ClusterClass Variables that require validation:
+// - added which have been added to the ClusterClass on update.
+// - altered which have had their schemas changed on update.
+// - removed which have been removed from the ClusterClass on update.
+// - required (with 'required' : true) from the new ClusterClass.
+func getClusterClassVariablesForValidation(oldVars, newVars map[string]*clusterv1.ClusterClassVariable) map[variableValidationKey]*clusterv1.ClusterClassVariable {
+	out := map[variableValidationKey]*clusterv1.ClusterClassVariable{}
+
+	// Compare the old Variable map to the new one to discover which variables have been removed and which have been altered.
+	for k, v := range oldVars {
+		if _, ok := newVars[k]; !ok {
+			out[variableValidationKey{action: removed, name: k}] = v
+		} else if !reflect.DeepEqual(v.Schema, newVars[k].Schema) {
+			out[variableValidationKey{action: altered, name: k}] = newVars[k]
+		}
+	}
+	// Compare the new ClusterClassVariables to the new ClusterClassVariables to find out what variables have been added and which are now required.
+	for k, v := range newVars {
+		if _, ok := oldVars[k]; !ok {
+			out[variableValidationKey{action: added, name: k}] = v
+		}
+		if v.Required {
+			out[variableValidationKey{action: required, name: v.Name}] = v
+		}
+	}
+	return out
 }
 
 func (webhook *ClusterClass) validateRemovedMachineDeploymentClassesAreNotUsed(clusters []clusterv1.Cluster, old, new *clusterv1.ClusterClass) field.ErrorList {
@@ -231,4 +412,15 @@ func (webhook *ClusterClass) getClustersUsingClusterClass(ctx context.Context, c
 		}
 	}
 	return clustersUsingClusterClass, nil
+}
+
+func getClusterClassVariablesMapWithReverseIndex(clusterClassVariables []clusterv1.ClusterClassVariable) (map[string]*clusterv1.ClusterClassVariable, map[string]int) {
+	variablesMap := map[string]*clusterv1.ClusterClassVariable{}
+	variablesIndexMap := map[string]int{}
+
+	for i := range clusterClassVariables {
+		variablesMap[clusterClassVariables[i].Name] = &clusterClassVariables[i]
+		variablesIndexMap[clusterClassVariables[i].Name] = i
+	}
+	return variablesMap, variablesIndexMap
 }

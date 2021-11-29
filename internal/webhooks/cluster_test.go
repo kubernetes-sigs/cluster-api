@@ -65,18 +65,17 @@ func TestClusterDefaultVariables(t *testing.T) {
 		{
 			name: "default a single variable to its correct values",
 			clusterclass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithVariables([]clusterv1.ClusterClassVariable{
-					{
-						Name:     "location",
-						Required: true,
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-								Type:    "string",
-								Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
-							},
+				WithVariables(clusterv1.ClusterClassVariable{
+					Name:     "location",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "string",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
 						},
 					},
-				}).
+				},
+				).
 				Build(),
 			clusterVariables: []clusterv1.ClusterVariable{},
 			expect: []clusterv1.ClusterVariable{
@@ -91,18 +90,17 @@ func TestClusterDefaultVariables(t *testing.T) {
 		{
 			name: "don't change a variable if it is already set",
 			clusterclass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithVariables([]clusterv1.ClusterClassVariable{
-					{
-						Name:     "location",
-						Required: true,
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-								Type:    "string",
-								Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
-							},
+				WithVariables(clusterv1.ClusterClassVariable{
+					Name:     "location",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "string",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
 						},
 					},
-				}).
+				},
+				).
 				Build(),
 			clusterVariables: []clusterv1.ClusterVariable{
 				{
@@ -124,8 +122,8 @@ func TestClusterDefaultVariables(t *testing.T) {
 		{
 			name: "default many variables to their correct values",
 			clusterclass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithVariables([]clusterv1.ClusterClassVariable{
-					{
+				WithVariables(
+					clusterv1.ClusterClassVariable{
 						Name:     "location",
 						Required: true,
 						Schema: clusterv1.VariableSchema{
@@ -135,7 +133,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 							},
 						},
 					},
-					{
+					clusterv1.ClusterClassVariable{
 						Name:     "count",
 						Required: true,
 						Schema: clusterv1.VariableSchema{
@@ -144,8 +142,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 								Default: &apiextensionsv1.JSON{Raw: []byte(`0.1`)},
 							},
 						},
-					},
-				}).
+					}).
 				Build(),
 			clusterVariables: []clusterv1.ClusterVariable{},
 			expect: []clusterv1.ClusterVariable{
@@ -170,7 +167,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 				builder.ClusterTopology().
 					WithClass("class1").
 					WithVersion("v1.22.2").
-					WithVariables(tt.clusterVariables).
+					WithVariables(tt.clusterVariables...).
 					Build()).
 			Build()
 		fakeClient := fake.NewClientBuilder().

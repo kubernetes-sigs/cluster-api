@@ -390,7 +390,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := validateClusterVariable(tt.clusterVariable, tt.clusterClassVariable,
+			errList := ValidateClusterVariable(tt.clusterVariable, tt.clusterClassVariable,
 				field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErr {

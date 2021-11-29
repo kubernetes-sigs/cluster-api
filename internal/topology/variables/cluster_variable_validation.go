@@ -52,7 +52,7 @@ func ValidateClusterVariables(clusterVariables []clusterv1.ClusterVariable, clus
 		// corresponding ClusterClass variable, so we don't have to check it again.
 		clusterClassVariable := clusterClassVariablesMap[clusterVariable.Name]
 
-		allErrs = append(allErrs, validateClusterVariable(&clusterVariable, clusterClassVariable, fldPath.Index(i))...)
+		allErrs = append(allErrs, ValidateClusterVariable(&clusterVariable, clusterClassVariable, fldPath.Index(i))...)
 	}
 	return allErrs
 }
@@ -89,8 +89,8 @@ func validateClusterVariablesDefined(clusterVariables []clusterv1.ClusterVariabl
 	return allErrs
 }
 
-// validateClusterVariable validates a clusterVariable.
-func validateClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterClassVariable *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
+// ValidateClusterVariable validates a clusterVariable.
+func ValidateClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterClassVariable *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
 	// Parse JSON value.
 	var variableValue interface{}
 	// Only try to unmarshal the clusterVariable if it is not nil, otherwise the variableValue is nil.

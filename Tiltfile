@@ -366,10 +366,10 @@ def enable_providers():
         enable_provider(name, settings.get("debug").get(name, {}))
 
 def kustomize_with_envsubst(path, enable_debug = False):
-    # we need to ditch the readiness and liveness probes when debugging, otherwise K8s will restart the pod whenever execution
+    # We need to ditch leader election, the readiness and liveness probes when debugging, otherwise K8s will restart the pod whenever execution
     # has paused.
     if enable_debug:
-        yq_cmd_line = "| {} eval 'del(.. | select(has\"livenessProbe\")).livenessProbe | del(.. | select(has\"readinessProbe\")).readinessProbe' -".format(yq_cmd)
+        yq_cmd_line = "| {} eval 'del(.. | select(. == \"--leader-elect\")) | del(.. | select(has\"livenessProbe\")).livenessProbe | del(.. | select(has\"readinessProbe\")).readinessProbe' -".format(yq_cmd)
     else:
         yq_cmd_line = ""
     return str(local("{} build {} | {} {}".format(kustomize_cmd, path, envsubst_cmd, yq_cmd_line), quiet = True))

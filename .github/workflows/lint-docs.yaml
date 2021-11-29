@@ -1,12 +1,8 @@
 name: Check Markdown links
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '**.md'
   pull_request:
+    types: [opened, edited, synchronize, reopened]
     paths:
       - '**.md'
 

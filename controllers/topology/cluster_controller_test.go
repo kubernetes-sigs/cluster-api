@@ -356,6 +356,59 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 	}, timeout).Should(Succeed())
 }
 
+// TestClusterReconciler_deleteClusterClass tests the correct deletion behaviour for a ClusterClass with references in existing Clusters.
+// In this case deletion of the ClusterClass should be blocked by the webhook.
+func TestClusterReconciler_deleteClusterClass(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	g := NewWithT(t)
+	timeout := 5 * time.Second
+
+	ns, err := env.CreateNamespace(ctx, "test-topology-cluster-reconcile")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Create the objects needed for the integration test:
+	// - a ClusterClass with all the related templates
+	// - a Cluster using the above ClusterClass
+	cleanup, err := setupTestEnvForIntegrationTests(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Defer a cleanup function that deletes each of the objects created during setupTestEnvForIntegrationTests.
+	defer func() {
+		g.Expect(cleanup()).To(Succeed())
+	}()
+
+	actualCluster := &clusterv1.Cluster{}
+
+	g.Eventually(func(g Gomega) error {
+		for _, name := range []string{clusterName1, clusterName2} {
+			// Get the cluster object.
+			if err := env.Get(ctx, client.ObjectKey{Name: name, Namespace: ns.Name}, actualCluster); err != nil {
+				return err
+			}
+
+			// Check if Cluster has relevant Infrastructure and ControlPlane and labels and annotations.
+			g.Expect(assertClusterReconcile(actualCluster)).Should(Succeed())
+
+			// Check if InfrastructureCluster has been created and has the correct labels and annotations.
+			g.Expect(assertInfrastructureClusterReconcile(actualCluster)).Should(Succeed())
+
+			// Check if ControlPlane has been created and has the correct version, replicas, labels and annotations.
+			g.Expect(assertControlPlaneReconcile(actualCluster)).Should(Succeed())
+
+			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
+			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+		}
+		return nil
+	}, timeout).Should(Succeed())
+
+	// Ensure the clusterClass is available in the API server .
+	clusterClass := &clusterv1.ClusterClass{}
+	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: actualCluster.Spec.Topology.Class}, clusterClass)).To(Succeed())
+
+	// Attempt to delete the ClusterClass. Expect an error here as the ClusterClass deletion is blocked by the webhook.
+	g.Expect(env.Delete(ctx, clusterClass)).NotTo(Succeed())
+}
+
 // setupTestEnvForIntegrationTests builds and then creates in the envtest API server all objects required at init time for each of the
 // integration tests in this file. This includes:
 // - a first clusterClass with all the related templates

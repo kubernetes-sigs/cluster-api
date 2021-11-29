@@ -743,6 +743,8 @@ spec:
                                 formats please see: (of the k8s.io/apiextensions-apiserver
                                 version we''re currently using) https://github.com/kubernetes/apiextensions-apiserver/blob/master/pkg/apiserver/validation/formats.go'
                               type: string
+                            items:
+                              description: Items specifies fields of an array.
                             maxLength:
                               description: MaxLength is the max length of a string
                                 variable.
@@ -779,9 +781,20 @@ spec:
                               description: Pattern is the regex which a string variable
                                 must match.
                               type: string
+                            properties:
+                              additionalProperties: {}
+                              description: 'Properties specifies fields of an object.
+                                NOTE: Can only be set if type is object.'
+                              type: object
+                            required:
+                              description: Required specifies which fields of an object
+                                are required.
+                              items:
+                                type: string
+                              type: array
                             type:
                               description: 'Type is the type of the variable. Valid
-                                values are: string, integer, number or boolean.'
+                                values are: object, string, integer, number or boolean.'
                               type: string
                           required:
                           - type

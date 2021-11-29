@@ -997,7 +997,9 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 		if bytes.Equal(item.Data[bootstrapapi.BootstrapTokenExpirationKey], tokenExpires[0]) {
 			foundOld = true
 		} else {
-			g.Expect(string(item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(Equal(time.Now().UTC().Add(k.TokenTTL).Format(time.RFC3339)))
+			expirationTime, err := time.Parse(time.RFC3339, string(item.Data[bootstrapapi.BootstrapTokenExpirationKey]))
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(expirationTime).Should(BeTemporally("~", time.Now().UTC().Add(k.TokenTTL), 10*time.Second))
 			foundNew = true
 		}
 	}

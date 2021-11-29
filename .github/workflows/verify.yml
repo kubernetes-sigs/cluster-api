@@ -1,6 +1,6 @@
 on:
   pull_request_target:
-    types: [opened, edited, reopened]
+    types: [opened, edited, synchronize, reopened]
 
 jobs:
   verify:

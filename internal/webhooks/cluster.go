@@ -154,16 +154,15 @@ func (webhook *Cluster) validate(ctx context.Context, old, new *clusterv1.Cluste
 		if old.Spec.Topology != nil && new.Spec.Topology == nil {
 			allErrs = append(allErrs, field.Forbidden(
 				field.NewPath("spec", "topology"),
-				fmt.Sprintf("can not be removed for cluster %s", new.Name),
+				"cannot be removed from an existing Cluster",
 			))
 		}
 	}
 
-	if len(allErrs) == 0 {
-		return nil
+	if len(allErrs) > 0 {
+		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), new.Name, allErrs)
 	}
-
-	return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), new.Name, allErrs)
+	return nil
 }
 
 func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv1.Cluster) field.ErrorList {
@@ -184,10 +183,9 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 	if len(new.Spec.Topology.Class) == 0 {
 		allErrs = append(
 			allErrs,
-			field.Invalid(
+			field.Required(
 				field.NewPath("spec", "topology", "class"),
-				new.Spec.Topology.Class,
-				"cannot be empty",
+				"class cannot be empty",
 			),
 		)
 	}
@@ -199,7 +197,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 			field.Invalid(
 				field.NewPath("spec", "topology", "version"),
 				new.Spec.Topology.Version,
-				"must be a valid semantic version",
+				"version must be a valid semantic version",
 			),
 		)
 	}
@@ -212,7 +210,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 			allErrs, field.Invalid(
 				field.NewPath("spec", "topology", "class"),
 				new.Name,
-				"ClusterClass could not be found"))
+				fmt.Sprintf("ClusterClass with name %q could not be found", new.Spec.Topology.Class)))
 		return allErrs
 	}
 
@@ -228,7 +226,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 				allErrs,
 				field.Forbidden(
 					field.NewPath("spec", "topology", "class"),
-					fmt.Sprintf("clusterClass can not be added to cluster %s on update", new.Name),
+					"class cannot be set on an existing Cluster",
 				),
 			)
 			// return early here if there is no class to compare.
@@ -243,7 +241,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 				field.Invalid(
 					field.NewPath("spec", "topology", "version"),
 					new.Spec.Topology.Version,
-					"is not a valid version",
+					"version must be a valid semantic version",
 				),
 			)
 		}
@@ -254,8 +252,8 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 				allErrs,
 				field.Invalid(
 					field.NewPath("spec", "topology", "version"),
-					new.Spec.Topology.Class,
-					"cannot be compared with the old version",
+					old.Spec.Topology.Version,
+					fmt.Sprintf("old version %q cannot be compared with %q", oldVersion, inVersion),
 				),
 			)
 		}
@@ -265,7 +263,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 				field.Invalid(
 					field.NewPath("spec", "topology", "version"),
 					new.Spec.Topology.Version,
-					"cannot be decreased",
+					fmt.Sprintf("version cannot be decreased from %q to %q", oldVersion, inVersion),
 				),
 			)
 		}
@@ -278,8 +276,8 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 				allErrs = append(
 					allErrs, field.Forbidden(
 						field.NewPath("spec", "topology", "class"),
-						fmt.Sprintf("ClusterClass %s could not be found, change from ClusterClass %s to ClusterClass %s can not be validated for cluster %s",
-							old.Spec.Topology.Class, old.Spec.Topology.Class, new.Spec.Topology.Class, old.Name)))
+						fmt.Sprintf("ClusterClass with name %q could not be found, change from class %[1]q to class %q cannot be validated",
+							old.Spec.Topology.Class, new.Spec.Topology.Class)))
 
 				// Return early with errors if the ClusterClass can't be retrieved.
 				return allErrs

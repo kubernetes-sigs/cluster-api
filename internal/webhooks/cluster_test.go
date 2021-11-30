@@ -285,9 +285,9 @@ func TestClusterValidation(t *testing.T) {
 			err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
-			} else {
-				g.Expect(err).ToNot(HaveOccurred())
+				return
 			}
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
@@ -490,9 +490,9 @@ func TestClusterTopologyValidation(t *testing.T) {
 			err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
-			} else {
-				g.Expect(err).ToNot(HaveOccurred())
+				return
 			}
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }

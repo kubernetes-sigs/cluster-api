@@ -30,7 +30,6 @@ import (
 
 const (
 	// BuiltinsName is the name of the builtin variable.
-	// NOTE: User-defined variables are not allowed to start with "builtin".
 	BuiltinsName = "builtin"
 )
 

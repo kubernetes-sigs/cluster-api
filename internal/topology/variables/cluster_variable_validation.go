@@ -38,19 +38,21 @@ func ValidateClusterVariables(clusterVariables []clusterv1.ClusterVariable, clus
 	// * required variables from the ClusterClass exist on the Cluster.
 	// * all variables in the Cluster are defined in the ClusterClass.
 	allErrs = append(allErrs, validateRequiredClusterVariables(clusterVariablesMap, clusterClassVariablesMap, fldPath)...)
-	allErrs = append(allErrs, validateClusterVariablesDefined(clusterVariablesMap, clusterClassVariablesMap, fldPath)...)
+	allErrs = append(allErrs, validateClusterVariablesDefined(clusterVariables, clusterClassVariablesMap, fldPath)...)
 	if len(allErrs) > 0 {
 		return allErrs
 	}
 
 	// Validate all variables from the Cluster.
-	for variableName, clusterVariable := range clusterVariablesMap {
+	for i := range clusterVariables {
+		clusterVariable := clusterVariables[i]
+
 		// Get schema.
 		// Nb. We already validated above in validateClusterVariablesDefined that there is a
 		// corresponding ClusterClass variable, so we don't have to check it again.
-		clusterClassVariable := clusterClassVariablesMap[variableName]
+		clusterClassVariable := clusterClassVariablesMap[clusterVariable.Name]
 
-		allErrs = append(allErrs, validateClusterVariable(clusterVariable, clusterClassVariable, fldPath)...)
+		allErrs = append(allErrs, validateClusterVariable(&clusterVariable, clusterClassVariable, fldPath.Index(i))...)
 	}
 	return allErrs
 }
@@ -66,7 +68,7 @@ func validateRequiredClusterVariables(clusterVariables map[string]*clusterv1.Clu
 
 		if _, ok := clusterVariables[variableName]; !ok {
 			allErrs = append(allErrs, field.Required(fldPath,
-				fmt.Sprintf("required variable %q does not exist", variableName)))
+				fmt.Sprintf("required variable with name %q must be defined", variableName))) // TODO: consider if to use "Clusters with ClusterClass %q must have a variable with name %q"
 		}
 	}
 
@@ -74,13 +76,13 @@ func validateRequiredClusterVariables(clusterVariables map[string]*clusterv1.Clu
 }
 
 // validateClusterVariablesDefined validates all variables from the Cluster are defined in the ClusterClass.
-func validateClusterVariablesDefined(clusterVariables map[string]*clusterv1.ClusterVariable, clusterClassVariables map[string]*clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
+func validateClusterVariablesDefined(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables map[string]*clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	for variableName, clusterVariable := range clusterVariables {
-		if _, ok := clusterClassVariables[variableName]; !ok {
-			return field.ErrorList{field.Invalid(fldPath, string(clusterVariable.Value.Raw),
-				fmt.Sprintf("variable %q is not defined in the ClusterClass", variableName))}
+	for i, clusterVariable := range clusterVariables {
+		if _, ok := clusterClassVariables[clusterVariable.Name]; !ok {
+			return field.ErrorList{field.Invalid(fldPath.Index(i).Child("name"), clusterVariable.Name,
+				fmt.Sprintf("variable with name %q is not defined in the ClusterClass", clusterVariable.Name))} // TODO: consider if to add ClusterClass name
 		}
 	}
 
@@ -95,7 +97,7 @@ func validateClusterVariable(clusterVariable *clusterv1.ClusterVariable, cluster
 	// Note: A clusterVariable with a nil value is the result of setting the variable value to "null" via YAML.
 	if clusterVariable.Value.Raw != nil {
 		if err := json.Unmarshal(clusterVariable.Value.Raw, &variableValue); err != nil {
-			return field.ErrorList{field.Invalid(fldPath, string(clusterVariable.Value.Raw),
+			return field.ErrorList{field.Invalid(fldPath.Child("value", "raw"), string(clusterVariable.Value.Raw),
 				fmt.Sprintf("variable %q could not be parsed: %v", clusterVariable.Name, err))}
 		}
 	}
@@ -103,8 +105,8 @@ func validateClusterVariable(clusterVariable *clusterv1.ClusterVariable, cluster
 	// Convert schema to Kubernetes APIExtensions Schema.
 	apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(&clusterClassVariable.Schema.OpenAPIV3Schema)
 	if err != nil {
-		return field.ErrorList{field.Invalid(fldPath, string(clusterVariable.Value.Raw),
-			fmt.Sprintf("invalid schema in ClusterClass for variable %q: failed to convert schema %v", clusterVariable.Name, err))}
+		return field.ErrorList{field.InternalError(fldPath,
+			fmt.Errorf("failed to convert schema definition for variable %q; ClusterClass should be checked: %v", clusterVariable.Name, err))} // TODO: consider if to add ClusterClass name
 	}
 
 	// Create validator for schema.
@@ -112,8 +114,8 @@ func validateClusterVariable(clusterVariable *clusterv1.ClusterVariable, cluster
 		OpenAPIV3Schema: apiExtensionsSchema,
 	})
 	if err != nil {
-		return field.ErrorList{field.Invalid(fldPath, string(clusterVariable.Value.Raw),
-			fmt.Sprintf("invalid schema in ClusterClass for variable %q: %v", clusterVariable.Name, err))}
+		return field.ErrorList{field.InternalError(fldPath,
+			fmt.Errorf("failed to create schema validator for variable %q; ClusterClass should be checked: %v", clusterVariable.Name, err))} // TODO: consider if to add ClusterClass name
 	}
 
 	// Validate variable against the schema.

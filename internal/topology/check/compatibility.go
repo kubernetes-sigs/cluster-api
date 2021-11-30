@@ -35,8 +35,8 @@ func ObjectsAreStrictlyCompatible(current, desired client.Object) field.ErrorLis
 	if current.GetName() != desired.GetName() {
 		allErrs = append(allErrs, field.Forbidden(
 			field.NewPath("metadata", "name"),
-			fmt.Sprintf("cannot be changed from %v to %v to prevent incompatible changes in %v/%v",
-				current.GetName(), desired.GetName(), current.GetObjectKind().GroupVersionKind().GroupKind().String(), current.GetName()),
+			fmt.Sprintf("metadata.name of %s/%s cannot be changed from %q to %q to prevent incompatible changes in the Cluster",
+				current.GetObjectKind().GroupVersionKind().GroupKind().String(), current.GetName(), current.GetName(), desired.GetName()),
 		))
 	}
 	allErrs = append(allErrs, ObjectsAreCompatible(current, desired)...)
@@ -53,15 +53,15 @@ func ObjectsAreCompatible(current, desired client.Object) field.ErrorList {
 	if currentGK.Group != desiredGK.Group {
 		allErrs = append(allErrs, field.Forbidden(
 			field.NewPath("metadata", "apiVersion"),
-			fmt.Sprintf("group cannot be changed from %v to %v to prevent incompatible changes in %v/%v",
-				currentGK.Group, desiredGK.Group, currentGK.String(), current.GetName()),
+			fmt.Sprintf("apiVersion.group of %s/%s cannot be changed from %q to %q to prevent incompatible changes in the Cluster",
+				currentGK.String(), current.GetName(), currentGK.Group, desiredGK.Group),
 		))
 	}
 	if currentGK.Kind != desiredGK.Kind {
 		allErrs = append(allErrs, field.Forbidden(
 			field.NewPath("metadata", "kind"),
-			fmt.Sprintf("cannot be changed from %v to %v to prevent incompatible changes in %v/%v",
-				currentGK.Kind, desiredGK.Kind, currentGK.String(), current.GetName()),
+			fmt.Sprintf("apiVersion.kind of %s/%s cannot be changed from %q to %q to prevent incompatible changes in the Cluster",
+				currentGK.String(), current.GetName(), currentGK.Kind, desiredGK.Kind),
 		))
 	}
 	allErrs = append(allErrs, ObjectsAreInTheSameNamespace(current, desired)...)
@@ -76,7 +76,8 @@ func ObjectsAreInTheSameNamespace(current, desired client.Object) field.ErrorLis
 	if current.GetNamespace() != desired.GetNamespace() {
 		allErrs = append(allErrs, field.Forbidden(
 			field.NewPath("metadata", "namespace"),
-			fmt.Sprintf("cannot be changed from %v to %v to prevent incompatible changes in %v/%v", current.GetNamespace(), desired.GetNamespace(), current.GetObjectKind().GroupVersionKind().GroupKind().String(), current.GetName()),
+			fmt.Sprintf("metadata.namespace of %s/%s cannot be changed from %q to %q because templates must be in the same namespace as the Cluster",
+				current.GetObjectKind().GroupVersionKind().GroupKind().String(), current.GetName(), current.GetNamespace(), desired.GetNamespace()),
 		))
 	}
 	return allErrs
@@ -93,13 +94,15 @@ func LocalObjectTemplatesAreCompatible(current, desired clusterv1.LocalObjectTem
 	if currentGK.Group != desiredGK.Group {
 		allErrs = append(allErrs, field.Forbidden(
 			pathPrefix.Child("ref", "apiVersion"),
-			fmt.Sprintf("group cannot be changed from %v to %v to prevent incompatible changes in %v/%v", currentGK.Group, desiredGK.Group, currentGK.String(), current.Ref.Name),
+			fmt.Sprintf("apiVersion.group cannot be changed from %q to %q to prevent incompatible changes in the Clusters",
+				currentGK.Group, desiredGK.Group),
 		))
 	}
 	if currentGK.Kind != desiredGK.Kind {
 		allErrs = append(allErrs, field.Forbidden(
 			pathPrefix.Child("ref", "kind"),
-			fmt.Sprintf("cannot be changed from %v to %v to prevent incompatible changes in %v/%v", currentGK.Kind, desiredGK.Kind, currentGK.String(), current.Ref.Name),
+			fmt.Sprintf("apiVersion.kind cannot be changed from %q to %q to prevent incompatible changes in the Clusters",
+				currentGK.Kind, desiredGK.Kind),
 		))
 	}
 	allErrs = append(allErrs, LocalObjectTemplatesAreInSameNamespace(current, desired, pathPrefix)...)
@@ -112,8 +115,8 @@ func LocalObjectTemplatesAreInSameNamespace(current, desired clusterv1.LocalObje
 	if current.Ref.Namespace != desired.Ref.Namespace {
 		allErrs = append(allErrs, field.Forbidden(
 			pathPrefix.Child("ref", "namespace"),
-			fmt.Sprintf("cannot be changed from %v to %v to prevent incompatible changes in %v/%v",
-				current.Ref.Namespace, desired.Ref.Namespace, current.Ref.GetObjectKind().GroupVersionKind().GroupKind().String(), current.Ref.Name),
+			fmt.Sprintf("templates must be in the same namespace as the ClusterClass (%s)",
+				current.Ref.Namespace),
 		))
 	}
 	return allErrs
@@ -125,20 +128,18 @@ func LocalObjectTemplateIsValid(template *clusterv1.LocalObjectTemplate, namespa
 
 	// check if ref is not nil.
 	if template.Ref == nil {
-		return field.ErrorList{field.Invalid(
+		return field.ErrorList{field.Required(
 			pathPrefix.Child("ref"),
-			"nil",
-			"cannot be nil",
+			"template reference must be defined",
 		)}
 	}
 
 	// check if a name is provided
 	if template.Ref.Name == "" {
 		allErrs = append(allErrs,
-			field.Invalid(
+			field.Required(
 				pathPrefix.Child("ref", "name"),
-				template.Ref.Name,
-				"cannot be empty",
+				"template name must be defined",
 			),
 		)
 	}
@@ -150,7 +151,7 @@ func LocalObjectTemplateIsValid(template *clusterv1.LocalObjectTemplate, namespa
 			field.Invalid(
 				pathPrefix.Child("ref", "namespace"),
 				template.Ref.Namespace,
-				fmt.Sprintf("must be '%s'", namespace),
+				fmt.Sprintf("template must be in the same namespace as the ClusterClass (%s)", namespace),
 			),
 		)
 	}
@@ -161,7 +162,7 @@ func LocalObjectTemplateIsValid(template *clusterv1.LocalObjectTemplate, namespa
 			field.Invalid(
 				pathPrefix.Child("ref", "kind"),
 				template.Ref.Kind,
-				fmt.Sprintf("kind must be of form '<name>%s'", clusterv1.TemplateSuffix),
+				fmt.Sprintf("template kind must be of form \"<name>%s\"", clusterv1.TemplateSuffix),
 			),
 		)
 	}
@@ -173,16 +174,15 @@ func LocalObjectTemplateIsValid(template *clusterv1.LocalObjectTemplate, namespa
 			field.Invalid(
 				pathPrefix.Child("ref", "apiVersion"),
 				template.Ref.APIVersion,
-				fmt.Sprintf("must be a valid apiVersion: %v", err),
+				fmt.Sprintf("template apiVersion must be a valid Kubernetes apiVersion: %v", err),
 			),
 		)
 	}
 	if err == nil && gv.Empty() {
 		allErrs = append(allErrs,
-			field.Invalid(
+			field.Required(
 				pathPrefix.Child("ref", "apiVersion"),
-				template.Ref.APIVersion,
-				"value cannot be empty",
+				"template apiVersion must be defined",
 			),
 		)
 	}
@@ -253,7 +253,7 @@ func MachineDeploymentClassesAreUnique(clusterClass *clusterv1.ClusterClass) fie
 				field.Invalid(
 					field.NewPath("spec", "workers", "machineDeployments").Index(i).Child("class"),
 					class.Class,
-					fmt.Sprintf("MachineDeployment class should be unique. MachineDeployment with class %q is defined more than once.", class.Class),
+					fmt.Sprintf("MachineDeployment class must be unique. MachineDeployment with class %q is defined more than once", class.Class),
 				),
 			)
 		}
@@ -278,19 +278,19 @@ func MachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(desired *clust
 		if !machineDeploymentClasses.Has(md.Class) {
 			allErrs = append(allErrs,
 				field.Invalid(
-					field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i),
-					md,
-					fmt.Sprintf("MachineDeployment clusterClass must be defined in the ClusterClass. MachineDeployment with clusterClass %q not found in ClusterClass %v.",
-						md.Name, clusterClass.Name),
+					field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("class"),
+					md.Class,
+					fmt.Sprintf("MachineDeploymentClass with name %q does not exist in ClusterClass %q",
+						md.Class, clusterClass.Name),
 				),
 			)
 		}
 		if names.Has(md.Name) {
 			allErrs = append(allErrs,
 				field.Invalid(
-					field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i),
-					md,
-					fmt.Sprintf("MachineDeploymentTopology names should be unique. MachineDeploymentTopology with name %q is defined more than once.", md.Name),
+					field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("name"),
+					md.Name,
+					fmt.Sprintf("name must be unique. MachineDeployment with name %q is defined more than once", md.Name),
 				),
 			)
 		}

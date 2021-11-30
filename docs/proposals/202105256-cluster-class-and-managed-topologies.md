@@ -389,16 +389,16 @@ type PatchSelectorMatch struct {
   // Note: this will match the controlPlane and also the controlPlane 
   // machineInfrastructure (depending on the kind and apiVersion).
   // +optional
-  ControlPlane *bool `json:"controlPlane,omitempty"`
+  ControlPlane bool `json:"controlPlane,omitempty"`
  
   // InfrastructureCluster selects templates referenced in .spec.infrastructure.
   // +optional
-  InfrastructureCluster *bool `json:"infrastructureCluster,omitempty"`
+  InfrastructureCluster bool `json:"infrastructureCluster,omitempty"`
  
   // MachineDeploymentClass selects templates referenced in specific MachineDeploymentClasses in
   // .spec.workers.machineDeployments.
   // +optional
-  MachineDeploymentClass *PatchSelectorMatchMachineDeploymentClass `json:"machineDeploymentClass,omitempty"`
+  MachineDeploymentClass PatchSelectorMatchMachineDeploymentClass `json:"machineDeploymentClass,omitempty"`
 }
  
 // PatchSelectorMatchMachineDeploymentClass selects templates referenced

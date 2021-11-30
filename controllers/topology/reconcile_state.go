@@ -269,15 +269,15 @@ func (r *ClusterReconciler) reconcileMachineDeployments(ctx context.Context, s *
 func (r *ClusterReconciler) createMachineDeployment(ctx context.Context, md *scope.MachineDeploymentState) error {
 	log := tlog.LoggerFrom(ctx).WithMachineDeployment(md.Object)
 
-	ctx, _ = log.WithObject(md.InfrastructureMachineTemplate).Into(ctx)
-	if err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
+	infraCtx, _ := log.WithObject(md.InfrastructureMachineTemplate).Into(ctx)
+	if err := r.reconcileReferencedTemplate(infraCtx, reconcileReferencedTemplateInput{
 		desired: md.InfrastructureMachineTemplate,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: md.Object})
 	}
 
-	ctx, _ = log.WithObject(md.BootstrapTemplate).Into(ctx)
-	if err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
+	bootstrapCtx, _ := log.WithObject(md.BootstrapTemplate).Into(ctx)
+	if err := r.reconcileReferencedTemplate(bootstrapCtx, reconcileReferencedTemplateInput{
 		desired: md.BootstrapTemplate,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: md.Object})
@@ -295,8 +295,8 @@ func (r *ClusterReconciler) createMachineDeployment(ctx context.Context, md *sco
 func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, clusterName string, mdTopologyName string, currentMD, desiredMD *scope.MachineDeploymentState) error {
 	log := tlog.LoggerFrom(ctx).WithMachineDeployment(desiredMD.Object)
 
-	ctx, _ = log.WithObject(desiredMD.InfrastructureMachineTemplate).Into(ctx)
-	if err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
+	infraCtx, _ := log.WithObject(desiredMD.InfrastructureMachineTemplate).Into(ctx)
+	if err := r.reconcileReferencedTemplate(infraCtx, reconcileReferencedTemplateInput{
 		ref:                  &desiredMD.Object.Spec.Template.Spec.InfrastructureRef,
 		current:              currentMD.InfrastructureMachineTemplate,
 		desired:              desiredMD.InfrastructureMachineTemplate,
@@ -306,8 +306,8 @@ func (r *ClusterReconciler) updateMachineDeployment(ctx context.Context, cluster
 		return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: currentMD.Object})
 	}
 
-	ctx, _ = log.WithObject(desiredMD.BootstrapTemplate).Into(ctx)
-	if err := r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
+	bootstrapCtx, _ := log.WithObject(desiredMD.BootstrapTemplate).Into(ctx)
+	if err := r.reconcileReferencedTemplate(bootstrapCtx, reconcileReferencedTemplateInput{
 		ref:                  desiredMD.Object.Spec.Template.Spec.Bootstrap.ConfigRef,
 		current:              currentMD.BootstrapTemplate,
 		desired:              desiredMD.BootstrapTemplate,

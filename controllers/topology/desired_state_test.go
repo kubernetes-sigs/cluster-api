@@ -471,7 +471,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 	// not affect how we determining the control plane version.
 	// We only want to know if the machine deployments are stable.
 	//
-	// A machine deployment is considere stable if all the following are true:
+	// A machine deployment is considered stable if all the following are true:
 	// - md.spec.replicas == md.status.replicas
 	// - md.spec.replicas == md.status.updatedReplicas
 	// - md.spec.replicas == md.status.readyReplicas
@@ -881,7 +881,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		// Note: in all the following tests we are setting it up so that the control plane is already
 		// stable at the topology version.
-		// A more extensive list of sceniarios is tested in TestComputeMachineDeploymentVersion.
+		// A more extensive list of scenarios is tested in TestComputeMachineDeploymentVersion.
 		tests := []struct {
 			name                    string
 			machineDeploymentsState scope.MachineDeploymentsStateMap
@@ -1007,7 +1007,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 		}).
 		Build()
 
-	// A machine deployment is considere stable if all the following are true:
+	// A machine deployment is considered stable if all the following are true:
 	// - md.spec.replicas == md.status.replicas
 	// - md.spec.replicas == md.status.updatedReplicas
 	// - md.spec.replicas == md.status.readyReplicas

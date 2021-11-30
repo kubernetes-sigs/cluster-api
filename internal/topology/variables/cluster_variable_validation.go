@@ -91,9 +91,13 @@ func validateClusterVariablesDefined(clusterVariables map[string]*clusterv1.Clus
 func validateClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterClassVariable *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
 	// Parse JSON value.
 	var variableValue interface{}
-	if err := json.Unmarshal(clusterVariable.Value.Raw, &variableValue); err != nil {
-		return field.ErrorList{field.Invalid(fldPath, string(clusterVariable.Value.Raw),
-			fmt.Sprintf("variable %q could not be parsed: %v", clusterVariable.Name, err))}
+	// Only try to unmarshal the clusterVariable if it is not nil, otherwise the variableValue is nil.
+	// Note: A clusterVariable with a nil value is the result of setting the variable value to "null" via YAML.
+	if clusterVariable.Value.Raw != nil {
+		if err := json.Unmarshal(clusterVariable.Value.Raw, &variableValue); err != nil {
+			return field.ErrorList{field.Invalid(fldPath, string(clusterVariable.Value.Raw),
+				fmt.Sprintf("variable %q could not be parsed: %v", clusterVariable.Name, err))}
+		}
 	}
 
 	// Convert schema to Kubernetes APIExtensions Schema.

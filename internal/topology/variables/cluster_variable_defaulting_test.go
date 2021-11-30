@@ -188,6 +188,38 @@ func Test_DefaultClusterVariables(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Don't default variables set to null",
+			clusterClassVariables: []clusterv1.ClusterClassVariable{
+				{
+					Name:     "cpu",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:     "integer",
+							Default:  &apiextensionsv1.JSON{Raw: []byte(`1`)},
+							Nullable: true,
+						},
+					},
+				},
+			},
+			clusterVariables: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: nil, // A JSON with a nil value is the result of setting the variable value to "null" via YAML.
+					},
+				},
+			},
+			want: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: nil, // A JSON with a nil value is the result of setting the variable value to "null" via YAML.
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

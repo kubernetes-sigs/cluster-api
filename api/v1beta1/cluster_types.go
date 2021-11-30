@@ -162,8 +162,10 @@ type ClusterVariable struct {
 	// from the ClusterClass.
 	// Note: We have to use apiextensionsv1.JSON instead of a custom JSON type, because controller-tools has a
 	// hard-coded schema for apiextensionsv1.JSON which cannot be produced by another type via controller-tools,
-	// i.e. it's not possible to have no type field.
+	// i.e. it is not possible to have no type field.
 	// Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111
+	// Note: This field has to be nullable, so allow setting nullable variables to "null".
+	// +nullable
 	Value apiextensionsv1.JSON `json:"value"`
 }
 

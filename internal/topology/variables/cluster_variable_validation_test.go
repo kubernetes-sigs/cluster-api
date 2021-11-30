@@ -340,6 +340,45 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Error if string is null",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "location",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "string",
+						Nullable: false,
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "location",
+				Value: apiextensionsv1.JSON{
+					Raw: nil, // A JSON with a nil value is the result of setting the variable value to "null" via YAML.
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Valid nullable string",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "location",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "string",
+						Nullable: true,
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "location",
+				Value: apiextensionsv1.JSON{
+					Raw: nil, // A JSON with a nil value is the result of setting the variable value to "null" via YAML.
+				},
+			},
+		},
 
 		{
 			name: "Valid enum",

@@ -48,7 +48,7 @@ func TestGenerate(t *testing.T) {
 							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
 							Kind:       "ControlPlaneTemplate",
 							MatchResources: clusterv1.PatchSelectorMatch{
-								ControlPlane: pointer.Bool(true),
+								ControlPlane: true,
 							},
 						},
 						JSONPatches: []clusterv1.JSONPatch{
@@ -157,7 +157,7 @@ func TestGenerate(t *testing.T) {
 							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
 							Kind:       "ControlPlaneTemplate",
 							MatchResources: clusterv1.PatchSelectorMatch{
-								ControlPlane: pointer.Bool(true),
+								ControlPlane: true,
 							},
 						},
 						JSONPatches: []clusterv1.JSONPatch{
@@ -188,7 +188,7 @@ func TestGenerate(t *testing.T) {
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 							Kind:       "BootstrapTemplate",
 							MatchResources: clusterv1.PatchSelectorMatch{
-								MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+								MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
 									Names: []string{"default-worker"},
 								},
 							},
@@ -329,7 +329,7 @@ func TestTemplateMatchesSelector(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "AzureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					InfrastructureCluster: pointer.Bool(true),
+					InfrastructureCluster: true,
 				},
 			},
 			match: true,
@@ -359,7 +359,7 @@ func TestTemplateMatchesSelector(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "AzureClusterTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					InfrastructureCluster: pointer.Bool(false),
+					InfrastructureCluster: false,
 				},
 			},
 			match: false,
@@ -375,7 +375,7 @@ func TestTemplateMatchesSelector(t *testing.T) {
 				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: pointer.Bool(true),
+					ControlPlane: true,
 				},
 			},
 			match: true,
@@ -405,7 +405,7 @@ func TestTemplateMatchesSelector(t *testing.T) {
 				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: pointer.Bool(false),
+					ControlPlane: false,
 				},
 			},
 			match: false,
@@ -421,7 +421,7 @@ func TestTemplateMatchesSelector(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "AzureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: pointer.Bool(true),
+					ControlPlane: true,
 				},
 			},
 			match: true,
@@ -440,7 +440,7 @@ func TestTemplateMatchesSelector(t *testing.T) {
 				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+					MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"classA"},
 					},
 				},
@@ -478,7 +478,7 @@ func TestTemplateMatchesSelector(t *testing.T) {
 				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+					MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"classB"},
 					},
 				},
@@ -499,7 +499,7 @@ func TestTemplateMatchesSelector(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "AzureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+					MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"classA"},
 					},
 				},
@@ -518,7 +518,7 @@ func TestTemplateMatchesSelector(t *testing.T) {
 				APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
 				Kind:       "ControlPlaneTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					ControlPlane: pointer.Bool(true),
+					ControlPlane: true,
 				},
 			},
 			match: false,

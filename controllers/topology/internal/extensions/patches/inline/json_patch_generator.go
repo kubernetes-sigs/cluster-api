@@ -110,22 +110,13 @@ func templateMatchesSelector(templateRef *api.TemplateRef, selector clusterv1.Pa
 	switch templateRef.TemplateType {
 	case api.InfrastructureClusterTemplateType:
 		// Check if matchSelector.infrastructureCluster is true.
-		if selector.MatchResources.InfrastructureCluster == nil {
-			return false
-		}
-		return *selector.MatchResources.InfrastructureCluster
+		return selector.MatchResources.InfrastructureCluster
 	case api.ControlPlaneTemplateType, api.ControlPlaneInfrastructureMachineTemplateType:
 		// Check if matchSelector.controlPlane is true.
-		if selector.MatchResources.ControlPlane == nil {
-			return false
-		}
-		return *selector.MatchResources.ControlPlane
+		return selector.MatchResources.ControlPlane
 	case api.MachineDeploymentBootstrapConfigTemplateType, api.MachineDeploymentInfrastructureMachineTemplateType:
 		// Check if matchSelector.machineDeploymentClass.names contains the
 		// MachineDeployment.Class of the template.
-		if selector.MatchResources.MachineDeploymentClass == nil {
-			return false
-		}
 		for _, name := range selector.MatchResources.MachineDeploymentClass.Names {
 			if name == templateRef.MachineDeploymentRef.Class {
 				return true

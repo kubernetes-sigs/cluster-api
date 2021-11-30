@@ -251,3 +251,25 @@ const (
 	// ScalingDownReason (Severity=Info) documents a MachineSet is decreasing the number of replicas.
 	ScalingDownReason = "ScalingDown"
 )
+
+// Conditions and condition reasons for Clusters with a managed Topology.
+const (
+	// TopologyReconciledCondition provides evidence about the reconciliation of a Cluster topology into
+	// the managed objects of the Cluster.
+	// Status false means that for any reason, the values defined in Cluster.spec.topology are not yet applied to
+	// managed objects on the Cluster; status true means that Cluster.spec.topology have been applied to
+	// objects in the Cluster (but this does not imply those objects are already reconciled to the spec provided).
+	TopologyReconciledCondition ConditionType = "TopologyReconciled"
+
+	// TopologyReconcileFailedReason (Severity=Error) documents the reconciliation of a Cluster topology
+	// failing due to an error.
+	TopologyReconcileFailedReason = "TopologyReconcileFailed"
+
+	// TopologyReconciledControlPlaneUpgradePendingReason (Severity=Info) documents reconciliation of a Cluster topology
+	// not yet completed because Control Plane is not yet updated to match the desired topology spec.
+	TopologyReconciledControlPlaneUpgradePendingReason = "ControlPlaneUpgradePending"
+
+	// TopologyReconciledMachineDeploymentsUpgradePendingReason (Severity=Info) documents reconciliation of a Cluster topology
+	// not yet completed because at least one of the MachineDeployments is not yet updated to match the desired topology spec.
+	TopologyReconciledMachineDeploymentsUpgradePendingReason = "MachineDeploymentsUpgradePending"
+)

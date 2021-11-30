@@ -29,6 +29,11 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
+const (
+	// builtinsName is the name of the builtin variable.
+	builtinsName = "builtin"
+)
+
 // ValidateClusterClassVariables validates clusterClassVariable.
 func ValidateClusterClassVariables(clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
@@ -53,7 +58,7 @@ func validateClusterClassVariableNamesUnique(clusterClassVariables []clusterv1.C
 				field.Invalid(
 					pathPrefix.Index(i).Child("name"),
 					clusterClassVariable.Name,
-					fmt.Sprintf("variable names must be unique. %v is repeated.", clusterClassVariable.Name),
+					fmt.Sprintf("variable name must be unique. Variable with name %q is defined more than once", clusterClassVariable.Name),
 				),
 			)
 		}
@@ -81,15 +86,14 @@ func validateClusterClassVariableName(variableName string, fldPath *field.Path) 
 	allErrs := field.ErrorList{}
 
 	if variableName == "" {
-		allErrs = append(allErrs, field.Invalid(fldPath, variableName, "name cannot be empty"))
+		allErrs = append(allErrs, field.Required(fldPath, "variable name must be defined"))
 	}
 
-	// TODO(sbueringer): This should share a constant with controllers/topology/internal/extensions/patches/variables.BuiltinsName.
-	if variableName == "builtin" {
-		allErrs = append(allErrs, field.Invalid(fldPath, variableName, "name cannot be \"builtin\""))
+	if variableName == builtinsName {
+		allErrs = append(allErrs, field.Invalid(fldPath, variableName, fmt.Sprintf("%q is a reserved variable name", builtinsName)))
 	}
 	if strings.Contains(variableName, ".") {
-		allErrs = append(allErrs, field.Invalid(fldPath, variableName, "name cannot contain \".\""))
+		allErrs = append(allErrs, field.Invalid(fldPath, variableName, "variable name cannot contain \".\"")) // TODO: consider if to restrict variable names to RFC 1123
 	}
 
 	return allErrs
@@ -102,15 +106,15 @@ func validateSchema(schema *clusterv1.JSONSchemaProps, variableName string, fldP
 	apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(schema)
 	if err != nil {
 		return field.ErrorList{field.Invalid(fldPath, schema,
-			fmt.Sprintf("invalid schema in ClusterClass for variable %q: error to convert schema %v", variableName, err))}
+			fmt.Sprintf("invalid schema definition for variable %q: %v", variableName, err))}
 	}
 
 	// Validate that type is one of the validVariableTypes.
 	switch {
 	case len(apiExtensionsSchema.Type) == 0:
-		return field.ErrorList{field.Required(fldPath.Child("type"), "type cannot be empty")}
+		return field.ErrorList{field.Required(fldPath.Child("type"), "openAPIV3Schema.type cannot be empty")}
 	case apiExtensionsSchema.Type == "null":
-		return field.ErrorList{field.Forbidden(fldPath.Child("type"), "type cannot be set to null, use nullable as an alternative")}
+		return field.ErrorList{field.Forbidden(fldPath.Child("type"), "openAPIV3Schema.type cannot be set to null, use nullable as an alternative")}
 	case !validVariableTypes.Has(apiExtensionsSchema.Type):
 		return field.ErrorList{field.NotSupported(fldPath.Child("type"), apiExtensionsSchema.Type, validVariableTypes.List())}
 	}

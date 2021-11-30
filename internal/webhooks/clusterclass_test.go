@@ -161,11 +161,12 @@ func TestClusterClassValidationFeatureGated(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			webhook := &ClusterClass{}
+			err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
-				g.Expect(webhook.validate(ctx, tt.old, tt.in)).NotTo(Succeed())
-			} else {
-				g.Expect(webhook.validate(ctx, tt.old, tt.in)).To(Succeed())
+				g.Expect(err).To(HaveOccurred())
+				return
 			}
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
@@ -1012,14 +1013,14 @@ func TestClusterClassValidation(t *testing.T) {
 				WithScheme(fakeScheme).
 				Build()
 
-			webhook := &ClusterClass{Client: fakeClient}
-
 			// Create the webhook and add the fakeClient as its client.
+			webhook := &ClusterClass{Client: fakeClient}
+			err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
-				g.Expect(webhook.validate(ctx, tt.old, tt.in)).NotTo(Succeed())
-			} else {
-				g.Expect(webhook.validate(ctx, tt.old, tt.in)).To(Succeed())
+				g.Expect(err).To(HaveOccurred())
+				return
 			}
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
@@ -1307,12 +1308,12 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 
 			// Create the webhook and add the fakeClient as its client.
 			webhook := &ClusterClass{Client: fakeClient}
-
+			err := webhook.validate(ctx, tt.oldClusterClass, tt.newClusterClass)
 			if tt.expectErr {
-				g.Expect(webhook.validate(ctx, tt.oldClusterClass, tt.newClusterClass)).NotTo(Succeed())
-			} else {
-				g.Expect(webhook.validate(ctx, tt.oldClusterClass, tt.newClusterClass)).To(Succeed())
+				g.Expect(err).To(HaveOccurred())
+				return
 			}
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
@@ -1432,12 +1433,12 @@ func TestClusterClass_ValidateDelete(t *testing.T) {
 
 			// Create the webhook and add the fakeClient as its client.
 			webhook := &ClusterClass{Client: fakeClient}
-
+			err := webhook.ValidateDelete(ctx, class)
 			if tt.expectErr {
-				g.Expect(webhook.ValidateDelete(ctx, class)).NotTo(Succeed())
-			} else {
-				g.Expect(webhook.ValidateDelete(ctx, class)).To(Succeed())
+				g.Expect(err).To(HaveOccurred())
+				return
 			}
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }

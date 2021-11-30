@@ -118,7 +118,7 @@ func (webhook *ClusterClass) ValidateDelete(ctx context.Context, obj runtime.Obj
 	if len(clusters) > 0 {
 		// TODO(killianmuldoon): Improve error here to include the names of some clusters using the clusterClass.
 		return apierrors.NewForbidden(clusterv1.GroupVersion.WithResource("ClusterClass").GroupResource(), clusterClass.Name,
-			fmt.Errorf("cannot be deleted. %d clusters still using the ClusterClass", len(clusters)))
+			fmt.Errorf("ClusterClass cannot be deleted because it is used by %d Cluster(s)", len(clusters)))
 	}
 	return nil
 }
@@ -178,9 +178,10 @@ func (webhook *ClusterClass) validateRemovedMachineDeploymentClassesAreNotUsed(c
 		for _, machineDeploymentTopology := range c.Spec.Topology.Workers.MachineDeployments {
 			if removedClasses.Has(machineDeploymentTopology.Class) {
 				// TODO(killianmuldoon): Improve error printing here so large scale changes don't flood the error log e.g. deduplication, only example usages given.
+				// TODO: consider if we get the index of the MachineDeploymentClass being deleted
 				allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "workers", "machineDeployments"),
-					fmt.Sprintf("MachineDeploymentClass %v is in use in MachineDeploymentTopology %v in Cluster %v. ClusterClass %v modification not allowed",
-						machineDeploymentTopology.Class, machineDeploymentTopology.Name, c.Name, old.Name),
+					fmt.Sprintf("MachineDeploymentClass %q cannot be deleted because it is used by Cluster %q",
+						machineDeploymentTopology.Class, c.Name),
 				))
 			}
 		}

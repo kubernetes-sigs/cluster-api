@@ -120,13 +120,12 @@ func TestObjectsAreCompatible(t *testing.T) {
 	for _, tt := range referencedObjectsCompatibilityTestCases {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-
-			allErrs := ObjectsAreCompatible(tt.current, tt.desired).ToAggregate()
+			allErrs := ObjectsAreCompatible(tt.current, tt.desired)
 			if tt.wantErr {
-				g.Expect(allErrs).To(HaveOccurred())
+				g.Expect(allErrs).ToNot(BeEmpty())
 				return
 			}
-			g.Expect(allErrs).ToNot(HaveOccurred())
+			g.Expect(allErrs).To(BeEmpty())
 		})
 	}
 }
@@ -175,12 +174,12 @@ func TestObjectsAreStrictlyCompatible(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			allErrs := ObjectsAreStrictlyCompatible(tt.current, tt.desired).ToAggregate()
+			allErrs := ObjectsAreStrictlyCompatible(tt.current, tt.desired)
 			if tt.wantErr {
-				g.Expect(allErrs).To(HaveOccurred())
+				g.Expect(allErrs).ToNot(BeEmpty())
 				return
 			}
-			g.Expect(allErrs).ToNot(HaveOccurred())
+			g.Expect(allErrs).To(BeEmpty())
 		})
 	}
 }
@@ -273,9 +272,13 @@ func TestLocalObjectTemplatesAreCompatible(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := LocalObjectTemplatesAreCompatible(tt.current, tt.desired, field.NewPath("spec")); (err != nil) != tt.wantErr {
-				t.Errorf("LocalObjectTemplatesAreCompatible() error = %v, wantErr %v", err.ToAggregate(), tt.wantErr)
+			g := NewWithT(t)
+			allErrs := LocalObjectTemplatesAreCompatible(tt.current, tt.desired, field.NewPath("spec"))
+			if tt.wantErr {
+				g.Expect(allErrs).ToNot(BeEmpty())
+				return
 			}
+			g.Expect(allErrs).To(BeEmpty())
 		})
 	}
 }
@@ -382,12 +385,12 @@ func TestLocalObjectTemplateIsValid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			allErrs := LocalObjectTemplateIsValid(tt.template, namespace, pathPrefix).ToAggregate()
+			allErrs := LocalObjectTemplateIsValid(tt.template, namespace, pathPrefix)
 			if tt.wantErr {
-				g.Expect(allErrs).To(HaveOccurred())
+				g.Expect(allErrs).ToNot(BeEmpty())
 				return
 			}
-			g.Expect(allErrs).ToNot(HaveOccurred())
+			g.Expect(allErrs).To(BeEmpty())
 		})
 	}
 }
@@ -561,11 +564,12 @@ func TestClusterClassesAreCompatible(t *testing.T) {
 	for _, tt := range tests {
 		g := NewWithT(t)
 		t.Run(tt.name, func(t *testing.T) {
+			allErrs := ClusterClassesAreCompatible(tt.current, tt.desired)
 			if tt.wantErr {
-				g.Expect(ClusterClassesAreCompatible(tt.current, tt.desired).ToAggregate()).NotTo(Succeed())
-			} else {
-				g.Expect(ClusterClassesAreCompatible(tt.current, tt.desired).ToAggregate()).To(Succeed())
+				g.Expect(allErrs).ToNot(BeEmpty())
+				return
 			}
+			g.Expect(allErrs).To(BeEmpty())
 		})
 	}
 }
@@ -706,11 +710,12 @@ func TestMachineDeploymentClassesAreCompatible(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			allErrs := MachineDeploymentClassesAreCompatible(tt.current, tt.desired)
 			if tt.wantErr {
-				g.Expect(MachineDeploymentClassesAreCompatible(tt.current, tt.desired).ToAggregate()).NotTo(Succeed())
-			} else {
-				g.Expect(MachineDeploymentClassesAreCompatible(tt.current, tt.desired).ToAggregate()).To(Succeed())
+				g.Expect(allErrs).ToNot(BeEmpty())
+				return
 			}
+			g.Expect(allErrs).To(BeEmpty())
 		})
 	}
 }
@@ -813,11 +818,12 @@ func TestMachineDeploymentClassesAreUnique(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			allErrs := MachineDeploymentClassesAreUnique(tt.clusterClass)
 			if tt.wantErr {
-				g.Expect(MachineDeploymentClassesAreUnique(tt.clusterClass).ToAggregate()).NotTo(Succeed())
-			} else {
-				g.Expect(MachineDeploymentClassesAreUnique(tt.clusterClass).ToAggregate()).To(Succeed())
+				g.Expect(allErrs).ToNot(BeEmpty())
+				return
 			}
+			g.Expect(allErrs).To(BeEmpty())
 		})
 	}
 }
@@ -961,11 +967,12 @@ func TestMachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(t *testing
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			allErrs := MachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(tt.cluster, tt.clusterClass)
 			if tt.wantErr {
-				g.Expect(MachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(tt.cluster, tt.clusterClass).ToAggregate()).NotTo(Succeed())
-			} else {
-				g.Expect(MachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(tt.cluster, tt.clusterClass).ToAggregate()).To(Succeed())
+				g.Expect(allErrs).ToNot(BeEmpty())
+				return
 			}
+			g.Expect(allErrs).To(BeEmpty())
 		})
 	}
 }
@@ -1061,13 +1068,14 @@ func TestClusterClassReferencesAreValid(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		g := NewWithT(t)
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			allErrs := ClusterClassReferencesAreValid(tt.clusterClass)
 			if tt.wantErr {
-				g.Expect(ClusterClassReferencesAreValid(tt.clusterClass).ToAggregate()).NotTo(Succeed())
-			} else {
-				g.Expect(ClusterClassReferencesAreValid(tt.clusterClass).ToAggregate()).To(Succeed())
+				g.Expect(allErrs).ToNot(BeEmpty())
+				return
 			}
+			g.Expect(allErrs).To(BeEmpty())
 		})
 	}
 }

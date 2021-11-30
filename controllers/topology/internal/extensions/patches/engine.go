@@ -248,7 +248,7 @@ func applyPatchesToRequest(ctx context.Context, req *api.GenerateRequest, resp *
 	log := tlog.LoggerFrom(ctx)
 
 	for _, patch := range resp.Items {
-		log = log.WithValues("templateRef", patch.TemplateRef)
+		log = log.WithValues("templateRef", patch.TemplateRef.String())
 
 		// Get the template the patch should be applied to.
 		template := getTemplate(req, patch.TemplateRef)
@@ -264,7 +264,7 @@ func applyPatchesToRequest(ctx context.Context, req *api.GenerateRequest, resp *
 
 		switch patch.PatchType {
 		case api.JSONPatchType:
-			log.V(5).Infof("Accumulating JSON patch", "patch", string(patch.Patch.Raw))
+			log.V(5).Infof("Accumulating JSON patch: %s", string(patch.Patch.Raw))
 			jsonPatch, err := jsonpatch.DecodePatch(patch.Patch.Raw)
 			if err != nil {
 				return errors.Wrapf(err, "failed to apply patch to template %s: error decoding json patch (RFC6902): %s",
@@ -277,7 +277,7 @@ func applyPatchesToRequest(ctx context.Context, req *api.GenerateRequest, resp *
 					template.TemplateRef, string(patch.Patch.Raw))
 			}
 		case api.JSONMergePatchType:
-			log.V(5).Infof("Accumulating JSON merge patch", "patch", string(patch.Patch.Raw))
+			log.V(5).Infof("Accumulating JSON merge patch: %s", string(patch.Patch.Raw))
 			patchedTemplate, err = jsonpatch.MergePatch(template.Template.Raw, patch.Patch.Raw)
 			if err != nil {
 				return errors.Wrapf(err, "failed to apply patch to template %s: error applying json merge patch (RFC7386): %s",

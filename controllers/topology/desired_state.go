@@ -93,13 +93,13 @@ func (r *ClusterReconciler) computeDesiredState(ctx context.Context, s *scope.Sc
 // corresponding template defined in the blueprint.
 func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructured.Unstructured, error) {
 	template := s.Blueprint.InfrastructureClusterTemplate
-	templateClonedFromref := s.Blueprint.ClusterClass.Spec.Infrastructure.Ref
+	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.Infrastructure.Ref
 	cluster := s.Current.Cluster
 	currentRef := cluster.Spec.InfrastructureRef
 
 	infrastructureCluster, err := templateToObject(templateToInput{
 		template:              template,
-		templateClonedFromRef: templateClonedFromref,
+		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
 		namePrefix:            fmt.Sprintf("%s-", cluster.Name),
 		currentObjectRef:      currentRef,

@@ -107,7 +107,7 @@ func patchUnstructured(ctx context.Context, original, modified *unstructured.Uns
 	}
 
 	// Log the delta between the object before and after applying the accumulated patches.
-	log.V(4).WithObject(original).Infof("Applying accumulated patches", "diff", string(diff))
+	log.V(4).WithObject(original).Infof("Applying accumulated patches to desired state: %s", string(diff))
 
 	// Overwrite original.
 	*original = *patched

@@ -1,72 +1,36 @@
-# Releasing
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+# Release Process
 
-
-- [Prerequisites](#prerequisites)
-  - [`gcloud`](#gcloud)
-  - [`docker`](#docker)
-- [Output](#output)
-  - [Expected artifacts](#expected-artifacts)
-  - [Artifact locations](#artifact-locations)
-- [Process](#process)
-  - [Permissions](#permissions)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-## Prerequisites
-
-### `gcloud`
-
-With gcloud, run `gcloud auth login` and select your account [listed here](https://github.com/kubernetes/k8s.io/blob/05ada8c9ff90e7921e10d86ac5d59f5c1f4f74dc/groups/groups.yaml#L113). Open a PR if your account is not listed there but you believe it should be.
-
-### `docker`
-
-Enable the [experimental features for the docker CLI](https://docs.docker.com/engine/reference/commandline/cli/#environment-variables) by setting the appropriate environment variable.
-
-```
-export DOCKER_CLI_EXPERIMENTAL=enabled
-```
-
-## Output
-
-### Expected artifacts
-
-1. A container image of the shared cluster-api controller manager
-2. A git tag for providers to use
-
-### Artifact locations
-
-1. The container image is found in the registry `k8s.gcr.io/cluster-api/` with an image
-   name of `cluster-api-controller` and a tag that matches the release version. For
-   example, in the `v0.1.5` release, the container image location is
-   `k8s.gcr.io/cluster-api/cluster-api-controller:v0.1.5`
-
-2. Prior to the `v0.1.5` release, the container image is found in the registry
-   `gcr.io/k8s-cluster-api` with an image name of `cluster-api-controller` and a tag
-   that matches the release version. For example, in the `v0.1.4` release, the container
-   image location is `gcr.io/k8s-cluster-api/cluster-api-controller:v0.1.4`
-
-3. Prior to the `v0.1.4` release, the container image is found in the
-   registry `gcr.io/k8s-cluster-api` with an image name of `cluster-api-controller`
-   and a tag that matches the release version. For example, in the `0.1.3` release,
-   the container image location is `gcr.io/k8s-cluster-api/cluster-api-controller:0.1.3`
-
-## Process
-
-For version v0.x.y:
+## Create a tag
 
 1. Create an annotated tag
    > NOTE: To use your GPG signature when pushing the tag, use `git tag -s [...]` instead)
-   - `git tag -a v0.x.y -m v0.x.y`
-   - `git tag test/v0.x.y` (:warning: MUST NOT be an annotated tag)
+   - `export RELEASE_TAG=<the tag of the release to be cut>` (eg. `export RELEASE_TAG=v1.0.1`)
+   - `git tag -a ${RELEASE_TAG} -m ${RELEASE_TAG}`
+   - `git tag test/${RELEASE_TAG}` (:warning: MUST NOT be an annotated tag)
 1. Push the tag to the GitHub repository. This will automatically trigger a [Github Action](https://github.com/kubernetes-sigs/cluster-api/actions) to create a draft release.
    > NOTE: `origin` should be the name of the remote pointing to `github.com/kubernetes-sigs/cluster-api`
-   - `git push origin v0.x.y`
-   - `git push origin test/v0.x.y`
-1. Follow the [Image Promotion process](https://git.k8s.io/k8s.io/k8s.gcr.io#image-promoter) to promote the image from the staging repo to `k8s.gcr.io/cluster-api`
+   - `git push origin ${RELEASE_TAG}`
+   - `git push origin test/${RELEASE_TAG}`
+
+## Promote images from the staging repo to `k8s.gcr.io/cluster-api`
+
+Images are built by the [post push images job](https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-push-images). This will push the image to a [staging repository](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api).
+
+1. If you don't have a GitHub token, create one by going to your GitHub settings, in [Personal access tokens](https://github.com/settings/tokens). Make sure you give the token the `repo` scope.
+1. Wait for the above job to complete for the tag commit and for the image to exist in the staging repository, then create a PR to promote the image and tag:
+   - `export GITHUB_TOKEN=<your GH token>`
+   - `make promote-images`
+
+This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPI maintainers.
+
+## Release in GitHub
+
 1. Review the draft release on GitHub. Pay close attention to the `## :question: Sort these by hand` section, as it contains items that need to be manually sorted.
 1. Publish the release
+
+### Versioning
+
+See the [versioning documentation](./../../CONTRIBUTING.md#versioning) for more information.
 
 ### Permissions
 

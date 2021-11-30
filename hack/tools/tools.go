@@ -29,4 +29,5 @@ import (
 	_ "k8s.io/code-generator/cmd/conversion-gen"
 	_ "sigs.k8s.io/controller-runtime/tools/setup-envtest"
 	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
+	_ "sigs.k8s.io/promo-tools/v3/cmd/kpromo"
 )

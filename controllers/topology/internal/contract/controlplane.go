@@ -98,7 +98,7 @@ func (c *ControlPlaneContract) ReadyReplicas() *Int64 {
 
 // IsUpgrading returns true if the control plane is in the middle of an upgrade, false otherwise.
 // A control plane is considered upgrading if:
-// - if spec.version is greater than status.verison.
+// - if spec.version is greater than status.version.
 // Note: A control plane is considered not upgrading if the status or status.version is not set.
 func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool, error) {
 	specVersion, err := c.Version().Get(obj)
@@ -113,7 +113,7 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 	if err != nil {
 		if errors.Is(err, errNotFound) { // status version is not yet set
 			// If the status.version is not yet present in the object, it implies the
-			// first machine of the control plane is provisioning. We can resonably assume
+			// first machine of the control plane is provisioning. We can reasonably assume
 			// that the control plane is not upgrading at this stage.
 			return false, nil
 		}

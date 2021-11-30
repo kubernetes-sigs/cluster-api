@@ -188,7 +188,7 @@ func computeControlPlane(_ context.Context, s *scope.Scope, infrastructureMachin
 				Labels:      machineLabels,
 				Annotations: mergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations),
 			}); err != nil {
-			return nil, errors.Wrap(err, "failed to spec.machineTemplate.metadata in the ControlPlane object")
+			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.metadata in the ControlPlane object")
 		}
 	}
 

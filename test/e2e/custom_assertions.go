@@ -35,13 +35,13 @@ func (m *controllerMatch) Match(actual interface{}) (success bool, err error) {
 		return false, fmt.Errorf("unable to read meta for %T: %w", actual, err)
 	}
 
-	owner := metav1.GetControllerOf(actualMeta) //nolint:ifshort
+	owner := metav1.GetControllerOf(actualMeta)
 	if owner == nil {
 		return false, fmt.Errorf("no controller found (owner ref with controller = true) for object %#v", actual)
 	}
 
-	match := (owner.Kind == m.kind &&
-		owner.Name == m.owner.GetName() && owner.UID == m.owner.GetUID())
+	match := owner.Kind == m.kind &&
+		owner.Name == m.owner.GetName() && owner.UID == m.owner.GetUID()
 
 	return match, nil
 }

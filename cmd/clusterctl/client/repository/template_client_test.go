@@ -207,7 +207,7 @@ func Test_templates_Get(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			if !tt.args.listVariablesOnly {
-				g.Expect(yaml).To(ContainSubstring((fmt.Sprintf("variable: %s", variableValue))))
+				g.Expect(yaml).To(ContainSubstring(fmt.Sprintf("variable: %s", variableValue)))
 			}
 
 			// check if target namespace is set

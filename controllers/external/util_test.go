@@ -251,7 +251,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 
 	expectedKind := "Yellow"
 	expectedAPIVersion := templateAPIVersion
-	expectedLabels := (map[string]string{clusterv1.ClusterLabelName: testClusterName})
+	expectedLabels := map[string]string{clusterv1.ClusterLabelName: testClusterName}
 
 	expectedSpec, ok, err := unstructured.NestedMap(template.UnstructuredContent(), "spec", "template", "spec")
 	g.Expect(err).NotTo(HaveOccurred())

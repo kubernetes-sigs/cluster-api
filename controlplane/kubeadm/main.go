@@ -241,7 +241,7 @@ func setupWebhooks(mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&kcpv1.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager((mgr)); err != nil {
+	if err := (&kcpv1.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlaneTemplate")
 	}
 }

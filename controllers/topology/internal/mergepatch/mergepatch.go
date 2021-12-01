@@ -302,5 +302,6 @@ func (h *Helper) Patch(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(5).Info("Patching object", "Patch", string(h.patch))
 
-	return h.client.Patch(ctx, h.original, client.RawPatch(types.MergePatchType, h.patch))
+	// Note: deepcopy before patching in order to avoid modifications to the original object.
+	return h.client.Patch(ctx, h.original.DeepCopyObject().(client.Object), client.RawPatch(types.MergePatchType, h.patch))
 }

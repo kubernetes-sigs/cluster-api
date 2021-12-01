@@ -22,6 +22,7 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
 var _ = Describe("When upgrading a workload cluster and testing K8S conformance [Conformance] [K8s-Upgrade]", func() {
@@ -48,6 +49,60 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass", func() 
 			// This test is run in CI in parallel with other tests. To keep the test duration reasonable
 			// the conformance tests are skipped.
 			SkipConformanceTests: true,
+		}
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster with a single control plane machine", func() {
+	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
+		return ClusterUpgradeConformanceSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			// This test is run in CI in parallel with other tests. To keep the test duration reasonable
+			// the conformance tests are skipped.
+			SkipConformanceTests:     true,
+			ControlPlaneMachineCount: pointer.Int64(1),
+			WorkerMachineCount:       pointer.Int64(1),
+			Flavor:                   pointer.String(clusterctl.DefaultFlavor),
+		}
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster with a HA control plane", func() {
+	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
+		return ClusterUpgradeConformanceSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			// This test is run in CI in parallel with other tests. To keep the test duration reasonable
+			// the conformance tests are skipped.
+			SkipConformanceTests:     true,
+			ControlPlaneMachineCount: pointer.Int64(3),
+			WorkerMachineCount:       pointer.Int64(1),
+			Flavor:                   pointer.String(clusterctl.DefaultFlavor),
+		}
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster with a HA control plane using scale-in rollout", func() {
+	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
+		return ClusterUpgradeConformanceSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			// This test is run in CI in parallel with other tests. To keep the test duration reasonable
+			// the conformance tests are skipped.
+			SkipConformanceTests:     true,
+			ControlPlaneMachineCount: pointer.Int64(3),
+			WorkerMachineCount:       pointer.Int64(1),
+			Flavor:                   pointer.String("kcp-scale-in"),
 		}
 	})
 })

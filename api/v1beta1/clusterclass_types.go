@@ -17,6 +17,9 @@ limitations under the License.
 package v1beta1
 
 import (
+	"encoding/json"
+
+	"github.com/valyala/fastjson"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -209,7 +212,53 @@ type JSONSchemaProps struct {
 
 	// Default is the default value of the variable.
 	// +optional
+	// +nullable
 	Default *apiextensionsv1.JSON `json:"default,omitempty"`
+}
+
+func (s *JSONSchemaProps) UnmarshalJSON(b []byte) error {
+	res := &struct {
+		Type             string                 `json:"type"`
+		Nullable         bool                   `json:"nullable,omitempty"`
+		Format           string                 `json:"format,omitempty"`
+		MaxLength        *int64                 `json:"maxLength,omitempty"`
+		MinLength        *int64                 `json:"minLength,omitempty"`
+		Pattern          string                 `json:"pattern,omitempty"`
+		Maximum          *int64                 `json:"maximum,omitempty"`
+		ExclusiveMaximum bool                   `json:"exclusiveMaximum,omitempty"`
+		Minimum          *int64                 `json:"minimum,omitempty"`
+		ExclusiveMinimum bool                   `json:"exclusiveMinimum,omitempty"`
+		Enum             []apiextensionsv1.JSON `json:"enum,omitempty"`
+		Default          *apiextensionsv1.JSON  `json:"default,omitempty"`
+	}{}
+	if err := json.Unmarshal(b, res); err != nil {
+		return err
+	}
+
+	if res.Default == nil {
+		v, err := fastjson.ParseBytes(b)
+		if err != nil {
+			return err
+		}
+		if v.Exists("default") &&
+			v.Get("default").Type() == fastjson.TypeNull {
+			res.Default = &apiextensionsv1.JSON{Raw: nil}
+		}
+	}
+
+	s.Type = res.Type
+	s.Nullable = res.Nullable
+	s.Format = res.Format
+	s.MaxLength = res.MaxLength
+	s.MinLength = res.MinLength
+	s.Pattern = res.Pattern
+	s.Maximum = res.Maximum
+	s.ExclusiveMaximum = res.ExclusiveMaximum
+	s.Minimum = res.Minimum
+	s.ExclusiveMinimum = res.ExclusiveMinimum
+	s.Enum = res.Enum
+	s.Default = res.Default
+	return nil
 }
 
 // ClusterClassPatch defines a patch which is applied to customize the referenced templates.
@@ -298,6 +347,7 @@ type JSONPatch struct {
 	// which cannot be produced by another type (unset type field).
 	// Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111
 	// +optional
+	// +nullable
 	Value *apiextensionsv1.JSON `json:"value,omitempty"`
 
 	// ValueFrom defines the value of the patch.
@@ -305,6 +355,35 @@ type JSONPatch struct {
 	// operations. Only one of them is allowed to be set at the same time.
 	// +optional
 	ValueFrom *JSONPatchValue `json:"valueFrom,omitempty"`
+}
+
+func (s *JSONPatch) UnmarshalJSON(b []byte) error {
+	res := &struct {
+		Op        string                `json:"op"`
+		Path      string                `json:"path"`
+		Value     *apiextensionsv1.JSON `json:"value,omitempty"`
+		ValueFrom *JSONPatchValue       `json:"valueFrom,omitempty"`
+	}{}
+	if err := json.Unmarshal(b, res); err != nil {
+		return err
+	}
+
+	if res.Value == nil {
+		v, err := fastjson.ParseBytes(b)
+		if err != nil {
+			return err
+		}
+		if v.Exists("value") &&
+			v.Get("value").Type() == fastjson.TypeNull {
+			res.Value = &apiextensionsv1.JSON{Raw: nil}
+		}
+	}
+
+	s.Op = res.Op
+	s.Path = res.Path
+	s.Value = res.Value
+	s.ValueFrom = res.ValueFrom
+	return nil
 }
 
 // JSONPatchValue defines the value of a patch.

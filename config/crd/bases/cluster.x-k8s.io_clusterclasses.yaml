@@ -613,6 +613,7 @@ spec:
                                     schema for apiextensionsv1.JSON which cannot be
                                     produced by another type (unset type field). Ref:
                                     https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111'
+                                  nullable: true
                                   x-kubernetes-preserve-unknown-fields: true
                                 valueFrom:
                                   description: 'ValueFrom defines the value of the
@@ -720,6 +721,7 @@ spec:
                           properties:
                             default:
                               description: Default is the default value of the variable.
+                              nullable: true
                               x-kubernetes-preserve-unknown-fields: true
                             enum:
                               description: Enum is the list of valid values of the

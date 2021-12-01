@@ -432,7 +432,7 @@ func GetGVKMetadata(ctx context.Context, c client.Client, gvk schema.GroupVersio
 // GetCRDWithContract retrieves a list of CustomResourceDefinitions from using controller-runtime Client,
 // filtering with the `contract` label passed in.
 // Returns the first CRD in the list that matches the GroupVersionKind, otherwise returns an error.
-func GetCRDWithContract(ctx context.Context, c client.Client, gvk schema.GroupVersionKind, contract string) (*apiextensionsv1.CustomResourceDefinition, error) {
+func GetCRDWithContract(ctx context.Context, c client.Reader, gvk schema.GroupVersionKind, contract string) (*apiextensionsv1.CustomResourceDefinition, error) {
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
 	for {
 		if err := c.List(ctx, crdList, client.Continue(crdList.Continue), client.HasLabels{contract}); err != nil {

@@ -62,6 +62,7 @@ import (
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object.
 type KubeadmControlPlaneReconciler struct {
 	Client     client.Client
+	APIReader  client.Reader
 	controller controller.Controller
 	recorder   record.EventRecorder
 	Tracker    *remote.ClusterCacheTracker

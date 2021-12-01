@@ -146,6 +146,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
+			APIReader:                 fakeClient,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 			recorder:                  record.NewFakeRecorder(32),

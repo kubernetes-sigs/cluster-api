@@ -75,8 +75,9 @@ var (
 
 // MachineReconciler reconciles a Machine object.
 type MachineReconciler struct {
-	Client  client.Client
-	Tracker *remote.ClusterCacheTracker
+	Client    client.Client
+	APIReader client.Reader
+	Tracker   *remote.ClusterCacheTracker
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string

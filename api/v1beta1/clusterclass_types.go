@@ -273,7 +273,8 @@ type PatchSelectorMatch struct {
 // in specific MachineDeploymentClasses in .spec.workers.machineDeployments.
 type PatchSelectorMatchMachineDeploymentClass struct {
 	// Names selects templates by class names.
-	Names []string `json:"names"`
+	// +optional
+	Names []string `json:"names,omitempty"`
 }
 
 // JSONPatch defines a JSON patch.

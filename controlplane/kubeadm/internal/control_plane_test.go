@@ -58,7 +58,7 @@ func TestControlPlane(t *testing.T) {
 			g.Expect(*controlPlane.FailureDomainWithMostMachines(controlPlane.Machines)).To(Equal("two"))
 		})
 
-		t.Run(("With some machines in non defined failure domains"), func(t *testing.T) {
+		t.Run("With some machines in non defined failure domains", func(t *testing.T) {
 			controlPlane.Machines.Insert(machine("machine-5", withFailureDomain("unknown")))
 			g.Expect(*controlPlane.FailureDomainWithMostMachines(controlPlane.Machines)).To(Equal("unknown"))
 		})

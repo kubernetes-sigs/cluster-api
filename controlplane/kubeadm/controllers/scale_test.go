@@ -565,7 +565,7 @@ func withFailureDomain(fd string) machineOpt {
 
 func withAnnotation(annotation string) machineOpt {
 	return func(m *clusterv1.Machine) {
-		m.ObjectMeta.Annotations = (map[string]string{annotation: ""})
+		m.ObjectMeta.Annotations = map[string]string{annotation: ""}
 	}
 }
 

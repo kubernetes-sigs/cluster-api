@@ -1,0 +1,116 @@
+# Creates a cluster with one control-plane node and one worker node
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.96.0.0/12"]
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+    serviceDomain: cluster.local
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: KubeadmControlPlane
+    name: controlplane
+    namespace: default
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: DockerCluster
+    name: my-cluster
+    namespace: default
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: controlplane
+  namespace: default
+spec:
+  replicas: 1
+  version: v1.22.4
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerMachineTemplate
+      name: controlplane
+      namespace: default
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      controllerManager:
+        extraArgs:
+          enable-hostpath-provisioner: "true"
+    initConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+          # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+          cgroup-driver: cgroupfs
+          eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+    preKubeadmCommands:
+    - sysctl -w fs.inotify.max_user_watches=1048576
+    - sysctl -w fs.inotify.max_user_instances=512
+    - sysctl -w vm.max_map_count=524288
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerCluster
+metadata:
+  name: my-cluster
+  namespace: default
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: controlplane
+  namespace: default
+spec:
+  template:
+    spec: {}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: worker-mp-0
+  namespace: default
+  annotations:
+    cluster.k8s.io/cluster-api-autoscaler-node-group-min-size: "1"
+    cluster.k8s.io/cluster-api-autoscaler-node-group-max-size: "10"
+spec:
+  clusterName: my-cluster
+  replicas: 1
+  template:
+    spec:
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfig
+          name: worker-mp-0-config
+          namespace: default
+      clusterName: my-cluster
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachinePool
+        name: worker-dmp-0
+        namespace: default
+      version: v1.22.4
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePool
+metadata:
+  name: worker-dmp-0
+  namespace: default
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfig
+metadata:
+  name: worker-mp-0-config
+  namespace: default
+spec:
+  joinConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+        # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+        cgroup-driver: cgroupfs
+        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%

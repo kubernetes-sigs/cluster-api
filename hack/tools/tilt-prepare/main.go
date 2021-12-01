@@ -341,7 +341,7 @@ func certManagerTask() taskFunction {
 		cluster := cluster.New(cluster.Kubeconfig{}, config)
 
 		if err := cluster.CertManager().EnsureInstalled(); err != nil {
-			errCh <- errors.Wrapf(err, "[%s] failed to install cert-manger", prefix)
+			errCh <- errors.Wrapf(err, "[%s] failed to install cert-manager", prefix)
 		}
 	}
 }

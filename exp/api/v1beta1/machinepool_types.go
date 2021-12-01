@@ -52,8 +52,15 @@ type MachinePoolSpec struct {
 	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
-	// ProviderIDList are the identification IDs of machine instances provided by the provider.
+	// InfrastructureRefList are the infrastructure references of machine instances, populated by the provider.
+	// This field must contain the infrastructure references of all instances in the machine pool.
+	// If this list is populated by the provider, `ProviderIDList` should be left empty.
+	// +optional
+	InfrastructureRefList []corev1.ObjectReference `json:"infrastructureRefList,omitempty"`
+
+	// ProviderIDList are the identifiers of machine instances populated by the provider.
 	// This field must match the provider IDs as seen on the node objects corresponding to a machine pool's machine instances.
+	// If this list is populated by the provider, `InfrastructureRefList` should be left empty.
 	// +optional
 	ProviderIDList []string `json:"providerIDList,omitempty"`
 

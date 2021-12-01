@@ -25,9 +25,12 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -272,13 +275,98 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
+	// - providerIDList is backward-compatible but does not support MachinePool Machines.
+	// - infrastructureRefList is preferred and is used to create MachinePool Machines.
+
+	var infraRefList []corev1.ObjectReference
+	// Get Spec.InfrastructureRefList from the infrastructure provider.
+	infraRefErr := util.UnstructuredUnmarshalField(infraConfig, &infraRefList, "spec", "infrastructureRefList")
+
 	var providerIDList []string
 	// Get Spec.ProviderIDList from the infrastructure provider.
-	if err := util.UnstructuredUnmarshalField(infraConfig, &providerIDList, "spec", "providerIDList"); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve data from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
-	} else if len(providerIDList) == 0 {
-		log.Info("Retrieved empty Spec.ProviderIDList from infrastructure provider")
+	providerIDErr := util.UnstructuredUnmarshalField(infraConfig, &providerIDList, "spec", "providerIDList")
+
+	if infraRefErr != nil && providerIDErr != nil && mp.Spec.Replicas != nil && *mp.Spec.Replicas > 0 {
+		err := errors.Wrapf(infraRefErr, "failed to retrieve infrastructureRefList from infrastructure provider.")
+		err = errors.Wrapf(err, "failed to retrieve providerIDList from infrastructure provider.")
+		log.Error(err, "failed to retrieve information from infrastructure provider")
+	}
+
+	// if len(infraRefList) > 0 && len(providerIDList) > 0 {
+	//      return ctrl.Result{}, errors.Errorf("infrastructureRefList and providerIDList cannot both be set")
+	// }
+	if len(infraRefList) == 0 && len(providerIDList) == 0 {
+		log.Info("Retrieved empty infrastructureRefList and empty providerIDList from infrastructure provider")
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
+	}
+
+	// log.Info("Creating MachinePool Machines", "infraRefList", infraRefList)
+
+	// If infrastructure refs were provided, create Machines if needed.
+	for _, ir := range infraRefList {
+		if err := r.Client.Get(ctx, types.NamespacedName{Namespace: mp.Namespace, Name: ir.Name}, &clusterv1.Machine{}); err == nil {
+			continue
+		}
+		providerID := "docker:////" + ir.Name
+		machine := &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      ir.Name,
+				Namespace: mp.Namespace,
+				Labels:    mp.Labels,
+			},
+			Spec: clusterv1.MachineSpec{
+				InfrastructureRef: ir,
+				ClusterName:       mp.Spec.ClusterName,
+				Bootstrap: clusterv1.Bootstrap{
+					DataSecretName: mp.Spec.Template.Spec.Bootstrap.DataSecretName,
+				},
+				ProviderID: &providerID,
+				Version:    mp.Spec.Template.Spec.Version,
+			},
+		}
+
+		// Set the ownerRef of the Machine to the MachinePool.
+		controllerutil.SetControllerReference(mp, machine, r.Client.Scheme())
+
+		// Create the Machine.
+		log.Info("Creating Machine", "machine", machine.Name)
+		if err := r.Client.Create(ctx, machine); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	// Delete Machines owned by the MachinePool that are not in its infrastructureRefList.
+	machineList := &clusterv1.MachineList{}
+	if err := r.Client.List(ctx, machineList, client.MatchingLabels(mp.Labels), client.InNamespace(mp.Namespace)); err != nil {
+		log.Error(err, "failed to list machines")
+	}
+	for _, machine := range machineList.Items {
+		owned := false
+		if machine.OwnerReferences != nil {
+			for _, ref := range machine.OwnerReferences {
+				if ref.UID == mp.UID {
+					owned = true
+					break
+				}
+			}
+		}
+		if !owned {
+			continue
+		}
+
+		hasInfraRef := false
+		for _, ir := range infraRefList {
+			if machine.Name == ir.Name {
+				hasInfraRef = true
+				break
+			}
+		}
+		if !hasInfraRef {
+			log.Info("deleting orphaned machine", "machine", machine.Name)
+			if err := r.Client.Delete(ctx, &machine); err != nil {
+				log.Error(err, "failed to delete orphaned machine", "machine", machine.Name)
+			}
+		}
 	}
 
 	// Get and set Status.Replicas from the infrastructure provider.
@@ -292,7 +380,8 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
-	if !reflect.DeepEqual(mp.Spec.ProviderIDList, providerIDList) {
+	if !reflect.DeepEqual(mp.Spec.InfrastructureRefList, infraRefList) || !reflect.DeepEqual(mp.Spec.ProviderIDList, providerIDList) {
+		mp.Spec.InfrastructureRefList = infraRefList
 		mp.Spec.ProviderIDList = providerIDList
 		mp.Status.ReadyReplicas = 0
 		mp.Status.AvailableReplicas = 0

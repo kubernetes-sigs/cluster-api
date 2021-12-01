@@ -101,6 +101,11 @@ func (in *MachinePoolSpec) DeepCopyInto(out *MachinePoolSpec) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.InfrastructureRefList != nil {
+		in, out := &in.InfrastructureRefList, &out.InfrastructureRefList
+		*out = make([]v1.ObjectReference, len(*in))
+		copy(*out, *in)
+	}
 	if in.ProviderIDList != nil {
 		in, out := &in.ProviderIDList, &out.ProviderIDList
 		*out = make([]string, len(*in))

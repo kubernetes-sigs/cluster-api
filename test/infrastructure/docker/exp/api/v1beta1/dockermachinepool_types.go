@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -59,6 +60,11 @@ type DockerMachinePoolSpec struct {
 	// ProviderIDList is the list of identification IDs of machine instances managed by this Machine Pool
 	//+optional
 	ProviderIDList []string `json:"providerIDList,omitempty"`
+
+	// InfrastructureRefList are the infrastructure references of machine instances, populated by the provider.
+	// This field must contain the infrastructure references of all instances in the machine pool.
+	// +optional
+	InfrastructureRefList []corev1.ObjectReference `json:"infrastructureRefList,omitempty"`
 }
 
 // DockerMachinePoolStatus defines the observed state of DockerMachinePool.

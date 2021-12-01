@@ -203,6 +203,15 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			setupLog.Error(err, "unable to create controller", "controller", "DockerMachinePool")
 			os.Exit(1)
 		}
+		if err := (&expcontrollers.DockerMachinePoolMachineReconciler{
+			Client:           mgr.GetClient(),
+			ContainerRuntime: runtimeClient,
+		}).SetupWithManager(ctx, mgr, controller.Options{
+			MaxConcurrentReconciles: concurrency,
+		}); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "DockerMachinePoolMachine")
+			os.Exit(1)
+		}
 	}
 }
 

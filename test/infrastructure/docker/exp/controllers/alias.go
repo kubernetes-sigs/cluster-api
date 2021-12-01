@@ -44,3 +44,19 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 		ContainerRuntime: r.ContainerRuntime,
 	}).SetupWithManager(ctx, mgr, options)
 }
+
+// DockerMachinePoolReconciler reconciles a DockerMachinePool object.
+type DockerMachinePoolMachineReconciler struct {
+	Client           client.Client
+	Scheme           *runtime.Scheme
+	ContainerRuntime container.Runtime
+}
+
+// SetupWithManager will add watches for this controller.
+func (r *DockerMachinePoolMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	return (&dockermachinepoolcontrollers.DockerMachinePoolMachineReconciler{
+		Client:           r.Client,
+		Scheme:           r.Scheme,
+		ContainerRuntime: r.ContainerRuntime,
+	}).SetupWithManager(ctx, mgr, options)
+}

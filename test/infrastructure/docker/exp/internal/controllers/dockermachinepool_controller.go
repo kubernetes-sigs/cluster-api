@@ -20,9 +20,11 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -32,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
+	corev1 "k8s.io/api/core/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	utilexp "sigs.k8s.io/cluster-api/exp/util"
@@ -52,6 +55,8 @@ type DockerMachinePoolReconciler struct {
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepools,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepools/status;dockermachinepools/finalizers,verbs=get;update;patch
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepoolmachines,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepoolmachines/status;dockermachinepoolmachines/finalizers,verbs=get;update;patch
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinepools;machinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;,verbs=get;list;watch
 
@@ -63,7 +68,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	dockerMachinePool := &infraexpv1.DockerMachinePool{}
 	if err := r.Client.Get(ctx, req.NamespacedName, dockerMachinePool); err != nil {
 		if apierrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
+			log.Info("Machinepool not found, returning")
 		}
 		return ctrl.Result{}, err
 	}
@@ -117,11 +122,14 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Handle deleted machines
+	log.Info(fmt.Sprintf("Deletion timestamp is %+v", dockerMachinePool.DeletionTimestamp))
+	log.Info("Is zero? ", "bool", dockerMachinePool.ObjectMeta.DeletionTimestamp.IsZero())
 	if !dockerMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, cluster, machinePool, dockerMachinePool)
 	}
 
 	// Handle non-deleted machines
+	log.Info("Reconciling machinepool normally")
 	return r.reconcileNormal(ctx, cluster, machinePool, dockerMachinePool)
 }
 
@@ -190,12 +198,57 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	}
 
 	// Derive info from Status.Instances
-	dockerMachinePool.Spec.ProviderIDList = []string{}
-	for _, instance := range dockerMachinePool.Status.Instances {
-		if instance.ProviderID != nil && instance.Ready {
-			dockerMachinePool.Spec.ProviderIDList = append(dockerMachinePool.Spec.ProviderIDList, *instance.ProviderID)
+	providerIDList := make([]string, len(dockerMachinePool.Status.Instances))
+	infraRefList := make([]corev1.ObjectReference, len(dockerMachinePool.Status.Instances))
+	for i, instance := range dockerMachinePool.Status.Instances {
+		if instance.ProviderID != nil {
+			name := strings.TrimPrefix(*instance.ProviderID, "docker:////")
+			infraRefList[i] = corev1.ObjectReference{
+				Kind:       "DockerMachinePoolMachine",
+				Name:       name,
+				Namespace:  dockerMachinePool.Namespace,
+				APIVersion: infraexpv1.GroupVersion.String(),
+			}
+			if instance.Ready {
+				providerIDList[i] = *instance.ProviderID
+			}
+
+			// Look up the DockerMachinePoolMachine object.
+			dmpm := &infraexpv1.DockerMachinePoolMachine{}
+			if err := r.Client.Get(ctx, client.ObjectKey{Name: name, Namespace: dockerMachinePool.Namespace}, dmpm); err != nil {
+				// TODO: check the error to see that it was a 404?
+				// Create the DockerMachinePoolMachine object if needed.
+				dmpm := &infraexpv1.DockerMachinePoolMachine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      name,
+						Namespace: dockerMachinePool.Namespace,
+					},
+					Spec: infraexpv1.DockerMachinePoolMachineSpec{
+						ProviderID: instance.ProviderID,
+					},
+				}
+				// Find the corresponding Machine and set it as the OwnerReference
+				m := &clusterv1.Machine{}
+				if err := r.Client.Get(ctx, client.ObjectKey{Name: name, Namespace: dockerMachinePool.Namespace}, m); err != nil {
+					continue
+				}
+				controllerutil.SetControllerReference(m, dmpm, r.Client.Scheme())
+				log.Info("Creating dmpm", "name", dmpm.Name, "namespace", dmpm.Namespace)
+				err = r.Client.Create(ctx, dmpm)
+				if err != nil {
+					return ctrl.Result{}, errors.Wrap(err, "failed to create DockerMachinePoolMachine")
+				}
+			}
+			// Update the DockerMachinePoolMachine object's status.
+			if instance.Ready {
+				dmpm.Status.Ready = true
+				r.Client.Status().Update(ctx, dmpm)
+			}
 		}
 	}
+
+	dockerMachinePool.Spec.ProviderIDList = providerIDList
+	dockerMachinePool.Spec.InfrastructureRefList = infraRefList
 
 	dockerMachinePool.Status.Replicas = int32(len(dockerMachinePool.Status.Instances))
 

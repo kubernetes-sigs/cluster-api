@@ -13,6 +13,7 @@ resources:
   - bases/infrastructure.cluster.x-k8s.io_dockerclusters.yaml
   - bases/infrastructure.cluster.x-k8s.io_dockermachinetemplates.yaml
   - bases/infrastructure.cluster.x-k8s.io_dockermachinepools.yaml
+  - bases/infrastructure.cluster.x-k8s.io_dockermachinepoolmachines.yaml
   - bases/infrastructure.cluster.x-k8s.io_dockerclustertemplates.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 

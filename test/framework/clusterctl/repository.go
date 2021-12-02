@@ -63,13 +63,13 @@ func (i *CreateRepositoryInput) RegisterClusterResourceSetConfigMapTransformatio
 	Expect(manifestData).ToNot(BeEmpty(), "ClusterResourceSet manifest file should not be empty")
 
 	i.FileTransformations = append(i.FileTransformations, func(template []byte) ([]byte, error) {
-		old := fmt.Sprintf("data: ${%s}", envSubstVar)
-		new := "data:\n"
-		new += "  resources: |\n"
+		oldData := fmt.Sprintf("data: ${%s}", envSubstVar)
+		newData := "data:\n"
+		newData += "  resources: |\n"
 		for _, l := range strings.Split(string(manifestData), "\n") {
-			new += strings.Repeat(" ", 4) + l + "\n"
+			newData += strings.Repeat(" ", 4) + l + "\n"
 		}
-		return bytes.ReplaceAll(template, []byte(old), []byte(new)), nil
+		return bytes.ReplaceAll(template, []byte(oldData), []byte(newData)), nil
 	})
 }
 

@@ -161,10 +161,6 @@ type JSONSchemaProps struct {
 	// Valid values are: string, integer, number or boolean.
 	Type string `json:"type"`
 
-	// Nullable specifies if the variable can be set to null.
-	// +optional
-	Nullable bool `json:"nullable,omitempty"`
-
 	// Format is an OpenAPI v3 format string. Unknown formats are ignored.
 	// For a list of supported formats please see: (of the k8s.io/apiextensions-apiserver version we're currently using)
 	// https://github.com/kubernetes/apiextensions-apiserver/blob/master/pkg/apiserver/validation/formats.go

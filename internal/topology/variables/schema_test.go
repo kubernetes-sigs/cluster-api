@@ -50,7 +50,6 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 			},
 			want: &apiextensions.JSONSchemaProps{
 				Type:             basicSchema.Type,
-				Nullable:         basicSchema.Nullable,
 				Format:           basicSchema.Format,
 				MaxLength:        basicSchema.MaxLength,
 				MinLength:        basicSchema.MinLength,
@@ -64,7 +63,6 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 			schema: &schemaWithMinAndMax,
 			want: &apiextensions.JSONSchemaProps{
 				Type:             schemaWithMinAndMax.Type,
-				Nullable:         schemaWithMinAndMax.Nullable,
 				Format:           schemaWithMinAndMax.Format,
 				MaxLength:        schemaWithMinAndMax.MaxLength,
 				MinLength:        schemaWithMinAndMax.MinLength,

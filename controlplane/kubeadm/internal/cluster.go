@@ -49,8 +49,9 @@ type ManagementCluster interface {
 
 // Management holds operations on the management cluster.
 type Management struct {
-	Client  client.Reader
-	Tracker *remote.ClusterCacheTracker
+	Client          client.Reader
+	Tracker         *remote.ClusterCacheTracker
+	EtcdDialTimeout time.Duration
 }
 
 // RemoteClusterConnectionError represents a failure to connect to a remote cluster.
@@ -149,7 +150,7 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	return &Workload{
 		Client:              c,
 		CoreDNSMigrator:     &CoreDNSMigrator{},
-		etcdClientGenerator: NewEtcdClientGenerator(restConfig, tlsConfig),
+		etcdClientGenerator: NewEtcdClientGenerator(restConfig, tlsConfig, m.EtcdDialTimeout),
 	}, nil
 }
 

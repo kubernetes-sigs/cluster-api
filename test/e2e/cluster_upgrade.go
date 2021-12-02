@@ -41,6 +41,15 @@ type ClusterUpgradeConformanceSpecInput struct {
 	SkipCleanup           bool
 	SkipConformanceTests  bool
 
+	// ControlPlaneMachineCount is used in `config cluster` to configure the count of the control plane machines used in the test.
+	// Default is 1.
+	ControlPlaneMachineCount *int64
+	// WorkerMachineCount is used in `config cluster` to configure the count of the worker machines used in the test.
+	// NOTE: If the WORKER_MACHINE_COUNT var is used multiple times in the cluster template, the absolute count of
+	// worker machines is a multiple of WorkerMachineCount.
+	// Default is 2.
+	WorkerMachineCount *int64
+
 	// Flavor to use when creating the cluster for testing, "upgrades" is used if not specified.
 	Flavor *string
 }
@@ -57,9 +66,13 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		specName                      = "k8s-upgrade-and-conformance"
 	)
 	var (
-		input                  ClusterUpgradeConformanceSpecInput
-		namespace              *corev1.Namespace
-		cancelWatches          context.CancelFunc
+		input         ClusterUpgradeConformanceSpecInput
+		namespace     *corev1.Namespace
+		cancelWatches context.CancelFunc
+
+		controlPlaneMachineCount int64
+		workerMachineCount       int64
+
 		clusterResources       *clusterctl.ApplyClusterTemplateAndWaitResult
 		kubetestConfigFilePath string
 	)
@@ -81,6 +94,18 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		kubetestConfigFilePath = input.E2EConfig.GetVariable(kubetestConfigurationVariable)
 		Expect(kubetestConfigFilePath).To(BeAnExistingFile(), "%s should be a valid kubetest config file")
 
+		if input.ControlPlaneMachineCount == nil {
+			controlPlaneMachineCount = 1
+		} else {
+			controlPlaneMachineCount = *input.ControlPlaneMachineCount
+		}
+
+		if input.WorkerMachineCount == nil {
+			workerMachineCount = 2
+		} else {
+			workerMachineCount = *input.WorkerMachineCount
+		}
+
 		// Setup a Namespace where to host objects for this spec and create a watcher for the Namespace events.
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
@@ -88,11 +113,6 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 
 	It("Should create and upgrade a workload cluster and run kubetest", func() {
 		By("Creating a workload cluster")
-
-		var controlPlaneMachineCount int64 = 1
-		// clusterTemplateWorkerMachineCount is used for ConfigCluster, as it is used for MachineDeployments and
-		// MachinePools
-		var clusterTemplateWorkerMachineCount int64 = 2
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
@@ -106,7 +126,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
 				ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneMachineCount),
-				WorkerMachineCount:       pointer.Int64Ptr(clusterTemplateWorkerMachineCount),
+				WorkerMachineCount:       pointer.Int64Ptr(workerMachineCount),
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),

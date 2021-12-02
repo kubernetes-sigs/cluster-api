@@ -184,8 +184,8 @@ func Test_Discovery(t *testing.T) {
 			name: "Discovery with grouping and no-echo disabled",
 			args: args{
 				discoverOptions: DiscoverOptions{
-					Grouping:      false,
-					DisableNoEcho: true,
+					Grouping: false,
+					Echo:     true,
 				},
 				objs: test.NewFakeCluster("ns1", "cluster1").
 					WithControlPlane(

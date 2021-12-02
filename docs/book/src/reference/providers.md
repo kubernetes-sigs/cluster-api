@@ -25,7 +25,7 @@ updated info about which API version they are supporting.
 - [MAAS](https://github.com/spectrocloud/cluster-api-provider-maas)
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
-- [Packet](https://github.com/kubernetes-sigs/cluster-api-provider-packet)
+- [Equinix Metal (formerly Packet)](https://github.com/kubernetes-sigs/cluster-api-provider-packet)
 - [Sidero](https://github.com/talos-systems/sidero)
 - [Tencent Cloud](https://github.com/TencentCloud/cluster-api-provider-tencent)
 - [vSphere](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)

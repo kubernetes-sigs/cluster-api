@@ -83,9 +83,6 @@ func defaultClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterC
 
 	var value interface{}
 	// If the schema has a default value, default it.
-	// NOTE: This is essentially the same which the structural schema defaulting
-	// lib would do, except that it wouldn't default nullable values.
-	// As we want to also default nullable variables we have to do it ourselves.
 	if apiExtensionsSchema.Default != nil {
 		value = runtime.DeepCopyJSONValue(*apiExtensionsSchema.Default)
 	}

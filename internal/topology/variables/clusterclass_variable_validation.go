@@ -132,8 +132,6 @@ func validateSchema(schema *clusterv1.JSONSchemaProps, variableName string, fldP
 	switch {
 	case len(apiExtensionsSchema.Type) == 0:
 		return field.ErrorList{field.Required(fldPath.Child("type"), "openAPIV3Schema.type cannot be empty")}
-	case apiExtensionsSchema.Type == "null":
-		return field.ErrorList{field.Forbidden(fldPath.Child("type"), "openAPIV3Schema.type cannot be set to null, use nullable as an alternative")}
 	case !validVariableTypes.Has(apiExtensionsSchema.Type):
 		return field.ErrorList{field.NotSupported(fldPath.Child("type"), apiExtensionsSchema.Type, validVariableTypes.List())}
 	}

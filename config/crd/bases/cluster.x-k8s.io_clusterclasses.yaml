@@ -769,10 +769,6 @@ spec:
                                 the value of Minimum.
                               format: int64
                               type: integer
-                            nullable:
-                              description: Nullable specifies if the variable can
-                                be set to null.
-                              type: boolean
                             pattern:
                               description: Pattern is the regex which a string variable
                                 must match.

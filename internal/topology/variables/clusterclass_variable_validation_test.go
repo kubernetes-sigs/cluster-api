@@ -216,27 +216,9 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				Required: true,
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-						Type:     "string",
-						Nullable: true,
+						Type: "string",
 						Default: &apiextensionsv1.JSON{
 							Raw: []byte(`"defaultValue"`),
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "Valid default value null",
-			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name:     "var",
-				Required: true,
-				Schema: clusterv1.VariableSchema{
-					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-						Type:     "string",
-						Nullable: true,
-						Default: &apiextensionsv1.JSON{
-							// A JSON with a nil value is the result of setting the variable value to "null" via YAML.
-							Raw: nil,
 						},
 					},
 				},
@@ -249,8 +231,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				Required: true,
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-						Type:     "string",
-						Nullable: true,
+						Type: "string",
 						Default: &apiextensionsv1.JSON{
 							Raw: []byte(`"defaultValue": "value"`), // invalid JSON
 						},
@@ -266,8 +247,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				Required: true,
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-						Type:     "string",
-						Nullable: true,
+						Type: "string",
 						Enum: []apiextensionsv1.JSON{
 							{Raw: []byte(`"enumValue1"`)},
 							{Raw: []byte(`"enumValue2"`)},
@@ -283,8 +263,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 				Required: true,
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-						Type:     "string",
-						Nullable: true,
+						Type: "string",
 						Enum: []apiextensionsv1.JSON{
 							{Raw: []byte(`"defaultValue": "value"`)}, // invalid JSON
 						},

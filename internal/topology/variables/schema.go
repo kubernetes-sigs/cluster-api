@@ -30,7 +30,6 @@ import (
 func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps) (*apiextensions.JSONSchemaProps, error) {
 	props := &apiextensions.JSONSchemaProps{
 		Type:             schema.Type,
-		Nullable:         schema.Nullable,
 		Format:           schema.Format,
 		MaxLength:        schema.MaxLength,
 		MinLength:        schema.MinLength,

@@ -17,6 +17,7 @@ limitations under the License.
 package variables
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -103,6 +104,24 @@ var validVariableTypes = sets.NewString("string", "number", "integer", "boolean"
 
 // validateSchema validates the schema.
 func validateSchema(schema *clusterv1.JSONSchemaProps, variableName string, fldPath *field.Path) field.ErrorList {
+	// Validate the JSON's in the schema
+	// NOTE: This is done here to provide a user-friendly error instead of an error which would occur during conversion.
+	var allErrs field.ErrorList
+	if schema.Default != nil && schema.Default.Raw != nil {
+		if err := json.Unmarshal(schema.Default.Raw, &struct{}{}); err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("default"), string(schema.Default.Raw),
+				"openAPIV3Schema.default is not valid JSON"))
+		}
+	}
+	for i, enum := range schema.Enum {
+		if enum.Raw != nil {
+			if err := json.Unmarshal(enum.Raw, &struct{}{}); err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("enum").Index(i), string(enum.Raw),
+					"openAPIV3Schema.enum value is not valid JSON"))
+			}
+		}
+	}
+
 	apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(schema)
 	if err != nil {
 		return field.ErrorList{field.Invalid(fldPath, schema,

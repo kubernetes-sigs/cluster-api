@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -203,6 +204,90 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:      "string",
 						MinLength: pointer.Int64(1),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Valid default value regular string",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "var",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "string",
+						Nullable: true,
+						Default: &apiextensionsv1.JSON{
+							Raw: []byte(`"defaultValue"`),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Valid default value null",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "var",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "string",
+						Nullable: true,
+						Default: &apiextensionsv1.JSON{
+							// A JSON with a nil value is the result of setting the variable value to "null" via YAML.
+							Raw: nil,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on default value with invalid JSON",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "var",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "string",
+						Nullable: true,
+						Default: &apiextensionsv1.JSON{
+							Raw: []byte(`"defaultValue": "value"`), // invalid JSON
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Valid enum values",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "var",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "string",
+						Nullable: true,
+						Enum: []apiextensionsv1.JSON{
+							{Raw: []byte(`"enumValue1"`)},
+							{Raw: []byte(`"enumValue2"`)},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on enum value with invalid JSON",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "var",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "string",
+						Nullable: true,
+						Enum: []apiextensionsv1.JSON{
+							{Raw: []byte(`"defaultValue": "value"`)}, // invalid JSON
+						},
 					},
 				},
 			},

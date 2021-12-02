@@ -287,6 +287,27 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			},
 		},
 		{
+			name: "Default nullable string",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "location",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:     "string",
+						Nullable: true,
+						Default:  &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{Name: "location"},
+			want: &clusterv1.ClusterVariable{
+				Name: "location",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`"us-east"`),
+				},
+			},
+		},
+		{
 			name: "Default number",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",

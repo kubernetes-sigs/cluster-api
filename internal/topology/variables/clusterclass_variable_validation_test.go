@@ -297,6 +297,88 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "Valid object schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type:    "boolean",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+							},
+							"url": {
+								Type: "string",
+							},
+							"noProxy": {
+								Type: "string",
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on invalid object schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type:    "boolean",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+							},
+							"url": {
+								Type: "string",
+							},
+							"noProxy": {
+								Type: "invalidType", // invalid type.
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Valid array schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "arrayVariable",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type:    "boolean",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on invalid array schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "arrayVariable",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type:    "string",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`invalidString`)}, // missing quotes.
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "pass on variable with required set true with a default defined",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",
@@ -315,7 +397,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			g := NewWithT(t)
 
 			errList := validateClusterClassVariable(tt.clusterClassVariable,
-				field.NewPath("spec", "variables"))
+				field.NewPath("spec", "variables").Index(0))
 
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())

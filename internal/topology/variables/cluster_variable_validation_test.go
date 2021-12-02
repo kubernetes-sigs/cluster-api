@@ -385,6 +385,265 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "Valid object",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"enabled":false}`),
+				},
+			},
+		},
+		{
+			name: "Error if nested field is invalid",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"enabled":"not-a-bool"}`),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Error if object is a bool instead",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "boolean",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`"not-a-object"`),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Error if object is missing required field",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"url": {
+								Type: "string",
+							},
+							"enabled": {
+								Type: "boolean",
+							},
+						},
+						Required: []string{
+							"url",
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"enabled":"true"}`),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Valid object",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "testObject",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"requiredProperty": {
+								Type: "boolean",
+							},
+							"boolProperty": {
+								Type: "boolean",
+							},
+							"integerProperty": {
+								Type:    "integer",
+								Minimum: pointer.Int64(1),
+							},
+							"enumProperty": {
+								Type: "string",
+								Enum: []apiextensionsv1.JSON{
+									{Raw: []byte(`"enumValue1"`)},
+									{Raw: []byte(`"enumValue2"`)},
+								},
+							},
+						},
+						Required: []string{"requiredProperty"},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "testObject",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"requiredProperty":false,"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`),
+				},
+			},
+		},
+		{
+			name: "Valid array",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "testArray",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "string",
+							Enum: []apiextensionsv1.JSON{
+								{Raw: []byte(`"enumValue1"`)},
+								{Raw: []byte(`"enumValue2"`)},
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "testArray",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`["enumValue1","enumValue2"]`),
+				},
+			},
+		},
+		{
+			name: "Error if array element is invalid",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "testArray",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "string",
+							Enum: []apiextensionsv1.JSON{
+								{Raw: []byte(`"enumValue1"`)},
+								{Raw: []byte(`"enumValue2"`)},
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "testArray",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`["enumValue1","enumValueInvalid"]`),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Error if array is too large",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "testArray",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "string",
+						},
+						MaxItems: pointer.Int64(3),
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "testArray",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`["value1","value2","value3","value4"]`),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Error if array is too small",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "testArray",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "string",
+						},
+						MinItems: pointer.Int64(3),
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "testArray",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`["value1","value2"]`),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Error if array contains duplicate values",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "testArray",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "string",
+						},
+						UniqueItems: true,
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "testArray",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`["value1","value1"]`),
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

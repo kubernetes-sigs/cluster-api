@@ -761,6 +761,46 @@ func TestValidatePatches(t *testing.T) {
 
 		// Patch value validation
 		{
+			name: "pass if jsonPatch value is valid json literal",
+			clusterClass: clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					ControlPlane: clusterv1.ControlPlaneClass{
+						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+							Ref: &corev1.ObjectReference{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								Kind:       "ControlPlaneTemplate",
+							},
+						},
+					},
+					Patches: []clusterv1.ClusterClassPatch{
+
+						{
+							Name: "patch1",
+							Definitions: []clusterv1.PatchDefinition{
+								{
+									Selector: clusterv1.PatchSelector{
+										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										Kind:       "ControlPlaneTemplate",
+										MatchResources: clusterv1.PatchSelectorMatch{
+											ControlPlane: true,
+										},
+									},
+									JSONPatches: []clusterv1.JSONPatch{
+										{
+											Op:    "add",
+											Path:  "/spec/template/spec/",
+											Value: &apiextensionsv1.JSON{Raw: []byte(`"stringValue"`)},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "pass if jsonPatch value is valid json",
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{

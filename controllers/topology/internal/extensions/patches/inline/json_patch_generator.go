@@ -21,7 +21,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
+	"strconv"
 	"strings"
 	"text/template"
 
@@ -29,6 +29,7 @@ import (
 	"github.com/valyala/fastjson"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/extensions/patches/api"
 	patchvariables "sigs.k8s.io/cluster-api/controllers/topology/internal/extensions/patches/variables"
@@ -224,51 +225,145 @@ func calculateValue(patch clusterv1.JSONPatch, variables map[string]apiextension
 	// Return rendered value template.
 	value, err := renderValueTemplate(*patch.ValueFrom.Template, variables)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to calculate value")
+		return nil, errors.Wrapf(err, "failed to calculate value for template")
 	}
 	return value, nil
 }
 
+const (
+	leftArrayDelim  = "["
+	rightArrayDelim = "]"
+)
+
 // getVariableValue returns a variable from the variables map.
-func getVariableValue(variables map[string]apiextensionsv1.JSON, variableName string) (*apiextensionsv1.JSON, error) {
-	// If the variable is a user-defined variable or the top-level "builtin" variable, just do a simple lookup.
-	if !strings.HasPrefix(variableName, fmt.Sprintf("%s.", patchvariables.BuiltinsName)) {
-		value, ok := variables[variableName]
-		if !ok {
-			return nil, errors.Errorf("variable %q does not exist", variableName)
-		}
-		return &value, nil
-	}
+func getVariableValue(variables map[string]apiextensionsv1.JSON, variablePath string) (*apiextensionsv1.JSON, error) {
+	// Split the variablePath (format: "<variableName>.<relativePath>").
+	variableSplit := strings.Split(variablePath, ".")
+	variableName, relativePath := variableSplit[0], variableSplit[1:]
 
-	// If the variable is a "builtin.<relativeVariableName>" variable, we inspect the builtin variable object.
-
-	// Get the builtin variable object.
-	builtinsValue, ok := variables[patchvariables.BuiltinsName]
-	if !ok {
-		return nil, errors.Errorf("variable %q does not exist", patchvariables.BuiltinsName)
-	}
-
-	// Parse the builtin variable object.
-	builtins, err := fastjson.ParseBytes(builtinsValue.Raw)
+	// Parse the path segment.
+	variableNameSegment, err := parsePathSegment(variableName)
 	if err != nil {
-		return nil, errors.Errorf("cannot parse variable %q", patchvariables.BuiltinsName)
+		return nil, errors.Wrapf(err, "variable %q is invalid", variablePath)
 	}
 
-	// Split the variable name and exclude the first part ("builtins.")
-	relativePath := strings.Split(variableName, ".")[1:]
-
-	// Return if the builtin variable does not exist.
-	if !builtins.Exists(relativePath...) {
+	// Get the variable.
+	value, ok := variables[variableNameSegment.path]
+	if !ok {
 		return nil, errors.Errorf("variable %q does not exist", variableName)
 	}
 
-	// Get the builtin variable from the builtin variable object.
-	variableValue := builtins.Get(relativePath...)
+	// Return the value, if variablePath points to a top-level variable, i.e. hos no relativePath and no
+	// array index (i.e. "<variableName>").
+	if len(relativePath) == 0 && !variableNameSegment.HasIndex() {
+		return &value, nil
+	}
+
+	// Parse the variable object.
+	variable, err := fastjson.ParseBytes(value.Raw)
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot parse variable %q: %s", variableName, string(value.Raw))
+	}
+
+	// If variableName contains an array index, get the array element (i.e. starts with "<variableName>[i]").
+	// Then return it, if there is no relative path (i.e. "<variableName>[i]")
+	if variableNameSegment.HasIndex() {
+		variable, err = getVariableArrayElement(variable, variableNameSegment, variablePath)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(relativePath) == 0 {
+			return &apiextensionsv1.JSON{
+				Raw: variable.MarshalTo([]byte{}),
+			}, nil
+		}
+	}
+
+	// If the variablePath points to a nested variable, i.e. has a relativePath, inspect the variable object.
+
+	// Retrieve each segment of the relativePath incrementally, taking care of resolving array indexes.
+	for _, p := range relativePath {
+		// Parse the path segment.
+		pathSegment, err := parsePathSegment(p)
+		if err != nil {
+			return nil, errors.Wrapf(err, "variable %q has invalid syntax", variablePath)
+		}
+
+		// Return if the variable does not exist.
+		if !variable.Exists(pathSegment.path) {
+			return nil, errors.Errorf("variable %q does not exist: failed to lookup segment %q", variablePath, pathSegment.path)
+		}
+
+		// Get the variable from the variable object.
+		variable = variable.Get(pathSegment.path)
+
+		// Continue if the path doesn't contain an index.
+		if !pathSegment.HasIndex() {
+			continue
+		}
+
+		variable, err = getVariableArrayElement(variable, pathSegment, variablePath)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	// Return the marshalled value of the variable.
 	return &apiextensionsv1.JSON{
-		Raw: variableValue.MarshalTo([]byte{}),
+		Raw: variable.MarshalTo([]byte{}),
 	}, nil
+}
+
+type pathSegment struct {
+	path  string
+	index *int
+}
+
+func (p pathSegment) HasIndex() bool {
+	return p.index != nil
+}
+
+func parsePathSegment(segment string) (*pathSegment, error) {
+	if (strings.Contains(segment, leftArrayDelim) && !strings.Contains(segment, rightArrayDelim)) ||
+		(!strings.Contains(segment, leftArrayDelim) && strings.Contains(segment, rightArrayDelim)) {
+		return nil, errors.Errorf("failed to parse path segment %q", segment)
+	}
+
+	if !strings.Contains(segment, leftArrayDelim) && !strings.Contains(segment, rightArrayDelim) {
+		return &pathSegment{
+			path: segment,
+		}, nil
+	}
+
+	arrayIndexStr := segment[strings.Index(segment, leftArrayDelim)+1 : strings.Index(segment, rightArrayDelim)]
+	index, err := strconv.Atoi(arrayIndexStr)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse array index in path segment %q", segment)
+	}
+	if index < 0 {
+		return nil, errors.Errorf("invalid array index %d in path segment %q", index, segment)
+	}
+
+	return &pathSegment{
+		path:  segment[:strings.Index(segment, leftArrayDelim)], //nolint:gocritic // We already check above that segment contains leftArrayDelim,
+		index: pointer.Int(index),
+	}, nil
+}
+
+// getVariableArrayElement gets the array element of a given array.
+func getVariableArrayElement(array *fastjson.Value, arrayPathSegment *pathSegment, fullVariablePath string) (*fastjson.Value, error) {
+	// Retrieve the array element, handling index out of range.
+	arr, err := array.Array()
+	if err != nil {
+		return nil, errors.Wrapf(err, "variable %q is invalid: failed to get array %q", fullVariablePath, arrayPathSegment.path)
+	}
+
+	if len(arr) < *arrayPathSegment.index+1 {
+		return nil, errors.Errorf("variable %q is invalid: array does not have index %d", fullVariablePath, arrayPathSegment.index)
+	}
+
+	return arr[*arrayPathSegment.index], nil
 }
 
 // renderValueTemplate renders a template with the given variables as data.

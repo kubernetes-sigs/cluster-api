@@ -17,12 +17,14 @@ limitations under the License.
 package v1alpha4
 
 import (
+	"strconv"
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/cluster-api/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -103,7 +105,25 @@ func JSONPatchFuzzer(in *v1beta1.JSONPatch, c fuzz.Continue) {
 }
 
 func JSONSchemaPropsFuzzer(in *v1beta1.JSONSchemaProps, c fuzz.Continue) {
-	c.FuzzNoCustom(in)
+	// NOTE: We have to fuzz the individual fields manually,
+	// because we cannot call `FuzzNoCustom` as it would lead
+	// to an infinite recursion.
+	in.Type = c.RandString()
+	for i := 0; i < c.Intn(10); i++ {
+		in.Required = append(in.Required, c.RandString())
+	}
+	in.MaxItems = pointer.Int64(c.Int63())
+	in.MinItems = pointer.Int64(c.Int63())
+	in.UniqueItems = c.RandBool()
+	in.Format = c.RandString()
+	in.MaxLength = pointer.Int64(c.Int63())
+	in.MinLength = pointer.Int64(c.Int63())
+	in.Pattern = c.RandString()
+	in.Maximum = pointer.Int64(c.Int63())
+	in.Maximum = pointer.Int64(c.Int63())
+	in.ExclusiveMaximum = c.RandBool()
+	in.Minimum = pointer.Int64(c.Int63())
+	in.ExclusiveMinimum = c.RandBool()
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting valid values.
 	in.Enum = []apiextensionsv1.JSON{
@@ -111,5 +131,13 @@ func JSONSchemaPropsFuzzer(in *v1beta1.JSONSchemaProps, c fuzz.Continue) {
 		{Raw: []byte("\"b\"")},
 		{Raw: []byte("\"c\"")},
 	}
-	in.Default = &apiextensionsv1.JSON{Raw: []byte("true")}
+	in.Default = &apiextensionsv1.JSON{Raw: []byte(strconv.FormatBool(c.RandBool()))}
+
+	// We're using a copy of the current JSONSchemaProps,
+	// because we cannot recursively fuzz new schemas.
+	in.Properties = map[string]v1beta1.JSONSchemaProps{}
+	for i := 0; i < c.Intn(10); i++ {
+		in.Properties[c.RandString()] = *in.DeepCopy()
+	}
+	in.Items = in.DeepCopy()
 }

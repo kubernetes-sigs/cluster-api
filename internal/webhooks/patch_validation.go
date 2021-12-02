@@ -242,7 +242,8 @@ func validateJSONPatchValues(jsonPatch clusterv1.JSONPatch, variableSet map[stri
 	// Attempt to marshal the JSON to discover if it  is valid. If jsonPatch.Value.Raw is set to nil skip this check
 	// and accept the nil value.
 	if jsonPatch.Value != nil && jsonPatch.Value.Raw != nil {
-		if err := json.Unmarshal(jsonPatch.Value.Raw, &struct{}{}); err != nil {
+		var v interface{}
+		if err := json.Unmarshal(jsonPatch.Value.Raw, &v); err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
 					path.Child("value"),

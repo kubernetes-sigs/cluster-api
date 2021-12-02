@@ -30,6 +30,10 @@ import (
 func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps) (*apiextensions.JSONSchemaProps, error) {
 	props := &apiextensions.JSONSchemaProps{
 		Type:             schema.Type,
+		Required:         schema.Required,
+		MaxItems:         schema.MaxItems,
+		MinItems:         schema.MinItems,
+		UniqueItems:      schema.UniqueItems,
 		Format:           schema.Format,
 		MaxLength:        schema.MaxLength,
 		MinLength:        schema.MinLength,
@@ -38,11 +42,33 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps) (*
 		ExclusiveMinimum: schema.ExclusiveMinimum,
 	}
 
+	if len(schema.Properties) > 0 {
+		props.Properties = map[string]apiextensions.JSONSchemaProps{}
+		for propertyName, propertySchema := range schema.Properties {
+			p := propertySchema
+			apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(&p)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to convert schema of property %q", propertyName)
+			}
+			props.Properties[propertyName] = *apiExtensionsSchema
+		}
+	}
+
+	if schema.Items != nil {
+		apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(schema.Items)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to convert schema of items")
+		}
+		props.Items = &apiextensions.JSONSchemaPropsOrArray{
+			Schema: apiExtensionsSchema,
+		}
+	}
+
 	if schema.Default != nil {
 		var v apiextensions.JSON
 		err := apiextensionsv1.Convert_v1_JSON_To_apiextensions_JSON(schema.Default, &v, nil)
 		if err != nil {
-			return nil, errors.Wrapf(err, "failed to convert default value %q", *schema.Default)
+			return nil, errors.Wrapf(err, "failed to convert default value %q", string(schema.Default.Raw))
 		}
 		props.Default = &v
 	}
@@ -52,7 +78,7 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps) (*
 			var v apiextensions.JSON
 			err := apiextensionsv1.Convert_v1_JSON_To_apiextensions_JSON(&schema.Enum[i], &v, nil)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to convert enum value %q", schema.Enum[i])
+				return nil, errors.Wrapf(err, "failed to convert enum value %q", string(schema.Enum[i].Raw))
 			}
 			props.Enum = append(props.Enum, v)
 		}

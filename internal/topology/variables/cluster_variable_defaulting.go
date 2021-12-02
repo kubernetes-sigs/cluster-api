@@ -20,10 +20,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	structuralschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
-	structuraldefaulting "k8s.io/apiextensions-apiserver/pkg/apiserver/schema/defaulting"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -83,32 +81,17 @@ func defaultClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterC
 			fmt.Sprintf("invalid schema in ClusterClass for variable %q: error to convert schema %v", clusterVariable.Name, err))}
 	}
 
-	// Structural schema defaulting does not work with scalar values,
-	// so we wrap the schema and the variable in objects.
-	// type: object
-	// properties:
-	//   <variable-name>: <variable-schema>
-	wrappedSchema := &apiextensions.JSONSchemaProps{
-		Type: "object",
-		Properties: map[string]apiextensions.JSONSchemaProps{
-			clusterVariable.Name: *apiExtensionsSchema,
-		},
-	}
 	var value interface{}
-	wrappedVariable := map[string]interface{}{
-		clusterVariable.Name: value,
+	// If the schema has a default value, default it.
+	// NOTE: This is essentially the same which the structural schema defaulting
+	// lib would do, except that it wouldn't default nullable values.
+	// As we want to also default nullable variables we have to do it ourselves.
+	if apiExtensionsSchema.Default != nil {
+		value = runtime.DeepCopyJSONValue(*apiExtensionsSchema.Default)
 	}
-
-	// Default the variable via the structural schema library.
-	ss, err := structuralschema.NewStructural(wrappedSchema)
-	if err != nil {
-		return field.ErrorList{field.Invalid(fldPath, "",
-			fmt.Sprintf("failed defaulting variable %q: %v", clusterVariable.Name, err))}
-	}
-	structuraldefaulting.Default(wrappedVariable, ss)
 
 	// Marshal the defaulted value.
-	defaultedVariableValue, err := json.Marshal(wrappedVariable[clusterVariable.Name])
+	defaultedVariableValue, err := json.Marshal(value)
 	if err != nil {
 		return field.ErrorList{field.Invalid(fldPath, "",
 			fmt.Sprintf("failed to marshal default value of variable %q: %v", clusterVariable.Name, err))}

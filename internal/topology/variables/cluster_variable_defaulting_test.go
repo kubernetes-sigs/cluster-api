@@ -142,15 +142,15 @@ func Test_DefaultClusterVariables(t *testing.T) {
 			},
 			want: []clusterv1.ClusterVariable{
 				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`1`),
-					},
-				},
-				{
 					Name: "correct",
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`false`),
+					},
+				},
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
 					},
 				},
 			},
@@ -220,6 +220,193 @@ func Test_DefaultClusterVariables(t *testing.T) {
 				},
 			},
 		},
+
+		// Note this test should be flaky if it fails as it is testing the ordering of the elements in the array.
+		{
+			name: "Ensure default values keep a consistent order i.e. First order as variables listed in Cluster, then defaulted variables as listed in ClusterClass",
+			clusterClassVariables: []clusterv1.ClusterClassVariable{
+				{
+					Name:     "sixth",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "boolean",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+						},
+					},
+				},
+				{
+					Name:     "seventh",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "boolean",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+						},
+					},
+				},
+				{
+					Name:     "eighth",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "boolean",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+						},
+					},
+				},
+				{
+					Name:     "ninth",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "boolean",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+						},
+					},
+				},
+				{
+					Name:     "tenth",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "boolean",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+						},
+					},
+				},
+				// First and second are defined in the ClusterVariables and should not defaulted.
+				{
+					Name:     "first",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "boolean",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+						},
+					},
+				},
+				{
+					Name:     "second",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "boolean",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+						},
+					},
+				},
+			},
+			clusterVariables: []clusterv1.ClusterVariable{
+				{
+					Name: "first",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`false`),
+					},
+				},
+				{
+					Name: "second",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`false`),
+					},
+				},
+				{
+					Name: "third",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`false`),
+					},
+				},
+				{
+					Name: "fourth",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`false`),
+					},
+				},
+				{
+					Name: "fifth",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`false`),
+					},
+				},
+			},
+			want: []clusterv1.ClusterVariable{
+				{
+					Name: "first",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`false`),
+					},
+				},
+				{
+					Name: "second",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`false`),
+					},
+				},
+				{
+					Name: "third",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`false`),
+					},
+				},
+				{
+					Name: "fourth",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`false`),
+					},
+				},
+				{
+					Name: "fifth",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`false`),
+					},
+				},
+				{
+					Name: "sixth",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`true`),
+					},
+				},
+				{
+					Name: "seventh",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`true`),
+					},
+				},
+				{
+					Name: "eighth",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`true`),
+					},
+				},
+				{
+					Name: "ninth",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`true`),
+					},
+				},
+				{
+					Name: "tenth",
+					// Value is set here and shouldn't be defaulted.
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`true`),
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -227,13 +414,12 @@ func Test_DefaultClusterVariables(t *testing.T) {
 
 			vars, errList := DefaultClusterVariables(tt.clusterVariables, tt.clusterClassVariables,
 				field.NewPath("spec", "topology", "variables"))
-
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())
 				return
 			}
 			g.Expect(errList).To(BeEmpty())
-			g.Expect(vars).To(ConsistOf(tt.want))
+			g.Expect(vars).To(Equal(tt.want))
 		})
 	}
 }

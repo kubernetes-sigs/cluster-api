@@ -97,7 +97,7 @@ func validateClusterVariable(clusterVariable *clusterv1.ClusterVariable, cluster
 	// Note: A clusterVariable with a nil value is the result of setting the variable value to "null" via YAML.
 	if clusterVariable.Value.Raw != nil {
 		if err := json.Unmarshal(clusterVariable.Value.Raw, &variableValue); err != nil {
-			return field.ErrorList{field.Invalid(fldPath.Child("value", "raw"), string(clusterVariable.Value.Raw),
+			return field.ErrorList{field.Invalid(fldPath.Child("value"), string(clusterVariable.Value.Raw),
 				fmt.Sprintf("variable %q could not be parsed: %v", clusterVariable.Name, err))}
 		}
 	}

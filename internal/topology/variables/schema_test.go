@@ -20,7 +20,9 @@ import (
 	"reflect"
 	"testing"
 
+	. "github.com/onsi/gomega"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -86,8 +88,27 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 			}
 		})
 	}
-}
 
+	t.Run("pass for schema with default and enum", func(t *testing.T) {
+		g := NewWithT(t)
+
+		schema := &clusterv1.JSONSchemaProps{
+			Default: &apiextensionsv1.JSON{
+				Raw: []byte(`"defaultValue"`),
+			},
+			Enum: []apiextensionsv1.JSON{
+				{Raw: []byte(`"enumValue1"`)},
+				{Raw: []byte(`"enumValue2"`)},
+			},
+		}
+
+		got, err := convertToAPIExtensionsJSONSchemaProps(schema)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(*got.Default).To(Equal(apiextensions.JSON(`defaultValue`)))
+		g.Expect(got.Enum).To(Equal([]apiextensions.JSON{`enumValue1`, `enumValue2`}))
+	})
+}
 func convertIntToFloatPointer(i int64) *float64 {
 	f := float64(i)
 	return &f

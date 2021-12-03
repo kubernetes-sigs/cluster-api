@@ -114,7 +114,7 @@ func init() {
 		"Groups machines when ready condition has the same Status, Severity and Reason.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.disableGrouping, "disable-grouping", false,
 		"Disable grouping machines when ready condition has the same Status, Severity and Reason.")
-	describeClusterClusterCmd.Flags().MarkDeprecated("disable-grouping",
+	_ = describeClusterClusterCmd.Flags().MarkDeprecated("disable-grouping",
 		"use --grouping instead.")
 
 	// completions

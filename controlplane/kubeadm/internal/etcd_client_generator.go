@@ -38,6 +38,8 @@ type EtcdClientGenerator struct {
 
 type clientCreator func(ctx context.Context, endpoints []string) (*etcd.Client, error)
 
+var errEtcdNodeConnection = errors.New("failed to connect to etcd node")
+
 // NewEtcdClientGenerator returns a new etcdClientGenerator instance.
 func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config) *EtcdClientGenerator {
 	ecg := &EtcdClientGenerator{restConfig: restConfig, tlsConfig: tlsConfig}
@@ -92,45 +94,60 @@ func (c *EtcdClientGenerator) forLeader(ctx context.Context, nodeNames []string)
 	// Loop through the existing control plane nodes.
 	var errs []error
 	for _, nodeName := range nodeNames {
-		// Get a temporary client to the etcd instance hosted on the node.
-		client, err := c.forFirstAvailableNode(ctx, []string{nodeName})
+		cl, err := c.getLeaderClient(ctx, nodeName, nodes)
 		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-		defer client.Close()
-
-		// Get the list of members.
-		members, err := client.Members(ctx)
-		if err != nil {
-			errs = append(errs, err)
-			continue
-		}
-
-		// Get the leader member.
-		var leaderMember *etcd.Member
-		for _, member := range members {
-			if member.ID == client.LeaderID {
-				leaderMember = member
-				break
+			if errors.Is(err, errEtcdNodeConnection) {
+				errs = append(errs, err)
+				continue
 			}
+			return nil, err
 		}
 
-		// If we found the leader, and it is one of the nodes,
-		// get a connection to the etcd leader via the node hosting it.
-		if leaderMember != nil {
-			if !nodes.Has(leaderMember.Name) {
-				return nil, errors.Errorf("etcd leader is reported as %x with name %q, but we couldn't find a corresponding Node in the cluster", leaderMember.ID, leaderMember.Name)
-			}
-			return c.forFirstAvailableNode(ctx, []string{leaderMember.Name})
-		}
-
-		// If it is not possible to get a connection to the leader via existing nodes,
-		// it means that the control plane is an invalid state, with an etcd member - the current leader -
-		// without a corresponding node.
-		// TODO: In future we can eventually try to automatically remediate this condition by moving the leader
-		//  to another member with a corresponding node.
-		return nil, errors.Errorf("etcd leader is reported as %x, but we couldn't find any matching member", client.LeaderID)
+		return cl, nil
 	}
 	return nil, errors.Wrap(kerrors.NewAggregate(errs), "could not establish a connection to the etcd leader")
+}
+
+// getLeaderClient provides an etcd client connected to the leader. It returns an
+// errEtcdNodeConnection if there was a connection problem with the given etcd
+// node, which should be considered non-fatal by the caller.
+func (c *EtcdClientGenerator) getLeaderClient(ctx context.Context, nodeName string, allNodes sets.String) (*etcd.Client, error) {
+	// Get a temporary client to the etcd instance hosted on the node.
+	client, err := c.forFirstAvailableNode(ctx, []string{nodeName})
+	if err != nil {
+		return nil, kerrors.NewAggregate([]error{err, errEtcdNodeConnection})
+	}
+	defer client.Close()
+
+	// Get the list of members.
+	members, err := client.Members(ctx)
+	if err != nil {
+		return nil, kerrors.NewAggregate([]error{err, errEtcdNodeConnection})
+	}
+
+	// Get the leader member.
+	var leaderMember *etcd.Member
+	for _, member := range members {
+		if member.ID == client.LeaderID {
+			leaderMember = member
+			break
+		}
+	}
+
+	// If we found the leader, and it is one of the nodes,
+	// get a connection to the etcd leader via the node hosting it.
+	if leaderMember != nil {
+		if !allNodes.Has(leaderMember.Name) {
+			return nil, errors.Errorf("etcd leader is reported as %x with name %q, but we couldn't find a corresponding Node in the cluster", leaderMember.ID, leaderMember.Name)
+		}
+		client, err = c.forFirstAvailableNode(ctx, []string{leaderMember.Name})
+		return client, err
+	}
+
+	// If it is not possible to get a connection to the leader via existing nodes,
+	// it means that the control plane is an invalid state, with an etcd member - the current leader -
+	// without a corresponding node.
+	// TODO: In future we can eventually try to automatically remediate this condition by moving the leader
+	//  to another member with a corresponding node.
+	return nil, errors.Errorf("etcd leader is reported as %x, but we couldn't find any matching member", client.LeaderID)
 }

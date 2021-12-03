@@ -203,7 +203,7 @@ func TestForLeader(t *testing.T) {
 			cc: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
 				return nil, errors.New("node down")
 			},
-			expectedErr: "could not establish a connection to the etcd leader: could not establish a connection to any etcd node: node down",
+			expectedErr: "could not establish a connection to the etcd leader: [could not establish a connection to any etcd node: node down, failed to connect to etcd node]",
 		},
 	}
 

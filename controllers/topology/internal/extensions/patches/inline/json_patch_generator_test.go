@@ -533,6 +533,172 @@ func TestTemplateMatchesSelector(t *testing.T) {
 	}
 }
 
+func TestPatchIsEnabled(t *testing.T) {
+	tests := []struct {
+		name      string
+		enabledIf *string
+		variables map[string]apiextensionsv1.JSON
+		want      bool
+		wantErr   bool
+	}{
+		{
+			name:      "Enabled if enabledIf is not set",
+			enabledIf: nil,
+			want:      true,
+		},
+		{
+			name:      "Fail if template is invalid",
+			enabledIf: pointer.String(`{{ variable }}`), // . is missing
+			wantErr:   true,
+		},
+		// Hardcoded value.
+		{
+			name:      "Enabled if template is true ",
+			enabledIf: pointer.String(`true`),
+			want:      true,
+		},
+		{
+			name: "Enabled if template is true (even with leading and trailing new line)",
+			enabledIf: pointer.String(`
+true
+`),
+			want: true,
+		},
+		{
+			name:      "Disabled if template is false",
+			enabledIf: pointer.String(`false`),
+			want:      false,
+		},
+		// Boolean variable.
+		{
+			name:      "Enabled if simple template with boolean variable evaluates to true",
+			enabledIf: pointer.String(`{{ .httpProxyEnabled }}`),
+			variables: map[string]apiextensionsv1.JSON{
+				"httpProxyEnabled": {Raw: []byte(`true`)},
+			},
+			want: true,
+		},
+		{
+			name: "Enabled if simple template with boolean variable evaluates to true (even with leading and trailing new line",
+			enabledIf: pointer.String(`
+{{ .httpProxyEnabled }}
+`),
+			variables: map[string]apiextensionsv1.JSON{
+				"httpProxyEnabled": {Raw: []byte(`true`)},
+			},
+			want: true,
+		},
+		{
+			name:      "Disabled if simple template with boolean variable evaluates to false",
+			enabledIf: pointer.String(`{{ .httpProxyEnabled }}`),
+			variables: map[string]apiextensionsv1.JSON{
+				"httpProxyEnabled": {Raw: []byte(`false`)},
+			},
+			want: false,
+		},
+		// Render value with if/else.
+		{
+			name: "Enabled if template with if evaluates to true",
+			// Else is not needed because we check if the result is equal to true.
+			enabledIf: pointer.String(`{{ if eq "v1.21.1" .builtin.cluster.topology.version }}true{{end}}`),
+			variables: map[string]apiextensionsv1.JSON{
+				"builtin": {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
+			},
+			want: true,
+		},
+		{
+			name:      "Disabled if template with if evaluates to false",
+			enabledIf: pointer.String(`{{ if eq "v1.21.2" .builtin.cluster.topology.version }}true{{end}}`),
+			variables: map[string]apiextensionsv1.JSON{
+				"builtin": {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
+			},
+			want: false,
+		},
+		{
+			name:      "Enabled if template with if/else evaluates to true",
+			enabledIf: pointer.String(`{{ if eq "v1.21.1" .builtin.cluster.topology.version }}true{{else}}false{{end}}`),
+			variables: map[string]apiextensionsv1.JSON{
+				"builtin": {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
+			},
+			want: true,
+		},
+		{
+			name:      "Disabled if template with if/else evaluates to false",
+			enabledIf: pointer.String(`{{ if eq "v1.21.2" .builtin.cluster.topology.version }}true{{else}}false{{end}}`),
+			variables: map[string]apiextensionsv1.JSON{
+				"builtin": {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
+			},
+			want: false,
+		},
+		// Render value with if to check if var is not empty.
+		{
+			name:      "Enabled if template which checks if variable is set evaluates to true",
+			enabledIf: pointer.String(`{{ if .variableA }}true{{end}}`),
+			variables: map[string]apiextensionsv1.JSON{
+				"variableA": {Raw: []byte(`"abc"`)},
+			},
+			want: true,
+		},
+		{
+			name:      "Disabled if template which checks if variable is set evaluates to false (variable empty)",
+			enabledIf: pointer.String(`{{ if .variableA }}true{{end}}`),
+			variables: map[string]apiextensionsv1.JSON{
+				"variableA": {Raw: []byte(``)},
+			},
+			want: false,
+		},
+		{
+			name:      "Disabled if template which checks if variable is set evaluates to false (variable empty string)",
+			enabledIf: pointer.String(`{{ if .variableA }}true{{end}}`),
+			variables: map[string]apiextensionsv1.JSON{
+				"variableA": {Raw: []byte(`""`)},
+			},
+			want: false,
+		},
+		{
+			name:      "Disabled if template which checks if variable is set evaluates to false (variable does not exist)",
+			enabledIf: pointer.String(`{{ if .variableA }}true{{end}}`),
+			variables: map[string]apiextensionsv1.JSON{
+				"variableB": {Raw: []byte(``)},
+			},
+			want: false,
+		},
+		// Render value with object variable.
+		// NOTE: the builtin variable tests above test something very similar, so this
+		// test mostly exists to visualize how user-defined object variables can be used.
+		{
+			name:      "Enabled if template with complex variable evaluates to true",
+			enabledIf: pointer.String(`{{ if .httpProxy.enabled }}true{{end}}`),
+			variables: map[string]apiextensionsv1.JSON{
+				"httpProxy": {Raw: []byte(`{"enabled": true, "url": "localhost:3128", "noProxy": "internal.example.com"}`)},
+			},
+			want: true,
+		},
+		{
+			name:      "Disabled if template with complex variable evaluates to false",
+			enabledIf: pointer.String(`{{ if .httpProxy.enabled }}true{{end}}`),
+			variables: map[string]apiextensionsv1.JSON{
+				"httpProxy": {Raw: []byte(`{"enabled": false, "url": "localhost:3128", "noProxy": "internal.example.com"}`)},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			got, err := patchIsEnabled(tt.enabledIf, tt.variables)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
 func TestCalculateValue(t *testing.T) {
 	tests := []struct {
 		name      string

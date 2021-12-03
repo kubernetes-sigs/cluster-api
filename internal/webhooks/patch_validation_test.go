@@ -263,6 +263,51 @@ func TestValidatePatches(t *testing.T) {
 			wantErr: true,
 		},
 
+		// enabledIf validation
+		{
+			name: "pass if enabledIf is a valid Go template",
+			clusterClass: clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					ControlPlane: clusterv1.ControlPlaneClass{
+						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+							Ref: &corev1.ObjectReference{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								Kind:       "ControlPlaneTemplate",
+							},
+						},
+					},
+					Patches: []clusterv1.ClusterClassPatch{
+						{
+							Name:      "patch1",
+							EnabledIf: pointer.String(`template {{ .variableB }}`),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "error if enabledIf is an invalid Go template",
+			clusterClass: clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					ControlPlane: clusterv1.ControlPlaneClass{
+						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+							Ref: &corev1.ObjectReference{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								Kind:       "ControlPlaneTemplate",
+							},
+						},
+					},
+					Patches: []clusterv1.ClusterClassPatch{
+						{
+							Name:      "patch1",
+							EnabledIf: pointer.String(`template {{{{{{{{ .variableB }}`),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 		// Patch "op" (operation) validation
 		{
 			name: "error if patch op is not \"add\" \"remove\" or \"replace\"",

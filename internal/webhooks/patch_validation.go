@@ -80,12 +80,35 @@ func validatePatchName(patch clusterv1.ClusterClassPatch, names sets.String, pat
 
 func validatePatchDefinitions(patch clusterv1.ClusterClassPatch, clusterClass *clusterv1.ClusterClass, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
+
+	allErrs = append(allErrs, validateEnabledIf(patch.EnabledIf, path.Child("enabledIf"))...)
+
 	for i, definition := range patch.Definitions {
 		allErrs = append(allErrs,
 			validateJSONPatches(definition.JSONPatches, clusterClass.Spec.Variables, path.Child("definitions").Index(i).Child("jsonPatches"))...)
 		allErrs = append(allErrs,
 			validateSelectors(definition.Selector, clusterClass, path.Child("definitions").Index(i).Child("selector"))...)
 	}
+	return allErrs
+}
+
+// validateSelectors validates if enabledIf is a valid template if it is set.
+func validateEnabledIf(enabledIf *string, path *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if enabledIf != nil {
+		// Error if template can not be parsed.
+		_, err := template.New("enabledIf").Parse(*enabledIf)
+		if err != nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					path,
+					*enabledIf,
+					fmt.Sprintf("template can not be parsed: %v", err),
+				))
+		}
+	}
+
 	return allErrs
 }
 

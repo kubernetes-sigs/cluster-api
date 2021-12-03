@@ -20,10 +20,12 @@ import (
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	cabpkv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -65,6 +67,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		cabpkBootstrapTokenStringFuzzer,
 		dnsFuzzer,
 		kubeadmBootstrapTokenStringFuzzerV1Alpha4,
+		kubeadmControlPlaneTemplateResourceSpecFuzzerV1Alpha4,
 	}
 }
 
@@ -85,7 +88,17 @@ func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
 	obj.Type = ""
 }
 
-func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *v1alpha4.BootstrapTokenString, c fuzz.Continue) {
+func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *cabpkv1alpha4.BootstrapTokenString, c fuzz.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
+}
+
+func kubeadmControlPlaneTemplateResourceSpecFuzzerV1Alpha4(in *KubeadmControlPlaneTemplateResource, c fuzz.Continue) {
+	c.Fuzz(in)
+
+	// Fields have been dropped in KCPTemplate.
+	in.Spec.Replicas = nil
+	in.Spec.Version = ""
+	in.Spec.MachineTemplate.ObjectMeta = clusterv1alpha4.ObjectMeta{}
+	in.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{}
 }

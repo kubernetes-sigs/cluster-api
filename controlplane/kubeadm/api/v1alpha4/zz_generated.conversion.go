@@ -152,6 +152,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*KubeadmControlPlaneSpec)(nil), (*v1beta1.KubeadmControlPlaneTemplateResourceSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha4_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneTemplateResourceSpec(a.(*KubeadmControlPlaneSpec), b.(*v1beta1.KubeadmControlPlaneTemplateResourceSpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddConversionFunc((*v1beta1.KubeadmControlPlaneTemplateResourceSpec)(nil), (*KubeadmControlPlaneSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1alpha4_KubeadmControlPlaneSpec(a.(*v1beta1.KubeadmControlPlaneTemplateResourceSpec), b.(*KubeadmControlPlaneSpec), scope)
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -426,7 +436,7 @@ func Convert_v1beta1_KubeadmControlPlaneTemplateList_To_v1alpha4_KubeadmControlP
 }
 
 func autoConvert_v1alpha4_KubeadmControlPlaneTemplateResource_To_v1beta1_KubeadmControlPlaneTemplateResource(in *KubeadmControlPlaneTemplateResource, out *v1beta1.KubeadmControlPlaneTemplateResource, s conversion.Scope) error {
-	if err := Convert_v1alpha4_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1alpha4_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneTemplateResourceSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil
@@ -438,7 +448,7 @@ func Convert_v1alpha4_KubeadmControlPlaneTemplateResource_To_v1beta1_KubeadmCont
 }
 
 func autoConvert_v1beta1_KubeadmControlPlaneTemplateResource_To_v1alpha4_KubeadmControlPlaneTemplateResource(in *v1beta1.KubeadmControlPlaneTemplateResource, out *KubeadmControlPlaneTemplateResource, s conversion.Scope) error {
-	if err := Convert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(&in.Spec, &out.Spec, s); err != nil {
+	if err := Convert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1alpha4_KubeadmControlPlaneSpec(&in.Spec, &out.Spec, s); err != nil {
 		return err
 	}
 	return nil

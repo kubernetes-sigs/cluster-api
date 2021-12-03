@@ -25,10 +25,10 @@ import (
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
-func (src *KubeadmControlPlane) ConvertTo(destRaw conversion.Hub) error {
-	dest := destRaw.(*v1beta1.KubeadmControlPlane)
+func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta1.KubeadmControlPlane)
 
-	if err := Convert_v1alpha3_KubeadmControlPlane_To_v1beta1_KubeadmControlPlane(src, dest, nil); err != nil {
+	if err := Convert_v1alpha3_KubeadmControlPlane_To_v1beta1_KubeadmControlPlane(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -38,53 +38,53 @@ func (src *KubeadmControlPlane) ConvertTo(destRaw conversion.Hub) error {
 		return err
 	}
 
-	dest.Spec.MachineTemplate.ObjectMeta = restored.Spec.MachineTemplate.ObjectMeta
-	dest.Status.Version = restored.Status.Version
+	dst.Spec.MachineTemplate.ObjectMeta = restored.Spec.MachineTemplate.ObjectMeta
+	dst.Status.Version = restored.Status.Version
 
 	if restored.Spec.KubeadmConfigSpec.JoinConfiguration != nil && restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
-		if dest.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
-			dest.Spec.KubeadmConfigSpec.JoinConfiguration = &kubeadmbootstrapv1.JoinConfiguration{}
+		if dst.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
+			dst.Spec.KubeadmConfigSpec.JoinConfiguration = &kubeadmbootstrapv1.JoinConfiguration{}
 		}
-		dest.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors
+		dst.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors
 	}
 
 	if restored.Spec.KubeadmConfigSpec.InitConfiguration != nil && restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
-		if dest.Spec.KubeadmConfigSpec.InitConfiguration == nil {
-			dest.Spec.KubeadmConfigSpec.InitConfiguration = &kubeadmbootstrapv1.InitConfiguration{}
+		if dst.Spec.KubeadmConfigSpec.InitConfiguration == nil {
+			dst.Spec.KubeadmConfigSpec.InitConfiguration = &kubeadmbootstrapv1.InitConfiguration{}
 		}
-		dest.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors
+		dst.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors
 	}
 
-	dest.Spec.KubeadmConfigSpec.Ignition = restored.Spec.KubeadmConfigSpec.Ignition
+	dst.Spec.KubeadmConfigSpec.Ignition = restored.Spec.KubeadmConfigSpec.Ignition
 
 	return nil
 }
 
-func (dest *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
+func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.KubeadmControlPlane)
 
-	if err := Convert_v1beta1_KubeadmControlPlane_To_v1alpha3_KubeadmControlPlane(src, dest, nil); err != nil {
+	if err := Convert_v1beta1_KubeadmControlPlane_To_v1alpha3_KubeadmControlPlane(src, dst, nil); err != nil {
 		return err
 	}
 
 	// Preserve Hub data on down-conversion except for metadata
-	if err := utilconversion.MarshalData(src, dest); err != nil {
+	if err := utilconversion.MarshalData(src, dst); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (src *KubeadmControlPlaneList) ConvertTo(destRaw conversion.Hub) error {
-	dest := destRaw.(*v1beta1.KubeadmControlPlaneList)
+func (src *KubeadmControlPlaneList) ConvertTo(dstRaw conversion.Hub) error {
+	dst := dstRaw.(*v1beta1.KubeadmControlPlaneList)
 
-	return Convert_v1alpha3_KubeadmControlPlaneList_To_v1beta1_KubeadmControlPlaneList(src, dest, nil)
+	return Convert_v1alpha3_KubeadmControlPlaneList_To_v1beta1_KubeadmControlPlaneList(src, dst, nil)
 }
 
-func (dest *KubeadmControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
+func (dst *KubeadmControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*v1beta1.KubeadmControlPlaneList)
 
-	return Convert_v1beta1_KubeadmControlPlaneList_To_v1alpha3_KubeadmControlPlaneList(src, dest, nil)
+	return Convert_v1beta1_KubeadmControlPlaneList_To_v1alpha3_KubeadmControlPlaneList(src, dst, nil)
 }
 
 func Convert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha3_KubeadmControlPlaneSpec(in *v1beta1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, s apiconversion.Scope) error {

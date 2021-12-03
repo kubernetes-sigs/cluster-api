@@ -113,7 +113,7 @@ We are fully aware that in order to exploit the potential of ClusterClass and ma
     - Provide an external mechanism which allows to leverage the full power of a programming language to implement more complex customizations.
 - **Adoption**: Providing a way to convert existing clusters into managed topologies.
 - **Observability**: Build an SDK and enhance the Cluster object status to surface a summary of the status of the topology.
-- **Lifecycle integrations**: Extend ClusterClass to include lifecycle management integrations such as MachineHealthCheck and Cluster Autoscaler to manage the state and health of the managed topologies.
+- **Lifecycle integrations**: Extend ClusterClass to include lifecycle management integrations such as Cluster Autoscaler to manage the state of the managed topologies.
 
 However we are intentionally leaving them out from this initial iteration for the following reasons:
 - We want the community to reach a consensus on cornerstone elements of the design before iterating on additional features.
@@ -180,10 +180,15 @@ the `controlPlaneMachineType` variable accordingly.
 
 **Notes**: Same notes as in Story 4 apply.
 
+#### Story 8 - Easy UX for MachineHealthChecks
+As a cluster operator I want a simple way to define checks to manage the health of the machines in my cluster. 
+
+Instead of defining MachineHealthChecks each time a Cluster is created, there should be a mechanism for creating the same type of health check for each Cluster stamped by a ClusterClass.
+ 
 ### Implementation Details/Notes/Constraints
 
 The following section provides details about the introduction of new types and modifications to existing types to implement the ClusterClass functionality.
-If instead you are eager to see an example of ClusterClass and how the Cluster object will look like, you can jump to the Behavior paragraph.
+If instead you are eager to see an example of ClusterClass and how the Cluster object will look, you can jump to the Behavior paragraph.
 
 #### New API types
 
@@ -236,19 +241,24 @@ type ClusterClassSpec struct {
 
 // ControlPlaneClass defines the class for the control plane.
 type ControlPlaneClass struct {
-	Metadata ObjectMeta `json:"metadata,omitempty"`
+  Metadata ObjectMeta `json:"metadata,omitempty"`
 
-	// LocalObjectTemplate contains the reference to the control plane provider.
-	LocalObjectTemplate `json:",inline"`
+  // LocalObjectTemplate contains the reference to the control plane provider.
+  LocalObjectTemplate `json:",inline"`
 
-	// MachineTemplate defines the metadata and infrastructure information
-	// for control plane machines.
-	//
-	// This field is supported if and only if the control plane provider template
-	// referenced above is Machine based and supports setting replicas.
-	//
-	// +optional
-	MachineInfrastructure *LocalObjectTemplate `json:"machineInfrastructure,omitempty"`
+  // MachineInfrastructure defines the metadata and infrastructure information
+  // for control plane machines.
+  //
+  // This field is supported if and only if the control plane provider template
+  // referenced above is Machine based and supports setting replicas.
+  // +optional
+  MachineInfrastructure *LocalObjectTemplate `json:"machineInfrastructure,omitempty"`
+  
+  // MachineHealthCheck defines a MachineHealthCheck for this ControlPlaneClass.
+  // This field is supported if and only if the ControlPlane provider template
+  // referenced above is Machine based and supports setting replicas.
+  // +optional
+  MachineHealthCheck *MachineHealthCheckClass `json:"machineHealthCheck,omitempty"`
 }
 
 // WorkersClass is a collection of deployment classes.
@@ -269,6 +279,10 @@ type MachineDeploymentClass struct {
   // Template is a local struct containing a collection of templates for creation of
   // MachineDeployment objects representing a set of worker nodes.
   Template MachineDeploymentClassTemplate `json:"template"`
+  
+  // MachineHealthCheck defines a MachineHealthCheck for this MachineDeploymentClass.
+  // +optional
+  MachineHealthCheck *MachineHealthCheckClass `json:"machineHealthCheck,omitempty"`
 }
 
 // MachineDeploymentClassTemplate defines how a MachineDeployment generated from a MachineDeploymentClass
@@ -290,6 +304,42 @@ type LocalObjectTemplate struct {
   // Ref is a required reference to a custom resource
   // offered by a provider.
   Ref *corev1.ObjectReference `json:"ref"`
+}
+
+// MachineHealthCheckClass defines a MachineHealthCheck for a group of Machines.
+type MachineHealthCheckClass struct {
+  // UnhealthyConditions contains a list of the conditions that determine
+  // whether a node is considered unhealthy. The conditions are combined in a
+  // logical OR, i.e. if any of the conditions is met, the node is unhealthy.
+  UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions,omitempty"`
+
+  // Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by
+  // "selector" are not healthy.
+  // +optional
+  MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
+
+  // Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
+  // is within the range of "UnhealthyRange". Takes precedence over MaxUnhealthy.
+  // Eg. "[3-5]" - This means that remediation will be allowed only when:
+  // (a) there are at least 3 unhealthy machines (and)
+  // (b) there are at most 5 unhealthy machines
+  // +optional
+  UnhealthyRange *string `json:"unhealthyRange,omitempty"`
+
+  // Machines older than this duration without a node will be considered to have
+  // failed and will be remediated.
+  // If you wish to disable this feature, set the value explicitly to 0.
+  // +optional
+  NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
+
+  // RemediationTemplate is a reference to a remediation template
+  // provided by an infrastructure provider.
+  //
+  // This field is completely optional, when filled, the MachineHealthCheck controller
+  // creates a new object from the template referenced and hands off remediation of the machine to
+  // a controller that lives outside of Cluster API.
+  // +optional
+  RemediationTemplate *corev1.ObjectReference `json:"remediationTemplate,omitempty"`
 }
 ```
 
@@ -643,7 +693,6 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
               the template and validating if the result is a valid YAML or JSON value.
     - We will only implement syntax validation. A semantic validation is not possible as the patches will be applied 
       to provider templates. **It’s the responsibility of the ClusterClass author to ensure the patches are semantically valid**.
-
 - For object updates:
   - all the reference must be in the same namespace of `metadata.Namespace`
   - `spec.workers.machineDeployments[i].class` field must be unique within a ClusterClass.
@@ -714,6 +763,17 @@ intentionally use resources without patches and variables to focus on the simple
           apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
           kind: KubeadmControlPlaneTemplate
           name: vsphere-prod-cluster-template-kcp
+        # This will create a MachineHealthCheck for ControlPlane machines.
+        machineHealthCheck:
+          nodeStartupTimeout: 3m
+          maxUnhealthy: 33%
+          unhealthyConditions:
+            - type: Ready
+              status: Unknown
+              timeout: 300s
+            - type: Ready
+              status: "False"
+              timeout: 300s
       workers:
         deployments:
         - class: linux-worker
@@ -728,6 +788,15 @@ intentionally use resources without patches and variables to focus on the simple
                 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
                 kind: VSphereMachineTemplate
                 name: linux-vsphere-template
+          # This will create a health check for each deployment created with the "linux-worker" MachineDeploymentClass
+          machineHealthCheck:
+            unhealthyConditions:
+              - type: Ready
+                status: Unknown
+                timeout: 300s
+              - type: Ready
+                status: "False"
+               timeout: 300s
         - class: windows-worker
           template:
             bootstrap:
@@ -740,6 +809,15 @@ intentionally use resources without patches and variables to focus on the simple
                 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
                 kind: VSphereMachineTemplate
                 name: windows-vsphere-template
+          # This will create a health check for each deployment created with the "windows-worker" MachineDeploymentClass
+          machineHealthCheck:
+            unhealthyConditions:
+              - type: Ready
+                status: Unknown
+                timeout: 300s
+              - type: Ready
+                status: "False"
+               timeout: 300s
       infrastructure:
         ref:
           apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
@@ -795,7 +873,7 @@ intentionally use resources without patches and variables to focus on the simple
     1. Creates the control plane object.
     1. Sets the `spec.infrastructureRef` and `spec.controlPlaneRef` fields for the Cluster object.
     1. Saves the cluster object in the API server.
-5. Machine deployment object creation
+5. MachineDeployment object creation
     1. For each `spec.topology.workers.machineDeployments` item in the list
     1. Create a name `<cluster-name>-<worker-set-name>` (if too long, hash it)
     1. Initializes a new MachineDeployment object.
@@ -811,7 +889,10 @@ intentionally use resources without patches and variables to focus on the simple
        ```
       Note: The topology label needs to be set on the individual Machine objects as well.
     1. Creates the Machine Deployment object in the API server.
-
+6. MachineHealthCheck object creation
+   1. For each `Cluster.spec.topology.workers.machineDeployments` with `ClusterClass.spec.workers.machineDeployments[i].machineDeploymentClass` defined create a MachineHealthCheck with the label `topology.cluster.x-k8s.io/deployment-name: <machine-deployment-topology-name>` as the selector and set the `clusterName` field from the cluster.
+   2. If `Cluster.spec.topology.controlPlane.machineHealthCheckClass` is set create a MachineHealthCheck with the label `cluster.x-k8s.io/control-plane` as the selector and set the `clusterName` field from the cluster.
+   
 ![Creation of cluster with ClusterClass](./images/cluster-class/create.png)
 
 ##### Update an existing Cluster using ClusterClass

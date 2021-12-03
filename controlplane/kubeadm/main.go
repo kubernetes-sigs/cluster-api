@@ -44,11 +44,13 @@ import (
 	kcpv1alpha4 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
 	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
+	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
 var (
@@ -245,6 +247,12 @@ func setupWebhooks(mgr ctrl.Manager) {
 	if err := (&kcpv1.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlaneTemplate")
 	}
+
+	mgr.GetWebhookServer().Register("/validate-scale-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplane", &webhook.Admission{
+		Handler: &kcpwebhooks.ScaleValidator{
+			Client: mgr.GetClient(),
+		},
+	})
 }
 
 func concurrency(c int) controller.Options {

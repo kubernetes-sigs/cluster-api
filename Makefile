@@ -404,6 +404,7 @@ generate-manifests-kcp: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) \
 		paths=./controlplane/kubeadm/api/... \
 		paths=./controlplane/kubeadm/controllers/... \
+		paths=./controlplane/kubeadm/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./controlplane/kubeadm/config/crd/bases \

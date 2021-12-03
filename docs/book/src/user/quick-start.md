@@ -175,7 +175,7 @@ and `kubeadm` control-plane providers.
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,GCP,vSphere,OpenStack,Metal3,Equinix Metal"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Metal3,OpenStack,vSphere"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
@@ -266,6 +266,20 @@ clusterctl init --infrastructure docker
 ```
 
 {{#/tab }}
+{{#tab Equinix Metal}}
+
+In order to initialize the Equinix Metal Provider (formerly Packet) you have to expose the environment
+variable `PACKET_API_KEY`. This variable is used to authorize the infrastructure
+provider manager against the Equinix Metal API. You can retrieve your token directly
+from the [Equinix Metal Console](https://console.equinix.com/).
+
+```bash
+export PACKET_API_KEY="34ts3g4s5g45gd45dhdh"
+
+clusterctl init --infrastructure packet
+```
+
+{{#/tab }}
 {{#tab GCP}}
 
 ```bash
@@ -276,6 +290,19 @@ export GCP_B64ENCODED_CREDENTIALS=$( cat /path/to/gcp-credentials.json | base64 
 
 # Finally, initialize the management cluster
 clusterctl init --infrastructure gcp
+```
+
+{{#/tab }}
+{{#tab Metal3}}
+
+Please visit the [Metal3 project][Metal3 provider].
+
+{{#/tab }}
+{{#tab OpenStack}}
+
+```bash
+# Initialize the management cluster
+clusterctl init --infrastructure openstack
 ```
 
 {{#/tab }}
@@ -297,34 +324,6 @@ For more information about prerequisites, credentials management, or permissions
 project][vSphere getting started guide].
 
 {{#/tab }}
-{{#tab OpenStack}}
-
-```bash
-# Initialize the management cluster
-clusterctl init --infrastructure openstack
-```
-
-{{#/tab }}
-{{#tab Metal3}}
-
-Please visit the [Metal3 project][Metal3 provider].
-
-{{#/tab }}
-{{#tab Equinix Metal}}
-
-In order to initialize the Equinix Metal Provider (formerly Packet) you have to expose the environment
-variable `PACKET_API_KEY`. This variable is used to authorize the infrastructure
-provider manager against the Equinix Metal API. You can retrieve your token directly
-from the [Equinix Metal Console](https://console.equinix.com/).
-
-```bash
-export PACKET_API_KEY="34ts3g4s5g45gd45dhdh"
-
-clusterctl init --infrastructure packet
-```
-
-{{#/tab }}
-
 {{#/tabs }}
 
 The output of `clusterctl init` is similar to this:
@@ -393,7 +392,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,GCP,vSphere,OpenStack,Metal3,Equinix Metal"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Metal3,OpenStack,vSphere"}}
 {{#tab AWS}}
 
 ```bash
@@ -468,6 +467,28 @@ export SERVICE_DOMAIN="k8s.test"
 ```
 
 {{#/tab }}
+{{#tab Equinix Metal}}
+
+There are a couple of required environment variables that you have to expose in
+order to get a well tuned and function workload, they are all listed here:
+
+```bash
+# The project where your cluster will be placed to.
+# You have to get one from the Equinix Metal Console if you don't have one already.
+export PROJECT_ID="5yd4thd-5h35-5hwk-1111-125gjej40930"
+# The facility where you want your cluster to be provisioned
+export FACILITY="ewr1"
+# The operatin system used to provision the device
+export NODE_OS="ubuntu_18_04"
+# The ssh key name you loaded in the Equinix Metal Console
+export SSH_KEY="my-ssh"
+export POD_CIDR="192.168.0.0/16"
+export SERVICE_CIDR="172.26.0.0/16"
+export CONTROLPLANE_NODE_TYPE="t1.small"
+export WORKER_NODE_TYPE="t1.small"
+```
+
+{{#/tab }}
 {{#tab GCP}}
 
 
@@ -486,34 +507,33 @@ export CLUSTER_NAME="<CLUSTER_NAME>"
 See the [GCP provider] for more information.
 
 {{#/tab }}
-{{#tab vSphere}}
+{{#tab Metal3}}
 
-It is required to use an official CAPV machine images for your vSphere VM templates. See [uploading CAPV machine images][capv-upload-images] for instructions on how to do this.
+**Note**: If you are running CAPM3 release prior to v0.5.0, make sure to export the following
+environment variables. However, you don't need them to be exported if you use
+CAPM3 release v0.5.0 or higher.
 
 ```bash
-# The vCenter server IP or FQDN
-export VSPHERE_SERVER="10.0.0.1"
-# The vSphere datacenter to deploy the management cluster on
-export VSPHERE_DATACENTER="SDDC-Datacenter"
-# The vSphere datastore to deploy the management cluster on
-export VSPHERE_DATASTORE="vsanDatastore"
-# The VM network to deploy the management cluster on
-export VSPHERE_NETWORK="VM Network"
-# The vSphere resource pool for your VMs
-export VSPHERE_RESOURCE_POOL="*/Resources"
-# The VM folder for your VMs. Set to "" to use the root vSphere folder
-export VSPHERE_FOLDER="vm"
-# The VM template to use for your VMs
-export VSPHERE_TEMPLATE="ubuntu-1804-kube-v1.17.3"
-# The VM template to use for the HAProxy load balancer of the management cluster
-export VSPHERE_HAPROXY_TEMPLATE="capv-haproxy-v0.6.0-rc.2"
-# The public ssh authorized key on all machines
-export VSPHERE_SSH_AUTHORIZED_KEY="ssh-rsa AAAAB3N..."
-
-clusterctl init --infrastructure vsphere
+# The URL of the kernel to deploy.
+export DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"
+# The URL of the ramdisk to deploy.
+export DEPLOY_RAMDISK_URL="http://172.22.0.1:6180/images/ironic-python-agent.initramfs"
+# The URL of the Ironic endpoint.
+export IRONIC_URL="http://172.22.0.1:6385/v1/"
+# The URL of the Ironic inspector endpoint.
+export IRONIC_INSPECTOR_URL="http://172.22.0.1:5050/v1/"
+# Do not use a dedicated CA certificate for Ironic API. Any value provided in this variable disables additional CA certificate validation.
+# To provide a CA certificate, leave this variable unset. If unset, then IRONIC_CA_CERT_B64 must be set.
+export IRONIC_NO_CA_CERT=true
+# Disables basic authentication for Ironic API. Any value provided in this variable disables authentication.
+# To enable authentication, leave this variable unset. If unset, then IRONIC_USERNAME and IRONIC_PASSWORD must be set.
+export IRONIC_NO_BASIC_AUTH=true
+# Disables basic authentication for Ironic inspector API. Any value provided in this variable disables authentication.
+# To enable authentication, leave this variable unset. If unset, then IRONIC_INSPECTOR_USERNAME and IRONIC_INSPECTOR_PASSWORD must be set.
+export IRONIC_INSPECTOR_NO_BASIC_AUTH=true
 ```
 
-For more information about prerequisites, credentials management, or permissions for vSphere, see the [vSphere getting started guide].
+Please visit the [Metal3 getting started guide] for more details.
 
 {{#/tab }}
 {{#tab OpenStack}}
@@ -555,55 +575,34 @@ export OPENSTACK_SSH_KEY_NAME=<ssh key pair name>
 A full configuration reference can be found in [configuration.md](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/book/src/clusteropenstack/configuration.md).
 
 {{#/tab }}
-{{#tab Metal3}}
+{{#tab vSphere}}
 
-**Note**: If you are running CAPM3 release prior to v0.5.0, make sure to export the following
-environment variables. However, you don't need them to be exported if you use
-CAPM3 release v0.5.0 or higher.
+It is required to use an official CAPV machine images for your vSphere VM templates. See [uploading CAPV machine images][capv-upload-images] for instructions on how to do this.
 
 ```bash
-# The URL of the kernel to deploy.
-export DEPLOY_KERNEL_URL="http://172.22.0.1:6180/images/ironic-python-agent.kernel"
-# The URL of the ramdisk to deploy.
-export DEPLOY_RAMDISK_URL="http://172.22.0.1:6180/images/ironic-python-agent.initramfs"
-# The URL of the Ironic endpoint.
-export IRONIC_URL="http://172.22.0.1:6385/v1/"
-# The URL of the Ironic inspector endpoint.
-export IRONIC_INSPECTOR_URL="http://172.22.0.1:5050/v1/"
-# Do not use a dedicated CA certificate for Ironic API. Any value provided in this variable disables additional CA certificate validation.
-# To provide a CA certificate, leave this variable unset. If unset, then IRONIC_CA_CERT_B64 must be set.
-export IRONIC_NO_CA_CERT=true
-# Disables basic authentication for Ironic API. Any value provided in this variable disables authentication.
-# To enable authentication, leave this variable unset. If unset, then IRONIC_USERNAME and IRONIC_PASSWORD must be set.
-export IRONIC_NO_BASIC_AUTH=true
-# Disables basic authentication for Ironic inspector API. Any value provided in this variable disables authentication.
-# To enable authentication, leave this variable unset. If unset, then IRONIC_INSPECTOR_USERNAME and IRONIC_INSPECTOR_PASSWORD must be set.
-export IRONIC_INSPECTOR_NO_BASIC_AUTH=true
+# The vCenter server IP or FQDN
+export VSPHERE_SERVER="10.0.0.1"
+# The vSphere datacenter to deploy the management cluster on
+export VSPHERE_DATACENTER="SDDC-Datacenter"
+# The vSphere datastore to deploy the management cluster on
+export VSPHERE_DATASTORE="vsanDatastore"
+# The VM network to deploy the management cluster on
+export VSPHERE_NETWORK="VM Network"
+# The vSphere resource pool for your VMs
+export VSPHERE_RESOURCE_POOL="*/Resources"
+# The VM folder for your VMs. Set to "" to use the root vSphere folder
+export VSPHERE_FOLDER="vm"
+# The VM template to use for your VMs
+export VSPHERE_TEMPLATE="ubuntu-1804-kube-v1.17.3"
+# The VM template to use for the HAProxy load balancer of the management cluster
+export VSPHERE_HAPROXY_TEMPLATE="capv-haproxy-v0.6.0-rc.2"
+# The public ssh authorized key on all machines
+export VSPHERE_SSH_AUTHORIZED_KEY="ssh-rsa AAAAB3N..."
+
+clusterctl init --infrastructure vsphere
 ```
 
-Please visit the [Metal3 getting started guide] for more details.
-
-{{#/tab }}
-{{#tab Equinix Metal}}
-
-There are a couple of required environment variables that you have to expose in
-order to get a well tuned and function workload, they are all listed here:
-
-```bash
-# The project where your cluster will be placed to.
-# You have to get one from the Equinix Metal Console if you don't have one already.
-export PROJECT_ID="5yd4thd-5h35-5hwk-1111-125gjej40930"
-# The facility where you want your cluster to be provisioned
-export FACILITY="ewr1"
-# The operatin system used to provision the device
-export NODE_OS="ubuntu_18_04"
-# The ssh key name you loaded in the Equinix Metal Console
-export SSH_KEY="my-ssh"
-export POD_CIDR="192.168.0.0/16"
-export SERVICE_CIDR="172.26.0.0/16"
-export CONTROLPLANE_NODE_TYPE="t1.small"
-export WORKER_NODE_TYPE="t1.small"
-```
+For more information about prerequisites, credentials management, or permissions for vSphere, see the [vSphere getting started guide].
 
 {{#/tab }}
 {{#/tabs }}
@@ -612,8 +611,8 @@ export WORKER_NODE_TYPE="t1.small"
 
 For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
-{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Azure|AWS|DigitalOcean|GCP|vSphere|OpenStack|Metal3|Packet,Docker"}}
-{{#tab Azure|AWS|DigitalOcean|GCP|vSphere|OpenStack|Metal3|Packet}}
+{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Azure|AWS|DigitalOcean|Equinix Metal|GCP|Metal3|OpenStack|vSphere,Docker"}}
+{{#tab Azure|AWS|DigitalOcean|Equinix Metal|GCP|Metal3|OpenStack|vSphere}}
 
 ```bash
 clusterctl generate cluster capi-quickstart \
@@ -727,8 +726,8 @@ See [Additional Notes for the Docker Provider](../clusterctl/developers.md#addit
 
 Calico is used here as an example.
 
-{{#tabs name:"tab-deploy-cni" tabs:"AWS|DigitalOcean|Docker|GCP|vSphere|OpenStack|Metal3|Equinix Metal,Azure"}}
-{{#tab AWS|DigitalOcean|Docker|GCP|vSphere|OpenStack|Metal3|Equinix Metal}}
+{{#tabs name:"tab-deploy-cni" tabs:"AWS|DigitalOcean|Docker|Equinix Metal|GCP|Metal3|OpenStack|vSphere,Azure"}}
+{{#tab AWS|DigitalOcean|Docker|Equinix Metal|GCP|Metal3|OpenStack|vSphere}}
 
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig \

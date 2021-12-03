@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
@@ -31,6 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -134,8 +136,6 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		return ctrl.Result{}, nil
 	}
 
-	// TODO: Add patching as soon as we define how to report managed topology state into conditions
-
 	// In case the object is deleted, the managed topology stops to reconcile;
 	// (the other controllers will take care of deletion).
 	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -144,12 +144,34 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		return ctrl.Result{}, nil
 	}
 
+	patchHelper, err := patch.NewHelper(cluster, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Create a scope initialized with only the cluster; during reconcile
 	// additional information will be added about the Cluster blueprint, current state and desired state.
-	scope := scope.New(cluster)
+	s := scope.New(cluster)
+
+	defer func() {
+		if err := r.reconcileConditions(s, cluster, reterr); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to reconcile cluster topology conditions")})
+			return
+		}
+		options := []patch.Option{
+			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+				clusterv1.TopologyReconciledCondition,
+			}},
+			patch.WithForceOverwriteConditions{},
+		}
+		if err := patchHelper.Patch(ctx, cluster, options...); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to patch cluster")})
+			return
+		}
+	}()
 
 	// Handle normal reconciliation loop.
-	return r.reconcile(ctx, scope)
+	return r.reconcile(ctx, s)
 }
 
 // reconcile handles cluster reconciliation.

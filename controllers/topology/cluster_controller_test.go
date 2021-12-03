@@ -30,6 +30,8 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/builder"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -80,6 +82,9 @@ func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
 
+		// Check if the Cluster has the relevant TopologyReconciledCondition.
+		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
+
 		return nil
 	}, timeout).Should(Succeed())
 }
@@ -124,6 +129,9 @@ func TestClusterReconciler_reconcileMultipleClustersFromOneClass(t *testing.T) {
 
 			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+
+			// Check if the Cluster has the relevant TopologyReconciledCondition.
+			g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
 		}
 		return nil
 	}, timeout).Should(Succeed())
@@ -167,14 +175,19 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 		g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+
+		// Check if the Cluster has the relevant TopologyReconciledCondition.
+		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
 		return nil
 	}, timeout).Should(Succeed())
 
 	// Change the replicas field in the managed topology of our cluster and update the object in the API.
 	replicas := int32(100)
+	patchHelper, err := patch.NewHelper(actualCluster, env.Client)
+	g.Expect(err).ToNot(HaveOccurred())
 	clusterWithTopologyChange := actualCluster.DeepCopy()
 	clusterWithTopologyChange.Spec.Topology.Workers.MachineDeployments[0].Replicas = &replicas
-	g.Expect(env.Update(ctx, clusterWithTopologyChange)).Should(Succeed())
+	g.Expect(patchHelper.Patch(ctx, clusterWithTopologyChange)).Should(Succeed())
 
 	// Check to ensure all objects are correctly reconciled with the new MachineDeployment replica count in Topology.
 	g.Eventually(func(g Gomega) error {
@@ -198,6 +211,9 @@ func TestClusterReconciler_reconcileUpdateOnClusterTopology(t *testing.T) {
 
 		// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 		g.Expect(assertMachineDeploymentsReconcile(updatedCluster)).Should(Succeed())
+
+		// Check if the Cluster has the relevant TopologyReconciledCondition.
+		g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
 		return nil
 	}, timeout).Should(Succeed())
 }
@@ -242,6 +258,9 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 
 			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+
+			// Check if the Cluster has the relevant TopologyReconciledCondition.
+			g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
 		}
 		return nil
 	}, timeout).Should(Succeed())
@@ -250,9 +269,11 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 	clusterClass := &clusterv1.ClusterClass{}
 	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: actualCluster.Spec.Topology.Class}, clusterClass)).To(Succeed())
 
+	patchHelper, err := patch.NewHelper(clusterClass, env.Client)
+	g.Expect(err).ToNot(HaveOccurred())
 	// Change the infrastructureMachineTemplateName for the first of our machineDeployment and update in the API.
 	clusterClass.Spec.Workers.MachineDeployments[0].Template.Infrastructure.Ref.Name = infrastructureMachineTemplateName2
-	g.Expect(env.Update(ctx, clusterClass.DeepCopy())).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, clusterClass)).To(Succeed())
 
 	g.Eventually(func(g Gomega) error {
 		// Check that the clusterClass has been correctly updated to use the new infrastructure template.
@@ -280,6 +301,9 @@ func TestClusterReconciler_reconcileUpdatesOnClusterClass(t *testing.T) {
 
 			// Check if MachineDeployments are created and have the correct version, replicas, labels annotations and templates.
 			g.Expect(assertMachineDeploymentsReconcile(actualCluster)).Should(Succeed())
+
+			// Check if the Cluster has the relevant TopologyReconciledCondition.
+			g.Expect(assertClusterTopologyReconciledCondition(actualCluster)).Should(Succeed())
 		}
 		return nil
 	}, timeout).Should(Succeed())
@@ -327,10 +351,12 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 		return nil
 	}, timeout).Should(Succeed())
 
+	patchHelper, err := patch.NewHelper(actualCluster, env.Client)
+	g.Expect(err).ToNot(HaveOccurred())
 	// Change the ClusterClass pointed to in the Cluster's Topology. This is a ClusterClass rebase operation.
 	clusterWithRebase := actualCluster.DeepCopy()
 	clusterWithRebase.Spec.Topology.Class = clusterClassName2
-	g.Expect(env.Update(ctx, clusterWithRebase)).Should(Succeed())
+	g.Expect(patchHelper.Patch(ctx, clusterWithRebase)).Should(Succeed())
 
 	// Check to ensure all objects are correctly reconciled with the new ClusterClass.
 	g.Eventually(func(g Gomega) error {
@@ -534,6 +560,13 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 		}
 	}
 	return cleanup, nil
+}
+
+func assertClusterTopologyReconciledCondition(cluster *clusterv1.Cluster) error {
+	if !conditions.Has(cluster, clusterv1.TopologyReconciledCondition) {
+		return fmt.Errorf("cluster should have the TopologyReconciled condition set")
+	}
+	return nil
 }
 
 // assertClusterReconcile checks if the Cluster object:

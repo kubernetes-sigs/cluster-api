@@ -626,6 +626,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					ControlPlane:       &scope.ControlPlaneState{Object: tt.controlPlaneObj},
 					MachineDeployments: tt.machineDeploymentsState,
 				},
+				UpgradeTracker: scope.NewUpgradeTracker(),
 			}
 			version, err := computeControlPlaneVersion(s)
 			g.Expect(err).NotTo(HaveOccurred())

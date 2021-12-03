@@ -96,6 +96,26 @@ func (c *ControlPlaneContract) ReadyReplicas() *Int64 {
 	}
 }
 
+// IsProvisioning returns true if the control plane is being created for the first time.
+// Returns false, if the control plane was already previously provisioned.
+func (c *ControlPlaneContract) IsProvisioning(obj *unstructured.Unstructured) (bool, error) {
+	// We can know if the control plane was previously created or is being cretaed for the first
+	// time by looking at controlplane.status.version. If the version in status is set to a valid
+	// value then the control plane was already provisioned at a previous time. If not, we can
+	// assume that the control plane is being created for the first time.
+	statusVersion, err := c.StatusVersion().Get(obj)
+	if err != nil {
+		if errors.Is(err, errNotFound) {
+			return true, nil
+		}
+		return false, errors.Wrap(err, "failed to get control plane status version")
+	}
+	if *statusVersion == "" {
+		return true, nil
+	}
+	return false, nil
+}
+
 // IsUpgrading returns true if the control plane is in the middle of an upgrade, false otherwise.
 // A control plane is considered upgrading if:
 // - if spec.version is greater than status.version.

@@ -1213,7 +1213,7 @@ func Test_validateSelectors(t *testing.T) {
 				MatchResources: clusterv1.PatchSelectorMatch{
 					ControlPlane:           false,
 					InfrastructureCluster:  false,
-					MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{},
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{},
 				},
 			},
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1364,7 +1364,7 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"aa"},
 					},
 				},
@@ -1392,7 +1392,7 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"aa"},
 					},
 				},
@@ -1420,7 +1420,7 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"bb"},
 					},
 				},
@@ -1461,7 +1461,7 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"bb"},
 					},
 					ControlPlane: true,
@@ -1510,7 +1510,7 @@ func Test_validateSelectors(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "InfrastructureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"bb"},
 					},
 					ControlPlane: false,

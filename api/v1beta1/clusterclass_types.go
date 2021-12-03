@@ -262,7 +262,7 @@ type PatchSelectorMatch struct {
 	// MachineDeploymentClass selects templates referenced in specific MachineDeploymentClasses in
 	// .spec.workers.machineDeployments.
 	// +optional
-	MachineDeploymentClass PatchSelectorMatchMachineDeploymentClass `json:"machineDeploymentClass,omitempty"`
+	MachineDeploymentClass *PatchSelectorMatchMachineDeploymentClass `json:"machineDeploymentClass,omitempty"`
 }
 
 // PatchSelectorMatchMachineDeploymentClass selects templates referenced

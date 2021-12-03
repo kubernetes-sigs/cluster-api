@@ -188,7 +188,7 @@ func TestGenerate(t *testing.T) {
 							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 							Kind:       "BootstrapTemplate",
 							MatchResources: clusterv1.PatchSelectorMatch{
-								MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
+								MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 									Names: []string{"default-worker"},
 								},
 							},
@@ -440,7 +440,7 @@ func TestTemplateMatchesSelector(t *testing.T) {
 				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"classA"},
 					},
 				},
@@ -478,7 +478,7 @@ func TestTemplateMatchesSelector(t *testing.T) {
 				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
 				Kind:       "BootstrapTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"classB"},
 					},
 				},
@@ -499,7 +499,7 @@ func TestTemplateMatchesSelector(t *testing.T) {
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
 				Kind:       "AzureMachineTemplate",
 				MatchResources: clusterv1.PatchSelectorMatch{
-					MachineDeploymentClass: clusterv1.PatchSelectorMatchMachineDeploymentClass{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
 						Names: []string{"classA"},
 					},
 				},

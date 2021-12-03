@@ -96,7 +96,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 
 	// Return an error if none of the possible selectors are enabled.
 	if !(selector.MatchResources.InfrastructureCluster || selector.MatchResources.ControlPlane ||
-		len(selector.MatchResources.MachineDeploymentClass.Names) > 0) {
+		(selector.MatchResources.MachineDeploymentClass != nil && len(selector.MatchResources.MachineDeploymentClass.Names) > 0)) {
 		return append(allErrs,
 			field.Invalid(
 				path,
@@ -121,7 +121,7 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 		}
 	}
 
-	if len(selector.MatchResources.MachineDeploymentClass.Names) > 0 {
+	if selector.MatchResources.MachineDeploymentClass != nil && len(selector.MatchResources.MachineDeploymentClass.Names) > 0 {
 		for _, name := range selector.MatchResources.MachineDeploymentClass.Names {
 			for _, md := range class.Spec.Workers.MachineDeployments {
 				if md.Class == name {

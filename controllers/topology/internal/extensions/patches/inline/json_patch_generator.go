@@ -115,6 +115,9 @@ func templateMatchesSelector(templateRef *api.TemplateRef, selector clusterv1.Pa
 		// Check if matchSelector.controlPlane is true.
 		return selector.MatchResources.ControlPlane
 	case api.MachineDeploymentBootstrapConfigTemplateType, api.MachineDeploymentInfrastructureMachineTemplateType:
+		if selector.MatchResources.MachineDeploymentClass == nil {
+			return false
+		}
 		// Check if matchSelector.machineDeploymentClass.names contains the
 		// MachineDeployment.Class of the template.
 		for _, name := range selector.MatchResources.MachineDeploymentClass.Names {

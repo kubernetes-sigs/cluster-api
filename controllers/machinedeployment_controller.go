@@ -85,9 +85,8 @@ func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr 
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
-		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 		predicates.All(ctrl.LoggerFrom(ctx),
-			predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+			predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 			predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
 		),
 	)
@@ -122,6 +121,12 @@ func (r *MachineDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, deployment) {
 		log.Info("Reconciliation is paused for this object")
+		return ctrl.Result{}, nil
+	}
+
+	// Wait for the cluster infrastructure to be ready before creating machines
+	if !cluster.Status.InfrastructureReady {
+		log.Info("Cluster infrastructure is not ready yet")
 		return ctrl.Result{}, nil
 	}
 

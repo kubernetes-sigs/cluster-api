@@ -31,6 +31,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/controllers/internal/mdutil"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
@@ -100,9 +101,8 @@ func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),
-		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 		predicates.All(ctrl.LoggerFrom(ctx),
-			predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+			predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 			predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
 		),
 	)
@@ -136,6 +136,12 @@ func (r *MachineSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, machineSet) {
 		log.Info("Reconciliation is paused for this object")
+		return ctrl.Result{}, nil
+	}
+
+	// Wait for the cluster infrastructure to be ready before creating machines
+	if !cluster.Status.InfrastructureReady {
+		log.Info("Cluster infrastructure is not ready yet")
 		return ctrl.Result{}, nil
 	}
 
@@ -295,7 +301,7 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 		return ctrl.Result{}, errors.Wrap(err, "failed to remediate machines")
 	}
 
-	syncErr := r.syncReplicas(ctx, machineSet, filteredMachines)
+	syncErr := r.syncReplicas(ctx, cluster, machineSet, filteredMachines)
 
 	// Always updates status as machines come up or die.
 	if err := r.updateStatus(ctx, cluster, machineSet, filteredMachines); err != nil {
@@ -334,7 +340,7 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 }
 
 // syncReplicas scales Machine resources up or down.
-func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine) error {
+func (r *MachineSetReconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, machines []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 	if ms.Spec.Replicas == nil {
 		return errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", ms.Name)
@@ -354,7 +360,7 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 			machineList []*clusterv1.Machine
 			errs        []error
 		)
-
+		allMachines := machines
 		for i := 0; i < diff; i++ {
 			log.Info(fmt.Sprintf("Creating machine %d of %d, ( spec.replicas(%d) > currentMachineCount(%d) )",
 				i+1, diff, *(ms.Spec.Replicas), len(machines)))
@@ -397,6 +403,12 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 			}
 			machine.Spec.InfrastructureRef = *infraRef
 
+			// Compute next fd based on existing machines as well as any new machines we create in this loop.
+			if fd := mdutil.NextFailureDomainForScaleUp(cluster, allMachines); fd != nil {
+				machine.Spec.FailureDomain = fd
+				log.Info(fmt.Sprintf("Using FailureDomain %q for machine %q", *fd, machine.Name))
+			}
+
 			if err := r.Client.Create(ctx, machine); err != nil {
 				log.Error(err, "Unable to create Machine", "machine", machine.Name)
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine %q: %v", machine.Name, err)
@@ -415,10 +427,10 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				}
 				continue
 			}
-
-			log.Info(fmt.Sprintf("Created machine %d of %d with name %q", i+1, diff, machine.Name))
+			log.Info(fmt.Sprintf("Created machine %d of %d with name %q ", i+1, diff, machine.Name))
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulCreate", "Created machine %q", machine.Name)
 			machineList = append(machineList, machine)
+			allMachines = append(allMachines, machine)
 		}
 
 		if len(errs) > 0 {
@@ -428,14 +440,17 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 	case diff > 0:
 		log.Info("Too many replicas", "need", *(ms.Spec.Replicas), "deleting", diff)
 
-		deletePriorityFunc, err := getDeletePriorityFunc(ms)
+		deletePriorityFunc, inFailureDomain, err := getDeletePriorityFunc(ms)
 		if err != nil {
 			return err
 		}
 		log.Info("Found delete policy", "delete-policy", ms.Spec.DeletePolicy)
 
 		var errs []error
-		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
+		machinesToDelete, err := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc, inFailureDomain, cluster.Status.FailureDomains)
+		if err != nil {
+			return err
+		}
 		for _, machine := range machinesToDelete {
 			if err := r.Client.Delete(ctx, machine); err != nil {
 				log.Error(err, "Unable to delete Machine", "machine", machine.Name)
@@ -443,7 +458,11 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 				errs = append(errs, err)
 				continue
 			}
-			log.Info("Deleted machine", "machine", machine.Name)
+			fd := ""
+			if machine.Spec.FailureDomain != nil {
+				fd = *machine.Spec.FailureDomain
+			}
+			log.Info("Deleted machine", "machine", machine.Name, "FailureDomain", fd)
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted machine %q", machine.Name)
 		}
 

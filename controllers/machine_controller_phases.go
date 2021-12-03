@@ -279,7 +279,7 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 
 	// If the infrastructure provider is not ready, return early.
 	if !ready {
-		log.Info("Infrastructure provider is not ready, requeuing")
+		log.Info("Infrastructure provider machine is not ready, requeuing")
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
@@ -298,6 +298,8 @@ func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster
 	}
 
 	// Get and set the failure domain from the infrastructure provider.
+	// TODO (awander): According to the docs this behavior predates v1alpha3. Should this be removed?
+	// https://cluster-api.sigs.k8s.io/developer/providers/machine-infrastructure.html?highlight=failuredomain#data-types
 	var failureDomain string
 	err = util.UnstructuredUnmarshalField(infraConfig, &failureDomain, "spec", "failureDomain")
 	switch {

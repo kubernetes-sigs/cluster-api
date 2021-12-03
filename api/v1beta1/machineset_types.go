@@ -110,6 +110,12 @@ const (
 	// (Status.FailureReason or Status.FailureMessage are set to a non-empty value).
 	// It then prioritizes the oldest Machines for deletion based on the Machine's CreationTimestamp.
 	OldestMachineSetDeletePolicy MachineSetDeletePolicy = "Oldest"
+
+	// FailureDomainMachineSetDeletePolicy prioritizes both Machines that have the annotation
+	// "cluster.x-k8s.io/delete-machine=yes" and Machines that are unhealthy
+	// (Status.FailureReason or Status.FailureMessage are set to a non-empty value).
+	// It then prioritizes the Machines for deletion  from failuredomain(s) that have the most machines.
+	FailureDomainMachineSetDeletePolicy MachineSetDeletePolicy = "FailureDomain"
 )
 
 // ANCHOR: MachineSetStatus

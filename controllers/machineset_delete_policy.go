@@ -23,6 +23,8 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/internal/mdutil"
+	"sigs.k8s.io/cluster-api/util/collections"
 )
 
 type (
@@ -106,34 +108,55 @@ func (m sortableMachines) Less(i, j int) bool {
 	return m.priority(m.machines[j]) < m.priority(m.machines[i]) // high to low
 }
 
-func getMachinesToDeletePrioritized(filteredMachines []*clusterv1.Machine, diff int, fun deletePriorityFunc) []*clusterv1.Machine {
+func getMachinesToDeletePrioritized(filteredMachines []*clusterv1.Machine, diff int, fun deletePriorityFunc, inFailureDomain bool, failureDomains clusterv1.FailureDomains) ([]*clusterv1.Machine, error) {
+	var err error
 	if diff >= len(filteredMachines) {
-		return filteredMachines
+		return filteredMachines, nil
 	} else if diff <= 0 {
-		return []*clusterv1.Machine{}
+		return []*clusterv1.Machine{}, nil
 	}
-
-	sortable := sortableMachines{
-		machines: filteredMachines,
-		priority: fun,
+	if inFailureDomain {
+		var machinesToDelete []*clusterv1.Machine
+		machineCollection := collections.FromMachines(filteredMachines...)
+		for i := 0; i < diff; i++ {
+			// If a machine meets the basic deletion criteria (e.g. has deletion annotation) then remove it first.
+			machineToMark := mdutil.MachineBasicDeletionCriteria(machineCollection)
+			// If the basic criteria is not met, pick a machine from a FD with the most machines.
+			if machineToMark == nil {
+				machineToMark, err = mdutil.MachineInFailureDomainWithMostMachines(failureDomains, machineCollection)
+				if err != nil {
+					return nil, err
+				}
+			}
+			machinesToDelete = append(machinesToDelete, machineToMark)
+			// remove selected machine from the collection so the next itertion of the loop recalculates balance of machines across FDs.
+			machineCollection = machineCollection.Difference(collections.FromMachines(machineToMark))
+		}
+		return machinesToDelete, nil
+	} else {
+		sortable := sortableMachines{
+			machines: filteredMachines,
+			priority: fun,
+		}
+		sort.Sort(sortable)
+		return sortable.machines[:diff], nil
 	}
-	sort.Sort(sortable)
-
-	return sortable.machines[:diff]
 }
 
-func getDeletePriorityFunc(ms *clusterv1.MachineSet) (deletePriorityFunc, error) {
+func getDeletePriorityFunc(ms *clusterv1.MachineSet) (deletePriorityFunc, bool, error) {
 	// Map the Spec.DeletePolicy value to the appropriate delete priority function
 	switch msdp := clusterv1.MachineSetDeletePolicy(ms.Spec.DeletePolicy); msdp {
 	case clusterv1.RandomMachineSetDeletePolicy:
-		return randomDeletePolicy, nil
+		return randomDeletePolicy, false, nil
 	case clusterv1.NewestMachineSetDeletePolicy:
-		return newestDeletePriority, nil
+		return newestDeletePriority, false, nil
 	case clusterv1.OldestMachineSetDeletePolicy:
-		return oldestDeletePriority, nil
+		return oldestDeletePriority, false, nil
+	case clusterv1.FailureDomainMachineSetDeletePolicy:
+		return nil, true, nil
 	case "":
-		return randomDeletePolicy, nil
+		return randomDeletePolicy, false, nil
 	default:
-		return nil, errors.Errorf("Unsupported delete policy %s. Must be one of 'Random', 'Newest', or 'Oldest'", msdp)
+		return nil, false, errors.Errorf("Unsupported delete policy %s. Must be one of 'Random', 'Newest', 'Oldest' or 'FailureDomain'", msdp)
 	}
 }

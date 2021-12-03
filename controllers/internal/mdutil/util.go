@@ -35,7 +35,9 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/integer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/cluster-api/util/failuredomains"
 )
 
 // MachineSetsByCreationTimestamp sorts a list of MachineSet by creation timestamp, using their names as a tie breaker.
@@ -705,4 +707,57 @@ func GetDeletingMachineCount(machineList *clusterv1.MachineList) int32 {
 		}
 	}
 	return deletingMachineCount
+}
+
+// NextFailureDomainForScaleUp returns the failure domain with the fewest number of up-to-date machines.
+func NextFailureDomainForScaleUp(cluster *clusterv1.Cluster, machines []*clusterv1.Machine) *string {
+	if len(cluster.Status.FailureDomains) == 0 {
+		return nil
+	}
+	return failuredomains.PickFewest(cluster.Status.FailureDomains, collections.FromMachines(machines...))
+}
+
+// MachineInFailureDomainWithMostMachines returns the oldest machine from the FD with the most machines.
+func MachineInFailureDomainWithMostMachines(failureDomains clusterv1.FailureDomains, machines collections.Machines) (*clusterv1.Machine, error) {
+	fd := FailureDomainWithMostMachines(failureDomains, machines)
+	machinesInFailureDomain := machines.Filter(collections.InFailureDomains(fd))
+	machineToMark := machinesInFailureDomain.Oldest()
+	if machineToMark == nil {
+		return nil, fmt.Errorf("failed to pick a Machine from the failure domain: (%v) to mark for deletion", *fd)
+	}
+	return machineToMark, nil
+}
+
+// FailureDomainWithMostMachines returns the FD with the most machines in it.
+func FailureDomainWithMostMachines(failureDomains clusterv1.FailureDomains, machines collections.Machines) *string {
+	// See if there are any Machines that are not in currently defined failure domains first.
+	notInFailureDomains := machines.Filter(
+		collections.Not(collections.InFailureDomains(failureDomains.GetIDs()...)),
+	)
+	if len(notInFailureDomains) > 0 {
+		// return the failure domain for the oldest Machine not in the current list of failure domains
+		// this could be either nil (no failure domain defined) or a failure domain that is no longer defined
+		// in the cluster status.
+		return notInFailureDomains.Oldest().Spec.FailureDomain
+	}
+	return failuredomains.PickMost(failureDomains, machines, machines)
+}
+
+// MachineBasicDeletionCriteria returns a Machine that matches the basic deletion criteria otherwise it returns nil.
+func MachineBasicDeletionCriteria(machines collections.Machines) *clusterv1.Machine {
+	for _, machine := range machines {
+		if !machine.DeletionTimestamp.IsZero() {
+			return machine
+		}
+		if _, ok := machine.ObjectMeta.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
+			return machine
+		}
+		if machine.Status.NodeRef == nil {
+			return machine
+		}
+		if machine.Status.FailureReason != nil || machine.Status.FailureMessage != nil {
+			return machine
+		}
+	}
+	return nil
 }

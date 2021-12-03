@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -61,6 +62,7 @@ type ClusterReconciler struct {
 	UnstructuredCachingClient client.Client
 
 	externalTracker external.ObjectTracker
+	recorder        record.EventRecorder
 
 	// patchEngine is used to apply patches during computeDesiredState.
 	patchEngine patches.Engine
@@ -95,7 +97,7 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		Controller: c,
 	}
 	r.patchEngine = patches.NewEngine()
-
+	r.recorder = mgr.GetEventRecorderFor("topology/cluster")
 	return nil
 }
 
@@ -115,6 +117,7 @@ func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ 
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
+	cluster.Kind = "Cluster"
 
 	// Return early, if the Cluster does not use a managed topology.
 	// NOTE: We're already filtering events, but this is a safeguard for cases like e.g. when

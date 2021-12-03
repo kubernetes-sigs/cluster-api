@@ -265,7 +265,8 @@ func TestReconcileCluster(t *testing.T) {
 			s.Desired = &scope.ClusterState{Cluster: tt.desired}
 
 			r := ClusterReconciler{
-				Client: fakeClient,
+				Client:   fakeClient,
+				recorder: env.GetEventRecorderFor("test"),
 			}
 			err := r.reconcileCluster(ctx, s)
 			if tt.wantErr {
@@ -369,7 +370,8 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 			s.Desired = &scope.ClusterState{InfrastructureCluster: tt.desired}
 
 			r := ClusterReconciler{
-				Client: fakeClient,
+				Client:   fakeClient,
+				recorder: env.GetEventRecorderFor("test"),
 			}
 			err := r.reconcileInfrastructureCluster(ctx, s)
 			if tt.wantErr {
@@ -526,7 +528,8 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 				Build()
 
 			r := ClusterReconciler{
-				Client: fakeClient,
+				Client:   fakeClient,
+				recorder: env.GetEventRecorderFor("test"),
 			}
 
 			s.Desired = &scope.ClusterState{
@@ -660,7 +663,8 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 				Build()
 
 			r := ClusterReconciler{
-				Client: fakeClient,
+				Client:   fakeClient,
+				recorder: env.GetEventRecorderFor("test"),
 			}
 			s.Desired = &scope.ClusterState{ControlPlane: &scope.ControlPlaneState{Object: tt.desired.Object, InfrastructureMachineTemplate: tt.desired.InfrastructureMachineTemplate}}
 
@@ -758,7 +762,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	infrastructureMachineTemplate4mWithChanges.SetLabels(map[string]string{"foo": "bar"})
 	bootstrapTemplate4mWithChanges := bootstrapTemplate4m.DeepCopy()
 	bootstrapTemplate4mWithChanges.SetLabels(map[string]string{"foo": "bar"})
-	md4mWithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-4m", infrastructureMachineTemplate4mWithChanges, bootstrapTemplate4mWithChanges)
+	md4mWithInPlaceUpdatedTemplates := newFakeMachineDeploymentTopologyState("md-4m", infrastructureMachineTemplate4mWithChanges, bootstrapTemplate4mWithChanges)
 
 	infrastructureMachineTemplate5 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-5").Build()
 	bootstrapTemplate5 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-5").Build()
@@ -861,8 +865,8 @@ func TestReconcileMachineDeployments(t *testing.T) {
 		{
 			name:    "Should update MachineDeployment with InfrastructureMachineTemplate and BootstrapTemplate without rotation",
 			current: []*scope.MachineDeploymentState{md4m},
-			desired: []*scope.MachineDeploymentState{md4mWithRotatedTemplates},
-			want:    []*scope.MachineDeploymentState{md4m},
+			desired: []*scope.MachineDeploymentState{md4mWithInPlaceUpdatedTemplates},
+			want:    []*scope.MachineDeploymentState{md4mWithInPlaceUpdatedTemplates},
 			wantErr: false,
 		},
 		{
@@ -923,7 +927,8 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			s.Desired = &scope.ClusterState{MachineDeployments: toMachineDeploymentTopologyStateMap(tt.desired)}
 
 			r := ClusterReconciler{
-				Client: fakeClient,
+				Client:   fakeClient,
+				recorder: env.GetEventRecorderFor("test"),
 			}
 			err := r.reconcileMachineDeployments(ctx, s)
 			if tt.wantErr {

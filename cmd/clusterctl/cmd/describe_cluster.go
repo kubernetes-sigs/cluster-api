@@ -57,6 +57,7 @@ type describeClusterOptions struct {
 	showOtherConditions string
 	showMachineSets     bool
 	echo                bool
+	disableNoEcho       bool
 	grouping            bool
 	disableGrouping     bool
 }
@@ -109,7 +110,11 @@ func init() {
 		"Show MachineSet objects.")
 
 	describeClusterClusterCmd.Flags().BoolVar(&dc.echo, "echo", false, ""+
+		"Show MachineInfrastructure and BootstrapConfig when ready condition is true or it has the Status, Severity and Reason of the machine's object.")
+	describeClusterClusterCmd.Flags().BoolVar(&dc.disableNoEcho, "disable-no-echo", false, ""+
 		"Disable hiding of a MachineInfrastructure and BootstrapConfig when ready condition is true or it has the Status, Severity and Reason of the machine's object.")
+	_ = describeClusterClusterCmd.Flags().MarkDeprecated("disable-no-echo",
+		"use --echo instead.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.grouping, "grouping", true,
 		"Groups machines when ready condition has the same Status, Severity and Reason.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.disableGrouping, "disable-grouping", false,
@@ -141,7 +146,7 @@ func runDescribeCluster(name string) error {
 		ClusterName:         name,
 		ShowOtherConditions: dc.showOtherConditions,
 		ShowMachineSets:     dc.showMachineSets,
-		Echo:                dc.Echo,
+		Echo:                dc.echo || dc.disableNoEcho,
 		Grouping:            dc.grouping && !dc.disableGrouping,
 	})
 	if err != nil {

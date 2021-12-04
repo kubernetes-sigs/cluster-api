@@ -39,7 +39,7 @@ type ObjectTreeOptions struct {
 	// ShowMachineSets instructs the discovery process to include machine sets in the ObjectTree.
 	ShowMachineSets bool
 
-	// DisableNoEcho disables hiding objects if the object's ready condition has the
+	// Echo displays objects if the object's ready condition has the
 	// same Status, Severity and Reason of the parent's object ready condition (it is an echo)
 	Echo bool
 

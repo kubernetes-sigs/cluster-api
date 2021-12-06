@@ -24,8 +24,8 @@ require (
 	github.com/spf13/pflag v1.0.5
 	github.com/spf13/viper v1.9.0
 	github.com/valyala/fastjson v1.6.3
-	go.etcd.io/etcd/api/v3 v3.5.0
-	go.etcd.io/etcd/client/v3 v3.5.0
+	go.etcd.io/etcd/api/v3 v3.5.1
+	go.etcd.io/etcd/client/v3 v3.5.1
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	google.golang.org/grpc v1.42.0
 	k8s.io/api v0.23.0-alpha.4
@@ -112,7 +112,7 @@ require (
 	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
 	github.com/xlab/treeprint v0.0.0-20181112141820-a009c3971eca // indirect
-	go.etcd.io/etcd/client/pkg/v3 v3.5.0 // indirect
+	go.etcd.io/etcd/client/pkg/v3 v3.5.1 // indirect
 	go.starlark.net v0.0.0-20200306205701-8dd3e2ee1dd5 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect

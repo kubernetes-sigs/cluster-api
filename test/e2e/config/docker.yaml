@@ -209,6 +209,8 @@ variables:
   IP_FAMILY: "IPv4"
   DOCKER_SERVICE_CIDRS: "10.128.0.0/12"
   DOCKER_POD_CIDRS: "192.168.0.0/16"
+  DOCKER_SERVICE_IPV6_CIDRS: "fd00:100:64::/108"
+  DOCKER_POD_IPV6_CIDRS: "fd00:100:96::/48"
   CNI: "./data/cni/kindnet/kindnet.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"

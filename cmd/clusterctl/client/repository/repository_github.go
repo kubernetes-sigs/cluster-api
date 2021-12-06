@@ -309,7 +309,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 // handleGithubErr wraps error messages.
 func (g *gitHubRepository) handleGithubErr(err error, message string, args ...interface{}) error {
 	if _, ok := err.(*github.RateLimitError); ok {
-		return errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API tokens a assign it to the GITHUB_TOKEN environment variable")
+		return errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")
 	}
 	return errors.Wrapf(err, message, args...)
 }

@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"

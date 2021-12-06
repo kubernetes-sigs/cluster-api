@@ -17,7 +17,7 @@ limitations under the License.
 package v1alpha3
 
 import (
-	v1beta1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	"sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 

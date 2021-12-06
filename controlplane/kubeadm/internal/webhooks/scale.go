@@ -24,9 +24,18 @@ import (
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
+
+func (v *ScaleValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	mgr.GetWebhookServer().Register("/validate-scale-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplane", &webhook.Admission{
+		Handler: v,
+	})
+	return nil
+}
 
 // +kubebuilder:webhook:verbs=update,path=/validate-scale-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplane,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanes/scale,versions=v1beta1,name=validation-scale.kubeadmcontrolplane.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 

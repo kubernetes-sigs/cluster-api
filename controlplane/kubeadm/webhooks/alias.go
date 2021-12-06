@@ -14,5 +14,22 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package webhooks provides the validating webhook for KubeadmControlPlane scale subresource.
 package webhooks
+
+import (
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+// ScaleValidator validates KCP for replicas.
+type ScaleValidator struct {
+	Client client.Reader
+}
+
+// SetupWebhookWithManager sets up Cluster webhooks.
+func (v *ScaleValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.ScaleValidator{
+		Client: v.Client,
+	}).SetupWebhookWithManager(mgr)
+}

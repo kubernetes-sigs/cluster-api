@@ -19,6 +19,7 @@ package internal
 import (
 	"context"
 	"crypto/tls"
+	"time"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,7 +40,7 @@ type EtcdClientGenerator struct {
 type clientCreator func(ctx context.Context, endpoints []string) (*etcd.Client, error)
 
 // NewEtcdClientGenerator returns a new etcdClientGenerator instance.
-func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config) *EtcdClientGenerator {
+func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcdDialTimeout time.Duration) *EtcdClientGenerator {
 	ecg := &EtcdClientGenerator{restConfig: restConfig, tlsConfig: tlsConfig}
 
 	ecg.createClient = func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
@@ -50,7 +51,12 @@ func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config) *Etc
 			TLSConfig:  ecg.tlsConfig,
 			Port:       2379,
 		}
-		return etcd.NewClient(ctx, endpoints, p, ecg.tlsConfig)
+		return etcd.NewClient(ctx, etcd.ClientConfiguration{
+			Endpoints:   endpoints,
+			Proxy:       p,
+			TLSConfig:   tlsConfig,
+			DialTimeout: etcdDialTimeout,
+		})
 	}
 
 	return ecg

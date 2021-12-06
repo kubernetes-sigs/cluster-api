@@ -61,11 +61,12 @@ import (
 
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object.
 type KubeadmControlPlaneReconciler struct {
-	Client     client.Client
-	APIReader  client.Reader
-	controller controller.Controller
-	recorder   record.EventRecorder
-	Tracker    *remote.ClusterCacheTracker
+	Client          client.Client
+	APIReader       client.Reader
+	controller      controller.Controller
+	recorder        record.EventRecorder
+	Tracker         *remote.ClusterCacheTracker
+	EtcdDialTimeout time.Duration
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -104,7 +105,11 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		if r.Tracker == nil {
 			return errors.New("cluster cache tracker is nil, cannot create the internal management cluster resource")
 		}
-		r.managementCluster = &internal.Management{Client: r.Client, Tracker: r.Tracker}
+		r.managementCluster = &internal.Management{
+			Client:          r.Client,
+			Tracker:         r.Tracker,
+			EtcdDialTimeout: r.EtcdDialTimeout,
+		}
 	}
 
 	if r.managementClusterUncached == nil {

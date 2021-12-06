@@ -85,6 +85,7 @@ var (
 	webhookPort                    int
 	webhookCertDir                 string
 	healthAddr                     string
+	etcdDialTimeout                time.Duration
 )
 
 // InitFlags initializes the flags.
@@ -127,6 +128,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
+
+	fs.DurationVar(&etcdDialTimeout, "etcd-dial-timeout-duration", 10*time.Second,
+		"Duration that the etcd client waits at most to establish a connection with etcd")
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -232,6 +236,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		APIReader:        mgr.GetAPIReader(),
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
+		EtcdDialTimeout:  etcdDialTimeout,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmControlPlaneConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "KubeadmControlPlane")
 		os.Exit(1)

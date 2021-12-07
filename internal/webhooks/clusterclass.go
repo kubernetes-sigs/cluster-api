@@ -197,7 +197,7 @@ func validateVariableUpdates(clusters []clusterv1.Cluster, old, new *clusterv1.C
 	varsDiff := getClusterClassVariablesForValidation(oldVars, newVars)
 
 	errorInfo := errorAggregator{}
-	allClusters := make([]string, len(clusters))
+	allClusters := []string{}
 
 	// Validate the variable values on each Cluster ensuring they are still compatible with the new ClusterClass.
 	for _, cluster := range clusters {

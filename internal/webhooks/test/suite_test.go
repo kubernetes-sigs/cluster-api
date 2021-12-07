@@ -22,9 +22,11 @@ import (
 	"os"
 	"testing"
 
+	"k8s.io/component-base/featuregate"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
@@ -34,6 +36,9 @@ var (
 )
 
 func TestMain(m *testing.M) {
+	if err := feature.Gates.(featuregate.MutableFeatureGate).Set(fmt.Sprintf("%s=%v", feature.ClusterTopology, true)); err != nil {
+		panic(fmt.Sprintf("unable to set ClusterTopology feature gate: %v", err))
+	}
 	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
 		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
 			panic(fmt.Sprintf("unable to setup index: %v", err))

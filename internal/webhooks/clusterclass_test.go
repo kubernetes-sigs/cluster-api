@@ -21,9 +21,11 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/pointer"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/builder"
@@ -1314,6 +1316,824 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}
+
+func TestClusterClassValidationWithVariableChecks(t *testing.T) {
+	// NOTE: ClusterTopology feature flag is disabled by default, thus preventing to create or update ClusterClasses.
+	// Enabling the feature flag temporarily for this test.
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+
+	clusterClassBuilder := builder.ClusterClass(metav1.NamespaceDefault, "class1").
+		WithInfrastructureClusterTemplate(
+			builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+		WithControlPlaneTemplate(
+			builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+				Build())
+	tests := []struct {
+		name            string
+		oldClusterClass *clusterv1.ClusterClass
+		newClusterClass *clusterv1.ClusterClass
+		clusters        []client.Object
+		expectErr       bool
+	}{
+		{
+			name: "Pass if a Minimum ClusterClassVariable is changed but does not invalidate an existing ClusterVariable",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "integer",
+								Minimum: pointer.Int64(1),
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+								// Minimum changed to a value that does not invalidate ClusterVariable.
+								Minimum: pointer.Int64(3),
+							},
+						},
+					}).
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "Error if a Minimum ClusterClassVariable is changed and invalidates an existing ClusterVariable",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "integer",
+								Minimum: pointer.Int64(1),
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+								// Minimum changed to a value that invalidates ClusterVariable.
+								Minimum: pointer.Int64(100),
+							},
+						},
+					}).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "Pass if a Maximum ClusterClassVariable is changed but does not invalidate an existing ClusterVariable",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "integer",
+								Maximum: pointer.Int64(5),
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+								// Maximum changed to a value that does not invalidate ClusterVariable.
+								Maximum: pointer.Int64(100),
+							},
+						},
+					}).
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "Error if a Maximum ClusterClassVariable is changed and invalidates an existing ClusterVariable",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "integer",
+								Maximum: pointer.Int64(5),
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+								// Maximum changed to a value that invalidates ClusterVariable.
+								Maximum: pointer.Int64(3),
+							},
+						},
+					}).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "Pass if an Enum ClusterClassVariable is changed but does not invalidate an existing ClusterVariable",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`"us-east-1"`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "zone",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+								Enum: []apiextensionsv1.JSON{
+									{Raw: []byte(`"us-east-1"`)},
+									{Raw: []byte(`"us-east-2"`)},
+								},
+							},
+						},
+					}).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "zone",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+								Enum: []apiextensionsv1.JSON{
+									{Raw: []byte(`"us-east-1"`)},
+									{Raw: []byte(`"us-east-3"`)},
+								},
+							},
+						},
+					}).
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "Error if an Enum ClusterClassVariable is changed to invalidate an existing ClusterVariable",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "zone",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`"us-east-1"`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "zone",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+								Enum: []apiextensionsv1.JSON{
+									{Raw: []byte(`"us-east-1"`)},
+									{Raw: []byte(`"us-east-2"`)},
+								},
+							},
+						},
+					}).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "zone",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+								Enum: []apiextensionsv1.JSON{
+									// "us-east-1" removed from enum
+									{Raw: []byte(`"us-east-2"`)},
+									{Raw: []byte(`"us-east-3"`)},
+								},
+							},
+						},
+					}).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "Error if Type ClusterClassVariable is changed (Integer -> String) invalidating an existing ClusterVariable",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								// Type changed to a value that invalidates ClusterVariable.
+								Type: "string",
+							},
+						},
+					}).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "Pass if Type ClusterClassVariable is changed (Integer -> Number) not invalidating an existing ClusterVariable",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								// Type changed to a value that does not invalidate ClusterVariable.
+								Type: "number",
+							},
+						},
+					}).
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "Error if Type ClusterClassVariable is changed ( Number-> Integer) invalidating an existing ClusterVariable",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4.1`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "number",
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								// Type changed to a value that does not invalidate ClusterVariable.
+								Type: "integer",
+							},
+						},
+					}).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "Error if clusterClass update removes variable which is referenced in an existing cluster",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte{'1'},
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "number",
+							},
+						},
+					},
+					clusterv1.ClusterClassVariable{
+						Name: "hdd",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "number",
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cdrom",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "number",
+							},
+						},
+					},
+					clusterv1.ClusterClassVariable{
+						Name: "hdd",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "number",
+							},
+						},
+					}).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "Pass if adding a non-required variable to the ClusterClass",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "zone",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`"first-zone"`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "zone",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "zone",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
+					clusterv1.ClusterClassVariable{
+						Name:     "location",
+						Required: false,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
+				).
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "Error if adding a non-required variable to the ClusterClass that invalidates an existing ClusterVariable",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "zone",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`"first-zone"`),
+									},
+								},
+								clusterv1.ClusterVariable{
+									Name: "location",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`"first-zone"`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "zone",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "zone",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
+					clusterv1.ClusterClassVariable{
+						Name:     "location",
+						Required: false,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:      "string",
+								MaxLength: pointer.Int64(5),
+							},
+						},
+					},
+				).
+				Build(),
+			expectErr: true,
+		},
+
+		{
+			name: "Error if required variable is added but not defined in all clusters",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								}).
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster2").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								},
+								clusterv1.ClusterVariable{
+									Name: "hdd",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`"hdd0"`),
+									},
+								},
+							).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name:     "hdd",
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+							},
+						},
+					}).
+				Build(),
+			expectErr: true,
+		},
+		// This case is the same as the above but has many clusters and variables.
+		{
+			name: "Error if required variable is added but not defined in all clusters (with many variables)",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								}).
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster2").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								},
+								clusterv1.ClusterVariable{
+									Name: "hdd",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								}).
+							Build()).
+					Build(),
+				builder.Cluster(metav1.NamespaceDefault, "cluster3").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name:     "memory",
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "number",
+							},
+						},
+					},
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+							},
+						},
+					},
+					clusterv1.ClusterClassVariable{
+						Name:     "hdd",
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "number",
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cdrom",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "number",
+							},
+						},
+					},
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+							},
+						},
+					},
+					clusterv1.ClusterClassVariable{
+						Name:     "hdd",
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "number",
+							},
+						},
+					},
+				).
+				Build(),
+			expectErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// Sets up the fakeClient for the test case.
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(fakeScheme).
+				WithObjects(tt.clusters...).
+				Build()
+
+			// Create the webhook and add the fakeClient as its client.
+			webhook := &ClusterClass{Client: fakeClient}
+
+			if tt.expectErr {
+				g.Expect(webhook.validate(ctx, tt.oldClusterClass, tt.newClusterClass)).NotTo(Succeed())
+			} else {
+				g.Expect(webhook.validate(ctx, tt.oldClusterClass, tt.newClusterClass)).To(Succeed())
+			}
 		})
 	}
 }

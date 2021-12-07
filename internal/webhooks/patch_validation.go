@@ -179,7 +179,7 @@ var validOps = sets.NewString("add", "replace", "remove")
 
 func validateJSONPatches(jsonPatches []clusterv1.JSONPatch, variables []clusterv1.ClusterClassVariable, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
-	variableSet := getClusterClassVariablesMap(variables)
+	variableSet, _ := getClusterClassVariablesMapWithReverseIndex(variables)
 
 	for i, jsonPatch := range jsonPatches {
 		if !validOps.Has(jsonPatch.Op) {
@@ -335,14 +335,6 @@ var builtinVariables = sets.NewString(
 	"builtin.machineDeployment.topologyName",
 	"builtin.machineDeployment.replicas",
 )
-
-func getClusterClassVariablesMap(clusterClassVariables []clusterv1.ClusterClassVariable) map[string]*clusterv1.ClusterClassVariable {
-	variablesMap := map[string]*clusterv1.ClusterClassVariable{}
-	for i := range clusterClassVariables {
-		variablesMap[clusterClassVariables[i].Name] = &clusterClassVariables[i]
-	}
-	return variablesMap
-}
 
 // validateIndexAccess checks to see if the jsonPath is attempting to add an element in the array i.e. access by number
 // If the operation is add an error is thrown if a number greater than 0 is used as an index.

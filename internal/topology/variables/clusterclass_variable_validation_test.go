@@ -36,8 +36,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 			name: "Error if multiple variables share a name",
 			clusterClassVariables: []clusterv1.ClusterClassVariable{
 				{
-					Name:     "cpu",
-					Required: true,
+					Name: "cpu",
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type:    "integer",
@@ -46,8 +45,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 					},
 				},
 				{
-					Name:     "cpu",
-					Required: true,
+					Name: "cpu",
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type:    "integer",
@@ -62,8 +60,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 			name: "Pass multiple variable validation",
 			clusterClassVariables: []clusterv1.ClusterClassVariable{
 				{
-					Name:     "cpu",
-					Required: true,
+					Name: "cpu",
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type:    "integer",
@@ -72,8 +69,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 					},
 				},
 				{
-					Name:     "validNumber",
-					Required: true,
+					Name: "validNumber",
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type:    "number",
@@ -83,8 +79,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 				},
 
 				{
-					Name:     "validVariable",
-					Required: true,
+					Name: "validVariable",
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type:      "string",
@@ -93,8 +88,7 @@ func Test_ValidateClusterClassVariables(t *testing.T) {
 					},
 				},
 				{
-					Name:     "location",
-					Required: true,
+					Name: "location",
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 							Type:      "string",
@@ -131,8 +125,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		{
 			name: "Valid integer schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name:     "cpu",
-				Required: true,
+				Name: "cpu",
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "integer",
@@ -144,8 +137,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		{
 			name: "Valid string schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name:     "location",
-				Required: true,
+				Name: "location",
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:      "string",
@@ -157,8 +149,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		{
 			name: "Valid variable name",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name:     "validVariable",
-				Required: true,
+				Name: "validVariable",
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:      "string",
@@ -170,8 +161,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		{
 			name: "fail on variable name is builtin",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name:     "builtin",
-				Required: true,
+				Name: "builtin",
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:      "string",
@@ -184,8 +174,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		{
 			name: "fail on empty variable name",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name:     "",
-				Required: true,
+				Name: "",
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:      "string",
@@ -198,8 +187,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		{
 			name: "fail on variable name containing dot (.)",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name:     "path.tovariable",
-				Required: true,
+				Name: "path.tovariable",
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:      "string",
@@ -275,8 +263,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		{
 			name: "fail on variable type is null",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name:     "var",
-				Required: true,
+				Name: "var",
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "null",
@@ -288,8 +275,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		{
 			name: "fail on variable type is not valid",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name:     "var",
-				Required: true,
+				Name: "var",
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "invalidVariableType",
@@ -301,8 +287,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		{
 			name: "fail on variable type length zero",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name:     "var",
-				Required: true,
+				Name: "var",
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "",
@@ -311,8 +296,20 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "pass on variable with required set true with a default defined",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "var",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:    "string",
+						Default: &apiextensionsv1.JSON{Raw: []byte(`"defaultValue"`)},
+					},
+				},
+			},
+		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)

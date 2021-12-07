@@ -135,7 +135,7 @@ func (c *ClusterTopologyBuilder) WithMachineDeployment(mdc clusterv1.MachineDepl
 }
 
 // WithVariables adds the passed variables to the ClusterTopologyBuilder.
-func (c *ClusterTopologyBuilder) WithVariables(vars []clusterv1.ClusterVariable) *ClusterTopologyBuilder {
+func (c *ClusterTopologyBuilder) WithVariables(vars ...clusterv1.ClusterVariable) *ClusterTopologyBuilder {
 	c.variables = vars
 	return c
 }
@@ -236,8 +236,8 @@ func (c *ClusterClassBuilder) WithControlPlaneInfrastructureMachineTemplate(t *u
 	return c
 }
 
-// WithVariables adds the Variables to the ClusterClassBuilder.
-func (c *ClusterClassBuilder) WithVariables(vars []clusterv1.ClusterClassVariable) *ClusterClassBuilder {
+// WithVariables adds the Variables the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithVariables(vars ...clusterv1.ClusterClassVariable) *ClusterClassBuilder {
 	c.variables = vars
 	return c
 }

@@ -25,8 +25,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/third_party/forked/loadbalancer"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker/types"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/third_party/forked/loadbalancer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 )

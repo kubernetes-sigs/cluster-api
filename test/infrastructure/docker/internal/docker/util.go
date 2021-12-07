@@ -23,7 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/docker/types"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker/types"
 )
 
 const clusterLabelKey = "io.x-k8s.kind.cluster"

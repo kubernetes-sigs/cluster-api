@@ -1815,6 +1815,74 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 			expectErr: true,
 		},
 		{
+			name: "Pass if an update is made to a ClusterClass with required variables, but with no changes to variables",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								},
+								clusterv1.ClusterVariable{
+									Name: "hdd",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+							},
+						},
+					},
+					clusterv1.ClusterClassVariable{
+						Name:     "hdd",
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "number",
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+							},
+						},
+					},
+					clusterv1.ClusterClassVariable{
+						Name:     "hdd",
+						Required: true,
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "number",
+							},
+						},
+					},
+				).
+				Build(),
+			expectErr: false,
+		},
+		{
 			name: "Pass if adding a non-required variable to the ClusterClass",
 			clusters: []client.Object{
 				builder.Cluster(metav1.NamespaceDefault, "cluster1").

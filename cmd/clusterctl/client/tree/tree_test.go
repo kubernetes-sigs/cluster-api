@@ -580,7 +580,7 @@ func Test_Add_NoEcho(t *testing.T) {
 		{
 			name: "should add if NoEcho option is present, objects have same ReadyCondition, but NoEcho is disabled",
 			args: args{
-				treeOptions: ObjectTreeOptions{DisableNoEcho: true},
+				treeOptions: ObjectTreeOptions{Echo: true},
 				addOptions:  []AddObjectOption{NoEcho(true)},
 				obj: fakeMachine("my-machine",
 					withMachineCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),

@@ -19,6 +19,7 @@ package util
 
 import (
 	"k8s.io/apimachinery/pkg/util/sets"
+
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 )
 

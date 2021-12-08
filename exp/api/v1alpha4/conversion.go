@@ -17,8 +17,9 @@ limitations under the License.
 package v1alpha4
 
 import (
-	"sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	"sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {

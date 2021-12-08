@@ -17,9 +17,10 @@ limitations under the License.
 package webhooks
 
 import (
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/webhooks"
 )
 
 // ScaleValidator validates KCP for replicas.

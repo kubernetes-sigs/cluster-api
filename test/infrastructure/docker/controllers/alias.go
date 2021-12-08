@@ -20,10 +20,11 @@ package controllers
 import (
 	"context"
 
-	dockercontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	dockercontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers"
 )
 
 // Following types provides access to reconcilers implemented in internal/controllers, thus

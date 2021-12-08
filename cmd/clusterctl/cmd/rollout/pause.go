@@ -20,6 +20,7 @@ package rollout
 import (
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 

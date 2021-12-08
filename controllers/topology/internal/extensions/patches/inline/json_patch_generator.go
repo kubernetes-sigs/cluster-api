@@ -30,10 +30,11 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/yaml"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/extensions/patches/api"
 	patchvariables "sigs.k8s.io/cluster-api/controllers/topology/internal/extensions/patches/variables"
-	"sigs.k8s.io/yaml"
 )
 
 // jsonPatchGenerator generates JSON patches for a GenerateRequest based on a ClusterClassPatch.

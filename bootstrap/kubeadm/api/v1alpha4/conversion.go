@@ -17,8 +17,9 @@ limitations under the License.
 package v1alpha4
 
 import (
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 )
 
 func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {

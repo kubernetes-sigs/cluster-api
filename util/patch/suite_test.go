@@ -21,9 +21,10 @@ import (
 	"testing"
 	"time"
 
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	// +kubebuilder:scaffold:imports
 	"sigs.k8s.io/cluster-api/internal/envtest"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 const (

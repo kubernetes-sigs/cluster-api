@@ -548,7 +548,7 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	cleanup := func() error {
 		// Delete Objects in reverse, because we cannot delete a ClusterCLass if it is still used by a Cluster.
 		for i := len(initObjs) - 1; i >= 0; i-- {
-			if err := env.Delete(ctx, initObjs[i]); err != nil {
+			if err := env.CleanupAndWait(ctx, initObjs[i]); err != nil {
 				return err
 			}
 		}

@@ -230,6 +230,37 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "Valid example value regular string",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "var",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "string",
+						Example: &apiextensionsv1.JSON{
+							Raw: []byte(`"exampleValue"`),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on example value with invalid JSON",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "var",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "string",
+						Example: &apiextensionsv1.JSON{
+							Raw: []byte(`"exampleValue": "value"`), // invalid JSON
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "Valid enum values",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "var",

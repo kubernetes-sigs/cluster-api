@@ -115,6 +115,13 @@ func validateSchema(schema *clusterv1.JSONSchemaProps, fldPath *field.Path) fiel
 				fmt.Sprintf("openAPIV3Schema.default is not valid JSON: %v", err)))
 		}
 	}
+	if schema.Example != nil && schema.Example.Raw != nil {
+		var v interface{}
+		if err := json.Unmarshal(schema.Example.Raw, &v); err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("example"), string(schema.Example.Raw),
+				fmt.Sprintf("openAPIV3Schema.example is not valid JSON: %v", err)))
+		}
+	}
 	for i, enum := range schema.Enum {
 		if enum.Raw != nil {
 			var v interface{}

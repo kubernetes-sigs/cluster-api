@@ -115,7 +115,7 @@ issues:
   - linters:
     - revive
     text: exported (method|function|type|const) (.+) should have comment or be unexported
-    path: "(framework|e2e|infrastructure/docker)/.*.go"
+    path: "(framework|e2e)/.*.go"
   # Disable unparam "always receives" which might not be really
   # useful when building libraries.
   - linters:

@@ -102,6 +102,7 @@ func NewMachine(cluster *clusterv1.Cluster, machine, image string, labels map[st
 	}, nil
 }
 
+// ListMachinesByCluster will retrieve a list of all machines that are part of the given cluster.
 func ListMachinesByCluster(cluster *clusterv1.Cluster, labels map[string]string) ([]*Machine, error) {
 	if cluster == nil {
 		return nil, errors.New("cluster is required when listing machines in the cluster")
@@ -181,6 +182,8 @@ func (m *Machine) ProviderID() string {
 	return fmt.Sprintf("docker:////%s", m.ContainerName())
 }
 
+// Address will get the IP address of the machine. If IPv6 is enabled, it will return
+// the IPv6 address, otherwise an IPv4 address.
 func (m *Machine) Address(ctx context.Context) (string, error) {
 	ipv4, ipv6, err := m.container.IP(ctx)
 	if err != nil {
@@ -275,6 +278,7 @@ func kindMounts(mounts []infrav1.Mount) []v1alpha4.Mount {
 	return ret
 }
 
+// PreloadLoadImages takes a list of container images and imports them into a machine.
 func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error {
 	// Save the image into a tar
 	dir, err := os.MkdirTemp("", "image-tar")

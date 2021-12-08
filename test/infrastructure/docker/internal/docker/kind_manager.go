@@ -30,10 +30,16 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 )
 
+// KubeadmContainerPort is the port that kubeadm listens on in the container.
 const KubeadmContainerPort = 6443
+
+// ControlPlanePort is the port for accessing the control plane API in the container.
 const ControlPlanePort = 6443
+
+// DefaultNetwork is the default network name to use in kind.
 const DefaultNetwork = "kind"
 
+// Manager is the kind manager type.
 type Manager struct{}
 
 type nodeCreateOpts struct {
@@ -47,6 +53,7 @@ type nodeCreateOpts struct {
 	IPFamily     clusterv1.ClusterIPFamily
 }
 
+// CreateControlPlaneNode will create a new control plane container.
 func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily) (*types.Node, error) {
 	// gets a random host port for the API server
 	if port == 0 {
@@ -81,6 +88,7 @@ func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, image, clust
 	return node, nil
 }
 
+// CreateWorkerNode will create a new worker container.
 func (m *Manager) CreateWorkerNode(ctx context.Context, name, image, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily) (*types.Node, error) {
 	createOpts := &nodeCreateOpts{
 		Name:         name,
@@ -95,6 +103,7 @@ func (m *Manager) CreateWorkerNode(ctx context.Context, name, image, clusterName
 	return createNode(ctx, createOpts)
 }
 
+// CreateExternalLoadBalancerNode will create a new container to act as the load balancer for external access.
 func (m *Manager) CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, ipFamily clusterv1.ClusterIPFamily) (*types.Node, error) {
 	// gets a random host port for control-plane load balancer
 	// gets a random host port for the API server

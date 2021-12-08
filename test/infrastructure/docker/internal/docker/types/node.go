@@ -131,16 +131,19 @@ func (n *Node) Kill(ctx context.Context, signal string) error {
 	return nil
 }
 
+// ContainerCmder is used for running commands within a container.
 type ContainerCmder struct {
 	nameOrID string
 }
 
+// GetContainerCmder gets a new ContainerCmder instance used for running commands within a container.
 func GetContainerCmder(containerNameOrID string) *ContainerCmder {
 	return &ContainerCmder{
 		nameOrID: containerNameOrID,
 	}
 }
 
+// Command is the command to be run in a container.
 func (c *ContainerCmder) Command(command string, args ...string) *ContainerCmd {
 	return &ContainerCmd{
 		nameOrID: c.nameOrID,
@@ -176,6 +179,7 @@ func (c *ContainerCmd) RunLoggingOutputOnFail(ctx context.Context) ([]string, er
 	return out, errors.WithStack(err)
 }
 
+// Run will run a configured ContainerCmd inside a container instance.
 func (c *ContainerCmd) Run(ctx context.Context) error {
 	containerRuntime, err := container.NewDockerClient()
 	if err != nil {
@@ -197,18 +201,22 @@ func (c *ContainerCmd) Run(ctx context.Context) error {
 	return nil
 }
 
+// SetEnv sets environment variable settings to define in a node.
 func (c *ContainerCmd) SetEnv(env ...string) {
 	c.env = env
 }
 
+// SetStdin sets the io.Reader to use for receiving stdin input.
 func (c *ContainerCmd) SetStdin(r io.Reader) {
 	c.stdin = r
 }
 
+// SetStdout sets the io.Writer to use for stdout output.
 func (c *ContainerCmd) SetStdout(w io.Writer) {
 	c.stdout = w
 }
 
+// SetStderr sets the io.Writer to use for stderr output.
 func (c *ContainerCmd) SetStderr(w io.Writer) {
 	c.stderr = w
 }

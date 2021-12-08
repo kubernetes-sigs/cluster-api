@@ -27,6 +27,8 @@ import (
 
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
+
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 )
 
 const (
@@ -69,8 +71,8 @@ func (a *writeFilesAction) Unmarshal(userData []byte) error {
 
 // Commands return a list of commands to run on the node.
 // Each command defines the parameters of a shell command necessary to generate a file replicating the cloud-init write_files module.
-func (a *writeFilesAction) Commands() ([]Cmd, error) {
-	commands := make([]Cmd, 0)
+func (a *writeFilesAction) Commands() ([]provisioning.Cmd, error) {
+	commands := make([]provisioning.Cmd, 0)
 	for _, f := range a.Files {
 		// Fix attributes and apply defaults
 		path := fixPath(f.Path) // NB. the real cloud init module for writes files converts path into absolute paths; this is not possible here...
@@ -87,7 +89,7 @@ func (a *writeFilesAction) Commands() ([]Cmd, error) {
 
 		// Make the directory so cat + redirection will work
 		directory := filepath.Dir(path)
-		commands = append(commands, Cmd{Cmd: "mkdir", Args: []string{"-p", directory}})
+		commands = append(commands, provisioning.Cmd{Cmd: "mkdir", Args: []string{"-p", directory}})
 
 		redirects := ">"
 		if f.Append {
@@ -95,16 +97,16 @@ func (a *writeFilesAction) Commands() ([]Cmd, error) {
 		}
 
 		// generate a command that will create a file with the expected contents.
-		commands = append(commands, Cmd{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat %s %s /dev/stdin", redirects, path)}, Stdin: content})
+		commands = append(commands, provisioning.Cmd{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat %s %s /dev/stdin", redirects, path)}, Stdin: content})
 
 		// if permissions are different than default ownership, add a command to modify the permissions.
 		if permissions != "0644" {
-			commands = append(commands, Cmd{Cmd: "chmod", Args: []string{permissions, path}})
+			commands = append(commands, provisioning.Cmd{Cmd: "chmod", Args: []string{permissions, path}})
 		}
 
 		// if ownership is different than default ownership, add a command to modify file ownerhsip.
 		if owner != "root:root" {
-			commands = append(commands, Cmd{Cmd: "chown", Args: []string{owner, path}})
+			commands = append(commands, provisioning.Cmd{Cmd: "chown", Args: []string{owner, path}})
 		}
 	}
 	return commands, nil

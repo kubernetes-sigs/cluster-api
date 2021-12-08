@@ -55,6 +55,8 @@ func (src *KubeadmControlPlane) ConvertTo(destRaw conversion.Hub) error {
 		dest.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors = restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.IgnorePreflightErrors
 	}
 
+	dest.Spec.KubeadmConfigSpec.Ignition = restored.Spec.KubeadmConfigSpec.Ignition
+
 	return nil
 }
 

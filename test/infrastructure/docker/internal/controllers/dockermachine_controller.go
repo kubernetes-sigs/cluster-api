@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/util"
@@ -271,7 +272,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 
 	// if the machine isn't bootstrapped, only then run bootstrap scripts
 	if !dockerMachine.Spec.Bootstrapped {
-		bootstrapData, err := r.getBootstrapData(ctx, machine)
+		bootstrapData, format, err := r.getBootstrapData(ctx, machine)
 		if err != nil {
 			log.Error(err, "failed to get bootstrap data")
 			return ctrl.Result{}, err
@@ -279,8 +280,8 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 
 		timeoutctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 		defer cancel()
-		// Run the bootstrap script. Simulates cloud-init.
-		if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData); err != nil {
+		// Run the bootstrap script. Simulates cloud-init/Ignition.
+		if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData, format); err != nil {
 			conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
 			return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
 		}
@@ -414,23 +415,28 @@ func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o client.Object)
 	return result
 }
 
-func (r *DockerMachineReconciler) getBootstrapData(ctx context.Context, machine *clusterv1.Machine) (string, error) {
+func (r *DockerMachineReconciler) getBootstrapData(ctx context.Context, machine *clusterv1.Machine) (string, bootstrapv1.Format, error) {
 	if machine.Spec.Bootstrap.DataSecretName == nil {
-		return "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
+		return "", "", errors.New("error retrieving bootstrap data: linked Machine's bootstrap.dataSecretName is nil")
 	}
 
 	s := &corev1.Secret{}
 	key := client.ObjectKey{Namespace: machine.GetNamespace(), Name: *machine.Spec.Bootstrap.DataSecretName}
 	if err := r.Client.Get(ctx, key, s); err != nil {
-		return "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachine %s/%s", machine.GetNamespace(), machine.GetName())
+		return "", "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachine %s/%s", machine.GetNamespace(), machine.GetName())
 	}
 
 	value, ok := s.Data["value"]
 	if !ok {
-		return "", errors.New("error retrieving bootstrap data: secret value key is missing")
+		return "", "", errors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
-	return base64.StdEncoding.EncodeToString(value), nil
+	format := s.Data["format"]
+	if string(format) == "" {
+		format = []byte(bootstrapv1.CloudConfig)
+	}
+
+	return base64.StdEncoding.EncodeToString(value), bootstrapv1.Format(format), nil
 }
 
 // setMachineAddress gets the address from the container corresponding to a docker node and sets it on the Machine object.

@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	infrav1exp "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
@@ -255,15 +256,15 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 			return ctrl.Result{}, errors.Wrapf(err, "failed to pre-load images into the docker machine with instance name %s", machine.Name())
 		}
 
-		bootstrapData, err := getBootstrapData(ctx, np.client, np.machinePool)
+		bootstrapData, format, err := getBootstrapData(ctx, np.client, np.machinePool)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get bootstrap data for instance named %s", machine.Name())
 		}
 
 		timeoutctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 		defer cancel()
-		// Run the bootstrap script. Simulates cloud-init.
-		if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData); err != nil {
+		// Run the bootstrap script. Simulates cloud-init/Ignition.
+		if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData, format); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to exec DockerMachinePool instance bootstrap for instance named %s", machine.Name())
 		}
 		// Check for bootstrap success
@@ -321,21 +322,26 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 }
 
 // getBootstrapData fetches the bootstrap data for the machine pool.
-func getBootstrapData(ctx context.Context, c client.Client, machinePool *clusterv1exp.MachinePool) (string, error) {
+func getBootstrapData(ctx context.Context, c client.Client, machinePool *clusterv1exp.MachinePool) (string, bootstrapv1.Format, error) {
 	if machinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
-		return "", errors.New("error retrieving bootstrap data: linked MachinePool's bootstrap.dataSecretName is nil")
+		return "", "", errors.New("error retrieving bootstrap data: linked MachinePool's bootstrap.dataSecretName is nil")
 	}
 
 	s := &corev1.Secret{}
 	key := client.ObjectKey{Namespace: machinePool.GetNamespace(), Name: *machinePool.Spec.Template.Spec.Bootstrap.DataSecretName}
 	if err := c.Get(ctx, key, s); err != nil {
-		return "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachinePool instance %s/%s", machinePool.GetNamespace(), machinePool.GetName())
+		return "", "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachinePool instance %s/%s", machinePool.GetNamespace(), machinePool.GetName())
 	}
 
 	value, ok := s.Data["value"]
 	if !ok {
-		return "", errors.New("error retrieving bootstrap data: secret value key is missing")
+		return "", "", errors.New("error retrieving bootstrap data: secret value key is missing")
 	}
 
-	return base64.StdEncoding.EncodeToString(value), nil
+	format := s.Data["format"]
+	if string(format) == "" {
+		format = []byte(bootstrapv1.CloudConfig)
+	}
+
+	return base64.StdEncoding.EncodeToString(value), bootstrapv1.Format(format), nil
 }

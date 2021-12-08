@@ -34,10 +34,13 @@ import (
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/cloudinit"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker/types"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning/cloudinit"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning/ignition"
 	clusterapicontainer "sigs.k8s.io/cluster-api/util/container"
 )
 
@@ -317,7 +320,7 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 }
 
 // ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`.
-func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
+func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstrapv1.Format) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if m.container == nil {
@@ -329,9 +332,19 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string) error {
 		return errors.Wrap(err, "failed to decode machine's bootstrap data")
 	}
 
-	commands, err := cloudinit.Commands(cloudConfig)
+	var commands []provisioning.Cmd
+
+	switch format {
+	case bootstrapv1.CloudConfig:
+		commands, err = cloudinit.RawCloudInitToProvisioningCommands(cloudConfig)
+	case bootstrapv1.Ignition:
+		commands, err = ignition.RawIgnitionToProvisioningCommands(cloudConfig)
+	default:
+		return fmt.Errorf("unknown provisioning format %q", format)
+	}
+
 	if err != nil {
-		log.Info("cloud config failed to parse", "bootstrap data", data)
+		log.Info("provisioning code failed to parse", "bootstrap data", data)
 		return errors.Wrap(err, "failed to join a control plane node with kubeadm")
 	}
 

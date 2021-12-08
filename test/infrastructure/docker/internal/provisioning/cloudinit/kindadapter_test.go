@@ -20,6 +20,8 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 )
 
 func TestRealUseCase(t *testing.T) {
@@ -104,7 +106,7 @@ write_files:
     permissions: '0640'
 `)
 
-	expectedCmds := []Cmd{
+	expectedCmds := []provisioning.Cmd{
 		// ca
 		{Cmd: "mkdir", Args: []string{"-p", "/etc/kubernetes/pki"}},
 		{Cmd: "/bin/sh", Args: []string{"-c", "cat > /etc/kubernetes/pki/ca.crt /dev/stdin"}},
@@ -139,7 +141,8 @@ write_files:
 		{Cmd: "chmod", Args: []string{"0640", "/run/kubeadm/kubeadm.yaml"}},
 	}
 
-	commands, err := Commands(cloudData)
+	commands, err := RawCloudInitToProvisioningCommands(cloudData)
+
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(commands).To(HaveLen(len(expectedCmds)))
 

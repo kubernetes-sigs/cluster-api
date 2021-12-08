@@ -24,6 +24,8 @@ import (
 
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
+
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 )
 
 const (
@@ -48,23 +50,23 @@ func (a *actionFactory) action(name string) action {
 
 type action interface {
 	Unmarshal(userData []byte) error
-	Commands() ([]Cmd, error)
+	Commands() ([]provisioning.Cmd, error)
 }
 
-// Commands converts a cloudconfig to a list of commands to run in sequence on the node.
-func Commands(cloudConfig []byte) ([]Cmd, error) {
+// RawCloudInitToProvisioningCommands converts a cloudconfig to a list of commands to run in sequence on the node.
+func RawCloudInitToProvisioningCommands(config []byte) ([]provisioning.Cmd, error) {
 	// validate cloudConfigScript is a valid yaml, as required by the cloud config specification
-	if err := yaml.Unmarshal(cloudConfig, &map[string]interface{}{}); err != nil {
+	if err := yaml.Unmarshal(config, &map[string]interface{}{}); err != nil {
 		return nil, errors.Wrapf(err, "cloud-config is not valid yaml")
 	}
 
 	// parse the cloud config yaml into a slice of cloud config actions.
-	actions, err := getActions(cloudConfig)
+	actions, err := getActions(config)
 	if err != nil {
 		return nil, err
 	}
 
-	commands := []Cmd{}
+	commands := []provisioning.Cmd{}
 	for _, action := range actions {
 		cmds, err := action.Commands()
 		if err != nil {

@@ -47,6 +47,16 @@ aliases:
   cluster-api-bootstrap-provider-kubeadm-reviewers:
 
   # -----------------------------------------------------------
+  # OWNER_ALIASES for bootstrap/kubeadm/internal/ignition
+  # -----------------------------------------------------------
+
+  cluster-api-bootstrap-provider-kubeadm-ignition-maintainers:
+  cluster-api-bootstrap-provider-kubeadm-ignition-reviewers:
+  - dongsupark
+  - invidian
+  - johananl
+
+  # -----------------------------------------------------------
   # OWNER_ALIASES for controlplane/kubeadm
   # -----------------------------------------------------------
 

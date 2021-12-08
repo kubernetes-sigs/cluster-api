@@ -23,10 +23,16 @@ import (
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
 
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+)
+
+const (
+	fakeID     = "abcdef"
+	fakeSecret = "abcdef0123456789"
 )
 
 func TestFuzzyConversion(t *testing.T) {
@@ -58,16 +64,18 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		kubeadmBootstrapTokenStringFuzzer,
 		cabpkBootstrapTokenStringFuzzer,
 		dnsFuzzer,
+		kubeadmBootstrapTokenStringFuzzerV1Alpha4,
 	}
 }
 
 func kubeadmBootstrapTokenStringFuzzer(in *upstreamv1beta1.BootstrapTokenString, c fuzz.Continue) {
-	in.ID = "abcdef"
-	in.Secret = "abcdef0123456789"
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }
+
 func cabpkBootstrapTokenStringFuzzer(in *cabpkv1.BootstrapTokenString, c fuzz.Continue) {
-	in.ID = "abcdef"
-	in.Secret = "abcdef0123456789"
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }
 
 func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
@@ -75,4 +83,9 @@ func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
 
 	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.Type = ""
+}
+
+func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *v1alpha4.BootstrapTokenString, c fuzz.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }

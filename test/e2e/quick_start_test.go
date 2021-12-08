@@ -48,3 +48,16 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass",
 		}
 	})
 })
+
+var _ = Describe("When following the Cluster API quick-start with Ignition", func() {
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			Flavor:                pointer.String("ignition"),
+		}
+	})
+})

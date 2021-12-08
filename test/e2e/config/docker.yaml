@@ -190,6 +190,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-kcp-scale-in.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-ipv6.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-topology.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-ignition.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/clusterclass-quick-start.yaml"
     - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
@@ -213,6 +214,7 @@ variables:
   NODE_DRAIN_TIMEOUT: "60s"
   # Enabling the feature flags by setting the env variables.
   EXP_CLUSTER_RESOURCE_SET: "true"
+  EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_MACHINE_POOL: "true"
   CLUSTER_TOPOLOGY: "true"
   # NOTE: INIT_WITH_BINARY and INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize

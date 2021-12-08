@@ -2927,7 +2927,26 @@ spec:
                       data
                     enum:
                     - cloud-config
+                    - ignition
                     type: string
+                  ignition:
+                    description: Ignition contains Ignition specific configuration.
+                    properties:
+                      containerLinuxConfig:
+                        description: ContainerLinuxConfig contains CLC specific configuration.
+                        properties:
+                          additionalConfig:
+                            description: "AdditionalConfig contains additional configuration
+                              to be merged with the Ignition configuration generated
+                              by the bootstrapper controller. More info: https://coreos.github.io/ignition/operator-notes/#config-merging
+                              \n The data format is documented here: https://kinvolk.io/docs/flatcar-container-linux/latest/provisioning/cl-config/"
+                            type: string
+                          strict:
+                            description: Strict controls if AdditionalConfig should
+                              be strictly parsed. If so, warnings are treated as errors.
+                            type: boolean
+                        type: object
+                    type: object
                   initConfiguration:
                     description: InitConfiguration along with ClusterConfiguration
                       are the configurations necessary for the init command

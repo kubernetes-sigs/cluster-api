@@ -184,7 +184,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 			t.Run("default", func(t *testing.T) {
 				g := NewWithT(t)
 				g.Expect(webhook.Default(ctx, cluster)).To(Succeed())
-				g.Expect(cluster.Spec.Topology.Variables).To(ConsistOf(tt.expect))
+				g.Expect(cluster.Spec.Topology.Variables).To(Equal(tt.expect))
 			})
 		})
 	}

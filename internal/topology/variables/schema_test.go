@@ -20,7 +20,6 @@ import (
 	"reflect"
 	"testing"
 
-	. "github.com/onsi/gomega"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/utils/pointer"
@@ -28,14 +27,7 @@ import (
 )
 
 func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
-	basicSchema := clusterv1.JSONSchemaProps{
-		Type: "integer",
-	}
-	schemaWithMinAndMax := clusterv1.JSONSchemaProps{
-		Type:    "integer",
-		Minimum: pointer.Int64(1),
-		Maximum: pointer.Int64(43),
-	}
+	defaultJSON := apiextensions.JSON(`defaultValue`)
 
 	tests := []struct {
 		name    string
@@ -46,31 +38,108 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 		{
 			name: "pass for basic schema validation",
 			schema: &clusterv1.JSONSchemaProps{
-				Type: "integer",
+				Type:             "integer",
+				Format:           "uri",
+				MaxLength:        pointer.Int64(4),
+				MinLength:        pointer.Int64(2),
+				Pattern:          "abc.*",
+				Maximum:          pointer.Int64(43),
+				ExclusiveMaximum: true,
+				Minimum:          pointer.Int64(1),
+				ExclusiveMinimum: false,
 			},
 			want: &apiextensions.JSONSchemaProps{
-				Type:             basicSchema.Type,
-				Format:           basicSchema.Format,
-				MaxLength:        basicSchema.MaxLength,
-				MinLength:        basicSchema.MinLength,
-				Pattern:          basicSchema.Pattern,
-				ExclusiveMaximum: basicSchema.ExclusiveMaximum,
-				ExclusiveMinimum: basicSchema.ExclusiveMinimum,
+				Type:             "integer",
+				Format:           "uri",
+				MaxLength:        pointer.Int64(4),
+				MinLength:        pointer.Int64(2),
+				Pattern:          "abc.*",
+				Maximum:          pointer.Float64(43),
+				ExclusiveMaximum: true,
+				Minimum:          pointer.Float64(1),
+				ExclusiveMinimum: false,
 			},
 		},
 		{
-			name:   "pass for schema with minimum and maximum",
-			schema: &schemaWithMinAndMax,
+			name: "pass for schema validation with enum & default",
+			schema: &clusterv1.JSONSchemaProps{
+				Default: &apiextensionsv1.JSON{
+					Raw: []byte(`"defaultValue"`),
+				},
+				Enum: []apiextensionsv1.JSON{
+					{Raw: []byte(`"enumValue1"`)},
+					{Raw: []byte(`"enumValue2"`)},
+				},
+			},
 			want: &apiextensions.JSONSchemaProps{
-				Type:             schemaWithMinAndMax.Type,
-				Format:           schemaWithMinAndMax.Format,
-				MaxLength:        schemaWithMinAndMax.MaxLength,
-				MinLength:        schemaWithMinAndMax.MinLength,
-				Pattern:          schemaWithMinAndMax.Pattern,
-				ExclusiveMaximum: schemaWithMinAndMax.ExclusiveMaximum,
-				ExclusiveMinimum: schemaWithMinAndMax.ExclusiveMinimum,
-				Minimum:          convertIntToFloatPointer(*schemaWithMinAndMax.Minimum),
-				Maximum:          convertIntToFloatPointer(*schemaWithMinAndMax.Maximum),
+				Default: &defaultJSON,
+				Enum: []apiextensions.JSON{
+					`enumValue1`,
+					`enumValue2`,
+				},
+			},
+		},
+		{
+			name: "fail for schema validation with default value with invalid JSON",
+			schema: &clusterv1.JSONSchemaProps{
+				Default: &apiextensionsv1.JSON{
+					Raw: []byte(`defaultValue`), // missing quotes
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "pass for schema validation with object",
+			schema: &clusterv1.JSONSchemaProps{
+				Properties: map[string]clusterv1.JSONSchemaProps{
+					"property1": {
+						Type:    "integer",
+						Minimum: pointer.Int64(1),
+					},
+					"property2": {
+						Type:      "string",
+						Format:    "uri",
+						MinLength: pointer.Int64(2),
+						MaxLength: pointer.Int64(4),
+					},
+				},
+			},
+			want: &apiextensions.JSONSchemaProps{
+				Properties: map[string]apiextensions.JSONSchemaProps{
+					"property1": {
+						Type:    "integer",
+						Minimum: pointer.Float64(1),
+					},
+					"property2": {
+						Type:      "string",
+						Format:    "uri",
+						MinLength: pointer.Int64(2),
+						MaxLength: pointer.Int64(4),
+					},
+				},
+			},
+		},
+		{
+			name: "pass for schema validation with array",
+			schema: &clusterv1.JSONSchemaProps{
+				Items: &clusterv1.JSONSchemaProps{
+					Type:      "integer",
+					Minimum:   pointer.Int64(1),
+					Format:    "uri",
+					MinLength: pointer.Int64(2),
+					MaxLength: pointer.Int64(4),
+				},
+			},
+			want: &apiextensions.JSONSchemaProps{
+				Items: &apiextensions.JSONSchemaPropsOrArray{
+					Schema: &apiextensions.JSONSchemaProps{
+						Type:      "integer",
+						Minimum:   pointer.Float64(1),
+						Format:    "uri",
+						MinLength: pointer.Int64(2),
+						MaxLength: pointer.Int64(4),
+					},
+				},
 			},
 		},
 	}
@@ -86,28 +155,4 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 			}
 		})
 	}
-
-	t.Run("pass for schema with default and enum", func(t *testing.T) {
-		g := NewWithT(t)
-
-		schema := &clusterv1.JSONSchemaProps{
-			Default: &apiextensionsv1.JSON{
-				Raw: []byte(`"defaultValue"`),
-			},
-			Enum: []apiextensionsv1.JSON{
-				{Raw: []byte(`"enumValue1"`)},
-				{Raw: []byte(`"enumValue2"`)},
-			},
-		}
-
-		got, err := convertToAPIExtensionsJSONSchemaProps(schema)
-		g.Expect(err).ToNot(HaveOccurred())
-
-		g.Expect(*got.Default).To(Equal(apiextensions.JSON(`defaultValue`)))
-		g.Expect(got.Enum).To(Equal([]apiextensions.JSON{`enumValue1`, `enumValue2`}))
-	})
-}
-func convertIntToFloatPointer(i int64) *float64 {
-	f := float64(i)
-	return &f
 }

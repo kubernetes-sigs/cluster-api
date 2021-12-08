@@ -20,8 +20,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	structuralschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
+	structuraldefaulting "k8s.io/apiextensions-apiserver/pkg/apiserver/schema/defaulting"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -35,34 +37,42 @@ func DefaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clust
 	clusterVariablesMap := getClusterVariablesMap(clusterVariables)
 	clusterClassVariablesMap := getClusterClassVariablesMap(clusterClassVariables)
 
-	// Loop through variables in the ClusterClass and default variables if:
-	// * the variable does not exist in the Cluster.
-	// * the schema has a default value in the ClusterClass.
+	// allVariables is used to get a full correctly ordered list of variables.
+	allVariables := []string{}
+	// Add any ClusterVariables that already exist.
+	for _, variable := range clusterVariables {
+		allVariables = append(allVariables, variable.Name)
+	}
+	// Add variables from the ClusterClass, which currently don't exist on the Cluster.
+	for _, variable := range clusterClassVariables {
+		// Continue if the ClusterClass variable already exists.
+		if _, ok := clusterVariablesMap[variable.Name]; ok {
+			continue
+		}
+
+		allVariables = append(allVariables, variable.Name)
+	}
+
+	// Default all variables.
 	defaultedClusterVariables := []clusterv1.ClusterVariable{}
+	for i, variableName := range allVariables {
+		clusterClassVariable := clusterClassVariablesMap[variableName]
+		clusterVariable := clusterVariablesMap[variableName]
 
-	for variableName, clusterClassVariable := range clusterClassVariablesMap {
-		// Don't default if the variable already exists, use
-		// the variable from the Cluster instead.
-		if clusterVariable, ok := clusterVariablesMap[variableName]; ok {
-			defaultedClusterVariables = append(defaultedClusterVariables, *clusterVariable)
-			continue
-		}
-
-		// Don't default if there is no default value in the schema.
-		// NOTE: In this case the variable won't be added to the Cluster.
-		if clusterClassVariable.Schema.OpenAPIV3Schema.Default == nil {
-			continue
-		}
-
-		// Create a new clusterVariable and default it.
-		clusterVariable := &clusterv1.ClusterVariable{
-			Name: variableName,
-		}
-		if errs := defaultClusterVariable(clusterVariable, clusterClassVariable, fldPath); len(errs) > 0 {
+		defaultedClusterVariable, errs := defaultClusterVariable(clusterVariable, clusterClassVariable, fldPath.Index(i))
+		if len(errs) > 0 {
 			allErrs = append(allErrs, errs...)
 			continue
 		}
-		defaultedClusterVariables = append(defaultedClusterVariables, *clusterVariable)
+
+		// Continue if there is no defaulted variable.
+		// NOTE: This happens when the variable doesn't exist on the CLuster before and
+		// there is no top-level default value.
+		if defaultedClusterVariable == nil {
+			continue
+		}
+
+		defaultedClusterVariables = append(defaultedClusterVariables, *defaultedClusterVariable)
 	}
 
 	if len(allErrs) > 0 {
@@ -73,28 +83,62 @@ func DefaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clust
 }
 
 // defaultClusterVariable defaults a clusterVariable based on the default value in the clusterClassVariable.
-func defaultClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterClassVariable *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
+func defaultClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterClassVariable *clusterv1.ClusterClassVariable, fldPath *field.Path) (*clusterv1.ClusterVariable, field.ErrorList) {
+	// Return if the variable does not exist yet and there is no top-level default value.
+	if clusterVariable == nil && clusterClassVariable.Schema.OpenAPIV3Schema.Default == nil {
+		return nil, nil
+	}
+
 	// Convert schema to Kubernetes APIExtensions schema.
 	apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(&clusterClassVariable.Schema.OpenAPIV3Schema)
 	if err != nil {
-		return field.ErrorList{field.Invalid(fldPath, "",
+		return nil, field.ErrorList{field.Invalid(fldPath, "",
 			fmt.Sprintf("invalid schema in ClusterClass for variable %q: error to convert schema %v", clusterVariable.Name, err))}
 	}
 
 	var value interface{}
-	// If the schema has a default value, default it.
-	if apiExtensionsSchema.Default != nil {
-		value = runtime.DeepCopyJSONValue(*apiExtensionsSchema.Default)
+	// If the variable already exists, parse the current value.
+	if clusterVariable != nil && len(clusterVariable.Value.Raw) > 0 {
+		if err := json.Unmarshal(clusterVariable.Value.Raw, &value); err != nil {
+			return nil, field.ErrorList{field.Invalid(fldPath, "",
+				fmt.Sprintf("failed to unmarshal variable value %q: %v", string(clusterVariable.Value.Raw), err))}
+		}
 	}
 
-	// Marshal the defaulted value.
-	defaultedVariableValue, err := json.Marshal(value)
+	// Structural schema defaulting does not work with scalar values,
+	// so we wrap the schema and the variable in objects.
+	// <variable-name>: <variable-value>
+	wrappedVariable := map[string]interface{}{
+		clusterClassVariable.Name: value,
+	}
+	// type: object
+	// properties:
+	//   <variable-name>: <variable-schema>
+	wrappedSchema := &apiextensions.JSONSchemaProps{
+		Type: "object",
+		Properties: map[string]apiextensions.JSONSchemaProps{
+			clusterClassVariable.Name: *apiExtensionsSchema,
+		},
+	}
+
+	// Default the variable via the structural schema library.
+	ss, err := structuralschema.NewStructural(wrappedSchema)
 	if err != nil {
-		return field.ErrorList{field.Invalid(fldPath, "",
-			fmt.Sprintf("failed to marshal default value of variable %q: %v", clusterVariable.Name, err))}
+		return nil, field.ErrorList{field.Invalid(fldPath, "",
+			fmt.Sprintf("failed defaulting variable %q: %v", clusterVariable.Name, err))}
 	}
-	clusterVariable.Value = apiextensionsv1.JSON{
-		Raw: defaultedVariableValue,
+	structuraldefaulting.Default(wrappedVariable, ss)
+
+	// Marshal the defaulted value.
+	defaultedVariableValue, err := json.Marshal(wrappedVariable[clusterClassVariable.Name])
+	if err != nil {
+		return nil, field.ErrorList{field.Invalid(fldPath, "",
+			fmt.Sprintf("failed to marshal default value of variable %q: %v", clusterClassVariable.Name, err))}
 	}
-	return nil
+	return &clusterv1.ClusterVariable{
+		Name: clusterClassVariable.Name,
+		Value: apiextensionsv1.JSON{
+			Raw: defaultedVariableValue,
+		},
+	}, nil
 }

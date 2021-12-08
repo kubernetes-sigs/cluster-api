@@ -142,15 +142,15 @@ func Test_DefaultClusterVariables(t *testing.T) {
 			},
 			want: []clusterv1.ClusterVariable{
 				{
-					Name: "cpu",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`1`),
-					},
-				},
-				{
 					Name: "correct",
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`false`),
+					},
+				},
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
 					},
 				},
 			},
@@ -201,7 +201,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 				return
 			}
 			g.Expect(errList).To(BeEmpty())
-			g.Expect(vars).To(ConsistOf(tt.want))
+			g.Expect(vars).To(Equal(tt.want))
 		})
 	}
 }
@@ -209,13 +209,13 @@ func Test_DefaultClusterVariables(t *testing.T) {
 func Test_DefaultClusterVariable(t *testing.T) {
 	tests := []struct {
 		name                 string
-		clusterClassVariable *clusterv1.ClusterClassVariable
 		clusterVariable      *clusterv1.ClusterVariable
+		clusterClassVariable *clusterv1.ClusterClassVariable
 		want                 *clusterv1.ClusterVariable
 		wantErr              bool
 	}{
 		{
-			name: "Default integer",
+			name: "Default new integer variable",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
 				Required: true,
@@ -226,7 +226,6 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
-			clusterVariable: &clusterv1.ClusterVariable{Name: "cpu"},
 			want: &clusterv1.ClusterVariable{
 				Name: "cpu",
 				Value: apiextensionsv1.JSON{
@@ -235,7 +234,32 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Default string",
+			name: "Don't default existing integer variable",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:    "integer",
+						Default: &apiextensionsv1.JSON{Raw: []byte(`1`)},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`2`),
+				},
+			},
+			want: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`2`),
+				},
+			},
+		},
+		{
+			name: "Default new string variable",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
 				Required: true,
@@ -246,7 +270,6 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
-			clusterVariable: &clusterv1.ClusterVariable{Name: "location"},
 			want: &clusterv1.ClusterVariable{
 				Name: "location",
 				Value: apiextensionsv1.JSON{
@@ -255,9 +278,34 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Default number",
+			name: "Don't default existing string variable",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:    "string",
+						Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "location",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`"us-west"`),
+				},
+			},
+			want: &clusterv1.ClusterVariable{
+				Name: "location",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`"us-west"`),
+				},
+			},
+		},
+		{
+			name: "Default new number variable",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
 				Required: true,
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -266,16 +314,40 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
-			clusterVariable: &clusterv1.ClusterVariable{Name: "location"},
 			want: &clusterv1.ClusterVariable{
-				Name: "location",
+				Name: "cpu",
 				Value: apiextensionsv1.JSON{
 					Raw: []byte(`0.1`),
 				},
 			},
 		},
 		{
-			name: "Default boolean",
+			name: "Don't default existing number variable",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:    "number",
+						Default: &apiextensionsv1.JSON{Raw: []byte(`0.1`)},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`2.1`),
+				},
+			},
+			want: &clusterv1.ClusterVariable{
+				Name: "cpu",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`2.1`),
+				},
+			},
+		},
+		{
+			name: "Default new boolean variable",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "correct",
 				Required: true,
@@ -286,11 +358,230 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
-			clusterVariable: &clusterv1.ClusterVariable{Name: "location"},
 			want: &clusterv1.ClusterVariable{
 				Name: "correct",
 				Value: apiextensionsv1.JSON{
 					Raw: []byte(`true`),
+				},
+			},
+		},
+		{
+			name: "Don't default existing boolean variable",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "correct",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:    "boolean",
+						Default: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "correct",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`false`),
+				},
+			},
+			want: &clusterv1.ClusterVariable{
+				Name: "correct",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`false`),
+				},
+			},
+		},
+		{
+			name: "Default new object variable",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:    "object",
+						Default: &apiextensionsv1.JSON{Raw: []byte(`{"enabled": false}`)},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "boolean",
+							},
+							"url": {
+								Type: "string",
+							},
+							"noProxy": {
+								Type: "string",
+							},
+						},
+					},
+				},
+			},
+			want: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"enabled":false}`),
+				},
+			},
+		},
+		{
+			name: "Don't default new object variable if there is no top-level default",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type:    "boolean",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+							},
+							"url": {
+								Type: "string",
+							},
+							"noProxy": {
+								Type: "string",
+							},
+						},
+					},
+				},
+			},
+			want: nil,
+		},
+		{
+			name: "Don't default existing object variable",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:    "object",
+						Default: &apiextensionsv1.JSON{Raw: []byte(`{"enabled": false}`)},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "boolean",
+							},
+							"url": {
+								Type: "string",
+							},
+							"noProxy": {
+								Type: "string",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"enabled":false,"url":"https://example.com"}`),
+				},
+			},
+			want: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"enabled":false,"url":"https://example.com"}`),
+				},
+			},
+		},
+		{
+			name: "Default nested fields of existing object variable",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:    "object",
+						Default: &apiextensionsv1.JSON{Raw: []byte(`{"enabled": false}`)},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type: "boolean",
+							},
+							"url": {
+								Type:    "string",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`"https://example.com"`)},
+							},
+							"noProxy": {
+								Type: "string",
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"enabled":false}`),
+				},
+			},
+			want: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"enabled":false,"url":"https://example.com"}`),
+				},
+			},
+		},
+		{
+			name: "Default new array variable",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "testVariable",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]clusterv1.JSONSchemaProps{
+								"enabled": {
+									Type: "boolean",
+								},
+								"url": {
+									Type: "string",
+								},
+							},
+						},
+						Default: &apiextensionsv1.JSON{Raw: []byte(`[{"enabled":false,"url":"123"},{"enabled":false,"url":"456"}]`)},
+					},
+				},
+			},
+			want: &clusterv1.ClusterVariable{
+				Name: "testVariable",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`[{"enabled":false,"url":"123"},{"enabled":false,"url":"456"}]`),
+				},
+			},
+		},
+		{
+			name: "Don't default existing array variable",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "testVariable",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]clusterv1.JSONSchemaProps{
+								"enabled": {
+									Type: "boolean",
+								},
+								"url": {
+									Type: "string",
+								},
+							},
+						},
+						Default: &apiextensionsv1.JSON{Raw: []byte(`[{"enabled":false,"url":"123"},{"enabled":false,"url":"456"}]`)},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "testVariable",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`[]`),
+				},
+			},
+			want: &clusterv1.ClusterVariable{
+				Name: "testVariable",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`[]`),
 				},
 			},
 		},
@@ -299,11 +590,8 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			clusterVariable := &clusterv1.ClusterVariable{
-				Name: tt.clusterClassVariable.Name,
-			}
-			errList := defaultClusterVariable(clusterVariable, tt.clusterClassVariable,
-				field.NewPath("spec", "topology", "variables"))
+			defaultedVariable, errList := defaultClusterVariable(tt.clusterVariable, tt.clusterClassVariable,
+				field.NewPath("spec", "topology", "variables").Index(0))
 
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())
@@ -311,7 +599,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			}
 			g.Expect(errList).To(BeEmpty())
 
-			g.Expect(clusterVariable).To(Equal(tt.want))
+			g.Expect(defaultedVariable).To(Equal(tt.want))
 		})
 	}
 }

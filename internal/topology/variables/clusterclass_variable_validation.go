@@ -77,7 +77,7 @@ func validateClusterClassVariable(variable *clusterv1.ClusterClassVariable, fldP
 	allErrs = append(allErrs, validateClusterClassVariableName(variable.Name, fldPath.Child("name"))...)
 
 	// Validate schema.
-	allErrs = append(allErrs, validateSchema(&variable.Schema.OpenAPIV3Schema, variable.Name, fldPath.Child("schema", "openAPIV3Schema"))...)
+	allErrs = append(allErrs, validateSchema(&variable.Schema.OpenAPIV3Schema, fldPath.Child("schema", "openAPIV3Schema"))...)
 
 	return allErrs
 }
@@ -100,24 +100,26 @@ func validateClusterClassVariableName(variableName string, fldPath *field.Path) 
 	return allErrs
 }
 
-var validVariableTypes = sets.NewString("string", "number", "integer", "boolean")
+var validVariableTypes = sets.NewString("object", "array", "string", "number", "integer", "boolean")
 
 // validateSchema validates the schema.
-func validateSchema(schema *clusterv1.JSONSchemaProps, variableName string, fldPath *field.Path) field.ErrorList {
+func validateSchema(schema *clusterv1.JSONSchemaProps, fldPath *field.Path) field.ErrorList {
 	// Validate the JSON's in the schema
 	// NOTE: This is done here to provide a user-friendly error instead of an error which would occur during conversion.
 	var allErrs field.ErrorList
 	if schema.Default != nil && schema.Default.Raw != nil {
-		if err := json.Unmarshal(schema.Default.Raw, &struct{}{}); err != nil {
+		var v interface{}
+		if err := json.Unmarshal(schema.Default.Raw, &v); err != nil {
 			allErrs = append(allErrs, field.Invalid(fldPath.Child("default"), string(schema.Default.Raw),
-				"openAPIV3Schema.default is not valid JSON"))
+				fmt.Sprintf("openAPIV3Schema.default is not valid JSON: %v", err)))
 		}
 	}
 	for i, enum := range schema.Enum {
 		if enum.Raw != nil {
-			if err := json.Unmarshal(enum.Raw, &struct{}{}); err != nil {
+			var v interface{}
+			if err := json.Unmarshal(enum.Raw, &v); err != nil {
 				allErrs = append(allErrs, field.Invalid(fldPath.Child("enum").Index(i), string(enum.Raw),
-					"openAPIV3Schema.enum value is not valid JSON"))
+					fmt.Sprintf("openAPIV3Schema.enum value is not valid JSON: %v", err)))
 			}
 		}
 	}
@@ -125,7 +127,7 @@ func validateSchema(schema *clusterv1.JSONSchemaProps, variableName string, fldP
 	apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(schema)
 	if err != nil {
 		return field.ErrorList{field.Invalid(fldPath, schema,
-			fmt.Sprintf("invalid schema definition for variable %q: %v", variableName, err))}
+			fmt.Sprintf("invalid schema definition: %v", err))}
 	}
 
 	// Validate that type is one of the validVariableTypes.
@@ -134,6 +136,15 @@ func validateSchema(schema *clusterv1.JSONSchemaProps, variableName string, fldP
 		return field.ErrorList{field.Required(fldPath.Child("type"), "openAPIV3Schema.type cannot be empty")}
 	case !validVariableTypes.Has(apiExtensionsSchema.Type):
 		return field.ErrorList{field.NotSupported(fldPath.Child("type"), apiExtensionsSchema.Type, validVariableTypes.List())}
+	}
+
+	for propertyName, propertySchema := range schema.Properties {
+		p := propertySchema
+		allErrs = append(allErrs, validateSchema(&p, fldPath.Child("properties").Key(propertyName))...)
+	}
+
+	if schema.Items != nil {
+		allErrs = append(allErrs, validateSchema(schema.Items, fldPath.Child("items"))...)
 	}
 
 	// Validate structural schema.
@@ -151,29 +162,29 @@ func validateSchema(schema *clusterv1.JSONSchemaProps, variableName string, fldP
 	// Get the structural schema for the variable.
 	ss, err := structuralschema.NewStructural(wrappedSchema)
 	if err != nil {
-		return field.ErrorList{field.Invalid(fldPath.Child("schema"), "", err.Error())}
+		return append(allErrs, field.Invalid(fldPath.Child("schema"), "", err.Error()))
 	}
 
 	// Validate the schema.
 	if validationErrors := structuralschema.ValidateStructural(fldPath.Child("schema"), ss); len(validationErrors) > 0 {
-		return validationErrors
+		return append(allErrs, validationErrors...)
 	}
 
 	// Validate defaults in the structural schema.
 	validationErrors, err := structuraldefaulting.ValidateDefaults(fldPath.Child("schema"), ss, true, true)
 	if err != nil {
-		return field.ErrorList{field.Invalid(fldPath.Child("schema"), "", err.Error())}
+		return append(allErrs, field.Invalid(fldPath.Child("schema"), "", err.Error()))
 	}
 	if len(validationErrors) > 0 {
-		return validationErrors
+		return append(allErrs, validationErrors...)
 	}
 
 	// If the structural schema is valid, ensure a schema validator can be constructed.
 	if _, _, err := validation.NewSchemaValidator(&apiextensions.CustomResourceValidation{
 		OpenAPIV3Schema: apiExtensionsSchema,
 	}); err != nil {
-		return field.ErrorList{field.Invalid(fldPath, "", fmt.Sprintf("failed to build validator: %v", err))}
+		return append(allErrs, field.Invalid(fldPath, "", fmt.Sprintf("failed to build validator: %v", err)))
 	}
 
-	return nil
+	return allErrs
 }

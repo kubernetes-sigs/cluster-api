@@ -843,6 +843,286 @@ func TestCalculateValue(t *testing.T) {
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`"value"`)},
 		},
+		// Objects
+		{
+			name: "Should return .valueFrom.variable if set: whole object",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"requiredProperty":false,"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"requiredProperty":false,"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested bool property",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.boolProperty"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested integer property",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.integerProperty"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`1`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested string property",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.enumProperty"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"enumValue2"`)},
+		},
+		{
+			name: "Fails if .valueFrom.variable object variable does not exist",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.enumProperty"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"anotherObject": {Raw: []byte(`{"boolProperty":true,"integerProperty":1,"enumProperty":"enumValue2"}`)},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Fails if .valueFrom.variable nested object property does not exist",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.nonExistingProperty"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"anotherObject": {Raw: []byte(`{"boolProperty":true,"integerProperty":1}`)},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Fails if .valueFrom.variable nested object property is an array instead",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					// NOTE: it's not possible to access a property of an array element without index.
+					Variable: pointer.String("variableObject.nonExistingProperty"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"anotherObject": {Raw: []byte(`[{"boolProperty":true,"integerProperty":1}]`)},
+			},
+			wantErr: true,
+		},
+		// Deeper nested Objects
+		{
+			name: "Should return .valueFrom.variable if set: nested object property top-level",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested object property firstLevel",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.firstLevel"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"secondLevel":{"leaf":"value"}}`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested object property secondLevel",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.firstLevel.secondLevel"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"leaf":"value"}`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested object property leaf",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableObject.firstLevel.secondLevel.leaf"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"value"`)},
+		},
+		// Array
+		{
+			name: "Should return .valueFrom.variable if set: array",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`["abc","def"]`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`["abc","def"]`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: array element",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray[0]"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`["abc","def"]`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"abc"`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested array",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray.firstLevel"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`{"firstLevel":["abc","def"]}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`["abc","def"]`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested array element",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray.firstLevel[1]"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`{"firstLevel":[{"secondLevel":"firstElement"},{"secondLevel":"secondElement"}]}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"secondLevel":"secondElement"}`)},
+		},
+		{
+			name: "Should return .valueFrom.variable if set: nested field of nested array element",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray.firstLevel[1].secondLevel"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`{"firstLevel":[{"secondLevel":"firstElement"},{"secondLevel":"secondElement"}]}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"secondElement"`)},
+		},
+		{
+			name: "Fails if .valueFrom.variable array path is invalid: only left delimiter",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray.firstLevel["),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`{"firstLevel":[{"secondLevel":"firstElement"}]}`)},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Fails if .valueFrom.variable array path is invalid: only right delimiter",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray.firstLevel]"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`{"firstLevel":[{"secondLevel":"firstElement"}]}`)},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Fails if .valueFrom.variable array path is invalid: no index",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray.firstLevel[]"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`{"firstLevel":[{"secondLevel":"firstElement"}]}`)},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Fails if .valueFrom.variable array path is invalid: text index",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray.firstLevel[someText]"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`{"firstLevel":[{"secondLevel":"firstElement"}]}`)},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Fails if .valueFrom.variable array path is invalid: negative index",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray.firstLevel[-1]"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`{"firstLevel":[{"secondLevel":"firstElement"}]}`)},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Fails if .valueFrom.variable array path is invalid: index out of bounds",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray.firstLevel[1]"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`{"firstLevel":[{"secondLevel":"firstElement"}]}`)},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Fails if .valueFrom.variable array path is invalid: variable is an object instead",
+			patch: clusterv1.JSONPatch{
+				ValueFrom: &clusterv1.JSONPatchValue{
+					Variable: pointer.String("variableArray.firstLevel[1]"),
+				},
+			},
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`{"firstLevel":{"secondLevel":"firstElement"}}`)},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -856,6 +1136,66 @@ func TestCalculateValue(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
+func TestParsePathSegment(t *testing.T) {
+	tests := []struct {
+		name            string
+		segment         string
+		wantPathSegment *pathSegment
+		wantErr         bool
+	}{
+		{
+			name:    "parse basic segment",
+			segment: "propertyName",
+			wantPathSegment: &pathSegment{
+				path:  "propertyName",
+				index: nil,
+			},
+		},
+		{
+			name:    "parse segment with index",
+			segment: "arrayProperty[5]",
+			wantPathSegment: &pathSegment{
+				path:  "arrayProperty",
+				index: pointer.Int(5),
+			},
+		},
+		{
+			name:    "fail invalid syntax: only left delimiter",
+			segment: "arrayProperty[",
+			wantErr: true,
+		},
+		{
+			name:    "fail invalid syntax: only right delimiter",
+			segment: "arrayProperty]",
+			wantErr: true,
+		},
+		{
+			name:    "fail invalid syntax: both delimiter but no index",
+			segment: "arrayProperty[]",
+			wantErr: true,
+		},
+		{
+			name:    "fail invalid syntax: negative index",
+			segment: "arrayProperty[-1]",
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			got, err := parsePathSegment(tt.segment)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Expect(got).To(Equal(tt.wantPathSegment))
 		})
 	}
 }
@@ -900,6 +1240,32 @@ func TestRenderValueTemplate(t *testing.T) {
 				"booleanVariable": {Raw: []byte("true")},
 			},
 			want: &apiextensionsv1.JSON{Raw: []byte(`true`)},
+		},
+		{
+			name:     "Fails if the template is invalid",
+			template: `{{ booleanVariable }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"booleanVariable": {Raw: []byte("true")},
+			},
+			wantErr: true,
+		},
+		// Default variables via template
+		{
+			name:     "Should render depending on variable existence: variable is set",
+			template: `{{ if .vnetName }}{{.vnetName}}{{else}}{{.builtin.cluster.name}}-vnet{{end}}`,
+			variables: map[string]apiextensionsv1.JSON{
+				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
+				"vnetName":                  {Raw: []byte(`"custom-network"`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"custom-network"`)},
+		},
+		{
+			name:     "Should render depending on variable existence: variable is not set",
+			template: `{{ if .vnetName }}{{.vnetName}}{{else}}{{.builtin.cluster.name}}-vnet{{end}}`,
+			variables: map[string]apiextensionsv1.JSON{
+				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"cluster1-vnet"`)},
 		},
 		// YAML
 		{
@@ -1004,6 +1370,118 @@ owner: root:root
 	"owner":"root:root"
 }`),
 			},
+		},
+		// Object types
+		{
+			name:     "Should render a object property top-level",
+			template: `{{ .variableObject }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"map[firstLevel:map[secondLevel:map[leaf:value]]]"`)}, // Not ideal but that's go templating.
+		},
+		{
+			name:     "Should render a object property firstLevel",
+			template: `{{ .variableObject.firstLevel }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"map[secondLevel:map[leaf:value]]"`)}, // Not ideal but that's go templating.
+		},
+		{
+			name:     "Should render a object property secondLevel",
+			template: `{{ .variableObject.firstLevel.secondLevel }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"map[leaf:value]"`)}, // Not ideal but that's go templating.
+		},
+		{
+			name:     "Should render a object property leaf",
+			template: `{{ .variableObject.firstLevel.secondLevel.leaf }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"value"`)},
+		},
+		{
+			name:     "Should render even if object property leaf does not exist",
+			template: `{{ .variableObject.firstLevel.secondLevel.anotherLeaf }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"firstLevel":{"secondLevel":{"leaf":"value"}}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"\u003cno value\u003e"`)},
+		},
+		{
+			name: "Should render a object with range",
+			template: `
+{
+{{ range $key, $value := .variableObject }}
+ "{{$key}}-modified": "{{$value}}",
+{{end}}
+}
+`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableObject": {Raw: []byte(`{"key1":"value1","key2":"value2"}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"key1-modified":"value1","key2-modified":"value2"}`)},
+		},
+		// Arrays
+		{
+			name:     "Should render an array property",
+			template: `{{ .variableArray }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`["string1","string2","string3"]`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`["string1 string2 string3"]`)}, // // Not ideal but that's go templating.
+		},
+		{
+			name: "Should render an array property with range",
+			template: `
+{
+{{ range .variableArray }}
+ "{{.}}-modified": "value",
+{{end}}
+}
+`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`["string1","string2","string3"]`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`{"string1-modified":"value","string2-modified":"value","string3-modified":"value"}`)},
+		},
+		{
+			name:     "Should render an array property: array element",
+			template: `{{ index .variableArray 1 }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`["string1","string2","string3"]`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"string2"`)},
+		},
+		{
+			name:     "Should render an array property: array object element field",
+			template: `{{ (index .variableArray 1).propertyA }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"variableArray": {Raw: []byte(`[{"propertyA":"A0","propertyB":"B0"},{"propertyA":"A1","propertyB":"B1"}]`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"A1"`)},
+		},
+		// Pick up config for a specific MD Class
+		{
+			name:     "Should render a object property with a lookup based on a builtin variable",
+			template: `{{ (index .mdConfig .builtin.machineDeployment.class).config }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"mdConfig": {Raw: []byte(`{
+"mdClass1":{
+	"config":"configValue1"
+},
+"mdClass2":{
+	"config":"configValue2"
+}
+}`)},
+				// Schema must either support complex objects with predefined keys/mdClasses or maps with additionalProperties.
+				patchvariables.BuiltinsName: {Raw: []byte(`{"machineDeployment":{"version":"v1.21.1","class":"mdClass2","name":"md1","topologyName":"md-topology","replicas":3}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"configValue2"`)},
 		},
 	}
 

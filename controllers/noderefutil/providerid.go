@@ -93,7 +93,7 @@ func (p *ProviderID) Equals(o *ProviderID) bool {
 }
 
 // String returns the string representation of this object.
-func (p *ProviderID) String() string {
+func (p ProviderID) String() string {
 	return p.original
 }
 

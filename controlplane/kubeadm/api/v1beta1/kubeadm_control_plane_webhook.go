@@ -29,10 +29,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"sigs.k8s.io/cluster-api/util/container"
-	"sigs.k8s.io/cluster-api/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"sigs.k8s.io/cluster-api/util/container"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 func (in *KubeadmControlPlane) SetupWebhookWithManager(mgr ctrl.Manager) error {

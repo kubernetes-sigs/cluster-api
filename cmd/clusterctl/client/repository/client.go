@@ -20,6 +20,7 @@ import (
 	"net/url"
 
 	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 )

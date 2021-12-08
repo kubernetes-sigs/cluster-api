@@ -23,11 +23,12 @@ import (
 	"github.com/pkg/errors"
 	autoscalingv1 "k8s.io/api/autoscaling/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
+
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 func (v *ScaleValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {

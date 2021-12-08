@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )

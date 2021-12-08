@@ -52,7 +52,7 @@ linters-settings:
     # Maximum length of variable declaration measured in number of characters, after which linter won't suggest using short syntax.
     max-decl-chars: 50
   gci:
-    local-prefixes: "false"
+    local-prefixes: "sigs.k8s.io/cluster-api"
   importas:
     no-unaliased: true
     alias:

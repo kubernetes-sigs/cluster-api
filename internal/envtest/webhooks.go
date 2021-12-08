@@ -27,8 +27,9 @@ import (
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
-	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+
+	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
 const (

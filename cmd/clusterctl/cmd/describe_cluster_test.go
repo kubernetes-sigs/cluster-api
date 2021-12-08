@@ -26,10 +26,11 @@ import (
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func Test_getRowName(t *testing.T) {

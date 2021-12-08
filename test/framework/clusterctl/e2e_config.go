@@ -33,10 +33,11 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/yaml"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	clusterctlconfig "sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/yaml"
 )
 
 // Provides access to the configuration for an e2e test.

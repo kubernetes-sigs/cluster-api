@@ -19,10 +19,11 @@ package controllers
 import (
 	"context"
 
-	machinepool "sigs.k8s.io/cluster-api/exp/internal/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	machinepool "sigs.k8s.io/cluster-api/exp/internal/controllers"
 )
 
 // MachinePoolReconciler reconciles a MachinePool object.

@@ -32,10 +32,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/tools/clientcmd"
+	"sigs.k8s.io/yaml"
+
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
-	"sigs.k8s.io/yaml"
 )
 
 const (

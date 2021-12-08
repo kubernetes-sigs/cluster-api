@@ -18,8 +18,9 @@ package cluster
 
 import (
 	"github.com/pkg/errors"
-	utilkubeconfig "sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	utilkubeconfig "sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
 // WorkloadCluster has methods for fetching kubeconfig of workload cluster from management cluster.

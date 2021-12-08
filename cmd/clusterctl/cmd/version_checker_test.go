@@ -26,9 +26,10 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/client-go/util/homedir"
+	"sigs.k8s.io/yaml"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/cluster-api/version"
-	"sigs.k8s.io/yaml"
 )
 
 func TestVersionChecker_newVersionChecker(t *testing.T) {

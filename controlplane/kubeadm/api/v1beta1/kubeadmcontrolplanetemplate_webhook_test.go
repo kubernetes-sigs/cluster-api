@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
+
 	"sigs.k8s.io/cluster-api/feature"
 )
 

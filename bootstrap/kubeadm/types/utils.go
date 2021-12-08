@@ -23,12 +23,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
+	"sigs.k8s.io/controller-runtime/pkg/scheme"
+
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
-	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
 var (

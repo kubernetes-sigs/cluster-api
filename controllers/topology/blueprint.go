@@ -20,10 +20,11 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // getBlueprint gets a ClusterBlueprint with the ClusterClass and the referenced templates to be used for a managed Cluster topology.

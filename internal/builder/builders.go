@@ -23,8 +23,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // ClusterBuilder holds the variables and objects required to build a clusterv1.Cluster.

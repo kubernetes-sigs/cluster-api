@@ -18,8 +18,9 @@ package remote
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 )
 
 // Index is a helper to model the info passed to cache.IndexField.

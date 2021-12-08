@@ -21,10 +21,11 @@ import (
 	"context"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	dockermachinepoolcontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/internal/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	dockermachinepoolcontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/internal/controllers"
 )
 
 // DockerMachinePoolReconciler reconciles a DockerMachinePool object.

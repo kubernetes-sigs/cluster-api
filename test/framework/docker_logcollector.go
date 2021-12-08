@@ -25,11 +25,12 @@ import (
 	"strings"
 
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/kind/pkg/errors"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/kind/pkg/errors"
 )
 
 // DockerLogCollector collect logs from a CAPD workload cluster.

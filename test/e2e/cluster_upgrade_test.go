@@ -22,6 +22,7 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo"
 	"k8s.io/utils/pointer"
+
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 

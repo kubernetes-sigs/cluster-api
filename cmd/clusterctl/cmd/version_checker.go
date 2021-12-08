@@ -30,10 +30,11 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"k8s.io/client-go/util/homedir"
+	"sigs.k8s.io/yaml"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/version"
-	"sigs.k8s.io/yaml"
 )
 
 var (

@@ -32,12 +32,13 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 	utilresource "sigs.k8s.io/cluster-api/util/resource"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var jsonListPrefix = []byte("[")

@@ -29,8 +29,9 @@ import (
 	"text/template"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/yaml"
+
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 var (

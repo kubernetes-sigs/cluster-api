@@ -21,10 +21,11 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // ClusterCreateInfraReady returns a predicate that returns true for a create event when a cluster has Status.InfrastructureReady set as true

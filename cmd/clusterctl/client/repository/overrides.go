@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/homedir"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
 

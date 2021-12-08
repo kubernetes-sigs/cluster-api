@@ -20,8 +20,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 func TestClusterByClassName(t *testing.T) {

@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 

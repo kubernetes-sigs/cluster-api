@@ -24,9 +24,10 @@ import (
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 )
 
 // Helper helps with a patch that yields the modified document when applied to the original document.

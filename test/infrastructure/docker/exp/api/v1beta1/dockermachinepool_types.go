@@ -83,6 +83,7 @@ type DockerMachinePoolStatus struct {
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
+// DockerMachinePoolInstanceStatus contains status information about a DockerMachinePool.
 type DockerMachinePoolInstanceStatus struct {
 	// Addresses contains the associated addresses for the docker machine.
 	// +optional

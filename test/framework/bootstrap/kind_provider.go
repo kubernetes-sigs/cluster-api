@@ -33,7 +33,7 @@ const (
 	DefaultNodeImageRepository = "kindest/node"
 
 	// DefaultNodeImageVersion is the default Kubernetes version to be used for creating a kind cluster.
-	DefaultNodeImageVersion = "v1.22.0"
+	DefaultNodeImageVersion = "v1.23.0"
 )
 
 // KindClusterOption is a NewKindClusterProvider option.

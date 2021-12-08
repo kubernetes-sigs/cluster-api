@@ -157,6 +157,12 @@ type VariableSchema struct {
 // This struct has been initially copied from apiextensionsv1.JSONSchemaProps, but all fields
 // which are not supported in CAPI have been removed.
 type JSONSchemaProps struct {
+	// Description is a human-readable description of this variable.
+	Description string `json:"description,omitempty"`
+
+	// Example is an example for this variable.
+	Example *apiextensionsv1.JSON `json:"example,omitempty"`
+
 	// Type is the type of the variable.
 	// Valid values are: object, array, string, integer, number or boolean.
 	Type string `json:"type"`
@@ -260,6 +266,9 @@ type JSONSchemaProps struct {
 type ClusterClassPatch struct {
 	// Name of the patch.
 	Name string `json:"name"`
+
+	// Description is a human-readable description of this patch.
+	Description string `json:"description,omitempty"`
 
 	// EnabledIf is a Go template to be used to calculate if a patch should be enabled.
 	// It can reference variables defined in .spec.variables and builtin variables.

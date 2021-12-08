@@ -686,6 +686,10 @@ spec:
                         - selector
                         type: object
                       type: array
+                    description:
+                      description: Description is a human-readable description of
+                        this patch.
+                      type: string
                     enabledIf:
                       description: EnabledIf is a Go template to be used to calculate
                         if a patch should be enabled. It can reference variables defined
@@ -730,12 +734,19 @@ spec:
                               description: 'Default is the default value of the variable.
                                 NOTE: Can be set for all types.'
                               x-kubernetes-preserve-unknown-fields: true
+                            description:
+                              description: Description is a human-readable description
+                                of this variable.
+                              type: string
                             enum:
                               description: 'Enum is the list of valid values of the
                                 variable. NOTE: Can only be set if type is string.'
                               items:
                                 x-kubernetes-preserve-unknown-fields: true
                               type: array
+                            example:
+                              description: Example is an example for this variable.
+                              x-kubernetes-preserve-unknown-fields: true
                             exclusiveMaximum:
                               description: 'ExclusiveMaximum specifies if the Maximum
                                 is exclusive. NOTE: Can only be set if type is integer

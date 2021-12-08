@@ -304,11 +304,20 @@ func preLoadImageTask(image string) taskFunction {
 			return
 		}
 
-		cmd := exec.CommandContext(ctx,
+		// get cluster name from env
+		name, exists := os.LookupEnv("CAPI_KIND_CLUSTER_NAME")
+		if !exists {
+			name = "capi-test"
+		}
+
+		// set command to use capi cluster name
+		namecmd := fmt.Sprintf("--name=%s", name)
+
+		cmd := exec.CommandContext(ctx, //nolint:gosec
 			"kind",
 			"load",
 			"docker-image",
-			"--name=capi-test", // TODO: make this configurable
+			namecmd,
 			image,
 		)
 

@@ -26,19 +26,7 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-NAME="capi-test"
-
-while [[ $# -gt 0 ]]; do
-  key="$1"
-  case $key in
-    -n|--name)
-      NAME="$2"
-      shift
-      shift
-      ;;
-  esac
-done
-
+NAME=${CAPI_KIND_CLUSTER_NAME:-"capi-test"}
 
 # create registry container unless it already exists
 reg_name='kind-registry'

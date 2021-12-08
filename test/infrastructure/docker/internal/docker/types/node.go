@@ -70,7 +70,7 @@ func (n *Node) Role() (string, error) {
 // IP gets the docker ipv4 and ipv6 of the node.
 func (n *Node) IP(ctx context.Context) (ipv4 string, ipv6 string, err error) {
 	// retrieve the IP address of the node using docker inspect
-	containerRuntime, err := container.NewDockerClient()
+	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
 		return "", "", errors.Wrap(err, "failed to connect to container runtime")
 	}
@@ -91,7 +91,7 @@ func (n *Node) IsRunning() bool {
 
 // Delete removes the container.
 func (n *Node) Delete(ctx context.Context) error {
-	containerRuntime, err := container.NewDockerClient()
+	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to container runtime")
 	}
@@ -119,7 +119,7 @@ func (n *Node) WriteFile(ctx context.Context, dest, content string) error {
 
 // Kill sends the named signal to the container.
 func (n *Node) Kill(ctx context.Context, signal string) error {
-	containerRuntime, err := container.NewDockerClient()
+	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to container runtime")
 	}
@@ -182,7 +182,7 @@ func (c *ContainerCmd) RunLoggingOutputOnFail(ctx context.Context) ([]string, er
 
 // Run will run a configured ContainerCmd inside a container instance.
 func (c *ContainerCmd) Run(ctx context.Context) error {
-	containerRuntime, err := container.NewDockerClient()
+	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to container runtime")
 	}

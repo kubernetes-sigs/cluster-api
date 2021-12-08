@@ -55,7 +55,7 @@ type NodePool struct {
 }
 
 // NewNodePool creates a new node pool instances.
-func NewNodePool(c client.Client, cluster *clusterv1.Cluster, mp *clusterv1exp.MachinePool, dmp *infrav1exp.DockerMachinePool) (*NodePool, error) {
+func NewNodePool(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, mp *clusterv1exp.MachinePool, dmp *infrav1exp.DockerMachinePool) (*NodePool, error) {
 	np := &NodePool{
 		client:            c,
 		cluster:           cluster,
@@ -64,7 +64,7 @@ func NewNodePool(c client.Client, cluster *clusterv1.Cluster, mp *clusterv1exp.M
 		labelFilters:      map[string]string{dockerMachinePoolLabel: dmp.Name},
 	}
 
-	if err := np.refresh(); err != nil {
+	if err := np.refresh(ctx); err != nil {
 		return np, errors.Wrapf(err, "failed to refresh the node pool")
 	}
 	return np, nil
@@ -86,7 +86,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 	for _, machine := range np.machines {
 		totalNumberOfMachines++
 		if totalNumberOfMachines > desiredReplicas || !np.isMachineMatchingInfrastructureSpec(machine) {
-			externalMachine, err := docker.NewMachine(np.cluster, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
+			externalMachine, err := docker.NewMachine(ctx, np.cluster, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
 			if err != nil {
 				return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
 			}
@@ -98,7 +98,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 		}
 	}
 	if machineDeleted {
-		if err := np.refresh(); err != nil {
+		if err := np.refresh(ctx); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to refresh the node pool")
 		}
 	}
@@ -115,7 +115,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 		}
 	}
 	if machineAdded {
-		if err := np.refresh(); err != nil {
+		if err := np.refresh(ctx); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to refresh the node pool")
 		}
 	}
@@ -151,7 +151,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 // Delete will delete all of the machines in the node pool.
 func (np *NodePool) Delete(ctx context.Context) error {
 	for _, machine := range np.machines {
-		externalMachine, err := docker.NewMachine(np.cluster, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
+		externalMachine, err := docker.NewMachine(ctx, np.cluster, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
 		}
@@ -183,7 +183,7 @@ func (np *NodePool) machinesMatchingInfrastructureSpec() []*docker.Machine {
 // addMachine will add a new machine to the node pool and update the docker machine pool status.
 func (np *NodePool) addMachine(ctx context.Context) error {
 	instanceName := fmt.Sprintf("worker-%s", util.RandomString(6))
-	externalMachine, err := docker.NewMachine(np.cluster, instanceName, np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
+	externalMachine, err := docker.NewMachine(ctx, np.cluster, instanceName, np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", instanceName)
 	}
@@ -196,8 +196,8 @@ func (np *NodePool) addMachine(ctx context.Context) error {
 
 // refresh asks docker to list all the machines matching the node pool label and updates the cached list of node pool
 // machines.
-func (np *NodePool) refresh() error {
-	machines, err := docker.ListMachinesByCluster(np.cluster, np.labelFilters)
+func (np *NodePool) refresh(ctx context.Context) error {
+	machines, err := docker.ListMachinesByCluster(ctx, np.cluster, np.labelFilters)
 	if err != nil {
 		return errors.Wrapf(err, "failed to list all machines in the cluster")
 	}
@@ -244,7 +244,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		}
 	}()
 
-	externalMachine, err := docker.NewMachine(np.cluster, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
+	externalMachine, err := docker.NewMachine(ctx, np.cluster, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
 	}

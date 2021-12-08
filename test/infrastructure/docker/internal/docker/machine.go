@@ -67,7 +67,7 @@ type Machine struct {
 }
 
 // NewMachine returns a new Machine service for the given Cluster/DockerCluster pair.
-func NewMachine(cluster *clusterv1.Cluster, machine, image string, labels map[string]string) (*Machine, error) {
+func NewMachine(ctx context.Context, cluster *clusterv1.Cluster, machine, image string, labels map[string]string) (*Machine, error) {
 	if cluster == nil {
 		return nil, errors.New("cluster is required when creating a docker.Machine")
 	}
@@ -85,7 +85,7 @@ func NewMachine(cluster *clusterv1.Cluster, machine, image string, labels map[st
 		filters.AddKeyNameValue(filterLabel, key, val)
 	}
 
-	newContainer, err := getContainer(filters)
+	newContainer, err := getContainer(ctx, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +107,7 @@ func NewMachine(cluster *clusterv1.Cluster, machine, image string, labels map[st
 }
 
 // ListMachinesByCluster will retrieve a list of all machines that are part of the given cluster.
-func ListMachinesByCluster(cluster *clusterv1.Cluster, labels map[string]string) ([]*Machine, error) {
+func ListMachinesByCluster(ctx context.Context, cluster *clusterv1.Cluster, labels map[string]string) ([]*Machine, error) {
 	if cluster == nil {
 		return nil, errors.New("cluster is required when listing machines in the cluster")
 	}
@@ -121,7 +121,7 @@ func ListMachinesByCluster(cluster *clusterv1.Cluster, labels map[string]string)
 		filters.AddKeyNameValue(filterLabel, key, val)
 	}
 
-	containers, err := listContainers(filters)
+	containers, err := listContainers(ctx, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +291,7 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 	}
 	defer os.RemoveAll(dir)
 
-	containerRuntime, err := container.NewDockerClient()
+	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
 		return errors.Wrap(err, "failed to connect to container runtime")
 	}
@@ -392,7 +392,7 @@ func (m *Machine) CheckForBootstrapSuccess(ctx context.Context) error {
 func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	kubectlNode, err := m.getKubectlNode()
+	kubectlNode, err := m.getKubectlNode(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "unable to set NodeProviderID. error getting a kubectl node")
 	}
@@ -423,13 +423,13 @@ func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 	return nil
 }
 
-func (m *Machine) getKubectlNode() (*types.Node, error) {
+func (m *Machine) getKubectlNode(ctx context.Context) (*types.Node, error) {
 	// collect info about the existing controlplane nodes
 	filters := container.FilterBuilder{}
 	filters.AddKeyNameValue(filterLabel, clusterLabelKey, m.cluster)
 	filters.AddKeyNameValue(filterLabel, nodeRoleLabelKey, constants.ControlPlaneNodeRoleValue)
 
-	kubectlNodes, err := listContainers(filters)
+	kubectlNodes, err := listContainers(ctx, filters)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
@@ -488,7 +488,7 @@ func logContainerDebugInfo(log logr.Logger, name string) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
-	containerRuntime, err := container.NewDockerClient()
+	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
 		log.Error(err, "failed to connect to container runtime")
 		return

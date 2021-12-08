@@ -317,6 +317,7 @@ func (p *clusterProxy) isDockerCluster(ctx context.Context, namespace string, na
 func (p *clusterProxy) fixConfig(ctx context.Context, name string, config *api.Config) {
 	containerRuntime, err := container.NewDockerClient()
 	Expect(err).ToNot(HaveOccurred(), "Failed to get Docker runtime client")
+	ctx = container.RuntimeInto(ctx, containerRuntime)
 
 	lbContainerName := name + "-lb"
 	port, err := containerRuntime.GetHostPort(ctx, lbContainerName, "6443/tcp")

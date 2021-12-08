@@ -171,7 +171,7 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 	}
 	log.V(6).Info("Container run options: %+v", runOptions)
 
-	containerRuntime, err := container.NewDockerClient()
+	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to container runtime: %v", err)
 	}

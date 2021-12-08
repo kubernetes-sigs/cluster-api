@@ -51,7 +51,6 @@ func TestControlPlaneInitMutex_Lock(t *testing.T) {
 	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
 
 	uid := types.UID("test-uid")
-
 	tests := []struct {
 		name          string
 		context       context.Context
@@ -129,6 +128,108 @@ func TestControlPlaneInitMutex_Lock(t *testing.T) {
 		})
 	}
 }
+
+func TestControlPlaneInitMutex_LockWithMachineDeletion(t *testing.T) {
+	g := NewWithT(t)
+
+	scheme := runtime.NewScheme()
+	g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+
+	newMachineName := "new-machine"
+	tests := []struct {
+		name                   string
+		client                 client.Client
+		lock                   *corev1.ConfigMap
+		machineWithInitialLock *clusterv1.Machine
+		shouldAcquire          bool
+	}{
+		{
+			name: "should not give the lock to new machine if the machine that created it does exist",
+			client: &fakeClient{
+				Client: fake.NewFakeClientWithScheme(scheme),
+			},
+			lock: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      configMapName(clusterName),
+					Namespace: clusterNamespace},
+				Data: map[string]string{
+					"lock-information": "{\"machineName\":\"existent-machine\"}",
+				}},
+			machineWithInitialLock: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "existent-machine",
+					Namespace: clusterNamespace,
+				},
+			},
+			shouldAcquire: false,
+		},
+		{
+			name: "should give the lock to new machine if the machine that created it does not exist",
+			client: &fakeClient{
+				Client: fake.NewFakeClientWithScheme(scheme),
+			},
+			lock: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      configMapName(clusterName),
+					Namespace: clusterNamespace},
+				Data: map[string]string{
+					"lock-information": "{\"machineName\":\"non-existent-machine\"}",
+				},
+			},
+			shouldAcquire: true,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			l := &ControlPlaneInitMutex{
+				log:    log.Log,
+				client: tc.client,
+			}
+			if tc.machineWithInitialLock != nil {
+				g.Expect(tc.client.Create(context.Background(), tc.machineWithInitialLock)).To(Succeed())
+			}
+
+			g.Expect(tc.client.Create(context.Background(), tc.lock)).To(Succeed())
+
+			cluster := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: clusterNamespace,
+					Name:      clusterName,
+				},
+			}
+
+			newMachine := &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: newMachineName,
+				},
+			}
+
+			// Attempt to create a lock with a machine with a new name. This will unlock the lock if the current machine
+			// holding the lock does not exist.
+			l.Lock(context.Background(), cluster, newMachine)
+
+			// Try to lock again. If an existing machine held the lock initially this will return false, i.e. the newMachine did not get the lock.
+			// If the machine that initially held the lock does not exist this will return true, i.e. the newMachine now holds the lock.
+			g.Expect(l.Lock(context.Background(), cluster, newMachine)).To(Equal(tc.shouldAcquire))
+
+			// If an existing machine held the lock initially, check to ensure that machine is still the one holding the lock.
+			if tc.machineWithInitialLock != nil {
+				cm := &corev1.ConfigMap{}
+				g.Expect(tc.client.Get(context.Background(), client.ObjectKey{
+					Name:      configMapName(clusterName),
+					Namespace: cluster.Namespace,
+				}, cm)).To(Succeed())
+
+				info, err := semaphore{cm}.information()
+				g.Expect(err).To(BeNil())
+
+				g.Expect(info.MachineName).To(Equal(tc.machineWithInitialLock.Name))
+			}
+		})
+	}
+}
+
 func TestControlPlaneInitMutex_UnLock(t *testing.T) {
 	g := NewWithT(t)
 
@@ -232,7 +333,8 @@ func TestInfoLines_Lock(t *testing.T) {
 	}
 
 	logtester := &logtests{
-		InfoLog: make([]line, 0),
+		InfoLog:  make([]line, 0),
+		ErrorLog: make([]line, 0),
 	}
 	l := &ControlPlaneInitMutex{
 		log:    logtester,
@@ -296,7 +398,8 @@ func (fc *fakeClient) Delete(ctx context.Context, obj runtime.Object, opts ...cl
 
 type logtests struct {
 	logr.Logger
-	InfoLog []line
+	InfoLog  []line
+	ErrorLog []line
 }
 
 type line struct {
@@ -314,6 +417,22 @@ func (l *logtests) Info(msg string, keysAndValues ...interface{}) {
 		data: data,
 	})
 }
+
+func (l *logtests) Error(err error, msg string, keysAndValues ...interface{}) {
+	data := make(map[string]interface{})
+	for i := 0; i < len(keysAndValues); i += 2 {
+		data[keysAndValues[i].(string)] = keysAndValues[i+1]
+	}
+	l.ErrorLog = append(l.ErrorLog, line{
+		line: msg + err.Error(),
+		data: data,
+	})
+}
+
 func (l *logtests) WithValues(keysAndValues ...interface{}) logr.Logger {
+	return l
+}
+
+func (l *logtests) WithName(name string) logr.Logger {
 	return l
 }

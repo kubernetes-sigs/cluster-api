@@ -933,8 +933,12 @@ func (o *objectMover) backupTargetObject(nodeToCreate *node, directory string) e
 	objectFile := filepath.Join(directory, filenameObj)
 
 	// If file exists, then remove it to be written again
-	if _, err = os.Stat(objectFile); err == nil {
-		if err = os.Remove(objectFile); err != nil {
+	_, err = os.Stat(objectFile)
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if err == nil {
+		if err := os.Remove(objectFile); err != nil {
 			return err
 		}
 	}

@@ -133,17 +133,8 @@ metadata:
 spec:
   template:
     spec:
-      # The replicas value be overridden by the corresponding 
-      # Cluster's spec.topology.controlPlane.replicas.
-      replicas: 1
       machineTemplate:
         nodeDrainTimeout: 1s
-        # The infrastructureRef will be overridden by the corresponding
-        # ClusterClass's spec.controlPlane.machineInfrastructure.
-        infrastructureRef:
-          kind: DockerMachineTemplate
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-          name: "quick-start-control-plane"
       kubeadmConfigSpec:
         clusterConfiguration:
           controllerManager:
@@ -167,9 +158,6 @@ spec:
               # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
               cgroup-driver: cgroupfs
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-      # The version value will be overridden by the corresponding
-      # Cluster's spec.topology.version.
-      version: v1.21.2
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate

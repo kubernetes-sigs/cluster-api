@@ -32,6 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -67,31 +68,37 @@ func defaultKubeadmControlPlaneSpec(s *KubeadmControlPlaneSpec, namespace string
 		s.Version = "v" + s.Version
 	}
 
+	s.RolloutStrategy = defaultRolloutStrategy(s.RolloutStrategy)
+}
+
+func defaultRolloutStrategy(rolloutStrategy *RolloutStrategy) *RolloutStrategy {
 	ios1 := intstr.FromInt(1)
 
-	if s.RolloutStrategy == nil {
-		s.RolloutStrategy = &RolloutStrategy{}
+	if rolloutStrategy == nil {
+		rolloutStrategy = &RolloutStrategy{}
 	}
 
 	// Enforce RollingUpdate strategy and default MaxSurge if not set.
-	if s.RolloutStrategy != nil {
-		if len(s.RolloutStrategy.Type) == 0 {
-			s.RolloutStrategy.Type = RollingUpdateStrategyType
+	if rolloutStrategy != nil {
+		if len(rolloutStrategy.Type) == 0 {
+			rolloutStrategy.Type = RollingUpdateStrategyType
 		}
-		if s.RolloutStrategy.Type == RollingUpdateStrategyType {
-			if s.RolloutStrategy.RollingUpdate == nil {
-				s.RolloutStrategy.RollingUpdate = &RollingUpdate{}
+		if rolloutStrategy.Type == RollingUpdateStrategyType {
+			if rolloutStrategy.RollingUpdate == nil {
+				rolloutStrategy.RollingUpdate = &RollingUpdate{}
 			}
-			s.RolloutStrategy.RollingUpdate.MaxSurge = intstr.ValueOrDefault(s.RolloutStrategy.RollingUpdate.MaxSurge, ios1)
+			rolloutStrategy.RollingUpdate.MaxSurge = intstr.ValueOrDefault(rolloutStrategy.RollingUpdate.MaxSurge, ios1)
 		}
 	}
+
+	return rolloutStrategy
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (in *KubeadmControlPlane) ValidateCreate() error {
 	spec := in.Spec
 	allErrs := validateKubeadmControlPlaneSpec(spec, in.Namespace, field.NewPath("spec"))
-	allErrs = append(allErrs, validateEtcd(&spec, nil)...)
+	allErrs = append(allErrs, validateClusterConfiguration(spec.KubeadmConfigSpec.ClusterConfiguration, nil, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, in.Spec.KubeadmConfigSpec.Validate()...)
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
@@ -193,7 +200,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 	}
 
 	allErrs = append(allErrs, in.validateVersion(prev.Spec.Version)...)
-	allErrs = append(allErrs, validateEtcd(&in.Spec, &prev.Spec)...)
+	allErrs = append(allErrs, validateClusterConfiguration(in.Spec.KubeadmConfigSpec.ClusterConfiguration, prev.Spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, in.validateCoreDNSVersion(prev)...)
 	allErrs = append(allErrs, in.Spec.KubeadmConfigSpec.Validate()...)
 
@@ -292,51 +299,47 @@ func validateKubeadmControlPlaneSpec(s KubeadmControlPlaneSpec, namespace string
 		allErrs = append(allErrs, field.Invalid(pathPrefix.Child("version"), s.Version, "must be a valid semantic version"))
 	}
 
-	if s.RolloutStrategy != nil {
-		if s.RolloutStrategy.Type != RollingUpdateStrategyType {
-			allErrs = append(
-				allErrs,
-				field.Required(
-					pathPrefix.Child("rolloutStrategy", "type"),
-					"only RollingUpdateStrategyType is supported",
-				),
-			)
-		}
+	allErrs = append(allErrs, validateRolloutStrategy(s.RolloutStrategy, s.Replicas, pathPrefix.Child("rolloutStrategy"))...)
 
-		ios1 := intstr.FromInt(1)
-		ios0 := intstr.FromInt(0)
+	return allErrs
+}
 
-		if *s.RolloutStrategy.RollingUpdate.MaxSurge == ios0 && *s.Replicas < int32(3) {
-			allErrs = append(
-				allErrs,
-				field.Required(
-					pathPrefix.Child("rolloutStrategy", "rollingUpdate"),
-					"when KubeadmControlPlane is configured to scale-in, replica count needs to be at least 3",
-				),
-			)
-		}
+func validateRolloutStrategy(rolloutStrategy *RolloutStrategy, replicas *int32, pathPrefix *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
 
-		if *s.RolloutStrategy.RollingUpdate.MaxSurge != ios1 && *s.RolloutStrategy.RollingUpdate.MaxSurge != ios0 {
-			allErrs = append(
-				allErrs,
-				field.Required(
-					pathPrefix.Child("rolloutStrategy", "rollingUpdate", "maxSurge"),
-					"value must be 1 or 0",
-				),
-			)
-		}
-	}
-
-	if s.KubeadmConfigSpec.ClusterConfiguration == nil {
+	if rolloutStrategy == nil {
 		return allErrs
 	}
-	// TODO: Remove when kubeadm types include OpenAPI validation
-	if !container.ImageTagIsValid(s.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag) {
+
+	if rolloutStrategy.Type != RollingUpdateStrategyType {
 		allErrs = append(
 			allErrs,
-			field.Forbidden(
-				pathPrefix.Child("kubeadmConfigSpec", "clusterConfiguration", "dns", "imageTag"),
-				fmt.Sprintf("tag %s is invalid", s.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag),
+			field.Required(
+				pathPrefix.Child("type"),
+				"only RollingUpdateStrategyType is supported",
+			),
+		)
+	}
+
+	ios1 := intstr.FromInt(1)
+	ios0 := intstr.FromInt(0)
+
+	if *rolloutStrategy.RollingUpdate.MaxSurge == ios0 && (replicas != nil && *replicas < int32(3)) {
+		allErrs = append(
+			allErrs,
+			field.Required(
+				pathPrefix.Child("rollingUpdate"),
+				"when KubeadmControlPlane is configured to scale-in, replica count needs to be at least 3",
+			),
+		)
+	}
+
+	if *rolloutStrategy.RollingUpdate.MaxSurge != ios1 && *rolloutStrategy.RollingUpdate.MaxSurge != ios0 {
+		allErrs = append(
+			allErrs,
+			field.Required(
+				pathPrefix.Child("rollingUpdate", "maxSurge"),
+				"value must be 1 or 0",
 			),
 		)
 	}
@@ -344,51 +347,62 @@ func validateKubeadmControlPlaneSpec(s KubeadmControlPlaneSpec, namespace string
 	return allErrs
 }
 
-func validateEtcd(s, prev *KubeadmControlPlaneSpec) field.ErrorList {
+func validateClusterConfiguration(newClusterConfiguration, oldClusterConfiguration *cabpkv1.ClusterConfiguration, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
-	if s.KubeadmConfigSpec.ClusterConfiguration == nil {
+	if newClusterConfiguration == nil {
 		return allErrs
 	}
 
 	// TODO: Remove when kubeadm types include OpenAPI validation
-	if s.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil && !container.ImageTagIsValid(s.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageTag) {
+	if !container.ImageTagIsValid(newClusterConfiguration.DNS.ImageTag) {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
-				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "etcd", "local", "imageTag"),
-				fmt.Sprintf("tag %s is invalid", s.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageTag),
+				pathPrefix.Child("dns", "imageTag"),
+				fmt.Sprintf("tag %s is invalid", newClusterConfiguration.DNS.ImageTag),
 			),
 		)
 	}
 
-	if s.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil && s.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil {
+	// TODO: Remove when kubeadm types include OpenAPI validation
+	if newClusterConfiguration.Etcd.Local != nil && !container.ImageTagIsValid(newClusterConfiguration.Etcd.Local.ImageTag) {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
-				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "etcd", "local"),
+				pathPrefix.Child("etcd", "local", "imageTag"),
+				fmt.Sprintf("tag %s is invalid", newClusterConfiguration.Etcd.Local.ImageTag),
+			),
+		)
+	}
+
+	if newClusterConfiguration.Etcd.Local != nil && newClusterConfiguration.Etcd.External != nil {
+		allErrs = append(
+			allErrs,
+			field.Forbidden(
+				pathPrefix.Child("etcd", "local"),
 				"cannot have both external and local etcd",
 			),
 		)
 	}
 
 	// update validations
-	if prev != nil && prev.KubeadmConfigSpec.ClusterConfiguration != nil {
-		if s.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil && prev.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil {
+	if oldClusterConfiguration != nil {
+		if newClusterConfiguration.Etcd.External != nil && oldClusterConfiguration.Etcd.Local != nil {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
-					field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "etcd", "external"),
+					pathPrefix.Child("etcd", "external"),
 					"cannot change between external and local etcd",
 				),
 			)
 		}
 
-		if s.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local != nil && prev.KubeadmConfigSpec.ClusterConfiguration.Etcd.External != nil {
+		if newClusterConfiguration.Etcd.Local != nil && oldClusterConfiguration.Etcd.External != nil {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
-					field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "etcd", "local"),
+					pathPrefix.Child("etcd", "local"),
 					"cannot change between external and local etcd",
 				),
 			)

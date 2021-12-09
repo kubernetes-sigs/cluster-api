@@ -227,11 +227,6 @@ type JSONSchemaProps struct {
 	// +optional
 	Pattern string `json:"pattern,omitempty"`
 
-	// Enum is the list of valid values of the variable.
-	// NOTE: Can only be set if type is string.
-	// +optional
-	Enum []apiextensionsv1.JSON `json:"enum,omitempty"`
-
 	// Maximum is the maximum of an integer or number variable.
 	// If ExclusiveMaximum is false, the variable is valid if it is lower than, or equal to, the value of Maximum.
 	// If ExclusiveMaximum is true, the variable is valid if it is strictly lower than the value of Maximum.
@@ -255,6 +250,11 @@ type JSONSchemaProps struct {
 	// NOTE: Can only be set if type is integer or number.
 	// +optional
 	ExclusiveMinimum bool `json:"exclusiveMinimum,omitempty"`
+
+	// Enum is the list of valid values of the variable.
+	// NOTE: Can be set for all types.
+	// +optional
+	Enum []apiextensionsv1.JSON `json:"enum,omitempty"`
 
 	// Default is the default value of the variable.
 	// NOTE: Can be set for all types.

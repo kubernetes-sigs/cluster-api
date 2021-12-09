@@ -1,0 +1,11 @@
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ['${DOCKER_SERVICE_IPV6_CIDRS}']
+    pods:
+      cidrBlocks: ['${DOCKER_POD_IPV6_CIDRS}']

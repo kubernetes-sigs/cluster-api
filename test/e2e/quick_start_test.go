@@ -36,7 +36,7 @@ var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", fun
 	})
 })
 
-var _ = Describe("When following the Cluster API quick-start with ClusterClass", func() {
+var _ = Describe("When following the Cluster API quick-start with ClusterClass [PR-Informing]", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:             e2eConfig,
@@ -45,6 +45,20 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass",
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 			Flavor:                pointer.String("topology"),
+		}
+	})
+})
+
+// NOTE: This test requires an IPv6 management cluster (can be configured via IP_FAMILY=IPv6).
+var _ = Describe("When following the Cluster API quick-start with IPv6 [IPv6] [PR-Informing]", func() {
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			Flavor:                pointer.String("ipv6"),
 		}
 	})
 })

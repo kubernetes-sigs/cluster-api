@@ -827,7 +827,7 @@ func createMachine(ctx context.Context, g *WithT, namespace, name string, option
 			},
 		},
 	}
-	g.Expect(env.Create(ctx, m)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, m)).To(Succeed())
 
 	patchHelper, err := patch.NewHelper(m, env.GetClient())
 	g.Expect(err).ToNot(HaveOccurred())

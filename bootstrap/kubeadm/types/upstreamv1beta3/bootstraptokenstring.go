@@ -36,7 +36,7 @@ type BootstrapTokenString struct {
 
 // MarshalJSON implements the json.Marshaler interface.
 func (bts BootstrapTokenString) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, bts.String())), nil
+	return []byte(fmt.Sprintf("%q", bts.String())), nil
 }
 
 // UnmarshalJSON implements the json.Unmarshaller interface.

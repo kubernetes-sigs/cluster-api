@@ -53,11 +53,11 @@ var _ webhook.Validator = &Cluster{}
 // Deprecated: This method is going to be removed in a next release.
 // Note: We're not using this method anymore and are using webhooks.Cluster.Default instead.
 func (c *Cluster) Default() {
-	if c.Spec.InfrastructureRef != nil && len(c.Spec.InfrastructureRef.Namespace) == 0 {
+	if c.Spec.InfrastructureRef != nil && c.Spec.InfrastructureRef.Namespace == "" {
 		c.Spec.InfrastructureRef.Namespace = c.Namespace
 	}
 
-	if c.Spec.ControlPlaneRef != nil && len(c.Spec.ControlPlaneRef.Namespace) == 0 {
+	if c.Spec.ControlPlaneRef != nil && c.Spec.ControlPlaneRef.Namespace == "" {
 		c.Spec.ControlPlaneRef.Namespace = c.Namespace
 	}
 
@@ -147,7 +147,7 @@ func (c *Cluster) validateTopology(old *Cluster) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// class should be defined.
-	if len(c.Spec.Topology.Class) == 0 {
+	if c.Spec.Topology.Class == "" {
 		allErrs = append(
 			allErrs,
 			field.Invalid(

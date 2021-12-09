@@ -56,11 +56,11 @@ func (m *MachinePool) Default() {
 		m.Spec.MinReadySeconds = pointer.Int32Ptr(0)
 	}
 
-	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && len(m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace) == 0 {
+	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace == "" {
 		m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
 	}
 
-	if len(m.Spec.Template.Spec.InfrastructureRef.Namespace) == 0 {
+	if m.Spec.Template.Spec.InfrastructureRef.Namespace == "" {
 		m.Spec.Template.Spec.InfrastructureRef.Namespace = m.Namespace
 	}
 }

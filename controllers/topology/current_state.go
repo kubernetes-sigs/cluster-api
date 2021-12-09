@@ -150,7 +150,7 @@ func (r *ClusterReconciler) getCurrentMachineDeploymentState(ctx context.Context
 		// Retrieve the name which is assigned in Cluster's topology
 		// from a well-defined label.
 		mdTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]
-		if !ok || len(mdTopologyName) == 0 {
+		if !ok || mdTopologyName == "" {
 			return nil, fmt.Errorf("failed to find label %s in %s", clusterv1.ClusterTopologyMachineDeploymentLabelName, tlog.KObj{Obj: m})
 		}
 

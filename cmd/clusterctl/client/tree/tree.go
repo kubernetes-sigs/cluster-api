@@ -271,7 +271,7 @@ func isObjDebug(obj client.Object, debugFilter string) bool {
 		if filter == "" {
 			continue
 		}
-		if strings.ToLower(filter) == "all" {
+		if strings.EqualFold(filter, "all") {
 			return true
 		}
 		kn := strings.Split(filter, "/")

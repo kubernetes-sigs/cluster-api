@@ -109,7 +109,7 @@ func (tp *SimpleProcessor) Process(rawArtifact []byte, variablesClient func(stri
 		_, err := variablesClient(name)
 		// add to missingVariables list if the variable does not exist in the
 		// variablesClient AND it does not have a default value
-		if err != nil && len(defaultValue) == 0 {
+		if err != nil && defaultValue == "" {
 			missingVariables = append(missingVariables, name)
 			continue
 		}

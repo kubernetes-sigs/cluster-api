@@ -83,9 +83,22 @@ linters-settings:
     - G307 # Deferring unsafe method "Close" on type "\*os.File"
     - G108 # Profiling endpoint is automatically exposed on /debug/pprof
   gocritic:
+    enabled-tags:
+      - experimental
     disabled-checks:
     - appendAssign
-
+    - dupImport # https://github.com/go-critic/go-critic/issues/845
+    - evalOrder
+    - ifElseChain
+    - octalLiteral
+    - regexpSimplify
+    - sloppyReassign
+    - truncateCmp
+    - typeDefFirst
+    - unnamedResult
+    - unnecessaryDefer
+    - whyNoLint
+    - wrapperFunc
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0

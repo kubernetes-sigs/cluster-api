@@ -78,7 +78,7 @@ func (m *MachineHealthCheck) Default() {
 		m.Spec.NodeStartupTimeout = &DefaultNodeStartupTimeout
 	}
 
-	if m.Spec.RemediationTemplate != nil && len(m.Spec.RemediationTemplate.Namespace) == 0 {
+	if m.Spec.RemediationTemplate != nil && m.Spec.RemediationTemplate.Namespace == "" {
 		m.Spec.RemediationTemplate.Namespace = m.Namespace
 	}
 }

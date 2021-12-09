@@ -17,11 +17,11 @@ limitations under the License.
 package envtest
 
 import (
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	goruntime "runtime"
-	"strings"
 	"time"
 
 	admissionv1 "k8s.io/api/admissionregistration/v1"
@@ -98,7 +98,7 @@ func appendWebhookConfiguration(mutatingWebhooks []*admissionv1.MutatingWebhookC
 		if o.GetKind() == mutatingWebhookKind {
 			// update the name in metadata
 			if o.GetName() == mutatingwebhook {
-				o.SetName(strings.Join([]string{mutatingwebhook, "-", tag}, ""))
+				o.SetName(fmt.Sprintf("%s-%s", mutatingwebhook, tag))
 
 				webhook := &admissionv1.MutatingWebhookConfiguration{}
 				if err := scheme.Scheme.Convert(&o, webhook, nil); err != nil {
@@ -111,7 +111,7 @@ func appendWebhookConfiguration(mutatingWebhooks []*admissionv1.MutatingWebhookC
 		if o.GetKind() == validatingWebhookKind {
 			// update the name in metadata
 			if o.GetName() == validatingwebhook {
-				o.SetName(strings.Join([]string{validatingwebhook, "-", tag}, ""))
+				o.SetName(fmt.Sprintf("%s-%s", validatingwebhook, tag))
 
 				webhook := &admissionv1.ValidatingWebhookConfiguration{}
 				if err := scheme.Scheme.Convert(&o, webhook, nil); err != nil {

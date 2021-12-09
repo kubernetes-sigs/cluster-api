@@ -88,7 +88,7 @@ func getActions(userData []byte) ([]provisioning.Cmd, error) {
 
 	for _, u := range ignition.Systemd.Units {
 		contents := strings.TrimSpace(u.Contents)
-		path := filepath.Join("/etc/systemd/system", u.Name)
+		path := fmt.Sprintf("/etc/systemd/system/%s", u.Name)
 
 		commands = append(commands, []provisioning.Cmd{
 			{Cmd: "/bin/sh", Args: []string{"-c", fmt.Sprintf("cat > %s /dev/stdin", path)}, Stdin: contents},

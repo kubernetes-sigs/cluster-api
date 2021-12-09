@@ -404,7 +404,7 @@ func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 	}
 
 	log.Info("Setting Kubernetes node providerID")
-	patch := fmt.Sprintf(`{"spec": {"providerID": "%s"}}`, m.ProviderID())
+	patch := fmt.Sprintf(`{"spec": {"providerID": %q}}`, m.ProviderID())
 	cmd := kubectlNode.Commander.Command(
 		"kubectl",
 		"--kubeconfig", "/etc/kubernetes/admin.conf",

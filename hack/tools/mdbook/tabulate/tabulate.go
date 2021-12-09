@@ -52,8 +52,8 @@ func (l Tabulate) Process(input *plugin.Input) error {
 				checked = "checked"
 			}
 
-			bld.WriteString(fmt.Sprintf(`<input type="radio" name="%s" id="%s" aria-controls="%s" %s>`, groupName, groupTabID, groupTabID, checked))
-			bld.WriteString(fmt.Sprintf(`<label for="%s">%s</label>`, groupTabID, tabName))
+			bld.WriteString(fmt.Sprintf(`<input type="radio" name=%q id=%q aria-controls=%q %s>`, groupName, groupTabID, groupTabID, checked))
+			bld.WriteString(fmt.Sprintf(`<label for=%q>%s</label>`, groupTabID, tabName))
 		}
 		bld.WriteString(`<div class="tab-panels">`)
 

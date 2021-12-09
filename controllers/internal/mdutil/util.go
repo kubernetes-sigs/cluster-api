@@ -223,7 +223,7 @@ func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS 
 	if ok && annotationChanged {
 		revisionHistoryAnnotation := newMS.Annotations[clusterv1.RevisionHistoryAnnotation]
 		oldRevisions := strings.Split(revisionHistoryAnnotation, ",")
-		if len(oldRevisions[0]) == 0 {
+		if oldRevisions[0] == "" {
 			newMS.Annotations[clusterv1.RevisionHistoryAnnotation] = oldRevision
 		} else {
 			oldRevisions = append(oldRevisions, oldRevision)

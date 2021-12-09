@@ -78,7 +78,7 @@ func (webhook *ClusterClass) Default(_ context.Context, obj runtime.Object) erro
 }
 
 func defaultNamespace(ref *corev1.ObjectReference, namespace string) {
-	if ref != nil && len(ref.Namespace) == 0 {
+	if ref != nil && ref.Namespace == "" {
 		ref.Namespace = namespace
 	}
 }

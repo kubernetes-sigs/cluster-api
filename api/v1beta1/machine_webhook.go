@@ -48,11 +48,11 @@ func (m *Machine) Default() {
 	}
 	m.Labels[ClusterLabelName] = m.Spec.ClusterName
 
-	if m.Spec.Bootstrap.ConfigRef != nil && len(m.Spec.Bootstrap.ConfigRef.Namespace) == 0 {
+	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.Namespace == "" {
 		m.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
 	}
 
-	if len(m.Spec.InfrastructureRef.Namespace) == 0 {
+	if m.Spec.InfrastructureRef.Namespace == "" {
 		m.Spec.InfrastructureRef.Namespace = m.Namespace
 	}
 

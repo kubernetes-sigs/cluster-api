@@ -439,7 +439,7 @@ func TestToUnstructured(t *testing.T) {
 			got, err := ToUnstructured(tt.args.rawyaml)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
-				if len(tt.err) != 0 {
+				if tt.err != "" {
 					g.Expect(err.Error()).To(ContainSubstring(tt.err))
 				}
 				return

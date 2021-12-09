@@ -192,7 +192,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if feature.Gates.Enabled(feature.MachinePool) {
 		if err := (&expcontrollers.DockerMachinePoolReconciler{
-			Client: mgr.GetClient(),
+			Client:           mgr.GetClient(),
+			ContainerRuntime: runtimeClient,
 		}).SetupWithManager(ctx, mgr, controller.Options{
 			MaxConcurrentReconciles: concurrency,
 		}); err != nil {

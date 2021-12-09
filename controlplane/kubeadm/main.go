@@ -42,11 +42,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	kubeadmbootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	kcpv1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
-	kcpv1alpha4 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
-	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	controlplanev1alpha3 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3"
+	controlplanev1alpha4 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
 	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
@@ -63,10 +63,10 @@ func init() {
 
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
-	_ = kcpv1alpha3.AddToScheme(scheme)
-	_ = kcpv1alpha4.AddToScheme(scheme)
-	_ = kcpv1.AddToScheme(scheme)
-	_ = kubeadmbootstrapv1.AddToScheme(scheme)
+	_ = controlplanev1alpha3.AddToScheme(scheme)
+	_ = controlplanev1alpha4.AddToScheme(scheme)
+	_ = controlplanev1.AddToScheme(scheme)
+	_ = bootstrapv1.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
@@ -244,7 +244,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
-	if err := (&kcpv1.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&controlplanev1.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlane")
 		os.Exit(1)
 	}
@@ -256,7 +256,7 @@ func setupWebhooks(mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&kcpv1.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&controlplanev1.KubeadmControlPlaneTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmControlPlaneTemplate")
 		os.Exit(1)
 	}

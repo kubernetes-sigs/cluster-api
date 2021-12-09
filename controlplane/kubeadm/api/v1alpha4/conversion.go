@@ -20,20 +20,20 @@ import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	kubeadmbootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	bootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1beta1.KubeadmControlPlane)
+	dst := dstRaw.(*controlplanev1.KubeadmControlPlane)
 
 	if err := Convert_v1alpha4_KubeadmControlPlane_To_v1beta1_KubeadmControlPlane(src, dst, nil); err != nil {
 		return err
 	}
 
 	// Manually restore data.
-	restored := &v1beta1.KubeadmControlPlane{}
+	restored := &controlplanev1.KubeadmControlPlane{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
@@ -44,7 +44,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1beta1.KubeadmControlPlane)
+	src := srcRaw.(*controlplanev1.KubeadmControlPlane)
 
 	if err := Convert_v1beta1_KubeadmControlPlane_To_v1alpha4_KubeadmControlPlane(src, dst, nil); err != nil {
 		return err
@@ -55,26 +55,26 @@ func (dst *KubeadmControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 }
 
 func (src *KubeadmControlPlaneList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1beta1.KubeadmControlPlaneList)
+	dst := dstRaw.(*controlplanev1.KubeadmControlPlaneList)
 
 	return Convert_v1alpha4_KubeadmControlPlaneList_To_v1beta1_KubeadmControlPlaneList(src, dst, nil)
 }
 
 func (dst *KubeadmControlPlaneList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1beta1.KubeadmControlPlaneList)
+	src := srcRaw.(*controlplanev1.KubeadmControlPlaneList)
 
 	return Convert_v1beta1_KubeadmControlPlaneList_To_v1alpha4_KubeadmControlPlaneList(src, dst, nil)
 }
 
 func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1beta1.KubeadmControlPlaneTemplate)
+	dst := dstRaw.(*controlplanev1.KubeadmControlPlaneTemplate)
 
 	if err := Convert_v1alpha4_KubeadmControlPlaneTemplate_To_v1beta1_KubeadmControlPlaneTemplate(src, dst, nil); err != nil {
 		return err
 	}
 
 	// Manually restore data.
-	restored := &v1beta1.KubeadmControlPlaneTemplate{}
+	restored := &controlplanev1.KubeadmControlPlaneTemplate{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
@@ -86,7 +86,7 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 }
 
 func (dst *KubeadmControlPlaneTemplate) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1beta1.KubeadmControlPlaneTemplate)
+	src := srcRaw.(*controlplanev1.KubeadmControlPlaneTemplate)
 
 	if err := Convert_v1beta1_KubeadmControlPlaneTemplate_To_v1alpha4_KubeadmControlPlaneTemplate(src, dst, nil); err != nil {
 		return err
@@ -97,35 +97,35 @@ func (dst *KubeadmControlPlaneTemplate) ConvertFrom(srcRaw conversion.Hub) error
 }
 
 func (src *KubeadmControlPlaneTemplateList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1beta1.KubeadmControlPlaneTemplateList)
+	dst := dstRaw.(*controlplanev1.KubeadmControlPlaneTemplateList)
 
 	return Convert_v1alpha4_KubeadmControlPlaneTemplateList_To_v1beta1_KubeadmControlPlaneTemplateList(src, dst, nil)
 }
 
 func (dst *KubeadmControlPlaneTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1beta1.KubeadmControlPlaneTemplateList)
+	src := srcRaw.(*controlplanev1.KubeadmControlPlaneTemplateList)
 
 	return Convert_v1beta1_KubeadmControlPlaneTemplateList_To_v1alpha4_KubeadmControlPlaneTemplateList(src, dst, nil)
 }
 
-func Convert_v1alpha4_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneTemplateResourceSpec(in *KubeadmControlPlaneSpec, out *v1beta1.KubeadmControlPlaneTemplateResourceSpec, s apiconversion.Scope) error {
-	out.MachineTemplate = &v1beta1.KubeadmControlPlaneTemplateMachineTemplate{
+func Convert_v1alpha4_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneTemplateResourceSpec(in *KubeadmControlPlaneSpec, out *controlplanev1.KubeadmControlPlaneTemplateResourceSpec, s apiconversion.Scope) error {
+	out.MachineTemplate = &controlplanev1.KubeadmControlPlaneTemplateMachineTemplate{
 		NodeDrainTimeout: in.MachineTemplate.NodeDrainTimeout,
 	}
 
-	if err := kubeadmbootstrapv1alpha4.Convert_v1alpha4_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
+	if err := bootstrapv1alpha4.Convert_v1alpha4_KubeadmConfigSpec_To_v1beta1_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
 
 	out.RolloutAfter = in.RolloutAfter
 
 	if in.RolloutStrategy != nil {
-		out.RolloutStrategy = &v1beta1.RolloutStrategy{}
+		out.RolloutStrategy = &controlplanev1.RolloutStrategy{}
 		if len(in.RolloutStrategy.Type) > 0 {
-			out.RolloutStrategy.Type = v1beta1.RolloutStrategyType(in.RolloutStrategy.Type)
+			out.RolloutStrategy.Type = controlplanev1.RolloutStrategyType(in.RolloutStrategy.Type)
 		}
 		if in.RolloutStrategy.RollingUpdate != nil {
-			out.RolloutStrategy.RollingUpdate = &v1beta1.RollingUpdate{}
+			out.RolloutStrategy.RollingUpdate = &controlplanev1.RollingUpdate{}
 
 			if in.RolloutStrategy.RollingUpdate.MaxSurge != nil {
 				out.RolloutStrategy.RollingUpdate.MaxSurge = in.RolloutStrategy.RollingUpdate.MaxSurge
@@ -136,12 +136,12 @@ func Convert_v1alpha4_KubeadmControlPlaneSpec_To_v1beta1_KubeadmControlPlaneTemp
 	return nil
 }
 
-func Convert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1alpha4_KubeadmControlPlaneSpec(in *v1beta1.KubeadmControlPlaneTemplateResourceSpec, out *KubeadmControlPlaneSpec, s apiconversion.Scope) error {
+func Convert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1alpha4_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneTemplateResourceSpec, out *KubeadmControlPlaneSpec, s apiconversion.Scope) error {
 	if in.MachineTemplate != nil {
 		out.MachineTemplate.NodeDrainTimeout = in.MachineTemplate.NodeDrainTimeout
 	}
 
-	if err := kubeadmbootstrapv1alpha4.Convert_v1beta1_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
+	if err := bootstrapv1alpha4.Convert_v1beta1_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(&in.KubeadmConfigSpec, &out.KubeadmConfigSpec, s); err != nil {
 		return err
 	}
 

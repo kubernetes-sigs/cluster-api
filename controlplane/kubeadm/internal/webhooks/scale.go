@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 func (v *ScaleValidator) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -55,7 +55,7 @@ func (v *ScaleValidator) Handle(ctx context.Context, req admission.Request) admi
 		return admission.Errored(http.StatusBadRequest, errors.Wrapf(err, "failed to decode Scale resource"))
 	}
 
-	kcp := &v1beta1.KubeadmControlPlane{}
+	kcp := &controlplanev1.KubeadmControlPlane{}
 	kcpKey := types.NamespacedName{Namespace: scale.ObjectMeta.Namespace, Name: scale.ObjectMeta.Name}
 	if err = v.Client.Get(ctx, kcpKey, kcp); err != nil {
 		return admission.Errored(http.StatusInternalServerError, errors.Wrapf(err, "failed to get KubeadmControlPlane %s/%s", scale.ObjectMeta.Namespace, scale.ObjectMeta.Name))

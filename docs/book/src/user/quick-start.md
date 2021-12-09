@@ -170,6 +170,16 @@ The command accepts as input a list of providers to install; when executed for t
 automatically adds to the list the `cluster-api` core provider, and if unspecified, it also adds the `kubeadm` bootstrap
 and `kubeadm` control-plane providers.
 
+#### Enabling Feature Gates
+
+Feature gates can be enabled by exporting environment variables before executing `clusterctl init`.
+For example, the `ClusterTopology` feature, which is required to enable support for managed topologies and ClusterClass,
+can be enabled via:
+```bash
+export CLUSTER_TOPOLOGY=true
+```
+Additional documentation about experimental features can be found in [Experimental Features].
+
 #### Initialization for common providers
 
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
@@ -641,6 +651,16 @@ clusterctl generate cluster capi-quickstart --flavor development \
   > capi-quickstart.yaml
 ```
 
+To create a Cluster with ClusterClass:
+
+```bash
+clusterctl generate cluster capi-quickstart --flavor development-topology \
+  --kubernetes-version v1.23.0 \
+  --control-plane-machine-count=3 \
+  --worker-machine-count=3 \
+  > capi-quickstart.yaml
+```
+
 {{#/tab }}
 {{#/tabs }}
 
@@ -782,6 +802,7 @@ kind delete cluster
 See the [clusterctl] documentation for more detail about clusterctl supported actions.
 
 <!-- links -->
+[Experimental Features]: ../tasks/experimental-features/experimental-features.md
 [AWS provider prerequisites]: https://cluster-api-aws.sigs.k8s.io/topics/using-clusterawsadm-to-fulfill-prerequisites.html
 [AWS provider releases]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases
 [Azure Provider Prerequisites]: https://capz.sigs.k8s.io/topics/getting-started.html#prerequisites

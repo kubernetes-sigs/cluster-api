@@ -740,7 +740,7 @@ spec:
                               type: string
                             enum:
                               description: 'Enum is the list of valid values of the
-                                variable. NOTE: Can only be set if type is string.'
+                                variable. NOTE: Can be set for all types.'
                               items:
                                 x-kubernetes-preserve-unknown-fields: true
                               type: array

@@ -342,7 +342,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Valid enum",
+			name: "Valid enum string",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
 				Required: true,
@@ -364,7 +364,7 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Fails, value does not match one of the enum values",
+			name: "Fails, value does not match one of the enum string values",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
 				Required: true,
@@ -382,6 +382,51 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Name: "location",
 				Value: apiextensionsv1.JSON{
 					Raw: []byte(`"us-east-invalid"`),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Valid enum integer",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "location",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "integer",
+						Enum: []apiextensionsv1.JSON{
+							{Raw: []byte(`1`)},
+							{Raw: []byte(`2`)},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "location",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`1`),
+				},
+			},
+		},
+		{
+			name: "Fails, value does not match one of the enum integer values",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "location",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "string",
+						Enum: []apiextensionsv1.JSON{
+							{Raw: []byte(`1`)},
+							{Raw: []byte(`2`)},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "location",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`3`),
 				},
 			},
 			wantErr: true,
@@ -526,6 +571,67 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
+			name: "Valid enum object",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "enumObject",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"location": {
+								Type: "string",
+							},
+							"url": {
+								Type: "string",
+							},
+						},
+						Enum: []apiextensionsv1.JSON{
+							{Raw: []byte(`{"location": "us-east-1","url":"us-east-1-url"}`)},
+							{Raw: []byte(`{"location": "us-east-2","url":"us-east-2-url"}`)},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "enumObject",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"location": "us-east-2","url":"us-east-2-url"}`),
+				},
+			},
+		},
+		{
+			name: "Fails, value does not match one of the enum object values",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "enumObject",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"location": {
+								Type: "string",
+							},
+							"url": {
+								Type: "string",
+							},
+						},
+						Enum: []apiextensionsv1.JSON{
+							{Raw: []byte(`{"location": "us-east-1","url":"us-east-1-url"}`)},
+							{Raw: []byte(`{"location": "us-east-2","url":"us-east-2-url"}`)},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "enumObject",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"location": "us-east-2","url":"wrong-url"}`),
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "Valid array",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testArray",
@@ -641,6 +747,57 @@ func Test_ValidateClusterVariable(t *testing.T) {
 				Name: "testArray",
 				Value: apiextensionsv1.JSON{
 					Raw: []byte(`["value1","value1"]`),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Valid array object",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "enumArray",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "string",
+						},
+						Enum: []apiextensionsv1.JSON{
+							{Raw: []byte(`["1","2","3"]`)},
+							{Raw: []byte(`["4","5","6"]`)},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "enumArray",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`["1","2","3"]`),
+				},
+			},
+		},
+		{
+			name: "Fails, value does not match one of the enum array values",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "enumArray",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "array",
+						Items: &clusterv1.JSONSchemaProps{
+							Type: "string",
+						},
+						Enum: []apiextensionsv1.JSON{
+							{Raw: []byte(`["1","2","3"]`)},
+							{Raw: []byte(`["4","5","6"]`)},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "enumArray",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`["7","8","9"]`),
 				},
 			},
 			wantErr: true,

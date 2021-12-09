@@ -601,13 +601,6 @@ func (in *JSONSchemaProps) DeepCopyInto(out *JSONSchemaProps) {
 		*out = new(int64)
 		**out = **in
 	}
-	if in.Enum != nil {
-		in, out := &in.Enum, &out.Enum
-		*out = make([]apiextensionsv1.JSON, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
-		}
-	}
 	if in.Maximum != nil {
 		in, out := &in.Maximum, &out.Maximum
 		*out = new(int64)
@@ -617,6 +610,13 @@ func (in *JSONSchemaProps) DeepCopyInto(out *JSONSchemaProps) {
 		in, out := &in.Minimum, &out.Minimum
 		*out = new(int64)
 		**out = **in
+	}
+	if in.Enum != nil {
+		in, out := &in.Enum, &out.Enum
+		*out = make([]apiextensionsv1.JSON, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
 	}
 	if in.Default != nil {
 		in, out := &in.Default, &out.Default

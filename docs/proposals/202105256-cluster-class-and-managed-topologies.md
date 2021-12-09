@@ -110,7 +110,6 @@ This method of provisioning the cluster would act as a single control point for 
 We are fully aware that in order to exploit the potential of ClusterClass and managed topologies, the following class of problems still needs to be addressed:
 - **Upgrade/rollback strategy**: Implement a strategy to upgrade and rollback the managed topologies.
 - **Extensibility/Transformation**:
-    - Extend ClusterClass patch variables by introducing support for complex types (e.g. object, array, map, type composition (e.g. int or string)).
     - Provide an external mechanism which allows to leverage the full power of a programming language to implement more complex customizations.
 - **Adoption**: Providing a way to convert existing clusters into managed topologies.
 - **Observability**: Build an SDK and enhance the Cluster object status to surface a summary of the status of the topology.
@@ -325,9 +324,9 @@ type VariableSchema struct{
 The schema implementation will be built on top of the [Open API schema embedded in Kubernetes CRDs](https://github.com/kubernetes/apiextensions-apiserver/blob/master/pkg/apis/apiextensions/types_jsonschema.go).
 To keep the implementation as easy and user-friendly as possible we will only implement the following feature set 
 for now (until further use cases emerge):
-- Basic types:
-    - boolean, integer, number, string
+- Basic types: boolean, integer, number, string
 - Basic validation, e.g. format, minimum, maximum, pattern, required, ...
+- Complex types: objects, arrays
 - Defaulting
     - Defaulting will be implemented based on the CRD structural schema library and thus will have the same feature set 
       as CRD defaulting. I.e., it will only be possible to use constant values as defaults.
@@ -341,7 +340,18 @@ for now (until further use cases emerge):
 type ClusterClassPatch struct {
   // Name of the patch.
   Name string `json:"name"`
- 
+
+  // Description is a human-readable description of this patch.
+  Description string `json:"description,omitempty"`
+
+  // EnabledIf is a Go template to be used to calculate if a patch should be enabled.
+  // It can reference variables defined in .spec.variables and builtin variables.
+  // The patch will be enabled if the template evaluates to `true`, otherwise it will
+  // be disabled.
+  // If EnabledIf is not set, the patch will be enabled per default.
+  // +optional
+  EnabledIf *string `json:"enabledIf,omitempty"`
+
   // Definitions define the patches inline.
   // Note: Patches will be applied in the order of the array.
   Definitions []PatchDefinition `json:"definitions,omitempty"`
@@ -397,14 +407,15 @@ type PatchSelectorMatch struct {
   // MachineDeploymentClass selects templates referenced in specific MachineDeploymentClasses in
   // .spec.workers.machineDeployments.
   // +optional
-  MachineDeploymentClass PatchSelectorMatchMachineDeploymentClass `json:"machineDeploymentClass,omitempty"`
+  MachineDeploymentClass *PatchSelectorMatchMachineDeploymentClass `json:"machineDeploymentClass,omitempty"`
 }
  
 // PatchSelectorMatchMachineDeploymentClass selects templates referenced
 // in specific MachineDeploymentClasses in .spec.workers.machineDeployments.
 type PatchSelectorMatchMachineDeploymentClass struct {
   // Names selects templates by class names.
-  Names []string `json:"names"`
+  // +optional
+  Names []string `json:"names,omitempty"`
 }
 ```
 

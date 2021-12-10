@@ -801,15 +801,7 @@ func TestNewHelper(t *testing.T) {
 			wantPatch: []byte(fmt.Sprintf(
 				"{\"metadata\":{\"annotations\":{%q:%q}},\"spec\":{\"kubeadmConfigSpec\":{\"clusterConfiguration\":{\"controllerManager\":{\"extraArgs\":{\"enable-hostpath-provisioner\":null}}}}}}",
 				clusterv1.ClusterTopologyManagedFieldsAnnotation,
-				mustManagedFieldAnnotation(map[string]interface{}{
-					"kubeadmConfigSpec": map[string]interface{}{
-						"clusterConfiguration": map[string]interface{}{
-							"controllerManager": map[string]interface{}{
-								"extraArgs": map[string]interface{}{},
-							},
-						},
-					},
-				}),
+				mustManagedFieldAnnotation(map[string]interface{}{}),
 			)),
 		},
 		{
@@ -923,13 +915,7 @@ func TestNewHelper(t *testing.T) {
 			wantPatch: []byte(fmt.Sprintf(
 				"{\"metadata\":{\"annotations\":{%q:%q}},\"spec\":{\"kubeadmConfigSpec\":{\"clusterConfiguration\":{\"controllerManager\":{\"extraArgs\":{\"enable-hostpath-provisioner\":null}}}}}}",
 				clusterv1.ClusterTopologyManagedFieldsAnnotation,
-				mustManagedFieldAnnotation(map[string]interface{}{
-					"kubeadmConfigSpec": map[string]interface{}{
-						"clusterConfiguration": map[string]interface{}{
-							"controllerManager": map[string]interface{}{},
-						},
-					},
-				}),
+				mustManagedFieldAnnotation(map[string]interface{}{}),
 			)),
 		},
 

@@ -191,6 +191,43 @@ func Test_ManagedFieldAnnotation(t *testing.T) {
 				{"spec", "kubeadmConfigSpec", "joinConfiguration"},
 			},
 		},
+		{
+			name: "Managed fields annotation ignore empty maps",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"kubeadmConfigSpec": map[string]interface{}{
+							"clusterConfiguration": map[string]interface{}{
+								"version": "v2.0.1",
+							},
+							"initConfiguration": map[string]interface{}{},
+						},
+					},
+				},
+			},
+			wantPaths: []contract.Path{
+				{"spec", "kubeadmConfigSpec", "clusterConfiguration", "version"},
+			},
+		},
+		{
+			name: "Managed fields annotation ignore empty maps - excluding ignore paths",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"kubeadmConfigSpec": map[string]interface{}{
+							"clusterConfiguration": map[string]interface{}{
+								"version": "v2.0.1",
+							},
+							"initConfiguration": map[string]interface{}{},
+						},
+					},
+				},
+			},
+			ignorePaths: []contract.Path{
+				{"spec", "kubeadmConfigSpec", "clusterConfiguration", "version"},
+			},
+			wantPaths: []contract.Path{},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

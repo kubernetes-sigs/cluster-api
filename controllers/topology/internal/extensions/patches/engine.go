@@ -92,7 +92,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 		// version of the request (including the patched version of the templates).
 		resp, err := generator.Generate(ctx, req)
 		if err != nil {
-			return errors.Errorf("failed to generate patches for patch %q", clusterClassPatch.Name)
+			return errors.Wrapf(err, "failed to generate patches for patch %q", clusterClassPatch.Name)
 		}
 
 		// Apply patches to the request.

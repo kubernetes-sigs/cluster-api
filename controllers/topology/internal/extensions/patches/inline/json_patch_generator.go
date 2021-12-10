@@ -162,9 +162,9 @@ func patchIsEnabled(enabledIf *string, variables map[string]apiextensionsv1.JSON
 
 // jsonPatchRFC6902 is used to render the generated JSONPatches.
 type jsonPatchRFC6902 struct {
-	Op    string               `json:"op"`
-	Path  string               `json:"path"`
-	Value apiextensionsv1.JSON `json:"value"`
+	Op    string                `json:"op"`
+	Path  string                `json:"path"`
+	Value *apiextensionsv1.JSON `json:"value,omitempty"`
 }
 
 // generateJSONPatches generates JSON patches based on the given JSONPatches and variables.
@@ -172,15 +172,19 @@ func generateJSONPatches(jsonPatches []clusterv1.JSONPatch, variables map[string
 	res := []jsonPatchRFC6902{}
 
 	for _, jsonPatch := range jsonPatches {
-		value, err := calculateValue(jsonPatch, variables)
-		if err != nil {
-			return nil, err
+		var value *apiextensionsv1.JSON
+		if jsonPatch.Op == "add" || jsonPatch.Op == "replace" {
+			var err error
+			value, err = calculateValue(jsonPatch, variables)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		res = append(res, jsonPatchRFC6902{
 			Op:    jsonPatch.Op,
 			Path:  jsonPatch.Path,
-			Value: *value,
+			Value: value,
 		})
 	}
 

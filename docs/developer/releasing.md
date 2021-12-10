@@ -56,20 +56,21 @@ export DOCKER_CLI_EXPERIMENTAL=enabled
 
 For version v0.x.y:
 
-1. Create an annotated tag `git tag -a v0.x.y -m v0.x.y`
-    1. To use your GPG signature when pushing the tag, use `git tag -s [...]` instead
-1. Push the tag to the GitHub repository `git push origin v0.x.y`
-    1. NB: `origin` should be the name of the remote pointing to `github.com/kubernetes-sigs/cluster-api`
-1. Run `make release` to build artifacts (the image is automatically built by CI)
-1. Follow the [Image Promotion process](https://git.k8s.io/k8s.io/k8s.gcr.io#image-promoter) to promote the image from the staging repo to `us.gcr.io/k8s-artifacts-prod/cluster-api`
-1. Create a release in GitHub based on the tag created above
-1. Release notes can be created by running `make release-notes`, which will generate an output that can be copied to the drafted release in GitHub.
-   Pay close attention to the `## :question: Sort these by hand` section, as it contains items that need to be manually sorted.
+1. Create an annotated tag
+   > NOTE: To use your GPG signature when pushing the tag, use `git tag -s [...]` instead)
+   - `git tag -a v0.x.y -m v0.x.y`
+   - `git tag test/v0.x.y` (:warning: MUST NOT be an annotated tag)
+1. Push the tag to the GitHub repository. This will automatically trigger a [Github Action](https://github.com/kubernetes-sigs/cluster-api/actions) to create a draft release.
+   > NOTE: `origin` should be the name of the remote pointing to `github.com/kubernetes-sigs/cluster-api`
+   - `git push origin v0.x.y`
+   - `git push origin test/v0.x.y`
+1. Follow the [Image Promotion process](https://git.k8s.io/k8s.io/k8s.gcr.io#image-promoter) to promote the image from the staging repo to `k8s.gcr.io/cluster-api`
+1. Review the draft release on GitHub. Pay close attention to the `## :question: Sort these by hand` section, as it contains items that need to be manually sorted.
+1. Publish the release
 
 ### Permissions
 
 Releasing requires a particular set of permissions.
 
-* Push access to the staging gcr bucket
 * Tag push access to the GitHub repository
 * GitHub Release creation access

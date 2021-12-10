@@ -31,8 +31,8 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	infrav1exp "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/container"
@@ -48,14 +48,14 @@ const (
 type NodePool struct {
 	client            client.Client
 	cluster           *clusterv1.Cluster
-	machinePool       *clusterv1exp.MachinePool
-	dockerMachinePool *infrav1exp.DockerMachinePool
+	machinePool       *expv1.MachinePool
+	dockerMachinePool *infraexpv1.DockerMachinePool
 	labelFilters      map[string]string
 	machines          []*docker.Machine
 }
 
 // NewNodePool creates a new node pool instances.
-func NewNodePool(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, mp *clusterv1exp.MachinePool, dmp *infrav1exp.DockerMachinePool) (*NodePool, error) {
+func NewNodePool(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, mp *expv1.MachinePool, dmp *infraexpv1.DockerMachinePool) (*NodePool, error) {
 	np := &NodePool{
 		client:            c,
 		cluster:           cluster,
@@ -123,7 +123,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 	// First remove instance status for machines no longer existing, then reconcile the existing machines.
 	// NOTE: the status is the only source of truth for understanding if the machine is already bootstrapped, ready etc.
 	// so we are preserving the existing status and using it as a bases for the next reconcile machine.
-	instances := make([]infrav1exp.DockerMachinePoolInstanceStatus, 0, len(np.machines))
+	instances := make([]infraexpv1.DockerMachinePoolInstanceStatus, 0, len(np.machines))
 	for i := range np.dockerMachinePool.Status.Instances {
 		instance := np.dockerMachinePool.Status.Instances[i]
 		for j := range np.machines {
@@ -217,7 +217,7 @@ func (np *NodePool) refresh(ctx context.Context) error {
 func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	var machineStatus infrav1exp.DockerMachinePoolInstanceStatus
+	var machineStatus infraexpv1.DockerMachinePoolInstanceStatus
 	isFound := false
 	for _, instanceStatus := range np.dockerMachinePool.Status.Instances {
 		if instanceStatus.InstanceName == machine.Name() {
@@ -227,7 +227,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 	}
 	if !isFound {
 		log.Info("Creating instance record", "instance", machine.Name())
-		machineStatus = infrav1exp.DockerMachinePoolInstanceStatus{
+		machineStatus = infraexpv1.DockerMachinePoolInstanceStatus{
 			InstanceName: machine.Name(),
 			Version:      np.machinePool.Spec.Template.Spec.Version,
 		}
@@ -322,7 +322,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 }
 
 // getBootstrapData fetches the bootstrap data for the machine pool.
-func getBootstrapData(ctx context.Context, c client.Client, machinePool *clusterv1exp.MachinePool) (string, bootstrapv1.Format, error) {
+func getBootstrapData(ctx context.Context, c client.Client, machinePool *expv1.MachinePool) (string, bootstrapv1.Format, error) {
 	if machinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
 		return "", "", errors.New("error retrieving bootstrap data: linked MachinePool's bootstrap.dataSecretName is nil")
 	}

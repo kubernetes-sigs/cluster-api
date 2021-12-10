@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1alpha3
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+import clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
 // Conditions and condition Reasons for the KubeadmConfig object.
 
@@ -26,7 +26,7 @@ const (
 	// NOTE: When the DataSecret generation starts the process completes immediately and within the
 	// same reconciliation, so the user will always see a transition from Wait to Generated without having
 	// evidence that BootstrapSecret generation is started/in progress.
-	DataSecretAvailableCondition clusterv1.ConditionType = "DataSecretAvailable"
+	DataSecretAvailableCondition clusterv1alpha3.ConditionType = "DataSecretAvailable"
 
 	// WaitingForClusterInfrastructureReason (Severity=Info) document a bootstrap secret generation process
 	// waiting for the cluster infrastructure to be ready.
@@ -55,7 +55,7 @@ const (
 	// machine, if the cluster is not using a control plane ref object, if the certificates are not provided
 	// by the users.
 	// IMPORTANT: This condition won't be re-created after clusterctl move.
-	CertificatesAvailableCondition clusterv1.ConditionType = "CertificatesAvailable"
+	CertificatesAvailableCondition clusterv1alpha3.ConditionType = "CertificatesAvailable"
 
 	// CertificatesGenerationFailedReason (Severity=Warning) documents a KubeadmConfig controller detecting
 	// an error while generating certificates; those kind of errors are usually temporary and the controller

@@ -16,14 +16,14 @@ limitations under the License.
 
 package v1alpha3
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+import clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
 // Conditions and condition Reasons for the ClusterResourceSet object.
 
 const (
 	// ResourcesAppliedCondition documents that all resources in the ClusterResourceSet object are applied to
 	// all matching clusters. This indicates all resources exist, and no errors during applying them to all clusters.
-	ResourcesAppliedCondition clusterv1.ConditionType = "ResourcesApplied"
+	ResourcesAppliedCondition clusterv1alpha3.ConditionType = "ResourcesApplied"
 
 	// RemoteClusterClientFailedReason (Severity=Error) documents failure during getting the remote cluster client.
 	RemoteClusterClientFailedReason = "RemoteClusterClientFailed"

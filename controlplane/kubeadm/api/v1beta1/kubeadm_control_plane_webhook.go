@@ -32,7 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -347,7 +347,7 @@ func validateRolloutStrategy(rolloutStrategy *RolloutStrategy, replicas *int32, 
 	return allErrs
 }
 
-func validateClusterConfiguration(newClusterConfiguration, oldClusterConfiguration *cabpkv1.ClusterConfiguration, pathPrefix *field.Path) field.ErrorList {
+func validateClusterConfiguration(newClusterConfiguration, oldClusterConfiguration *bootstrapv1.ClusterConfiguration, pathPrefix *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	if newClusterConfiguration == nil {

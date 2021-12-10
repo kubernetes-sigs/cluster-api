@@ -33,12 +33,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 func init() {
 	scheme = runtime.NewScheme()
-	_ = kcpv1.AddToScheme(scheme)
+	_ = controlplanev1.AddToScheme(scheme)
 	_ = admissionv1.AddToScheme(scheme)
 }
 
@@ -47,13 +47,13 @@ var (
 )
 
 func TestKubeadmControlPlaneValidateScale(t *testing.T) {
-	kcpManagedEtcd := &kcpv1.KubeadmControlPlane{
+	kcpManagedEtcd := &controlplanev1.KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kcp-managed-etcd",
 			Namespace: "foo",
 		},
-		Spec: kcpv1.KubeadmControlPlaneSpec{
-			MachineTemplate: kcpv1.KubeadmControlPlaneMachineTemplate{
+		Spec: controlplanev1.KubeadmControlPlaneSpec{
+			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "test/v1alpha1",
 					Kind:       "UnknownInfraMachine",
@@ -63,9 +63,9 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 				NodeDrainTimeout: &metav1.Duration{Duration: time.Second},
 			},
 			Replicas: pointer.Int32Ptr(1),
-			RolloutStrategy: &kcpv1.RolloutStrategy{
-				Type: kcpv1.RollingUpdateStrategyType,
-				RollingUpdate: &kcpv1.RollingUpdate{
+			RolloutStrategy: &controlplanev1.RolloutStrategy{
+				Type: controlplanev1.RollingUpdateStrategyType,
+				RollingUpdate: &controlplanev1.RollingUpdate{
 					MaxSurge: &intstr.IntOrString{
 						IntVal: 1,
 					},

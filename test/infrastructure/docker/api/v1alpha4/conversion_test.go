@@ -19,28 +19,28 @@ package v1alpha4
 import (
 	"testing"
 
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for DockerCluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &v1beta1.DockerCluster{},
+		Hub:   &infrav1.DockerCluster{},
 		Spoke: &DockerCluster{},
 	}))
 
 	t.Run("for DockerClusterTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &v1beta1.DockerClusterTemplate{},
+		Hub:   &infrav1.DockerClusterTemplate{},
 		Spoke: &DockerClusterTemplate{},
 	}))
 
 	t.Run("for DockerMachine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &v1beta1.DockerMachine{},
+		Hub:   &infrav1.DockerMachine{},
 		Spoke: &DockerMachine{},
 	}))
 
 	t.Run("for DockerMachineTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &v1beta1.DockerMachineTemplate{},
+		Hub:   &infrav1.DockerMachineTemplate{},
 		Spoke: &DockerMachineTemplate{},
 	}))
 }

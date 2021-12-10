@@ -16,7 +16,7 @@ limitations under the License.
 
 package v1alpha3
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+import clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 
 // Conditions and condition Reasons for the DockerMachine object.
 
@@ -27,7 +27,7 @@ const (
 	// NOTE: When the container provisioning starts the process completes almost immediately and within
 	// the same reconciliation, so the user will always see a transition from Wait to Provisioned without
 	// having evidence that the operation is started/is in progress.
-	ContainerProvisionedCondition clusterv1.ConditionType = "ContainerProvisioned"
+	ContainerProvisionedCondition clusterv1alpha3.ConditionType = "ContainerProvisioned"
 
 	// WaitingForClusterInfrastructureReason (Severity=Info) documents a DockerMachine waiting for the cluster
 	// infrastructure to be ready before starting to create the container that provides the DockerMachine
@@ -50,7 +50,7 @@ const (
 	//
 	// NOTE as a difference from other providers, container provisioning and bootstrap are directly managed
 	// by the DockerMachine controller (not by cloud-init).
-	BootstrapExecSucceededCondition clusterv1.ConditionType = "BootstrapExecSucceeded"
+	BootstrapExecSucceededCondition clusterv1alpha3.ConditionType = "BootstrapExecSucceeded"
 
 	// BootstrappingReason documents (Severity=Info) a DockerMachine currently executing the bootstrap
 	// script that creates the Kubernetes node on the newly provisioned machine infrastructure.
@@ -70,7 +70,7 @@ const (
 	// NOTE: When the load balancer provisioning starts the process completes almost immediately and within
 	// the same reconciliation, so the user will always see a transition from no condition to available without
 	// having evidence that the operation is started/is in progress.
-	LoadBalancerAvailableCondition clusterv1.ConditionType = "LoadBalancerAvailable"
+	LoadBalancerAvailableCondition clusterv1alpha3.ConditionType = "LoadBalancerAvailable"
 
 	// LoadBalancerProvisioningFailedReason (Severity=Warning) documents a DockerCluster controller detecting
 	// an error while provisioning the container that provides the cluster load balancer.; those kind of

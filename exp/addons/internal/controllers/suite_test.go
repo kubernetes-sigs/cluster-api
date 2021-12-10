@@ -30,7 +30,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	v1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/envtest"
 )
 
@@ -73,7 +73,7 @@ func TestMain(m *testing.M) {
 		ManagerUncachedObjs: []client.Object{
 			&corev1.ConfigMap{},
 			&corev1.Secret{},
-			&v1alpha4.ClusterResourceSetBinding{},
+			&addonsv1.ClusterResourceSetBinding{},
 		},
 		SetupIndexes:     setupIndexes,
 		SetupReconcilers: setupReconcilers,

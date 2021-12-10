@@ -104,10 +104,10 @@ func ValidateClusterVariable(clusterVariable *clusterv1.ClusterVariable, cluster
 	}
 
 	// Convert schema to Kubernetes APIExtensions Schema.
-	apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(&clusterClassVariable.Schema.OpenAPIV3Schema)
-	if err != nil {
+	apiExtensionsSchema, allErrs := convertToAPIExtensionsJSONSchemaProps(&clusterClassVariable.Schema.OpenAPIV3Schema, field.NewPath("schema"))
+	if len(allErrs) > 0 {
 		return field.ErrorList{field.InternalError(fldPath,
-			fmt.Errorf("failed to convert schema definition for variable %q; ClusterClass should be checked: %v", clusterVariable.Name, err))} // TODO: consider if to add ClusterClass name
+			fmt.Errorf("failed to convert schema definition for variable %q; ClusterClass should be checked: %v", clusterClassVariable.Name, allErrs))} // TODO: consider if to add ClusterClass name
 	}
 
 	// Create validator for schema.

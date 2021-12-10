@@ -396,8 +396,7 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		{
 			name: "fail on invalid array schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name:     "arrayVariable",
-				Required: true,
+				Name: "arrayVariable",
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type: "array",
@@ -413,12 +412,409 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 		{
 			name: "pass on variable with required set true with a default defined",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
-				Name:     "var",
-				Required: true,
+				Name: "var",
 				Schema: clusterv1.VariableSchema{
 					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 						Type:    "string",
 						Default: &apiextensionsv1.JSON{Raw: []byte(`"defaultValue"`)},
+					},
+				},
+			},
+		},
+		{
+			name: "pass on variable with a default that is valid by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:      "string",
+						MaxLength: pointer.Int64(6),
+						Default:   &apiextensionsv1.JSON{Raw: []byte(`"short"`)},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on variable with a default that is invalid by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:      "string",
+						MaxLength: pointer.Int64(6),
+						Default:   &apiextensionsv1.JSON{Raw: []byte(`"veryLongValueIsInvalid"`)},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "pass if variable is an object with default value valid by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`100`)},
+										Minimum: pointer.Int64(1),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail if variable is an object with default value invalidated by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`-100`)},
+										Minimum: pointer.Int64(1),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "fail if variable is an object with a top level default value invalidated by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Default: &apiextensionsv1.JSON{
+							Raw: []byte(`{"spec":{"replicas": -100}}`),
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Minimum: pointer.Int64(1),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "pass if variable is an object with a top level default value valid by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Default: &apiextensionsv1.JSON{
+							Raw: []byte(`{"spec":{"replicas": 100}}`),
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Minimum: pointer.Int64(1),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			name: "pass on variable with an example that is valid by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:      "string",
+						MaxLength: pointer.Int64(6),
+						Example:   &apiextensionsv1.JSON{Raw: []byte(`"short"`)},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on variable with an example that is invalid by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:      "string",
+						MaxLength: pointer.Int64(6),
+						Example:   &apiextensionsv1.JSON{Raw: []byte(`"veryLongValueIsInvalid"`)},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "pass if variable is an object with an example valid by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Minimum: pointer.Int64(0),
+										Example: &apiextensionsv1.JSON{Raw: []byte(`100`)},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail if variable is an object with an example invalidated by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Minimum: pointer.Int64(0),
+										Example: &apiextensionsv1.JSON{Raw: []byte(`-100`)},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "fail if variable is an object with a top level example value invalidated by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Example: &apiextensionsv1.JSON{
+							Raw: []byte(`{"spec":{"replicas": -100}}`),
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Minimum: pointer.Int64(1),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "pass if variable is an object with a top level default value valid by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Example: &apiextensionsv1.JSON{
+							Raw: []byte(`{"spec":{"replicas": 100}}`),
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Minimum: pointer.Int64(1),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "pass on variable with an enum with all variables valid by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:      "string",
+						MaxLength: pointer.Int64(6),
+						Enum: []apiextensionsv1.JSON{
+							{Raw: []byte(`"short1"`)},
+							{Raw: []byte(`"short2"`)},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on variable with an enum with a value that is invalid by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:      "string",
+						MaxLength: pointer.Int64(6),
+						Enum: []apiextensionsv1.JSON{
+							{Raw: []byte(`"veryLongValueIsInvalid"`)},
+							{Raw: []byte(`"short"`)},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "pass if variable is an object with an enum value that is valid by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Minimum: pointer.Int64(0),
+										Enum: []apiextensionsv1.JSON{
+											{Raw: []byte(`100`)},
+											{Raw: []byte(`5`)},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail if variable is an object with an enum value invalidated by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Minimum: pointer.Int64(0),
+										Enum: []apiextensionsv1.JSON{
+											{Raw: []byte(`100`)},
+											{Raw: []byte(`-100`)},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "fail if variable is an object with a top level enum value invalidated by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Enum: []apiextensionsv1.JSON{
+							{
+								Raw: []byte(`{"spec":{"replicas": 100}}`),
+							},
+							{
+								Raw: []byte(`{"spec":{"replicas": -100}}`),
+							},
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Minimum: pointer.Int64(1),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "pass if variable is an object with a top level enum value that is valid by the given schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name: "var",
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						Enum: []apiextensionsv1.JSON{
+							{
+								Raw: []byte(`{"spec":{"replicas": 100}}`),
+							},
+							{
+								Raw: []byte(`{"spec":{"replicas": 200}}`),
+							},
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"spec": {
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"replicas": {
+										Type:    "integer",
+										Minimum: pointer.Int64(1),
+									},
+								},
+							},
+						},
 					},
 				},
 			},

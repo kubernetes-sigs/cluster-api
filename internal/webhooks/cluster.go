@@ -120,39 +120,39 @@ func (webhook *Cluster) ValidateDelete(_ context.Context, obj runtime.Object) er
 	return nil
 }
 
-func (webhook *Cluster) validate(ctx context.Context, old, new *clusterv1.Cluster) error {
+func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster) error {
 	var allErrs field.ErrorList
-	if new.Spec.InfrastructureRef != nil && new.Spec.InfrastructureRef.Namespace != new.Namespace {
+	if newCluster.Spec.InfrastructureRef != nil && newCluster.Spec.InfrastructureRef.Namespace != newCluster.Namespace {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				field.NewPath("spec", "infrastructureRef", "namespace"),
-				new.Spec.InfrastructureRef.Namespace,
+				newCluster.Spec.InfrastructureRef.Namespace,
 				"must match metadata.namespace",
 			),
 		)
 	}
 
-	if new.Spec.ControlPlaneRef != nil && new.Spec.ControlPlaneRef.Namespace != new.Namespace {
+	if newCluster.Spec.ControlPlaneRef != nil && newCluster.Spec.ControlPlaneRef.Namespace != newCluster.Namespace {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				field.NewPath("spec", "controlPlaneRef", "namespace"),
-				new.Spec.ControlPlaneRef.Namespace,
+				newCluster.Spec.ControlPlaneRef.Namespace,
 				"must match metadata.namespace",
 			),
 		)
 	}
 
 	// Validate the managed topology, if defined.
-	if new.Spec.Topology != nil {
-		allErrs = append(allErrs, webhook.validateTopology(ctx, old, new)...)
+	if newCluster.Spec.Topology != nil {
+		allErrs = append(allErrs, webhook.validateTopology(ctx, oldCluster, newCluster)...)
 	}
 
 	// On update.
-	if old != nil {
+	if oldCluster != nil {
 		// Error if the update moves the cluster from Managed to Unmanaged i.e. the managed topology is removed on update.
-		if old.Spec.Topology != nil && new.Spec.Topology == nil {
+		if oldCluster.Spec.Topology != nil && newCluster.Spec.Topology == nil {
 			allErrs = append(allErrs, field.Forbidden(
 				field.NewPath("spec", "topology"),
 				"cannot be removed from an existing Cluster",
@@ -161,12 +161,12 @@ func (webhook *Cluster) validate(ctx context.Context, old, new *clusterv1.Cluste
 	}
 
 	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), new.Name, allErrs)
+		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), newCluster.Name, allErrs)
 	}
 	return nil
 }
 
-func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv1.Cluster) field.ErrorList {
+func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster) field.ErrorList {
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the web hook
 	// must prevent the usage of Cluster.Topology in case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
@@ -181,7 +181,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 	var allErrs field.ErrorList
 
 	// class should be defined.
-	if new.Spec.Topology.Class == "" {
+	if newCluster.Spec.Topology.Class == "" {
 		allErrs = append(
 			allErrs,
 			field.Required(
@@ -192,12 +192,12 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 	}
 
 	// version should be valid.
-	if !version.KubeSemver.MatchString(new.Spec.Topology.Version) {
+	if !version.KubeSemver.MatchString(newCluster.Spec.Topology.Version) {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
 				field.NewPath("spec", "topology", "version"),
-				new.Spec.Topology.Version,
+				newCluster.Spec.Topology.Version,
 				"version must be a valid semantic version",
 			),
 		)
@@ -206,23 +206,23 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 	// clusterClass must exist.
 	clusterClass := &clusterv1.ClusterClass{}
 	// Check to see if the ClusterClass referenced in the Cluster currently exists.
-	if err := webhook.Client.Get(ctx, client.ObjectKey{Namespace: new.Namespace, Name: new.Spec.Topology.Class}, clusterClass); err != nil {
+	if err := webhook.Client.Get(ctx, client.ObjectKey{Namespace: newCluster.Namespace, Name: newCluster.Spec.Topology.Class}, clusterClass); err != nil {
 		allErrs = append(
 			allErrs, field.Invalid(
 				field.NewPath("spec", "topology", "class"),
-				new.Name,
-				fmt.Sprintf("ClusterClass with name %q could not be found", new.Spec.Topology.Class)))
+				newCluster.Name,
+				fmt.Sprintf("ClusterClass with name %q could not be found", newCluster.Spec.Topology.Class)))
 		return allErrs
 	}
 
-	allErrs = append(allErrs, check.MachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(new, clusterClass)...)
+	allErrs = append(allErrs, check.MachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(newCluster, clusterClass)...)
 
 	// Check if the variables defined in the clusterClass are valid.
-	allErrs = append(allErrs, variables.ValidateClusterVariables(new.Spec.Topology.Variables, clusterClass.Spec.Variables, field.NewPath("spec", "topology", "variables"))...)
+	allErrs = append(allErrs, variables.ValidateClusterVariables(newCluster.Spec.Topology.Variables, clusterClass.Spec.Variables, field.NewPath("spec", "topology", "variables"))...)
 
-	if old != nil { // On update
+	if oldCluster != nil { // On update
 		// Topology or Class can not be added on update.
-		if old.Spec.Topology == nil || old.Spec.Topology.Class == "" {
+		if oldCluster.Spec.Topology == nil || oldCluster.Spec.Topology.Class == "" {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
@@ -235,25 +235,25 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 		}
 
 		// Version could only be increased.
-		inVersion, err := semver.ParseTolerant(new.Spec.Topology.Version)
+		inVersion, err := semver.ParseTolerant(newCluster.Spec.Topology.Version)
 		if err != nil {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
 					field.NewPath("spec", "topology", "version"),
-					new.Spec.Topology.Version,
+					newCluster.Spec.Topology.Version,
 					"version must be a valid semantic version",
 				),
 			)
 		}
-		oldVersion, err := semver.ParseTolerant(old.Spec.Topology.Version)
+		oldVersion, err := semver.ParseTolerant(oldCluster.Spec.Topology.Version)
 		if err != nil {
 			// NOTE: this should never happen. Nevertheless, handling this for extra caution.
 			allErrs = append(
 				allErrs,
 				field.Invalid(
 					field.NewPath("spec", "topology", "version"),
-					old.Spec.Topology.Version,
+					oldCluster.Spec.Topology.Version,
 					fmt.Sprintf("old version %q cannot be compared with %q", oldVersion, inVersion),
 				),
 			)
@@ -263,22 +263,22 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 				allErrs,
 				field.Invalid(
 					field.NewPath("spec", "topology", "version"),
-					new.Spec.Topology.Version,
+					newCluster.Spec.Topology.Version,
 					fmt.Sprintf("version cannot be decreased from %q to %q", oldVersion, inVersion),
 				),
 			)
 		}
 
 		// If the ClusterClass referenced in the Topology has changed compatibility checks are needed.
-		if old.Spec.Topology.Class != new.Spec.Topology.Class {
+		if oldCluster.Spec.Topology.Class != newCluster.Spec.Topology.Class {
 			// Check to see if the ClusterClass referenced in the old version of the Cluster exists.
-			oldClusterClass, err := webhook.getClusterClassForCluster(ctx, old)
+			oldClusterClass, err := webhook.getClusterClassForCluster(ctx, oldCluster)
 			if err != nil {
 				allErrs = append(
 					allErrs, field.Forbidden(
 						field.NewPath("spec", "topology", "class"),
 						fmt.Sprintf("ClusterClass with name %q could not be found, change from class %[1]q to class %q cannot be validated",
-							old.Spec.Topology.Class, new.Spec.Topology.Class)))
+							oldCluster.Spec.Topology.Class, newCluster.Spec.Topology.Class)))
 
 				// Return early with errors if the ClusterClass can't be retrieved.
 				return allErrs

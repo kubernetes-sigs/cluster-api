@@ -125,7 +125,7 @@ func (webhook *ClusterClass) ValidateDelete(ctx context.Context, obj runtime.Obj
 	return nil
 }
 
-func (webhook *ClusterClass) validate(ctx context.Context, old, new *clusterv1.ClusterClass) error {
+func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newClusterClass *clusterv1.ClusterClass) error {
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the web hook
 	// must prevent creating new objects new case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
@@ -137,43 +137,43 @@ func (webhook *ClusterClass) validate(ctx context.Context, old, new *clusterv1.C
 	var allErrs field.ErrorList
 
 	// Ensure all references are valid.
-	allErrs = append(allErrs, check.ClusterClassReferencesAreValid(new)...)
+	allErrs = append(allErrs, check.ClusterClassReferencesAreValid(newClusterClass)...)
 
 	// Ensure all MachineDeployment classes are unique.
-	allErrs = append(allErrs, check.MachineDeploymentClassesAreUnique(new)...)
+	allErrs = append(allErrs, check.MachineDeploymentClassesAreUnique(newClusterClass)...)
 
 	// Validate variables.
 	allErrs = append(allErrs,
-		variables.ValidateClusterClassVariables(new.Spec.Variables, field.NewPath("spec", "variables"))...,
+		variables.ValidateClusterClassVariables(newClusterClass.Spec.Variables, field.NewPath("spec", "variables"))...,
 	)
 
 	// Validate patches.
-	allErrs = append(allErrs, validatePatches(new)...)
+	allErrs = append(allErrs, validatePatches(newClusterClass)...)
 
 	// If this is an update run additional validation.
-	if old != nil {
+	if oldClusterClass != nil {
 		// Ensure spec changes are compatible.
-		allErrs = append(allErrs, check.ClusterClassesAreCompatible(old, new)...)
+		allErrs = append(allErrs, check.ClusterClassesAreCompatible(oldClusterClass, newClusterClass)...)
 
 		// Retrieve all clusters using the ClusterClass.
-		clusters, err := webhook.getClustersUsingClusterClass(ctx, old)
+		clusters, err := webhook.getClustersUsingClusterClass(ctx, oldClusterClass)
 		if err != nil {
 			allErrs = append(allErrs, field.InternalError(field.NewPath(""),
-				errors.Wrapf(err, "Clusters using ClusterClass %v can not be retrieved", old.Name)))
-			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), new.Name, allErrs)
+				errors.Wrapf(err, "Clusters using ClusterClass %v can not be retrieved", oldClusterClass.Name)))
+			return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), newClusterClass.Name, allErrs)
 		}
 
 		// Ensure no MachineDeploymentClass currently in use has been removed from the ClusterClass.
 		allErrs = append(allErrs,
-			webhook.validateRemovedMachineDeploymentClassesAreNotUsed(clusters, old, new)...)
+			webhook.validateRemovedMachineDeploymentClassesAreNotUsed(clusters, oldClusterClass, newClusterClass)...)
 
 		// Ensure no Variable would be invalidated by the update in spec
 		allErrs = append(allErrs,
-			validateVariableUpdates(clusters, old, new, field.NewPath("spec", "variables"))...)
+			validateVariableUpdates(clusters, oldClusterClass, newClusterClass, field.NewPath("spec", "variables"))...)
 	}
 
 	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), new.Name, allErrs)
+		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("ClusterClass").GroupKind(), newClusterClass.Name, allErrs)
 	}
 	return nil
 }
@@ -184,15 +184,15 @@ func (webhook *ClusterClass) validate(ctx context.Context, old, new *clusterv1.C
 // 2) Removed ClusterClassVariables are not in use on any Cluster using the ClusterClass.
 // 3) Added ClusterClassVariables defined on any exiting Cluster are still valid with the updated Schema.
 // 4) Required ClusterClassVariables are defined on each Cluster using the ClusterClass.
-func validateVariableUpdates(clusters []clusterv1.Cluster, old, new *clusterv1.ClusterClass, path *field.Path) field.ErrorList {
+func validateVariableUpdates(clusters []clusterv1.Cluster, oldClusterClass, newClusterClass *clusterv1.ClusterClass, path *field.Path) field.ErrorList {
 	tracker := map[string][]string{}
 
 	// Get the old ClusterClassVariables as a map
-	oldVars, _ := getClusterClassVariablesMapWithReverseIndex(old.Spec.Variables)
+	oldVars, _ := getClusterClassVariablesMapWithReverseIndex(oldClusterClass.Spec.Variables)
 
 	// Get the new ClusterClassVariables as a map with an index linking them to their place in the ClusterClass Variable array.
 	// Note: The index is used to improve the error recording below.
-	newVars, clusterClassVariablesIndex := getClusterClassVariablesMapWithReverseIndex(new.Spec.Variables)
+	newVars, clusterClassVariablesIndex := getClusterClassVariablesMapWithReverseIndex(newClusterClass.Spec.Variables)
 
 	// Compute the diff between old and new ClusterClassVariables.
 	varsDiff := getClusterClassVariablesForValidation(oldVars, newVars)
@@ -350,10 +350,10 @@ func getClusterClassVariablesForValidation(oldVars, newVars map[string]*clusterv
 	return out
 }
 
-func (webhook *ClusterClass) validateRemovedMachineDeploymentClassesAreNotUsed(clusters []clusterv1.Cluster, old, new *clusterv1.ClusterClass) field.ErrorList {
+func (webhook *ClusterClass) validateRemovedMachineDeploymentClassesAreNotUsed(clusters []clusterv1.Cluster, oldClusterClass, newClusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
-	removedClasses := webhook.removedMachineClasses(old, new)
+	removedClasses := webhook.removedMachineClasses(oldClusterClass, newClusterClass)
 	// If no classes have been removed return early as no further checks are needed.
 	if len(removedClasses) == 0 {
 		return nil
@@ -374,11 +374,11 @@ func (webhook *ClusterClass) validateRemovedMachineDeploymentClassesAreNotUsed(c
 	return allErrs
 }
 
-func (webhook *ClusterClass) removedMachineClasses(old, new *clusterv1.ClusterClass) sets.String {
+func (webhook *ClusterClass) removedMachineClasses(oldClusterClass, newClusterClass *clusterv1.ClusterClass) sets.String {
 	removedClasses := sets.NewString()
 
-	classes := webhook.classNamesFromWorkerClass(new.Spec.Workers)
-	for _, oldClass := range old.Spec.Workers.MachineDeployments {
+	classes := webhook.classNamesFromWorkerClass(newClusterClass.Spec.Workers)
+	for _, oldClass := range oldClusterClass.Spec.Workers.MachineDeployments {
 		if !classes.Has(oldClass.Class) {
 			removedClasses.Insert(oldClass.Class)
 		}

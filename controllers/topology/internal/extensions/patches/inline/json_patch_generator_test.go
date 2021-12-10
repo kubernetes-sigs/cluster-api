@@ -182,6 +182,10 @@ func TestGenerate(t *testing.T) {
 `),
 								},
 							},
+							{
+								Op:   "remove",
+								Path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs",
+							},
 						},
 					},
 					{
@@ -249,7 +253,8 @@ func TestGenerate(t *testing.T) {
 						},
 						Patch: toJSONCompact(`[
 {"op":"replace","path":"/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/cluster-name","value":"cluster-name"},
-{"op":"replace","path":"/spec/template/spec/kubeadmConfigSpec/files","value":[{"contentFrom":{"secret":{"key":"control-plane-azure.json","name":"cluster-name-control-plane-azure-json"}},"owner":"root:root"}]}
+{"op":"replace","path":"/spec/template/spec/kubeadmConfigSpec/files","value":[{"contentFrom":{"secret":{"key":"control-plane-azure.json","name":"cluster-name-control-plane-azure-json"}},"owner":"root:root"}]},
+{"op":"remove","path":"/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs"}
 ]`),
 						PatchType: api.JSONPatchType,
 					},

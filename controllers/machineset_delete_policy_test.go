@@ -44,6 +44,28 @@ func TestMachineToDelete(t *testing.T) {
 		Status:     clusterv1.MachineStatus{NodeRef: nodeRef},
 	}
 	deleteMachineWithoutNodeRef := &clusterv1.Machine{}
+	nodeHealthyConditionFalseMachine := &clusterv1.Machine{
+		Status: clusterv1.MachineStatus{
+			NodeRef: nodeRef,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: corev1.ConditionFalse,
+				},
+			},
+		},
+	}
+	nodeHealthyConditionUnknownMachine := &clusterv1.Machine{
+		Status: clusterv1.MachineStatus{
+			NodeRef: nodeRef,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: corev1.ConditionUnknown,
+				},
+			},
+		},
+	}
 
 	tests := []struct {
 		desc     string
@@ -174,6 +196,30 @@ func TestMachineToDelete(t *testing.T) {
 				deleteMachineWithoutNodeRef,
 			},
 		},
+		{
+			desc: "func=randomDeletePolicy, NodeHealthyConditionFalseMachine, diff=1",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				healthyMachine,
+				nodeHealthyConditionFalseMachine,
+				healthyMachine,
+			},
+			expect: []*clusterv1.Machine{
+				nodeHealthyConditionFalseMachine,
+			},
+		},
+		{
+			desc: "func=randomDeletePolicy, NodeHealthyConditionUnknownMachine, diff=1",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				healthyMachine,
+				nodeHealthyConditionUnknownMachine,
+				healthyMachine,
+			},
+			expect: []*clusterv1.Machine{
+				nodeHealthyConditionUnknownMachine,
+			},
+		},
 	}
 
 	for _, test := range tests {
@@ -220,6 +266,30 @@ func TestMachineNewestDelete(t *testing.T) {
 	}
 	deleteMachineWithoutNodeRef := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -1))},
+	}
+	nodeHealthyConditionFalseMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
+		Status: clusterv1.MachineStatus{
+			NodeRef: nodeRef,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: corev1.ConditionFalse,
+				},
+			},
+		},
+	}
+	nodeHealthyConditionUnknownMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
+		Status: clusterv1.MachineStatus{
+			NodeRef: nodeRef,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: corev1.ConditionUnknown,
+				},
+			},
+		},
 	}
 
 	tests := []struct {
@@ -276,6 +346,22 @@ func TestMachineNewestDelete(t *testing.T) {
 			},
 			expect: []*clusterv1.Machine{unhealthyMachine},
 		},
+		{
+			desc: "func=newestDeletePriority, diff=1 (nodeHealthyConditionFalseMachine)",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				secondNewest, oldest, secondOldest, newest, nodeHealthyConditionFalseMachine,
+			},
+			expect: []*clusterv1.Machine{nodeHealthyConditionFalseMachine},
+		},
+		{
+			desc: "func=newestDeletePriority, diff=1 (nodeHealthyConditionUnknownMachine)",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				secondNewest, oldest, secondOldest, newest, nodeHealthyConditionUnknownMachine,
+			},
+			expect: []*clusterv1.Machine{nodeHealthyConditionUnknownMachine},
+		},
 	}
 
 	for _, test := range tests {
@@ -321,6 +407,30 @@ func TestMachineOldestDelete(t *testing.T) {
 	}
 	deleteMachineWithoutNodeRef := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
+	}
+	nodeHealthyConditionFalseMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
+		Status: clusterv1.MachineStatus{
+			NodeRef: nodeRef,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: corev1.ConditionFalse,
+				},
+			},
+		},
+	}
+	nodeHealthyConditionUnknownMachine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{CreationTimestamp: metav1.NewTime(currentTime.Time.AddDate(0, 0, -10))},
+		Status: clusterv1.MachineStatus{
+			NodeRef: nodeRef,
+			Conditions: clusterv1.Conditions{
+				{
+					Type:   clusterv1.MachineNodeHealthyCondition,
+					Status: corev1.ConditionUnknown,
+				},
+			},
+		},
 	}
 
 	tests := []struct {
@@ -385,6 +495,22 @@ func TestMachineOldestDelete(t *testing.T) {
 			},
 			expect: []*clusterv1.Machine{unhealthyMachine},
 		},
+		{
+			desc: "func=oldestDeletePriority, diff=1 (nodeHealthyConditionFalseMachine)",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				empty, secondNewest, oldest, secondOldest, newest, nodeHealthyConditionFalseMachine,
+			},
+			expect: []*clusterv1.Machine{nodeHealthyConditionFalseMachine},
+		},
+		{
+			desc: "func=oldestDeletePriority, diff=1 (nodeHealthyConditionUnknownMachine)",
+			diff: 1,
+			machines: []*clusterv1.Machine{
+				empty, secondNewest, oldest, secondOldest, newest, nodeHealthyConditionUnknownMachine,
+			},
+			expect: []*clusterv1.Machine{nodeHealthyConditionUnknownMachine},
+		},
 	}
 
 	for _, test := range tests {
@@ -392,6 +518,84 @@ func TestMachineOldestDelete(t *testing.T) {
 			g := NewWithT(t)
 
 			result := getMachinesToDeletePrioritized(test.machines, test.diff, oldestDeletePriority)
+			g.Expect(result).To(Equal(test.expect))
+		})
+	}
+}
+
+func TestIsMachineHealthy(t *testing.T) {
+	nodeRef := &corev1.ObjectReference{Name: "some-node"}
+	statusError := capierrors.MachineStatusError("I'm unhealthy!")
+	msg := "something wrong with the machine"
+
+	tests := []struct {
+		desc    string
+		machine *clusterv1.Machine
+		expect  bool
+	}{
+		{
+			desc:    "when it has no NodeRef",
+			machine: &clusterv1.Machine{},
+			expect:  false,
+		},
+		{
+			desc: "when it has a FailureReason",
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{FailureReason: &statusError, NodeRef: nodeRef},
+			},
+			expect: false,
+		},
+		{
+			desc: "when it has a FailureMessage",
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{FailureMessage: &msg, NodeRef: nodeRef},
+			},
+			expect: false,
+		},
+		{
+			desc: "when nodeHealthyCondition is false",
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{
+					NodeRef: nodeRef,
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyCondition,
+							Status: corev1.ConditionFalse,
+						},
+					},
+				},
+			},
+			expect: false,
+		},
+		{
+			desc: "when nodeHealthyCondition is unknown",
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{
+					NodeRef: nodeRef,
+					Conditions: clusterv1.Conditions{
+						{
+							Type:   clusterv1.MachineNodeHealthyCondition,
+							Status: corev1.ConditionUnknown,
+						},
+					},
+				},
+			},
+			expect: false,
+		},
+		{
+			desc: "when all requirements are met for node to be healthy",
+			machine: &clusterv1.Machine{
+				Status: clusterv1.MachineStatus{NodeRef: nodeRef},
+			},
+			expect: true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			g := NewWithT(t)
+
+			result := isMachineHealthy(test.machine)
 			g.Expect(result).To(Equal(test.expect))
 		})
 	}

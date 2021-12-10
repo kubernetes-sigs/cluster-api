@@ -137,7 +137,6 @@ func (r *MachineReconciler) reconcileNode(ctx context.Context, cluster *clusterv
 // if all conditions are unknown,  summarized status = Unknown.
 // (semantically true conditions: NodeMemoryPressure/NodeDiskPressure/NodePIDPressure == false or Ready == true.)
 func summarizeNodeConditions(node *corev1.Node) (corev1.ConditionStatus, string) {
-	// totalNumOfConditionsChecked := 4
 	semanticallyFalseStatus := 0
 	unknownStatus := 0
 

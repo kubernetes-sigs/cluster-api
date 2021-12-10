@@ -104,6 +104,9 @@ func initFlags(fs *pflag.FlagSet) {
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
+	if _, err := os.ReadDir("/tmp/"); err != nil {
+		os.Exit(1)
+	}
 
 	initFlags(pflag.CommandLine)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)

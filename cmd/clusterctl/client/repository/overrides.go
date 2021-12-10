@@ -67,7 +67,7 @@ func newOverride(o *newOverrideInput) Overrider {
 func (o *overrides) Path() string {
 	basepath := filepath.Join(homedir.HomeDir(), config.ConfigFolder, overrideFolder)
 	f, err := o.configVariablesClient.Get(overrideFolderKey)
-	if err == nil && len(strings.TrimSpace(f)) != 0 {
+	if err == nil && strings.TrimSpace(f) != "" {
 		basepath = f
 	}
 

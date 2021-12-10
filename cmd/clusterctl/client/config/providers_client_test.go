@@ -81,9 +81,9 @@ func Test_providers_List(t *testing.T) {
 				configGetter: test.NewFakeReader().
 					WithVar(
 						ProvidersConfigKey,
-						fmt.Sprintf("- name: \"%s\"\n", defaults[0].Name())+
+						fmt.Sprintf("- name: %q\n", defaults[0].Name())+
 							"  url: \"https://zzz/infrastructure-components.yaml\"\n"+
-							fmt.Sprintf("  type: \"%s\"\n", defaults[0].Type()),
+							fmt.Sprintf("  type: %q\n", defaults[0].Type()),
 					),
 			},
 			want:    defaultsWithOverride,

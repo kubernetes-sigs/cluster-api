@@ -64,11 +64,11 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", obj))
 	}
 
-	if cluster.Spec.InfrastructureRef != nil && len(cluster.Spec.InfrastructureRef.Namespace) == 0 {
+	if cluster.Spec.InfrastructureRef != nil && cluster.Spec.InfrastructureRef.Namespace == "" {
 		cluster.Spec.InfrastructureRef.Namespace = cluster.Namespace
 	}
 
-	if cluster.Spec.ControlPlaneRef != nil && len(cluster.Spec.ControlPlaneRef.Namespace) == 0 {
+	if cluster.Spec.ControlPlaneRef != nil && cluster.Spec.ControlPlaneRef.Namespace == "" {
 		cluster.Spec.ControlPlaneRef.Namespace = cluster.Namespace
 	}
 
@@ -181,7 +181,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 	var allErrs field.ErrorList
 
 	// class should be defined.
-	if len(new.Spec.Topology.Class) == 0 {
+	if new.Spec.Topology.Class == "" {
 		allErrs = append(
 			allErrs,
 			field.Required(
@@ -222,7 +222,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, old, new *clusterv
 
 	if old != nil { // On update
 		// Topology or Class can not be added on update.
-		if old.Spec.Topology == nil || len(old.Spec.Topology.Class) == 0 {
+		if old.Spec.Topology == nil || old.Spec.Topology.Class == "" {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(

@@ -191,7 +191,7 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 
 	// Localhost is used on MacOS to avoid Firewall warning popups.
 	host := "localhost"
-	if strings.ToLower(os.Getenv("USE_EXISTING_CLUSTER")) == "true" {
+	if strings.EqualFold(os.Getenv("USE_EXISTING_CLUSTER"), "true") {
 		// 0.0.0.0 is required on Linux when using kind because otherwise the kube-apiserver running in kind
 		// is unable to reach the webhook, because the webhook would be only listening on 127.0.0.1.
 		// Somehow that's not an issue on MacOS.

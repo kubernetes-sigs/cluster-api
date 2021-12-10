@@ -762,7 +762,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 				tempFile, err := os.CreateTemp(dir, "obj")
 				g.Expect(err).NotTo(HaveOccurred())
 
-				_, err = tempFile.Write([]byte(file))
+				_, err = tempFile.WriteString(file)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(tempFile.Close()).To(Succeed())
 			}
@@ -1006,7 +1006,7 @@ func Test_objectMover_restore(t *testing.T) {
 				tempFile, err := os.CreateTemp(dir, "obj")
 				g.Expect(err).NotTo(HaveOccurred())
 
-				_, err = tempFile.Write([]byte(file))
+				_, err = tempFile.WriteString(file)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(tempFile.Close()).To(Succeed())
 			}

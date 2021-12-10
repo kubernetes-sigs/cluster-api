@@ -79,7 +79,7 @@ func convertToObjectRef(namespace, s string) (corev1.ObjectReference, bool, erro
 		return corev1.ObjectReference{}, false, fmt.Errorf("arguments in resource/name form may not have more than one slash")
 	}
 	resource, name := seg[0], seg[1]
-	if len(resource) == 0 || len(name) == 0 {
+	if resource == "" || name == "" {
 		return corev1.ObjectReference{}, false, fmt.Errorf("arguments in resource/name form must have a single resource and name")
 	}
 	return corev1.ObjectReference{

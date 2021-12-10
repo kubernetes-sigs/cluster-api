@@ -48,7 +48,7 @@ func DefaultClusterAPIUserAgent(sourceName string) string {
 
 // adjustSourceName returns the name of the source calling the client.
 func adjustSourceName(c string) string {
-	if len(c) == 0 {
+	if c == "" {
 		return unknowString
 	}
 	return c
@@ -56,7 +56,7 @@ func adjustSourceName(c string) string {
 
 // adjustCommit returns sufficient significant figures of the commit's git hash.
 func adjustCommit(c string) string {
-	if len(c) == 0 {
+	if c == "" {
 		return unknowString
 	}
 	if len(c) > 7 {
@@ -68,7 +68,7 @@ func adjustCommit(c string) string {
 // adjustVersion strips "alpha", "beta", etc. from version in form
 // major.minor.patch-[alpha|beta|etc].
 func adjustVersion(v string) string {
-	if len(v) == 0 {
+	if v == "" {
 		return unknowString
 	}
 	seg := strings.SplitN(v, "-", 2)
@@ -79,7 +79,7 @@ func adjustVersion(v string) string {
 // OS-specific command path for use in User-Agent.
 func adjustCommand(p string) string {
 	// Unlikely, but better than returning "".
-	if len(p) == 0 {
+	if p == "" {
 		return unknowString
 	}
 	return filepath.Base(p)

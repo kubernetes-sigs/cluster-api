@@ -1,8 +1,5 @@
 # -*- mode: Python -*-
 # set defaults
-load("ext://cert_manager", "deploy_cert_manager")
-load("ext://local_output", "local_output")
-
 version_settings(True, ">=0.22.2")
 
 settings = {
@@ -21,11 +18,8 @@ settings.update(read_json(
 
 allow_k8s_contexts(settings.get("allowed_contexts"))
 
-envsubst_cmd = "./hack/tools/bin/envsubst"
-kustomize_cmd = "./hack/tools/bin/kustomize"
-yq_cmd = "./hack/tools/bin/yq"
-os_name = local_output("go env GOOS")
-os_arch = local_output("go env GOARCH")
+os_name = str(local("go env GOOS")).rstrip("\n")
+os_arch = str(local("go env GOARCH")).rstrip("\n")
 
 if settings.get("trigger_mode") == "manual":
     trigger_mode(TRIGGER_MODE_MANUAL)
@@ -47,10 +41,12 @@ providers = {
             "cmd",
             "controllers",
             "errors",
-            "third_party",
-            "util",
             "exp",
             "feature",
+            "internal",
+            "third_party",
+            "util",
+            "webhooks",
         ],
         "label": "CAPI",
     },
@@ -62,6 +58,7 @@ providers = {
             "api",
             "controllers",
             "internal",
+            "types",
             "../../go.mod",
             "../../go.sum",
         ],
@@ -87,11 +84,13 @@ providers = {
             "main.go",
             "../../go.mod",
             "../../go.sum",
+            "../container",
             "api",
             "cloudinit",
             "controllers",
             "docker",
             "exp",
+            "internal",
             "third_party",
         ],
         "additional_docker_helper_commands": "RUN wget -qO- https://dl.k8s.io/v1.21.2/kubernetes-client-linux-{arch}.tar.gz | tar xvz".format(
@@ -103,21 +102,6 @@ COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
         "label": "CAPD",
     },
 }
-
-providersTemplate = """
-apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3
-kind: Provider
-metadata:
-  labels:
-    cluster.x-k8s.io/provider: {}
-    clusterctl.cluster.x-k8s.io: ""
-    clusterctl.cluster.x-k8s.io/core: inventory
-  name: {}
-  namespace: {}
-providerName: {}
-type: {}
-version: v1.1.99
-"""
 
 # Reads a provider's tilt-provider.json file and merges it into the providers map.
 # A list of dictionaries is also supported by enclosing it in brackets []
@@ -191,7 +175,7 @@ def enable_provider(name, debug):
         live_reload_deps.append(context + "/" + d)
 
     # Set up a local_resource build of the provider's manager binary. The provider is expected to have a main.go in
-    # manager_build_path or the main.go must be provided via go_main option. The binary is written to .tiltbuild/manager.
+    # manager_build_path or the main.go must be provided via go_main option. The binary is written to .tiltbuild/bin/manager.
     # TODO @randomvariable: Race detector mode only currently works on x86-64 Linux.
     # Need to switch to building inside Docker when architecture is mismatched
     race_detector_enabled = debug.get("race_detector", False)
@@ -216,7 +200,7 @@ def enable_provider(name, debug):
         cgo_enabled = cgo_enabled,
         arch = os_arch,
     )
-    build_cmd = "{build_env} go build {build_options} -gcflags '{gcflags}' -ldflags '{ldflags}' -o .tiltbuild/manager {go_main}".format(
+    build_cmd = "{build_env} go build {build_options} -gcflags '{gcflags}' -ldflags '{ldflags}' -o .tiltbuild/bin/manager {go_main}".format(
         build_env = build_env,
         build_options = build_options,
         gcflags = gcflags,
@@ -226,7 +210,10 @@ def enable_provider(name, debug):
 
     local_resource(
         label.lower() + "_binary",
-        cmd = "cd " + context + ";mkdir -p .tiltbuild;" + build_cmd,
+        cmd = "cd {context};mkdir -p .tiltbuild/bin;{build_cmd}".format(
+            context = context,
+            build_cmd = build_cmd,
+        ),
         deps = live_reload_deps,
         labels = [label, "ALL.binaries"],
     )
@@ -272,44 +259,24 @@ def enable_provider(name, debug):
 
     docker_build(
         ref = p.get("image"),
-        context = context + "/.tiltbuild/",
+        context = context + "/.tiltbuild/bin/",
         dockerfile_contents = dockerfile_contents,
         target = "tilt",
         entrypoint = entrypoint,
         only = "manager",
         live_update = [
-            sync(context + "/.tiltbuild/manager", "/manager"),
+            sync(context + "/.tiltbuild/bin/manager", "/manager"),
             run("sh /restart.sh"),
         ],
     )
 
     if p.get("kustomize_config", True):
-        # Copy all the substitutions from the user's tilt-settings.json into the environment. Otherwise, the substitutions
-        # are not available and their placeholders will be replaced with the empty string when we call kustomize +
-        # envsubst below.
-        substitutions = settings.get("kustomize_substitutions", {})
-        os.environ.update(substitutions)
-
-        # Apply the kustomized yaml for this provider
-        if debug_port == 0:
-            yaml = str(kustomize_with_envsubst(context + "/config/default", False))
-        else:
-            yaml = str(kustomize_with_envsubst(context + "/config/default", True))
-
-        manifests = decode_yaml_stream(yaml)
-
-        manager_name = find_manager(manifests)
-        print("manager: " + manager_name)
-
-        # Append Provider CR.
-        provider_yaml, provider_object_name = get_provider(manifests)
-        yaml += "\n---\n" + provider_yaml
-
-        k8s_yaml(blob(yaml))
-
+        yaml = read_file("./.tiltbuild/yaml/{}.provider.yaml".format(name))
+        k8s_yaml(yaml)
+        objs = decode_yaml_stream(yaml)
         k8s_resource(
-            workload = manager_name,
-            objects = [provider_object_name],
+            workload = find_object_name(objs, "Deployment"),
+            objects = [find_object_qualified_name(objs, "Provider")],
             new_name = label.lower() + "_controller",
             labels = [label, "ALL.controllers"],
             port_forwards = port_forwards,
@@ -317,38 +284,17 @@ def enable_provider(name, debug):
             resource_deps = ["provider_crd"],
         )
 
-def find_manager(manifests):
-    for m in manifests:
-        if m["kind"] == "Deployment":
-            return m["metadata"]["name"]
+def find_object_name(objs, kind):
+    for o in objs:
+        if o["kind"] == kind:
+            return o["metadata"]["name"]
     return ""
 
-# This code reimplements cmd/clusterctl/client/repository/components.InventoryObject
-# It takes all required information from the Namespace resource.
-def get_provider(manifests):
-    for m in manifests:
-        if m["kind"] == "Namespace":
-            target_namespace = m["metadata"]["name"]
-            manifest_label = m["metadata"]["labels"]["cluster.x-k8s.io/provider"]
-
-    # Calculate provider type and name from manifest_label.
-    # Examples for manifest labels: "cluster-api", "infrastructure-docker",
-    # "bootstrap-kubeadm", "control-plane-kubeadm"
-    # type is based on the prefix.
-    # name is the manifest label without the provider type prefix.
-    type = "CoreProvider"
-    name = manifest_label
-    if manifest_label.startswith("infrastructure"):
-        type = "InfrastructureProvider"
-        name = manifest_label[len("infrastructure-"):]
-    if manifest_label.startswith("bootstrap"):
-        type = "BootstrapProvider"
-        name = manifest_label[len("bootstrap-"):]
-    if manifest_label.startswith("control-plane"):
-        type = "ControlPlaneProvider"
-        name = manifest_label[len("control-plane-"):]
-
-    return providersTemplate.format(manifest_label, manifest_label, target_namespace, name, type), "{}:Provider:{}".format(manifest_label, target_namespace)
+def find_object_qualified_name(objs, kind):
+    for o in objs:
+        if o["kind"] == kind:
+            return "{}:{}:{}".format(o["metadata"]["name"], kind, o["metadata"]["namespace"])
+    return ""
 
 # Users may define their own Tilt customizations in tilt.d. This directory is excluded from git and these files will
 # not be checked in to version control.
@@ -359,64 +305,82 @@ def include_user_tilt_files():
 
 # Enable core cluster-api plus everything listed in 'enable_providers' in tilt-settings.json
 def enable_providers():
-    local("make kustomize envsubst")
-    user_enable_providers = settings.get("enable_providers", [])
-    union_enable_providers = {k: "" for k in user_enable_providers + always_enable_providers}.keys()
-    for name in union_enable_providers:
+    for name in get_providers():
         enable_provider(name, settings.get("debug").get(name, {}))
 
-def kustomize_with_envsubst(path, enable_debug = False):
-    # We need to ditch leader election, the readiness and liveness probes when debugging, otherwise K8s will restart the pod whenever execution
-    # has paused.
-    if enable_debug:
-        yq_cmd_line = "| {} eval 'del(.. | select(. == \"--leader-elect\")) | del(.. | select(has\"livenessProbe\")).livenessProbe | del(.. | select(has\"readinessProbe\")).readinessProbe' -".format(yq_cmd)
-    else:
-        yq_cmd_line = ""
-    return str(local("{} build {} | {} {}".format(kustomize_cmd, path, envsubst_cmd, yq_cmd_line), quiet = True))
-
-def ensure_yq():
-    if not os.path.exists(yq_cmd):
-        local("make {}".format(yq_cmd))
-
-def ensure_envsubst():
-    if not os.path.exists(envsubst_cmd):
-        local("make {}".format(os.path.abspath(envsubst_cmd)))
-
-def ensure_kustomize():
-    if not os.path.exists(kustomize_cmd):
-        local("make {}".format(os.path.abspath(kustomize_cmd)))
+def get_providers():
+    user_enable_providers = settings.get("enable_providers", [])
+    return {k: "" for k in user_enable_providers + always_enable_providers}.keys()
 
 def deploy_provider_crds():
-    k8s_yaml(blob(str(local("{} build {}".format(kustomize_cmd, "./cmd/clusterctl/config/crd/"), quiet = True))))
-
+    # NOTE: we are applying raw yaml for clusterctl resources (vs delegating this to clusterctl methods) because
+    # it is required to control precedence between creating this CRDs and creating providers.
+    k8s_yaml(read_file("./.tiltbuild/yaml/clusterctl.crd.yaml"))
     k8s_resource(
         objects = ["providers.clusterctl.cluster.x-k8s.io:CustomResourceDefinition:default"],
         new_name = "provider_crd",
     )
 
 def deploy_observability():
-    k8s_yaml(blob(str(local("{} build {}".format(kustomize_cmd, "./hack/observability/"), quiet = True))))
+    k8s_yaml(read_file("./.tiltbuild/yaml/observability.tools.yaml"))
 
     k8s_resource(workload = "promtail", extra_pod_selectors = [{"app": "promtail"}], labels = ["observability"])
     k8s_resource(workload = "loki", extra_pod_selectors = [{"app": "loki"}], labels = ["observability"])
     k8s_resource(workload = "grafana", port_forwards = "3000", extra_pod_selectors = [{"app": "grafana"}], labels = ["observability"])
 
+def prepare_all():
+    allow_k8s_arg = ""
+    if settings.get("allowed_contexts"):
+        if type(settings.get("allowed_contexts")) == "string":
+            allow_k8s_arg = "--allow-k8s-contexts={} ".format(settings.get("allowed_contexts"))
+        if type(settings.get("allowed_contexts")) == "list":
+            for context in settings.get("allowed_contexts"):
+                allow_k8s_arg = allow_k8s_arg + "--allow-k8s-contexts={} ".format(context)
+
+    tools_arg = "--tools kustomize,envsubst "
+    cert_manager_arg = ""
+    if settings.get("deploy_cert_manager"):
+        cert_manager_arg = "--cert-manager "
+
+    # Note: we are creating clusterctl CRDs using kustomize (vs using clusterctl) because we want to create
+    # a dependency between these resources and provider resources.
+    kustomize_build_arg = "--kustomize-builds clusterctl.crd:./cmd/clusterctl/config/crd/ "
+    if settings.get("deploy_observability"):
+        kustomize_build_arg = kustomize_build_arg + "--kustomize-builds observability.tools:./hack/observability/ "
+    providers_arg = ""
+    for name in get_providers():
+        p = providers.get(name)
+        if p.get("kustomize_config", True):
+            context = p.get("context")
+            debug = ""
+            if name in settings.get("debug"):
+                debug = ":debug"
+            providers_arg = providers_arg + "--providers {name}:{context}{debug} ".format(
+                name = name,
+                context = context,
+                debug = debug,
+            )
+
+    cmd = "make tilt-prepare && ./hack/tools/bin/tilt-prepare {allow_k8s_arg}{tools_arg}{cert_manager_arg}{kustomize_build_arg}{providers_arg}".format(
+        allow_k8s_arg = allow_k8s_arg,
+        tools_arg = tools_arg,
+        cert_manager_arg = cert_manager_arg,
+        kustomize_build_arg = kustomize_build_arg,
+        providers_arg = providers_arg,
+    )
+    local(cmd, env = settings.get("kustomize_substitutions", {}))
+
 ##############################
 # Actual work happens here
 ##############################
-
-ensure_yq()
-ensure_envsubst()
-ensure_kustomize()
 
 include_user_tilt_files()
 
 load_provider_tiltfiles()
 
-deploy_provider_crds()
+prepare_all()
 
-if settings.get("deploy_cert_manager"):
-    deploy_cert_manager(version = "v1.5.3")
+deploy_provider_crds()
 
 if settings.get("deploy_observability"):
     deploy_observability()

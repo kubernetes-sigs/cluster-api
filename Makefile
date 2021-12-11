@@ -60,8 +60,6 @@ E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
 CAPD_DIR := $(TEST_DIR)/infrastructure/docker
 GO_APIDIFF_BIN := $(BIN_DIR)/go-apidiff
 GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
-YQ_BIN := $(BIN_DIR)/yq
-YQ :=  $(TOOLS_DIR)/$(YQ_BIN)
 KPROMO_BIN := $(BIN_DIR)/kpromo
 KPROMO :=  $(TOOLS_DIR)/$(KPROMO_BIN)
 ENVSUBST_BIN := $(BIN_DIR)/envsubst
@@ -87,6 +85,7 @@ GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/gotestsum)
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
 CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/conversion-gen)
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/conversion-verifier)
+TILT_PREPARE := $(abspath $(TOOLS_BIN_DIR)/tilt-prepare)
 ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/envsubst)
 
 # clusterctl.
@@ -216,14 +215,14 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 $(CONVERSION_VERIFIER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-verifier sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
 
+$(TILT_PREPARE): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/tilt-prepare sigs.k8s.io/cluster-api/hack/tools/tilt-prepare
+
 $(GO_APIDIFF): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(GO_APIDIFF_BIN) github.com/joelanford/go-apidiff
 
 $(ENVSUBST): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(ENVSUBST_BIN) github.com/drone/envsubst/v2/cmd/envsubst
-
-$(YQ): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(YQ_BIN) github.com/mikefarah/yq/v4
 
 $(KPROMO): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(KPROMO_BIN) sigs.k8s.io/promo-tools/v3/cmd/kpromo
@@ -242,8 +241,8 @@ setup-envtest: $(SETUP_ENVTEST) ## Build a local copy of setup-envtest.
 controller-gen: $(CONTROLLER_GEN) ## Build a local copy of controller-gen.
 conversion-gen: $(CONVERSION_GEN) ## Build a local copy of conversion-gen.
 conversion-verifier: $(CONVERSION_VERIFIER) ## Build a local copy of conversion-verifier.
+tilt-prepare: $(TILT_PREPARE) ## Build a local copy of tilt-prepare.
 gotestsum: $(GOTESTSUM) ## Build a local copy of gotestsum.
-yq: $(YQ)  ## Build a local copy of yq.
 kpromo: $(KPROMO)  ## Build a local copy of kpromo.
 
 .PHONY: e2e-framework

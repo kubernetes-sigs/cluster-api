@@ -1,9 +1,0 @@
-load('../Tiltfile', 'local_output')
-
-s = local_output('echo abc')
-s += local_output('echo def')
-
-print(s)
-
-# since tilt ci requires a resource
-local_resource('dummy', 'echo dummy')

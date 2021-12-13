@@ -22,6 +22,7 @@ import (
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -64,6 +65,9 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 		{
 			name: "pass for schema validation with enum & default",
 			schema: &clusterv1.JSONSchemaProps{
+				Example: &apiextensionsv1.JSON{
+					Raw: []byte(`"defaultValue"`),
+				},
 				Default: &apiextensionsv1.JSON{
 					Raw: []byte(`"defaultValue"`),
 				},
@@ -74,6 +78,7 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 			},
 			want: &apiextensions.JSONSchemaProps{
 				Default: &defaultJSON,
+				Example: &defaultJSON,
 				Enum: []apiextensions.JSON{
 					`enumValue1`,
 					`enumValue2`,
@@ -146,9 +151,11 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := convertToAPIExtensionsJSONSchemaProps(tt.schema)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("convertToAPIExtensionsJSONSchemaProps() error = %v, wantErr %v", err, tt.wantErr)
+			got, errs := convertToAPIExtensionsJSONSchemaProps(tt.schema, field.NewPath(""))
+			if tt.wantErr {
+				if len(errs) == 0 {
+					t.Errorf("convertToAPIExtensionsJSONSchemaProps() error = %v, wantErr %v", errs, tt.wantErr)
+				}
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {

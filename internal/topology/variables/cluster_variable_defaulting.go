@@ -91,10 +91,10 @@ func defaultClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterC
 	}
 
 	// Convert schema to Kubernetes APIExtensions schema.
-	apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(&clusterClassVariable.Schema.OpenAPIV3Schema)
-	if err != nil {
+	apiExtensionsSchema, errs := convertToAPIExtensionsJSONSchemaProps(&clusterClassVariable.Schema.OpenAPIV3Schema, field.NewPath("schema"))
+	if len(errs) > 0 {
 		return nil, field.ErrorList{field.Invalid(fldPath, "",
-			fmt.Sprintf("invalid schema in ClusterClass for variable %q: error to convert schema %v", clusterVariable.Name, err))}
+			fmt.Sprintf("invalid schema in ClusterClass for variable %q: error to convert schema %v", clusterClassVariable.Name, errs))}
 	}
 
 	var value interface{}

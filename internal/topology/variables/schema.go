@@ -17,9 +17,12 @@ limitations under the License.
 package variables
 
 import (
-	"github.com/pkg/errors"
+	"encoding/json"
+	"fmt"
+
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -27,8 +30,10 @@ import (
 // convertToAPIExtensionsJSONSchemaProps converts a clusterv1.JSONSchemaProps to apiextensions.JSONSchemaProp.
 // NOTE: This is used whenever we want to use one of the upstream libraries, as they use apiextensions.JSONSchemaProp.
 // NOTE: If new fields are added to clusterv1.JSONSchemaProps (e.g. to support complex types), the corresponding
-// schema validation must be added to validateSchema too.
-func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps) (*apiextensions.JSONSchemaProps, error) {
+// schema validation must be added to validateRootSchema too.
+func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fldPath *field.Path) (*apiextensions.JSONSchemaProps, field.ErrorList) {
+	var allErrs field.ErrorList
+
 	props := &apiextensions.JSONSchemaProps{
 		Type:             schema.Type,
 		Required:         schema.Required,
@@ -43,48 +48,62 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps) (*
 		ExclusiveMinimum: schema.ExclusiveMinimum,
 	}
 
-	if len(schema.Properties) > 0 {
-		props.Properties = map[string]apiextensions.JSONSchemaProps{}
-		for propertyName, propertySchema := range schema.Properties {
-			p := propertySchema
-			apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(&p)
+	if schema.Default != nil && schema.Default.Raw != nil {
+		var v interface{}
+		if err := json.Unmarshal(schema.Default.Raw, &v); err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("default"), string(schema.Default.Raw),
+				fmt.Sprintf("default is not valid JSON: %v", err)))
+		} else {
+			var v apiextensions.JSON
+			err := apiextensionsv1.Convert_v1_JSON_To_apiextensions_JSON(schema.Default, &v, nil)
 			if err != nil {
-				return nil, errors.Wrapf(err, "failed to convert schema of property %q", propertyName)
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("default"), string(schema.Default.Raw),
+					fmt.Sprintf("failed to convert default: %v", err)))
+			} else {
+				props.Default = &v
 			}
-			props.Properties[propertyName] = *apiExtensionsSchema
 		}
-	}
-
-	if schema.Items != nil {
-		apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(schema.Items)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to convert schema of items")
-		}
-		props.Items = &apiextensions.JSONSchemaPropsOrArray{
-			Schema: apiExtensionsSchema,
-		}
-	}
-
-	if schema.Default != nil {
-		var v apiextensions.JSON
-		err := apiextensionsv1.Convert_v1_JSON_To_apiextensions_JSON(schema.Default, &v, nil)
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed to convert default value %q", string(schema.Default.Raw))
-		}
-		props.Default = &v
 	}
 
 	if len(schema.Enum) > 0 {
-		for i := range schema.Enum {
-			var v apiextensions.JSON
-			err := apiextensionsv1.Convert_v1_JSON_To_apiextensions_JSON(&schema.Enum[i], &v, nil)
-			if err != nil {
-				return nil, errors.Wrapf(err, "failed to convert enum value %q", string(schema.Enum[i].Raw))
+		for i, enum := range schema.Enum {
+			if enum.Raw == nil {
+				continue
 			}
-			props.Enum = append(props.Enum, v)
+
+			var v interface{}
+			if err := json.Unmarshal(enum.Raw, &v); err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("enum").Index(i), string(enum.Raw),
+					fmt.Sprintf("enum value is not valid JSON: %v", err)))
+			} else {
+				var v apiextensions.JSON
+				err := apiextensionsv1.Convert_v1_JSON_To_apiextensions_JSON(&schema.Enum[i], &v, nil)
+				if err != nil {
+					allErrs = append(allErrs, field.Invalid(fldPath.Child("enum").Index(i), string(enum.Raw),
+						fmt.Sprintf("failed to convert enum value: %v", err)))
+				} else {
+					props.Enum = append(props.Enum, v)
+				}
+			}
 		}
 	}
 
+	if schema.Example != nil && schema.Example.Raw != nil {
+		var v interface{}
+		if err := json.Unmarshal(schema.Example.Raw, &v); err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("example"), string(schema.Example.Raw),
+				fmt.Sprintf("example is not valid JSON: %v", err)))
+		} else {
+			var value apiextensions.JSON
+			err := apiextensionsv1.Convert_v1_JSON_To_apiextensions_JSON(schema.Example, &value, nil)
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("example"), string(schema.Example.Raw),
+					fmt.Sprintf("failed to convert example value: %v", err)))
+			} else {
+				props.Example = &value
+			}
+		}
+	}
 	if schema.Maximum != nil {
 		f := float64(*schema.Maximum)
 		props.Maximum = &f
@@ -95,5 +114,31 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps) (*
 		props.Minimum = &f
 	}
 
-	return props, nil
+	if len(schema.Properties) > 0 {
+		props.Properties = map[string]apiextensions.JSONSchemaProps{}
+		for propertyName, propertySchema := range schema.Properties {
+			p := propertySchema
+			apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(&p, fldPath.Child("properties").Key(propertyName))
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("properties").Key(propertyName), "",
+					fmt.Sprintf("failed to convert schema: %v", err)))
+			} else {
+				props.Properties[propertyName] = *apiExtensionsSchema
+			}
+		}
+	}
+
+	if schema.Items != nil {
+		apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(schema.Items, fldPath.Child("items"))
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("items"), "",
+				fmt.Sprintf("failed to convert schema: %v", err)))
+		} else {
+			props.Items = &apiextensions.JSONSchemaPropsOrArray{
+				Schema: apiExtensionsSchema,
+			}
+		}
+	}
+
+	return props, allErrs
 }

@@ -199,6 +199,7 @@ providers.
 |CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure         |
 |CAPO          | cluster.x-k8s.io/provider=infrastructure-openstack     |
 |CAPDO         | cluster.x-k8s.io/provider=infrastructure-digitalocean  |
+|CAPG          | cluster.x-k8s.io/provider=infrastructure-gcp           |
 
 ### Workload cluster templates
 

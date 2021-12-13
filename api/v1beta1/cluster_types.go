@@ -143,6 +143,11 @@ type MachineDeploymentTopology struct {
 	// the values are hashed together.
 	Name string `json:"name"`
 
+	// FailureDomain is the failure domain the machines will be created in.
+	// Must match a key in the FailureDomains map stored on the cluster object.
+	// +optional
+	FailureDomain *string `json:"failureDomain,omitempty"`
+
 	// Replicas is the number of worker nodes belonging to this set.
 	// If the value is nil, the MachineDeployment is created without the number of Replicas (defaulting to zero)
 	// and it's assumed that an external entity (like cluster autoscaler) is responsible for the management

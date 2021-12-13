@@ -62,15 +62,26 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 	case err != nil:
 		log.Error(err, "Failed to acquire lock")
 		return false
-	default: // successfully found an existing config map
+	default: // Successfully found an existing config map.
 		info, err := sema.information()
 		if err != nil {
 			log.Error(err, "Failed to get information about the existing lock")
 			return false
 		}
-		// the machine requesting the lock is the machine that created the lock, therefore the lock is acquired
+		// The machine requesting the lock is the machine that created the lock, therefore the lock is acquired.
 		if info.MachineName == machine.Name {
 			return true
+		}
+
+		// If the machine that created the lock can not be found unlock the mutex.
+		if err := c.client.Get(ctx, client.ObjectKey{
+			Namespace: cluster.Namespace,
+			Name:      info.MachineName,
+		}, &clusterv1.Machine{}); err != nil {
+			log.Error(err, "Failed to get machine holding ControlPlane lock")
+			if apierrors.IsNotFound(err) {
+				c.Unlock(ctx, cluster)
+			}
 		}
 		log.Info("Waiting on another machine to initialize", "init-machine", info.MachineName)
 		return false

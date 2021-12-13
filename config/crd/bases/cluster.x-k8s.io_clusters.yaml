@@ -922,6 +922,11 @@ spec:
                                 ClusterClass object mentioned in the `Cluster.Spec.Class`
                                 field.
                               type: string
+                            failureDomain:
+                              description: FailureDomain is the failure domain the
+                                machines will be created in. Must match a key in the
+                                FailureDomains map stored on the cluster object.
+                              type: string
                             metadata:
                               description: Metadata is the metadata applied to the
                                 machines of the MachineDeployment. At runtime this

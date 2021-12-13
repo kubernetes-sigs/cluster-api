@@ -435,6 +435,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 					Version:           pointer.String(version),
 					Bootstrap:         clusterv1.Bootstrap{ConfigRef: contract.ObjToRef(desiredMachineDeployment.BootstrapTemplate)},
 					InfrastructureRef: *contract.ObjToRef(desiredMachineDeployment.InfrastructureMachineTemplate),
+					FailureDomain:     machineDeploymentTopology.FailureDomain,
 				},
 			},
 		},

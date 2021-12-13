@@ -897,6 +897,11 @@ func (in *MachineDeploymentStrategy) DeepCopy() *MachineDeploymentStrategy {
 func (in *MachineDeploymentTopology) DeepCopyInto(out *MachineDeploymentTopology) {
 	*out = *in
 	in.Metadata.DeepCopyInto(&out.Metadata)
+	if in.FailureDomain != nil {
+		in, out := &in.FailureDomain, &out.FailureDomain
+		*out = new(string)
+		**out = **in
+	}
 	if in.Replicas != nil {
 		in, out := &in.Replicas, &out.Replicas
 		*out = new(int32)

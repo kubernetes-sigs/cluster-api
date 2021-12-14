@@ -96,7 +96,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g := NewWithT(t)
 
 		m := getDeletingMachine(ns.Name, "m1-unhealthy-deleting-", withMachineHealthCheckFailed())
-		conditions.MarkFalse(m, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
+		conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
 		conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 		controlPlane := &internal.ControlPlane{
 			KCP:      &controlplanev1.KubeadmControlPlane{},
@@ -781,14 +781,14 @@ type machineOption func(*clusterv1.Machine)
 
 func withMachineHealthCheckFailed() machineOption {
 	return func(machine *clusterv1.Machine) {
-		conditions.MarkFalse(machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
+		conditions.MarkFalse(machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
 		conditions.MarkFalse(machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 	}
 }
 
 func withStuckRemediation() machineOption {
 	return func(machine *clusterv1.Machine) {
-		conditions.MarkTrue(machine, clusterv1.MachineHealthCheckSuccededCondition)
+		conditions.MarkTrue(machine, clusterv1.MachineHealthCheckSucceededCondition)
 		conditions.MarkFalse(machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 	}
 }

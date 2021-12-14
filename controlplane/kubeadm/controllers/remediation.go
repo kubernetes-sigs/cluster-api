@@ -44,7 +44,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	errList := []error{}
 	healthyMachines := controlPlane.HealthyMachines()
 	for _, m := range healthyMachines {
-		if conditions.IsTrue(m, clusterv1.MachineHealthCheckSuccededCondition) &&
+		if conditions.IsTrue(m, clusterv1.MachineHealthCheckSucceededCondition) &&
 			conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition) &&
 			m.DeletionTimestamp.IsZero() {
 			patchHelper, err := patch.NewHelper(m, r.Client)

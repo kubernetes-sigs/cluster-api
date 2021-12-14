@@ -845,14 +845,14 @@ func TestMachineConditions(t *testing.T) {
 			bootstrapReady: true,
 			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
 				// since these conditions are set by an external controller
-				conditions.MarkTrue(m, clusterv1.MachineHealthCheckSuccededCondition)
+				conditions.MarkTrue(m, clusterv1.MachineHealthCheckSucceededCondition)
 				conditions.MarkTrue(m, clusterv1.MachineOwnerRemediatedCondition)
 			},
 			conditionsToAssert: []*clusterv1.Condition{
 				conditions.TrueCondition(clusterv1.InfrastructureReadyCondition),
 				conditions.TrueCondition(clusterv1.BootstrapReadyCondition),
 				conditions.TrueCondition(clusterv1.MachineOwnerRemediatedCondition),
-				conditions.TrueCondition(clusterv1.MachineHealthCheckSuccededCondition),
+				conditions.TrueCondition(clusterv1.MachineHealthCheckSucceededCondition),
 				conditions.TrueCondition(clusterv1.ReadyCondition),
 			},
 		},
@@ -936,7 +936,7 @@ func TestMachineConditions(t *testing.T) {
 			infraReady:     true,
 			bootstrapReady: true,
 			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
-				conditions.MarkFalse(m, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
+				conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
 			},
 			conditionsToAssert: []*clusterv1.Condition{
 				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, ""),

@@ -26,14 +26,14 @@ const (
 
 // Common ConditionReason used by Cluster API objects.
 const (
-	// DeletingReason (Severity=Info) documents an condition not in Status=True because the underlying object it is currently being deleted.
+	// DeletingReason (Severity=Info) documents a condition not in Status=True because the underlying object it is currently being deleted.
 	DeletingReason = "Deleting"
 
-	// DeletionFailedReason (Severity=Warning) documents an condition not in Status=True because the underlying object
+	// DeletionFailedReason (Severity=Warning) documents a condition not in Status=True because the underlying object
 	// encountered problems during deletion. This is a warning because the reconciler will retry deletion.
 	DeletionFailedReason = "DeletionFailed"
 
-	// DeletedReason (Severity=Info) documents an condition not in Status=True because the underlying object was deleted.
+	// DeletedReason (Severity=Info) documents a condition not in Status=True because the underlying object was deleted.
 	DeletedReason = "Deleted"
 
 	// IncorrectExternalRefReason (Severity=Error) documents a CAPI object with an incorrect external object reference.
@@ -75,7 +75,7 @@ const (
 	// ControlPlaneReadyCondition reports the ready condition from the control plane object defined for this cluster.
 	// This condition is mirrored from the Ready condition in the control plane ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
-	// the control plane provider does not not implements the Ready condition yet.
+	// the control plane provider does not implement the Ready condition yet.
 	ControlPlaneReadyCondition ConditionType = "ControlPlaneReady"
 
 	// WaitingForControlPlaneFallbackReason (Severity=Info) documents a cluster waiting for the control plane
@@ -258,7 +258,7 @@ const (
 	// the managed objects of the Cluster.
 	// Status false means that for any reason, the values defined in Cluster.spec.topology are not yet applied to
 	// managed objects on the Cluster; status true means that Cluster.spec.topology have been applied to
-	// objects in the Cluster (but this does not imply those objects are already reconciled to the spec provided).
+	// the objects in the Cluster (but this does not imply those objects are already reconciled to the spec provided).
 	TopologyReconciledCondition ConditionType = "TopologyReconciled"
 
 	// TopologyReconcileFailedReason (Severity=Error) documents the reconciliation of a Cluster topology

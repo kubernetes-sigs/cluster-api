@@ -228,6 +228,13 @@ func TestMachineSetReconciler(t *testing.T) {
 			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
 			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the infrastructure template ones")
 			g.Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
+			hasMSOwnerRef := false
+			for _, o := range im.GetOwnerReferences() {
+				if o.Kind == machineSetKind.Kind {
+					hasMSOwnerRef = true
+				}
+			}
+			g.Expect(hasMSOwnerRef).To(BeTrue(), "have ownerRef to MachineSet")
 		}
 
 		t.Log("Creating a BootstrapConfig for each Machine")
@@ -244,6 +251,13 @@ func TestMachineSetReconciler(t *testing.T) {
 			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("annotation-1", "true"), "have annotations of MachineTemplate applied")
 			g.Expect(im.GetAnnotations()).To(HaveKeyWithValue("precedence", "MachineSet"), "the annotations from the MachineSpec template to overwrite the bootstrap config template ones")
 			g.Expect(im.GetLabels()).To(HaveKeyWithValue("label-1", "true"), "have labels of MachineTemplate applied")
+			hasMSOwnerRef := false
+			for _, o := range im.GetOwnerReferences() {
+				if o.Kind == machineSetKind.Kind {
+					hasMSOwnerRef = true
+				}
+			}
+			g.Expect(hasMSOwnerRef).To(BeTrue(), "have ownerRef to MachineSet")
 		}
 
 		// Set the infrastructure reference as ready.
@@ -527,7 +541,7 @@ func TestMachineSetToMachines(t *testing.T) {
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					Name:       "Owner",
-					Kind:       "MachineSet",
+					Kind:       machineSetKind.Kind,
 					Controller: &controller,
 				},
 			},
@@ -608,7 +622,7 @@ func TestShouldExcludeMachine(t *testing.T) {
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Name:       "Owner",
-							Kind:       "MachineSet",
+							Kind:       machineSetKind.Kind,
 							Controller: &controller,
 							UID:        "not-1",
 						},
@@ -628,7 +642,7 @@ func TestShouldExcludeMachine(t *testing.T) {
 					OwnerReferences: []metav1.OwnerReference{
 						{
 							Name:       "Owner",
-							Kind:       "MachineSet",
+							Kind:       machineSetKind.Kind,
 							Controller: &controller,
 							UID:        "1",
 						},
@@ -709,7 +723,7 @@ func TestAdoptOrphan(t *testing.T) {
 			expected: []metav1.OwnerReference{
 				{
 					APIVersion:         clusterv1.GroupVersion.String(),
-					Kind:               "MachineSet",
+					Kind:               machineSetKind.Kind,
 					Name:               "adoptOrphanMachine",
 					UID:                "",
 					Controller:         &controller,

@@ -19,7 +19,9 @@ package cluster
 import (
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -225,7 +227,8 @@ func TestComputeControlPlane(t *testing.T) {
 		Build()
 	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
 		WithControlPlaneMetadata(labels, annotations).
-		WithControlPlaneTemplate(controlPlaneTemplate).Build()
+		WithControlPlaneTemplate(controlPlaneTemplate).
+		Build()
 	// TODO: Replace with object builder.
 	// current cluster objects
 	version := "v1.21.2"
@@ -682,11 +685,29 @@ func TestComputeMachineDeployment(t *testing.T) {
 	labels := map[string]string{"fizz": "buzz", "foo": "bar"}
 	annotations := map[string]string{"annotation-1": "annotation-1-val"}
 
+	unhealthyConditions := []clusterv1.UnhealthyCondition{
+		{
+			Type:    corev1.NodeReady,
+			Status:  corev1.ConditionUnknown,
+			Timeout: metav1.Duration{Duration: 5 * time.Minute},
+		},
+		{
+			Type:    corev1.NodeReady,
+			Status:  corev1.ConditionFalse,
+			Timeout: metav1.Duration{Duration: 5 * time.Minute},
+		},
+	}
+	nodeTimeoutDuration := &metav1.Duration{Duration: time.Duration(1)}
+
 	md1 := builder.MachineDeploymentClass("linux-worker").
 		WithLabels(labels).
 		WithAnnotations(annotations).
 		WithInfrastructureTemplate(workerInfrastructureMachineTemplate).
 		WithBootstrapTemplate(workerBootstrapTemplate).
+		WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
+			UnhealthyConditions: unhealthyConditions,
+			NodeStartupTimeout:  nodeTimeoutDuration,
+		}).
 		Build()
 	mcds := []clusterv1.MachineDeploymentClass{*md1}
 	fakeClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -717,6 +738,11 @@ func TestComputeMachineDeployment(t *testing.T) {
 				},
 				BootstrapTemplate:             workerBootstrapTemplate,
 				InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+				MachineHealthCheck: &clusterv1.MachineHealthCheckClass{
+					UnhealthyConditions: unhealthyConditions,
+					NodeStartupTimeout: &metav1.Duration{
+						Duration: time.Duration(1)},
+				},
 			},
 		},
 	}
@@ -959,6 +985,31 @@ func TestComputeMachineDeployment(t *testing.T) {
 				g.Expect(*obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
 			})
 		}
+	})
+
+	t.Run("Should correctly generate a MachineHealthCheck for the MachineDeployment", func(t *testing.T) {
+		g := NewWithT(t)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+		mdTopology := clusterv1.MachineDeploymentTopology{
+			Class: "linux-worker",
+			Name:  "big-pool-of-machines",
+		}
+
+		actual, err := computeMachineDeployment(ctx, scope, nil, mdTopology)
+		g.Expect(err).To(BeNil())
+		// Check that the ClusterName and selector are set properly for the MachineHealthCheck.
+		g.Expect(actual.MachineHealthCheck.Spec.ClusterName).To(Equal(cluster.Name))
+		g.Expect(actual.MachineHealthCheck.Spec.Selector).To(Equal(metav1.LabelSelector{MatchLabels: map[string]string{
+			clusterv1.ClusterTopologyOwnedLabel:                 actual.Object.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyOwnedLabel],
+			clusterv1.ClusterTopologyMachineDeploymentLabelName: actual.Object.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName],
+		}}))
+
+		// Check that the NodeStartupTime is set as expected.
+		g.Expect(actual.MachineHealthCheck.Spec.NodeStartupTimeout).To(Equal(nodeTimeoutDuration))
+
+		// Check that UnhealthyConditions are set as expected.
+		g.Expect(actual.MachineHealthCheck.Spec.UnhealthyConditions).To(Equal(unhealthyConditions))
 	})
 }
 
@@ -1375,5 +1426,68 @@ func TestMergeMap(t *testing.T) {
 
 		m := mergeMap(map[string]string{}, map[string]string{})
 		g.Expect(m).To(BeNil())
+	})
+}
+
+func Test_computeMachineHealthCheck(t *testing.T) {
+	mhcSpec := &clusterv1.MachineHealthCheckClass{
+		UnhealthyConditions: []clusterv1.UnhealthyCondition{
+			{
+				Type:    corev1.NodeReady,
+				Status:  corev1.ConditionUnknown,
+				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+			},
+			{
+				Type:    corev1.NodeReady,
+				Status:  corev1.ConditionFalse,
+				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+			},
+		},
+		NodeStartupTimeout: &metav1.Duration{
+			Duration: time.Duration(1)},
+	}
+
+	selector := &metav1.LabelSelector{MatchLabels: map[string]string{
+		"foo": "bar",
+	}}
+	healthCheckTarget := builder.MachineDeployment("ns1", "md1").Build()
+	clusterName := "cluster1"
+	want := &clusterv1.MachineHealthCheck{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       clusterv1.GroupVersion.WithKind("MachineHealthCheck").Kind,
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "md1",
+			Namespace: "ns1",
+		},
+		Spec: clusterv1.MachineHealthCheckSpec{
+			ClusterName: "cluster1",
+			Selector: metav1.LabelSelector{MatchLabels: map[string]string{
+				"foo": "bar",
+			}},
+			UnhealthyConditions: []clusterv1.UnhealthyCondition{
+				{
+					Type:    corev1.NodeReady,
+					Status:  corev1.ConditionUnknown,
+					Timeout: metav1.Duration{Duration: 5 * time.Minute},
+				},
+				{
+					Type:    corev1.NodeReady,
+					Status:  corev1.ConditionFalse,
+					Timeout: metav1.Duration{Duration: 5 * time.Minute},
+				},
+			},
+			NodeStartupTimeout: &metav1.Duration{
+				Duration: time.Duration(1)},
+		},
+	}
+
+	t.Run("set all fields correctly", func(t *testing.T) {
+		g := NewWithT(t)
+
+		got := computeMachineHealthCheck(healthCheckTarget, selector, clusterName, mhcSpec)
+
+		g.Expect(got).To(Equal(want), cmp.Diff(got, want))
 	})
 }

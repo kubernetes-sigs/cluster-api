@@ -18,6 +18,7 @@ package webhooks
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -617,6 +618,109 @@ func TestClusterClassValidation(t *testing.T) {
 							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
 						WithBootstrapTemplate(
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "create pass if valid machineHealthCheck defined for ControlPlane with MachineInfrastructure set",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
+					UnhealthyConditions: []clusterv1.UnhealthyCondition{
+						{
+							Type:    corev1.NodeReady,
+							Status:  corev1.ConditionUnknown,
+							Timeout: metav1.Duration{Duration: 5 * time.Minute},
+						},
+					},
+					NodeStartupTimeout: &metav1.Duration{
+						Duration: time.Duration(1)}}).
+				Build(),
+		},
+		{
+			name: "create fail if MachineHealthCheck defined for ControlPlane with MachineInfrastructure unset",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				// No ControlPlaneMachineInfrastructure makes this an invalid creation request.
+				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
+					NodeStartupTimeout: &metav1.Duration{
+						Duration: time.Duration(1)}}).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "create fail if ControlPlane MachineHealthCheck does not define UnhealthyConditions",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
+					NodeStartupTimeout: &metav1.Duration{
+						Duration: time.Duration(1)}}).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "create pass if MachineDeployment MachineHealthCheck is valid",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
+							UnhealthyConditions: []clusterv1.UnhealthyCondition{
+								{
+									Type:    corev1.NodeReady,
+									Status:  corev1.ConditionUnknown,
+									Timeout: metav1.Duration{Duration: 5 * time.Minute},
+								},
+							},
+							NodeStartupTimeout: &metav1.Duration{
+								Duration: time.Duration(1)}}).
+						Build()).
+				Build(),
+		},
+		{
+			name: "create fail if MachineDeployment MachineHealthCheck does not define UnhealthyConditions",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
+							NodeStartupTimeout: &metav1.Duration{
+								Duration: time.Duration(1)}}).
 						Build()).
 				Build(),
 			expectErr: true,

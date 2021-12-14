@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/mergepatch"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
@@ -229,7 +230,110 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 		return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: s.Desired.ControlPlane.Object})
 	}
 
+	// If the ControlPlane has defined a current or desired MachineHealthCheck attempt to reconcile it.
+	if s.Desired.ControlPlane.MachineHealthCheck != nil || s.Current.ControlPlane.MachineHealthCheck != nil {
+		// Set the ControlPlane Object and the Cluster as owners for the MachineHealthCheck to ensure object garbage collection
+		// in case something happens before the MHC sets ownership to the Cluster.
+		if s.Desired.ControlPlane.MachineHealthCheck != nil {
+			s.Desired.ControlPlane.MachineHealthCheck.SetOwnerReferences([]metav1.OwnerReference{
+				*ownerReferenceTo(s.Desired.ControlPlane.Object),
+			})
+		}
+
+		// Reconcile the current and desired state of the MachineHealthCheck.
+		if err := r.reconcileMachineHealthCheck(ctx, s.Current.ControlPlane.MachineHealthCheck, s.Desired.ControlPlane.MachineHealthCheck); err != nil {
+			return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: s.Desired.ControlPlane.MachineHealthCheck})
+		}
+	}
 	return nil
+}
+
+// reconcileMachineHealthCheck creates, updates, deletes or leaves untouched a MachineHealthCheck depending on the difference between the
+// current state and the desired state.
+func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, desired *clusterv1.MachineHealthCheck) error {
+	log := tlog.LoggerFrom(ctx)
+
+	// If a current MachineHealthCheck doesn't exist but there is a desired MachineHealthCheck attempt to create.
+	if current == nil && desired != nil {
+		// First ensure the ownerReferences are valid.
+		refs := []metav1.OwnerReference{}
+		for _, ref := range desired.OwnerReferences {
+			currentRef := ref
+			ownerRef, err := r.resolveOwnerReferenceIfIncomplete(ctx, desired.Namespace, &currentRef)
+			if err != nil {
+				return errors.Wrapf(err, "failed to resolve owner reference %v for %s", ref, tlog.KObj{Obj: desired})
+			}
+			refs = append(refs, *ownerRef)
+		}
+		desired.OwnerReferences = refs
+
+		log.Infof("Creating %s", tlog.KObj{Obj: desired})
+		if err := r.Client.Create(ctx, desired); err != nil {
+			return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: desired})
+		}
+		r.recorder.Eventf(desired, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: desired})
+		return nil
+	}
+
+	// If a current MachineHealthCheck exists but there is no desired MachineHealthCheck attempt to delete.
+	if current != nil && desired == nil {
+		log.Infof("Deleting %s", tlog.KObj{Obj: current})
+		if err := r.Client.Delete(ctx, current); err != nil {
+			// If the object to be deleted is not found don't throw an error.
+			if !apierrors.IsNotFound(err) {
+				return errors.Wrapf(err, "failed to delete %s", tlog.KObj{Obj: current})
+			}
+		}
+		r.recorder.Eventf(current, corev1.EventTypeNormal, deleteEventReason, "Deleted %q", tlog.KObj{Obj: current})
+		return nil
+	}
+
+	ctx, log = log.WithObject(current).Into(ctx)
+
+	// Check differences between current and desired MachineHealthChecks, and patch if required.
+	patchHelper, err := mergepatch.NewHelper(current, desired, r.Client)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: current})
+	}
+	if !patchHelper.HasChanges() {
+		log.V(3).Infof("No changes for %s", tlog.KObj{Obj: current})
+		return nil
+	}
+
+	log.Infof("Patching %s", tlog.KObj{Obj: current})
+	if err := patchHelper.Patch(ctx); err != nil {
+		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: current})
+	}
+	r.recorder.Eventf(current, corev1.EventTypeNormal, updateEventReason, "Updated %q", tlog.KObj{Obj: current})
+	return nil
+}
+
+// resolveOwnerReferenceIfIncomplete checks if an OwnerReferences is valid. If not it attempts to get the referenced object
+// to create a valid ownerReference.
+func (r *Reconciler) resolveOwnerReferenceIfIncomplete(ctx context.Context, namespace string, reference *metav1.OwnerReference) (*metav1.OwnerReference, error) {
+	var owner *unstructured.Unstructured
+	var err error
+
+	// First check that the ownerReference has at least Name Kind and APIVersion defined.
+	if reference.Name == "" || reference.APIVersion == "" || reference.Kind == "" {
+		return nil, errors.Errorf("ownerReference not valid: %v", reference)
+	}
+
+	// If the UID field is not empty this is a fully valid reference and can be returned and used.
+	if reference.UID != "" {
+		return reference, nil
+	}
+
+	// Get the object set an ownerReference for the MachineHealthCheck.
+	owner, err = external.Get(ctx, r.Client, &corev1.ObjectReference{
+		Kind:       reference.Kind,
+		Name:       reference.Name,
+		APIVersion: reference.APIVersion},
+		namespace)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to retrieve %s %q in namespace %q", reference.Kind, reference.Name, namespace)
+	}
+	return ownerReferenceTo(owner), nil
 }
 
 // reconcileCluster reconciles the desired state of the Cluster object.
@@ -285,7 +389,6 @@ func (r *Reconciler) reconcileMachineDeployments(ctx context.Context, s *scope.S
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -316,6 +419,17 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, cluster *clust
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: md.Object})
 
+	// If the MachineDeployment has defined a MachineHealthCheck set the OwnerReference and reconcile it.
+	if md.MachineHealthCheck != nil {
+		// Set the MachineDeployment Object as owner to ensure object garbage collection in case something
+		// happens before the MHC sets ownership to the Cluster.
+		md.MachineHealthCheck.SetOwnerReferences([]metav1.OwnerReference{
+			*ownerReferenceTo(md.Object),
+		})
+		if err := r.reconcileMachineHealthCheck(ctx, nil, md.MachineHealthCheck); err != nil {
+			return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: md.MachineHealthCheck})
+		}
+	}
 	return nil
 }
 
@@ -345,6 +459,13 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, cluster *clust
 		compatibilityChecker: check.ObjectsAreInTheSameNamespace,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: currentMD.Object})
+	}
+
+	// Patch MachineHealthCheck for the MachineDeployment.
+	if desiredMD.MachineHealthCheck != nil || currentMD.MachineHealthCheck != nil {
+		if err := r.reconcileMachineHealthCheck(ctx, currentMD.MachineHealthCheck, desiredMD.MachineHealthCheck); err != nil {
+			return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: desiredMD.MachineHealthCheck})
+		}
 	}
 
 	// Check differences between current and desired MachineDeployment, and eventually patch the current object.
@@ -395,6 +516,12 @@ func logMachineDeploymentVersionChange(current, desired *clusterv1.MachineDeploy
 func (r *Reconciler) deleteMachineDeployment(ctx context.Context, cluster *clusterv1.Cluster, md *scope.MachineDeploymentState) error {
 	log := tlog.LoggerFrom(ctx).WithMachineDeployment(md.Object).WithObject(md.Object)
 
+	// delete MachineHealthCheck for the MachineDeployment.
+	if md.MachineHealthCheck != nil {
+		if err := r.reconcileMachineHealthCheck(ctx, md.MachineHealthCheck, nil); err != nil {
+			return errors.Wrapf(err, "failed to delete %s", tlog.KObj{Obj: md.MachineHealthCheck})
+		}
+	}
 	log.Infof("Deleting %s", tlog.KObj{Obj: md.Object})
 	if err := r.Client.Delete(ctx, md.Object); err != nil && !apierrors.IsNotFound(err) {
 		return errors.Wrapf(err, "failed to delete %s", tlog.KObj{Obj: md.Object})

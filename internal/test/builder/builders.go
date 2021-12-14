@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -197,6 +198,7 @@ type ClusterClassBuilder struct {
 	controlPlaneMetadata                      *clusterv1.ObjectMeta
 	controlPlaneTemplate                      *unstructured.Unstructured
 	controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
+	controlPlaneMHC                           *clusterv1.MachineHealthCheckClass
 	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
 	variables                                 []clusterv1.ClusterClassVariable
 	patches                                   []clusterv1.ClusterClassPatch
@@ -234,6 +236,12 @@ func (c *ClusterClassBuilder) WithControlPlaneMetadata(labels, annotations map[s
 // WithControlPlaneInfrastructureMachineTemplate adds the ControlPlane's InfrastructureMachineTemplate to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithControlPlaneInfrastructureMachineTemplate(t *unstructured.Unstructured) *ClusterClassBuilder {
 	c.controlPlaneInfrastructureMachineTemplate = t
+	return c
+}
+
+// WithControlPlaneMachineHealthCheck adds a MachineHealthCheck for the ControlPlane to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithControlPlaneMachineHealthCheck(mhc *clusterv1.MachineHealthCheckClass) *ClusterClassBuilder {
+	c.controlPlaneMHC = mhc
 	return c
 }
 
@@ -287,6 +295,9 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 			Ref: objToRef(c.controlPlaneTemplate),
 		}
 	}
+	if c.controlPlaneMHC != nil {
+		obj.Spec.ControlPlane.MachineHealthCheck = c.controlPlaneMHC
+	}
 	if c.controlPlaneInfrastructureMachineTemplate != nil {
 		obj.Spec.ControlPlane.MachineInfrastructure = &clusterv1.LocalObjectTemplate{
 			Ref: objToRef(c.controlPlaneInfrastructureMachineTemplate),
@@ -304,6 +315,7 @@ type MachineDeploymentClassBuilder struct {
 	bootstrapTemplate             *unstructured.Unstructured
 	labels                        map[string]string
 	annotations                   map[string]string
+	machineHealthCheckClass       *clusterv1.MachineHealthCheckClass
 }
 
 // MachineDeploymentClass returns a MachineDeploymentClassBuilder with the given name and namespace.
@@ -337,6 +349,12 @@ func (m *MachineDeploymentClassBuilder) WithAnnotations(annotations map[string]s
 	return m
 }
 
+// WithMachineHealthCheckClass sets the MachineHealthCheckClass for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithMachineHealthCheckClass(mhc *clusterv1.MachineHealthCheckClass) *MachineDeploymentClassBuilder {
+	m.machineHealthCheckClass = mhc
+	return m
+}
+
 // Build creates a full MachineDeploymentClass object with the variables passed to the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClass {
 	obj := &clusterv1.MachineDeploymentClass{
@@ -353,6 +371,9 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 	}
 	if m.infrastructureMachineTemplate != nil {
 		obj.Template.Infrastructure.Ref = objToRef(m.infrastructureMachineTemplate)
+	}
+	if m.machineHealthCheckClass != nil {
+		obj.MachineHealthCheck = m.machineHealthCheckClass
 	}
 	return obj
 }
@@ -881,5 +902,76 @@ func setStatusFields(obj *unstructured.Unstructured, fields map[string]interface
 		if err := unstructured.SetNestedField(obj.UnstructuredContent(), v, strings.Split(k, ".")...); err != nil {
 			panic(err)
 		}
+	}
+}
+
+// MachineHealthCheckBuilder holds fields for creating a MachineHealthCheck.
+type MachineHealthCheckBuilder struct {
+	name         string
+	namespace    string
+	ownerRefs    []metav1.OwnerReference
+	selector     metav1.LabelSelector
+	clusterName  string
+	conditions   []clusterv1.UnhealthyCondition
+	maxUnhealthy *intstr.IntOrString
+}
+
+// MachineHealthCheck returns a MachineHealthCheckBuilder with the given name and namespace.
+func MachineHealthCheck(namespace, name string) *MachineHealthCheckBuilder {
+	return &MachineHealthCheckBuilder{
+		name:      name,
+		namespace: namespace,
+	}
+}
+
+// WithSelector adds the selector used to target machines for the MachineHealthCheck.
+func (m *MachineHealthCheckBuilder) WithSelector(selector metav1.LabelSelector) *MachineHealthCheckBuilder {
+	m.selector = selector
+	return m
+}
+
+// WithClusterName adds a cluster name for the MachineHealthCheck.
+func (m *MachineHealthCheckBuilder) WithClusterName(clusterName string) *MachineHealthCheckBuilder {
+	m.clusterName = clusterName
+	return m
+}
+
+// WithUnhealthyConditions adds the spec used to build the parameters of the MachineHealthCheck.
+func (m *MachineHealthCheckBuilder) WithUnhealthyConditions(conditions []clusterv1.UnhealthyCondition) *MachineHealthCheckBuilder {
+	m.conditions = conditions
+	return m
+}
+
+// WithOwnerReferences adds ownerreferences for the MachineHealthCheck.
+func (m *MachineHealthCheckBuilder) WithOwnerReferences(ownerRefs []metav1.OwnerReference) *MachineHealthCheckBuilder {
+	m.ownerRefs = ownerRefs
+	return m
+}
+
+// WithMaxUnhealthy adds a MaxUnhealthyValue for the MachineHealthCheck.
+func (m *MachineHealthCheckBuilder) WithMaxUnhealthy(maxUnhealthy *intstr.IntOrString) *MachineHealthCheckBuilder {
+	m.maxUnhealthy = maxUnhealthy
+	return m
+}
+
+// Build returns a MachineHealthCheck with the supplied details.
+func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
+	// create a MachineHealthCheck with the spec given in the ClusterClass
+	return &clusterv1.MachineHealthCheck{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MachineHealthCheck",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            m.name,
+			Namespace:       m.namespace,
+			OwnerReferences: m.ownerRefs,
+		},
+		Spec: clusterv1.MachineHealthCheckSpec{
+			ClusterName:         m.clusterName,
+			Selector:            m.selector,
+			UnhealthyConditions: m.conditions,
+			MaxUnhealthy:        m.maxUnhealthy,
+		},
 	}
 }

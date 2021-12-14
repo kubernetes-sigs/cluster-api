@@ -366,7 +366,7 @@ func (r *MachineHealthCheckReconciler) patchUnhealthyTargets(ctx context.Context
 	// mark for remediation
 	errList := []error{}
 	for _, t := range unhealthy {
-		condition := conditions.Get(t.Machine, clusterv1.MachineHealthCheckSuccededCondition)
+		condition := conditions.Get(t.Machine, clusterv1.MachineHealthCheckSucceededCondition)
 
 		if annotations.IsPaused(cluster, t.Machine) {
 			logger.Info("Machine has failed health check, but machine is paused so skipping remediation", "target", t.string(), "reason", condition.Reason, "message", condition.Message)

@@ -205,7 +205,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			// Boostrap comes after, but it is relevant only during initial machine provisioning.
 			clusterv1.BootstrapReadyCondition,
 			// MHC reported condition should take precedence over the remediation progress
-			clusterv1.MachineHealthCheckSuccededCondition,
+			clusterv1.MachineHealthCheckSucceededCondition,
 			clusterv1.MachineOwnerRemediatedCondition,
 		),
 		conditions.WithStepCounterIf(machine.ObjectMeta.DeletionTimestamp.IsZero() && machine.Spec.ProviderID == nil),
@@ -224,7 +224,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.BootstrapReadyCondition,
 			clusterv1.InfrastructureReadyCondition,
 			clusterv1.DrainingSucceededCondition,
-			clusterv1.MachineHealthCheckSuccededCondition,
+			clusterv1.MachineHealthCheckSucceededCondition,
 			clusterv1.MachineOwnerRemediatedCondition,
 		}},
 	)

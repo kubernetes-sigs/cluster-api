@@ -153,7 +153,7 @@ func HasUnhealthyCondition(machine *clusterv1.Machine) bool {
 	if machine == nil {
 		return false
 	}
-	return conditions.IsFalse(machine, clusterv1.MachineHealthCheckSuccededCondition) && conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition)
+	return conditions.IsFalse(machine, clusterv1.MachineHealthCheckSucceededCondition) && conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition)
 }
 
 // IsReady returns a filter to find all machines with the ReadyCondition equals to True.

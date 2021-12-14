@@ -121,7 +121,7 @@ func (u *providerUpgrader) Plan() ([]UpgradePlan, error) {
 	// This includes the current contract and the new ones available, if any.
 	contractsForUpgrade := coreUpgradeInfo.getContractsForUpgrade()
 	if len(contractsForUpgrade) == 0 {
-		return nil, errors.Wrapf(err, "invalid metadata: unable to find th API Version of Cluster API (contract) supported by the %s provider", coreProvider.InstanceName())
+		return nil, errors.Wrapf(err, "invalid metadata: unable to find the API Version of Cluster API (contract) supported by the %s provider", coreProvider.InstanceName())
 	}
 
 	// Creates an UpgradePlan for each contract considered for upgrades; each upgrade plans contains

@@ -58,7 +58,7 @@ const (
 	// ControlPlaneReadyCondition reports the ready condition from the control plane object defined for this cluster.
 	// This condition is mirrored from the Ready condition in the control plane ref object, and
 	// the absence of this condition might signal problems in the reconcile external loops or the fact that
-	// the control plane provider does not not implements the Ready condition yet.
+	// the control plane provider does not implement the Ready condition yet.
 	ControlPlaneReadyCondition ConditionType = "ControlPlaneReady"
 
 	// WaitingForControlPlaneFallbackReason (Severity=Info) documents a cluster waiting for the control plane

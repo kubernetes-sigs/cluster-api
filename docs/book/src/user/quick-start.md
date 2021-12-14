@@ -604,12 +604,14 @@ export VSPHERE_RESOURCE_POOL="*/Resources"
 export VSPHERE_FOLDER="vm"
 # The VM template to use for your VMs
 export VSPHERE_TEMPLATE="ubuntu-1804-kube-v1.17.3"
-# The VM template to use for the HAProxy load balancer of the management cluster
-export VSPHERE_HAPROXY_TEMPLATE="capv-haproxy-v0.6.0-rc.2"
 # The public ssh authorized key on all machines
 export VSPHERE_SSH_AUTHORIZED_KEY="ssh-rsa AAAAB3N..."
-
-clusterctl init --infrastructure vsphere
+# The certificate thumbprint for the vCenter server
+export VSPHERE_TLS_THUMBPRINT="97:48:03:8D:78:A9..."
+# The storage policy to be used (optional). Set to "" if not required
+export VSPHERE_STORAGE_POLICY="policy-one"
+# The IP address used for the control plane endpoint
+export CONTROL_PLANE_ENDPOINT_IP="1.2.3.4"
 ```
 
 For more information about prerequisites, credentials management, or permissions for vSphere, see the [vSphere getting started guide].

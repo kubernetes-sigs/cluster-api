@@ -302,6 +302,8 @@ func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckT
 		}
 
 		if t.Machine.DeletionTimestamp.IsZero() && t.Node != nil {
+			// Although the node is already in a healthy state,
+			// it needs to try delete the ExternalRemediation object succeed before it can mark MachineHealthCheckSucceededCondition as True
 			healthy = append(healthy, t)
 		}
 	}

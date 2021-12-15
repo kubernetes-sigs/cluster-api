@@ -309,18 +309,12 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration = new(bootstrapv1.ClusterConfiguration)
 	}
 
-	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = bootstrapv1.Etcd{
-		Local: &bootstrapv1.LocalEtcd{
-			ImageMeta: bootstrapv1.ImageMeta{
-				ImageTag: input.EtcdImageTag,
-			},
-		},
+	if input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local == nil {
+		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = new(bootstrapv1.LocalEtcd)
 	}
-	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
-		ImageMeta: bootstrapv1.ImageMeta{
-			ImageTag: input.DNSImageTag,
-		},
-	}
+
+	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageMeta.ImageTag = input.EtcdImageTag
+	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageMeta.ImageTag = input.DNSImageTag
 
 	Expect(patchHelper.Patch(ctx, input.ControlPlane)).To(Succeed())
 

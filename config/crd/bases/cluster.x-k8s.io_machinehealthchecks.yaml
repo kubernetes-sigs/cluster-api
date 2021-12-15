@@ -723,7 +723,6 @@ spec:
             required:
             - clusterName
             - selector
-            - unhealthyConditions
             type: object
           status:
             description: Most recently observed status of MachineHealthCheck resource

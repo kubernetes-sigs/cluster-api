@@ -18,7 +18,10 @@ package v1beta1
 
 import (
 	"fmt"
+	"log"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -39,6 +42,23 @@ var (
 	minNodeStartupTimeout = metav1.Duration{Duration: 30 * time.Second}
 	// We allow users to disable the nodeStartupTimeout by setting the duration to 0.
 	disabledNodeStartupTimeout = ZeroDuration
+
+	defaultUnhealthyConditions = []UnhealthyCondition{
+		{
+			Type:   corev1.NodeReady,
+			Status: corev1.ConditionUnknown,
+			Timeout: metav1.Duration{
+				Duration: 300 * time.Second,
+			},
+		},
+		{
+			Type:   corev1.NodeReady,
+			Status: corev1.ConditionFalse,
+			Timeout: metav1.Duration{
+				Duration: 300 * time.Second,
+			},
+		},
+	}
 )
 
 // SetMinNodeStartupTimeout allows users to optionally set a custom timeout
@@ -80,6 +100,11 @@ func (m *MachineHealthCheck) Default() {
 
 	if m.Spec.RemediationTemplate != nil && m.Spec.RemediationTemplate.Namespace == "" {
 		m.Spec.RemediationTemplate.Namespace = m.Namespace
+	}
+
+	log.Print("HERES WHAT IT LOOKS LIKE", m.Spec)
+	if m.Spec.UnhealthyConditions == nil || len(m.Spec.UnhealthyConditions) == 0 {
+		m.Spec.UnhealthyConditions = defaultUnhealthyConditions
 	}
 }
 

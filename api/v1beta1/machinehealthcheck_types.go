@@ -38,6 +38,7 @@ type MachineHealthCheckSpec struct {
 	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
 	//
 	// +kubebuilder:validation:MinItems=1
+	// +optional
 	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions"`
 
 	// Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by

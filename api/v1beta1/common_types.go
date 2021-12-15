@@ -29,6 +29,19 @@ const (
 	// ClusterTopologyOwnedLabel is the label set on all the object which are managed as part of a ClusterTopology.
 	ClusterTopologyOwnedLabel = "topology.cluster.x-k8s.io/owned"
 
+	// ClusterTopologyManagedFieldsAnnotation is the annotation used to store the list of paths managed
+	// by the topology controller; changes to those paths will be considered authoritative.
+	// NOTE: Managed field depends on the last reconciliation of a managed object; this list can
+	// change during the lifecycle of an object, depending on how the corresponding template + patch/variable
+	// changes over time.
+	// NOTE: The topology controller is only concerned about managed paths in the spec; given that
+	// we are dropping spec. from the result to reduce verbosity of the generated annotation.
+	// NOTE: Managed paths are relevant only for unstructured objects where it is not possible
+	// to easily discover which fields have been set by templates + patches/variables at a given reconcile;
+	// instead, it is not necessary to store managed paths for typed objets (e.g. Cluster, MachineDeployments)
+	// given that the topology controller explicitly sets a well-known, immutable list of fields at every reconcile.
+	ClusterTopologyManagedFieldsAnnotation = "topology.cluster.x-k8s.io/managed-field-paths"
+
 	// ClusterTopologyMachineDeploymentLabelName is the label set on the generated  MachineDeployment objects
 	// to track the name of the MachineDeployment topology it represents.
 	ClusterTopologyMachineDeploymentLabelName = "topology.cluster.x-k8s.io/deployment-name"

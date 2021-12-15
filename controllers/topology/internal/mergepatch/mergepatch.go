@@ -47,16 +47,20 @@ type Helper struct {
 // NewHelper will return a patch that yields the modified document when applied to the original document.
 // NOTE: patch helper consider changes only in metadata.labels, metadata.annotation and spec.
 // NOTE: In the case of ClusterTopologyReconciler, original is the current object, modified is the desired object, and
-// the patch returns all the changes required to align current to what is defined in desired; fields not defined in desired
-// are going to be preserved without changes.
+// the patch returns all the changes required to align current to what is defined in desired; fields not managed
+// by the topology controller are going to be preserved without changes.
 func NewHelper(original, modified client.Object, c client.Client, opts ...HelperOption) (*Helper, error) {
 	helperOptions := &HelperOptions{}
 	helperOptions = helperOptions.ApplyOptions(opts)
 	helperOptions.allowedPaths = []contract.Path{
 		{"metadata", "labels"},
 		{"metadata", "annotations"},
-		{"spec"},
+		{"spec"}, // NOTE: The handling of managed path requires/assumes spec to be within allowed path.
 	}
+
+	// Infer the list of paths managed by the topology controller in the previous patch operation;
+	// changes to those paths are going to be considered authoritative.
+	helperOptions.managedPaths = getManagedPaths(original)
 
 	// Convert the input objects to json.
 	originalJSON, err := json.Marshal(original)
@@ -64,16 +68,23 @@ func NewHelper(original, modified client.Object, c client.Client, opts ...Helper
 		return nil, errors.Wrap(err, "failed to marshal original object to json")
 	}
 
-	modifiedJSON, err := json.Marshal(modified)
+	// Store the list of paths managed by the topology controller in the current patch operation;
+	// this information will be used by the next patch operation.
+	modifiedWithManagedFieldAnnotation, err := deepCopyWithManagedFieldAnnotation(modified, helperOptions.ignorePaths)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create a copy of object with the managed field annotation")
+	}
+
+	modifiedJSON, err := json.Marshal(modifiedWithManagedFieldAnnotation)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal modified object to json")
 	}
 
 	// Compute the merge patch that will align the original object to the target
-	// state defined above; this patch overrides the two-way merge patch for the
-	// authoritative paths, if any.
+	// state defined above; this patch overrides the two-way merge patch for both the
+	// authoritative and the managed paths, if any.
 	var authoritativePatch []byte
-	if helperOptions.authoritativePaths != nil {
+	if len(helperOptions.authoritativePaths) > 0 || len(helperOptions.managedPaths) > 0 {
 		authoritativePatch, err = jsonpatch.CreateMergePatch(originalJSON, modifiedJSON)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to create merge patch for authoritative paths")
@@ -98,6 +109,7 @@ func NewHelper(original, modified client.Object, c client.Client, opts ...Helper
 	// changes for metadata fields computed by the system or changes to the  status.
 	ret, err := applyPathOptions(&applyPathOptionsInput{
 		authoritativePatch: authoritativePatch,
+		modified:           modifiedJSON,
 		twoWayPatch:        twoWayPatch,
 		options:            helperOptions,
 	})
@@ -116,6 +128,7 @@ func NewHelper(original, modified client.Object, c client.Client, opts ...Helper
 type applyPathOptionsInput struct {
 	authoritativePatch []byte
 	twoWayPatch        []byte
+	modified           []byte
 	options            *HelperOptions
 }
 
@@ -125,7 +138,7 @@ type applyPathOptionsOutput struct {
 }
 
 // applyPathOptions applies all the options acting on path level; currently it removes from the patch diffs not
-// in the allowed paths, filters out path to be ignored and enforce authoritative paths.
+// in the allowed paths, filters out path to be ignored and enforce authoritative and managed paths.
 // It also returns a flag indicating if the resulting patch has spec changes or not.
 func applyPathOptions(in *applyPathOptionsInput) (*applyPathOptionsOutput, error) {
 	twoWayPatchMap := make(map[string]interface{})
@@ -133,18 +146,23 @@ func applyPathOptions(in *applyPathOptionsInput) (*applyPathOptionsOutput, error
 		return nil, errors.Wrap(err, "failed to unmarshal two way merge patch")
 	}
 
-	// Enforce changes from the authoritative patch when required.
+	// Enforce changes from authoritative patch when required (authoritative and managed paths).
 	// This will override instance specific fields for a subset of fields,
 	// e.g. machine template metadata changes should be reflected into generated objects without
 	// accounting for instance specific changes like we do for other maps into spec.
-	if len(in.options.authoritativePaths) > 0 {
+	if len(in.options.authoritativePaths) > 0 || len(in.options.managedPaths) > 0 {
 		authoritativePatchMap := make(map[string]interface{})
 		if err := json.Unmarshal(in.authoritativePatch, &authoritativePatchMap); err != nil {
 			return nil, errors.Wrap(err, "failed to unmarshal authoritative merge patch")
 		}
 
-		for _, path := range in.options.authoritativePaths {
-			enforcePath(authoritativePatchMap, twoWayPatchMap, path)
+		modifiedMap := make(map[string]interface{})
+		if err := json.Unmarshal(in.modified, &modifiedMap); err != nil {
+			return nil, errors.Wrap(err, "failed to unmarshal modified")
+		}
+
+		for _, path := range append(in.options.managedPaths, in.options.authoritativePaths...) {
+			enforcePath(authoritativePatchMap, modifiedMap, twoWayPatchMap, path)
 		}
 	}
 
@@ -240,7 +258,7 @@ func removePath(patchMap map[string]interface{}, path contract.Path) {
 
 // enforcePath enforces a path from authoritativeMap into the twoWayMap thus
 // enforcing changes aligned to the modified object for the authoritative paths.
-func enforcePath(authoritative, twoWay map[string]interface{}, path contract.Path) {
+func enforcePath(authoritative, modified, twoWay map[string]interface{}, path contract.Path) {
 	switch len(path) {
 	case 0:
 		// If path is empty, no-op.
@@ -259,11 +277,30 @@ func enforcePath(authoritative, twoWay map[string]interface{}, path contract.Pat
 
 	default:
 		// If in the middle of a path, go into the nested map,
-		nestedSimpleMap, ok := authoritative[path[0]].(map[string]interface{})
+		var nestedSimpleMap map[string]interface{}
+		switch v, ok := authoritative[path[0]]; {
+		case ok && v == nil:
+			// If the nested map is nil, it means that the authoritative patch is trying to delete a parent object
+			// in the middle of the enforced path.
 
-		// If the value is not a map (is a value or a list), return (not a full match).
-		if !ok {
-			return
+			// If the parent object has been intentionally deleted (the corresponding parent object value in the modified object is null),
+			// then we should enforce the deletion of the parent object including everything below it.
+			if m, ok := modified[path[0]]; ok && m == nil {
+				twoWay[path[0]] = nil
+				return
+			}
+
+			// Otherwise, we continue processing the enforced path, thus deleting only what
+			// is explicitly enforced.
+			nestedSimpleMap = map[string]interface{}{path[1]: nil}
+		default:
+			nestedSimpleMap, ok = v.(map[string]interface{})
+
+			// NOTE: This should never happen given how Unmarshal works
+			// when generating the authoritative, but adding this as an extra safety
+			if !ok {
+				return
+			}
 		}
 
 		// Get the corresponding map in the two-way patch.
@@ -274,8 +311,11 @@ func enforcePath(authoritative, twoWay map[string]interface{}, path contract.Pat
 			twoWay[path[0]] = nestedTwoWayMap
 		}
 
+		// Get the corresponding value in modified.
+		nestedModified, _ := modified[path[0]].(map[string]interface{})
+
 		// Enforce the nested path.
-		enforcePath(nestedSimpleMap, nestedTwoWayMap, path[1:])
+		enforcePath(nestedSimpleMap, nestedModified, nestedTwoWayMap, path[1:])
 
 		// Ensure we are not leaving empty maps around.
 		if len(nestedTwoWayMap) == 0 {

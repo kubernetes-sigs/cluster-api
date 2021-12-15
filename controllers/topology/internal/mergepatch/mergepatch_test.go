@@ -17,11 +17,13 @@ limitations under the License.
 package mergepatch
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 )
 
@@ -41,6 +43,12 @@ func TestNewHelper(t *testing.T) {
 			name: "Field (spec) both in original and in modified, no-op when equal",
 			original: &unstructured.Unstructured{ // current
 				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "foo",
+						},
+					},
 					"spec": map[string]interface{}{
 						"foo": "bar",
 					},
@@ -61,6 +69,12 @@ func TestNewHelper(t *testing.T) {
 			name: "Field both in original and in modified, align to modified when different",
 			original: &unstructured.Unstructured{ // current
 				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "foo",
+						},
+					},
 					"spec": map[string]interface{}{
 						"foo": "bar-changed",
 					},
@@ -84,6 +98,10 @@ func TestNewHelper(t *testing.T) {
 					"metadata": map[string]interface{}{
 						"labels": map[string]interface{}{
 							"foo": "bar-changed",
+						},
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "",
 						},
 					},
 				},
@@ -109,6 +127,10 @@ func TestNewHelper(t *testing.T) {
 						"labels": map[string]interface{}{
 							"a": "a",
 							"b": "b-changed",
+						},
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "",
 						},
 					},
 				},
@@ -136,6 +158,10 @@ func TestNewHelper(t *testing.T) {
 						"labels": map[string]interface{}{
 							"a": "a",
 							"b": "b-changed",
+						},
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "",
 						},
 					},
 				},
@@ -165,6 +191,10 @@ func TestNewHelper(t *testing.T) {
 							"a": "a",
 							"b": "b-changed",
 						},
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "",
+						},
 					},
 				},
 			},
@@ -188,6 +218,12 @@ func TestNewHelper(t *testing.T) {
 			name: "Nested field both in original and in modified, no-op when equal",
 			original: &unstructured.Unstructured{ // current
 				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "template.spec.A",
+						},
+					},
 					"spec": map[string]interface{}{
 						"template": map[string]interface{}{
 							"spec": map[string]interface{}{
@@ -216,6 +252,12 @@ func TestNewHelper(t *testing.T) {
 			name: "Nested field both in original and in modified, align to modified when different",
 			original: &unstructured.Unstructured{ // current
 				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "template.spec.A",
+						},
+					},
 					"spec": map[string]interface{}{
 						"template": map[string]interface{}{
 							"spec": map[string]interface{}{
@@ -244,8 +286,14 @@ func TestNewHelper(t *testing.T) {
 			name: "Value of type map, enforces entries from modified, preserve entries only in original",
 			original: &unstructured.Unstructured{
 				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "map.A, map.C",
+						},
+					},
 					"spec": map[string]interface{}{
-						"map": map[string]string{
+						"map": map[string]interface{}{
 							"A": "A-changed",
 							"B": "B",
 							// C missing
@@ -256,7 +304,7 @@ func TestNewHelper(t *testing.T) {
 			modified: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"spec": map[string]interface{}{
-						"map": map[string]string{
+						"map": map[string]interface{}{
 							"A": "A",
 							// B missing
 							"C": "C",
@@ -272,8 +320,14 @@ func TestNewHelper(t *testing.T) {
 			name: "Value of type map, enforces entries from modified if the path is authoritative",
 			original: &unstructured.Unstructured{
 				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "map.A, map.C",
+						},
+					},
 					"spec": map[string]interface{}{
-						"map": map[string]string{
+						"map": map[string]interface{}{
 							"A": "A-changed",
 							"B": "B",
 							// C missing
@@ -284,7 +338,7 @@ func TestNewHelper(t *testing.T) {
 			modified: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"spec": map[string]interface{}{
-						"map": map[string]string{
+						"map": map[string]interface{}{
 							"A": "A",
 							// B missing
 							"C": "C",
@@ -301,8 +355,14 @@ func TestNewHelper(t *testing.T) {
 			name: "Value of type Array or Slice, align to modified",
 			original: &unstructured.Unstructured{
 				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "slice",
+						},
+					},
 					"spec": map[string]interface{}{
-						"slice": []string{
+						"slice": []interface{}{
 							"D",
 							"C",
 							"B",
@@ -313,7 +373,7 @@ func TestNewHelper(t *testing.T) {
 			modified: &unstructured.Unstructured{
 				Object: map[string]interface{}{
 					"spec": map[string]interface{}{
-						"slice": []string{
+						"slice": []interface{}{
 							"A",
 							"B",
 							"C",
@@ -331,7 +391,14 @@ func TestNewHelper(t *testing.T) {
 		{
 			name: "Field only in modified, align to modified",
 			original: &unstructured.Unstructured{ // current
-				Object: map[string]interface{}{},
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "foo",
+						},
+					},
+				},
 			},
 			modified: &unstructured.Unstructured{ // desired
 				Object: map[string]interface{}{
@@ -347,7 +414,14 @@ func TestNewHelper(t *testing.T) {
 		{
 			name: "Nested field only in modified, align to modified",
 			original: &unstructured.Unstructured{ // current
-				Object: map[string]interface{}{},
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "template.spec.A",
+						},
+					},
+				},
 			},
 			modified: &unstructured.Unstructured{ // desired
 				Object: map[string]interface{}{
@@ -371,6 +445,12 @@ func TestNewHelper(t *testing.T) {
 			name: "Field only in original, align to modified",
 			original: &unstructured.Unstructured{ // current
 				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "",
+						},
+					},
 					"spec": map[string]interface{}{
 						"foo": "bar",
 					},
@@ -387,6 +467,12 @@ func TestNewHelper(t *testing.T) {
 			name: "Nested field only in original, align to modified",
 			original: &unstructured.Unstructured{ // current
 				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "",
+						},
+					},
 					"spec": map[string]interface{}{
 						"template": map[string]interface{}{
 							"spec": map[string]interface{}{
@@ -409,7 +495,14 @@ func TestNewHelper(t *testing.T) {
 		{
 			name: "Diff for metadata fields computed by the system or in status are discarded",
 			original: &unstructured.Unstructured{ // current
-				Object: map[string]interface{}{},
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "",
+						},
+					},
+				},
 			},
 			modified: &unstructured.Unstructured{ // desired
 				Object: map[string]interface{}{
@@ -432,7 +525,14 @@ func TestNewHelper(t *testing.T) {
 		{
 			name: "Relevant Diff for metadata (labels and annotations) are preserved",
 			original: &unstructured.Unstructured{ // current
-				Object: map[string]interface{}{},
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "",
+						},
+					},
+				},
 			},
 			modified: &unstructured.Unstructured{ // desired
 				Object: map[string]interface{}{
@@ -456,14 +556,21 @@ func TestNewHelper(t *testing.T) {
 		{
 			name: "Ignore fields are removed from the diff",
 			original: &unstructured.Unstructured{ // current
-				Object: map[string]interface{}{},
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "",
+						},
+					},
+				},
 			},
 			modified: &unstructured.Unstructured{ // desired
 				Object: map[string]interface{}{
 					"spec": map[string]interface{}{
 						"controlPlaneEndpoint": map[string]interface{}{
 							"host": "",
-							"port": 0,
+							"port": int64(0),
 						},
 					},
 				},
@@ -474,11 +581,324 @@ func TestNewHelper(t *testing.T) {
 			wantPatch:          []byte("{}"),
 		},
 
+		// Managed fields
+
+		{
+			name: "Managed field annotation are generated when modified have spec values",
+			original: &unstructured.Unstructured{ // current
+				Object: map[string]interface{}{},
+			},
+			modified: &unstructured.Unstructured{ // desired
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"foo": map[string]interface{}{
+							"bar": "",
+							"baz": int64(0),
+						},
+					},
+				},
+			},
+			wantHasChanges:     true,
+			wantHasSpecChanges: true,
+			wantPatch:          []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{%q:\"foo.bar, foo.baz\"}},\"spec\":{\"foo\":{\"bar\":\"\",\"baz\":0}}}", clusterv1.ClusterTopologyManagedFieldsAnnotation)),
+		},
+		{
+			name: "Managed field annotation is empty when modified have no spec values",
+			original: &unstructured.Unstructured{ // current
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"foo": map[string]interface{}{
+							"bar": "",
+							"baz": int64(0),
+						},
+					},
+				},
+			},
+			modified: &unstructured.Unstructured{ // desired
+				Object: map[string]interface{}{},
+			},
+			wantHasChanges:     true,
+			wantHasSpecChanges: false,
+			wantPatch:          []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{%q:\"\"}}}", clusterv1.ClusterTopologyManagedFieldsAnnotation)),
+		},
+		{
+			name: "Managed field annotation from a previous reconcile are cleaned up when modified have no spec values",
+			original: &unstructured.Unstructured{ // current
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "something.from.a.previous.reconcile",
+						},
+					},
+					"spec": map[string]interface{}{
+						"foo": map[string]interface{}{
+							"bar": "",
+							"baz": int64(0),
+						},
+					},
+				},
+			},
+			modified: &unstructured.Unstructured{ // desired
+				Object: map[string]interface{}{},
+			},
+			wantHasChanges:     true,
+			wantHasSpecChanges: true,
+			wantPatch:          []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{%q:\"\"}},\"spec\":{\"something\":{\"from\":{\"a\":{\"previous\":{\"reconcile\":null}}}}}}", clusterv1.ClusterTopologyManagedFieldsAnnotation)),
+		},
+		{
+			name: "Managed field annotation does not include ignored paths - exact match",
+			original: &unstructured.Unstructured{
+				Object: map[string]interface{}{},
+			},
+			modified: &unstructured.Unstructured{ // desired
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"foo": map[string]interface{}{
+							"bar": "",
+							"baz": int64(0),
+						},
+					},
+				},
+			},
+			options:            []HelperOption{IgnorePaths{contract.Path{"spec", "foo", "bar"}}},
+			wantHasChanges:     true,
+			wantHasSpecChanges: true,
+			wantPatch:          []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{%q:\"foo.baz\"}},\"spec\":{\"foo\":{\"baz\":0}}}", clusterv1.ClusterTopologyManagedFieldsAnnotation)),
+		},
+		{
+			name: "Managed field annotation does not include ignored paths - path prefix",
+			original: &unstructured.Unstructured{
+				Object: map[string]interface{}{},
+			},
+			modified: &unstructured.Unstructured{ // desired
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"foo": map[string]interface{}{
+							"bar": "",
+							"baz": int64(0),
+						},
+					},
+				},
+			},
+			options:            []HelperOption{IgnorePaths{contract.Path{"spec", "foo"}}},
+			wantHasChanges:     true,
+			wantHasSpecChanges: false,
+			wantPatch:          []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{%q:\"\"}}}", clusterv1.ClusterTopologyManagedFieldsAnnotation)),
+		},
+		{
+			name: "changes to managed field are applied",
+			original: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "kubeadmConfigSpec.clusterConfiguration.controllerManager.extraArgs.enable-hostpath-provisioner",
+						},
+					},
+					"spec": map[string]interface{}{
+						"kubeadmConfigSpec": map[string]interface{}{
+							"clusterConfiguration": map[string]interface{}{
+								"controllerManager": map[string]interface{}{
+									"extraArgs": map[string]interface{}{
+										"enable-hostpath-provisioner": "true",  // managed field previously set by a template
+										"enable-garbage-collector":    "false", // user added field (should not be changed)
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			modified: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"kubeadmConfigSpec": map[string]interface{}{
+							"clusterConfiguration": map[string]interface{}{
+								"controllerManager": map[string]interface{}{
+									"extraArgs": map[string]interface{}{
+										"enable-hostpath-provisioner": "false",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantHasChanges:     true,
+			wantHasSpecChanges: true,
+			wantPatch:          []byte("{\"spec\":{\"kubeadmConfigSpec\":{\"clusterConfiguration\":{\"controllerManager\":{\"extraArgs\":{\"enable-hostpath-provisioner\":\"false\"}}}}}}"),
+		},
+		{
+			name: "changes managed field to null is applied",
+			original: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "kubeadmConfigSpec.clusterConfiguration.controllerManager.extraArgs.enable-hostpath-provisioner",
+						},
+					},
+					"spec": map[string]interface{}{
+						"kubeadmConfigSpec": map[string]interface{}{
+							"clusterConfiguration": map[string]interface{}{
+								"controllerManager": map[string]interface{}{
+									"extraArgs": map[string]interface{}{
+										"enable-hostpath-provisioner": "true",  // managed field previously set by a template
+										"enable-garbage-collector":    "false", // user added field (should not be changed)
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			modified: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"kubeadmConfigSpec": map[string]interface{}{
+							"clusterConfiguration": map[string]interface{}{
+								"controllerManager": map[string]interface{}{
+									"extraArgs": map[string]interface{}{
+										"enable-hostpath-provisioner": nil,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantHasChanges:     true,
+			wantHasSpecChanges: true,
+			wantPatch:          []byte("{\"spec\":{\"kubeadmConfigSpec\":{\"clusterConfiguration\":{\"controllerManager\":{\"extraArgs\":{\"enable-hostpath-provisioner\":null}}}}}}"),
+		},
+		{
+			name: "dropping managed field trigger deletion; field should not be managed anymore",
+			original: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "kubeadmConfigSpec.clusterConfiguration.controllerManager.extraArgs.enable-hostpath-provisioner",
+						},
+					},
+					"spec": map[string]interface{}{
+						"kubeadmConfigSpec": map[string]interface{}{
+							"clusterConfiguration": map[string]interface{}{
+								"controllerManager": map[string]interface{}{
+									"extraArgs": map[string]interface{}{
+										"enable-hostpath-provisioner": "true",  // managed field previously set by a template (it is going to be dropped)
+										"enable-garbage-collector":    "false", // user added field (should not be changed)
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			modified: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"kubeadmConfigSpec": map[string]interface{}{
+							"clusterConfiguration": map[string]interface{}{
+								"controllerManager": map[string]interface{}{
+									"extraArgs": map[string]interface{}{},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantHasChanges:     true,
+			wantHasSpecChanges: true,
+			wantPatch:          []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{%q:\"\"}},\"spec\":{\"kubeadmConfigSpec\":{\"clusterConfiguration\":{\"controllerManager\":{\"extraArgs\":{\"enable-hostpath-provisioner\":null}}}}}}", clusterv1.ClusterTopologyManagedFieldsAnnotation)),
+		},
+		{
+			name: "changes managed object (a field with nested fields) to null is applied; managed field is updated accordingly",
+			original: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "kubeadmConfigSpec.clusterConfiguration.controllerManager.extraArgs.enable-hostpath-provisioner",
+						},
+					},
+					"spec": map[string]interface{}{
+						"kubeadmConfigSpec": map[string]interface{}{
+							"clusterConfiguration": map[string]interface{}{
+								"controllerManager": map[string]interface{}{
+									"extraArgs": map[string]interface{}{
+										"enable-hostpath-provisioner": "true",  // managed field previously set by a template (it is going to be dropped given that modified is providing an opinion on a parent object)
+										"enable-garbage-collector":    "false", // user added field (it is going to be dropped given that modified is providing an opinion on a parent object)
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			modified: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"kubeadmConfigSpec": map[string]interface{}{
+							"clusterConfiguration": map[string]interface{}{
+								"controllerManager": map[string]interface{}{
+									"extraArgs": nil,
+								},
+							},
+						},
+					},
+				},
+			},
+			wantHasChanges:     true,
+			wantHasSpecChanges: true,
+			wantPatch:          []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{%q:\"kubeadmConfigSpec.clusterConfiguration.controllerManager.extraArgs\"}},\"spec\":{\"kubeadmConfigSpec\":{\"clusterConfiguration\":{\"controllerManager\":{\"extraArgs\":null}}}}}", clusterv1.ClusterTopologyManagedFieldsAnnotation)),
+		},
+		{
+			name: "dropping managed object (a field with nested fields) to null is applied; managed field is updated accordingly",
+			original: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "kubeadmConfigSpec.clusterConfiguration.controllerManager.extraArgs.enable-hostpath-provisioner",
+						},
+					},
+					"spec": map[string]interface{}{
+						"kubeadmConfigSpec": map[string]interface{}{
+							"clusterConfiguration": map[string]interface{}{
+								"controllerManager": map[string]interface{}{
+									"extraArgs": map[string]interface{}{
+										"enable-hostpath-provisioner": "true",  // managed field previously set by a template (it is going to be dropped given that modified is dropping the parent object)
+										"enable-garbage-collector":    "false", // user added field (should be preserved)
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			modified: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"kubeadmConfigSpec": map[string]interface{}{
+							"clusterConfiguration": map[string]interface{}{
+								"controllerManager": map[string]interface{}{},
+							},
+						},
+					},
+				},
+			},
+			wantHasChanges:     true,
+			wantHasSpecChanges: true,
+			wantPatch:          []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{%q:\"\"}},\"spec\":{\"kubeadmConfigSpec\":{\"clusterConfiguration\":{\"controllerManager\":{\"extraArgs\":{\"enable-hostpath-provisioner\":null}}}}}}", clusterv1.ClusterTopologyManagedFieldsAnnotation)),
+		},
+
 		// More tests
 		{
 			name: "No changes",
 			original: &unstructured.Unstructured{
 				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "A, B",
+						},
+					},
 					"spec": map[string]interface{}{
 						"A": "A",
 						"B": "B",
@@ -502,6 +922,12 @@ func TestNewHelper(t *testing.T) {
 			name: "Many changes",
 			original: &unstructured.Unstructured{
 				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"annotations": map[string]interface{}{
+							// Prevent changes to managedField to be generated, so the test can focus on how values are merged.
+							clusterv1.ClusterTopologyManagedFieldsAnnotation: "A, B",
+						},
+					},
 					"spec": map[string]interface{}{
 						"A": "A",
 						// B missing
@@ -727,6 +1153,7 @@ func Test_enforcePath(t *testing.T) {
 	tests := []struct {
 		name             string
 		authoritativeMap map[string]interface{}
+		modified         map[string]interface{}
 		twoWaysMap       map[string]interface{}
 		path             contract.Path
 		want             map[string]interface{}
@@ -819,16 +1246,6 @@ func Test_enforcePath(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "Ignore partial match",
-			authoritativeMap: map[string]interface{}{
-				"foo": "a",
-			},
-			twoWaysMap: map[string]interface{}{},
-			path:       contract.Path([]string{"foo", "bar", "baz"}),
-			want:       map[string]interface{}{},
-		},
-
 		{
 			name: "authoritative has no changes, twoWays has no changes, no changes",
 			authoritativeMap: map[string]interface{}{
@@ -958,12 +1375,78 @@ func Test_enforcePath(t *testing.T) {
 			path: contract.Path([]string{"spec", "template", "metadata"}),
 			want: map[string]interface{}{},
 		},
+		{
+			name: "authoritative sets to null a parent object and the change is intentional (parent null in modified).",
+			authoritativeMap: map[string]interface{}{
+				"kubeadmConfigSpec": map[string]interface{}{
+					"clusterConfiguration": map[string]interface{}{
+						"controllerManager": map[string]interface{}{
+							"extraArgs": nil, // extra arg is a parent object in the authoritative path
+						},
+					},
+				},
+			},
+			modified: map[string]interface{}{
+				"kubeadmConfigSpec": map[string]interface{}{
+					"clusterConfiguration": map[string]interface{}{
+						"controllerManager": map[string]interface{}{
+							"extraArgs": nil, // extra arg has been explicitly set to null
+						},
+					},
+				},
+			},
+			twoWaysMap: map[string]interface{}{},
+			path:       contract.Path([]string{"kubeadmConfigSpec", "clusterConfiguration", "controllerManager", "extraArgs", "enable-hostpath-provisioner"}),
+			want: map[string]interface{}{
+				"kubeadmConfigSpec": map[string]interface{}{
+					"clusterConfiguration": map[string]interface{}{
+						"controllerManager": map[string]interface{}{
+							"extraArgs": nil,
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "authoritative sets to null a parent object and the change is a consequence of the object being dropped (parent does not exists in modified).",
+			authoritativeMap: map[string]interface{}{
+				"kubeadmConfigSpec": map[string]interface{}{
+					"clusterConfiguration": map[string]interface{}{
+						"controllerManager": map[string]interface{}{
+							"extraArgs": nil, // extra arg is a parent object in the authoritative path
+						},
+					},
+				},
+			},
+			modified: map[string]interface{}{
+				"kubeadmConfigSpec": map[string]interface{}{
+					"clusterConfiguration": map[string]interface{}{
+						"controllerManager": map[string]interface{}{
+							// extra arg has been dropped from modified
+						},
+					},
+				},
+			},
+			twoWaysMap: map[string]interface{}{},
+			path:       contract.Path([]string{"kubeadmConfigSpec", "clusterConfiguration", "controllerManager", "extraArgs", "enable-hostpath-provisioner"}),
+			want: map[string]interface{}{
+				"kubeadmConfigSpec": map[string]interface{}{
+					"clusterConfiguration": map[string]interface{}{
+						"controllerManager": map[string]interface{}{
+							"extraArgs": map[string]interface{}{
+								"enable-hostpath-provisioner": nil,
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			enforcePath(tt.authoritativeMap, tt.twoWaysMap, tt.path)
+			enforcePath(tt.authoritativeMap, tt.modified, tt.twoWaysMap, tt.path)
 
 			g.Expect(tt.twoWaysMap).To(Equal(tt.want))
 		})

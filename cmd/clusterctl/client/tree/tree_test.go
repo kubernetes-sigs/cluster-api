@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -440,9 +441,9 @@ func Test_Add_setsGroupingObjectAnnotation(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "should add the annotation if requested to",
+			name: "should add the annotation if requested to and grouping is enabled",
 			args: args{
-				treeOptions: ObjectTreeOptions{},
+				treeOptions: ObjectTreeOptions{Grouping: true},
 				addOptions:  []AddObjectOption{GroupingObject(true)},
 			},
 			want: true,
@@ -450,7 +451,7 @@ func Test_Add_setsGroupingObjectAnnotation(t *testing.T) {
 		{
 			name: "should not add the annotation if requested to, but grouping is disabled",
 			args: args{
-				treeOptions: ObjectTreeOptions{DisableGrouping: true},
+				treeOptions: ObjectTreeOptions{Grouping: false},
 				addOptions:  []AddObjectOption{GroupingObject(true)},
 			},
 			want: false,
@@ -580,7 +581,7 @@ func Test_Add_NoEcho(t *testing.T) {
 		{
 			name: "should add if NoEcho option is present, objects have same ReadyCondition, but NoEcho is disabled",
 			args: args{
-				treeOptions: ObjectTreeOptions{DisableNoEcho: true},
+				treeOptions: ObjectTreeOptions{Echo: true},
 				addOptions:  []AddObjectOption{NoEcho(true)},
 				obj: fakeMachine("my-machine",
 					withMachineCondition(conditions.TrueCondition(clusterv1.ReadyCondition)),

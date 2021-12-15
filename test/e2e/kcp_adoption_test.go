@@ -24,7 +24,6 @@ import (
 )
 
 var _ = Describe("When testing KCP adoption", func() {
-
 	KCPAdoptionSpec(ctx, func() KCPAdoptionSpecInput {
 		return KCPAdoptionSpecInput{
 			E2EConfig:             e2eConfig,
@@ -34,5 +33,4 @@ var _ = Describe("When testing KCP adoption", func() {
 			SkipCleanup:           skipCleanup,
 		}
 	})
-
 })

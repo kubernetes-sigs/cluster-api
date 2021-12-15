@@ -21,8 +21,11 @@ import (
 	"sort"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 type (
@@ -47,10 +50,7 @@ func oldestDeletePriority(machine *clusterv1.Machine) deletePriority {
 	if _, ok := machine.ObjectMeta.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
 		return mustDelete
 	}
-	if machine.Status.NodeRef == nil {
-		return mustDelete
-	}
-	if machine.Status.FailureReason != nil || machine.Status.FailureMessage != nil {
+	if !isMachineHealthy(machine) {
 		return mustDelete
 	}
 	if machine.ObjectMeta.CreationTimestamp.Time.IsZero() {
@@ -70,10 +70,7 @@ func newestDeletePriority(machine *clusterv1.Machine) deletePriority {
 	if _, ok := machine.ObjectMeta.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
 		return mustDelete
 	}
-	if machine.Status.NodeRef == nil {
-		return mustDelete
-	}
-	if machine.Status.FailureReason != nil || machine.Status.FailureMessage != nil {
+	if !isMachineHealthy(machine) {
 		return mustDelete
 	}
 	return mustDelete - oldestDeletePriority(machine)
@@ -86,10 +83,7 @@ func randomDeletePolicy(machine *clusterv1.Machine) deletePriority {
 	if _, ok := machine.ObjectMeta.Annotations[clusterv1.DeleteMachineAnnotation]; ok {
 		return betterDelete
 	}
-	if machine.Status.NodeRef == nil {
-		return betterDelete
-	}
-	if machine.Status.FailureReason != nil || machine.Status.FailureMessage != nil {
+	if !isMachineHealthy(machine) {
 		return betterDelete
 	}
 	return couldDelete
@@ -136,4 +130,18 @@ func getDeletePriorityFunc(ms *clusterv1.MachineSet) (deletePriorityFunc, error)
 	default:
 		return nil, errors.Errorf("Unsupported delete policy %s. Must be one of 'Random', 'Newest', or 'Oldest'", msdp)
 	}
+}
+
+func isMachineHealthy(machine *clusterv1.Machine) bool {
+	if machine.Status.NodeRef == nil {
+		return false
+	}
+	if machine.Status.FailureReason != nil || machine.Status.FailureMessage != nil {
+		return false
+	}
+	nodeHealthyCondition := conditions.Get(machine, clusterv1.MachineNodeHealthyCondition)
+	if nodeHealthyCondition != nil && nodeHealthyCondition.Status != corev1.ConditionTrue {
+		return false
+	}
+	return true
 }

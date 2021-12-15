@@ -17,8 +17,9 @@ limitations under the License.
 package v1alpha4
 
 import (
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 )
 
 func (src *DockerMachinePool) ConvertTo(dstRaw conversion.Hub) error {

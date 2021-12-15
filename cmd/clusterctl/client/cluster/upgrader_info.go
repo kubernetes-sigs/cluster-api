@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
@@ -104,7 +105,7 @@ func (u *providerUpgrader) getUpgradeInfo(provider clusterctlv1.Provider) (*upgr
 		repositorySemVersion, _ := version.ParseSemantic(repositoryVersion)
 
 		// Drop the nextVersion version if older or equal that the current version
-		// NB. Using !LessThan because version does not implements a GreaterThan method.
+		// NB. Using !LessThan because version does not implement a GreaterThan method.
 		if !currentVersion.LessThan(repositorySemVersion) {
 			continue
 		}
@@ -161,11 +162,11 @@ func (i *upgradeInfo) getContractsForUpgrade() []string {
 }
 
 // getLatestNextVersion returns the next available version for a provider within the target API Version of Cluster API (contract).
-// the next available version is tha latest version available in the for the target contract version.
+// the next available version is the latest version available in the for the target contract version.
 func (i *upgradeInfo) getLatestNextVersion(contract string) *version.Version {
 	var latestNextVersion *version.Version
 	for _, releaseSeries := range i.metadata.ReleaseSeries {
-		// Skip the release series if not linked with the target contract version version
+		// Skip the release series if not linked with the target contract version
 		if releaseSeries.Contract != contract {
 			continue
 		}

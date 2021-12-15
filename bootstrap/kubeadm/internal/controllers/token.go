@@ -60,7 +60,7 @@ func createToken(ctx context.Context, c client.Client, ttl time.Duration) (strin
 		},
 	}
 
-	if err = c.Create(ctx, secretToken); err != nil {
+	if err := c.Create(ctx, secretToken); err != nil {
 		return "", err
 	}
 	return token, nil

@@ -19,6 +19,7 @@ package client
 import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
@@ -88,25 +89,44 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 	} else {
 		// Otherwise we are deleting only a subset of providers.
 		var providers []clusterctlv1.Provider
-		providers = appendProviders(providers, clusterctlv1.CoreProviderType, options.CoreProvider)
-		providers = appendProviders(providers, clusterctlv1.BootstrapProviderType, options.BootstrapProviders...)
-		providers = appendProviders(providers, clusterctlv1.ControlPlaneProviderType, options.ControlPlaneProviders...)
-		providers = appendProviders(providers, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...)
+		providers, err = appendProviders(providers, clusterctlv1.CoreProviderType, options.CoreProvider)
+		if err != nil {
+			return err
+		}
+
+		providers, err = appendProviders(providers, clusterctlv1.BootstrapProviderType, options.BootstrapProviders...)
+		if err != nil {
+			return err
+		}
+
+		providers, err = appendProviders(providers, clusterctlv1.ControlPlaneProviderType, options.ControlPlaneProviders...)
+		if err != nil {
+			return err
+		}
+
+		providers, err = appendProviders(providers, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...)
+		if err != nil {
+			return err
+		}
 
 		for _, provider := range providers {
-			// Parse the abbreviated syntax for name[:version]
-			name, _, err := parseProviderName(provider.Name)
-			if err != nil {
-				return err
-			}
-
 			// Try to detect the namespace where the provider lives
 			provider.Namespace, err = clusterClient.ProviderInventory().GetProviderNamespace(provider.ProviderName, provider.GetProviderType())
 			if err != nil {
 				return err
 			}
 			if provider.Namespace == "" {
-				return errors.Errorf("Failed to identify the namespace for the %q provider.", name)
+				return errors.Errorf("Failed to identify the namespace for the %q provider.", provider.ProviderName)
+			}
+
+			if provider.Version != "" {
+				version, err := clusterClient.ProviderInventory().GetProviderVersion(provider.ProviderName, provider.GetProviderType())
+				if err != nil {
+					return err
+				}
+				if provider.Version != version {
+					return errors.Errorf("Failed to identity the provider %q with version %q.", provider.ProviderName, provider.Version)
+				}
 			}
 
 			providersToDelete = append(providersToDelete, provider)
@@ -123,10 +143,16 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 	return nil
 }
 
-func appendProviders(list []clusterctlv1.Provider, providerType clusterctlv1.ProviderType, names ...string) []clusterctlv1.Provider {
+func appendProviders(list []clusterctlv1.Provider, providerType clusterctlv1.ProviderType, names ...string) ([]clusterctlv1.Provider, error) {
 	for _, name := range names {
 		if name == "" {
 			continue
+		}
+
+		// Parse the abbreviated syntax for name[:version]
+		name, version, err := parseProviderName(name)
+		if err != nil {
+			return nil, err
 		}
 
 		list = append(list, clusterctlv1.Provider{
@@ -135,7 +161,8 @@ func appendProviders(list []clusterctlv1.Provider, providerType clusterctlv1.Pro
 			},
 			ProviderName: name,
 			Type:         string(providerType),
+			Version:      version,
 		})
 	}
-	return list
+	return list, nil
 }

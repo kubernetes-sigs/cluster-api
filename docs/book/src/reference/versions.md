@@ -52,6 +52,7 @@ These diagrams show the relationships between components in a Cluster API releas
 | Kubernetes v1.20 | ✓                                | ✓                             | ✓                                | ✓                             | ✓                                | ✓                             |
 | Kubernetes v1.21 | ✓                                | ✓                             | ✓                                | ✓                             | ✓                                | ✓                             |
 | Kubernetes v1.22 |                                  | ✓                             | ✓                                | ✓                             | ✓                                | ✓                             |
+| Kubernetes v1.23 |                                  |                               | ✓                                | ✓                             | ✓                                | ✓                             |
 
 The Core Provider also talks to API server of every Workload Cluster. Therefore, the Workload Cluster's Kubernetes version must also be compatible.
 
@@ -65,7 +66,8 @@ The Core Provider also talks to API server of every Workload Cluster. Therefore,
 | Kubernetes v1.19 + kubeadm/v1beta2 | ✓                                | ✓                             | ✓                               | ✓                             | ✓                               | ✓                             |
 | Kubernetes v1.20 + kubeadm/v1beta2 | ✓                                | ✓                             | ✓                               | ✓                             | ✓                               | ✓                             |
 | Kubernetes v1.21 + kubeadm/v1beta2 | ✓                                | ✓                             | ✓                               | ✓                             | ✓                               | ✓                             |
-| Kubernetes v1.22 + kubeadm/v1beta2 (v0.3) kubeadm/v1beta3 (v0.4) |                                  | ✓                             | ✓                               | ✓                             | ✓                             | ✓                             |
+| Kubernetes v1.22 + kubeadm/v1beta2 (v0.3) kubeadm/v1beta3 (v0.4+) |   | ✓                             | ✓                               | ✓                             | ✓                               | ✓                             |
+| Kubernetes v1.23 + kubeadm/v1beta3 |                                  |                               | ✓                               | ✓                             | ✓                               | ✓                             |
 
 The Kubeadm Bootstrap Provider generates kubeadm configuration using the API version recommended for the target Kubernetes version.
 
@@ -80,6 +82,7 @@ The Kubeadm Bootstrap Provider generates kubeadm configuration using the API ver
 | Kubernetes v1.20 + etcd/v3 | ✓                               | ✓                             | ✓                               | ✓                             | ✓                               | ✓                             |
 | Kubernetes v1.21 + etcd/v3 | ✓                               | ✓                             | ✓                               | ✓                             | ✓                               | ✓                             |
 | Kubernetes v1.22 + etcd/v3 |                                 | ✓                             | ✓                               | ✓                             | ✓                               | ✓                             |
+| Kubernetes v1.23 + etcd/v3 |                                 |                               | ✓                               | ✓                             | ✓                               | ✓                             |
 
 The Kubeadm Control Plane Provider talks to the API server and etcd members of every Workload Cluster whose control plane it owns. It uses the etcd v3 API.
 

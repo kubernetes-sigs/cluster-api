@@ -35,6 +35,7 @@ import (
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/docker/go-connections/nat"
 	"github.com/pkg/errors"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -44,7 +45,7 @@ const (
 	noProxy    = "NO_PROXY"
 )
 
-type docker struct {
+type dockerRuntime struct {
 	dockerClient *client.Client
 }
 
@@ -54,7 +55,7 @@ func NewDockerClient() (Runtime, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to created docker runtime client")
 	}
-	return &docker{
+	return &dockerRuntime{
 		dockerClient: dockerClient,
 	}, nil
 }
@@ -70,7 +71,7 @@ func getDockerClient() (*client.Client, error) {
 }
 
 // SaveContainerImage saves a Docker image to the file specified by dest.
-func (d *docker) SaveContainerImage(ctx context.Context, image, dest string) error {
+func (d *dockerRuntime) SaveContainerImage(ctx context.Context, image, dest string) error {
 	reader, err := d.dockerClient.ImageSave(ctx, []string{image})
 	if err != nil {
 		return fmt.Errorf("unable to read image data: %v", err)
@@ -94,7 +95,7 @@ func (d *docker) SaveContainerImage(ctx context.Context, image, dest string) err
 // PullContainerImageIfNotExists triggers the Docker engine to pull an image, but only if it doesn't
 // already exist. This is important when we're using locally build images in CI which
 // do not exist remotely.
-func (d *docker) PullContainerImageIfNotExists(ctx context.Context, image string) error {
+func (d *dockerRuntime) PullContainerImageIfNotExists(ctx context.Context, image string) error {
 	filters := dockerfilters.NewArgs()
 	filters.Add("reference", image)
 	images, err := d.dockerClient.ImageList(ctx, types.ImageListOptions{
@@ -124,7 +125,7 @@ func (d *docker) PullContainerImageIfNotExists(ctx context.Context, image string
 }
 
 // GetHostPort looks up the host port bound for the port and protocol (e.g. "6443/tcp").
-func (d *docker) GetHostPort(ctx context.Context, containerName, portAndProtocol string) (string, error) {
+func (d *dockerRuntime) GetHostPort(ctx context.Context, containerName, portAndProtocol string) (string, error) {
 	// Get details about the container
 	containerInfo, err := d.dockerClient.ContainerInspect(ctx, containerName)
 	if err != nil {
@@ -144,7 +145,7 @@ func (d *docker) GetHostPort(ctx context.Context, containerName, portAndProtocol
 }
 
 // ExecContainer executes a command in a running container and writes any output to the provided writer.
-func (d *docker) ExecContainer(ctxd context.Context, containerName string, config *ExecContainerInput, command string, args ...string) error {
+func (d *dockerRuntime) ExecContainer(ctxd context.Context, containerName string, config *ExecContainerInput, command string, args ...string) error {
 	ctx := context.Background() // Let the command finish, even if it takes longer than the default timeout
 	execConfig := types.ExecConfig{
 		// Run with privileges so we can remount etc..
@@ -239,7 +240,7 @@ func (d *docker) ExecContainer(ctxd context.Context, containerName string, confi
 }
 
 // ListContainers returns a list of all containers.
-func (d *docker) ListContainers(ctx context.Context, filters FilterBuilder) ([]Container, error) {
+func (d *dockerRuntime) ListContainers(ctx context.Context, filters FilterBuilder) ([]Container, error) {
 	listOptions := types.ContainerListOptions{
 		All:     true,
 		Limit:   -1,
@@ -274,7 +275,7 @@ func (d *docker) ListContainers(ctx context.Context, filters FilterBuilder) ([]C
 }
 
 // DeleteContainer will remove a container, forcing removal if still running.
-func (d *docker) DeleteContainer(ctx context.Context, containerName string) error {
+func (d *dockerRuntime) DeleteContainer(ctx context.Context, containerName string) error {
 	return d.dockerClient.ContainerRemove(ctx, containerName, types.ContainerRemoveOptions{
 		Force:         true, // force the container to be delete now
 		RemoveVolumes: true, // delete volumes
@@ -282,14 +283,14 @@ func (d *docker) DeleteContainer(ctx context.Context, containerName string) erro
 }
 
 // KillContainer will kill a running container with the specified signal.
-func (d *docker) KillContainer(ctx context.Context, containerName, signal string) error {
+func (d *dockerRuntime) KillContainer(ctx context.Context, containerName, signal string) error {
 	return d.dockerClient.ContainerKill(ctx, containerName, signal)
 }
 
 // GetContainerIPs inspects a container to get its IPv4 and IPv6 IP addresses.
 // Will not error if there is no IP address assigned. Calling code will need to
 // determine whether that is an issue or not.
-func (d *docker) GetContainerIPs(ctx context.Context, containerName string) (string, string, error) {
+func (d *dockerRuntime) GetContainerIPs(ctx context.Context, containerName string) (string, string, error) {
 	containerInfo, err := d.dockerClient.ContainerInspect(ctx, containerName)
 	if err != nil {
 		return "", "", errors.Wrap(err, "failed to get container details")
@@ -303,7 +304,7 @@ func (d *docker) GetContainerIPs(ctx context.Context, containerName string) (str
 }
 
 // ContainerDebugInfo gets the container metadata and logs from the runtime (docker inspect, docker logs).
-func (d *docker) ContainerDebugInfo(ctx context.Context, containerName string, w io.Writer) error {
+func (d *dockerRuntime) ContainerDebugInfo(ctx context.Context, containerName string, w io.Writer) error {
 	containerInfo, err := d.dockerClient.ContainerInspect(ctx, containerName)
 	if err != nil {
 		return errors.Wrapf(err, "failed to inspect container %q", containerName)
@@ -363,7 +364,7 @@ func (crc *RunContainerInput) environmentVariables() []string {
 }
 
 // RunContainer will run a docker container with the given settings and arguments, returning any errors.
-func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput, output io.Writer) error {
+func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContainerInput, output io.Writer) error {
 	containerConfig := dockercontainer.Config{
 		Tty:          true,           // allocate a tty for entrypoint logs
 		Hostname:     runConfig.Name, // make hostname match container name
@@ -512,7 +513,7 @@ func (d *docker) RunContainer(ctx context.Context, runConfig *RunContainerInput,
 // needsDevMapper checks whether we need to mount /dev/mapper.
 // This is required when the docker storage driver is Btrfs or ZFS.
 // https://github.com/kubernetes-sigs/kind/pull/1464
-func (d *docker) needsDevMapper(ctx context.Context) (bool, error) {
+func (d *dockerRuntime) needsDevMapper(ctx context.Context) (bool, error) {
 	info, err := d.dockerClient.Info(ctx)
 	if err != nil {
 		return false, err
@@ -581,7 +582,7 @@ func configureVolumes(crc *RunContainerInput, config *dockercontainer.Config, ho
 }
 
 // getSubnets returns a slice of subnets for a specified network.
-func (d *docker) getSubnets(ctx context.Context, networkName string) ([]string, error) {
+func (d *dockerRuntime) getSubnets(ctx context.Context, networkName string) ([]string, error) {
 	subnets := []string{}
 	networkInfo, err := d.dockerClient.NetworkInspect(ctx, networkName, types.NetworkInspectOptions{})
 	if err != nil {
@@ -602,7 +603,7 @@ type proxyDetails struct {
 
 // getProxyDetails returns a struct with the host environment proxy settings
 // that should be passed to the nodes.
-func (d *docker) getProxyDetails(ctx context.Context, network string) (*proxyDetails, error) {
+func (d *dockerRuntime) getProxyDetails(ctx context.Context, network string) (*proxyDetails, error) {
 	var val string
 	details := proxyDetails{Envs: make(map[string]string)}
 	proxyEnvs := []string{httpProxy, httpsProxy, noProxy}
@@ -636,7 +637,7 @@ func (d *docker) getProxyDetails(ctx context.Context, network string) (*proxyDet
 }
 
 // usernsRemap checks if userns-remap is enabled in dockerd.
-func (d *docker) usernsRemap(ctx context.Context) bool {
+func (d *dockerRuntime) usernsRemap(ctx context.Context) bool {
 	info, err := d.dockerClient.Info(ctx)
 	if err != nil {
 		return false

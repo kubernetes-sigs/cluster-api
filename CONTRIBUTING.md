@@ -338,8 +338,11 @@ This project follows the [Kubernetes API conventions](https://github.com/kuberne
 
 Optional fields have the following properties:
 * An optional field MUST be marked with `+optional` and include an `omitempty` JSON tag.
-* Fields SHOULD be pointers if the nil and the zero values (by Go standards) have semantic differences.
-  * Note: This doesn't apply to map or slice types as they are assignable to `nil`.
+* Fields SHOULD be pointers if there is a good reason for it, for example:
+  * the nil and the zero values (by Go standards) have semantic differences.
+    * Note: This doesn't apply to map or slice types as they are assignable to `nil`.
+  * the field is of a struct type, contains only fields with `omitempty` and you want 
+    to prevent that it shows up as an empty object after marshalling (e.g. `kubectl get`) 
 
 #### Example
 
@@ -389,10 +392,10 @@ Examples:
 ```bash
 $ kubectl get kubeadmcontrolplane
 NAMESPACE            NAME                               INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE     VERSION
-quick-start-d5ufye   quick-start-ntysk0-control-plane   true          true                   1          1       1                       2m44s   v1.22.0
+quick-start-d5ufye   quick-start-ntysk0-control-plane   true          true                   1          1       1                       2m44s   v1.23.0
 $ kubectl get machinedeployment
 NAMESPACE            NAME                      CLUSTER              REPLICAS   READY   UPDATED   UNAVAILABLE   PHASE       AGE     VERSION
-quick-start-d5ufye   quick-start-ntysk0-md-0   quick-start-ntysk0   1                  1         1             ScalingUp   3m28s   v1.22.0
+quick-start-d5ufye   quick-start-ntysk0-md-0   quick-start-ntysk0   1                  1         1             ScalingUp   3m28s   v1.23.0
 ```
 
 ## Google Doc Viewing Permissions

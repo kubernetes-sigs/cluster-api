@@ -27,6 +27,7 @@ import (
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"k8s.io/client-go/rest"
+
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	etcdfake "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/fake"
 )
@@ -37,7 +38,7 @@ var (
 
 func TestNewEtcdClientGenerator(t *testing.T) {
 	g := NewWithT(t)
-	subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12})
+	subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0)
 	g.Expect(subject.createClient).To(Not(BeNil()))
 }
 
@@ -89,7 +90,7 @@ func TestFirstAvailableNode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12})
+			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0)
 			subject.createClient = tt.cc
 
 			client, err := subject.forFirstAvailableNode(ctx, tt.nodes)
@@ -203,7 +204,7 @@ func TestForLeader(t *testing.T) {
 			cc: func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
 				return nil, errors.New("node down")
 			},
-			expectedErr: "could not establish a connection to the etcd leader: could not establish a connection to any etcd node: node down",
+			expectedErr: "could not establish a connection to the etcd leader: [could not establish a connection to any etcd node: node down, failed to connect to etcd node]",
 		},
 	}
 
@@ -211,7 +212,7 @@ func TestForLeader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12})
+			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0)
 			subject.createClient = tt.cc
 
 			client, err := subject.forLeader(ctx, tt.nodes)

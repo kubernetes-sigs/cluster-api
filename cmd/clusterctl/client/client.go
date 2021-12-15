@@ -75,7 +75,7 @@ type Client interface {
 	// DescribeCluster returns the object tree representing the status of a Cluster API cluster.
 	DescribeCluster(options DescribeClusterOptions) (*tree.ObjectTree, error)
 
-	// Interface for alpha features in clusterctl
+	// AlphaClient is an Interface for alpha features in clusterctl
 	AlphaClient
 }
 

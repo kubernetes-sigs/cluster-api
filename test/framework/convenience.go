@@ -25,7 +25,8 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apiextensionsv1beta "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
-	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha3"
+
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -55,7 +56,7 @@ func TryAddDefaultSchemes(scheme *runtime.Scheme) {
 	_ = addonsv1.AddToScheme(scheme)
 
 	// Add the core CAPI v1alpha3 scheme.
-	_ = clusterv1old.AddToScheme(scheme)
+	_ = clusterv1alpha3.AddToScheme(scheme)
 
 	// Add the kubeadm bootstrapper scheme.
 	_ = bootstrapv1.AddToScheme(scheme)

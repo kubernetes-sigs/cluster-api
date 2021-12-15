@@ -20,12 +20,13 @@ import (
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	runtime "k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 func (m *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -55,11 +56,11 @@ func (m *MachinePool) Default() {
 		m.Spec.MinReadySeconds = pointer.Int32Ptr(0)
 	}
 
-	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && len(m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace) == 0 {
+	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace == "" {
 		m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace
 	}
 
-	if len(m.Spec.Template.Spec.InfrastructureRef.Namespace) == 0 {
+	if m.Spec.Template.Spec.InfrastructureRef.Namespace == "" {
 		m.Spec.Template.Spec.InfrastructureRef.Namespace = m.Namespace
 	}
 }

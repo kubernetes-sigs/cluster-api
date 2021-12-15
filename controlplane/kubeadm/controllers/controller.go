@@ -29,6 +29,13 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -44,12 +51,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
 	"sigs.k8s.io/cluster-api/util/version"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
@@ -61,10 +62,12 @@ import (
 
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object.
 type KubeadmControlPlaneReconciler struct {
-	Client     client.Client
-	controller controller.Controller
-	recorder   record.EventRecorder
-	Tracker    *remote.ClusterCacheTracker
+	Client          client.Client
+	APIReader       client.Reader
+	controller      controller.Controller
+	recorder        record.EventRecorder
+	Tracker         *remote.ClusterCacheTracker
+	EtcdDialTimeout time.Duration
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -103,7 +106,11 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		if r.Tracker == nil {
 			return errors.New("cluster cache tracker is nil, cannot create the internal management cluster resource")
 		}
-		r.managementCluster = &internal.Management{Client: r.Client, Tracker: r.Tracker}
+		r.managementCluster = &internal.Management{
+			Client:          r.Client,
+			Tracker:         r.Tracker,
+			EtcdDialTimeout: r.EtcdDialTimeout,
+		}
 	}
 
 	if r.managementClusterUncached == nil {
@@ -192,7 +199,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		// TODO: remove this as soon as we have a proper remote cluster cache in place.
 		// Make KCP to requeue in case status is not ready, so we can check for node status without waiting for a full resync (by default 10 minutes).
 		// Only requeue if we are not going in exponential backoff due to error, or if we are not already re-queueing, or if the object has a deletion timestamp.
-		if reterr == nil && !res.Requeue && !(res.RequeueAfter > 0) && kcp.ObjectMeta.DeletionTimestamp.IsZero() {
+		if reterr == nil && !res.Requeue && res.RequeueAfter <= 0 && kcp.ObjectMeta.DeletionTimestamp.IsZero() {
 			if !kcp.Status.Ready {
 				res = ctrl.Result{RequeueAfter: 20 * time.Second}
 			}

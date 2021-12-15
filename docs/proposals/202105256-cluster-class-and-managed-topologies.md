@@ -14,9 +14,8 @@ reviewers:
   - "@schrej"
   - "@randomvariable"
 creation-date: 2021-05-26
+replaces: https://docs.google.com/document/d/1lwxgBK3Q7zmNkOSFqzTGmrSys_vinkwubwgoyqSRAbI
 status: provisional
-replaces:
-  - [Proposal Google Doc](https://docs.google.com/document/d/1lwxgBK3Q7zmNkOSFqzTGmrSys_vinkwubwgoyqSRAbI/edit#)
 ---
 
 # ClusterClass and Managed Topologies
@@ -28,7 +27,7 @@ replaces:
   - [Glossary](#glossary)
       - [ClusterClass](#clusterclass)
       - [Topology](#topology)
-      - [Worker class](#worker-class)
+      - [Worker class](#workerclass)
   - [Summary](#summary)
   - [Motivation](#motivation)
       - [Goals](#goals)
@@ -38,9 +37,12 @@ replaces:
         - [Story 1 - Use ClusterClass to easily stamp clusters](#story-1---use-clusterclass-to-easily-stamp-clusters)
         - [Story 2 - Easier UX for kubernetes version upgrades](#story-2---easier-ux-for-kubernetes-version-upgrades)
         - [Story 3 - Easier UX for scaling workers nodes](#story-3---easier-ux-for-scaling-workers-nodes)
-        - [Story 4 - Ability to customize individual clusters](#story-4---ability-to-customize-individual-clusters)
-        - [Story 5 - Provide powerful and flexible options to define ClusterClass customizations](#story-5---provide-powerful-and-flexible-options-to-define-clusterclass-customizations)
-      - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
+        - [Story 4 - Ability to customize individual clusters](#story-4---use-clusterclass-to-easily-modify-clusters-in-bulk)
+        - [Story 5 - Provide powerful and flexible options to define ClusterClass customizations](#story-5---ability-to-define-clusterclass-customizations)
+        - [Story 6 - Ability to customize individual Clusters via variables](#story-6---ability-to-customize-individual-clusters-via-variables)
+        - [Story 7 - Ability to mutate variables](#story-7---ability-to-mutate-variables)
+
+        - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
         - [New API types](#new-api-types)
             - [ClusterClass](#clusterclass-1)
         - [Modification to existing API Types](#modification-to-existing-api-types)
@@ -58,7 +60,7 @@ replaces:
             - [Create a new Cluster with patches](#create-a-new-cluster-with-patches)
         - [Provider implementation](#provider-implementation)
         - [Conventions for template types implementation](#conventions-for-template-types-implementation)
-        - [Notes on template <-> object reconciliation](#notesontemplate<->objectreconciliation)
+        - [Notes on template <-> object reconciliation](#notes-on-template---object-reconciliation)
       - [Risks and Mitigations](#risks-and-mitigations)
   - [Alternatives](#alternatives)
   - [Upgrade Strategy](#upgrade-strategy)
@@ -108,7 +110,6 @@ This method of provisioning the cluster would act as a single control point for 
 We are fully aware that in order to exploit the potential of ClusterClass and managed topologies, the following class of problems still needs to be addressed:
 - **Upgrade/rollback strategy**: Implement a strategy to upgrade and rollback the managed topologies.
 - **Extensibility/Transformation**:
-    - Extend ClusterClass patch variables by introducing support for complex types (e.g. object, array, map, type composition (e.g. int or string)).
     - Provide an external mechanism which allows to leverage the full power of a programming language to implement more complex customizations.
 - **Adoption**: Providing a way to convert existing clusters into managed topologies.
 - **Observability**: Build an SDK and enhance the Cluster object status to surface a summary of the status of the topology.
@@ -323,10 +324,9 @@ type VariableSchema struct{
 The schema implementation will be built on top of the [Open API schema embedded in Kubernetes CRDs](https://github.com/kubernetes/apiextensions-apiserver/blob/master/pkg/apis/apiextensions/types_jsonschema.go).
 To keep the implementation as easy and user-friendly as possible we will only implement the following feature set 
 for now (until further use cases emerge):
-- Basic types:
-    - boolean, integer, number, string
-    - nullable, i.e. each of the basic types can be set to null
+- Basic types: boolean, integer, number, string
 - Basic validation, e.g. format, minimum, maximum, pattern, required, ...
+- Complex types: objects, arrays
 - Defaulting
     - Defaulting will be implemented based on the CRD structural schema library and thus will have the same feature set 
       as CRD defaulting. I.e., it will only be possible to use constant values as defaults.
@@ -340,7 +340,18 @@ for now (until further use cases emerge):
 type ClusterClassPatch struct {
   // Name of the patch.
   Name string `json:"name"`
- 
+
+  // Description is a human-readable description of this patch.
+  Description string `json:"description,omitempty"`
+
+  // EnabledIf is a Go template to be used to calculate if a patch should be enabled.
+  // It can reference variables defined in .spec.variables and builtin variables.
+  // The patch will be enabled if the template evaluates to `true`, otherwise it will
+  // be disabled.
+  // If EnabledIf is not set, the patch will be enabled per default.
+  // +optional
+  EnabledIf *string `json:"enabledIf,omitempty"`
+
   // Definitions define the patches inline.
   // Note: Patches will be applied in the order of the array.
   Definitions []PatchDefinition `json:"definitions,omitempty"`
@@ -387,11 +398,11 @@ type PatchSelectorMatch struct {
   // Note: this will match the controlPlane and also the controlPlane 
   // machineInfrastructure (depending on the kind and apiVersion).
   // +optional
-  ControlPlane *bool `json:"controlPlane,omitempty"`
+  ControlPlane bool `json:"controlPlane,omitempty"`
  
   // InfrastructureCluster selects templates referenced in .spec.infrastructure.
   // +optional
-  InfrastructureCluster *bool `json:"infrastructureCluster,omitempty"`
+  InfrastructureCluster bool `json:"infrastructureCluster,omitempty"`
  
   // MachineDeploymentClass selects templates referenced in specific MachineDeploymentClasses in
   // .spec.workers.machineDeployments.
@@ -403,7 +414,8 @@ type PatchSelectorMatch struct {
 // in specific MachineDeploymentClasses in .spec.workers.machineDeployments.
 type PatchSelectorMatchMachineDeploymentClass struct {
   // Names selects templates by class names.
-  Names []string `json:"names"`
+  // +optional
+  Names []string `json:"names,omitempty"`
 }
 ```
 
@@ -609,7 +621,7 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
   - all the reference must be in the same namespace of `metadata.Namespace`
   - `spec.workers.machineDeployments[i].class` field must be unique within a ClusterClass.
   - `ClusterClassVariable`:
-    - names must be unique, not empty and not equal to `builtin`
+    - names must be unique, not empty, not equal to `builtin` and should not contain dots
     - schemas must be valid
   - `ClusterClassPatch`:
     - names must be unique and not empty
@@ -618,7 +630,7 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
     - jsonPatches:
       - `op`: one of: `add`, `replace` or `remove`
       - `path`:
-        - must be a valid JSON pointer (RFC 6901) and start with `/spec/`
+        - must be a valid JSON pointer starting with `/spec/`
         - only the indexes `0` (prepend) and `-` (append) in combination with the `add` operation are allowed (append and prepend 
           are the only allowed array modifications).
         - the JSON pointer is not verified against the target CRD as that would require parsing the template CRD, which is impractical in a webhook.
@@ -638,7 +650,7 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
   - `spec.workers.machineDeployments` supports adding new deployment classes.
   - changes should be compliant with the compatibility rules defined in this doc.
   - `ClusterClassVariable`:
-    - names must be unique, not empty and not equal to `builtin`
+    - names must be unique, not empty, not equal to `builtin` and should not contain dots
     - schemas must be valid
     - schemas are mutable
       - The current assumption is that we validate schema changes against existing clusters and block in case the changes are 

@@ -18,7 +18,8 @@ package v1alpha3
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
+
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 )
 
 const (
@@ -83,11 +84,11 @@ type DockerMachineStatus struct {
 
 	// Addresses contains the associated addresses for the docker machine.
 	// +optional
-	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
+	Addresses []clusterv1alpha3.MachineAddress `json:"addresses,omitempty"`
 
 	// Conditions defines current service state of the DockerMachine.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha3.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:resource:path=dockermachines,scope=Namespaced,categories=cluster-api
@@ -104,12 +105,12 @@ type DockerMachine struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (c *DockerMachine) GetConditions() clusterv1.Conditions {
+func (c *DockerMachine) GetConditions() clusterv1alpha3.Conditions {
 	return c.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (c *DockerMachine) SetConditions(conditions clusterv1.Conditions) {
+func (c *DockerMachine) SetConditions(conditions clusterv1alpha3.Conditions) {
 	c.Status.Conditions = conditions
 }
 

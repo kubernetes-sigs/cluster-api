@@ -22,19 +22,25 @@ import (
 	fuzz "github.com/google/gofuzz"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
+const (
+	fakeID     = "abcdef"
+	fakeSecret = "abcdef0123456789"
+)
+
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for KubeadmConfig", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &v1beta1.KubeadmConfig{},
+		Hub:         &bootstrapv1.KubeadmConfig{},
 		Spoke:       &KubeadmConfig{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 	t.Run("for KubeadmConfigTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &v1beta1.KubeadmConfigTemplate{},
+		Hub:         &bootstrapv1.KubeadmConfigTemplate{},
 		Spoke:       &KubeadmConfigTemplate{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
@@ -56,6 +62,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		// the values for ID and Secret to working alphanumeric values.
 		kubeadmBootstrapTokenStringFuzzerV1UpstreamBeta1,
 		kubeadmBootstrapTokenStringFuzzerV1Beta1,
+		kubeadmBootstrapTokenStringFuzzerV1Alpha4,
 	}
 }
 
@@ -74,11 +81,16 @@ func clusterConfigurationFuzzer(obj *upstreamv1beta1.ClusterConfiguration, c fuz
 }
 
 func kubeadmBootstrapTokenStringFuzzerV1UpstreamBeta1(in *upstreamv1beta1.BootstrapTokenString, c fuzz.Continue) {
-	in.ID = "abcdef"
-	in.Secret = "abcdef0123456789"
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }
 
-func kubeadmBootstrapTokenStringFuzzerV1Beta1(in *v1beta1.BootstrapTokenString, c fuzz.Continue) {
-	in.ID = "abcdef"
-	in.Secret = "abcdef0123456789"
+func kubeadmBootstrapTokenStringFuzzerV1Beta1(in *bootstrapv1.BootstrapTokenString, c fuzz.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
+}
+
+func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *BootstrapTokenString, c fuzz.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }

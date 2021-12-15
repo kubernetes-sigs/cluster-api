@@ -317,6 +317,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - clusters
   sideEffects: None
@@ -339,6 +340,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - clusterclasses
   sideEffects: None

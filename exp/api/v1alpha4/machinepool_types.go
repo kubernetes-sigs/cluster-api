@@ -19,7 +19,8 @@ package v1alpha4
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 )
 
@@ -41,7 +42,7 @@ type MachinePoolSpec struct {
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Template describes the machines that will be created.
-	Template clusterv1.MachineTemplateSpec `json:"template"`
+	Template clusterv1alpha4.MachineTemplateSpec `json:"template"`
 
 	// Minimum number of seconds for which a newly created machine instances should
 	// be ready.
@@ -118,7 +119,7 @@ type MachinePoolStatus struct {
 
 	// Conditions define the current service state of the MachinePool.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
 }
 
 // ANCHOR_END: MachinePoolStatus
@@ -217,12 +218,12 @@ type MachinePool struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (m *MachinePool) GetConditions() clusterv1.Conditions {
+func (m *MachinePool) GetConditions() clusterv1alpha4.Conditions {
 	return m.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (m *MachinePool) SetConditions(conditions clusterv1.Conditions) {
+func (m *MachinePool) SetConditions(conditions clusterv1alpha4.Conditions) {
 	m.Status.Conditions = conditions
 }
 

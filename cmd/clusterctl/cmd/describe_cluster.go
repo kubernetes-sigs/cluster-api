@@ -28,10 +28,11 @@ import (
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/duration"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -51,13 +52,14 @@ var (
 )
 
 type describeClusterOptions struct {
-	kubeconfig        string
-	kubeconfigContext string
-
+	kubeconfig          string
+	kubeconfigContext   string
 	namespace           string
 	showOtherConditions string
 	showMachineSets     bool
+	echo                bool
 	disableNoEcho       bool
+	grouping            bool
 	disableGrouping     bool
 }
 
@@ -83,11 +85,11 @@ var describeClusterClusterCmd = &cobra.Command{
 
 		# Describe the cluster named test-1 disabling automatic grouping of objects with the same ready condition
 		# e.g. un-group all the machines with Ready=true instead of showing a single group node.
-		clusterctl describe cluster test-1 --disable-grouping
+		clusterctl describe cluster test-1 --grouping=false
 
 		# Describe the cluster named test-1 disabling automatic echo suppression
         # e.g. show the infrastructure machine objects, no matter if the current state is already reported by the machine's Ready condition.
-		clusterctl describe cluster test-1`),
+		clusterctl describe cluster test-1 --disable-no-echo`),
 
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -108,10 +110,18 @@ func init() {
 	describeClusterClusterCmd.Flags().BoolVar(&dc.showMachineSets, "show-machinesets", false,
 		"Show MachineSet objects.")
 
+	describeClusterClusterCmd.Flags().BoolVar(&dc.echo, "echo", false, ""+
+		"Show MachineInfrastructure and BootstrapConfig when ready condition is true or it has the Status, Severity and Reason of the machine's object.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.disableNoEcho, "disable-no-echo", false, ""+
 		"Disable hiding of a MachineInfrastructure and BootstrapConfig when ready condition is true or it has the Status, Severity and Reason of the machine's object.")
+	_ = describeClusterClusterCmd.Flags().MarkDeprecated("disable-no-echo",
+		"use --echo instead.")
+	describeClusterClusterCmd.Flags().BoolVar(&dc.grouping, "grouping", true,
+		"Groups machines when ready condition has the same Status, Severity and Reason.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.disableGrouping, "disable-grouping", false,
 		"Disable grouping machines when ready condition has the same Status, Severity and Reason.")
+	_ = describeClusterClusterCmd.Flags().MarkDeprecated("disable-grouping",
+		"use --grouping instead.")
 
 	// completions
 	describeClusterClusterCmd.ValidArgsFunction = resourceNameCompletionFunc(
@@ -137,8 +147,8 @@ func runDescribeCluster(name string) error {
 		ClusterName:         name,
 		ShowOtherConditions: dc.showOtherConditions,
 		ShowMachineSets:     dc.showMachineSets,
-		DisableNoEcho:       dc.disableNoEcho,
-		DisableGrouping:     dc.disableGrouping,
+		Echo:                dc.echo || dc.disableNoEcho,
+		Grouping:            dc.grouping && !dc.disableGrouping,
 	})
 	if err != nil {
 		return err

@@ -25,11 +25,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	"sigs.k8s.io/cluster-api/internal/builder"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 var (
@@ -225,7 +226,7 @@ func TestComputeControlPlane(t *testing.T) {
 	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
 		WithControlPlaneMetadata(labels, annotations).
 		WithControlPlaneTemplate(controlPlaneTemplate).Build()
-	//TODO: Replace with object builder.
+	// TODO: Replace with object builder.
 	// current cluster objects
 	version := "v1.21.2"
 	replicas := int32(3)
@@ -471,7 +472,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 	// not affect how we determining the control plane version.
 	// We only want to know if the machine deployments are stable.
 	//
-	// A machine deployment is considere stable if all the following are true:
+	// A machine deployment is considered stable if all the following are true:
 	// - md.spec.replicas == md.status.replicas
 	// - md.spec.replicas == md.status.updatedReplicas
 	// - md.spec.replicas == md.status.readyReplicas
@@ -626,6 +627,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					ControlPlane:       &scope.ControlPlaneState{Object: tt.controlPlaneObj},
 					MachineDeployments: tt.machineDeploymentsState,
 				},
+				UpgradeTracker: scope.NewUpgradeTracker(),
 			}
 			version, err := computeControlPlaneVersion(s)
 			g.Expect(err).NotTo(HaveOccurred())
@@ -720,13 +722,15 @@ func TestComputeMachineDeployment(t *testing.T) {
 	}
 
 	replicas := int32(5)
+	failureDomain := "always-up-region"
 	mdTopology := clusterv1.MachineDeploymentTopology{
 		Metadata: clusterv1.ObjectMeta{
 			Labels: map[string]string{"foo": "baz"},
 		},
-		Class:    "linux-worker",
-		Name:     "big-pool-of-machines",
-		Replicas: &replicas,
+		Class:         "linux-worker",
+		Name:          "big-pool-of-machines",
+		Replicas:      &replicas,
+		FailureDomain: &failureDomain,
 	}
 
 	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {
@@ -753,6 +757,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		actualMd := actual.Object
 		g.Expect(*actualMd.Spec.Replicas).To(Equal(replicas))
+		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(failureDomain))
 		g.Expect(actualMd.Spec.ClusterName).To(Equal("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("big-pool-of-machines"))
@@ -808,6 +813,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		actualMd := actual.Object
 
 		g.Expect(*actualMd.Spec.Replicas).NotTo(Equal(currentReplicas))
+		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(failureDomain))
 		g.Expect(actualMd.Name).To(Equal("existing-deployment-1"))
 
 		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
@@ -881,7 +887,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		// Note: in all the following tests we are setting it up so that the control plane is already
 		// stable at the topology version.
-		// A more extensive list of sceniarios is tested in TestComputeMachineDeploymentVersion.
+		// A more extensive list of scenarios is tested in TestComputeMachineDeploymentVersion.
 		tests := []struct {
 			name                    string
 			machineDeploymentsState scope.MachineDeploymentsStateMap
@@ -1007,7 +1013,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 		}).
 		Build()
 
-	// A machine deployment is considere stable if all the following are true:
+	// A machine deployment is considered stable if all the following are true:
 	// - md.spec.replicas == md.status.replicas
 	// - md.spec.replicas == md.status.updatedReplicas
 	// - md.spec.replicas == md.status.readyReplicas

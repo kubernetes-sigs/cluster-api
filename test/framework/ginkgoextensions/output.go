@@ -72,7 +72,7 @@ type fileWriter struct {
 }
 
 func (w *fileWriter) Write(data []byte) (n int, err error) {
-	return w.file.Write([]byte("[" + time.Now().Format(time.RFC3339) + "] " + string(data)))
+	return w.file.WriteString("[" + time.Now().Format(time.RFC3339) + "] " + string(data))
 }
 
 func (w *fileWriter) Close() error {

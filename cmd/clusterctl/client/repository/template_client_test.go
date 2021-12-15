@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
@@ -207,7 +208,7 @@ func Test_templates_Get(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			if !tt.args.listVariablesOnly {
-				g.Expect(yaml).To(ContainSubstring((fmt.Sprintf("variable: %s", variableValue))))
+				g.Expect(yaml).To(ContainSubstring(fmt.Sprintf("variable: %s", variableValue)))
 			}
 
 			// check if target namespace is set

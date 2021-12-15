@@ -43,19 +43,20 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	kcpv1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
-	addonv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
-	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/builder"
-	"sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/cluster-api/webhooks"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/builder"
+	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/webhooks"
 )
 
 func init() {
@@ -74,8 +75,8 @@ func init() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(bootstrapv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(expv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(addonv1.AddToScheme(scheme.Scheme))
-	utilruntime.Must(kcpv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(addonsv1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(controlplanev1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
 }
 
@@ -190,7 +191,7 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 
 	// Localhost is used on MacOS to avoid Firewall warning popups.
 	host := "localhost"
-	if strings.ToLower(os.Getenv("USE_EXISTING_CLUSTER")) == "true" {
+	if strings.EqualFold(os.Getenv("USE_EXISTING_CLUSTER"), "true") {
 		// 0.0.0.0 is required on Linux when using kind because otherwise the kube-apiserver running in kind
 		// is unable to reach the webhook, because the webhook would be only listening on 127.0.0.1.
 		// Somehow that's not an issue on MacOS.
@@ -219,7 +220,7 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	if err := (&webhooks.Cluster{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&webhooks.ClusterClass{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.ClusterClass{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
 	if err := (&clusterv1.Machine{}).SetupWebhookWithManager(mgr); err != nil {
@@ -243,13 +244,10 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	if err := (&bootstrapv1.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&bootstrapv1.KubeadmConfigTemplateList{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&controlplanev1.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook: %+v", err)
 	}
-	if err := (&kcpv1.KubeadmControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
-		klog.Fatalf("unable to create webhook: %+v", err)
-	}
-	if err := (&addonv1.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&addonsv1.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for crs: %+v", err)
 	}
 	if err := (&expv1.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {

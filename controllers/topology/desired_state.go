@@ -26,13 +26,14 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // computeDesiredState computes the desired state of the cluster topology.
@@ -93,13 +94,13 @@ func (r *ClusterReconciler) computeDesiredState(ctx context.Context, s *scope.Sc
 // corresponding template defined in the blueprint.
 func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructured.Unstructured, error) {
 	template := s.Blueprint.InfrastructureClusterTemplate
-	templateClonedFromref := s.Blueprint.ClusterClass.Spec.Infrastructure.Ref
+	templateClonedFromRef := s.Blueprint.ClusterClass.Spec.Infrastructure.Ref
 	cluster := s.Current.Cluster
 	currentRef := cluster.Spec.InfrastructureRef
 
 	infrastructureCluster, err := templateToObject(templateToInput{
 		template:              template,
-		templateClonedFromRef: templateClonedFromref,
+		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
 		namePrefix:            fmt.Sprintf("%s-", cluster.Name),
 		currentObjectRef:      currentRef,
@@ -188,7 +189,7 @@ func computeControlPlane(_ context.Context, s *scope.Scope, infrastructureMachin
 				Labels:      machineLabels,
 				Annotations: mergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations),
 			}); err != nil {
-			return nil, errors.Wrap(err, "failed to spec.machineTemplate.metadata in the ControlPlane object")
+			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.metadata in the ControlPlane object")
 		}
 	}
 
@@ -229,9 +230,25 @@ func computeControlPlaneVersion(s *scope.Scope) (string, error) {
 		return "", errors.Wrap(err, "failed to get the version from control plane spec")
 	}
 
-	// Return early if the version is already equal to the desired version
-	// no further checks required.
+	s.UpgradeTracker.ControlPlane.PendingUpgrade = true
 	if *currentVersion == desiredVersion {
+		// Mark that the control plane spec is already at the desired version.
+		// This information is used to show the appropriate message for the TopologyReconciled
+		// condition.
+		s.UpgradeTracker.ControlPlane.PendingUpgrade = false
+	}
+
+	// Check if the control plane is being created for the first time.
+	cpProvisioning, err := contract.ControlPlane().IsProvisioning(s.Current.ControlPlane.Object)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to check if the control plane is being provisioned")
+	}
+	// If the control plane is being provisioned (being craeted for the first time), then do not
+	// pick up the desiredVersion yet.
+	// Return the current version of the control plane. We will pick up the new version after the
+	// control plane is provisioned.
+	if cpProvisioning {
+		s.UpgradeTracker.ControlPlane.IsProvisioning = true
 		return *currentVersion, nil
 	}
 
@@ -245,6 +262,17 @@ func computeControlPlaneVersion(s *scope.Scope) (string, error) {
 	// Return the current version of the control plane. We will pick up the new version
 	// after the control plane is stable.
 	if cpUpgrading {
+		s.UpgradeTracker.ControlPlane.IsUpgrading = true
+		return *currentVersion, nil
+	}
+
+	// Return here if the control plane is already at the desired version
+	if !s.UpgradeTracker.ControlPlane.PendingUpgrade {
+		// At this stage the control plane is not upgrading and is already at the desired version.
+		// We can return.
+		// Nb. We do not return early in the function if the control plane is already at the desired version so as
+		// to know if the control plane is being upgraded. This information
+		// is required when updating the TopologyReconciled condition on the cluster.
 		return *currentVersion, nil
 	}
 
@@ -256,6 +284,7 @@ func computeControlPlaneVersion(s *scope.Scope) (string, error) {
 			return "", errors.Wrap(err, "failed to check if the control plane is scaling")
 		}
 		if cpScaling {
+			s.UpgradeTracker.ControlPlane.IsScaling = true
 			return *currentVersion, nil
 		}
 	}
@@ -299,6 +328,11 @@ func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, co
 
 // computeMachineDeployments computes the desired state of the list of MachineDeployments.
 func computeMachineDeployments(ctx context.Context, s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState) (scope.MachineDeploymentsStateMap, error) {
+	// Mark all the machine deployments that are currently rolling out.
+	// This captured information will be used for
+	//   - Building the TopologyReconciled condition.
+	//   - Making upgrade decisions on machine deployments.
+	s.UpgradeTracker.MachineDeployments.MarkRollingOut(s.Current.MachineDeployments.RollingOut()...)
 	machineDeploymentsStateMap := make(scope.MachineDeploymentsStateMap)
 	for _, mdTopology := range s.Blueprint.Topology.Workers.MachineDeployments {
 		desiredMachineDeployment, err := computeMachineDeployment(ctx, s, desiredControlPlaneState, mdTopology)
@@ -401,6 +435,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 					Version:           pointer.String(version),
 					Bootstrap:         clusterv1.Bootstrap{ConfigRef: contract.ObjToRef(desiredMachineDeployment.BootstrapTemplate)},
 					InfrastructureRef: *contract.ObjToRef(desiredMachineDeployment.InfrastructureMachineTemplate),
+					FailureDomain:     machineDeploymentTopology.FailureDomain,
 				},
 			},
 		},
@@ -471,14 +506,15 @@ func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *s
 	// Get the current version of the machine deployment.
 	currentVersion := *currentMDState.Object.Spec.Template.Spec.Version
 
-	// Return early if we are not allowed to upgrade the machine deployment.
-	if !s.UpgradeTracker.MachineDeployments.AllowUpgrade() {
-		return currentVersion, nil
-	}
-
 	// Return early if the currentVersion is already equal to the desiredVersion
 	// no further checks required.
 	if currentVersion == desiredVersion {
+		return currentVersion, nil
+	}
+
+	// Return early if we are not allowed to upgrade the machine deployment.
+	if !s.UpgradeTracker.MachineDeployments.AllowUpgrade() {
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
 		return currentVersion, nil
 	}
 
@@ -488,6 +524,7 @@ func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *s
 	// NOTE: this case should never happen (upgrading a MachineDeployment) before creating a CP,
 	// but we are implementing this check for extra safety.
 	if s.Current.ControlPlane == nil || s.Current.ControlPlane.Object == nil {
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
 		return currentVersion, nil
 	}
 
@@ -499,6 +536,7 @@ func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *s
 		return "", errors.Wrap(err, "failed to check if control plane is upgrading")
 	}
 	if cpUpgrading {
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
 		return currentVersion, nil
 	}
 
@@ -512,6 +550,7 @@ func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *s
 			return "", errors.Wrap(err, "failed to check if the control plane is scaling")
 		}
 		if cpScaling {
+			s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
 			return currentVersion, nil
 		}
 	}
@@ -530,6 +569,7 @@ func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *s
 	if *currentCPVersion != *desiredCPVersion {
 		// The versions of the current and desired control planes do no match,
 		// implies we are about to upgrade the control plane.
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
 		return currentVersion, nil
 	}
 
@@ -537,12 +577,13 @@ func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *s
 	// Checking to see if the machine deployments are also stable.
 	// If any of the MachineDeployments is rolling out, do not upgrade the machine deployment yet.
 	if s.Current.MachineDeployments.IsAnyRollingOut() {
+		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
 		return currentVersion, nil
 	}
 
 	// Control plane and machine deployments are stable.
 	// Ready to pick up the topology version.
-	s.UpgradeTracker.MachineDeployments.Insert(currentMDState.Object.Name)
+	s.UpgradeTracker.MachineDeployments.MarkRollingOut(currentMDState.Object.Name)
 	return desiredVersion, nil
 }
 

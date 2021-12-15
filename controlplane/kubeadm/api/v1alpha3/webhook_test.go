@@ -24,10 +24,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	bootstrapv1alpha3 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestKubeadmControlPlaneConversion(t *testing.T) {
@@ -51,7 +52,7 @@ func TestKubeadmControlPlaneConversion(t *testing.T) {
 				Namespace:  ns.Name,
 				Name:       infraMachineTemplateName,
 			},
-			KubeadmConfigSpec: cabpkv1.KubeadmConfigSpec{
+			KubeadmConfigSpec: bootstrapv1alpha3.KubeadmConfigSpec{
 				ClusterConfiguration: &upstreamv1beta1.ClusterConfiguration{
 					APIServer: upstreamv1beta1.APIServer{
 						ControlPlaneComponent: upstreamv1beta1.ControlPlaneComponent{

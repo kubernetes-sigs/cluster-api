@@ -20,11 +20,12 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/cluster-api/util/annotations"
-	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
+
+	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/labels"
 )
 
 // All returns a predicate that returns true only if all given predicates return true.
@@ -185,7 +186,7 @@ func ResourceNotPausedAndHasFilterLabel(logger logr.Logger, labelValue string) p
 func processIfNotPaused(logger logr.Logger, obj client.Object) bool {
 	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
 	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
-	if annotations.HasPausedAnnotation(obj) {
+	if annotations.HasPaused(obj) {
 		log.V(4).Info("Resource is paused, will not attempt to map resource")
 		return false
 	}

@@ -167,7 +167,7 @@ The user can choose two approaches for certificate management:
 should be provided as a `Secrets` objects in the management cluster.
 2. let KCP to generate the necessary `Secrets` objects with a self-signed certificate authority for kubeadm
 
-See [here](ttps://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-certs/) for more info about certificate management with kubeadm.
+See [here](https://kubernetes.io/docs/tasks/administer-cluster/kubeadm/kubeadm-certs/) for more info about certificate management with kubeadm.
 
 ### Additional Features
 The `KubeadmConfig` object supports customizing the content of the config-data. The following examples illustrate how to specify these options. They should be adapted to fit your environment and use case.

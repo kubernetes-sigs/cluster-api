@@ -27,6 +27,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
 )
 
@@ -59,7 +60,7 @@ func printVariablesOutput(template client.Template, options client.GetClusterTem
 			v := *variableMap[name]
 			// Add quotes around any unquoted strings
 			if len(v) > 0 && !strings.HasPrefix(v, "\"") {
-				v = fmt.Sprintf("\"%s\"", v)
+				v = fmt.Sprintf("%q", v)
 				variableMap[name] = &v
 			}
 		}

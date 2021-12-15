@@ -24,13 +24,13 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 )
 
 const (
 	// BuiltinsName is the name of the builtin variable.
-	// NOTE: User-defined variables are not allowed to start with "builtin".
 	BuiltinsName = "builtin"
 )
 

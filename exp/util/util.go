@@ -24,14 +24,15 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 // GetOwnerMachinePool returns the MachinePool objects owning the current resource.
-func GetOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1exp.MachinePool, error) {
+func GetOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*expv1.MachinePool, error) {
 	for _, ref := range obj.OwnerReferences {
 		if ref.Kind != "MachinePool" {
 			continue
@@ -40,7 +41,7 @@ func GetOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.Object
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		if gv.Group == clusterv1exp.GroupVersion.Group {
+		if gv.Group == expv1.GroupVersion.Group {
 			return GetMachinePoolByName(ctx, c, obj.Namespace, ref.Name)
 		}
 	}
@@ -48,8 +49,8 @@ func GetOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.Object
 }
 
 // GetMachinePoolByName finds and returns a MachinePool object usting the specified params.
-func GetMachinePoolByName(ctx context.Context, c client.Client, namespace, name string) (*clusterv1exp.MachinePool, error) {
-	m := &clusterv1exp.MachinePool{}
+func GetMachinePoolByName(ctx context.Context, c client.Client, namespace, name string) (*expv1.MachinePool, error) {
+	m := &expv1.MachinePool{}
 	key := client.ObjectKey{Name: name, Namespace: namespace}
 	if err := c.Get(ctx, key, m); err != nil {
 		return nil, err
@@ -63,7 +64,7 @@ func MachinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind, log logr.Lo
 	log = log.WithValues("machine-pool-to-infra-map-func", gvk.String())
 	return func(o client.Object) []reconcile.Request {
 		log := log.WithValues("namespace", o.GetNamespace(), "name", o.GetName())
-		m, ok := o.(*clusterv1exp.MachinePool)
+		m, ok := o.(*expv1.MachinePool)
 		if !ok {
 			log.V(4).Info("not a machine pool")
 			return nil

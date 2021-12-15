@@ -26,11 +26,12 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/builder"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestClusterClassReconciler_reconcile(t *testing.T) {
@@ -46,7 +47,7 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 	workerClassName2 := "linux-worker-2"
 
 	// The below objects are created in order to feed the reconcile loop all the information it needs to create a
-	// full tree of ClusterClass objects (the objects should have owner referecen to the ClusterClass).
+	// full tree of ClusterClass objects (the objects should have owner references to the ClusterClass).
 
 	// Bootstrap templates for the workers.
 	bootstrapTemplate := builder.BootstrapTemplate(ns.Name, "bootstraptemplate").Build()
@@ -122,7 +123,7 @@ func assertInfrastructureClusterTemplate(ctx context.Context, actualClusterClass
 	if err := env.Get(ctx, actualInfraClusterTemplateKey, actualInfraClusterTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualInfraClusterTemplate, ownerRefereceTo(actualClusterClass)); err != nil {
+	if err := assertHasOwnerReference(actualInfraClusterTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
 		return err
 	}
 
@@ -146,7 +147,7 @@ func assertControlPlaneTemplate(ctx context.Context, actualClusterClass *cluster
 	if err := env.Get(ctx, actualControlPlaneTemplateKey, actualControlPlaneTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualControlPlaneTemplate, ownerRefereceTo(actualClusterClass)); err != nil {
+	if err := assertHasOwnerReference(actualControlPlaneTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
 		return err
 	}
 
@@ -167,7 +168,7 @@ func assertControlPlaneTemplate(ctx context.Context, actualClusterClass *cluster
 		if err := env.Get(ctx, actualInfrastructureMachineTemplateKey, actualInfrastructureMachineTemplate); err != nil {
 			return err
 		}
-		if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, ownerRefereceTo(actualClusterClass)); err != nil {
+		if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
 			return err
 		}
 
@@ -201,7 +202,7 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	if err := env.Get(ctx, actualInfrastructureMachineTemplateKey, actualInfrastructureMachineTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, ownerRefereceTo(actualClusterClass)); err != nil {
+	if err := assertHasOwnerReference(actualInfrastructureMachineTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
 		return err
 	}
 
@@ -221,7 +222,7 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	if err := env.Get(ctx, actualBootstrapTemplateKey, actualBootstrapTemplate); err != nil {
 		return err
 	}
-	if err := assertHasOwnerReference(actualBootstrapTemplate, ownerRefereceTo(actualClusterClass)); err != nil {
+	if err := assertHasOwnerReference(actualBootstrapTemplate, *ownerReferenceTo(actualClusterClass)); err != nil {
 		return err
 	}
 
@@ -244,7 +245,7 @@ func assertHasOwnerReference(obj client.Object, ownerRef metav1.OwnerReference) 
 		}
 	}
 	if !found {
-		return fmt.Errorf("Object %s does not have OwnerReference %s", tlog.KObj{Obj: obj}, &ownerRef)
+		return fmt.Errorf("object %s does not have OwnerReference %s", tlog.KObj{Obj: obj}, &ownerRef)
 	}
 	return nil
 }
@@ -263,13 +264,4 @@ func isOwnerReferenceEqual(a, b metav1.OwnerReference) bool {
 		return false
 	}
 	return true
-}
-
-func ownerRefereceTo(obj client.Object) metav1.OwnerReference {
-	return metav1.OwnerReference{
-		APIVersion: obj.GetObjectKind().GroupVersionKind().GroupVersion().String(),
-		Kind:       obj.GetObjectKind().GroupVersionKind().Kind,
-		Name:       obj.GetName(),
-		UID:        obj.GetUID(),
-	}
 }

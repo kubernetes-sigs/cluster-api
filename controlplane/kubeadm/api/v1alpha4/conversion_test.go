@@ -20,23 +20,32 @@ import (
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	bootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
-	"sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+)
+
+const (
+	fakeID     = "abcdef"
+	fakeSecret = "abcdef0123456789"
 )
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for KubeadmControlPlane", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &v1beta1.KubeadmControlPlane{},
+		Hub:         &controlplanev1.KubeadmControlPlane{},
 		Spoke:       &KubeadmControlPlane{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
 
 	t.Run("for KubeadmControlPlaneTemplate", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &v1beta1.KubeadmControlPlaneTemplate{},
+		Hub:         &controlplanev1.KubeadmControlPlaneTemplate{},
 		Spoke:       &KubeadmControlPlaneTemplate{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{fuzzFuncs},
 	}))
@@ -57,16 +66,19 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		kubeadmBootstrapTokenStringFuzzer,
 		cabpkBootstrapTokenStringFuzzer,
 		dnsFuzzer,
+		kubeadmBootstrapTokenStringFuzzerV1Alpha4,
+		kubeadmControlPlaneTemplateResourceSpecFuzzerV1Alpha4,
 	}
 }
 
 func kubeadmBootstrapTokenStringFuzzer(in *upstreamv1beta1.BootstrapTokenString, c fuzz.Continue) {
-	in.ID = "abcdef"
-	in.Secret = "abcdef0123456789"
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }
-func cabpkBootstrapTokenStringFuzzer(in *cabpkv1.BootstrapTokenString, c fuzz.Continue) {
-	in.ID = "abcdef"
-	in.Secret = "abcdef0123456789"
+
+func cabpkBootstrapTokenStringFuzzer(in *bootstrapv1.BootstrapTokenString, c fuzz.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
 }
 
 func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
@@ -74,4 +86,19 @@ func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
 
 	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.Type = ""
+}
+
+func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *bootstrapv1alpha4.BootstrapTokenString, c fuzz.Continue) {
+	in.ID = fakeID
+	in.Secret = fakeSecret
+}
+
+func kubeadmControlPlaneTemplateResourceSpecFuzzerV1Alpha4(in *KubeadmControlPlaneTemplateResource, c fuzz.Continue) {
+	c.Fuzz(in)
+
+	// Fields have been dropped in KCPTemplate.
+	in.Spec.Replicas = nil
+	in.Spec.Version = ""
+	in.Spec.MachineTemplate.ObjectMeta = clusterv1alpha4.ObjectMeta{}
+	in.Spec.MachineTemplate.InfrastructureRef = corev1.ObjectReference{}
 }

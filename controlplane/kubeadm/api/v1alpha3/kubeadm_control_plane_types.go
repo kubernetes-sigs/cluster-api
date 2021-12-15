@@ -20,8 +20,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
+
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+	bootstrapv1alpha3 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -73,7 +74,7 @@ type KubeadmControlPlaneSpec struct {
 
 	// KubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
-	KubeadmConfigSpec cabpkv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
+	KubeadmConfigSpec bootstrapv1alpha3.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
 	// UpgradeAfter is a field to indicate an upgrade should be performed
 	// after the specified time even if no changes have been made to the
@@ -179,7 +180,7 @@ type KubeadmControlPlaneStatus struct {
 
 	// Conditions defines current service state of the KubeadmControlPlane.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha3.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -204,12 +205,12 @@ type KubeadmControlPlane struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (in *KubeadmControlPlane) GetConditions() clusterv1.Conditions {
+func (in *KubeadmControlPlane) GetConditions() clusterv1alpha3.Conditions {
 	return in.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (in *KubeadmControlPlane) SetConditions(conditions clusterv1.Conditions) {
+func (in *KubeadmControlPlane) SetConditions(conditions clusterv1alpha3.Conditions) {
 	in.Status.Conditions = conditions
 }
 

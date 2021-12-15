@@ -23,6 +23,9 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
@@ -30,8 +33,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -136,7 +137,6 @@ func (r *MachineReconciler) reconcileNode(ctx context.Context, cluster *clusterv
 // if all conditions are unknown,  summarized status = Unknown.
 // (semantically true conditions: NodeMemoryPressure/NodeDiskPressure/NodePIDPressure == false or Ready == true.)
 func summarizeNodeConditions(node *corev1.Node) (corev1.ConditionStatus, string) {
-	// totalNumOfConditionsChecked := 4
 	semanticallyFalseStatus := 0
 	unknownStatus := 0
 

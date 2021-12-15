@@ -142,11 +142,12 @@ Supported settings:
     }
     ```
 
-    ###### Goland
-  With the above example, you can configure [a Go Remote run/debug
-  configuration](https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-3-create-the-remote-run-debug-configuration-on-the-client-computer)
-  pointing at port 30000.
+    ###### Goland / Intellij
+    With the above example, you can configure [a Go Remote run/debug
+    configuration](https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-3-create-the-remote-run-debug-configuration-on-the-client-computer)
+    pointing at port 30000.
 
+<br/>
 {{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,Azure,DigitalOcean,GCP"}}
 {{#tab AWS}}
 

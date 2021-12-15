@@ -25,7 +25,7 @@ Prow Presubmits:
   * GINKGO_FOCUS: `[PR-Blocking]`, IP_FAMILY: `IPv6`
 * ✳️️ ✴️ [pull-cluster-api-e2e-full-main] `./scripts/ci-e2e.sh`
   * GINKGO_SKIP: `[PR-Blocking] [Conformance] [K8s-Upgrade]` (i.e. "no tags")
-* ✳️️ ✴️ [pull-cluster-api-e2e-workload-upgrade-1-22-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.22` TO: `ci/latest-1.23`
+* ✳️️ ✴️ [pull-cluster-api-e2e-workload-upgrade-1-23-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.23` TO: `ci/latest-1.24`
   * GINKGO_FOCUS: `[K8s-Upgrade]`
 
 GitHub Presubmit Workflows:
@@ -58,7 +58,9 @@ Prow Periodics:
   * GINKGO_FOCUS: `[K8s-Upgrade]`
 * [periodic-cluster-api-e2e-workload-upgrade-1-21-1-22-main] `./scripts/ci-e2e.sh` FROM: `stable-1.21` TO: `stable-1.22`
   * GINKGO_FOCUS: `[K8s-Upgrade]`
-* [periodic-cluster-api-e2e-workload-upgrade-1-22-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.22` TO: `ci/latest-1.23`
+* [periodic-cluster-api-e2e-workload-upgrade-1-22-1-23-main] `./scripts/ci-e2e.sh` FROM: `stable-1.22` TO: `stable-1.23`
+  * GINKGO_FOCUS: `[K8s-Upgrade]`
+* [periodic-cluster-api-e2e-workload-upgrade-1-23-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.23` TO: `ci/latest-1.24`
   * GINKGO_FOCUS: `[K8s-Upgrade]`
 * [cluster-api-push-images-nightly] Google Cloud Build: `make release-staging-nightly`, `make -C test/infrastructure/docker release-staging-nightly`
 
@@ -77,7 +79,7 @@ GitHub (On Release) Workflows:
 [pull-cluster-api-e2e-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main
 [pull-cluster-api-e2e-ipv6-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main-ipv6
 [pull-cluster-api-e2e-full-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-full-main
-[pull-cluster-api-e2e-workload-upgrade-1-22-latest-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main-1-22-latest
+[pull-cluster-api-e2e-workload-upgrade-1-23-latest-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main-1-23-latest
 [periodic-cluster-api-verify-book-links-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-verify-book-links-main
 [periodic-cluster-api-test-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-test-main
 [periodic-cluster-api-e2e-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main
@@ -88,6 +90,7 @@ GitHub (On Release) Workflows:
 [periodic-cluster-api-e2e-workload-upgrade-1-19-1-20-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-19-1-20
 [periodic-cluster-api-e2e-workload-upgrade-1-20-1-21-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-20-1-21
 [periodic-cluster-api-e2e-workload-upgrade-1-21-1-22-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-21-1-22
-[periodic-cluster-api-e2e-workload-upgrade-1-22-latest-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-22-latest
+[periodic-cluster-api-e2e-workload-upgrade-1-22-1-23-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-22-1-23
+[periodic-cluster-api-e2e-workload-upgrade-1-23-latest-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-23-latest
 [cluster-api-push-images-nightly]: https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#cluster-api-push-images-nightly
 [post-cluster-api-push-images]: https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-push-images

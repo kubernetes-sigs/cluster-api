@@ -28,17 +28,18 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/pointer"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/builder"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 func TestWatches(t *testing.T) {
@@ -541,14 +542,16 @@ func TestMachineOwnerReference(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			c := fake.NewClientBuilder().WithObjects(
+				testCluster,
+				machineInvalidCluster,
+				machineValidCluster,
+				machineValidMachine,
+				machineValidControlled,
+			).Build()
 			mr := &MachineReconciler{
-				Client: fake.NewClientBuilder().WithObjects(
-					testCluster,
-					machineInvalidCluster,
-					machineValidCluster,
-					machineValidMachine,
-					machineValidControlled,
-				).Build(),
+				Client:    c,
+				APIReader: c,
 			}
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
@@ -842,14 +845,14 @@ func TestMachineConditions(t *testing.T) {
 			bootstrapReady: true,
 			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
 				// since these conditions are set by an external controller
-				conditions.MarkTrue(m, clusterv1.MachineHealthCheckSuccededCondition)
+				conditions.MarkTrue(m, clusterv1.MachineHealthCheckSucceededCondition)
 				conditions.MarkTrue(m, clusterv1.MachineOwnerRemediatedCondition)
 			},
 			conditionsToAssert: []*clusterv1.Condition{
 				conditions.TrueCondition(clusterv1.InfrastructureReadyCondition),
 				conditions.TrueCondition(clusterv1.BootstrapReadyCondition),
 				conditions.TrueCondition(clusterv1.MachineOwnerRemediatedCondition),
-				conditions.TrueCondition(clusterv1.MachineHealthCheckSuccededCondition),
+				conditions.TrueCondition(clusterv1.MachineHealthCheckSucceededCondition),
 				conditions.TrueCondition(clusterv1.ReadyCondition),
 			},
 		},
@@ -933,7 +936,7 @@ func TestMachineConditions(t *testing.T) {
 			infraReady:     true,
 			bootstrapReady: true,
 			beforeFunc: func(bootstrap, infra *unstructured.Unstructured, m *clusterv1.Machine) {
-				conditions.MarkFalse(m, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
+				conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, "")
 			},
 			conditionsToAssert: []*clusterv1.Condition{
 				conditions.FalseCondition(clusterv1.ReadyCondition, clusterv1.NodeNotFoundReason, clusterv1.ConditionSeverityWarning, ""),

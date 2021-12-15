@@ -23,10 +23,11 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // CreateClusterInput is the input for CreateCluster.
@@ -118,10 +119,10 @@ type WaitForClusterToProvisionInput struct {
 }
 
 // WaitForClusterToProvision will wait for a cluster to have a phase status of provisioned.
-func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvisionInput, intervals ...interface{}) {
+func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvisionInput, intervals ...interface{}) *clusterv1.Cluster {
+	cluster := &clusterv1.Cluster{}
 	By("Waiting for cluster to enter the provisioned phase")
 	Eventually(func() (string, error) {
-		cluster := &clusterv1.Cluster{}
 		key := client.ObjectKey{
 			Namespace: input.Cluster.GetNamespace(),
 			Name:      input.Cluster.GetName(),
@@ -131,6 +132,7 @@ func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvis
 		}
 		return cluster.Status.Phase, nil
 	}, intervals...).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)))
+	return cluster
 }
 
 // DeleteClusterInput is the input for DeleteCluster.
@@ -185,7 +187,9 @@ func DiscoveryAndWaitForCluster(ctx context.Context, input DiscoveryAndWaitForCl
 	})
 	Expect(cluster).ToNot(BeNil(), "Failed to get the Cluster object")
 
-	WaitForClusterToProvision(ctx, WaitForClusterToProvisionInput{
+	// NOTE: We intentionally return the provisioned Cluster because it also contains
+	// the reconciled ControlPlane ref and InfrastructureCluster ref when using a ClusterClass.
+	cluster = WaitForClusterToProvision(ctx, WaitForClusterToProvisionInput{
 		Getter:  input.Getter,
 		Cluster: cluster,
 	}, intervals...)

@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"k8s.io/apimachinery/pkg/util/version"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
@@ -80,7 +81,7 @@ func (g *gitHubRepository) DefaultVersion() string {
 	return g.defaultVersion
 }
 
-// GetVersion returns the list of versions that are available in a provider repository.
+// GetVersions returns the list of versions that are available in a provider repository.
 func (g *gitHubRepository) GetVersions() ([]string, error) {
 	versions, err := g.getVersions()
 	if err != nil {
@@ -183,9 +184,7 @@ func NewGitHubRepository(providerConfig config.Provider, configVariablesClient c
 
 // getComponentsPath returns the file name.
 func getComponentsPath(path string, rootPath string) string {
-	// filePath = "/filename"
 	filePath := strings.TrimPrefix(path, rootPath)
-	// componentsPath = "filename"
 	componentsPath := strings.TrimPrefix(filePath, "/")
 	return componentsPath
 }
@@ -309,7 +308,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 // handleGithubErr wraps error messages.
 func (g *gitHubRepository) handleGithubErr(err error, message string, args ...interface{}) error {
 	if _, ok := err.(*github.RateLimitError); ok {
-		return errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API tokens a assign it to the GITHUB_TOKEN environment variable")
+		return errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")
 	}
 	return errors.Wrapf(err, message, args...)
 }

@@ -25,6 +25,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
@@ -32,10 +37,6 @@ import (
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io;controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch;update;patch
@@ -44,7 +45,8 @@ import (
 
 // ClusterClassReconciler reconciles the ClusterClass object.
 type ClusterClassReconciler struct {
-	Client client.Client
+	Client    client.Client
+	APIReader client.Reader
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -80,7 +82,7 @@ func (r *ClusterClassReconciler) Reconcile(ctx context.Context, req ctrl.Request
 	}
 
 	// Return early if the ClusterClass is paused.
-	if annotations.HasPausedAnnotation(clusterClass) {
+	if annotations.HasPaused(clusterClass) {
 		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}
@@ -154,7 +156,7 @@ func (r *ClusterClassReconciler) reconcile(ctx context.Context, clusterClass *cl
 func (r *ClusterClassReconciler) reconcileExternal(ctx context.Context, clusterClass *clusterv1.ClusterClass, ref *corev1.ObjectReference, setOwnerRef bool) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, ref); err != nil {
 		return errors.Wrapf(err, "failed to update reference API contract of %s", tlog.KRef{Ref: ref})
 	}
 
@@ -172,7 +174,7 @@ func (r *ClusterClassReconciler) reconcileExternal(ctx context.Context, clusterC
 	}
 
 	// If external ref is paused, return early.
-	if annotations.HasPausedAnnotation(obj) {
+	if annotations.HasPaused(obj) {
 		log.V(3).Info("External object referenced is paused", "refGroupVersionKind", ref.GroupVersionKind(), "refName", ref.Name)
 		return nil
 	}

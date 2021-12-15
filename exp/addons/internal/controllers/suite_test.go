@@ -24,13 +24,14 @@ import (
 
 	// +kubebuilder:scaffold:imports
 	corev1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/cluster-api/api/v1beta1/index"
-	"sigs.k8s.io/cluster-api/controllers/remote"
-	v1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/envtest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
+	"sigs.k8s.io/cluster-api/controllers/remote"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/envtest"
 )
 
 var (
@@ -72,7 +73,7 @@ func TestMain(m *testing.M) {
 		ManagerUncachedObjs: []client.Object{
 			&corev1.ConfigMap{},
 			&corev1.Secret{},
-			&v1alpha4.ClusterResourceSetBinding{},
+			&addonsv1.ClusterResourceSetBinding{},
 		},
 		SetupIndexes:     setupIndexes,
 		SetupReconcilers: setupReconcilers,

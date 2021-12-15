@@ -18,6 +18,7 @@ package scope
 
 import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/internal/mdutil"
 )
@@ -51,15 +52,22 @@ type ControlPlaneState struct {
 // MachineDeploymentsStateMap holds a collection of MachineDeployment states.
 type MachineDeploymentsStateMap map[string]*MachineDeploymentState
 
-// IsAnyRollingOut returns true if at least one of the machine deployments
-// is upgrading.
-func (mds MachineDeploymentsStateMap) IsAnyRollingOut() bool {
+// RollingOut returns the list of the machine deployments
+// that are rolling out.
+func (mds MachineDeploymentsStateMap) RollingOut() []string {
+	names := []string{}
 	for _, md := range mds {
 		if md.IsRollingOut() {
-			return true
+			names = append(names, md.Object.Name)
 		}
 	}
-	return false
+	return names
+}
+
+// IsAnyRollingOut returns true if at least one of the
+// machine deployments is rolling out. False, otherwise.
+func (mds MachineDeploymentsStateMap) IsAnyRollingOut() bool {
+	return len(mds.RollingOut()) != 0
 }
 
 // MachineDeploymentState holds all the objects representing the state of a managed deployment.

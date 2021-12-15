@@ -21,8 +21,9 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
-	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha4"
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
@@ -58,7 +59,7 @@ func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePla
 	// this is an exception and support for skipping releases should be removed in future releases.
 	if err := clusterClient.ProviderInventory().CheckCAPIContract(
 		cluster.AllowCAPIContract{Contract: clusterv1alpha3.GroupVersion.Version},
-		cluster.AllowCAPIContract{Contract: clusterv1old.GroupVersion.Version},
+		cluster.AllowCAPIContract{Contract: clusterv1alpha4.GroupVersion.Version},
 	); err != nil {
 		return nil, err
 	}
@@ -124,7 +125,7 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 	// this is an exception and support for skipping releases should be removed in future releases.
 	if err := clusterClient.ProviderInventory().CheckCAPIContract(
 		cluster.AllowCAPIContract{Contract: clusterv1alpha3.GroupVersion.Version},
-		cluster.AllowCAPIContract{Contract: clusterv1old.GroupVersion.Version},
+		cluster.AllowCAPIContract{Contract: clusterv1alpha4.GroupVersion.Version},
 	); err != nil {
 		return err
 	}

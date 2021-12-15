@@ -18,8 +18,9 @@ package v1alpha4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
+
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	infrav1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
 )
 
 const (
@@ -42,7 +43,7 @@ type DockerMachinePoolMachineTemplate struct {
 	// ExtraMounts describes additional mount points for the node container
 	// These may be used to bind a hostPath
 	// +optional
-	ExtraMounts []infrav1.Mount `json:"extraMounts,omitempty"`
+	ExtraMounts []infrav1alpha4.Mount `json:"extraMounts,omitempty"`
 }
 
 // DockerMachinePoolSpec defines the desired state of DockerMachinePool.
@@ -80,13 +81,14 @@ type DockerMachinePoolStatus struct {
 
 	// Conditions defines current service state of the DockerMachinePool.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
 }
 
+// DockerMachinePoolInstanceStatus contains status information about a DockerMachinePool.
 type DockerMachinePoolInstanceStatus struct {
 	// Addresses contains the associated addresses for the docker machine.
 	// +optional
-	Addresses []clusterv1.MachineAddress `json:"addresses,omitempty"`
+	Addresses []clusterv1alpha4.MachineAddress `json:"addresses,omitempty"`
 
 	// InstanceName is the identification of the Machine Instance within the Machine Pool
 	InstanceName string `json:"instanceName,omitempty"`
@@ -124,12 +126,12 @@ type DockerMachinePool struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (c *DockerMachinePool) GetConditions() clusterv1.Conditions {
+func (c *DockerMachinePool) GetConditions() clusterv1alpha4.Conditions {
 	return c.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (c *DockerMachinePool) SetConditions(conditions clusterv1.Conditions) {
+func (c *DockerMachinePool) SetConditions(conditions clusterv1alpha4.Conditions) {
 	c.Status.Conditions = conditions
 }
 

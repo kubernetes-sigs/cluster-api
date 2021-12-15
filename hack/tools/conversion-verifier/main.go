@@ -98,7 +98,7 @@ func main() {
 	// and find the ones that have a storage version assigned.
 	for _, pkg := range packages {
 		group := apiGroupForPackage(col, pkg)
-		if len(group) == 0 {
+		if group == "" {
 			// We're only interested in api folders, exclude everything
 			// else that's not an API package.
 			continue

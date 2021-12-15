@@ -135,6 +135,8 @@ spec:
                 description: Instances contains the status for each instance in the
                   pool
                 items:
+                  description: DockerMachinePoolInstanceStatus contains status information
+                    about a DockerMachinePool.
                   properties:
                     addresses:
                       description: Addresses contains the associated addresses for
@@ -317,6 +319,8 @@ spec:
                 description: Instances contains the status for each instance in the
                   pool
                 items:
+                  description: DockerMachinePoolInstanceStatus contains status information
+                    about a DockerMachinePool.
                   properties:
                     addresses:
                       description: Addresses contains the associated addresses for
@@ -500,6 +504,8 @@ spec:
                 description: Instances contains the status for each instance in the
                   pool
                 items:
+                  description: DockerMachinePoolInstanceStatus contains status information
+                    about a DockerMachinePool.
                   properties:
                     addresses:
                       description: Addresses contains the associated addresses for

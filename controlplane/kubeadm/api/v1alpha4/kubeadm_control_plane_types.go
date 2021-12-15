@@ -20,8 +20,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
-	cabpkv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	bootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
 	"sigs.k8s.io/cluster-api/errors"
 )
 
@@ -67,7 +68,7 @@ type KubeadmControlPlaneSpec struct {
 
 	// KubeadmConfigSpec is a KubeadmConfigSpec
 	// to use for initializing and joining machines to the control plane.
-	KubeadmConfigSpec cabpkv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
+	KubeadmConfigSpec bootstrapv1alpha4.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
 	// RolloutAfter is a field to indicate a rollout should be performed
 	// after the specified time even if no changes have been made to the
@@ -89,7 +90,7 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
 	// +optional
-	ObjectMeta clusterv1.ObjectMeta `json:"metadata,omitempty"`
+	ObjectMeta clusterv1alpha4.ObjectMeta `json:"metadata,omitempty"`
 
 	// InfrastructureRef is a required reference to a custom resource
 	// offered by an infrastructure provider.
@@ -193,7 +194,7 @@ type KubeadmControlPlaneStatus struct {
 
 	// Conditions defines current service state of the KubeadmControlPlane.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -219,12 +220,12 @@ type KubeadmControlPlane struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (in *KubeadmControlPlane) GetConditions() clusterv1.Conditions {
+func (in *KubeadmControlPlane) GetConditions() clusterv1alpha4.Conditions {
 	return in.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (in *KubeadmControlPlane) SetConditions(conditions clusterv1.Conditions) {
+func (in *KubeadmControlPlane) SetConditions(conditions clusterv1alpha4.Conditions) {
 	in.Status.Conditions = conditions
 }
 

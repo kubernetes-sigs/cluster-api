@@ -24,5 +24,12 @@ spec:
         name: "md-0"
         replicas: ${WORKER_MACHINE_COUNT}
     variables:
-    - name: imageRepository
-      value: k8s.gcr.io
+    # The imageRepository variable is defaulted by the Cluster webhook.
+    #- name: imageRepository
+    #  value: k8s.gcr.io
+    - name: etcdImageTag
+      # We set an empty value to use the default tag kubeadm init is using.
+      value: ""
+    - name: coreDNSImageTag
+      # We set an empty value to use the default tag kubeadm init is using.
+      value: ""

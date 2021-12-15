@@ -60,9 +60,9 @@ E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
 CAPD_DIR := $(TEST_DIR)/infrastructure/docker
 GO_APIDIFF_BIN := $(BIN_DIR)/go-apidiff
 GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
+KPROMO_BIN := $(BIN_DIR)/kpromo
+KPROMO :=  $(TOOLS_DIR)/$(KPROMO_BIN)
 ENVSUBST_BIN := $(BIN_DIR)/envsubst
-YQ_BIN := $(BIN_DIR)/yq
-YQ :=  $(TOOLS_DIR)/$(YQ_BIN)
 ENVSUBST := $(TOOLS_DIR)/$(ENVSUBST_BIN)
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
@@ -85,6 +85,7 @@ GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/gotestsum)
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
 CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/conversion-gen)
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/conversion-verifier)
+TILT_PREPARE := $(abspath $(TOOLS_BIN_DIR)/tilt-prepare)
 ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/envsubst)
 
 # clusterctl.
@@ -214,14 +215,17 @@ $(CONVERSION_GEN): $(TOOLS_DIR)/go.mod
 $(CONVERSION_VERIFIER): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-verifier sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
 
+$(TILT_PREPARE): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/tilt-prepare sigs.k8s.io/cluster-api/hack/tools/tilt-prepare
+
 $(GO_APIDIFF): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(GO_APIDIFF_BIN) github.com/joelanford/go-apidiff
 
 $(ENVSUBST): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR) && go build -tags=tools -o $(ENVSUBST_BIN) github.com/drone/envsubst/v2/cmd/envsubst
 
-$(YQ): $(TOOLS_DIR)/go.mod
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(YQ_BIN) github.com/mikefarah/yq/v4
+$(KPROMO): $(TOOLS_DIR)/go.mod
+	cd $(TOOLS_DIR) && go build -tags=tools -o $(KPROMO_BIN) sigs.k8s.io/promo-tools/v3/cmd/kpromo
 
 $(KUSTOMIZE): # Download kustomize using hack script into tools folder.
 	hack/ensure-kustomize.sh
@@ -237,8 +241,9 @@ setup-envtest: $(SETUP_ENVTEST) ## Build a local copy of setup-envtest.
 controller-gen: $(CONTROLLER_GEN) ## Build a local copy of controller-gen.
 conversion-gen: $(CONVERSION_GEN) ## Build a local copy of conversion-gen.
 conversion-verifier: $(CONVERSION_VERIFIER) ## Build a local copy of conversion-verifier.
+tilt-prepare: $(TILT_PREPARE) ## Build a local copy of tilt-prepare.
 gotestsum: $(GOTESTSUM) ## Build a local copy of gotestsum.
-yq: $(YQ)  ## Build a local copy of yq.
+kpromo: $(KPROMO)  ## Build a local copy of kpromo.
 
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework
@@ -365,9 +370,9 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE)
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./controllers/... \
-		paths=./webhooks/... \
+		paths=./internal/webhooks/... \
 		paths=./$(EXP_DIR)/api/... \
-		paths=./$(EXP_DIR)/controllers/... \
+		paths=./$(EXP_DIR)/internal/controllers/... \
 		paths=./$(EXP_DIR)/addons/api/... \
 		paths=./$(EXP_DIR)/addons/internal/controllers/... \
 		crd:crdVersions=v1 \
@@ -398,6 +403,7 @@ generate-manifests-kcp: $(CONTROLLER_GEN)
 	$(CONTROLLER_GEN) \
 		paths=./controlplane/kubeadm/api/... \
 		paths=./controlplane/kubeadm/controllers/... \
+		paths=./controlplane/kubeadm/internal/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
 		output:crd:dir=./controlplane/kubeadm/config/crd/bases \
@@ -523,6 +529,8 @@ PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort
 RELEASE_ALIAS_TAG := $(PULL_BASE_REF)
 RELEASE_DIR := out
 RELEASE_NOTES_DIR := _releasenotes
+USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4)
+IMAGE_REVIEWERS ?= $(shell ./hack/get-project-maintainers.sh)
 
 $(RELEASE_DIR):
 	mkdir -p $(RELEASE_DIR)/
@@ -630,6 +638,10 @@ release-alias-tag: ## Adds the tag to the last build tag.
 release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
 
+.PHONY: promote-images
+promote-images: $(KPROMO)
+	$(KPROMO) pr --project cluster-api --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK)
+
 ## --------------------------------------
 ## Cleanup / Verification
 ## --------------------------------------
@@ -678,7 +690,7 @@ verify:
 
 .PHONY: verify-modules
 verify-modules: modules
-	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum); then \
+	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi

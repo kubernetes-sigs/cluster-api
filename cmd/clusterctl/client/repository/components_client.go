@@ -18,6 +18,7 @@ package repository
 
 import (
 	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
@@ -51,7 +52,7 @@ func newComponentsClient(provider config.Provider, repository Repository, config
 	}
 }
 
-// Get returns the components from a repository.
+// Raw returns the components from a repository.
 func (f *componentsClient) Raw(options ComponentsOptions) ([]byte, error) {
 	return f.getRawBytes(&options)
 }

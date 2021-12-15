@@ -190,6 +190,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-kcp-scale-in.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-ipv6.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-topology.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-ignition.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/clusterclass-quick-start.yaml"
     - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
@@ -198,21 +199,24 @@ variables:
   # allowing the same e2e config file to be re-used in different Prow jobs e.g. each one with a K8s version permutation.
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
-  KUBERNETES_VERSION_MANAGEMENT: "v1.22.0"
-  KUBERNETES_VERSION: "v1.22.0"
-  KUBERNETES_VERSION_UPGRADE_FROM: "v1.21.2"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.22.0"
-  ETCD_VERSION_UPGRADE_TO: "3.5.0-0"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.23.0"
+  KUBERNETES_VERSION: "v1.23.0"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.22.4"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.23.0"
+  ETCD_VERSION_UPGRADE_TO: "3.5.1-0"
   COREDNS_VERSION_UPGRADE_TO: "1.8.4"
   DOCKER_SERVICE_DOMAIN: "cluster.local"
   IP_FAMILY: "IPv4"
   DOCKER_SERVICE_CIDRS: "10.128.0.0/12"
   DOCKER_POD_CIDRS: "192.168.0.0/16"
+  DOCKER_SERVICE_IPV6_CIDRS: "fd00:100:64::/108"
+  DOCKER_POD_IPV6_CIDRS: "fd00:100:96::/48"
   CNI: "./data/cni/kindnet/kindnet.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
   # Enabling the feature flags by setting the env variables.
   EXP_CLUSTER_RESOURCE_SET: "true"
+  EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_MACHINE_POOL: "true"
   CLUSTER_TOPOLOGY: "true"
   # NOTE: INIT_WITH_BINARY and INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
@@ -220,7 +224,7 @@ variables:
   # NOTE: We test the latest release with a previous contract.
   INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/clusterctl-{OS}-{ARCH}"
   INIT_WITH_PROVIDERS_CONTRACT: "v1alpha4"
-  INIT_WITH_KUBERNETES_VERSION: "v1.22.0"
+  INIT_WITH_KUBERNETES_VERSION: "v1.23.0"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]

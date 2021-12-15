@@ -26,11 +26,9 @@ import (
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
+
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 )
-
-// etcdTimeout is the maximum time any individual call to the etcd client through the backoff adapter will take.
-const etcdTimeout = 2 * time.Second
 
 // GRPCDial is a function that creates a connection to a given endpoint.
 type GRPCDial func(ctx context.Context, addr string) (net.Conn, error)
@@ -125,21 +123,29 @@ func pbMemberToMember(m *etcdserverpb.Member) *Member {
 	}
 }
 
-// NewClient creates a new etcd client with a proxy, and a TLS configuration.
-func NewClient(ctx context.Context, endpoints []string, p proxy.Proxy, tlsConfig *tls.Config) (*Client, error) {
-	dialer, err := proxy.NewDialer(p)
+// ClientConfiguration describes the configuration for an etcd client.
+type ClientConfiguration struct {
+	Endpoints   []string
+	Proxy       proxy.Proxy
+	TLSConfig   *tls.Config
+	DialTimeout time.Duration
+}
+
+// NewClient creates a new etcd client with the given configuration.
+func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error) {
+	dialer, err := proxy.NewDialer(config.Proxy)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create a dialer for etcd client")
 	}
 
 	etcdClient, err := clientv3.New(clientv3.Config{
-		Endpoints:   endpoints,
-		DialTimeout: etcdTimeout,
+		Endpoints:   config.Endpoints,
+		DialTimeout: config.DialTimeout,
 		DialOptions: []grpc.DialOption{
 			grpc.WithBlock(), // block until the underlying connection is up
 			grpc.WithContextDialer(dialer.DialContextWithAddr),
 		},
-		TLS: tlsConfig,
+		TLS: config.TLSConfig,
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create etcd client")

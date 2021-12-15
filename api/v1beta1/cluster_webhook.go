@@ -25,10 +25,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/util/version"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 // Deprecated: This file, including all public and private methods, will be removed in a future release.
@@ -52,11 +53,11 @@ var _ webhook.Validator = &Cluster{}
 // Deprecated: This method is going to be removed in a next release.
 // Note: We're not using this method anymore and are using webhooks.Cluster.Default instead.
 func (c *Cluster) Default() {
-	if c.Spec.InfrastructureRef != nil && len(c.Spec.InfrastructureRef.Namespace) == 0 {
+	if c.Spec.InfrastructureRef != nil && c.Spec.InfrastructureRef.Namespace == "" {
 		c.Spec.InfrastructureRef.Namespace = c.Namespace
 	}
 
-	if c.Spec.ControlPlaneRef != nil && len(c.Spec.ControlPlaneRef.Namespace) == 0 {
+	if c.Spec.ControlPlaneRef != nil && c.Spec.ControlPlaneRef.Namespace == "" {
 		c.Spec.ControlPlaneRef.Namespace = c.Namespace
 	}
 
@@ -146,7 +147,7 @@ func (c *Cluster) validateTopology(old *Cluster) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// class should be defined.
-	if len(c.Spec.Topology.Class) == 0 {
+	if c.Spec.Topology.Class == "" {
 		allErrs = append(
 			allErrs,
 			field.Invalid(

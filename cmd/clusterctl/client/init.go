@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -144,7 +145,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	return aliasComponents, nil
 }
 
-// Init returns the list of images required for init.
+// InitImages returns the list of images required for init.
 func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 	// gets access to the management cluster
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})

@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
+
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
@@ -48,6 +49,7 @@ type QuickStartSpecInput struct {
 // QuickStartSpec implements a spec that mimics the operation described in the Cluster API quick start, that is
 // creating a workload cluster.
 // This test is meant to provide a first, fast signal to detect regression; it is recommended to use it as a PR blocker test.
+// NOTE: This test works with Clusters with and without ClusterClass.
 func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput) {
 	var (
 		specName         = "quick-start"
@@ -75,9 +77,9 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 	It("Should create a workload cluster", func() {
 		By("Creating a workload cluster")
 
-		defaultFlavor := clusterctl.DefaultFlavor
-		if input.E2EConfig.GetVariable(IPFamily) == "IPv6" {
-			defaultFlavor = "ipv6"
+		flavor := clusterctl.DefaultFlavor
+		if input.Flavor != nil {
+			flavor = *input.Flavor
 		}
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -87,7 +89,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   pointer.StringDeref(input.Flavor, defaultFlavor),
+				Flavor:                   flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),

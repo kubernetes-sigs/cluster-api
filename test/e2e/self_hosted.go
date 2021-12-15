@@ -27,13 +27,14 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // SelfHostedSpecInput is the input for SelfHostedSpec.
@@ -47,6 +48,7 @@ type SelfHostedSpecInput struct {
 }
 
 // SelfHostedSpec implements a test that verifies Cluster API creating a cluster, pivoting to a self-hosted cluster.
+// NOTE: This test works with Clusters with and without ClusterClass.
 func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput) {
 	var (
 		specName         = "self-hosted"

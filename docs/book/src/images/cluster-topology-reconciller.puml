@@ -1,0 +1,50 @@
+@startuml
+'https://plantuml.com/component-diagram
+
+
+package "ClusterClass" as cc {
+  [Patches]
+  [Variable Schemas]
+  [Template 1]
+  [Template 2]
+  [\t...]
+
+  [Patches] -[hidden]-> [Variable Schemas]
+  [Variable Schemas] -[hidden]-> [Template 1]
+  [Template 1] -[hidden]-> [Template 2]
+  [Template 2] -[hidden]-> [\t...]
+}
+
+package "Cluster" as cluster {
+  [Cluster]
+  [InfraCluster]
+  [ControlPlane]
+  [ ...]
+}
+
+
+package "ClusterTopologyReconciler" as ctr {
+  [1. getBluePrint] as bp
+  [2. getCurrentState] as cs
+  [3. computeDesiredState] as ds
+  [4. reconcileState] as rs
+
+  bp -[hidden]-> cs
+  cs -[hidden]-> ds
+  ds -[hidden]> rs
+
+    package "DesiredCluster" as dc {
+      [Desired Cluster]
+      [Desired InfraCluster]
+      [Desired ControlPlane]
+      [...]
+    }
+
+  ds ..> dc
+}
+
+cc -> bp
+cluster --> cs
+rs -> cluster
+
+@enduml

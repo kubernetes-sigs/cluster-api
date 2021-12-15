@@ -20,10 +20,12 @@ package controllers
 import (
 	"context"
 
-	dockercontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+
+	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+	dockercontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/controllers"
 )
 
 // Following types provides access to reconcilers implemented in internal/controllers, thus
@@ -31,24 +33,28 @@ import (
 
 // DockerMachineReconciler reconciles a DockerMachine object.
 type DockerMachineReconciler struct {
-	Client client.Client
+	Client           client.Client
+	ContainerRuntime container.Runtime
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&dockercontrollers.DockerMachineReconciler{
-		Client: r.Client,
+		Client:           r.Client,
+		ContainerRuntime: r.ContainerRuntime,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
 // DockerClusterReconciler reconciles a DockerMachine object.
 type DockerClusterReconciler struct {
-	Client client.Client
+	Client           client.Client
+	ContainerRuntime container.Runtime
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&dockercontrollers.DockerClusterReconciler{
-		Client: r.Client,
+		Client:           r.Client,
+		ContainerRuntime: r.ContainerRuntime,
 	}).SetupWithManager(ctx, mgr, options)
 }

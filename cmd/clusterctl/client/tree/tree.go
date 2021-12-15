@@ -25,9 +25,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ObjectTreeOptions defines the options for an ObjectTree.
@@ -39,13 +40,13 @@ type ObjectTreeOptions struct {
 	// ShowMachineSets instructs the discovery process to include machine sets in the ObjectTree.
 	ShowMachineSets bool
 
-	// DisableNoEcho disables hiding objects if the object's ready condition has the
+	// Echo displays objects if the object's ready condition has the
 	// same Status, Severity and Reason of the parent's object ready condition (it is an echo)
-	DisableNoEcho bool
+	Echo bool
 
-	// DisableGrouping disables grouping sibling objects in case the ready condition
-	// has the same Status, Severity and Reason
-	DisableGrouping bool
+	// Grouping groups sibling object in case the ready conditions
+	// have the same Status, Severity and Reason
+	Grouping bool
 }
 
 // ObjectTree defines an object tree representing the status of a Cluster API cluster.
@@ -92,7 +93,7 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 	// If the object should be hidden if the object's ready condition is true ot it has the
 	// same Status, Severity and Reason of the parent's object ready condition (it is an echo),
 	// return early.
-	if addOpts.NoEcho && !od.options.DisableNoEcho {
+	if addOpts.NoEcho && !od.options.Echo {
 		if (objReady != nil && objReady.Status == corev1.ConditionTrue) || hasSameReadyStatusSeverityAndReason(parentReady, objReady) {
 			return false, false
 		}
@@ -140,7 +141,7 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 	// If it is requested that the child of this node should be grouped in case the ready condition
 	// has the same Status, Severity and Reason, add the GroupingObjectAnnotation to signal
 	// this to the presentation layer.
-	if addOpts.GroupingObject && !od.options.DisableGrouping {
+	if addOpts.GroupingObject && od.options.Grouping {
 		addAnnotation(obj, GroupingObjectAnnotation, "True")
 	}
 
@@ -270,7 +271,7 @@ func isObjDebug(obj client.Object, debugFilter string) bool {
 		if filter == "" {
 			continue
 		}
-		if strings.ToLower(filter) == "all" {
+		if strings.EqualFold(filter, "all") {
 			return true
 		}
 		kn := strings.Split(filter, "/")

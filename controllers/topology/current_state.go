@@ -22,12 +22,13 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	"sigs.k8s.io/cluster-api/util/labels"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // getCurrentState gets information about the current state of a Cluster by inspecting the state of the InfrastructureCluster,
@@ -149,7 +150,7 @@ func (r *ClusterReconciler) getCurrentMachineDeploymentState(ctx context.Context
 		// Retrieve the name which is assigned in Cluster's topology
 		// from a well-defined label.
 		mdTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]
-		if !ok || len(mdTopologyName) == 0 {
+		if !ok || mdTopologyName == "" {
 			return nil, fmt.Errorf("failed to find label %s in %s", clusterv1.ClusterTopologyMachineDeploymentLabelName, tlog.KObj{Obj: m})
 		}
 

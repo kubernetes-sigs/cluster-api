@@ -26,6 +26,7 @@ import (
 
 	"github.com/onsi/ginkgo/config"
 	"github.com/onsi/ginkgo/reporters"
+
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 )
 

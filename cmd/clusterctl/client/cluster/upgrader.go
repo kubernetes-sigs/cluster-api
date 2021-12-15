@@ -27,12 +27,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ProviderUpgrader defines methods for supporting provider upgrade.
@@ -120,7 +121,7 @@ func (u *providerUpgrader) Plan() ([]UpgradePlan, error) {
 	// This includes the current contract and the new ones available, if any.
 	contractsForUpgrade := coreUpgradeInfo.getContractsForUpgrade()
 	if len(contractsForUpgrade) == 0 {
-		return nil, errors.Wrapf(err, "invalid metadata: unable to find th API Version of Cluster API (contract) supported by the %s provider", coreProvider.InstanceName())
+		return nil, errors.Wrapf(err, "invalid metadata: unable to find the API Version of Cluster API (contract) supported by the %s provider", coreProvider.InstanceName())
 	}
 
 	// Creates an UpgradePlan for each contract considered for upgrades; each upgrade plans contains

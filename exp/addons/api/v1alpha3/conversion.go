@@ -17,54 +17,55 @@ limitations under the License.
 package v1alpha3
 
 import (
-	v1beta1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 )
 
 func (src *ClusterResourceSet) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1beta1.ClusterResourceSet)
+	dst := dstRaw.(*addonsv1.ClusterResourceSet)
 
 	return Convert_v1alpha3_ClusterResourceSet_To_v1beta1_ClusterResourceSet(src, dst, nil)
 }
 
 func (dst *ClusterResourceSet) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1beta1.ClusterResourceSet)
+	src := srcRaw.(*addonsv1.ClusterResourceSet)
 
 	return Convert_v1beta1_ClusterResourceSet_To_v1alpha3_ClusterResourceSet(src, dst, nil)
 }
 
 func (src *ClusterResourceSetList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1beta1.ClusterResourceSetList)
+	dst := dstRaw.(*addonsv1.ClusterResourceSetList)
 
 	return Convert_v1alpha3_ClusterResourceSetList_To_v1beta1_ClusterResourceSetList(src, dst, nil)
 }
 
 func (dst *ClusterResourceSetList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1beta1.ClusterResourceSetList)
+	src := srcRaw.(*addonsv1.ClusterResourceSetList)
 
 	return Convert_v1beta1_ClusterResourceSetList_To_v1alpha3_ClusterResourceSetList(src, dst, nil)
 }
 
 func (src *ClusterResourceSetBinding) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1beta1.ClusterResourceSetBinding)
+	dst := dstRaw.(*addonsv1.ClusterResourceSetBinding)
 
 	return Convert_v1alpha3_ClusterResourceSetBinding_To_v1beta1_ClusterResourceSetBinding(src, dst, nil)
 }
 
 func (dst *ClusterResourceSetBinding) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1beta1.ClusterResourceSetBinding)
+	src := srcRaw.(*addonsv1.ClusterResourceSetBinding)
 
 	return Convert_v1beta1_ClusterResourceSetBinding_To_v1alpha3_ClusterResourceSetBinding(src, dst, nil)
 }
 
 func (src *ClusterResourceSetBindingList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1beta1.ClusterResourceSetBindingList)
+	dst := dstRaw.(*addonsv1.ClusterResourceSetBindingList)
 
 	return Convert_v1alpha3_ClusterResourceSetBindingList_To_v1beta1_ClusterResourceSetBindingList(src, dst, nil)
 }
 
 func (dst *ClusterResourceSetBindingList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1beta1.ClusterResourceSetBindingList)
+	src := srcRaw.(*addonsv1.ClusterResourceSetBindingList)
 
 	return Convert_v1beta1_ClusterResourceSetBindingList_To_v1alpha3_ClusterResourceSetBindingList(src, dst, nil)
 }

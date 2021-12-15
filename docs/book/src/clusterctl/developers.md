@@ -195,9 +195,6 @@ steps to get the correct kubeconfig for a workload cluster created with the Dock
 ```bash
 # Point the kubeconfig to the exposed port of the load balancer, rather than the inaccessible container IP.
 sed -i -e "s/server:.*/server: https:\/\/$(docker port capi-quickstart-lb 6443/tcp | sed "s/0.0.0.0/127.0.0.1/")/g" ./capi-quickstart.kubeconfig
-
-# Ignore the CA, because it is not signed for 127.0.0.1
-sed -i -e "s/certificate-authority-data:.*/insecure-skip-tls-verify: true/g" ./capi-quickstart.kubeconfig
 ```
 
 <!-- links -->

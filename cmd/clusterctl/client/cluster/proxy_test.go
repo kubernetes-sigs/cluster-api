@@ -24,6 +24,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 	"sigs.k8s.io/cluster-api/version"
 )
@@ -218,7 +219,7 @@ func TestProxyCurrentNamespace(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			var configFile string
-			if len(tt.kubeconfigPath) != 0 {
+			if tt.kubeconfigPath != "" {
 				configFile = tt.kubeconfigPath
 			} else {
 				dir, err := os.MkdirTemp("", "clusterctl")

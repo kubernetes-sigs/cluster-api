@@ -25,13 +25,14 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	"sigs.k8s.io/cluster-api/controllers/topology/internal/scope"
 	"sigs.k8s.io/cluster-api/internal/builder"
 	. "sigs.k8s.io/cluster-api/internal/matchers"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestReconcileShim(t *testing.T) {
@@ -265,7 +266,8 @@ func TestReconcileCluster(t *testing.T) {
 			s.Desired = &scope.ClusterState{Cluster: tt.desired}
 
 			r := ClusterReconciler{
-				Client: fakeClient,
+				Client:   fakeClient,
+				recorder: env.GetEventRecorderFor("test"),
 			}
 			err := r.reconcileCluster(ctx, s)
 			if tt.wantErr {
@@ -369,7 +371,8 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 			s.Desired = &scope.ClusterState{InfrastructureCluster: tt.desired}
 
 			r := ClusterReconciler{
-				Client: fakeClient,
+				Client:   fakeClient,
+				recorder: env.GetEventRecorderFor("test"),
 			}
 			err := r.reconcileInfrastructureCluster(ctx, s)
 			if tt.wantErr {
@@ -526,7 +529,8 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 				Build()
 
 			r := ClusterReconciler{
-				Client: fakeClient,
+				Client:   fakeClient,
+				recorder: env.GetEventRecorderFor("test"),
 			}
 
 			s.Desired = &scope.ClusterState{
@@ -660,7 +664,8 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 				Build()
 
 			r := ClusterReconciler{
-				Client: fakeClient,
+				Client:   fakeClient,
+				recorder: env.GetEventRecorderFor("test"),
 			}
 			s.Desired = &scope.ClusterState{ControlPlane: &scope.ControlPlaneState{Object: tt.desired.Object, InfrastructureMachineTemplate: tt.desired.InfrastructureMachineTemplate}}
 
@@ -758,7 +763,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	infrastructureMachineTemplate4mWithChanges.SetLabels(map[string]string{"foo": "bar"})
 	bootstrapTemplate4mWithChanges := bootstrapTemplate4m.DeepCopy()
 	bootstrapTemplate4mWithChanges.SetLabels(map[string]string{"foo": "bar"})
-	md4mWithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-4m", infrastructureMachineTemplate4mWithChanges, bootstrapTemplate4mWithChanges)
+	md4mWithInPlaceUpdatedTemplates := newFakeMachineDeploymentTopologyState("md-4m", infrastructureMachineTemplate4mWithChanges, bootstrapTemplate4mWithChanges)
 
 	infrastructureMachineTemplate5 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-5").Build()
 	bootstrapTemplate5 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-5").Build()
@@ -796,8 +801,11 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	infrastructureMachineTemplate9m := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-9m").Build()
 	bootstrapTemplate9m := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-9m").Build()
 	md9 := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m)
-	md9WithInstanceSpecificTemplateMetadata := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m)
-	md9WithInstanceSpecificTemplateMetadata.Object.Spec.Template.ObjectMeta.Labels = map[string]string{"foo": "bar"}
+	md9.Object.Spec.Template.ObjectMeta.Labels = map[string]string{clusterv1.ClusterLabelName: "cluster-name"}
+	md9.Object.Spec.Selector.MatchLabels = map[string]string{clusterv1.ClusterLabelName: "cluster-name"}
+	md9WithInstanceSpecificTemplateMetadataAndSelector := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m)
+	md9WithInstanceSpecificTemplateMetadataAndSelector.Object.Spec.Template.ObjectMeta.Labels = map[string]string{"foo": "bar"}
+	md9WithInstanceSpecificTemplateMetadataAndSelector.Object.Spec.Selector.MatchLabels = map[string]string{"foo": "bar"}
 
 	tests := []struct {
 		name                                      string
@@ -858,8 +866,8 @@ func TestReconcileMachineDeployments(t *testing.T) {
 		{
 			name:    "Should update MachineDeployment with InfrastructureMachineTemplate and BootstrapTemplate without rotation",
 			current: []*scope.MachineDeploymentState{md4m},
-			desired: []*scope.MachineDeploymentState{md4mWithRotatedTemplates},
-			want:    []*scope.MachineDeploymentState{md4m},
+			desired: []*scope.MachineDeploymentState{md4mWithInPlaceUpdatedTemplates},
+			want:    []*scope.MachineDeploymentState{md4mWithInPlaceUpdatedTemplates},
 			wantErr: false,
 		},
 		{
@@ -892,7 +900,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 		},
 		{
 			name:    "Enforce template metadata",
-			current: []*scope.MachineDeploymentState{md9WithInstanceSpecificTemplateMetadata},
+			current: []*scope.MachineDeploymentState{md9WithInstanceSpecificTemplateMetadataAndSelector},
 			desired: []*scope.MachineDeploymentState{md9},
 			want:    []*scope.MachineDeploymentState{md9},
 			wantErr: false,
@@ -920,7 +928,8 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			s.Desired = &scope.ClusterState{MachineDeployments: toMachineDeploymentTopologyStateMap(tt.desired)}
 
 			r := ClusterReconciler{
-				Client: fakeClient,
+				Client:   fakeClient,
+				recorder: env.GetEventRecorderFor("test"),
 			}
 			err := r.reconcileMachineDeployments(ctx, s)
 			if tt.wantErr {

@@ -32,7 +32,7 @@ type Processor interface {
 	// list of variables that the template uses.
 	GetVariables([]byte) ([]string, error)
 
-	// GetVariables parses the template blob of bytes and provides a
+	// GetVariableMap parses the template blob of bytes and provides a
 	// map of variables that the template uses with their default values.
 	GetVariableMap([]byte) (map[string]*string, error)
 

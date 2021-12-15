@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/integer"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -222,7 +223,7 @@ func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS 
 	if ok && annotationChanged {
 		revisionHistoryAnnotation := newMS.Annotations[clusterv1.RevisionHistoryAnnotation]
 		oldRevisions := strings.Split(revisionHistoryAnnotation, ",")
-		if len(oldRevisions[0]) == 0 {
+		if oldRevisions[0] == "" {
 			newMS.Annotations[clusterv1.RevisionHistoryAnnotation] = oldRevision
 		} else {
 			oldRevisions = append(oldRevisions, oldRevision)

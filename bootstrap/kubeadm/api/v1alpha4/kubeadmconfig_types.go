@@ -18,7 +18,8 @@ package v1alpha4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 // Format specifies the output format of the bootstrap data
@@ -119,7 +120,7 @@ type KubeadmConfigStatus struct {
 
 	// Conditions defines current service state of the KubeadmConfig.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -137,12 +138,12 @@ type KubeadmConfig struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (c *KubeadmConfig) GetConditions() clusterv1.Conditions {
+func (c *KubeadmConfig) GetConditions() clusterv1alpha4.Conditions {
 	return c.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (c *KubeadmConfig) SetConditions(conditions clusterv1.Conditions) {
+func (c *KubeadmConfig) SetConditions(conditions clusterv1alpha4.Conditions) {
 	c.Status.Conditions = conditions
 }
 

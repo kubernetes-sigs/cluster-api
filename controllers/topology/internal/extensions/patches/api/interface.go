@@ -78,7 +78,7 @@ type TemplateRef struct {
 	MachineDeploymentRef MachineDeploymentRef
 }
 
-func (t *TemplateRef) String() string {
+func (t TemplateRef) String() string {
 	ret := fmt.Sprintf("%s %s/%s", t.TemplateType, t.APIVersion, t.Kind)
 	if t.MachineDeploymentRef.TopologyName != "" {
 		ret = fmt.Sprintf("%s, MachineDeployment topology %s", ret, t.MachineDeploymentRef.TopologyName)

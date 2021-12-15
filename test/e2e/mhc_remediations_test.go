@@ -24,7 +24,6 @@ import (
 )
 
 var _ = Describe("When testing unhealthy machines remediation", func() {
-
 	MachineRemediationSpec(ctx, func() MachineRemediationSpecInput {
 		return MachineRemediationSpecInput{
 			E2EConfig:             e2eConfig,
@@ -34,5 +33,4 @@ var _ = Describe("When testing unhealthy machines remediation", func() {
 			SkipCleanup:           skipCleanup,
 		}
 	})
-
 })

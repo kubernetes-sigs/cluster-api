@@ -24,9 +24,10 @@ import (
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"sigs.k8s.io/cluster-api/controllers/topology/internal/contract"
 )
 
 // Helper helps with a patch that yields the modified document when applied to the original document.
@@ -302,5 +303,6 @@ func (h *Helper) Patch(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(5).Info("Patching object", "Patch", string(h.patch))
 
-	return h.client.Patch(ctx, h.original, client.RawPatch(types.MergePatchType, h.patch))
+	// Note: deepcopy before patching in order to avoid modifications to the original object.
+	return h.client.Patch(ctx, h.original.DeepCopyObject().(client.Object), client.RawPatch(types.MergePatchType, h.patch))
 }

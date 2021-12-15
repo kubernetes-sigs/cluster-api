@@ -4,5 +4,6 @@ bases:
   - ../bases/crs.yaml
 
 patchesStrategicMerge:
+  - ./cluster-ipv6.yaml
   - ./md-ipv6.yaml
   - ./kcp-ipv6.yaml

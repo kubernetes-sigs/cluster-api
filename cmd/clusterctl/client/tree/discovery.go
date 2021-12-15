@@ -20,10 +20,11 @@ import (
 	"context"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // DiscoverOptions define options for the discovery process.
@@ -35,13 +36,13 @@ type DiscoverOptions struct {
 	// ShowMachineSets instructs the discovery process to include machine sets in the ObjectTree.
 	ShowMachineSets bool
 
-	// DisableNoEcho disable hiding MachineInfrastructure or BootstrapConfig objects if the object's ready condition is true
+	// Echo displays MachineInfrastructure or BootstrapConfig objects if the object's ready condition is true
 	// or it has the same Status, Severity and Reason of the parent's object ready condition (it is an echo)
-	DisableNoEcho bool
+	Echo bool
 
-	// DisableGrouping disable grouping machines objects in case the ready condition
-	// has the same Status, Severity and Reason
-	DisableGrouping bool
+	// Grouping groups machine objects in case the ready conditions
+	// have the same Status, Severity and Reason.
+	Grouping bool
 }
 
 func (d DiscoverOptions) toObjectTreeOptions() ObjectTreeOptions {

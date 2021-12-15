@@ -21,11 +21,15 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/util/sets"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
-var namespace = "foobar"
+const (
+	namespace       = "foobar"
+	providerVersion = "v1.0.0"
+)
 
 func Test_clusterctlClient_Delete(t *testing.T) {
 	type fields struct {
@@ -85,6 +89,55 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 				clusterctlv1.ManifestLabel(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type()),
 				clusterctlv1.ManifestLabel(infraProviderConfig.Name(), infraProviderConfig.Type())),
 			wantErr: false,
+		},
+		{
+			name: "Delete a provider with version mentioned",
+			fields: fields{
+				client: fakeClusterForDelete(),
+			},
+			args: args{
+				options: DeleteOptions{
+					Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					IncludeNamespace:        false,
+					IncludeCRDs:             false,
+					SkipInventory:           false,
+					CoreProvider:            "",
+					BootstrapProviders:      nil,
+					InfrastructureProviders: []string{infraProviderConfig.Name() + ":" + providerVersion},
+					ControlPlaneProviders:   nil,
+					DeleteAll:               false,
+				},
+			},
+			wantProviders: sets.NewString(
+				capiProviderConfig.Name(),
+				clusterctlv1.ManifestLabel(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type()),
+				clusterctlv1.ManifestLabel(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type())),
+			wantErr: false,
+		},
+		{
+			name: "Delete a provider with wrong version",
+			fields: fields{
+				client: fakeClusterForDelete(),
+			},
+			args: args{
+				options: DeleteOptions{
+					Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					IncludeNamespace:        false,
+					IncludeCRDs:             false,
+					SkipInventory:           false,
+					CoreProvider:            "",
+					BootstrapProviders:      nil,
+					InfrastructureProviders: []string{infraProviderConfig.Name() + ":v99.99.99"},
+					ControlPlaneProviders:   nil,
+					DeleteAll:               false,
+				},
+			},
+			wantProviders: sets.NewString(
+				capiProviderConfig.Name(),
+				clusterctlv1.ManifestLabel(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type()),
+				clusterctlv1.ManifestLabel(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type()),
+				clusterctlv1.ManifestLabel(infraProviderConfig.Name(), infraProviderConfig.Type())),
+			wantErr: true,
 		},
 		{
 			name: "Delete multiple providers of different type",
@@ -154,10 +207,10 @@ func fakeClusterForDelete() *fakeClient {
 	repository4 := newFakeRepository(infraProviderConfig, config1)
 
 	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1)
-	cluster1.fakeProxy.WithProviderInventory(capiProviderConfig.Name(), capiProviderConfig.Type(), "v1.0.0", "capi-system")
-	cluster1.fakeProxy.WithProviderInventory(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type(), "v1.0.0", "capbpk-system")
-	cluster1.fakeProxy.WithProviderInventory(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type(), "v1.0.0", namespace)
-	cluster1.fakeProxy.WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), "v1.0.0", namespace)
+	cluster1.fakeProxy.WithProviderInventory(capiProviderConfig.Name(), capiProviderConfig.Type(), providerVersion, "capi-system")
+	cluster1.fakeProxy.WithProviderInventory(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type(), providerVersion, "capi-kubeadm-bootstrap-system")
+	cluster1.fakeProxy.WithProviderInventory(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type(), providerVersion, "capi-kubeadm-control-plane-system")
+	cluster1.fakeProxy.WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), providerVersion, namespace)
 	cluster1.fakeProxy.WithFakeCAPISetup()
 
 	client := newFakeClient(config1).

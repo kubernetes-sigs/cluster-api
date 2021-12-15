@@ -18,7 +18,8 @@ package v1alpha4
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1alpha4"
+
+	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 )
 
 const (
@@ -41,7 +42,7 @@ type DockerClusterSpec struct {
 	// Instead, the docker cluster controller will simply copy these into the Status and allow the Cluster API
 	// controllers to do what they will with the defined failure domains.
 	// +optional
-	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	FailureDomains clusterv1alpha4.FailureDomains `json:"failureDomains,omitempty"`
 
 	// LoadBalancer allows defining configurations for the cluster load balancer.
 	// +optional
@@ -75,11 +76,11 @@ type DockerClusterStatus struct {
 
 	// FailureDomains don't mean much in CAPD since it's all local, but we can see how the rest of cluster API
 	// will use this if we populate it.
-	FailureDomains clusterv1.FailureDomains `json:"failureDomains,omitempty"`
+	FailureDomains clusterv1alpha4.FailureDomains `json:"failureDomains,omitempty"`
 
 	// Conditions defines current service state of the DockerCluster.
 	// +optional
-	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+	Conditions clusterv1alpha4.Conditions `json:"conditions,omitempty"`
 }
 
 // APIEndpoint represents a reachable Kubernetes API endpoint.
@@ -106,12 +107,12 @@ type DockerCluster struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (c *DockerCluster) GetConditions() clusterv1.Conditions {
+func (c *DockerCluster) GetConditions() clusterv1alpha4.Conditions {
 	return c.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (c *DockerCluster) SetConditions(conditions clusterv1.Conditions) {
+func (c *DockerCluster) SetConditions(conditions clusterv1alpha4.Conditions) {
 	c.Status.Conditions = conditions
 }
 

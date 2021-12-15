@@ -23,39 +23,40 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
 	runtimeserializer "k8s.io/apimachinery/pkg/runtime/serializer"
-	"sigs.k8s.io/cluster-api/api/v1beta1"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for Cluster", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:                &v1beta1.Cluster{},
+		Hub:                &clusterv1.Cluster{},
 		Spoke:              &Cluster{},
 		SpokeAfterMutation: clusterSpokeAfterMutation,
 		FuzzerFuncs:        []fuzzer.FuzzerFuncs{ClusterJSONFuzzFuncs},
 	}))
 
 	t.Run("for Machine", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &v1beta1.Machine{},
+		Hub:         &clusterv1.Machine{},
 		Spoke:       &Machine{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, MachineStatusFuzzFunc},
 	}))
 
 	t.Run("for MachineSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &v1beta1.MachineSet{},
+		Hub:         &clusterv1.MachineSet{},
 		Spoke:       &MachineSet{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
 	}))
 
 	t.Run("for MachineDeployment", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &v1beta1.MachineDeployment{},
+		Hub:         &clusterv1.MachineDeployment{},
 		Spoke:       &MachineDeployment{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{BootstrapFuzzFuncs, CustomObjectMetaFuzzFunc},
 	}))
 
 	t.Run("for MachineHealthCheck", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &v1beta1.MachineHealthCheck{},
+		Hub:   &clusterv1.MachineHealthCheck{},
 		Spoke: &MachineHealthCheck{},
 	}))
 }
@@ -117,7 +118,7 @@ func clusterSpokeAfterMutation(c conversion.Convertible) {
 		condition := cluster.Status.Conditions[i]
 
 		// Keep everything that is not ControlPlaneInitializedCondition
-		if condition.Type != ConditionType(v1beta1.ControlPlaneInitializedCondition) {
+		if condition.Type != ConditionType(clusterv1.ControlPlaneInitializedCondition) {
 			tmp = append(tmp, condition)
 		}
 	}
@@ -132,7 +133,7 @@ func ClusterJSONFuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func ClusterVariableFuzzer(in *v1beta1.ClusterVariable, c fuzz.Continue) {
+func ClusterVariableFuzzer(in *clusterv1.ClusterVariable, c fuzz.Continue) {
 	c.FuzzNoCustom(in)
 
 	// Not every random byte array is valid JSON, e.g. a string without `""`,so we're setting a valid value.

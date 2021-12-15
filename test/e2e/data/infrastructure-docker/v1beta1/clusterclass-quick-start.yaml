@@ -38,8 +38,28 @@ spec:
     schema:
       openAPIV3Schema:
         type: string
+        default: "k8s.gcr.io"
+        example: "k8s.gcr.io"
+        description: "imageRepository is the container registry to pull images from. If empty, `k8s.gcr.io` will be used by default."
+  - name: etcdImageTag
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+        example: "3.5.1-0"
+        description: "etcdImageTag is the tag for the etcd image."
+  - name: coreDNSImageTag
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: ""
+        example: "v1.8.5"
+        description: "coreDNSImageTag is the tag for the coreDNS image."
   patches:
   - name: imageRepository
+    description: "Sets the imageRepository used for the KubeadmControlPlane."
     definitions:
     - selector:
         apiVersion: controlplane.cluster.x-k8s.io/v1beta1
@@ -51,7 +71,37 @@ spec:
         path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/imageRepository"
         valueFrom:
           variable: imageRepository
+  - name: etcdImageTag
+    description: "Sets tag to use for the etcd image in the KubeadmControlPlane "
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/etcd"
+        valueFrom:
+          template: |
+            local:
+              imageTag: {{ .etcdImageTag }}
+  - name: coreDNSImageTag
+    description: "Sets the tag used for the coreDNS Image in the KubeadmControlPlane."
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/dns"
+        valueFrom:
+          template: |
+            imageTag: {{ .coreDNSImageTag }}
   - name: customImage
+    description: "Sets the container image that is used for running dockerMachines for the controlPlane and default-worker machineDeployments."
     definitions:
     - selector:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -93,17 +143,8 @@ metadata:
 spec:
   template:
     spec:
-      # The replicas value be overridden by the corresponding 
-      # Cluster's spec.topology.controlPlane.replicas.
-      replicas: 1
       machineTemplate:
         nodeDrainTimeout: 1s
-        # The infrastructureRef will be overridden by the corresponding
-        # ClusterClass's spec.controlPlane.machineInfrastructure.
-        infrastructureRef:
-          kind: DockerMachineTemplate
-          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-          name: "quick-start-control-plane"
       kubeadmConfigSpec:
         clusterConfiguration:
           controllerManager:
@@ -127,9 +168,6 @@ spec:
               # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
               cgroup-driver: cgroupfs
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-      # The version value will be overridden by the corresponding
-      # Cluster's spec.topology.version.
-      version: v1.21.2
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate

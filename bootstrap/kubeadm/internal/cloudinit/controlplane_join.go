@@ -18,6 +18,7 @@ package cloudinit
 
 import (
 	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 

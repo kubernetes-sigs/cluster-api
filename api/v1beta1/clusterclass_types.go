@@ -157,57 +157,107 @@ type VariableSchema struct {
 // This struct has been initially copied from apiextensionsv1.JSONSchemaProps, but all fields
 // which are not supported in CAPI have been removed.
 type JSONSchemaProps struct {
+	// Description is a human-readable description of this variable.
+	Description string `json:"description,omitempty"`
+
+	// Example is an example for this variable.
+	Example *apiextensionsv1.JSON `json:"example,omitempty"`
+
 	// Type is the type of the variable.
-	// Valid values are: string, integer, number or boolean.
+	// Valid values are: object, array, string, integer, number or boolean.
 	Type string `json:"type"`
 
-	// Nullable specifies if the variable can be set to null.
+	// Properties specifies fields of an object.
+	// NOTE: Can only be set if type is object.
+	// NOTE: This field uses PreserveUnknownFields and Schemaless,
+	// because recursive validation is not possible.
 	// +optional
-	Nullable bool `json:"nullable,omitempty"`
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Properties map[string]JSONSchemaProps `json:"properties,omitempty"`
+
+	// Required specifies which fields of an object are required.
+	// NOTE: Can only be set if type is object.
+	// +optional
+	Required []string `json:"required,omitempty"`
+
+	// Items specifies fields of an array.
+	// NOTE: Can only be set if type is array.
+	// NOTE: This field uses PreserveUnknownFields and Schemaless,
+	// because recursive validation is not possible.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	Items *JSONSchemaProps `json:"items,omitempty"`
+
+	// MaxItems is the max length of an array variable.
+	// NOTE: Can only be set if type is array.
+	// +optional
+	MaxItems *int64 `json:"maxItems,omitempty"`
+
+	// MinItems is the min length of an array variable.
+	// NOTE: Can only be set if type is array.
+	// +optional
+	MinItems *int64 `json:"minItems,omitempty"`
+
+	// UniqueItems specifies if items in an array must be unique.
+	// NOTE: Can only be set if type is array.
+	// +optional
+	UniqueItems bool `json:"uniqueItems,omitempty"`
 
 	// Format is an OpenAPI v3 format string. Unknown formats are ignored.
 	// For a list of supported formats please see: (of the k8s.io/apiextensions-apiserver version we're currently using)
 	// https://github.com/kubernetes/apiextensions-apiserver/blob/master/pkg/apiserver/validation/formats.go
+	// NOTE: Can only be set if type is string.
 	// +optional
 	Format string `json:"format,omitempty"`
 
 	// MaxLength is the max length of a string variable.
+	// NOTE: Can only be set if type is string.
 	// +optional
 	MaxLength *int64 `json:"maxLength,omitempty"`
 
 	// MinLength is the min length of a string variable.
+	// NOTE: Can only be set if type is string.
 	// +optional
 	MinLength *int64 `json:"minLength,omitempty"`
 
 	// Pattern is the regex which a string variable must match.
+	// NOTE: Can only be set if type is string.
 	// +optional
 	Pattern string `json:"pattern,omitempty"`
 
 	// Maximum is the maximum of an integer or number variable.
 	// If ExclusiveMaximum is false, the variable is valid if it is lower than, or equal to, the value of Maximum.
 	// If ExclusiveMaximum is true, the variable is valid if it is strictly lower than the value of Maximum.
+	// NOTE: Can only be set if type is integer or number.
 	// +optional
 	Maximum *int64 `json:"maximum,omitempty"`
 
 	// ExclusiveMaximum specifies if the Maximum is exclusive.
+	// NOTE: Can only be set if type is integer or number.
 	// +optional
 	ExclusiveMaximum bool `json:"exclusiveMaximum,omitempty"`
 
 	// Minimum is the minimum of an integer or number variable.
 	// If ExclusiveMinimum is false, the variable is valid if it is greater than, or equal to, the value of Minimum.
 	// If ExclusiveMinimum is true, the variable is valid if it is strictly greater than the value of Minimum.
+	// NOTE: Can only be set if type is integer or number.
 	// +optional
 	Minimum *int64 `json:"minimum,omitempty"`
 
 	// ExclusiveMinimum specifies if the Minimum is exclusive.
+	// NOTE: Can only be set if type is integer or number.
 	// +optional
 	ExclusiveMinimum bool `json:"exclusiveMinimum,omitempty"`
 
 	// Enum is the list of valid values of the variable.
+	// NOTE: Can be set for all types.
 	// +optional
 	Enum []apiextensionsv1.JSON `json:"enum,omitempty"`
 
 	// Default is the default value of the variable.
+	// NOTE: Can be set for all types.
 	// +optional
 	Default *apiextensionsv1.JSON `json:"default,omitempty"`
 }
@@ -216,6 +266,17 @@ type JSONSchemaProps struct {
 type ClusterClassPatch struct {
 	// Name of the patch.
 	Name string `json:"name"`
+
+	// Description is a human-readable description of this patch.
+	Description string `json:"description,omitempty"`
+
+	// EnabledIf is a Go template to be used to calculate if a patch should be enabled.
+	// It can reference variables defined in .spec.variables and builtin variables.
+	// The patch will be enabled if the template evaluates to `true`, otherwise it will
+	// be disabled.
+	// If EnabledIf is not set, the patch will be enabled per default.
+	// +optional
+	EnabledIf *string `json:"enabledIf,omitempty"`
 
 	// Definitions define the patches inline.
 	// Note: Patches will be applied in the order of the array.
@@ -250,18 +311,18 @@ type PatchSelector struct {
 }
 
 // PatchSelectorMatch selects templates based on where they are referenced.
-// Note: At least one of the fields must be set.
+// Note: The selector must match at least one template.
 // Note: The results of selection based on the individual fields are ORed.
 type PatchSelectorMatch struct {
 	// ControlPlane selects templates referenced in .spec.ControlPlane.
 	// Note: this will match the controlPlane and also the controlPlane
 	// machineInfrastructure (depending on the kind and apiVersion).
 	// +optional
-	ControlPlane *bool `json:"controlPlane,omitempty"`
+	ControlPlane bool `json:"controlPlane,omitempty"`
 
 	// InfrastructureCluster selects templates referenced in .spec.infrastructure.
 	// +optional
-	InfrastructureCluster *bool `json:"infrastructureCluster,omitempty"`
+	InfrastructureCluster bool `json:"infrastructureCluster,omitempty"`
 
 	// MachineDeploymentClass selects templates referenced in specific MachineDeploymentClasses in
 	// .spec.workers.machineDeployments.
@@ -273,7 +334,8 @@ type PatchSelectorMatch struct {
 // in specific MachineDeploymentClasses in .spec.workers.machineDeployments.
 type PatchSelectorMatchMachineDeploymentClass struct {
 	// Names selects templates by class names.
-	Names []string `json:"names"`
+	// +optional
+	Names []string `json:"names,omitempty"`
 }
 
 // JSONPatch defines a JSON patch.

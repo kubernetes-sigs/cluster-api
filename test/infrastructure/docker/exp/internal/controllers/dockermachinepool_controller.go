@@ -25,26 +25,29 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	utilexp "sigs.k8s.io/cluster-api/exp/util"
-	infrav1exp "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/docker"
-	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/cluster-api/util/predicates"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	utilexp "sigs.k8s.io/cluster-api/exp/util"
+	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/internal/docker"
+	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 // DockerMachinePoolReconciler reconciles a DockerMachinePool object.
 type DockerMachinePoolReconciler struct {
-	Client client.Client
-	Scheme *runtime.Scheme
+	Client           client.Client
+	Scheme           *runtime.Scheme
+	ContainerRuntime container.Runtime
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepools,verbs=get;list;watch;create;update;patch;delete
@@ -54,9 +57,10 @@ type DockerMachinePoolReconciler struct {
 
 func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
+	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)
 
 	// Fetch the DockerMachinePool instance.
-	dockerMachinePool := &infrav1exp.DockerMachinePool{}
+	dockerMachinePool := &infraexpv1.DockerMachinePool{}
 	if err := r.Client.Get(ctx, req.NamespacedName, dockerMachinePool); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
@@ -107,8 +111,8 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}()
 
 	// Add finalizer first if not exist to avoid the race condition between init and delete
-	if !controllerutil.ContainsFinalizer(dockerMachinePool, infrav1exp.MachinePoolFinalizer) {
-		controllerutil.AddFinalizer(dockerMachinePool, infrav1exp.MachinePoolFinalizer)
+	if !controllerutil.ContainsFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer) {
+		controllerutil.AddFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
 		return ctrl.Result{}, nil
 	}
 
@@ -123,19 +127,19 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 // SetupWithManager will add watches for this controller.
 func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	clusterToDockerMachinePools, err := util.ClusterToObjectsMapper(mgr.GetClient(), &infrav1exp.DockerMachinePoolList{}, mgr.GetScheme())
+	clusterToDockerMachinePools, err := util.ClusterToObjectsMapper(mgr.GetClient(), &infraexpv1.DockerMachinePoolList{}, mgr.GetScheme())
 	if err != nil {
 		return err
 	}
 
 	c, err := ctrl.NewControllerManagedBy(mgr).
-		For(&infrav1exp.DockerMachinePool{}).
+		For(&infraexpv1.DockerMachinePool{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Watches(
-			&source.Kind{Type: &clusterv1exp.MachinePool{}},
+			&source.Kind{Type: &expv1.MachinePool{}},
 			handler.EnqueueRequestsFromMapFunc(utilexp.MachinePoolToInfrastructureMapFunc(
-				infrav1exp.GroupVersion.WithKind("DockerMachinePool"), ctrl.LoggerFrom(ctx))),
+				infraexpv1.GroupVersion.WithKind("DockerMachinePool"), ctrl.LoggerFrom(ctx))),
 		).
 		Build(r)
 	if err != nil {
@@ -148,8 +152,8 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 	)
 }
 
-func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1exp.MachinePool, dockerMachinePool *infrav1exp.DockerMachinePool) (ctrl.Result, error) {
-	pool, err := docker.NewNodePool(r.Client, cluster, machinePool, dockerMachinePool)
+func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (ctrl.Result, error) {
+	pool, err := docker.NewNodePool(ctx, r.Client, cluster, machinePool, dockerMachinePool)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to build new node pool")
 	}
@@ -158,11 +162,11 @@ func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, clust
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete all machines in the node pool")
 	}
 
-	controllerutil.RemoveFinalizer(dockerMachinePool, infrav1exp.MachinePoolFinalizer)
+	controllerutil.RemoveFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
 	return ctrl.Result{}, nil
 }
 
-func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machinePool *clusterv1exp.MachinePool, dockerMachinePool *infrav1exp.DockerMachinePool) (ctrl.Result, error) {
+func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Make sure bootstrap data is available and populated.
@@ -175,7 +179,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		machinePool.Spec.Replicas = pointer.Int32Ptr(1)
 	}
 
-	pool, err := docker.NewNodePool(r.Client, cluster, machinePool, dockerMachinePool)
+	pool, err := docker.NewNodePool(ctx, r.Client, cluster, machinePool, dockerMachinePool)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to build new node pool")
 	}
@@ -210,7 +214,7 @@ func getDockerMachinePoolProviderID(clusterName, dockerMachinePoolName string) s
 	return fmt.Sprintf("docker:////%s-dmp-%s", clusterName, dockerMachinePoolName)
 }
 
-func patchDockerMachinePool(ctx context.Context, patchHelper *patch.Helper, dockerMachinePool *infrav1exp.DockerMachinePool) error {
+func patchDockerMachinePool(ctx context.Context, patchHelper *patch.Helper, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	// TODO: add conditions
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.

@@ -26,11 +26,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	tlog "sigs.k8s.io/cluster-api/controllers/topology/internal/log"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // bootstrapTemplateNamePrefix calculates the name prefix for a BootstrapTemplate.
@@ -54,7 +55,7 @@ func (r *ClusterReconciler) getReference(ctx context.Context, ref *corev1.Object
 	if ref == nil {
 		return nil, errors.New("reference is not set")
 	}
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, ref); err != nil {
 		return nil, err
 	}
 

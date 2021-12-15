@@ -23,9 +23,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"sigs.k8s.io/cluster-api/feature"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"sigs.k8s.io/cluster-api/feature"
 )
 
 const kubeadmControlPlaneTemplateImmutableMsg = "KubeadmControlPlaneTemplate spec.template.spec field is immutable. Please create new resource instead."
@@ -42,7 +43,7 @@ var _ webhook.Defaulter = &KubeadmControlPlaneTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (r *KubeadmControlPlaneTemplate) Default() {
-	defaultKubeadmControlPlaneSpec(&r.Spec.Template.Spec, r.Namespace)
+	r.Spec.Template.Spec.RolloutStrategy = defaultRolloutStrategy(r.Spec.Template.Spec.RolloutStrategy)
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-controlplane-cluster-x-k8s-io-v1beta1-kubeadmcontrolplanetemplate,mutating=false,failurePolicy=fail,groups=controlplane.cluster.x-k8s.io,resources=kubeadmcontrolplanetemplates,versions=v1beta1,name=validation.kubeadmcontrolplanetemplate.controlplane.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
@@ -61,8 +62,8 @@ func (r *KubeadmControlPlaneTemplate) ValidateCreate() error {
 	}
 
 	spec := r.Spec.Template.Spec
-	allErrs := validateKubeadmControlPlaneSpec(spec, r.Namespace, field.NewPath("spec", "template", "spec"))
-	allErrs = append(allErrs, validateEtcd(&spec, nil)...)
+	allErrs := validateKubeadmControlPlaneTemplateResourceSpec(spec, field.NewPath("spec", "template", "spec"))
+	allErrs = append(allErrs, validateClusterConfiguration(spec.KubeadmConfigSpec.ClusterConfiguration, nil, field.NewPath("spec", "template", "spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlaneTemplate").GroupKind(), r.Name, allErrs)
 	}
@@ -92,4 +93,10 @@ func (r *KubeadmControlPlaneTemplate) ValidateUpdate(oldRaw runtime.Object) erro
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
 func (r *KubeadmControlPlaneTemplate) ValidateDelete() error {
 	return nil
+}
+
+// validateKubeadmControlPlaneTemplateResourceSpec is a copy of validateKubeadmControlPlaneSpec which
+// only validates the fields in KubeadmControlPlaneTemplateResourceSpec we care about.
+func validateKubeadmControlPlaneTemplateResourceSpec(s KubeadmControlPlaneTemplateResourceSpec, pathPrefix *field.Path) field.ErrorList {
+	return validateRolloutStrategy(s.RolloutStrategy, nil, pathPrefix.Child("rolloutStrategy"))
 }

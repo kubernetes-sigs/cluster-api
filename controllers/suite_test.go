@@ -32,12 +32,13 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/envtest"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 )
 
 const (
@@ -86,28 +87,32 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))
 		}
 		if err := (&ClusterReconciler{
-			Client:   mgr.GetClient(),
-			recorder: mgr.GetEventRecorderFor("cluster-controller"),
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetClient(),
+			recorder:  mgr.GetEventRecorderFor("cluster-controller"),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start ClusterReconciler: %v", err))
 		}
 		if err := (&MachineReconciler{
-			Client:   mgr.GetClient(),
-			Tracker:  tracker,
-			recorder: mgr.GetEventRecorderFor("machine-controller"),
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			Tracker:   tracker,
+			recorder:  mgr.GetEventRecorderFor("machine-controller"),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
 		}
 		if err := (&MachineSetReconciler{
-			Client:   mgr.GetClient(),
-			Tracker:  tracker,
-			recorder: mgr.GetEventRecorderFor("machineset-controller"),
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			Tracker:   tracker,
+			recorder:  mgr.GetEventRecorderFor("machineset-controller"),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MMachineSetReconciler: %v", err))
 		}
 		if err := (&MachineDeploymentReconciler{
-			Client:   mgr.GetClient(),
-			recorder: mgr.GetEventRecorderFor("machinedeployment-controller"),
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			recorder:  mgr.GetEventRecorderFor("machinedeployment-controller"),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MMachineDeploymentReconciler: %v", err))
 		}

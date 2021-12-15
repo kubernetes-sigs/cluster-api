@@ -24,12 +24,19 @@ import (
 	"testing"
 	"time"
 
+	ignition "github.com/flatcar-linux/ignition/config/v2_3"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	"k8s.io/utils/pointer"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/yaml"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	fakeremote "sigs.k8s.io/cluster-api/controllers/remote/fake"
@@ -39,10 +46,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 // MachineToBootstrapMapFunc return kubeadm bootstrap configref name when configref exists.
@@ -482,7 +485,7 @@ func TestReconcileIfJoinNodesAndControlPlaneIsReady(t *testing.T) {
 	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
-	var useCases = []struct {
+	useCases := []struct {
 		name          string
 		machine       *clusterv1.Machine
 		configName    string
@@ -574,7 +577,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 	conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 	cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
 
-	var useCases = []struct {
+	useCases := []struct {
 		name          string
 		machinePool   *expv1.MachinePool
 		configName    string
@@ -637,6 +640,127 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(len(l.Items)).To(Equal(1))
+		})
+	}
+}
+
+// Ensure bootstrap data is generated in the correct format based on the format specified in the
+// KubeadmConfig resource.
+func TestBootstrapDataFormat(t *testing.T) {
+	testcases := []struct {
+		name               string
+		isWorker           bool
+		format             bootstrapv1.Format
+		clusterInitialized bool
+	}{
+		{
+			name:   "cloud-config init config",
+			format: bootstrapv1.CloudConfig,
+		},
+		{
+			name:   "Ignition init config",
+			format: bootstrapv1.Ignition,
+		},
+		{
+			name:               "Ignition control plane join config",
+			format:             bootstrapv1.Ignition,
+			clusterInitialized: true,
+		},
+		{
+			name:               "Ignition worker join config",
+			isWorker:           true,
+			format:             bootstrapv1.Ignition,
+			clusterInitialized: true,
+		},
+		{
+			name: "Empty format field",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			cluster := newCluster("cluster", metav1.NamespaceDefault)
+			cluster.Status.InfrastructureReady = true
+			cluster.Spec.ControlPlaneEndpoint = clusterv1.APIEndpoint{Host: "100.105.150.1", Port: 6443}
+			if tc.clusterInitialized {
+				conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
+			}
+
+			var machine *clusterv1.Machine
+			var config *bootstrapv1.KubeadmConfig
+			var configName string
+			if tc.isWorker {
+				machine = newWorkerMachine(cluster)
+				configName = "worker-join-cfg"
+				config = newWorkerJoinKubeadmConfig(machine)
+			} else {
+				machine = newControlPlaneMachine(cluster, "machine")
+				configName = "cfg"
+				config = newControlPlaneInitKubeadmConfig(machine, configName)
+			}
+			config.Spec.Format = tc.format
+
+			objects := []client.Object{
+				cluster,
+				machine,
+				config,
+			}
+			objects = append(objects, createSecrets(t, cluster, config)...)
+
+			myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+
+			k := &KubeadmConfigReconciler{
+				Client:             myclient,
+				KubeadmInitLock:    &myInitLocker{},
+				remoteClientGetter: fakeremote.NewClusterClient,
+			}
+			request := ctrl.Request{
+				NamespacedName: client.ObjectKey{
+					Namespace: metav1.NamespaceDefault,
+					Name:      configName,
+				},
+			}
+
+			// Reconcile the KubeadmConfig resource.
+			_, err := k.Reconcile(ctx, request)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			// Verify the KubeadmConfig resource state is correct.
+			cfg, err := getKubeadmConfig(myclient, configName, metav1.NamespaceDefault)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(cfg.Status.Ready).To(BeTrue())
+			g.Expect(cfg.Status.DataSecretName).NotTo(BeNil())
+
+			// Read the secret containing the bootstrap data which was generated by the
+			// KubeadmConfig controller.
+			key := client.ObjectKey{
+				Namespace: metav1.NamespaceDefault,
+				Name:      *cfg.Status.DataSecretName,
+			}
+			secret := &corev1.Secret{}
+			err = myclient.Get(ctx, key, secret)
+			g.Expect(err).NotTo(HaveOccurred())
+
+			// Verify the format field of the bootstrap data secret is correct.
+			g.Expect(string(secret.Data["format"])).To(Equal(string(tc.format)))
+
+			// Verify the bootstrap data value is in the correct format.
+			data := secret.Data["value"]
+			switch tc.format {
+			case bootstrapv1.CloudConfig, "":
+				// Verify the bootstrap data is valid YAML.
+				// TODO: Verify the YAML document is valid cloud-config?
+				var out interface{}
+				err = yaml.Unmarshal(data, &out)
+				g.Expect(err).NotTo(HaveOccurred())
+			case bootstrapv1.Ignition:
+				// Verify the bootstrap data is valid Ignition.
+				_, reports, err := ignition.Parse(data)
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(reports.IsFatal()).NotTo(BeTrue())
+			}
 		})
 	}
 }
@@ -997,7 +1121,9 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 		if bytes.Equal(item.Data[bootstrapapi.BootstrapTokenExpirationKey], tokenExpires[0]) {
 			foundOld = true
 		} else {
-			g.Expect(string(item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(Equal(time.Now().UTC().Add(k.TokenTTL).Format(time.RFC3339)))
+			expirationTime, err := time.Parse(time.RFC3339, string(item.Data[bootstrapapi.BootstrapTokenExpirationKey]))
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(expirationTime).Should(BeTemporally("~", time.Now().UTC().Add(k.TokenTTL), 10*time.Second))
 			foundNew = true
 		}
 	}

@@ -22,6 +22,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -96,9 +97,29 @@ func (c *ControlPlaneContract) ReadyReplicas() *Int64 {
 	}
 }
 
+// IsProvisioning returns true if the control plane is being created for the first time.
+// Returns false, if the control plane was already previously provisioned.
+func (c *ControlPlaneContract) IsProvisioning(obj *unstructured.Unstructured) (bool, error) {
+	// We can know if the control plane was previously created or is being cretaed for the first
+	// time by looking at controlplane.status.version. If the version in status is set to a valid
+	// value then the control plane was already provisioned at a previous time. If not, we can
+	// assume that the control plane is being created for the first time.
+	statusVersion, err := c.StatusVersion().Get(obj)
+	if err != nil {
+		if errors.Is(err, errNotFound) {
+			return true, nil
+		}
+		return false, errors.Wrap(err, "failed to get control plane status version")
+	}
+	if *statusVersion == "" {
+		return true, nil
+	}
+	return false, nil
+}
+
 // IsUpgrading returns true if the control plane is in the middle of an upgrade, false otherwise.
 // A control plane is considered upgrading if:
-// - if spec.version is greater than status.verison.
+// - if spec.version is greater than status.version.
 // Note: A control plane is considered not upgrading if the status or status.version is not set.
 func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool, error) {
 	specVersion, err := c.Version().Get(obj)
@@ -113,7 +134,7 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 	if err != nil {
 		if errors.Is(err, errNotFound) { // status version is not yet set
 			// If the status.version is not yet present in the object, it implies the
-			// first machine of the control plane is provisioning. We can resonably assume
+			// first machine of the control plane is provisioning. We can reasonably assume
 			// that the control plane is not upgrading at this stage.
 			return false, nil
 		}

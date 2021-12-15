@@ -23,8 +23,9 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	containerutil "sigs.k8s.io/cluster-api/util/container"
 )
 
 // WaitForKubeProxyUpgradeInput is the input for WaitForKubeProxyUpgrade.

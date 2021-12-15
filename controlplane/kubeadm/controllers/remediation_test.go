@@ -30,13 +30,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	utilpointer "k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 func TestReconcileUnhealthyMachines(t *testing.T) {
@@ -95,7 +96,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g := NewWithT(t)
 
 		m := getDeletingMachine(ns.Name, "m1-unhealthy-deleting-", withMachineHealthCheckFailed())
-		conditions.MarkFalse(m, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
+		conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
 		conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 		controlPlane := &internal.ControlPlane{
 			KCP:      &controlplanev1.KubeadmControlPlane{},
@@ -780,14 +781,14 @@ type machineOption func(*clusterv1.Machine)
 
 func withMachineHealthCheckFailed() machineOption {
 	return func(machine *clusterv1.Machine) {
-		conditions.MarkFalse(machine, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
+		conditions.MarkFalse(machine, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
 		conditions.MarkFalse(machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 	}
 }
 
 func withStuckRemediation() machineOption {
 	return func(machine *clusterv1.Machine) {
-		conditions.MarkTrue(machine, clusterv1.MachineHealthCheckSuccededCondition)
+		conditions.MarkTrue(machine, clusterv1.MachineHealthCheckSucceededCondition)
 		conditions.MarkFalse(machine, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 	}
 }
@@ -826,7 +827,7 @@ func createMachine(ctx context.Context, g *WithT, namespace, name string, option
 			},
 		},
 	}
-	g.Expect(env.Create(ctx, m)).To(Succeed())
+	g.Expect(env.CreateAndWait(ctx, m)).To(Succeed())
 
 	patchHelper, err := patch.NewHelper(m, env.GetClient())
 	g.Expect(err).ToNot(HaveOccurred())

@@ -24,6 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
@@ -58,7 +59,7 @@ func TestControlPlane(t *testing.T) {
 			g.Expect(*controlPlane.FailureDomainWithMostMachines(controlPlane.Machines)).To(Equal("two"))
 		})
 
-		t.Run(("With some machines in non defined failure domains"), func(t *testing.T) {
+		t.Run("With some machines in non defined failure domains", func(t *testing.T) {
 			controlPlane.Machines.Insert(machine("machine-5", withFailureDomain("unknown")))
 			g.Expect(*controlPlane.FailureDomainWithMostMachines(controlPlane.Machines)).To(Equal("unknown"))
 		})
@@ -98,13 +99,13 @@ func TestHasUnhealthyMachine(t *testing.T) {
 	healthyMachine1 := &clusterv1.Machine{}
 	// healthy machine (with MachineHealthCheckSucceded == true)
 	healthyMachine2 := &clusterv1.Machine{}
-	conditions.MarkTrue(healthyMachine2, clusterv1.MachineHealthCheckSuccededCondition)
+	conditions.MarkTrue(healthyMachine2, clusterv1.MachineHealthCheckSucceededCondition)
 	// unhealthy machine NOT eligible for KCP remediation (with MachineHealthCheckSucceded == False, but without MachineOwnerRemediated condition)
 	unhealthyMachineNOTOwnerRemediated := &clusterv1.Machine{}
-	conditions.MarkFalse(unhealthyMachineNOTOwnerRemediated, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
+	conditions.MarkFalse(unhealthyMachineNOTOwnerRemediated, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
 	// unhealthy machine eligible for KCP remediation (with MachineHealthCheckSucceded == False, with MachineOwnerRemediated condition)
 	unhealthyMachineOwnerRemediated := &clusterv1.Machine{}
-	conditions.MarkFalse(unhealthyMachineOwnerRemediated, clusterv1.MachineHealthCheckSuccededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
+	conditions.MarkFalse(unhealthyMachineOwnerRemediated, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
 	conditions.MarkFalse(unhealthyMachineOwnerRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 
 	c := ControlPlane{

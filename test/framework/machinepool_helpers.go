@@ -23,11 +23,12 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // GetMachinePoolsByClusterInput is the input for GetMachinePoolsByCluster.
@@ -40,16 +41,16 @@ type GetMachinePoolsByClusterInput struct {
 // GetMachinePoolsByCluster returns the MachinePools objects for a cluster.
 // Important! this method relies on labels that are created by the CAPI controllers during the first reconciliation, so
 // it is necessary to ensure this is already happened before calling it.
-func GetMachinePoolsByCluster(ctx context.Context, input GetMachinePoolsByClusterInput) []*clusterv1exp.MachinePool {
+func GetMachinePoolsByCluster(ctx context.Context, input GetMachinePoolsByClusterInput) []*expv1.MachinePool {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for GetMachinePoolsByCluster")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling GetMachinePoolsByCluster")
 	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling GetMachinePoolsByCluster")
 	Expect(input.ClusterName).ToNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling GetMachinePoolsByCluster")
 
-	mpList := &clusterv1exp.MachinePoolList{}
+	mpList := &expv1.MachinePoolList{}
 	Expect(input.Lister.List(ctx, mpList, byClusterOptions(input.ClusterName, input.Namespace)...)).To(Succeed(), "Failed to list MachinePools object for Cluster %s/%s", input.Namespace, input.ClusterName)
 
-	mps := make([]*clusterv1exp.MachinePool, len(mpList.Items))
+	mps := make([]*expv1.MachinePool, len(mpList.Items))
 	for i := range mpList.Items {
 		mps[i] = &mpList.Items[i]
 	}
@@ -59,7 +60,7 @@ func GetMachinePoolsByCluster(ctx context.Context, input GetMachinePoolsByCluste
 // WaitForMachinePoolNodesToExistInput is the input for WaitForMachinePoolNodesToExist.
 type WaitForMachinePoolNodesToExistInput struct {
 	Getter      Getter
-	MachinePool *clusterv1exp.MachinePool
+	MachinePool *expv1.MachinePool
 }
 
 // WaitForMachinePoolNodesToExist waits until all nodes associated with a machine pool exist.
@@ -91,7 +92,7 @@ type DiscoveryAndWaitForMachinePoolsInput struct {
 }
 
 // DiscoveryAndWaitForMachinePools discovers the MachinePools existing in a cluster and waits for them to be ready (all the machines provisioned).
-func DiscoveryAndWaitForMachinePools(ctx context.Context, input DiscoveryAndWaitForMachinePoolsInput, intervals ...interface{}) []*clusterv1exp.MachinePool {
+func DiscoveryAndWaitForMachinePools(ctx context.Context, input DiscoveryAndWaitForMachinePoolsInput, intervals ...interface{}) []*expv1.MachinePool {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForMachinePools")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForMachinePools")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForMachinePools")
@@ -114,7 +115,7 @@ type UpgradeMachinePoolAndWaitInput struct {
 	ClusterProxy                   ClusterProxy
 	Cluster                        *clusterv1.Cluster
 	UpgradeVersion                 string
-	MachinePools                   []*clusterv1exp.MachinePool
+	MachinePools                   []*expv1.MachinePool
 	WaitForMachinePoolToBeUpgraded []interface{}
 }
 
@@ -154,7 +155,7 @@ type ScaleMachinePoolAndWaitInput struct {
 	ClusterProxy              ClusterProxy
 	Cluster                   *clusterv1.Cluster
 	Replicas                  int32
-	MachinePools              []*clusterv1exp.MachinePool
+	MachinePools              []*expv1.MachinePool
 	WaitForMachinePoolToScale []interface{}
 }
 
@@ -190,7 +191,7 @@ type WaitForMachinePoolInstancesToBeUpgradedInput struct {
 	Cluster                  *clusterv1.Cluster
 	KubernetesUpgradeVersion string
 	MachineCount             int
-	MachinePool              *clusterv1exp.MachinePool
+	MachinePool              *expv1.MachinePool
 }
 
 // WaitForMachinePoolInstancesToBeUpgraded waits until all instances belonging to a MachinePool are upgraded to the correct kubernetes version.
@@ -236,7 +237,7 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 type GetMachinesPoolInstancesInput struct {
 	WorkloadClusterGetter Getter
 	Namespace             string
-	MachinePool           *clusterv1exp.MachinePool
+	MachinePool           *expv1.MachinePool
 }
 
 // getMachinePoolInstanceVersions returns the Kubernetes versions of the machine pool instances.

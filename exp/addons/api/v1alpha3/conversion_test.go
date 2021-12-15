@@ -19,17 +19,17 @@ package v1alpha3
 import (
 	"testing"
 
-	clusterv1addons "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for ClusterResourceSet", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &clusterv1addons.ClusterResourceSet{},
+		Hub:   &addonsv1.ClusterResourceSet{},
 		Spoke: &ClusterResourceSet{},
 	}))
 	t.Run("for ClusterResourceSetBinding", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:   &clusterv1addons.ClusterResourceSetBinding{},
+		Hub:   &addonsv1.ClusterResourceSetBinding{},
 		Spoke: &ClusterResourceSetBinding{},
 	}))
 }

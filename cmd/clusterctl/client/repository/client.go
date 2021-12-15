@@ -20,6 +20,7 @@ import (
 	"net/url"
 
 	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	yaml "sigs.k8s.io/cluster-api/cmd/clusterctl/client/yamlprocessor"
 )
@@ -31,7 +32,7 @@ import (
 type Client interface {
 	config.Provider
 
-	// GetVersion return the list of versions that are available in a provider repository
+	// GetVersions return the list of versions that are available in a provider repository
 	GetVersions() ([]string, error)
 
 	// Components provide access to YAML file for creating provider components.
@@ -151,7 +152,7 @@ type Repository interface {
 	// GetFile return a file for a given provider version.
 	GetFile(version string, path string) ([]byte, error)
 
-	// GetVersion return the list of versions that are available in a provider repository
+	// GetVersions return the list of versions that are available in a provider repository
 	GetVersions() ([]string, error)
 }
 

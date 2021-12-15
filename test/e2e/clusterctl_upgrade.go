@@ -33,7 +33,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
 	"k8s.io/utils/pointer"
-	clusterv1old "sigs.k8s.io/cluster-api/api/v1alpha3"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
@@ -41,7 +43,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -272,7 +273,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		By("Waiting for the machines to exists")
 		Eventually(func() (int64, error) {
 			var n int64
-			machineList := &clusterv1old.MachineList{}
+			machineList := &clusterv1alpha3.MachineList{}
 			if err := managementClusterProxy.GetClient().List(ctx, machineList, client.InNamespace(testNamespace.Name), client.MatchingLabels{clusterv1.ClusterLabelName: workLoadClusterName}); err == nil {
 				for _, machine := range machineList.Items {
 					if machine.Status.NodeRef != nil {
@@ -346,7 +347,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 						Client:    managementClusterProxy.GetClient(),
 						Namespace: testNamespace.Name,
 					}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
-				case discovery.ServerSupportsVersion(managementClusterProxy.GetClientSet().DiscoveryClient, clusterv1old.GroupVersion) == nil:
+				case discovery.ServerSupportsVersion(managementClusterProxy.GetClientSet().DiscoveryClient, clusterv1alpha3.GroupVersion) == nil:
 					Byf("Deleting all clusters in namespace: %s in management cluster: %s", testNamespace.Name, managementClusterName)
 					deleteAllClustersAndWaitOldAPI(ctx, framework.DeleteAllClustersAndWaitInput{
 						Client:    managementClusterProxy.GetClient(),
@@ -428,11 +429,11 @@ func deleteAllClustersAndWaitOldAPI(ctx context.Context, input framework.DeleteA
 }
 
 // getAllClustersByNamespaceOldAPI returns the list of Cluster objects in a namespace using the older API.
-func getAllClustersByNamespaceOldAPI(ctx context.Context, input framework.GetAllClustersByNamespaceInput) []*clusterv1old.Cluster {
-	clusterList := &clusterv1old.ClusterList{}
+func getAllClustersByNamespaceOldAPI(ctx context.Context, input framework.GetAllClustersByNamespaceInput) []*clusterv1alpha3.Cluster {
+	clusterList := &clusterv1alpha3.ClusterList{}
 	Expect(input.Lister.List(ctx, clusterList, client.InNamespace(input.Namespace))).To(Succeed(), "Failed to list clusters in namespace %s", input.Namespace)
 
-	clusters := make([]*clusterv1old.Cluster, len(clusterList.Items))
+	clusters := make([]*clusterv1alpha3.Cluster, len(clusterList.Items))
 	for i := range clusterList.Items {
 		clusters[i] = &clusterList.Items[i]
 	}
@@ -442,7 +443,7 @@ func getAllClustersByNamespaceOldAPI(ctx context.Context, input framework.GetAll
 // deleteClusterOldAPIInput is the input for deleteClusterOldAPI.
 type deleteClusterOldAPIInput struct {
 	Deleter framework.Deleter
-	Cluster *clusterv1old.Cluster
+	Cluster *clusterv1alpha3.Cluster
 }
 
 // deleteClusterOldAPI deletes the cluster and waits for everything the cluster owned to actually be gone using the older API.
@@ -454,14 +455,14 @@ func deleteClusterOldAPI(ctx context.Context, input deleteClusterOldAPIInput) {
 // waitForClusterDeletedOldAPIInput is the input for waitForClusterDeletedOldAPI.
 type waitForClusterDeletedOldAPIInput struct {
 	Getter  framework.Getter
-	Cluster *clusterv1old.Cluster
+	Cluster *clusterv1alpha3.Cluster
 }
 
 // waitForClusterDeletedOldAPI waits until the cluster object has been deleted using the older API.
 func waitForClusterDeletedOldAPI(ctx context.Context, input waitForClusterDeletedOldAPIInput, intervals ...interface{}) {
 	By(fmt.Sprintf("Waiting for cluster %s to be deleted", input.Cluster.GetName()))
 	Eventually(func() bool {
-		cluster := &clusterv1old.Cluster{}
+		cluster := &clusterv1alpha3.Cluster{}
 		key := client.ObjectKey{
 			Namespace: input.Cluster.GetNamespace(),
 			Name:      input.Cluster.GetName(),

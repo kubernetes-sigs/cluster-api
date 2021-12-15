@@ -23,11 +23,13 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/validation"
+
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
-// Core providers.
+// core providers.
 const (
+	// ClusterAPIProviderName is the name for the core provider.
 	ClusterAPIProviderName = "cluster-api"
 )
 
@@ -66,6 +68,7 @@ const (
 
 // Other.
 const (
+	// ProvidersConfigKey is a constant for finding provider configurations with the ProvidersClient.
 	ProvidersConfigKey = "providers"
 )
 

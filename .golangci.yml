@@ -27,6 +27,7 @@ linters:
   - nilerr
   - nolintlint
   - prealloc
+  - predeclared
   - revive
   - rowserrcheck
   - staticcheck
@@ -52,7 +53,7 @@ linters-settings:
     # Maximum length of variable declaration measured in number of characters, after which linter won't suggest using short syntax.
     max-decl-chars: 50
   gci:
-    local-prefixes: "false"
+    local-prefixes: "sigs.k8s.io/cluster-api"
   importas:
     no-unaliased: true
     alias:
@@ -70,6 +71,55 @@ linters-settings:
       # Controller Runtime
       - pkg: sigs.k8s.io/controller-runtime
         alias: ctrl
+      # CABPK
+      - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha3
+        alias: bootstrapv1alpha3
+      - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4
+        alias: bootstrapv1alpha4
+      - pkg: sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1
+        alias: bootstrapv1
+      # KCP
+      - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha3
+        alias: controlplanev1alpha3
+      - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1alpha4
+        alias: controlplanev1alpha4
+      - pkg: sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1
+        alias: controlplanev1
+      # CAPI
+      - pkg: sigs.k8s.io/cluster-api/api/v1alpha3
+        alias: clusterv1alpha3
+      - pkg: sigs.k8s.io/cluster-api/api/v1alpha4
+        alias: clusterv1alpha4
+      - pkg: sigs.k8s.io/cluster-api/api/v1beta1
+        alias: clusterv1
+      # CAPI exp
+      - pkg: sigs.k8s.io/cluster-api/exp/api/v1alpha3
+        alias: expv1alpha3
+      - pkg: sigs.k8s.io/cluster-api/exp/api/v1alpha4
+        alias: expv1alpha4
+      - pkg: sigs.k8s.io/cluster-api/exp/api/v1beta1
+        alias: expv1
+      # CAPI exp addons
+      - pkg: sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3
+        alias: addonsv1alpha3
+      - pkg: sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4
+        alias: addonsv1alpha4
+      - pkg: sigs.k8s.io/cluster-api/exp/addons/api/v1beta1
+        alias: addonsv1
+      # CAPD
+      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3
+        alias: infrav1alpha3
+      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4
+        alias: infrav1alpha4
+      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1
+        alias: infrav1
+      # CAPD exp
+      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha3
+        alias: infraexpv1alpha3
+      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4
+        alias: infraexpv1alpha4
+      - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1
+        alias: infraexpv1
   nolintlint:
     allow-unused: false
     allow-leading-space: false
@@ -83,9 +133,22 @@ linters-settings:
     - G307 # Deferring unsafe method "Close" on type "\*os.File"
     - G108 # Profiling endpoint is automatically exposed on /debug/pprof
   gocritic:
+    enabled-tags:
+      - experimental
     disabled-checks:
     - appendAssign
-
+    - dupImport # https://github.com/go-critic/go-critic/issues/845
+    - evalOrder
+    - ifElseChain
+    - octalLiteral
+    - regexpSimplify
+    - sloppyReassign
+    - truncateCmp
+    - typeDefFirst
+    - unnamedResult
+    - unnecessaryDefer
+    - whyNoLint
+    - wrapperFunc
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0
@@ -115,7 +178,7 @@ issues:
   - linters:
     - revive
     text: exported (method|function|type|const) (.+) should have comment or be unexported
-    path: "(framework|e2e|infrastructure/docker)/.*.go"
+    path: "(framework|e2e)/.*.go"
   # Disable unparam "always receives" which might not be really
   # useful when building libraries.
   - linters:

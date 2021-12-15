@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/util/homedir"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
@@ -70,7 +71,7 @@ var RootCmd = &cobra.Command{
 		if err != nil {
 			return errors.Wrap(err, "unable to verify clusterctl version")
 		}
-		if len(output) != 0 {
+		if output != "" {
 			// Print the output in yellow so it is more visible.
 			fmt.Fprintf(os.Stderr, "\033[33m%s\033[0m", output)
 		}
@@ -157,7 +158,7 @@ const indentation = `  `
 
 // LongDesc normalizes a command's long description to follow the conventions.
 func LongDesc(s string) string {
-	if len(s) == 0 {
+	if s == "" {
 		return s
 	}
 	return normalizer{s}.heredoc().trim().string
@@ -165,7 +166,7 @@ func LongDesc(s string) string {
 
 // Examples normalizes a command's examples to follow the conventions.
 func Examples(s string) string {
-	if len(s) == 0 {
+	if s == "" {
 		return s
 	}
 	return normalizer{s}.trim().indent().string

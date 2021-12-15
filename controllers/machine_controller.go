@@ -33,6 +33,14 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	kubedrain "k8s.io/kubectl/pkg/drain"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -44,13 +52,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -75,8 +76,9 @@ var (
 
 // MachineReconciler reconciles a Machine object.
 type MachineReconciler struct {
-	Client  client.Client
-	Tracker *remote.ClusterCacheTracker
+	Client    client.Client
+	APIReader client.Reader
+	Tracker   *remote.ClusterCacheTracker
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -203,7 +205,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			// Boostrap comes after, but it is relevant only during initial machine provisioning.
 			clusterv1.BootstrapReadyCondition,
 			// MHC reported condition should take precedence over the remediation progress
-			clusterv1.MachineHealthCheckSuccededCondition,
+			clusterv1.MachineHealthCheckSucceededCondition,
 			clusterv1.MachineOwnerRemediatedCondition,
 		),
 		conditions.WithStepCounterIf(machine.ObjectMeta.DeletionTimestamp.IsZero() && machine.Spec.ProviderID == nil),
@@ -222,7 +224,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 			clusterv1.BootstrapReadyCondition,
 			clusterv1.InfrastructureReadyCondition,
 			clusterv1.DrainingSucceededCondition,
-			clusterv1.MachineHealthCheckSuccededCondition,
+			clusterv1.MachineHealthCheckSucceededCondition,
 			clusterv1.MachineOwnerRemediatedCondition,
 		}},
 	)

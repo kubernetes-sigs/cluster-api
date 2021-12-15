@@ -20,13 +20,14 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/apitesting/fuzzer"
-	clusterv1exp "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func TestFuzzyConversion(t *testing.T) {
 	t.Run("for MachinePool", utilconversion.FuzzTestFunc(utilconversion.FuzzTestFuncInput{
-		Hub:         &clusterv1exp.MachinePool{},
+		Hub:         &expv1.MachinePool{},
 		Spoke:       &MachinePool{},
 		FuzzerFuncs: []fuzzer.FuzzerFuncs{},
 	}))

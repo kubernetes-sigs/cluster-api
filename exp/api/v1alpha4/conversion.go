@@ -17,30 +17,31 @@ limitations under the License.
 package v1alpha4
 
 import (
-	v1beta1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
+
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1beta1.MachinePool)
+	dst := dstRaw.(*expv1.MachinePool)
 
 	return Convert_v1alpha4_MachinePool_To_v1beta1_MachinePool(src, dst, nil)
 }
 
 func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1beta1.MachinePool)
+	src := srcRaw.(*expv1.MachinePool)
 
 	return Convert_v1beta1_MachinePool_To_v1alpha4_MachinePool(src, dst, nil)
 }
 
 func (src *MachinePoolList) ConvertTo(dstRaw conversion.Hub) error {
-	dst := dstRaw.(*v1beta1.MachinePoolList)
+	dst := dstRaw.(*expv1.MachinePoolList)
 
 	return Convert_v1alpha4_MachinePoolList_To_v1beta1_MachinePoolList(src, dst, nil)
 }
 
 func (dst *MachinePoolList) ConvertFrom(srcRaw conversion.Hub) error {
-	src := srcRaw.(*v1beta1.MachinePoolList)
+	src := srcRaw.(*expv1.MachinePoolList)
 
 	return Convert_v1beta1_MachinePoolList_To_v1alpha4_MachinePoolList(src, dst, nil)
 }

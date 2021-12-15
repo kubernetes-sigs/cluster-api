@@ -21,7 +21,8 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
-	clusterv1v1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
+
+	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -148,7 +149,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						WithVersions("v1.0.0", "v1.0.1", "v2.0.0", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: clusterv1v1alpha3.GroupVersion.Version},
+								{Major: 1, Minor: 0, Contract: clusterv1alpha3.GroupVersion.Version},
 								{Major: 2, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
 								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
@@ -157,7 +158,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 						WithVersions("v1.0.0", "v2.0.0", "v2.0.1", "v3.0.0").
 						WithMetadata("v3.0.0", &clusterctlv1.Metadata{
 							ReleaseSeries: []clusterctlv1.ReleaseSeries{
-								{Major: 1, Minor: 0, Contract: clusterv1v1alpha3.GroupVersion.Version},
+								{Major: 1, Minor: 0, Contract: clusterv1alpha3.GroupVersion.Version},
 								{Major: 2, Minor: 0, Contract: test.PreviousCAPIContractNotSupported},
 								{Major: 3, Minor: 0, Contract: test.CurrentCAPIContract},
 							},
@@ -170,7 +171,7 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 			},
 			want: []UpgradePlan{
 				{ // one upgrade plan with the latest releases in the v1alpha3 contract (not supported, but upgrade plan should report these options)
-					Contract: clusterv1v1alpha3.GroupVersion.Version,
+					Contract: clusterv1alpha3.GroupVersion.Version,
 					Providers: []UpgradeItem{
 						{
 							Provider:    fakeProvider("cluster-api", clusterctlv1.CoreProviderType, "v1.0.0", "cluster-api-system"),

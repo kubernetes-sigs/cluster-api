@@ -34,6 +34,13 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -43,12 +50,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -334,7 +335,7 @@ func (r *MachineHealthCheckReconciler) patchHealthyTargets(ctx context.Context, 
 	errList := []error{}
 	for _, t := range healthy {
 		// No need to check  ExternalRemediation status for machine cause it always in healthy status
-		if conditions.IsTrue(t.Machine, clusterv1.MachineHealthCheckSuccededCondition) {
+		if conditions.IsTrue(t.Machine, clusterv1.MachineHealthCheckSucceededCondition) {
 			continue
 		}
 		if m.Spec.RemediationTemplate != nil {
@@ -351,12 +352,13 @@ func (r *MachineHealthCheckReconciler) patchHealthyTargets(ctx context.Context, 
 			if obj.GetDeletionTimestamp() == nil {
 				// Issue a delete for remediation request.
 				if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
-					logger.Error(err, "failed to delete %v %q for Machine %q", obj.GroupVersionKind(), obj.GetName(), t.Machine.Name)
+					errList = append(errList, errors.Wrapf(err, "failed to delete %v %q for Machine %q", obj.GroupVersionKind(), obj.GetName(), t.Machine.Name))
+					continue
 				}
 			}
 		}
 		// Always mark MachineHealthCheckSucceededCondition status as True after node become healthy and externalRemediation already deleted succeed
-		conditions.MarkTrue(t.Machine, clusterv1.MachineHealthCheckSuccededCondition)
+		conditions.MarkTrue(t.Machine, clusterv1.MachineHealthCheckSucceededCondition)
 		if err := t.patchHelper.Patch(ctx, t.Machine); err != nil {
 			logger.Error(err, "failed to patch healthy machine status for machine", "machine", t.Machine.GetName())
 			errList = append(errList, errors.Wrapf(err, "failed to patch healthy machine status for machine: %s/%s", t.Machine.Namespace, t.Machine.Name))
@@ -370,7 +372,7 @@ func (r *MachineHealthCheckReconciler) patchUnhealthyTargets(ctx context.Context
 	// mark for remediation
 	errList := []error{}
 	for _, t := range unhealthy {
-		condition := conditions.Get(t.Machine, clusterv1.MachineHealthCheckSuccededCondition)
+		condition := conditions.Get(t.Machine, clusterv1.MachineHealthCheckSucceededCondition)
 
 		if annotations.IsPaused(cluster, t.Machine) {
 			logger.Info("Machine has failed health check, but machine is paused so skipping remediation", "target", t.string(), "reason", condition.Reason, "message", condition.Message)

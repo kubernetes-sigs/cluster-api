@@ -28,6 +28,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
+	ctrl "sigs.k8s.io/controller-runtime"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -40,7 +42,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
@@ -126,7 +127,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 		return nil
 	}
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, ref); err != nil {
 		return err
 	}
 
@@ -214,16 +215,17 @@ func (r *KubeadmControlPlaneReconciler) cleanupFromGeneration(ctx context.Contex
 	var errs []error
 
 	for _, ref := range remoteRefs {
-		if ref != nil {
-			config := &unstructured.Unstructured{}
-			config.SetKind(ref.Kind)
-			config.SetAPIVersion(ref.APIVersion)
-			config.SetNamespace(ref.Namespace)
-			config.SetName(ref.Name)
+		if ref == nil {
+			continue
+		}
+		config := &unstructured.Unstructured{}
+		config.SetKind(ref.Kind)
+		config.SetAPIVersion(ref.APIVersion)
+		config.SetNamespace(ref.Namespace)
+		config.SetName(ref.Name)
 
-			if err := r.Client.Delete(ctx, config); err != nil && !apierrors.IsNotFound(err) {
-				errs = append(errs, errors.Wrap(err, "failed to cleanup generated resources after error"))
-			}
+		if err := r.Client.Delete(ctx, config); err != nil && !apierrors.IsNotFound(err) {
+			errs = append(errs, errors.Wrap(err, "failed to cleanup generated resources after error"))
 		}
 	}
 

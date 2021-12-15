@@ -26,7 +26,11 @@ type HelperOption interface {
 
 // HelperOptions contains options for Helper.
 type HelperOptions struct {
-	allowedPaths       []contract.Path
+	// internally managed options.
+	allowedPaths []contract.Path
+	managedPaths []contract.Path
+
+	// user defined options.
 	ignorePaths        []contract.Path
 	authoritativePaths []contract.Path
 }

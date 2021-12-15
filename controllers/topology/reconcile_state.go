@@ -448,8 +448,13 @@ func (r *ClusterReconciler) reconcileReferencedObject(ctx context.Context, in re
 	// If there is no current object, create it.
 	if in.current == nil {
 		log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
-		if err := r.Client.Create(ctx, in.desired.DeepCopy()); err != nil {
-			return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: in.desired})
+
+		desiredWithManagedFieldAnnotation, err := mergepatch.DeepCopyWithManagedFieldAnnotation(in.desired)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create a copy of %s with the managed field annotation", tlog.KObj{Obj: in.desired})
+		}
+		if err := r.Client.Create(ctx, desiredWithManagedFieldAnnotation); err != nil {
+			return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: desiredWithManagedFieldAnnotation})
 		}
 		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: in.desired})
 		return nil
@@ -521,8 +526,12 @@ func (r *ClusterReconciler) reconcileReferencedTemplate(ctx context.Context, in 
 	// If there is no current object, create the desired object.
 	if in.current == nil {
 		log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
-		if err := r.Client.Create(ctx, in.desired.DeepCopy()); err != nil {
-			return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: in.desired})
+		desiredWithManagedFieldAnnotation, err := mergepatch.DeepCopyWithManagedFieldAnnotation(in.desired)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create a copy of %s with the managed field annotation", tlog.KObj{Obj: in.desired})
+		}
+		if err := r.Client.Create(ctx, desiredWithManagedFieldAnnotation); err != nil {
+			return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: desiredWithManagedFieldAnnotation})
 		}
 		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: in.desired})
 		return nil
@@ -569,8 +578,12 @@ func (r *ClusterReconciler) reconcileReferencedTemplate(ctx context.Context, in 
 
 	log.Infof("Rotating %s, new name %s", tlog.KObj{Obj: in.current}, newName)
 	log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
-	if err := r.Client.Create(ctx, in.desired.DeepCopy()); err != nil {
-		return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: in.desired})
+	desiredWithManagedFieldAnnotation, err := mergepatch.DeepCopyWithManagedFieldAnnotation(in.desired)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create a copy of %s with the managed field annotation", tlog.KObj{Obj: in.desired})
+	}
+	if err := r.Client.Create(ctx, desiredWithManagedFieldAnnotation); err != nil {
+		return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: desiredWithManagedFieldAnnotation})
 	}
 	r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q as a replacement for %q (template rotation)", tlog.KObj{Obj: in.desired}, in.ref.Name)
 

@@ -82,30 +82,30 @@ func (r *localRepository) ComponentsPath() string {
 }
 
 // GetFile returns a file for a given provider version.
-func (r *localRepository) GetFile(version, fileName string) ([]byte, error) {
+func (r *localRepository) GetFile(vrsn, fileName string) ([]byte, error) {
 	var err error
 
-	if version == latestVersionTag {
-		version, err = latestRelease(r)
+	if vrsn == latestVersionTag {
+		vrsn, err = latestRelease(r)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get the latest release")
 		}
-	} else if version == "" {
-		version = r.defaultVersion
+	} else if vrsn == "" {
+		vrsn = r.defaultVersion
 	}
 
-	absolutePath := filepath.Join(r.basepath, r.providerLabel, version, r.RootPath(), fileName)
+	absolutePath := filepath.Join(r.basepath, r.providerLabel, vrsn, r.RootPath(), fileName)
 
 	f, err := os.Stat(absolutePath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read file %q from local release %s", absolutePath, version)
+		return nil, errors.Wrapf(err, "failed to read file %q from local release %s", absolutePath, vrsn)
 	}
 	if f.IsDir() {
 		return nil, errors.Errorf("invalid path: file %q is actually a directory %q", fileName, absolutePath)
 	}
 	content, err := os.ReadFile(absolutePath) //nolint:gosec
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read file %q from local release %s", absolutePath, version)
+		return nil, errors.Wrapf(err, "failed to read file %q from local release %s", absolutePath, vrsn)
 	}
 	return content, nil
 }
@@ -136,13 +136,13 @@ func (r *localRepository) GetVersions() ([]string, error) {
 
 // newLocalRepository returns a new localRepository.
 func newLocalRepository(providerConfig config.Provider, configVariablesClient config.VariablesClient) (*localRepository, error) {
-	url, err := url.Parse(providerConfig.URL())
+	providerURL, err := url.Parse(providerConfig.URL())
 	if err != nil {
 		return nil, errors.Wrap(err, "invalid url")
 	}
 
 	// gets the path part of the url and check it is an absolute path
-	path := url.Path
+	path := providerURL.Path
 	if runtime.GOOS == "windows" {
 		// in case of windows, we should take care of removing the additional / which is required by the URI standard
 		// for windows local paths. see https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/ for more details.

@@ -266,7 +266,7 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 }
 
 // getTemplateFromRepository returns a workload cluster template from a provider repository.
-func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, options GetClusterTemplateOptions) (Template, error) {
+func (c *clusterctlClient) getTemplateFromRepository(clusterClient cluster.Client, options GetClusterTemplateOptions) (Template, error) {
 	source := *options.ProviderRepositorySource
 	targetNamespace := options.TargetNamespace
 	listVariablesOnly := options.ListVariablesOnly
@@ -276,16 +276,16 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, opt
 	provider := source.InfrastructureProvider
 	ensureCustomResourceDefinitions := false
 	if provider == "" {
-		if err := cluster.Proxy().CheckClusterAvailable(); err != nil {
+		if err := clusterClient.Proxy().CheckClusterAvailable(); err != nil {
 			return nil, errors.Wrap(err, "management cluster not available. Cannot auto-discover default infrastructure provider. Please specify an infrastructure provider")
 		}
 		// ensure the custom resource definitions required by clusterctl are in place
-		if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+		if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
 			return nil, errors.Wrapf(err, "provider custom resource definitions (CRDs) are not installed")
 		}
 		ensureCustomResourceDefinitions = true
 
-		defaultProviderName, err := cluster.ProviderInventory().GetDefaultProviderName(clusterctlv1.InfrastructureProviderType)
+		defaultProviderName, err := clusterClient.ProviderInventory().GetDefaultProviderName(clusterctlv1.InfrastructureProviderType)
 		if err != nil {
 			return nil, err
 		}
@@ -297,32 +297,32 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, opt
 	}
 
 	// parse the abbreviated syntax for name[:version]
-	name, version, err := parseProviderName(provider)
+	name, providerVersion, err := parseProviderName(provider)
 	if err != nil {
 		return nil, err
 	}
 
 	// If the version of the infrastructure provider to get templates from is empty, try to detect it.
-	if version == "" {
-		if err := cluster.Proxy().CheckClusterAvailable(); err != nil {
-			return nil, errors.Wrapf(err, "management cluster not available. Cannot auto-discover version for the provider %q automatically. Please specify a version", name)
+	if providerVersion == "" {
+		if err := clusterClient.Proxy().CheckClusterAvailable(); err != nil {
+			return nil, errors.Wrapf(err, "management cluster not available. Cannot auto-discover providerVersion for the provider %q automatically. Please specify a providerVersion", name)
 		}
 		// ensure the custom resource definitions required by clusterctl are in place (if not already done)
 		if !ensureCustomResourceDefinitions {
-			if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
-				return nil, errors.Wrapf(err, "failed to identify the default version for the provider %q. Please specify a version", name)
+			if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+				return nil, errors.Wrapf(err, "failed to identify the default providerVersion for the provider %q. Please specify a providerVersion", name)
 			}
 		}
 
-		inventoryVersion, err := cluster.ProviderInventory().GetProviderVersion(name, clusterctlv1.InfrastructureProviderType)
+		inventoryVersion, err := clusterClient.ProviderInventory().GetProviderVersion(name, clusterctlv1.InfrastructureProviderType)
 		if err != nil {
 			return nil, err
 		}
 
 		if inventoryVersion == "" {
-			return nil, errors.Errorf("Unable to identify version for the provider %q automatically. Please specify a version", name)
+			return nil, errors.Errorf("Unable to identify providerVersion for the provider %q automatically. Please specify a providerVersion", name)
 		}
-		version = inventoryVersion
+		providerVersion = inventoryVersion
 	}
 
 	// Get the template from the template repository.
@@ -336,14 +336,14 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, opt
 		return nil, err
 	}
 
-	template, err := repo.Templates(version).Get(source.Flavor, targetNamespace, listVariablesOnly)
+	template, err := repo.Templates(providerVersion).Get(source.Flavor, targetNamespace, listVariablesOnly)
 	if err != nil {
 		return nil, err
 	}
 
-	clusterClassClient := repo.ClusterClasses(version)
+	clusterClassClient := repo.ClusterClasses(providerVersion)
 
-	template, err = addClusterClassIfMissing(template, clusterClassClient, cluster, targetNamespace, listVariablesOnly)
+	template, err = addClusterClassIfMissing(template, clusterClassClient, clusterClient, targetNamespace, listVariablesOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -352,10 +352,10 @@ func (c *clusterctlClient) getTemplateFromRepository(cluster cluster.Client, opt
 }
 
 // getTemplateFromConfigMap returns a workload cluster template from a ConfigMap.
-func (c *clusterctlClient) getTemplateFromConfigMap(cluster cluster.Client, source ConfigMapSourceOptions, targetNamespace string, listVariablesOnly bool) (Template, error) {
+func (c *clusterctlClient) getTemplateFromConfigMap(clusterClient cluster.Client, source ConfigMapSourceOptions, targetNamespace string, listVariablesOnly bool) (Template, error) {
 	// If the option specifying the configMapNamespace is empty, default it to the current namespace.
 	if source.Namespace == "" {
-		currentNamespace, err := cluster.Proxy().CurrentNamespace()
+		currentNamespace, err := clusterClient.Proxy().CurrentNamespace()
 		if err != nil {
 			return nil, err
 		}
@@ -367,12 +367,12 @@ func (c *clusterctlClient) getTemplateFromConfigMap(cluster cluster.Client, sour
 		source.DataKey = DefaultCustomTemplateConfigMapKey
 	}
 
-	return cluster.Template().GetFromConfigMap(source.Namespace, source.Name, source.DataKey, targetNamespace, listVariablesOnly)
+	return clusterClient.Template().GetFromConfigMap(source.Namespace, source.Name, source.DataKey, targetNamespace, listVariablesOnly)
 }
 
 // getTemplateFromURL returns a workload cluster template from an URL.
-func (c *clusterctlClient) getTemplateFromURL(cluster cluster.Client, source URLSourceOptions, targetNamespace string, listVariablesOnly bool) (Template, error) {
-	return cluster.Template().GetFromURL(source.URL, targetNamespace, listVariablesOnly)
+func (c *clusterctlClient) getTemplateFromURL(clusterClient cluster.Client, source URLSourceOptions, targetNamespace string, listVariablesOnly bool) (Template, error) {
+	return clusterClient.Template().GetFromURL(source.URL, targetNamespace, listVariablesOnly)
 }
 
 // templateOptionsToVariables injects some of the templateOptions to the configClient so they can be consumed as a variables from the template.

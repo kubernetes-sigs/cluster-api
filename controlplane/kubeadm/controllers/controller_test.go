@@ -614,9 +614,9 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		secrets := &corev1.SecretList{}
 		g.Expect(fakeClient.List(ctx, secrets, client.InNamespace(cluster.Namespace), client.MatchingLabels{"previous-owner": "kubeadmconfig"})).To(Succeed())
 		g.Expect(secrets.Items).To(HaveLen(3))
-		for _, secret := range secrets.Items {
-			g.Expect(secret.OwnerReferences).To(HaveLen(1))
-			g.Expect(secret.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
+		for _, s := range secrets.Items {
+			g.Expect(s.OwnerReferences).To(HaveLen(1))
+			g.Expect(s.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
 		}
 	})
 

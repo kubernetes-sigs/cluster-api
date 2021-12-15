@@ -89,11 +89,11 @@ func (f *MemoryReader) AddProvider(name string, ttype clusterctlv1.ProviderType,
 		Type: ttype,
 	})
 
-	yaml, err := yaml.Marshal(f.providers)
+	providerYaml, err := yaml.Marshal(f.providers)
 	if err != nil {
 		return f, err
 	}
-	f.variables["providers"] = string(yaml)
+	f.variables["providers"] = string(providerYaml)
 
 	return f, nil
 }

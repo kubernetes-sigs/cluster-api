@@ -120,8 +120,8 @@ func (k *proxy) ValidateKubernetesVersion() error {
 		return err
 	}
 
-	client := discovery.NewDiscoveryClientForConfigOrDie(config)
-	serverVersion, err := client.ServerVersion()
+	cl := discovery.NewDiscoveryClientForConfigOrDie(config)
+	serverVersion, err := cl.ServerVersion()
 	if err != nil {
 		return errors.Wrap(err, "failed to retrieve server version")
 	}
@@ -257,10 +257,10 @@ func (k *proxy) ListResources(labels map[string]string, namespaces ...string) ([
 		component, isCoreComponent := labels[clusterctlv1.ClusterctlCoreLabelName]
 		_, isProviderResource := crd.Labels[clusterv1.ProviderLabelName]
 		if (isCoreComponent && component == clusterctlv1.ClusterctlCoreLabelCertManagerValue) || isProviderResource {
-			for _, version := range crd.Spec.Versions {
+			for _, v := range crd.Spec.Versions {
 				crdsToExclude.Insert(metav1.GroupVersionKind{
 					Group:   crd.Spec.Group,
-					Version: version.Name,
+					Version: v.Name,
 					Kind:    crd.Spec.Names.Kind,
 				}.String())
 			}
@@ -332,12 +332,12 @@ func (k *proxy) GetContexts(prefix string) ([]string, error) {
 
 // GetResourceNames returns the list of resource names which begin with prefix.
 func (k *proxy) GetResourceNames(groupVersion, kind string, options []client.ListOption, prefix string) ([]string, error) {
-	client, err := k.NewClient()
+	cl, err := k.NewClient()
 	if err != nil {
 		return nil, err
 	}
 
-	objList, err := listObjByGVK(client, groupVersion, kind, options)
+	objList, err := listObjByGVK(cl, groupVersion, kind, options)
 	if err != nil {
 		return nil, err
 	}

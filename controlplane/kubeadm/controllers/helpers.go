@@ -105,7 +105,7 @@ func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Contex
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Adopting KubeConfig secret created by v1alpha2 controllers", "Name", configSecret.Name)
 
-	patch, err := patch.NewHelper(configSecret, r.Client)
+	ptch, err := patch.NewHelper(configSecret, r.Client)
 	if err != nil {
 		return errors.Wrap(err, "failed to create patch helper for the kubeconfig secret")
 	}
@@ -116,7 +116,7 @@ func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Contex
 		UID:        cluster.UID,
 	})
 	configSecret.OwnerReferences = util.EnsureOwnerRef(configSecret.OwnerReferences, controllerOwnerRef)
-	if err := patch.Patch(ctx, configSecret); err != nil {
+	if err := ptch.Patch(ctx, configSecret); err != nil {
 		return errors.Wrap(err, "failed to patch the kubeconfig secret")
 	}
 	return nil

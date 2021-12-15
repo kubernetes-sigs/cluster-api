@@ -77,8 +77,8 @@ func Init(ctx context.Context, input InitInput) {
 		LogUsageInstructions:    true,
 	}
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-init.log", input.LogFolder)
-	defer log.Close()
+	clusterctlClient, logFile := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-init.log", input.LogFolder)
+	defer logFile.Close()
 
 	_, err := clusterctlClient.Init(initOpt)
 	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl init")
@@ -135,8 +135,8 @@ func Upgrade(ctx context.Context, input UpgradeInput) {
 		Contract: input.Contract,
 	}
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-upgrade.log", input.LogFolder)
-	defer log.Close()
+	clusterctlClient, logFile := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-upgrade.log", input.LogFolder)
+	defer logFile.Close()
 
 	err := clusterctlClient.ApplyUpgrade(upgradeOpt)
 	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl upgrade")
@@ -161,8 +161,8 @@ func Delete(_ context.Context, input DeleteInput) {
 		DeleteAll: true,
 	}
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-delete.log", input.LogFolder)
-	defer log.Close()
+	clusterctlClient, logFile := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-delete.log", input.LogFolder)
+	defer logFile.Close()
 
 	err := clusterctlClient.Delete(deleteOpts)
 	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl upgrade")
@@ -209,8 +209,8 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 		TargetNamespace:          input.Namespace,
 	}
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName), input.LogFolder)
-	defer log.Close()
+	clusterctlClient, logFile := getClusterctlClientWithLogger(input.ClusterctlConfigPath, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName), input.LogFolder)
+	defer logFile.Close()
 
 	template, err := clusterctlClient.GetClusterTemplate(templateOptions)
 	Expect(err).ToNot(HaveOccurred(), "Failed to run clusterctl config cluster")
@@ -218,7 +218,7 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 	yaml, err := template.Yaml()
 	Expect(err).ToNot(HaveOccurred(), "Failed to generate yaml for the workload cluster template")
 
-	_, _ = log.WriteString(string(yaml))
+	_, _ = logFile.WriteString(string(yaml))
 	return yaml
 }
 
@@ -311,8 +311,8 @@ func Move(ctx context.Context, input MoveInput) {
 
 	By("Moving workload clusters")
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-move.log", input.LogFolder)
-	defer log.Close()
+	clusterctlClient, logFile := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-move.log", input.LogFolder)
+	defer logFile.Close()
 	options := clusterctlclient.MoveOptions{
 		FromKubeconfig: clusterctlclient.Kubeconfig{Path: input.FromKubeconfigPath, Context: ""},
 		ToKubeconfig:   clusterctlclient.Kubeconfig{Path: input.ToKubeconfigPath, Context: ""},
@@ -323,15 +323,15 @@ func Move(ctx context.Context, input MoveInput) {
 }
 
 func getClusterctlClientWithLogger(configPath, logName, logFolder string) (clusterctlclient.Client, *logger.LogFile) {
-	log := logger.CreateLogFile(logger.CreateLogFileInput{
+	logFile := logger.CreateLogFile(logger.CreateLogFileInput{
 		LogFolder: logFolder,
 		Name:      logName,
 	})
-	clusterctllog.SetLogger(log.Logger())
+	clusterctllog.SetLogger(logFile.Logger())
 
 	c, err := clusterctlclient.New(configPath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to create the clusterctl client library")
-	return c, log
+	return c, logFile
 }
 
 func valueOrDefault(v string) string {

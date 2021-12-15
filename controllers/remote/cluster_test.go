@@ -88,13 +88,13 @@ func TestNewClusterClient(t *testing.T) {
 	t.Run("cluster with valid kubeconfig", func(t *testing.T) {
 		gs := NewWithT(t)
 
-		client := fake.NewClientBuilder().WithObjects(validSecret).Build()
-		_, err := NewClusterClient(ctx, "test-source", client, clusterWithValidKubeConfig)
+		cl := fake.NewClientBuilder().WithObjects(validSecret).Build()
+		_, err := NewClusterClient(ctx, "test-source", cl, clusterWithValidKubeConfig)
 		// Since we do not have a remote server to connect to, we should expect to get
 		// an error to that effect for the purpose of this test.
 		gs.Expect(err).To(MatchError(ContainSubstring("no such host")))
 
-		restConfig, err := RESTConfig(ctx, "test-source", client, clusterWithValidKubeConfig)
+		restConfig, err := RESTConfig(ctx, "test-source", cl, clusterWithValidKubeConfig)
 		gs.Expect(err).NotTo(HaveOccurred())
 		gs.Expect(restConfig.Host).To(Equal("https://test-cluster-api.nodomain.example.com:6443"))
 		gs.Expect(restConfig.UserAgent).To(MatchRegexp("remote.test/unknown test-source (.*) cluster.x-k8s.io/unknown"))
@@ -104,16 +104,16 @@ func TestNewClusterClient(t *testing.T) {
 	t.Run("cluster with no kubeconfig", func(t *testing.T) {
 		gs := NewWithT(t)
 
-		client := fake.NewClientBuilder().Build()
-		_, err := NewClusterClient(ctx, "test-source", client, clusterWithNoKubeConfig)
+		cl := fake.NewClientBuilder().Build()
+		_, err := NewClusterClient(ctx, "test-source", cl, clusterWithNoKubeConfig)
 		gs.Expect(err).To(MatchError(ContainSubstring("not found")))
 	})
 
 	t.Run("cluster with invalid kubeconfig", func(t *testing.T) {
 		gs := NewWithT(t)
 
-		client := fake.NewClientBuilder().WithObjects(invalidSecret).Build()
-		_, err := NewClusterClient(ctx, "test-source", client, clusterWithInvalidKubeConfig)
+		cl := fake.NewClientBuilder().WithObjects(invalidSecret).Build()
+		_, err := NewClusterClient(ctx, "test-source", cl, clusterWithInvalidKubeConfig)
 		gs.Expect(err).To(HaveOccurred())
 		gs.Expect(apierrors.IsNotFound(err)).To(BeFalse())
 	})

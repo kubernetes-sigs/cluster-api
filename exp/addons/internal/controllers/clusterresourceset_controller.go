@@ -412,10 +412,10 @@ func (r *ClusterResourceSetReconciler) patchOwnerRefToResource(ctx context.Conte
 
 	if !util.IsOwnedByObject(resource, clusterResourceSet) {
 		refs := resource.GetOwnerReferences()
-		patch := client.MergeFrom(resource.DeepCopy())
+		ownerRefPatch := client.MergeFrom(resource.DeepCopy())
 		refs = append(refs, newRef)
 		resource.SetOwnerReferences(refs)
-		return r.Client.Patch(ctx, resource, patch)
+		return r.Client.Patch(ctx, resource, ownerRefPatch)
 	}
 	return nil
 }
@@ -434,7 +434,7 @@ func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o client.Obje
 		return nil
 	}
 
-	labels := labels.Set(cluster.GetLabels())
+	lbls := labels.Set(cluster.GetLabels())
 	for i := range resourceList.Items {
 		rs := &resourceList.Items[i]
 
@@ -448,7 +448,7 @@ func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o client.Obje
 			return nil
 		}
 
-		if !selector.Matches(labels) {
+		if !selector.Matches(lbls) {
 			continue
 		}
 

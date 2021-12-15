@@ -35,7 +35,7 @@ type customDefaulterValidator interface {
 // customDefaultValidateTest returns a new testing function to be used in tests to
 // make sure custom defaulting webhooks also pass validation tests on create,
 // update and delete.
-func customDefaultValidateTest(ctx context.Context, obj runtime.Object, webhook customDefaulterValidator) func(*testing.T) {
+func customDefaultValidateTest(ctx context.Context, obj runtime.Object, wbhook customDefaulterValidator) func(*testing.T) {
 	return func(t *testing.T) {
 		t.Helper()
 
@@ -46,19 +46,19 @@ func customDefaultValidateTest(ctx context.Context, obj runtime.Object, webhook 
 
 		t.Run("validate-on-create", func(t *testing.T) {
 			g := gomega.NewWithT(t)
-			g.Expect(webhook.Default(ctx, createCopy)).To(gomega.Succeed())
-			g.Expect(webhook.ValidateCreate(ctx, createCopy)).To(gomega.Succeed())
+			g.Expect(wbhook.Default(ctx, createCopy)).To(gomega.Succeed())
+			g.Expect(wbhook.ValidateCreate(ctx, createCopy)).To(gomega.Succeed())
 		})
 		t.Run("validate-on-update", func(t *testing.T) {
 			g := gomega.NewWithT(t)
-			g.Expect(webhook.Default(ctx, defaultingUpdateCopy)).To(gomega.Succeed())
-			g.Expect(webhook.Default(ctx, updateCopy)).To(gomega.Succeed())
-			g.Expect(webhook.ValidateUpdate(ctx, createCopy, defaultingUpdateCopy)).To(gomega.Succeed())
+			g.Expect(wbhook.Default(ctx, defaultingUpdateCopy)).To(gomega.Succeed())
+			g.Expect(wbhook.Default(ctx, updateCopy)).To(gomega.Succeed())
+			g.Expect(wbhook.ValidateUpdate(ctx, createCopy, defaultingUpdateCopy)).To(gomega.Succeed())
 		})
 		t.Run("validate-on-delete", func(t *testing.T) {
 			g := gomega.NewWithT(t)
-			g.Expect(webhook.Default(ctx, deleteCopy)).To(gomega.Succeed())
-			g.Expect(webhook.ValidateDelete(ctx, deleteCopy)).To(gomega.Succeed())
+			g.Expect(wbhook.Default(ctx, deleteCopy)).To(gomega.Succeed())
+			g.Expect(wbhook.ValidateDelete(ctx, deleteCopy)).To(gomega.Succeed())
 		})
 	}
 }

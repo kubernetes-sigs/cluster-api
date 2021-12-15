@@ -186,20 +186,20 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 	cacheCtx, cacheCtxCancel := context.WithCancel(ctx)
 
 	// We need to be able to stop the cache's shared informers, so wrap this in a stoppableCache.
-	cache := &stoppableCache{
+	cacheForCluster := &stoppableCache{
 		Cache:      remoteCache,
 		cancelFunc: cacheCtxCancel,
 	}
 
 	for _, index := range indexes {
-		if err := cache.IndexField(ctx, index.Object, index.Field, index.ExtractValue); err != nil {
+		if err := cacheForCluster.IndexField(ctx, index.Object, index.Field, index.ExtractValue); err != nil {
 			return nil, fmt.Errorf("failed to index field %s: %w", index.Field, err)
 		}
 	}
 
 	// Start the cache!!!
-	go cache.Start(cacheCtx) //nolint:errcheck
-	if !cache.WaitForCacheSync(cacheCtx) {
+	go cacheForCluster.Start(cacheCtx) //nolint:errcheck
+	if !cacheForCluster.WaitForCacheSync(cacheCtx) {
 		return nil, fmt.Errorf("failed waiting for cache for remote cluster %v to sync: %w", cluster, err)
 	}
 
@@ -210,7 +210,7 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 	})
 
 	delegatingClient, err := client.NewDelegatingClient(client.NewDelegatingClientInput{
-		CacheReader:     cache,
+		CacheReader:     cacheForCluster,
 		Client:          c,
 		UncachedObjects: t.clientUncachedObjects,
 	})
@@ -219,7 +219,7 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 	}
 
 	return &clusterAccessor{
-		cache:   cache,
+		cache:   cacheForCluster,
 		client:  delegatingClient,
 		watches: sets.NewString(),
 	}, nil

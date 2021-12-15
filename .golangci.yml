@@ -135,6 +135,8 @@ linters-settings:
   gocritic:
     enabled-tags:
       - experimental
+    enabled-checks:
+    - importShadow
     disabled-checks:
     - appendAssign
     - dupImport # https://github.com/go-critic/go-critic/issues/845

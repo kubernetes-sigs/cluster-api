@@ -257,12 +257,12 @@ func (c *E2EConfig) Defaults() {
 	for i := range c.Providers {
 		provider := &c.Providers[i]
 		for j := range provider.Versions {
-			version := &provider.Versions[j]
-			if version.Type == "" {
-				version.Type = KustomizeSource
+			vrsn := &provider.Versions[j]
+			if vrsn.Type == "" {
+				vrsn.Type = KustomizeSource
 			}
-			for j := range version.Files {
-				file := &version.Files[j]
+			for j := range vrsn.Files {
+				file := &vrsn.Files[j]
 				if file.SourcePath != "" && file.TargetName == "" {
 					file.TargetName = filepath.Base(file.SourcePath)
 				}
@@ -290,28 +290,28 @@ func (c *E2EConfig) AbsPaths(basePath string) {
 	for i := range c.Providers {
 		provider := &c.Providers[i]
 		for j := range provider.Versions {
-			version := &provider.Versions[j]
-			if version.Type != URLSource && version.Value != "" {
-				if !filepath.IsAbs(version.Value) {
-					version.Value = filepath.Join(basePath, version.Value)
+			vrsn := &provider.Versions[j]
+			if vrsn.Type != URLSource && vrsn.Value != "" {
+				if !filepath.IsAbs(vrsn.Value) {
+					vrsn.Value = filepath.Join(basePath, vrsn.Value)
 				}
-			} else if version.Type == URLSource && version.Value != "" {
+			} else if vrsn.Type == URLSource && vrsn.Value != "" {
 				// Skip error, will be checked later when loading contents from URL
-				u, _ := url.Parse(version.Value)
+				u, _ := url.Parse(vrsn.Value)
 
 				if u != nil {
 					switch u.Scheme {
 					case "", fileURIScheme:
-						fp := strings.TrimPrefix(version.Value, fmt.Sprintf("%s://", fileURIScheme))
+						fp := strings.TrimPrefix(vrsn.Value, fmt.Sprintf("%s://", fileURIScheme))
 						if !filepath.IsAbs(fp) {
-							version.Value = filepath.Join(basePath, fp)
+							vrsn.Value = filepath.Join(basePath, fp)
 						}
 					}
 				}
 			}
 
-			for j := range version.Files {
-				file := &version.Files[j]
+			for j := range vrsn.Files {
+				file := &vrsn.Files[j]
 				if file.SourcePath != "" {
 					if !filepath.IsAbs(file.SourcePath) {
 						file.SourcePath = filepath.Join(basePath, file.SourcePath)

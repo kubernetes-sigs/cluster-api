@@ -175,8 +175,8 @@ func (m *MachineSet) Validate() field.ErrorList {
 	if err != nil {
 		errors = append(errors, field.Invalid(fldPath.Child("selector"), m.Spec.Selector, "invalid label selector."))
 	} else {
-		labels := labels.Set(m.Spec.Template.Labels)
-		if !selector.Matches(labels) {
+		lbls := labels.Set(m.Spec.Template.Labels)
+		if !selector.Matches(lbls) {
 			errors = append(errors, field.Invalid(fldPath.Child("template", "metadata", "labels"), m.Spec.Template.Labels, "`selector` does not match template `labels`"))
 		}
 	}

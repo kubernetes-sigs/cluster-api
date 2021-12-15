@@ -338,8 +338,8 @@ func (f *fakeClusterClient) WithObjectMover(mover cluster.ObjectMover) *fakeClus
 	return f
 }
 
-func (f *fakeClusterClient) WithCertManagerClient(client cluster.CertManagerClient) *fakeClusterClient {
-	f.certManager = client
+func (f *fakeClusterClient) WithCertManagerClient(cl cluster.CertManagerClient) *fakeClusterClient {
+	f.certManager = cl
 	return f
 }
 
@@ -349,11 +349,11 @@ func (f *fakeClusterClient) WithCertManagerClient(client cluster.CertManagerClie
 func newFakeConfig() *fakeConfigClient {
 	fakeReader := test.NewFakeReader()
 
-	client, _ := config.New("fake-config", config.InjectReader(fakeReader))
+	cl, _ := config.New("fake-config", config.InjectReader(fakeReader))
 
 	return &fakeConfigClient{
 		fakeReader:     fakeReader,
-		internalclient: client,
+		internalclient: cl,
 	}
 }
 

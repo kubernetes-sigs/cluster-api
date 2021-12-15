@@ -134,9 +134,9 @@ var _ Client = &clusterctlClient{}
 type Option func(*clusterctlClient)
 
 // InjectConfig allows to override the default configuration client used by clusterctl.
-func InjectConfig(config config.Client) Option {
+func InjectConfig(cfg config.Client) Option {
 	return func(c *clusterctlClient) {
-		c.configClient = config
+		c.configClient = cfg
 	}
 }
 

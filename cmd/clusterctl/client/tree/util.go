@@ -42,17 +42,17 @@ func GetOtherConditions(obj client.Object) []*clusterv1.Condition {
 	if getter == nil {
 		return nil
 	}
-	var conditions []*clusterv1.Condition
-	for _, c := range getter.GetConditions() {
-		c := c
+	var objectConditions []*clusterv1.Condition
+	for _, cond := range getter.GetConditions() {
+		c := cond
 		if c.Type != clusterv1.ReadyCondition {
-			conditions = append(conditions, &c)
+			objectConditions = append(objectConditions, &c)
 		}
 	}
-	sort.Slice(conditions, func(i, j int) bool {
-		return conditions[i].Type < conditions[j].Type
+	sort.Slice(objectConditions, func(i, j int) bool {
+		return objectConditions[i].Type < objectConditions[j].Type
 	})
-	return conditions
+	return objectConditions
 }
 
 func setReadyCondition(obj client.Object, ready *clusterv1.Condition) {

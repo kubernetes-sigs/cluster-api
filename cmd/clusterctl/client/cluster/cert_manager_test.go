@@ -661,10 +661,10 @@ func Test_certManagerClient_EnsureLatestVersion(t *testing.T) {
 func newFakeConfig() *fakeConfigClient {
 	fakeReader := test.NewFakeReader()
 
-	client, _ := config.New("fake-config", config.InjectReader(fakeReader))
+	cl, _ := config.New("fake-config", config.InjectReader(fakeReader))
 	return &fakeConfigClient{
 		fakeReader:     fakeReader,
-		internalclient: client,
+		internalclient: cl,
 	}
 }
 

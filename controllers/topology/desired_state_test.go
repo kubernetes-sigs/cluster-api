@@ -75,15 +75,15 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 		g := NewWithT(t)
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
-		scope := scope.New(cluster)
-		scope.Blueprint = blueprint
+		testScope := scope.New(cluster)
+		testScope.Blueprint = blueprint
 
-		obj, err := computeInfrastructureCluster(ctx, scope)
+		obj, err := computeInfrastructureCluster(ctx, testScope)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
+			cluster:     testScope.Current.Cluster,
 			templateRef: blueprint.ClusterClass.Spec.Infrastructure.Ref,
 			template:    blueprint.InfrastructureClusterTemplate,
 			labels:      nil,
@@ -103,20 +103,20 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 		clusterWithInfrastructureRef.Spec.InfrastructureRef = fakeRef1
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
-		scope := scope.New(clusterWithInfrastructureRef)
-		scope.Blueprint = blueprint
+		testScope := scope.New(clusterWithInfrastructureRef)
+		testScope.Blueprint = blueprint
 
-		obj, err := computeInfrastructureCluster(ctx, scope)
+		obj, err := computeInfrastructureCluster(ctx, testScope)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
+			cluster:     testScope.Current.Cluster,
 			templateRef: blueprint.ClusterClass.Spec.Infrastructure.Ref,
 			template:    blueprint.InfrastructureClusterTemplate,
 			labels:      nil,
 			annotations: nil,
-			currentRef:  scope.Current.Cluster.Spec.InfrastructureRef,
+			currentRef:  testScope.Current.Cluster.Spec.InfrastructureRef,
 			obj:         obj,
 		})
 	})
@@ -164,15 +164,15 @@ func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 		g := NewWithT(t)
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
-		scope := scope.New(cluster)
-		scope.Blueprint = blueprint
+		testScope := scope.New(cluster)
+		testScope.Blueprint = blueprint
 
-		obj, err := computeControlPlaneInfrastructureMachineTemplate(ctx, scope)
+		obj, err := computeControlPlaneInfrastructureMachineTemplate(ctx, testScope)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToTemplate(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
+			cluster:     testScope.Current.Cluster,
 			templateRef: blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure.Ref,
 			template:    blueprint.ControlPlane.InfrastructureMachineTemplate,
 			currentRef:  nil,
@@ -261,15 +261,15 @@ func TestComputeControlPlane(t *testing.T) {
 		}
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
-		scope := scope.New(cluster)
-		scope.Blueprint = blueprint
+		testScope := scope.New(cluster)
+		testScope.Blueprint = blueprint
 
-		obj, err := computeControlPlane(ctx, scope, nil)
+		obj, err := computeControlPlane(ctx, testScope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
+			cluster:     testScope.Current.Cluster,
 			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
 			template:    blueprint.ControlPlane.Template,
 			currentRef:  nil,
@@ -299,15 +299,15 @@ func TestComputeControlPlane(t *testing.T) {
 		}
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
-		scope := scope.New(clusterWithoutReplicas)
-		scope.Blueprint = blueprint
+		testScope := scope.New(clusterWithoutReplicas)
+		testScope.Blueprint = blueprint
 
-		obj, err := computeControlPlane(ctx, scope, nil)
+		obj, err := computeControlPlane(ctx, testScope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
+			cluster:     testScope.Current.Cluster,
 			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
 			template:    blueprint.ControlPlane.Template,
 			currentRef:  nil,
@@ -339,15 +339,15 @@ func TestComputeControlPlane(t *testing.T) {
 		}
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
-		scope := scope.New(cluster)
-		scope.Blueprint = blueprint
+		testScope := scope.New(cluster)
+		testScope.Blueprint = blueprint
 
-		obj, err := computeControlPlane(ctx, scope, infrastructureMachineTemplate)
+		obj, err := computeControlPlane(ctx, testScope, infrastructureMachineTemplate)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
+			cluster:     testScope.Current.Cluster,
 			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
 			template:    blueprint.ControlPlane.Template,
 			currentRef:  nil,
@@ -356,12 +356,12 @@ func TestComputeControlPlane(t *testing.T) {
 		gotMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		expectedLabels := mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels)
+		expectedLabels := mergeMap(testScope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels)
 		expectedLabels[clusterv1.ClusterLabelName] = cluster.Name
 		expectedLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
 		g.Expect(gotMetadata).To(Equal(&clusterv1.ObjectMeta{
 			Labels:      expectedLabels,
-			Annotations: mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			Annotations: mergeMap(testScope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		}))
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
@@ -389,18 +389,18 @@ func TestComputeControlPlane(t *testing.T) {
 		}
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
-		scope := scope.New(clusterWithControlPlaneRef)
-		scope.Blueprint = blueprint
+		testScope := scope.New(clusterWithControlPlaneRef)
+		testScope.Blueprint = blueprint
 
-		obj, err := computeControlPlane(ctx, scope, nil)
+		obj, err := computeControlPlane(ctx, testScope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
+			cluster:     testScope.Current.Cluster,
 			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
 			template:    blueprint.ControlPlane.Template,
-			currentRef:  scope.Current.Cluster.Spec.ControlPlaneRef,
+			currentRef:  testScope.Current.Cluster.Spec.ControlPlaneRef,
 			obj:         obj,
 		})
 	})
@@ -654,9 +654,9 @@ func TestComputeCluster(t *testing.T) {
 	}
 
 	// aggregating current cluster objects into ClusterState (simulating getCurrentState)
-	scope := scope.New(cluster)
+	testScope := scope.New(cluster)
 
-	obj := computeCluster(ctx, scope, infrastructureCluster, controlPlane)
+	obj := computeCluster(ctx, testScope, infrastructureCluster, controlPlane)
 	g.Expect(obj).ToNot(BeNil())
 
 	// TypeMeta
@@ -735,10 +735,10 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {
 		g := NewWithT(t)
-		scope := scope.New(cluster)
-		scope.Blueprint = blueprint
+		testScope := scope.New(cluster)
+		testScope.Blueprint = blueprint
 
-		actual, err := computeMachineDeployment(ctx, scope, nil, mdTopology)
+		actual, err := computeMachineDeployment(ctx, testScope, nil, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(actual.BootstrapTemplate.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
@@ -829,8 +829,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 	t.Run("If a machine deployment references a topology class that does not exist, machine deployment generation fails", func(t *testing.T) {
 		g := NewWithT(t)
-		scope := scope.New(cluster)
-		scope.Blueprint = blueprint
+		testScope := scope.New(cluster)
+		testScope.Blueprint = blueprint
 
 		mdTopology = clusterv1.MachineDeploymentTopology{
 			Metadata: clusterv1.ObjectMeta{
@@ -840,7 +840,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Name:  "big-pool-of-machines",
 		}
 
-		_, err := computeMachineDeployment(ctx, scope, nil, mdTopology)
+		_, err := computeMachineDeployment(ctx, testScope, nil, mdTopology)
 		g.Expect(err).To(HaveOccurred())
 	})
 

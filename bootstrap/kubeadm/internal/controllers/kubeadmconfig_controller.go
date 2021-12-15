@@ -697,18 +697,18 @@ func (r *KubeadmConfigReconciler) resolveFiles(ctx context.Context, cfg *bootstr
 }
 
 // resolveSecretFileContent returns file content fetched from a referenced secret object.
-func (r *KubeadmConfigReconciler) resolveSecretFileContent(ctx context.Context, ns string, source bootstrapv1.File) ([]byte, error) {
-	secret := &corev1.Secret{}
-	key := types.NamespacedName{Namespace: ns, Name: source.ContentFrom.Secret.Name}
-	if err := r.Client.Get(ctx, key, secret); err != nil {
+func (r *KubeadmConfigReconciler) resolveSecretFileContent(ctx context.Context, ns string, src bootstrapv1.File) ([]byte, error) {
+	scrt := &corev1.Secret{}
+	key := types.NamespacedName{Namespace: ns, Name: src.ContentFrom.Secret.Name}
+	if err := r.Client.Get(ctx, key, scrt); err != nil {
 		if apierrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "secret not found: %s", key)
+			return nil, errors.Wrapf(err, "scrt not found: %s", key)
 		}
 		return nil, errors.Wrapf(err, "failed to retrieve Secret %q", key)
 	}
-	data, ok := secret.Data[source.ContentFrom.Secret.Key]
+	data, ok := scrt.Data[src.ContentFrom.Secret.Key]
 	if !ok {
-		return nil, errors.Errorf("secret references non-existent secret key: %q", source.ContentFrom.Secret.Key)
+		return nil, errors.Errorf("scrt references non-existent scrt key: %q", src.ContentFrom.Secret.Key)
 	}
 	return data, nil
 }
@@ -910,7 +910,7 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(ctx context.Co
 func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope *Scope, data []byte) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	secret := &corev1.Secret{
+	scrt := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      scope.Config.Name,
 			Namespace: scope.Config.Namespace,
@@ -936,16 +936,16 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 
 	// as secret creation and scope.Config status patch are not atomic operations
 	// it is possible that secret creation happens but the config.Status patches are not applied
-	if err := r.Client.Create(ctx, secret); err != nil {
+	if err := r.Client.Create(ctx, scrt); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrapf(err, "failed to create bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}
-		log.Info("bootstrap data secret for KubeadmConfig already exists, updating", "secret", secret.Name, "KubeadmConfig", scope.Config.Name)
-		if err := r.Client.Update(ctx, secret); err != nil {
+		log.Info("bootstrap data secret for KubeadmConfig already exists, updating", "secret", scrt.Name, "KubeadmConfig", scope.Config.Name)
+		if err := r.Client.Update(ctx, scrt); err != nil {
 			return errors.Wrapf(err, "failed to update bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}
 	}
-	scope.Config.Status.DataSecretName = pointer.StringPtr(secret.Name)
+	scope.Config.Status.DataSecretName = pointer.StringPtr(scrt.Name)
 	scope.Config.Status.Ready = true
 	conditions.MarkTrue(scope.Config, bootstrapv1.DataSecretAvailableCondition)
 	return nil

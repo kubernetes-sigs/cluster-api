@@ -296,10 +296,10 @@ func (r *MachineDeploymentReconciler) getMachineSetsForDeployment(ctx context.Co
 
 // adoptOrphan sets the MachineDeployment as a controller OwnerReference to the MachineSet.
 func (r *MachineDeploymentReconciler) adoptOrphan(ctx context.Context, deployment *clusterv1.MachineDeployment, machineSet *clusterv1.MachineSet) error {
-	patch := client.MergeFrom(machineSet.DeepCopy())
+	ptch := client.MergeFrom(machineSet.DeepCopy())
 	newRef := *metav1.NewControllerRef(deployment, machineDeploymentKind)
 	machineSet.OwnerReferences = append(machineSet.OwnerReferences, newRef)
-	return r.Client.Patch(ctx, machineSet, patch)
+	return r.Client.Patch(ctx, machineSet, ptch)
 }
 
 // getMachineDeploymentsForMachineSet returns a list of MachineDeployments that could potentially match a MachineSet.

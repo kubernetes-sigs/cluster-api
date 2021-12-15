@@ -98,8 +98,8 @@ func (f *FakeReader) WithProvider(name string, ttype clusterctlv1.ProviderType, 
 		Type: ttype,
 	})
 
-	yaml, _ := yaml.Marshal(f.providers)
-	f.variables["providers"] = string(yaml)
+	yml, _ := yaml.Marshal(f.providers)
+	f.variables["providers"] = string(yml)
 
 	return f
 }
@@ -111,8 +111,8 @@ func (f *FakeReader) WithCertManager(url, version, timeout string) *FakeReader {
 		Timeout: timeout,
 	}
 
-	yaml, _ := yaml.Marshal(f.certManager)
-	f.variables["cert-manager"] = string(yaml)
+	yml, _ := yaml.Marshal(f.certManager)
+	f.variables["cert-manager"] = string(yml)
 
 	return f
 }
@@ -123,8 +123,8 @@ func (f *FakeReader) WithImageMeta(component, repository, tag string) *FakeReade
 		Tag:        tag,
 	}
 
-	yaml, _ := yaml.Marshal(f.imageMetas)
-	f.variables["images"] = string(yaml)
+	yml, _ := yaml.Marshal(f.imageMetas)
+	f.variables["images"] = string(yml)
 
 	return f
 }

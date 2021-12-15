@@ -48,9 +48,9 @@ type metadataClient struct {
 var _ MetadataClient = &metadataClient{}
 
 // newMetadataClient returns a metadataClient.
-func newMetadataClient(provider config.Provider, version string, repository Repository, config config.VariablesClient) *metadataClient {
+func newMetadataClient(provider config.Provider, version string, repository Repository, cfg config.VariablesClient) *metadataClient {
 	return &metadataClient{
-		configVarClient: config,
+		configVarClient: cfg,
 		provider:        provider,
 		version:         version,
 		repository:      repository,

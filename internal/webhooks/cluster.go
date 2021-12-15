@@ -38,11 +38,11 @@ import (
 )
 
 // SetupWebhookWithManager sets up Cluster webhooks.
-func (webhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (wbhook *Cluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
-		WithDefaulter(webhook).
-		WithValidator(webhook).
+		WithDefaulter(wbhook).
+		WithValidator(wbhook).
 		Complete()
 }
 
@@ -58,7 +58,7 @@ var _ webhook.CustomDefaulter = &Cluster{}
 var _ webhook.CustomValidator = &Cluster{}
 
 // Default satisfies the defaulting webhook interface.
-func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
+func (wbhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 	cluster, ok := obj.(*clusterv1.Cluster)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", obj))
@@ -78,7 +78,7 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 		if !strings.HasPrefix(cluster.Spec.Topology.Version, "v") {
 			cluster.Spec.Topology.Version = "v" + cluster.Spec.Topology.Version
 		}
-		clusterClass, err := webhook.getClusterClassForCluster(ctx, cluster)
+		clusterClass, err := wbhook.getClusterClassForCluster(ctx, cluster)
 		if err != nil {
 			// Return early with errors if the ClusterClass can't be retrieved.
 			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be validated. ClusterClass %s can not be retrieved.", cluster.Name, cluster.Spec.Topology.Class))
@@ -94,16 +94,16 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 }
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Cluster) ValidateCreate(ctx context.Context, obj runtime.Object) error {
+func (wbhook *Cluster) ValidateCreate(ctx context.Context, obj runtime.Object) error {
 	cluster, ok := obj.(*clusterv1.Cluster)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", obj))
 	}
-	return webhook.validate(ctx, nil, cluster)
+	return wbhook.validate(ctx, nil, cluster)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Cluster) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+func (wbhook *Cluster) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
 	newCluster, ok := newObj.(*clusterv1.Cluster)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", newObj))
@@ -112,15 +112,15 @@ func (webhook *Cluster) ValidateUpdate(ctx context.Context, oldObj, newObj runti
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", oldObj))
 	}
-	return webhook.validate(ctx, oldCluster, newCluster)
+	return wbhook.validate(ctx, oldCluster, newCluster)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Cluster) ValidateDelete(_ context.Context, obj runtime.Object) error {
+func (wbhook *Cluster) ValidateDelete(_ context.Context, obj runtime.Object) error {
 	return nil
 }
 
-func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster) error {
+func (wbhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster) error {
 	var allErrs field.ErrorList
 	if newCluster.Spec.InfrastructureRef != nil && newCluster.Spec.InfrastructureRef.Namespace != newCluster.Namespace {
 		allErrs = append(
@@ -146,7 +146,7 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 
 	// Validate the managed topology, if defined.
 	if newCluster.Spec.Topology != nil {
-		allErrs = append(allErrs, webhook.validateTopology(ctx, oldCluster, newCluster)...)
+		allErrs = append(allErrs, wbhook.validateTopology(ctx, oldCluster, newCluster)...)
 	}
 
 	// On update.
@@ -166,7 +166,7 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 	return nil
 }
 
-func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster) field.ErrorList {
+func (wbhook *Cluster) validateTopology(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster) field.ErrorList {
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the web hook
 	// must prevent the usage of Cluster.Topology in case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
@@ -206,7 +206,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	// clusterClass must exist.
 	clusterClass := &clusterv1.ClusterClass{}
 	// Check to see if the ClusterClass referenced in the Cluster currently exists.
-	if err := webhook.Client.Get(ctx, client.ObjectKey{Namespace: newCluster.Namespace, Name: newCluster.Spec.Topology.Class}, clusterClass); err != nil {
+	if err := wbhook.Client.Get(ctx, client.ObjectKey{Namespace: newCluster.Namespace, Name: newCluster.Spec.Topology.Class}, clusterClass); err != nil {
 		allErrs = append(
 			allErrs, field.Invalid(
 				field.NewPath("spec", "topology", "class"),
@@ -272,7 +272,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 		// If the ClusterClass referenced in the Topology has changed compatibility checks are needed.
 		if oldCluster.Spec.Topology.Class != newCluster.Spec.Topology.Class {
 			// Check to see if the ClusterClass referenced in the old version of the Cluster exists.
-			oldClusterClass, err := webhook.getClusterClassForCluster(ctx, oldCluster)
+			oldClusterClass, err := wbhook.getClusterClassForCluster(ctx, oldCluster)
 			if err != nil {
 				allErrs = append(
 					allErrs, field.Forbidden(
@@ -291,10 +291,10 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	return allErrs
 }
 
-func (webhook *Cluster) getClusterClassForCluster(ctx context.Context, cluster *clusterv1.Cluster) (*clusterv1.ClusterClass, error) {
+func (wbhook *Cluster) getClusterClassForCluster(ctx context.Context, cluster *clusterv1.Cluster) (*clusterv1.ClusterClass, error) {
 	clusterClass := &clusterv1.ClusterClass{}
 	// Check to see if the ClusterClass referenced in the old version of the Cluster exists.
-	if err := webhook.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Spec.Topology.Class}, clusterClass); err != nil {
+	if err := wbhook.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Spec.Topology.Class}, clusterClass); err != nil {
 		return nil, err
 	}
 	return clusterClass, nil

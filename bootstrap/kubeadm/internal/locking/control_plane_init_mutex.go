@@ -41,10 +41,10 @@ type ControlPlaneInitMutex struct {
 }
 
 // NewControlPlaneInitMutex returns a lock that can be held by a control plane node before init.
-func NewControlPlaneInitMutex(log logr.Logger, client client.Client) *ControlPlaneInitMutex {
+func NewControlPlaneInitMutex(log logr.Logger, cl client.Client) *ControlPlaneInitMutex {
 	return &ControlPlaneInitMutex{
 		log:    log,
-		client: client,
+		client: cl,
 	}
 }
 

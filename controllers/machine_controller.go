@@ -94,7 +94,7 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		return err
 	}
 
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Machine{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
@@ -103,7 +103,7 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
-	err = controller.Watch(
+	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(clusterToMachines),
 		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
@@ -116,11 +116,11 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")
 	}
 
-	r.controller = controller
+	r.controller = c
 
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
 	r.externalTracker = external.ObjectTracker{
-		Controller: controller,
+		Controller: c,
 	}
 	return nil
 }

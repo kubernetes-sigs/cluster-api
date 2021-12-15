@@ -176,8 +176,8 @@ func writeStateFile(path string, vs *VersionState) error {
 	return os.WriteFile(path, vsb, 0600)
 }
 
-func readStateFile(filepath string) (*VersionState, error) {
-	b, err := os.ReadFile(filepath) //nolint:gosec
+func readStateFile(path string) (*VersionState, error) {
+	b, err := os.ReadFile(path) //nolint:gosec
 	if err != nil {
 		if os.IsNotExist(err) {
 			// if the file doesn't exist yet, don't error

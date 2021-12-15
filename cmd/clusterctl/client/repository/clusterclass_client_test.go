@@ -181,11 +181,11 @@ func Test_ClusterClassClient_Get(t *testing.T) {
 			g.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 
 			// check variable replaced in yaml
-			yaml, err := got.Yaml()
+			gotYAML, err := got.Yaml()
 			g.Expect(err).NotTo(HaveOccurred())
 
 			if !tt.args.listVariablesOnly {
-				g.Expect(yaml).To(ContainSubstring(fmt.Sprintf("variable: %s", variableValue)))
+				g.Expect(gotYAML).To(ContainSubstring(fmt.Sprintf("variable: %s", variableValue)))
 			}
 
 			// check if target namespace is set

@@ -83,7 +83,7 @@ type MachineHealthCheckReconciler struct {
 }
 
 func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineHealthCheck{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
@@ -95,7 +95,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
-	err = controller.Watch(
+	err = c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
 		handler.EnqueueRequestsFromMapFunc(r.clusterToMachineHealthCheck),
 		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
@@ -108,7 +108,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 		return errors.Wrap(err, "failed to add Watch for Clusters to controller manager")
 	}
 
-	r.controller = controller
+	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinehealthcheck-controller")
 	return nil
 }

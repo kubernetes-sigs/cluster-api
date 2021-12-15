@@ -566,8 +566,8 @@ func setupCluster(providers []Provider, certManagerClient cluster.CertManagerCli
 	}
 
 	frepositories := fakeRepositories(cfg, providers)
-	cluster := fakeCluster(cfg, frepositories, certManagerClient)
-	fc := fakeClusterCtlClient(cfg, frepositories, []*fakeClusterClient{cluster})
+	clstr := fakeCluster(cfg, frepositories, certManagerClient)
+	fc := fakeClusterCtlClient(cfg, frepositories, []*fakeClusterClient{clstr})
 	return cfg, fc
 }
 
@@ -591,29 +591,29 @@ func fakeEmptyCluster() *fakeClient {
 }
 
 func fakeConfig(providers []config.Provider, variables map[string]string) *fakeConfigClient {
-	config := newFakeConfig()
+	cfg := newFakeConfig()
 	for _, p := range providers {
-		config = config.WithProvider(p)
+		cfg = cfg.WithProvider(p)
 	}
 	for k, v := range variables {
-		config = config.WithVar(k, v)
+		cfg = cfg.WithVar(k, v)
 	}
-	return config
+	return cfg
 }
 
-func fakeCluster(config *fakeConfigClient, repos []*fakeRepositoryClient, certManagerClient cluster.CertManagerClient) *fakeClusterClient {
-	cluster := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config)
+func fakeCluster(cfg *fakeConfigClient, repos []*fakeRepositoryClient, certManagerClient cluster.CertManagerClient) *fakeClusterClient {
+	clstr := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, cfg)
 	for _, r := range repos {
-		cluster = cluster.WithRepository(r)
+		clstr = clstr.WithRepository(r)
 	}
-	cluster.WithCertManagerClient(certManagerClient)
-	return cluster
+	clstr.WithCertManagerClient(certManagerClient)
+	return clstr
 }
 
 // fakeRepositories returns a base set of repositories for the different types
 // of providers.
-func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRepositoryClient {
-	repository1 := newFakeRepository(capiProviderConfig, config).
+func fakeRepositories(cfg *fakeConfigClient, providers []Provider) []*fakeRepositoryClient {
+	repository1 := newFakeRepository(capiProviderConfig, cfg).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v1.0.0").
 		WithFile("v0.9.0", "components.yaml", componentsYAML("ns1")).
@@ -636,7 +636,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 				{Major: 1, Minor: 1, Contract: test.CurrentCAPIContract},
 			},
 		})
-	repository2 := newFakeRepository(bootstrapProviderConfig, config).
+	repository2 := newFakeRepository(bootstrapProviderConfig, cfg).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
 		WithFile("v0.9.0", "components.yaml", componentsYAML("ns1")).
@@ -659,7 +659,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 				{Major: 2, Minor: 1, Contract: test.CurrentCAPIContract},
 			},
 		})
-	repository3 := newFakeRepository(controlPlaneProviderConfig, config).
+	repository3 := newFakeRepository(controlPlaneProviderConfig, cfg).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
 		WithFile("v0.9.0", "components.yaml", componentsYAML("ns1")).
@@ -682,7 +682,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 				{Major: 2, Minor: 1, Contract: test.CurrentCAPIContract},
 			},
 		})
-	repository4 := newFakeRepository(infraProviderConfig, config).
+	repository4 := newFakeRepository(infraProviderConfig, cfg).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v3.0.0").
 		WithFile("v0.9.0", "components.yaml", componentsYAML("ns1")).
@@ -711,7 +711,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 
 	for _, provider := range providers {
 		providerRepositories = append(providerRepositories,
-			newFakeRepository(provider, config).
+			newFakeRepository(provider, cfg).
 				WithPaths("root", "components.yaml").
 				WithDefaultVersion("v2.0.0").
 				WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).
@@ -725,8 +725,8 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 	return providerRepositories
 }
 
-func fakeClusterCtlClient(config *fakeConfigClient, repos []*fakeRepositoryClient, clusters []*fakeClusterClient) *fakeClient {
-	client := newFakeClient(config)
+func fakeClusterCtlClient(cfg *fakeConfigClient, repos []*fakeRepositoryClient, clusters []*fakeClusterClient) *fakeClient {
+	client := newFakeClient(cfg)
 	for _, r := range repos {
 		client = client.WithRepository(r)
 	}

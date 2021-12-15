@@ -600,7 +600,7 @@ func TestReconcileRequest(t *testing.T) {
 		},
 	}
 
-	time := metav1.Now()
+	now := metav1.Now()
 
 	testCluster := clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -690,7 +690,7 @@ func TestReconcileRequest(t *testing.T) {
 						clusterv1.MachineControlPlaneLabelName: "",
 					},
 					Finalizers:        []string{clusterv1.MachineFinalizer},
-					DeletionTimestamp: &time,
+					DeletionTimestamp: &now,
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName: "test-cluster",
@@ -1867,10 +1867,10 @@ func addConditionsToExternal(u *unstructured.Unstructured, newConditions cluster
 }
 
 // asserts the conditions set on the Getter object.
-func assertConditions(t *testing.T, from conditions.Getter, conditions ...*clusterv1.Condition) {
+func assertConditions(t *testing.T, from conditions.Getter, testConditions ...*clusterv1.Condition) {
 	t.Helper()
 
-	for _, condition := range conditions {
+	for _, condition := range testConditions {
 		assertCondition(t, from, condition)
 	}
 }

@@ -535,7 +535,7 @@ func setClusterPause(proxy Proxy, clusters []*node, value bool, dryRun bool) err
 	}
 
 	log := logf.Log
-	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", value)))
+	ptch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", value)))
 
 	setClusterPauseBackoff := newWriteBackoff()
 	for i := range clusters {
@@ -544,7 +544,7 @@ func setClusterPause(proxy Proxy, clusters []*node, value bool, dryRun bool) err
 
 		// Nb. The operation is wrapped in a retry loop to make setClusterPause more resilient to unexpected conditions.
 		if err := retryWithExponentialBackoff(setClusterPauseBackoff, func() error {
-			return patchCluster(proxy, cluster, patch)
+			return patchCluster(proxy, cluster, ptch)
 		}); err != nil {
 			return errors.Wrapf(err, "error setting Cluster.Spec.Paused=%t", value)
 		}
@@ -580,7 +580,7 @@ func setClusterClassPause(proxy Proxy, clusterclasses []*node, pause bool, dryRu
 }
 
 // patchCluster applies a patch to a node referring to a Cluster object.
-func patchCluster(proxy Proxy, cluster *node, patch client.Patch) error {
+func patchCluster(proxy Proxy, cluster *node, ptch client.Patch) error {
 	cFrom, err := proxy.NewClient()
 	if err != nil {
 		return err
@@ -597,7 +597,7 @@ func patchCluster(proxy Proxy, cluster *node, patch client.Patch) error {
 			clusterObj.GetNamespace(), clusterObj.GetName())
 	}
 
-	if err := cFrom.Patch(ctx, clusterObj, patch); err != nil {
+	if err := cFrom.Patch(ctx, clusterObj, ptch); err != nil {
 		return errors.Wrapf(err, "error patching Cluster %s/%s",
 			clusterObj.GetNamespace(), clusterObj.GetName())
 	}

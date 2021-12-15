@@ -378,11 +378,11 @@ func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			config := newFakeConfig().
+			cfg := newFakeConfig().
 				WithVar("KUBERNETES_VERSION", "v3.4.5") // with this line we are simulating an env var
 
 			c := &clusterctlClient{
-				configClient: config,
+				configClient: cfg,
 			}
 			err := c.templateOptionsToVariables(tt.args.options)
 			if tt.wantErr {
@@ -392,7 +392,7 @@ func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			for name, wantValue := range tt.wantVars {
-				gotValue, err := config.Variables().Get(name)
+				gotValue, err := cfg.Variables().Get(name)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(gotValue).To(Equal(wantValue))
 			}

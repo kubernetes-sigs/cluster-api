@@ -276,11 +276,11 @@ func Test_Discovery(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			client, err := test.NewFakeProxy().WithObjs(tt.args.objs...).NewClient()
-			g.Expect(client).ToNot(BeNil())
+			cl, err := test.NewFakeProxy().WithObjs(tt.args.objs...).NewClient()
+			g.Expect(cl).ToNot(BeNil())
 			g.Expect(err).ToNot(HaveOccurred())
 
-			tree, err := Discovery(context.TODO(), client, "ns1", "cluster1", tt.args.discoverOptions)
+			tree, err := Discovery(context.TODO(), cl, "ns1", "cluster1", tt.args.discoverOptions)
 			g.Expect(tree).ToNot(BeNil())
 			g.Expect(err).ToNot(HaveOccurred())
 
@@ -298,8 +298,8 @@ func Test_Discovery(t *testing.T) {
 					}
 					g.Expect(found).To(BeTrue(), "got child %q for parent %q, expecting [%s]", gotChild.GetUID(), parent, strings.Join(wantChildren, "] ["))
 
-					if test, ok := tt.wantNodeCheck[string(gotChild.GetUID())]; ok {
-						test(g, gotChild)
+					if nodeCheckTest, ok := tt.wantNodeCheck[string(gotChild.GetUID())]; ok {
+						nodeCheckTest(g, gotChild)
 					}
 				}
 			}

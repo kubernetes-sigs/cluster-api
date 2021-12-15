@@ -37,11 +37,11 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 )
 
-func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (wbhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clusterv1.ClusterClass{}).
-		WithDefaulter(webhook).
-		WithValidator(webhook).
+		WithDefaulter(wbhook).
+		WithValidator(wbhook).
 		Complete()
 }
 
@@ -57,7 +57,7 @@ var _ webhook.CustomDefaulter = &ClusterClass{}
 var _ webhook.CustomValidator = &ClusterClass{}
 
 // Default implements defaulting for ClusterClass create and update.
-func (webhook *ClusterClass) Default(_ context.Context, obj runtime.Object) error {
+func (wbhook *ClusterClass) Default(_ context.Context, obj runtime.Object) error {
 	in, ok := obj.(*clusterv1.ClusterClass)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterClass but got a %T", obj))
@@ -84,16 +84,16 @@ func defaultNamespace(ref *corev1.ObjectReference, namespace string) {
 }
 
 // ValidateCreate implements validation for ClusterClass create.
-func (webhook *ClusterClass) ValidateCreate(ctx context.Context, obj runtime.Object) error {
+func (wbhook *ClusterClass) ValidateCreate(ctx context.Context, obj runtime.Object) error {
 	in, ok := obj.(*clusterv1.ClusterClass)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterClass but got a %T", obj))
 	}
-	return webhook.validate(ctx, nil, in)
+	return wbhook.validate(ctx, nil, in)
 }
 
 // ValidateUpdate implements validation for ClusterClass update.
-func (webhook *ClusterClass) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+func (wbhook *ClusterClass) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
 	newClusterClass, ok := newObj.(*clusterv1.ClusterClass)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterClass but got a %T", newObj))
@@ -102,17 +102,17 @@ func (webhook *ClusterClass) ValidateUpdate(ctx context.Context, oldObj, newObj 
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterClass but got a %T", oldObj))
 	}
-	return webhook.validate(ctx, oldClusterClass, newClusterClass)
+	return wbhook.validate(ctx, oldClusterClass, newClusterClass)
 }
 
 // ValidateDelete implements validation for ClusterClass delete.
-func (webhook *ClusterClass) ValidateDelete(ctx context.Context, obj runtime.Object) error {
+func (wbhook *ClusterClass) ValidateDelete(ctx context.Context, obj runtime.Object) error {
 	clusterClass, ok := obj.(*clusterv1.ClusterClass)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a ClusterClass but got a %T", obj))
 	}
 
-	clusters, err := webhook.getClustersUsingClusterClass(ctx, clusterClass)
+	clusters, err := wbhook.getClustersUsingClusterClass(ctx, clusterClass)
 	if err != nil {
 		return apierrors.NewInternalError(errors.Wrapf(err, "could not retrieve Clusters using ClusterClass"))
 	}
@@ -125,7 +125,7 @@ func (webhook *ClusterClass) ValidateDelete(ctx context.Context, obj runtime.Obj
 	return nil
 }
 
-func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newClusterClass *clusterv1.ClusterClass) error {
+func (wbhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newClusterClass *clusterv1.ClusterClass) error {
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the web hook
 	// must prevent creating new objects new case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
@@ -156,7 +156,7 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 		allErrs = append(allErrs, check.ClusterClassesAreCompatible(oldClusterClass, newClusterClass)...)
 
 		// Retrieve all clusters using the ClusterClass.
-		clusters, err := webhook.getClustersUsingClusterClass(ctx, oldClusterClass)
+		clusters, err := wbhook.getClustersUsingClusterClass(ctx, oldClusterClass)
 		if err != nil {
 			allErrs = append(allErrs, field.InternalError(field.NewPath(""),
 				errors.Wrapf(err, "Clusters using ClusterClass %v can not be retrieved", oldClusterClass.Name)))
@@ -165,7 +165,7 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 
 		// Ensure no MachineDeploymentClass currently in use has been removed from the ClusterClass.
 		allErrs = append(allErrs,
-			webhook.validateRemovedMachineDeploymentClassesAreNotUsed(clusters, oldClusterClass, newClusterClass)...)
+			wbhook.validateRemovedMachineDeploymentClassesAreNotUsed(clusters, oldClusterClass, newClusterClass)...)
 
 		// Ensure no Variable would be invalidated by the update in spec
 		allErrs = append(allErrs,
@@ -350,10 +350,10 @@ func getClusterClassVariablesForValidation(oldVars, newVars map[string]*clusterv
 	return out
 }
 
-func (webhook *ClusterClass) validateRemovedMachineDeploymentClassesAreNotUsed(clusters []clusterv1.Cluster, oldClusterClass, newClusterClass *clusterv1.ClusterClass) field.ErrorList {
+func (wbhook *ClusterClass) validateRemovedMachineDeploymentClassesAreNotUsed(clusters []clusterv1.Cluster, oldClusterClass, newClusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
-	removedClasses := webhook.removedMachineClasses(oldClusterClass, newClusterClass)
+	removedClasses := wbhook.removedMachineClasses(oldClusterClass, newClusterClass)
 	// If no classes have been removed return early as no further checks are needed.
 	if len(removedClasses) == 0 {
 		return nil
@@ -374,10 +374,10 @@ func (webhook *ClusterClass) validateRemovedMachineDeploymentClassesAreNotUsed(c
 	return allErrs
 }
 
-func (webhook *ClusterClass) removedMachineClasses(oldClusterClass, newClusterClass *clusterv1.ClusterClass) sets.String {
+func (wbhook *ClusterClass) removedMachineClasses(oldClusterClass, newClusterClass *clusterv1.ClusterClass) sets.String {
 	removedClasses := sets.NewString()
 
-	classes := webhook.classNamesFromWorkerClass(newClusterClass.Spec.Workers)
+	classes := wbhook.classNamesFromWorkerClass(newClusterClass.Spec.Workers)
 	for _, oldClass := range oldClusterClass.Spec.Workers.MachineDeployments {
 		if !classes.Has(oldClass.Class) {
 			removedClasses.Insert(oldClass.Class)
@@ -387,7 +387,7 @@ func (webhook *ClusterClass) removedMachineClasses(oldClusterClass, newClusterCl
 }
 
 // classNamesFromWorkerClass returns the set of MachineDeployment class names.
-func (webhook *ClusterClass) classNamesFromWorkerClass(w clusterv1.WorkersClass) sets.String {
+func (wbhook *ClusterClass) classNamesFromWorkerClass(w clusterv1.WorkersClass) sets.String {
 	classes := sets.NewString()
 	for _, class := range w.MachineDeployments {
 		classes.Insert(class.Class)
@@ -395,10 +395,10 @@ func (webhook *ClusterClass) classNamesFromWorkerClass(w clusterv1.WorkersClass)
 	return classes
 }
 
-func (webhook *ClusterClass) getClustersUsingClusterClass(ctx context.Context, clusterClass *clusterv1.ClusterClass) ([]clusterv1.Cluster, error) {
+func (wbhook *ClusterClass) getClustersUsingClusterClass(ctx context.Context, clusterClass *clusterv1.ClusterClass) ([]clusterv1.Cluster, error) {
 	clusters := &clusterv1.ClusterList{}
 	clustersUsingClusterClass := []clusterv1.Cluster{}
-	err := webhook.Client.List(ctx, clusters,
+	err := wbhook.Client.List(ctx, clusters,
 		client.MatchingLabels{
 			clusterv1.ClusterTopologyOwnedLabel: "",
 		},

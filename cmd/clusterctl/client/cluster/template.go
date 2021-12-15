@@ -172,18 +172,18 @@ func (t *templateClient) getGitHubFileContent(rURL *url.URL) ([]byte, error) {
 
 	// Extract all the info from url split.
 	owner := urlSplit[0]
-	repository := urlSplit[1]
+	repo := urlSplit[1]
 	branch := urlSplit[3]
 	path := strings.Join(urlSplit[4:], "/")
 
 	// gets the GitHub client
-	client, err := t.gitHubClientFactory(t.configClient.Variables())
+	cl, err := t.gitHubClientFactory(t.configClient.Variables())
 	if err != nil {
 		return nil, err
 	}
 
 	// gets the file from GiHub
-	fileContent, _, _, err := client.Repositories.GetContents(context.TODO(), owner, repository, path, &github.RepositoryContentGetOptions{Ref: branch})
+	fileContent, _, _, err := cl.Repositories.GetContents(context.TODO(), owner, repo, path, &github.RepositoryContentGetOptions{Ref: branch})
 	if err != nil {
 		return nil, handleGithubErr(err, "failed to get %q", rURL.Path)
 	}

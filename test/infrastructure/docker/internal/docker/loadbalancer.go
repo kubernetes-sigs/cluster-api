@@ -58,7 +58,7 @@ func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, dockerClus
 	filters.AddKeyNameValue(filterLabel, clusterLabelKey, cluster.Name)
 	filters.AddKeyNameValue(filterLabel, nodeRoleLabelKey, constants.ExternalLoadBalancerNodeRoleValue)
 
-	container, err := getContainer(ctx, filters)
+	ctnr, err := getContainer(ctx, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, dockerClus
 	return &LoadBalancer{
 		name:      cluster.Name,
 		image:     image,
-		container: container,
+		container: ctnr,
 		ipFamily:  ipFamily,
 		lbCreator: &Manager{},
 	}, nil

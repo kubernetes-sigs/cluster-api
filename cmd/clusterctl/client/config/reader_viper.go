@@ -73,7 +73,7 @@ func (v *viperReader) Init(path string) error {
 
 	// Configure viper for reading environment variables as well, and more specifically:
 	// AutomaticEnv force viper to check for an environment variable any time a viper.Get request is made.
-	// It will check for a environment variable with a name matching the key uppercased; in case name use the - delimiter,
+	// It will check for an environment variable with a name matching the key uppercased; in case name use the - delimiter,
 	// the SetEnvKeyReplacer forces matching to name use the _ delimiter instead (- is not allowed in linux env variable names).
 	replacer := strings.NewReplacer("-", "_")
 	viper.SetEnvKeyReplacer(replacer)
@@ -81,13 +81,13 @@ func (v *viperReader) Init(path string) error {
 	viper.AutomaticEnv()
 
 	if path != "" {
-		url, err := url.Parse(path)
+		configURL, err := url.Parse(path)
 		if err != nil {
 			return errors.Wrap(err, "failed to url parse the config path")
 		}
 
 		switch {
-		case url.Scheme == "https" || url.Scheme == "http":
+		case configURL.Scheme == "https" || configURL.Scheme == "http":
 			configPath := filepath.Join(homedir.HomeDir(), ConfigFolder)
 			if len(v.configPaths) > 0 {
 				configPath = v.configPaths[0]
@@ -97,7 +97,7 @@ func (v *viperReader) Init(path string) error {
 			}
 
 			downloadConfigFile := filepath.Join(configPath, DownloadConfigFile)
-			err = downloadFile(url.String(), downloadConfigFile)
+			err = downloadFile(configURL.String(), downloadConfigFile)
 			if err != nil {
 				return err
 			}
@@ -132,11 +132,11 @@ func (v *viperReader) Init(path string) error {
 	return nil
 }
 
-func downloadFile(url string, filepath string) error {
+func downloadFile(configURL string, path string) error {
 	// Create the file
-	out, err := os.Create(filepath)
+	out, err := os.Create(path)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create the clusterctl config file %s", filepath)
+		return errors.Wrapf(err, "failed to create the clusterctl config file %s", path)
 	}
 	defer out.Close()
 
@@ -144,12 +144,12 @@ func downloadFile(url string, filepath string) error {
 		Timeout: 30 * time.Second,
 	}
 	// Get the data
-	resp, err := client.Get(url)
+	resp, err := client.Get(configURL)
 	if err != nil {
-		return errors.Wrapf(err, "failed to download the clusterctl config file from %s", url)
+		return errors.Wrapf(err, "failed to download the clusterctl config file from %s", configURL)
 	}
 	if resp.StatusCode != http.StatusOK {
-		return errors.Errorf("failed to download the clusterctl config file from %s got %d", url, resp.StatusCode)
+		return errors.Errorf("failed to download the clusterctl config file from %s got %d", configURL, resp.StatusCode)
 	}
 	defer resp.Body.Close()
 

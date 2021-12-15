@@ -39,7 +39,7 @@ type ObjectTracker struct {
 }
 
 // Watch uses the controller to issue a Watch only if the object hasn't been seen before.
-func (o *ObjectTracker) Watch(log logr.Logger, obj runtime.Object, handler handler.EventHandler, p ...predicate.Predicate) error {
+func (o *ObjectTracker) Watch(log logr.Logger, obj runtime.Object, eventHandler handler.EventHandler, p ...predicate.Predicate) error {
 	// Consider this a no-op if the controller isn't present.
 	if o.Controller == nil {
 		return nil
@@ -57,7 +57,7 @@ func (o *ObjectTracker) Watch(log logr.Logger, obj runtime.Object, handler handl
 	log.Info("Adding watcher on external object", "GroupVersionKind", gvk.String())
 	err := o.Controller.Watch(
 		&source.Kind{Type: u},
-		handler,
+		eventHandler,
 		append(p, predicates.ResourceNotPaused(log))...,
 	)
 	if err != nil {

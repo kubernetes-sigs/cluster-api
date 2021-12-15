@@ -144,7 +144,7 @@ func Run(ctx context.Context, input RunInput) error {
 		tmpKubeConfigPath: "/tmp/kubeconfig",
 		reportDir:         "/output",
 	}
-	user, err := user.Current()
+	usr, err := user.Current()
 	if err != nil {
 		return errors.Wrap(err, "unable to determine current user")
 	}
@@ -182,8 +182,8 @@ func Run(ctx context.Context, input RunInput) error {
 	err = containerRuntime.RunContainer(ctx, &container.RunContainerInput{
 		Image:           input.ConformanceImage,
 		Network:         "kind",
-		User:            user.Uid,
-		Group:           user.Gid,
+		User:            usr.Uid,
+		Group:           usr.Gid,
 		Volumes:         volumeMounts,
 		EnvironmentVars: env,
 		CommandArgs:     args,

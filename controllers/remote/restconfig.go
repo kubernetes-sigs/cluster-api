@@ -30,9 +30,9 @@ const (
 	unknowString = "unknown"
 )
 
-func buildUserAgent(command, version, sourceName, os, arch, commit string) string {
+func buildUserAgent(command, vrsn, sourceName, userOS, arch, commit string) string {
 	return fmt.Sprintf(
-		"%s/%s %s (%s/%s) cluster.x-k8s.io/%s", command, version, sourceName, os, arch, commit)
+		"%s/%s %s (%s/%s) cluster.x-k8s.io/%s", command, vrsn, sourceName, userOS, arch, commit)
 }
 
 // DefaultClusterAPIUserAgent returns a User-Agent string built from static global vars.

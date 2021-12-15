@@ -146,7 +146,7 @@ func UnmarshalData(from metav1.Object, to interface{}) (bool, error) {
 }
 
 // GetFuzzer returns a new fuzzer to be used for testing.
-func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer {
+func GetFuzzer(fuzzScheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer {
 	funcs = append([]fuzzer.FuzzerFuncs{
 		metafuzzer.Funcs,
 		func(_ runtimeserializer.CodecFactory) []interface{} {
@@ -170,7 +170,7 @@ func GetFuzzer(scheme *runtime.Scheme, funcs ...fuzzer.FuzzerFuncs) *fuzz.Fuzzer
 	return fuzzer.FuzzerFor(
 		fuzzer.MergeFuzzerFuncs(funcs...),
 		rand.NewSource(rand.Int63()), //nolint:gosec
-		runtimeserializer.NewCodecFactory(scheme),
+		runtimeserializer.NewCodecFactory(fuzzScheme),
 	)
 }
 
@@ -200,12 +200,12 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 		t.Helper()
 		t.Run("spoke-hub-spoke", func(t *testing.T) {
 			g := gomega.NewWithT(t)
-			fuzzer := GetFuzzer(input.Scheme, input.FuzzerFuncs...)
+			fzzr := GetFuzzer(input.Scheme, input.FuzzerFuncs...)
 
 			for i := 0; i < 10000; i++ {
 				// Create the spoke and fuzz it
 				spokeBefore := input.Spoke.DeepCopyObject().(conversion.Convertible)
-				fuzzer.Fuzz(spokeBefore)
+				fzzr.Fuzz(spokeBefore)
 
 				// First convert spoke to hub
 				hubCopy := input.Hub.DeepCopyObject().(conversion.Hub)
@@ -231,12 +231,12 @@ func FuzzTestFunc(input FuzzTestFuncInput) func(*testing.T) {
 		})
 		t.Run("hub-spoke-hub", func(t *testing.T) {
 			g := gomega.NewWithT(t)
-			fuzzer := GetFuzzer(input.Scheme, input.FuzzerFuncs...)
+			fzzr := GetFuzzer(input.Scheme, input.FuzzerFuncs...)
 
 			for i := 0; i < 10000; i++ {
 				// Create the hub and fuzz it
 				hubBefore := input.Hub.DeepCopyObject().(conversion.Hub)
-				fuzzer.Fuzz(hubBefore)
+				fzzr.Fuzz(hubBefore)
 
 				// First convert hub to spoke
 				dstCopy := input.Spoke.DeepCopyObject().(conversion.Convertible)

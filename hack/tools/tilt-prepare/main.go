@@ -120,25 +120,25 @@ func main() {
 
 // allowK8sConfig mimics allow_k8s_contexts; only kind is enabled by default but more can be added.
 func allowK8sConfig() error {
-	config, err := clientcmd.NewDefaultClientConfigLoadingRules().Load()
+	cfg, err := clientcmd.NewDefaultClientConfigLoadingRules().Load()
 	if err != nil {
 		return errors.Wrap(err, "failed to load Kubeconfig")
 	}
 
-	if config.CurrentContext == "" {
+	if cfg.CurrentContext == "" {
 		return errors.New("failed to get current context")
 	}
-	context, ok := config.Contexts[config.CurrentContext]
+	ctx, ok := cfg.Contexts[cfg.CurrentContext]
 	if !ok {
-		return errors.Errorf("failed to get context %s", config.CurrentContext)
+		return errors.Errorf("failed to get context %s", cfg.CurrentContext)
 	}
-	if strings.HasPrefix(context.Cluster, "kind-") {
+	if strings.HasPrefix(ctx.Cluster, "kind-") {
 		return nil
 	}
 
 	allowed := sets.NewString(*allowK8SContextsFlag...)
-	if !allowed.Has(config.CurrentContext) {
-		return errors.Errorf("context %s is not allowed", config.CurrentContext)
+	if !allowed.Has(cfg.CurrentContext) {
+		return errors.Errorf("context %s is not allowed", cfg.CurrentContext)
 	}
 	return nil
 }
@@ -215,14 +215,14 @@ func runTaskGroup(ctx context.Context, name string, tasks map[string]taskFunctio
 	ctx, cancel := context.WithCancel(ctx)
 
 	// Make channels to pass fatal errors in WaitGroup
-	errors := make(chan error)
+	errs := make(chan error)
 	wgDone := make(chan bool)
 
 	wg := new(sync.WaitGroup)
 	for taskName, taskFunction := range tasks {
 		wg.Add(1)
 		taskPrefix := fmt.Sprintf("%s/%s", name, taskName)
-		go runTask(ctx, wg, taskPrefix, taskFunction, errors)
+		go runTask(ctx, wg, taskPrefix, taskFunction, errs)
 	}
 
 	go func() {
@@ -234,7 +234,7 @@ func runTaskGroup(ctx context.Context, name string, tasks map[string]taskFunctio
 	select {
 	case <-wgDone:
 		break
-	case err := <-errors:
+	case err := <-errs:
 		// cancel all the running tasks
 		cancel()
 		// consumes all the errors from the channel
@@ -242,13 +242,13 @@ func runTaskGroup(ctx context.Context, name string, tasks map[string]taskFunctio
 	Loop:
 		for {
 			select {
-			case err := <-errors:
+			case err := <-errs:
 				errList = append(errList, err)
 			default:
 				break Loop
 			}
 		}
-		close(errors)
+		close(errs)
 		return kerrors.NewAggregate(errList)
 	}
 	return nil
@@ -324,14 +324,14 @@ func preLoadImageTask(image string) taskFunction {
 // certManagerTask generates a task for installing cert-manager if not already present.
 func certManagerTask() taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
-		config, err := config.New("")
+		cfg, err := config.New("")
 		if err != nil {
 			errCh <- errors.Wrapf(err, "[%s] failed create clusterctl config", prefix)
 			return
 		}
-		cluster := cluster.New(cluster.Kubeconfig{}, config)
+		clstr := cluster.New(cluster.Kubeconfig{}, cfg)
 
-		if err := cluster.CertManager().EnsureInstalled(); err != nil {
+		if err := clstr.CertManager().EnsureInstalled(); err != nil {
 			errCh <- errors.Wrapf(err, "[%s] failed to install cert-manger", prefix)
 		}
 	}
@@ -467,23 +467,23 @@ func prepareDeploymentForDebug(prefix string, objs []unstructured.Unstructured) 
 		}
 
 		for j := range d.Spec.Template.Spec.Containers {
-			container := d.Spec.Template.Spec.Containers[j]
+			cntnr := d.Spec.Template.Spec.Containers[j]
 
 			// Drop liveness and readiness probes.
-			container.LivenessProbe = nil
-			container.ReadinessProbe = nil
+			cntnr.LivenessProbe = nil
+			cntnr.ReadinessProbe = nil
 
 			// Drop leader election.
-			debugArgs := make([]string, 0, len(container.Args))
-			for _, a := range container.Args {
+			debugArgs := make([]string, 0, len(cntnr.Args))
+			for _, a := range cntnr.Args {
 				if a == "--leader-elect" || a == "--leader-elect=true" {
 					continue
 				}
 				debugArgs = append(debugArgs, a)
 			}
-			container.Args = debugArgs
+			cntnr.Args = debugArgs
 
-			d.Spec.Template.Spec.Containers[j] = container
+			d.Spec.Template.Spec.Containers[j] = cntnr
 		}
 
 		if err := scheme.Scheme.Convert(d, &obj, nil); err != nil {

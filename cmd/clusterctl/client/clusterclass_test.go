@@ -68,8 +68,8 @@ func TestClusterClassExists(t *testing.T) {
 			g := NewWithT(t)
 
 			config := newFakeConfig()
-			client := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config).WithObjs(tt.objs...)
-			c, _ := client.Proxy().NewClient()
+			cl := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config).WithObjs(tt.objs...)
+			c, _ := cl.Proxy().NewClient()
 
 			actual, err := clusterClassExists(c, tt.clusterClass, metav1.NamespaceDefault)
 			g.Expect(err).NotTo(HaveOccurred())
@@ -157,10 +157,10 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 				WithPaths("root", "").
 				WithDefaultVersion("v1.0.0").
 				WithFile("v1.0.0", "clusterclass-dev.yaml", tt.clusterClassTemplateContent)
-			cluster := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgt-cluster"}, config1).WithObjs(tt.objs...)
+			cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgt-cluster"}, config1).WithObjs(tt.objs...)
 
 			if tt.clusterInitialized {
-				cluster.WithObjs(&apiextensionsv1.CustomResourceDefinition{
+				cluster1.WithObjs(&apiextensionsv1.CustomResourceDefinition{
 					TypeMeta: metav1.TypeMeta{
 						APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
 						Kind:       "CustomResourceDefinition",
@@ -205,7 +205,7 @@ func TestAddClusterClassIfMissing(t *testing.T) {
 			}
 
 			g := NewWithT(t)
-			template, err := addClusterClassIfMissing(baseTemplate, clusterClassClient, cluster, tt.targetNamespace, tt.listVariablesOnly)
+			template, err := addClusterClassIfMissing(baseTemplate, clusterClassClient, cluster1, tt.targetNamespace, tt.listVariablesOnly)
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 			} else {

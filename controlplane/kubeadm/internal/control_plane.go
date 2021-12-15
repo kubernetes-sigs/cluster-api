@@ -61,18 +61,18 @@ type ControlPlane struct {
 }
 
 // NewControlPlane returns an instantiated ControlPlane.
-func NewControlPlane(ctx context.Context, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
-	infraObjects, err := getInfraResources(ctx, client, ownedMachines)
+func NewControlPlane(ctx context.Context, cl client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
+	infraObjects, err := getInfraResources(ctx, cl, ownedMachines)
 	if err != nil {
 		return nil, err
 	}
-	kubeadmConfigs, err := getKubeadmConfigs(ctx, client, ownedMachines)
+	kubeadmConfigs, err := getKubeadmConfigs(ctx, cl, ownedMachines)
 	if err != nil {
 		return nil, err
 	}
 	patchHelpers := map[string]*patch.Helper{}
 	for _, machine := range ownedMachines {
-		patchHelper, err := patch.NewHelper(machine, client)
+		patchHelper, err := patch.NewHelper(machine, cl)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to create patch helper for machine %s", machine.Name)
 		}

@@ -55,12 +55,12 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, req *api.GenerateReques
 
 	// Loop over all templates.
 	errs := []error{}
-	for _, template := range req.Items {
+	for _, tmplt := range req.Items {
 		// Calculate the list of patches which match the current template.
 		matchingPatches := []clusterv1.PatchDefinition{}
 		for _, patch := range j.patch.Definitions {
 			// Add the patch to the list, if it matches the template.
-			if templateMatchesSelector(&template.TemplateRef, patch.Selector) {
+			if templateMatchesSelector(&tmplt.TemplateRef, patch.Selector) {
 				matchingPatches = append(matchingPatches, patch)
 			}
 		}
@@ -71,15 +71,15 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, req *api.GenerateReques
 		}
 
 		// Merge template-specific and global variables.
-		variables, err := mergeVariableMaps(req.Variables, template.Variables)
+		variables, err := mergeVariableMaps(req.Variables, tmplt.Variables)
 		if err != nil {
-			errs = append(errs, errors.Wrapf(err, "failed to merge global and template-specific variables for template %s", template.TemplateRef))
+			errs = append(errs, errors.Wrapf(err, "failed to merge global and template-specific variables for template %s", tmplt.TemplateRef))
 			continue
 		}
 
 		enabled, err := patchIsEnabled(j.patch.EnabledIf, variables)
 		if err != nil {
-			errs = append(errs, errors.Wrapf(err, "failed to calculate if patch %s is enabled for template %s", j.patch.Name, template.TemplateRef))
+			errs = append(errs, errors.Wrapf(err, "failed to calculate if patch %s is enabled for template %s", j.patch.Name, tmplt.TemplateRef))
 			continue
 		}
 		if !enabled {
@@ -92,13 +92,13 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, req *api.GenerateReques
 			// Generate JSON patches.
 			jsonPatches, err := generateJSONPatches(patch.JSONPatches, variables)
 			if err != nil {
-				errs = append(errs, errors.Wrapf(err, "failed to generate JSON patches for template %s", template.TemplateRef))
+				errs = append(errs, errors.Wrapf(err, "failed to generate JSON patches for template %s", tmplt.TemplateRef))
 				continue
 			}
 
 			// Add jsonPatches to the response.
 			resp.Items = append(resp.Items, api.GenerateResponsePatch{
-				TemplateRef: template.TemplateRef,
+				TemplateRef: tmplt.TemplateRef,
 				Patch:       *jsonPatches,
 				PatchType:   api.JSONPatchType,
 			})

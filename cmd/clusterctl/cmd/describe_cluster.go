@@ -141,7 +141,7 @@ func runDescribeCluster(name string) error {
 		return err
 	}
 
-	tree, err := c.DescribeCluster(client.DescribeClusterOptions{
+	clusterTree, err := c.DescribeCluster(client.DescribeClusterOptions{
 		Kubeconfig:          client.Kubeconfig{Path: dc.kubeconfig, Context: dc.kubeconfigContext},
 		Namespace:           dc.namespace,
 		ClusterName:         name,
@@ -154,19 +154,19 @@ func runDescribeCluster(name string) error {
 		return err
 	}
 
-	printObjectTree(tree)
+	printObjectTree(clusterTree)
 	return nil
 }
 
 // printObjectTree prints the cluster status to stdout.
-func printObjectTree(tree *tree.ObjectTree) {
+func printObjectTree(objTree *tree.ObjectTree) {
 	// Creates the output table
 	tbl := uitable.New()
 	tbl.Separator = "  "
 	tbl.AddRow("NAME", "READY", "SEVERITY", "REASON", "SINCE", "MESSAGE")
 
 	// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
-	addObjectRow("", tbl, tree, tree.GetRoot())
+	addObjectRow("", tbl, objTree, objTree.GetRoot())
 
 	// Prints the output table
 	fmt.Fprintln(color.Error, tbl)

@@ -101,16 +101,16 @@ func (g *gitHubRepository) ComponentsPath() string {
 }
 
 // GetFile returns a file for a given provider version.
-func (g *gitHubRepository) GetFile(version, path string) ([]byte, error) {
-	release, err := g.getReleaseByTag(version)
+func (g *gitHubRepository) GetFile(vrsn, path string) ([]byte, error) {
+	release, err := g.getReleaseByTag(vrsn)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get GitHub release %s", version)
+		return nil, errors.Wrapf(err, "failed to get GitHub release %s", vrsn)
 	}
 
 	// download files from the release
 	files, err := g.downloadFilesFromRelease(release, path)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to download files from GitHub release %s", version)
+		return nil, errors.Wrapf(err, "failed to download files from GitHub release %s", vrsn)
 	}
 
 	return files, nil

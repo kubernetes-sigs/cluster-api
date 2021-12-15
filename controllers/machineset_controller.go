@@ -278,13 +278,13 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 		}
 		if conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition) {
 			log.Info("Deleting unhealthy machine", "machine", machine.GetName())
-			patch := client.MergeFrom(machine.DeepCopy())
+			ptch := client.MergeFrom(machine.DeepCopy())
 			if err := r.Client.Delete(ctx, machine); err != nil {
 				errs = append(errs, errors.Wrap(err, "failed to delete"))
 				continue
 			}
 			conditions.MarkTrue(machine, clusterv1.MachineOwnerRemediatedCondition)
-			if err := r.Client.Status().Patch(ctx, machine, patch); err != nil && !apierrors.IsNotFound(err) {
+			if err := r.Client.Status().Patch(ctx, machine, ptch); err != nil && !apierrors.IsNotFound(err) {
 				errs = append(errs, errors.Wrap(err, "failed to update status"))
 			}
 		}
@@ -493,10 +493,10 @@ func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.M
 
 // adoptOrphan sets the MachineSet as a controller OwnerReference to the Machine.
 func (r *MachineSetReconciler) adoptOrphan(ctx context.Context, machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) error {
-	patch := client.MergeFrom(machine.DeepCopy())
+	ptch := client.MergeFrom(machine.DeepCopy())
 	newRef := *metav1.NewControllerRef(machineSet, machineSetKind)
 	machine.OwnerReferences = append(machine.OwnerReferences, newRef)
-	return r.Client.Patch(ctx, machine, patch)
+	return r.Client.Patch(ctx, machine, ptch)
 }
 
 func (r *MachineSetReconciler) waitForMachineCreation(ctx context.Context, machineList []*clusterv1.Machine) error {

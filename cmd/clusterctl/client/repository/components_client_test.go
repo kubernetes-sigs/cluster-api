@@ -281,21 +281,21 @@ func Test_componentsClient_Get(t *testing.T) {
 			gs.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 			gs.Expect(got.Variables()).To(Equal(tt.want.variables))
 
-			yaml, err := got.Yaml()
+			gotYAML, err := got.Yaml()
 			if err != nil {
 				t.Errorf("got.Yaml() error = %v", err)
 				return
 			}
 
 			if !tt.args.skipVariables && len(tt.want.variables) > 0 {
-				gs.Expect(yaml).To(ContainSubstring(variableValue))
+				gs.Expect(gotYAML).To(ContainSubstring(variableValue))
 			}
 
 			// Verify that when SkipTemplateProcess is set we have all the variables
 			// in the template without the values processed.
 			if tt.args.skipVariables {
 				for _, v := range tt.want.variables {
-					gs.Expect(yaml).To(ContainSubstring(v))
+					gs.Expect(gotYAML).To(ContainSubstring(v))
 				}
 			}
 

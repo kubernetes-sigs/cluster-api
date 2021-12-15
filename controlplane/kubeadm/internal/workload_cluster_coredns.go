@@ -101,7 +101,7 @@ type coreDNSInfo struct {
 
 // UpdateCoreDNS updates the kubeadm configmap, coredns corefile and coredns
 // deployment.
-func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, version semver.Version) error {
+func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, vrsn semver.Version) error {
 	// Return early if we've been asked to skip CoreDNS upgrades entirely.
 	if _, ok := kcp.Annotations[controlplanev1.SkipCoreDNSAnnotation]; ok {
 		return nil
@@ -136,13 +136,13 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 	}
 
 	// Perform the upgrade.
-	if err := w.updateCoreDNSImageInfoInKubeadmConfigMap(ctx, &clusterConfig.DNS, version); err != nil {
+	if err := w.updateCoreDNSImageInfoInKubeadmConfigMap(ctx, &clusterConfig.DNS, vrsn); err != nil {
 		return err
 	}
 	if err := w.updateCoreDNSCorefile(ctx, info); err != nil {
 		return err
 	}
-	if err := w.updateCoreDNSClusterRole(ctx, version, info); err != nil {
+	if err := w.updateCoreDNSClusterRole(ctx, vrsn, info); err != nil {
 		return err
 	}
 	if err := w.updateCoreDNSDeployment(ctx, info); err != nil {
@@ -247,11 +247,11 @@ func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInf
 }
 
 // updateCoreDNSImageInfoInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
-func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(ctx context.Context, dns *bootstrapv1.DNS, version semver.Version) error {
+func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(ctx context.Context, dns *bootstrapv1.DNS, vrsn semver.Version) error {
 	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
 		c.DNS.ImageRepository = dns.ImageRepository
 		c.DNS.ImageTag = dns.ImageTag
-	}, version)
+	}, vrsn)
 }
 
 // updateCoreDNSClusterRole updates the CoreDNS ClusterRole when necessary.

@@ -190,13 +190,13 @@ func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
 }
 
 // dumpPodMetrics captures metrics from all pods. It expects to find port 8080 open on the controller.
-func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPath string, deploymentName string, pods *corev1.PodList) {
+func dumpPodMetrics(ctx context.Context, cl *kubernetes.Clientset, metricsPath string, deploymentName string, pods *corev1.PodList) {
 	for _, pod := range pods.Items {
 		metricsDir := path.Join(metricsPath, deploymentName, pod.Name)
 		metricsFile := path.Join(metricsDir, "metrics.txt")
 		Expect(os.MkdirAll(metricsDir, 0750)).To(Succeed())
 
-		res := client.CoreV1().RESTClient().Get().
+		res := cl.CoreV1().RESTClient().Get().
 			Namespace(pod.Namespace).
 			Resource("pods").
 			Name(fmt.Sprintf("%s:8080", pod.Name)).

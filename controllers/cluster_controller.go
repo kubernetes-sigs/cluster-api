@@ -75,7 +75,7 @@ type ClusterReconciler struct {
 }
 
 func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	controller, err := ctrl.NewControllerManagedBy(mgr).
+	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
@@ -91,7 +91,7 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 
 	r.recorder = mgr.GetEventRecorderFor("cluster-controller")
 	r.externalTracker = external.ObjectTracker{
-		Controller: controller,
+		Controller: c,
 	}
 	return nil
 }

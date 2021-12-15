@@ -41,9 +41,9 @@ func NewFakeGitHub() (client *github.Client, mux *http.ServeMux, teardown func()
 
 	// client is the GitHub client being tested and is configured to use test server.
 	client = github.NewClient(nil)
-	url, _ := url.Parse(server.URL + baseURLPath + "/")
-	client.BaseURL = url
-	client.UploadURL = url
+	testURL, _ := url.Parse(server.URL + baseURLPath + "/")
+	client.BaseURL = testURL
+	client.UploadURL = testURL
 
 	return client, mux, server.Close
 }

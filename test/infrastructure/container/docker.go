@@ -589,8 +589,8 @@ func (d *dockerRuntime) getSubnets(ctx context.Context, networkName string) ([]s
 		return subnets, errors.Wrapf(err, "failed to inspect network %q", networkName)
 	}
 
-	for _, network := range networkInfo.IPAM.Config {
-		subnets = append(subnets, network.Subnet)
+	for _, netConf := range networkInfo.IPAM.Config {
+		subnets = append(subnets, netConf.Subnet)
 	}
 
 	return subnets, nil
@@ -603,7 +603,7 @@ type proxyDetails struct {
 
 // getProxyDetails returns a struct with the host environment proxy settings
 // that should be passed to the nodes.
-func (d *dockerRuntime) getProxyDetails(ctx context.Context, network string) (*proxyDetails, error) {
+func (d *dockerRuntime) getProxyDetails(ctx context.Context, netConfig string) (*proxyDetails, error) {
 	var val string
 	details := proxyDetails{Envs: make(map[string]string)}
 	proxyEnvs := []string{httpProxy, httpsProxy, noProxy}
@@ -624,7 +624,7 @@ func (d *dockerRuntime) getProxyDetails(ctx context.Context, network string) (*p
 
 	// Specifically add the docker network subnets to NO_PROXY if we are using proxies
 	if proxySupport {
-		subnets, err := d.getSubnets(ctx, network)
+		subnets, err := d.getSubnets(ctx, netConfig)
 		if err != nil {
 			return &details, err
 		}

@@ -58,9 +58,9 @@ func init() {
 }
 
 // GetReleaseSeriesForVersion returns the release series for a given version.
-func (m *Metadata) GetReleaseSeriesForVersion(version *version.Version) *ReleaseSeries {
+func (m *Metadata) GetReleaseSeriesForVersion(vrsn *version.Version) *ReleaseSeries {
 	for _, releaseSeries := range m.ReleaseSeries {
-		if version.Major() == releaseSeries.Major && version.Minor() == releaseSeries.Minor {
+		if vrsn.Major() == releaseSeries.Major && vrsn.Minor() == releaseSeries.Minor {
 			return &releaseSeries
 		}
 	}

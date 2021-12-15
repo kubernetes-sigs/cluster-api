@@ -37,12 +37,12 @@ type PlanUpgradeOptions struct {
 
 func (c *clusterctlClient) PlanCertManagerUpgrade(options PlanUpgradeOptions) (CertManagerUpgradePlan, error) {
 	// Get the client for interacting with the management cluster.
-	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return CertManagerUpgradePlan{}, err
 	}
 
-	certManager := cluster.CertManager()
+	certManager := clusterClient.CertManager()
 	plan, err := certManager.PlanUpgrade()
 	return CertManagerUpgradePlan(plan), err
 }

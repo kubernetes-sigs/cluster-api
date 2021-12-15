@@ -151,8 +151,8 @@ func contextCompletionFunc(kubeconfigFlag *pflag.Flag) func(cmd *cobra.Command, 
 			return completionError(err)
 		}
 
-		client := cluster.New(cluster.Kubeconfig{Path: kubeconfigFlag.Value.String()}, configClient)
-		comps, err := client.Proxy().GetContexts(toComplete)
+		cl := cluster.New(cluster.Kubeconfig{Path: kubeconfigFlag.Value.String()}, configClient)
+		comps, err := cl.Proxy().GetContexts(toComplete)
 		if err != nil {
 			return completionError(err)
 		}

@@ -293,7 +293,7 @@ func TestIsOwnedByObject(t *testing.T) {
 	targetKind := "Rainbow"
 	targetName := "fri3ndsh1p"
 
-	meta := fakeMeta{
+	metaData := fakeMeta{
 		metav1.ObjectMeta{
 			Name: targetName,
 		},
@@ -386,7 +386,7 @@ func TestIsOwnedByObject(t *testing.T) {
 				OwnerReferences: test.refs,
 			}
 
-			g.Expect(IsOwnedByObject(pointer, &meta)).To(Equal(test.expected), "Could not find a ref to %+v in %+v", meta, test.refs)
+			g.Expect(IsOwnedByObject(pointer, &metaData)).To(Equal(test.expected), "Could not find a ref to %+v in %+v", metaData, test.refs)
 		})
 	}
 }
@@ -686,8 +686,8 @@ func TestClusterToObjectsMapper(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		restMapper.Add(gvk, meta.RESTScopeNamespace)
 
-		client := fake.NewClientBuilder().WithObjects(tc.objects...).WithRESTMapper(restMapper).Build()
-		f, err := ClusterToObjectsMapper(client, tc.input, scheme)
+		cl := fake.NewClientBuilder().WithObjects(tc.objects...).WithRESTMapper(restMapper).Build()
+		f, err := ClusterToObjectsMapper(cl, tc.input, scheme)
 		g.Expect(err != nil, err).To(Equal(tc.expectError))
 		g.Expect(f(cluster)).To(ConsistOf(tc.output))
 	}

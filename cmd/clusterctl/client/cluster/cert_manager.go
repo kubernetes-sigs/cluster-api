@@ -112,12 +112,12 @@ func (cm *certManagerClient) Images() ([]string, error) {
 	}
 
 	// Otherwise, retrieve the images from the cert-manager manifest.
-	config, err := cm.configClient.CertManager().Get()
+	cfg, err := cm.configClient.CertManager().Get()
 	if err != nil {
 		return nil, err
 	}
 
-	objs, err := cm.getManifestObjs(config)
+	objs, err := cm.getManifestObjs(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -166,14 +166,14 @@ func (cm *certManagerClient) EnsureInstalled() error {
 func (cm *certManagerClient) install() error {
 	log := logf.Log
 
-	config, err := cm.configClient.CertManager().Get()
+	cfg, err := cm.configClient.CertManager().Get()
 	if err != nil {
 		return err
 	}
-	log.Info("Installing cert-manager", "Version", config.Version())
+	log.Info("Installing cert-manager", "Version", cfg.Version())
 
 	// Gets the cert-manager components from the repository.
-	objs, err := cm.getManifestObjs(config)
+	objs, err := cm.getManifestObjs(cfg)
 	if err != nil {
 		return err
 	}
@@ -295,7 +295,7 @@ func (cm *certManagerClient) deleteObjs(objs []unstructured.Unstructured) error 
 }
 
 func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (string, string, bool, error) {
-	config, err := cm.configClient.CertManager().Get()
+	cfg, err := cm.configClient.CertManager().Get()
 	if err != nil {
 		return "", "", false, err
 	}
@@ -327,7 +327,7 @@ func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (st
 			return "", "", false, errors.Wrapf(err, "failed to parse version for cert-manager component %s/%s", obj.GetKind(), obj.GetName())
 		}
 
-		c, err := objSemVersion.Compare(config.Version())
+		c, err := objSemVersion.Compare(cfg.Version())
 		if err != nil {
 			return "", "", false, errors.Wrapf(err, "failed to compare target version for cert-manager component %s/%s", obj.GetKind(), obj.GetName())
 		}
@@ -346,7 +346,7 @@ func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (st
 			break
 		}
 	}
-	return currentVersion, config.Version(), needUpgrade, nil
+	return currentVersion, cfg.Version(), needUpgrade, nil
 }
 
 func (cm *certManagerClient) getWaitTimeout() time.Duration {
@@ -416,13 +416,13 @@ func addCerManagerLabel(objs []unstructured.Unstructured) []unstructured.Unstruc
 	return objs
 }
 
-func addCerManagerAnnotations(objs []unstructured.Unstructured, version string) []unstructured.Unstructured {
+func addCerManagerAnnotations(objs []unstructured.Unstructured, vrsn string) []unstructured.Unstructured {
 	for _, o := range objs {
 		annotations := o.GetAnnotations()
 		if annotations == nil {
 			annotations = map[string]string{}
 		}
-		annotations[clusterctlv1.CertManagerVersionAnnotation] = version
+		annotations[clusterctlv1.CertManagerVersionAnnotation] = vrsn
 		o.SetAnnotations(annotations)
 	}
 	return objs

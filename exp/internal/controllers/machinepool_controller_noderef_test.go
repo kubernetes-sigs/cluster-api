@@ -68,7 +68,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		},
 	}
 
-	client := fake.NewClientBuilder().WithObjects(nodeList...).Build()
+	cl := fake.NewClientBuilder().WithObjects(nodeList...).Build()
 
 	testCases := []struct {
 		name           string
@@ -134,7 +134,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			result, err := r.getNodeReferences(ctx, client, test.providerIDList)
+			result, err := r.getNodeReferences(ctx, cl, test.providerIDList)
 			if test.err == nil {
 				g.Expect(err).To(BeNil())
 			} else {

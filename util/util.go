@@ -421,13 +421,13 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 //
 // This function is greatly more efficient than GetCRDWithContract and should be preferred in most cases.
 func GetGVKMetadata(ctx context.Context, c client.Client, gvk schema.GroupVersionKind) (*metav1.PartialObjectMetadata, error) {
-	meta := &metav1.PartialObjectMetadata{}
-	meta.SetName(fmt.Sprintf("%s.%s", flect.Pluralize(strings.ToLower(gvk.Kind)), gvk.Group))
-	meta.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
-	if err := c.Get(ctx, client.ObjectKeyFromObject(meta), meta); err != nil {
-		return meta, errors.Wrap(err, "failed to retrieve metadata from GVK resource")
+	metadata := &metav1.PartialObjectMetadata{}
+	metadata.SetName(fmt.Sprintf("%s.%s", flect.Pluralize(strings.ToLower(gvk.Kind)), gvk.Group))
+	metadata.SetGroupVersionKind(apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition"))
+	if err := c.Get(ctx, client.ObjectKeyFromObject(metadata), metadata); err != nil {
+		return metadata, errors.Wrap(err, "failed to retrieve metadata from GVK resource")
 	}
-	return meta, nil
+	return metadata, nil
 }
 
 // GetCRDWithContract retrieves a list of CustomResourceDefinitions from using controller-runtime Client,

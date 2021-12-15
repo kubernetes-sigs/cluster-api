@@ -739,15 +739,15 @@ func TestBootstrapDataFormat(t *testing.T) {
 				Namespace: metav1.NamespaceDefault,
 				Name:      *cfg.Status.DataSecretName,
 			}
-			secret := &corev1.Secret{}
-			err = myclient.Get(ctx, key, secret)
+			scrt := &corev1.Secret{}
+			err = myclient.Get(ctx, key, scrt)
 			g.Expect(err).NotTo(HaveOccurred())
 
 			// Verify the format field of the bootstrap data secret is correct.
-			g.Expect(string(secret.Data["format"])).To(Equal(string(tc.format)))
+			g.Expect(string(scrt.Data["format"])).To(Equal(string(tc.format)))
 
 			// Verify the bootstrap data value is in the correct format.
-			data := secret.Data["value"]
+			data := scrt.Data["value"]
 			switch tc.format {
 			case bootstrapv1.CloudConfig, "":
 				// Verify the bootstrap data is valid YAML.
@@ -800,7 +800,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 		},
 	}
 
-	secret := &corev1.Secret{
+	scrt := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      workerJoinConfig.Name,
 			Namespace: workerJoinConfig.Namespace,
@@ -823,7 +823,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 		Type: clusterv1.ClusterSecretType,
 	}
 
-	err := myclient.Create(ctx, secret)
+	err := myclient.Create(ctx, scrt)
 	g.Expect(err).ToNot(HaveOccurred())
 	result, err := k.Reconcile(ctx, request)
 	g.Expect(err).NotTo(HaveOccurred())

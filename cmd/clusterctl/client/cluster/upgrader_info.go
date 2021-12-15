@@ -193,10 +193,10 @@ func (i *upgradeInfo) getLatestNextVersion(contract string) *version.Version {
 }
 
 // versionTag converts a version to a RepositoryTag.
-func versionTag(version *version.Version) string {
-	if version == nil {
+func versionTag(vrsn *version.Version) string {
+	if vrsn == nil {
 		return ""
 	}
 
-	return fmt.Sprintf("v%s", version.String())
+	return fmt.Sprintf("v%s", vrsn.String())
 }

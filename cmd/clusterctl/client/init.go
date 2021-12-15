@@ -187,8 +187,8 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 	return images, nil
 }
 
-func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOptions) (cluster.ProviderInstaller, error) {
-	installer := cluster.ProviderInstaller()
+func (c *clusterctlClient) setupInstaller(clusterClient cluster.Client, options InitOptions) (cluster.ProviderInstaller, error) {
+	installer := clusterClient.ProviderInstaller()
 
 	addOptions := addToInstallerOptions{
 		installer:           installer,
@@ -217,12 +217,12 @@ func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOp
 	return installer, nil
 }
 
-func (c *clusterctlClient) addDefaultProviders(cluster cluster.Client, options *InitOptions) bool {
+func (c *clusterctlClient) addDefaultProviders(clusterClient cluster.Client, options *InitOptions) bool {
 	firstRun := false
 	// Check if there is already a core provider installed in the cluster
 	// Nb. we are ignoring the error so this operation can support listing images even if there is no an existing management cluster;
 	// in case there is no an existing management cluster, we assume there are no core providers installed in the cluster.
-	currentCoreProvider, _ := cluster.ProviderInventory().GetDefaultProviderName(clusterctlv1.CoreProviderType)
+	currentCoreProvider, _ := clusterClient.ProviderInventory().GetDefaultProviderName(clusterctlv1.CoreProviderType)
 
 	// If there are no core providers installed in the cluster, consider this a first run and add default providers to the list
 	// of providers to be installed.

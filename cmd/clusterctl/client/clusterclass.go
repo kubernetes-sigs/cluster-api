@@ -73,14 +73,14 @@ func clusterClassNamesFromTemplate(template Template) ([]string, error) {
 		if obj.GroupVersionKind().GroupKind() != clusterv1.GroupVersion.WithKind("Cluster").GroupKind() {
 			continue
 		}
-		cluster := &clusterv1.Cluster{}
-		if err := scheme.Scheme.Convert(&obj, cluster, nil); err != nil {
+		clusterFromObject := &clusterv1.Cluster{}
+		if err := scheme.Scheme.Convert(&obj, clusterFromObject, nil); err != nil {
 			return nil, errors.Wrap(err, "failed to convert object to Cluster")
 		}
-		if cluster.Spec.Topology == nil {
+		if clusterFromObject.Spec.Topology == nil {
 			continue
 		}
-		classes = append(classes, cluster.Spec.Topology.Class)
+		classes = append(classes, clusterFromObject.Spec.Topology.Class)
 	}
 	return classes, nil
 }

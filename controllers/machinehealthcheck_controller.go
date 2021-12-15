@@ -348,7 +348,8 @@ func (r *MachineHealthCheckReconciler) patchHealthyTargets(ctx context.Context, 
 			if obj.GetDeletionTimestamp() == nil {
 				// Issue a delete for remediation request.
 				if err := r.Client.Delete(ctx, obj); err != nil && !apierrors.IsNotFound(err) {
-					logger.Error(err, "failed to delete %v %q for Machine %q", obj.GroupVersionKind(), obj.GetName(), t.Machine.Name)
+					errList = append(errList, errors.Wrapf(err, "failed to delete %v %q for Machine %q", obj.GroupVersionKind(), obj.GetName(), t.Machine.Name))
+					continue
 				}
 			}
 		}

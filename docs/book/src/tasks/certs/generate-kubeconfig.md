@@ -1,9 +1,9 @@
 ## Generating a Kubeconfig with your own CA
 
-1. Create a new Certificate Signing Request (CSR) for the `system:masters` Kubernetes role, or specify any other role under CN.
+1. Create a new Certificate Signing Request (CSR) for the `admin` user with the `system:masters` Kubernetes role, or specify any other role under O.
 
    ```bash
-   openssl req  -subj "/CN=system:masters" -new -newkey rsa:2048 -nodes -out admin.csr -keyout admin.key  -out admin.csr
+   openssl req  -subj "/CN=admin/O=system:masters" -new -newkey rsa:2048 -nodes -keyout admin.key  -out admin.csr
    ```
 
 2. Sign the CSR using the *[cluster-name]-ca* key:

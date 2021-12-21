@@ -6,8 +6,8 @@ replace sigs.k8s.io/cluster-api => ../
 
 require (
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/containerd/containerd v1.5.2 // indirect
-	github.com/docker/docker v20.10.7+incompatible
+	github.com/containerd/containerd v1.5.8 // indirect
+	github.com/docker/docker v20.10.11+incompatible
 	github.com/docker/go-connections v0.4.0
 	github.com/flatcar-linux/ignition v0.36.1
 	github.com/go-logr/logr v1.2.0

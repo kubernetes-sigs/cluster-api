@@ -18,10 +18,9 @@ package v1alpha4
 
 import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
-	"sigs.k8s.io/controller-runtime/pkg/conversion"
-
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
+	"sigs.k8s.io/controller-runtime/pkg/conversion"
 )
 
 func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
@@ -38,6 +37,10 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Ignition = restored.Spec.Ignition
+
+	for i := range restored.Spec.Users {
+		dst.Spec.Users[i].HashedPasswd = restored.Spec.Users[i].HashedPasswd
+	}
 
 	return nil
 }
@@ -79,6 +82,10 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Template.Spec.Ignition = restored.Spec.Template.Spec.Ignition
 
+	for i := range restored.Spec.Template.Spec.Users {
+		dst.Spec.Template.Spec.Users[i].HashedPasswd = restored.Spec.Template.Spec.Users[i].HashedPasswd
+	}
+
 	return nil
 }
 
@@ -108,4 +115,9 @@ func (dst *KubeadmConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 func Convert_v1beta1_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *KubeadmConfigSpec, s apiconversion.Scope) error {
 	// KubeadmConfigSpec.Ignition does not exist in kubeadm v1alpha4 API.
 	return autoConvert_v1beta1_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in, out, s)
+}
+
+func Convert_v1beta1_User_To_v1alpha4_User(in *bootstrapv1.User, out *User, s apiconversion.Scope) error {
+	// User.HashedPasswd does not exist in kubeadm v1alpha4 API.
+	return autoConvert_v1beta1_User_To_v1alpha4_User(in, out, s)
 }

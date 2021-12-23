@@ -54,6 +54,10 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Ignition = restored.Spec.Ignition
 
+	for i, _ := range restored.Spec.Users {
+		dst.Spec.Users[i].HashedPasswd = restored.Spec.Users[i].HashedPasswd
+	}
+
 	return nil
 }
 
@@ -112,6 +116,9 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Template.Spec.Ignition = restored.Spec.Template.Spec.Ignition
+	for i, _ := range restored.Spec.Template.Spec.Users {
+		dst.Spec.Template.Spec.Users[i].HashedPasswd = restored.Spec.Template.Spec.Users[i].HashedPasswd
+	}
 
 	return nil
 }
@@ -186,4 +193,9 @@ func Convert_v1beta1_JoinConfiguration_To_upstreamv1beta1_JoinConfiguration(in *
 func Convert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *KubeadmConfigSpec, s apiconversion.Scope) error {
 	// KubeadmConfigSpec.Ignition does not exist in kubeadm v1alpha3 API.
 	return autoConvert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in, out, s)
+}
+
+func Convert_v1beta1_User_To_v1alpha3_User(in *bootstrapv1.User, out *User, s apiconversion.Scope) error {
+	// User.HashedPasswd does not exist in kubeadm v1alpha3 API.
+	return autoConvert_v1beta1_User_To_v1alpha3_User(in, out, s)
 }

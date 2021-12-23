@@ -40,6 +40,10 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.KubeadmConfigSpec.Ignition = restored.Spec.KubeadmConfigSpec.Ignition
 
+	for i, _ := range restored.Spec.KubeadmConfigSpec.Users {
+		dst.Spec.KubeadmConfigSpec.Users[i].HashedPasswd = restored.Spec.KubeadmConfigSpec.Users[i].HashedPasswd
+	}
+
 	return nil
 }
 
@@ -81,6 +85,10 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Template.Spec.KubeadmConfigSpec.Ignition = restored.Spec.Template.Spec.KubeadmConfigSpec.Ignition
 	dst.Spec.Template.Spec.MachineTemplate = restored.Spec.Template.Spec.MachineTemplate
+
+	for i, _ := range restored.Spec.Template.Spec.KubeadmConfigSpec.Users {
+		dst.Spec.Template.Spec.KubeadmConfigSpec.Users[i].HashedPasswd = restored.Spec.Template.Spec.KubeadmConfigSpec.Users[i].HashedPasswd
+	}
 
 	return nil
 }

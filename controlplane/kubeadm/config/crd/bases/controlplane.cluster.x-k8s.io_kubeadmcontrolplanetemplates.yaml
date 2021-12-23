@@ -2174,6 +2174,11 @@ spec:
                                   description: Groups specifies the additional groups
                                     for the user
                                   type: string
+                                hashedPasswd:
+                                  description: 'HashedPasswd specifies a hashed password
+                                    for the user. NOTE: HashedPasswd can be used for
+                                    existing and new users.'
+                                  type: string
                                 homeDir:
                                   description: HomeDir specifies the home directory
                                     to use for the user
@@ -2190,8 +2195,9 @@ spec:
                                   description: Name specifies the user name
                                   type: string
                                 passwd:
-                                  description: Passwd specifies a hashed password
-                                    for the user
+                                  description: 'Passwd specifies a hashed password
+                                    for the user NOTE: Passwd can be only used for
+                                    new users.'
                                   type: string
                                 primaryGroup:
                                   description: PrimaryGroup specifies the primary

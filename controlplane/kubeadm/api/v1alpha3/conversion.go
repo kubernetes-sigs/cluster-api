@@ -57,6 +57,10 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.KubeadmConfigSpec.Ignition = restored.Spec.KubeadmConfigSpec.Ignition
 
+	for i, _ := range restored.Spec.KubeadmConfigSpec.Users {
+		dst.Spec.KubeadmConfigSpec.Users[i].HashedPasswd = restored.Spec.KubeadmConfigSpec.Users[i].HashedPasswd
+	}
+
 	return nil
 }
 

@@ -23,6 +23,9 @@ users:{{ range . }}
   - name: {{ .Name }}
     {{- if .Passwd }}
     passwd: {{ .Passwd }}
+	{{- end -}}
+	{{- if .HashedPasswd }}
+    hashed_passwd: {{ .HashedPasswd }}
     {{- end -}}
     {{- if .Gecos }}
     gecos: {{ .Gecos }}

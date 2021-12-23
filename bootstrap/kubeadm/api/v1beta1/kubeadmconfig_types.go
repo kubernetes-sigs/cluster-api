@@ -278,6 +278,7 @@ type User struct {
 	Shell *string `json:"shell,omitempty"`
 
 	// Passwd specifies a hashed password for the user
+	// NOTE: Passwd can be only used for new users.
 	// +optional
 	Passwd *string `json:"passwd,omitempty"`
 
@@ -296,6 +297,11 @@ type User struct {
 	// SSHAuthorizedKeys specifies a list of ssh authorized keys for the user
 	// +optional
 	SSHAuthorizedKeys []string `json:"sshAuthorizedKeys,omitempty"`
+
+	// HashedPasswd specifies a hashed password for the user.
+	// NOTE: HashedPasswd can be used for existing and new users.
+	// +optional
+	HashedPasswd *string `json:"hashedPasswd,omitempty"`
 }
 
 // NTP defines input for generated ntp in cloud-init.

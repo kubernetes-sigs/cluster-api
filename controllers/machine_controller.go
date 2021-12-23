@@ -235,11 +235,14 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
+	res := ctrl.Result{}
 	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		if err := r.watchClusterNodes(ctx, cluster); err != nil {
 			log.Error(err, "error watching nodes on target cluster")
 			return ctrl.Result{}, err
 		}
+	} else {
+		res.RequeueAfter = 20 * time.Second
 	}
 
 	// If the Machine belongs to a cluster, add an owner reference.
@@ -259,7 +262,6 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 		r.reconcileInterruptibleNodeLabel,
 	}
 
-	res := ctrl.Result{}
 	errs := []error{}
 	for _, phase := range phases {
 		// Call the inner reconciliation methods.
@@ -272,6 +274,7 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 		}
 		res = util.LowestNonZeroResult(res, phaseResult)
 	}
+
 	return res, kerrors.NewAggregate(errs)
 }
 

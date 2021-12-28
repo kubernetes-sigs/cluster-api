@@ -410,7 +410,7 @@ func (r *MachineReconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
 }
 
 func (r *MachineReconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
-	// if the NodeDrainTineout type is not set by user
+	// if the NodeDrainTimeout type is not set by user
 	if machine.Spec.NodeDrainTimeout == nil || machine.Spec.NodeDrainTimeout.Seconds() <= 0 {
 		return false
 	}
@@ -451,7 +451,7 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 		} else {
 			if err != nil {
 				// If any other error occurs when trying to get the control plane object,
-				// return the error so we can retry
+				// return the error, so we can retry
 				return err
 			}
 
@@ -460,7 +460,7 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 				return errControlPlaneIsBeingDeleted
 			}
 
-			// Check if the ControlPlane is externally managed (AKS, EKS, GKE, etc)
+			// Check if the ControlPlane is externally managed (AKS, EKS, GKE, etc.)
 			// and skip the following section if control plane is externally managed
 			// because there will be no control plane nodes registered
 			if util.IsExternalManagedControlPlane(controlPlane) {
@@ -469,22 +469,23 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 		}
 	}
 
-	// Get all of the active machines that belong to this cluster.
-	machines, err := collections.GetFilteredMachinesForCluster(ctx, r.Client, cluster, collections.ActiveMachines)
-	if err != nil {
-		return err
-	}
-
-	// Whether or not it is okay to delete the NodeRef depends on the
-	// number of remaining control plane members and whether or not this
+	// Whether it is okay to delete the NodeRef depends on the
+	// number of remaining control plane members and whether this
 	// machine is one of them.
-	numControlPlaneMachines := len(machines.Filter(collections.ControlPlaneMachines(cluster.Name)))
-	if numControlPlaneMachines == 0 {
-		// Do not delete the NodeRef if there are no remaining members of
-		// the control plane.
-		return errNoControlPlaneNodes
+	if collections.ControlPlaneMachines(cluster.Name)(machine) {
+		// Get all the active machines that belong to this cluster.
+		machines, err := collections.GetFilteredMachinesForCluster(ctx, r.Client, cluster, collections.ActiveMachines)
+		if err != nil {
+			return err
+		}
+		numControlPlaneMachines := len(machines.Filter(collections.ControlPlaneMachines(cluster.Name)))
+		if numControlPlaneMachines == 0 {
+			// Do not delete the NodeRef if there are no remaining members of
+			// the control plane.
+			return errNoControlPlaneNodes
+		}
 	}
-	// Otherwise it is okay to delete the NodeRef.
+	// Otherwise, it is okay to delete the NodeRef.
 	return nil
 }
 

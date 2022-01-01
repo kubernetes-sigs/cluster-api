@@ -580,6 +580,8 @@ export OPENSTACK_NODE_MACHINE_FLAVOR=<flavor>
 export OPENSTACK_IMAGE_NAME=<image name>
 # The SSH key pair name
 export OPENSTACK_SSH_KEY_NAME=<ssh key pair name>
+# The external network
+export OPENSTACK_EXTERNAL_NETWORK_ID=<external network ID>
 ```
 
 A full configuration reference can be found in [configuration.md](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/book/src/clusteropenstack/configuration.md).

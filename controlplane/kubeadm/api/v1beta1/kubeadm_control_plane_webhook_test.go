@@ -59,7 +59,7 @@ func TestKubeadmControlPlaneDefault(t *testing.T) {
 		Name:       "foo",
 		Namespace:  "foo",
 	}
-	t.Run("for KubeadmControlPLane", utildefaulting.DefaultValidateTest(updateDefaultingValidationKCP))
+	t.Run("for KubeadmControlPlane", utildefaulting.DefaultValidateTest(updateDefaultingValidationKCP))
 	kcp.Default()
 
 	g.Expect(kcp.Spec.MachineTemplate.InfrastructureRef.Namespace).To(Equal(kcp.Namespace))

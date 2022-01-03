@@ -228,12 +228,15 @@ func DiscoveryAndWaitForControlPlaneInitialized(ctx context.Context, input Disco
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForControlPlaneInitialized")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForControlPlaneInitialized")
 
-	controlPlane := GetKubeadmControlPlaneByCluster(ctx, GetKubeadmControlPlaneByClusterInput{
-		Lister:      input.Lister,
-		ClusterName: input.Cluster.Name,
-		Namespace:   input.Cluster.Namespace,
-	})
-	Expect(controlPlane).ToNot(BeNil())
+	var controlPlane *controlplanev1.KubeadmControlPlane
+	Eventually(func(g Gomega) {
+		controlPlane = GetKubeadmControlPlaneByCluster(ctx, GetKubeadmControlPlaneByClusterInput{
+			Lister:      input.Lister,
+			ClusterName: input.Cluster.Name,
+			Namespace:   input.Cluster.Namespace,
+		})
+		g.Expect(controlPlane).ToNot(BeNil())
+	}, "10s", "1s").Should(Succeed())
 
 	log.Logf("Waiting for the first control plane machine managed by %s/%s to be provisioned", controlPlane.Namespace, controlPlane.Name)
 	WaitForOneKubeadmControlPlaneMachineToExist(ctx, WaitForOneKubeadmControlPlaneMachineToExistInput{

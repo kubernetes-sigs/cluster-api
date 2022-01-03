@@ -2478,6 +2478,7 @@ spec:
                           type: object
                         type: array
                       format:
+                        default: cloud-config
                         description: Format specifies the output format of the bootstrap
                           data
                         enum:

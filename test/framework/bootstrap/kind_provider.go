@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	. "github.com/onsi/gomega"
 	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
@@ -143,12 +144,26 @@ func (k *KindClusterProvider) createKindCluster() {
 	kindCreateOptions = append(kindCreateOptions, kind.CreateWithRetain(true))
 
 	for i := 0; i < 10; i++ {
-		err := kind.NewProvider(kind.ProviderWithLogger(cmd.NewLogger())).Create(fmt.Sprintf("%s-%d", k.name, i), kindCreateOptions...)
+		clusterName := fmt.Sprintf("%s-%d", k.name, i)
+
+		log.Logf("Creating kind cluster %q", clusterName)
+
+		p := kind.NewProvider(kind.ProviderWithLogger(cmd.NewLogger()))
+
+		err := p.Create(clusterName, kindCreateOptions...)
 		if err != nil {
+			log.Logf("Export logs for kind cluster %q", clusterName)
+
+			if artifactsDir, exists := os.LookupEnv("ARTIFACTS"); exists {
+				if err := p.CollectLogs(clusterName, filepath.Join(artifactsDir, "kind", clusterName)); err != nil {
+					Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Collecting logs from kind failed"))
+				}
+			}
+
 			Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to create the kind cluster: %s", err.Error())) // FIXME: to be tested if err.Error produces a better error, it seems to within the kind CLI.
 		}
 	}
-	os.Exit(1)
+	Expect(fmt.Errorf("fail")).ToNot(HaveOccurred())
 }
 
 // setDockerSockConfig returns a kind config for mounting /var/run/docker.sock into the kind node.

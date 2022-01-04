@@ -21,7 +21,7 @@ set -o pipefail
 KUBE_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 BIN_ROOT="${KUBE_ROOT}/hack/tools/bin"
 
-kustomize_version=3.9.1
+kustomize_version=4.4.1
 
 goarch="$(go env GOARCH)"
 goos="$(go env GOOS)"

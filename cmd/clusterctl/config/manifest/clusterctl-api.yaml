@@ -36,10 +36,14 @@ spec:
         description: Provider defines an entry in the provider inventory.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
             type: string
           metadata:
             type: object
@@ -47,13 +51,18 @@ spec:
             description: ProviderName indicates the name of the provider.
             type: string
           type:
-            description: Type indicates the type of the provider. See ProviderType for a list of supported values
+            description: Type indicates the type of the provider. See ProviderType
+              for a list of supported values
             type: string
           version:
             description: Version indicates the component version.
             type: string
           watchedNamespace:
-            description: 'WatchedNamespace indicates the namespace where the provider controller is is watching. if empty the provider controller is watching for objects in all namespaces. Deprecated: in clusterctl v1alpha4 all the providers watch all the namespaces; this field will be removed in a future version of this API'
+            description: 'WatchedNamespace indicates the namespace where the provider
+              controller is is watching. if empty the provider controller is watching
+              for objects in all namespaces. Deprecated: in clusterctl v1alpha4 all
+              the providers watch all the namespaces; this field will be removed in
+              a future version of this API'
             type: string
         type: object
     served: true

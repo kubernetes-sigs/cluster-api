@@ -353,6 +353,8 @@ func kustomizeTask(path, out string) taskFunction {
 			kustomizePath,
 			"build",
 			path,
+			// enable helm to enable helmChartInflationGenerator.
+			"--enable-helm",
 		)
 
 		var stdout, stderr bytes.Buffer

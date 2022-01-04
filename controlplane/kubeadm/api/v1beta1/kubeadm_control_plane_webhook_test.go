@@ -329,6 +329,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdateKubeadmConfigJoin := before.DeepCopy()
 	validUpdateKubeadmConfigJoin.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration = bootstrapv1.NodeRegistrationOptions{}
 
+	beforeKubeadmConfigFormatSet := before.DeepCopy()
+	beforeKubeadmConfigFormatSet.Spec.KubeadmConfigSpec.Format = bootstrapv1.CloudConfig
+	invalidUpdateKubeadmConfigFormat := beforeKubeadmConfigFormatSet.DeepCopy()
+	invalidUpdateKubeadmConfigFormat.Spec.KubeadmConfigSpec.Format = bootstrapv1.Ignition
+
 	validUpdate := before.DeepCopy()
 	validUpdate.Labels = map[string]string{"blue": "green"}
 	validUpdate.Spec.KubeadmConfigSpec.PreKubeadmCommands = []string{"ab", "abc"}
@@ -363,6 +368,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.Replicas = pointer.Int32Ptr(5)
 	now := metav1.NewTime(time.Now())
 	validUpdate.Spec.RolloutAfter = &now
+	validUpdate.Spec.KubeadmConfigSpec.Format = bootstrapv1.CloudConfig
 
 	scaleToZero := before.DeepCopy()
 	scaleToZero.Spec.Replicas = pointer.Int32Ptr(0)
@@ -623,6 +629,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    before,
 			kcp:       validUpdateKubeadmConfigJoin,
+		},
+		{
+			name:      "should return error when trying to mutate the kubeadmconfigspec format from cloud-config to ignition",
+			expectErr: true,
+			before:    beforeKubeadmConfigFormatSet,
+			kcp:       invalidUpdateKubeadmConfigFormat,
 		},
 		{
 			name:      "should return error when trying to scale to zero",

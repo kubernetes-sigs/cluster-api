@@ -140,8 +140,15 @@ func (k *KindClusterProvider) createKindCluster() {
 	}
 	kindCreateOptions = append(kindCreateOptions, kind.CreateWithNodeImage(nodeImage))
 
-	err := kind.NewProvider(kind.ProviderWithLogger(cmd.NewLogger())).Create(k.name, kindCreateOptions...)
-	Expect(err).ToNot(HaveOccurred(), "Failed to create the kind cluster")
+	kindCreateOptions = append(kindCreateOptions, kind.CreateWithRetain(true))
+
+	for i := 0; i < 10; i++ {
+		err := kind.NewProvider(kind.ProviderWithLogger(cmd.NewLogger())).Create(fmt.Sprintf("%s-%d", k.name, i), kindCreateOptions...)
+		if err != nil {
+			Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to create the kind cluster: %s", err.Error())) // FIXME: to be tested if err.Error produces a better error, it seems to within the kind CLI.
+		}
+	}
+	os.Exit(1)
 }
 
 // setDockerSockConfig returns a kind config for mounting /var/run/docker.sock into the kind node.

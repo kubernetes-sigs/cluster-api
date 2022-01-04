@@ -257,7 +257,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 		})
 		if err != nil {
 			log.Info("Failed running command", "command", "crictl ps")
-			logContainerDebugInfo(log, m.ContainerName())
+			logContainerDebugInfo(ctx, log, m.ContainerName())
 			return errors.Wrap(errors.WithStack(err), "failed to run crictl ps")
 		}
 		return nil
@@ -360,7 +360,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstr
 		err := cmd.Run(ctx)
 		if err != nil {
 			log.Info("Failed running command", "command", command, "stdout", outStd.String(), "stderr", outErr.String(), "bootstrap data", data)
-			logContainerDebugInfo(log, m.ContainerName())
+			logContainerDebugInfo(ctx, log, m.ContainerName())
 			return errors.Wrap(errors.WithStack(err), "failed to run cloud config")
 		}
 	}
@@ -482,20 +482,22 @@ func (m *Machine) machineImage(version *string) string {
 	return fmt.Sprintf("%s:%s", defaultImageName, versionString)
 }
 
-func logContainerDebugInfo(log logr.Logger, name string) {
-	// let's use our own context, so we are able to get debug information even
-	// when the context used in the layers above is already timed out
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
-
+func logContainerDebugInfo(ctx context.Context, log logr.Logger, name string) {
 	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
 		log.Error(err, "failed to connect to container runtime")
 		return
 	}
 
+	// Use our own context, so we are able to get debug information even
+	// when the context used in the layers above is already timed out.
+	debugCtx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	debugCtx = container.RuntimeInto(debugCtx, containerRuntime)
+
 	var buffer bytes.Buffer
-	err = containerRuntime.ContainerDebugInfo(ctx, name, &buffer)
+	err = containerRuntime.ContainerDebugInfo(debugCtx, name, &buffer)
 	if err != nil {
 		log.Error(err, "failed to get logs from the machine container")
 		return

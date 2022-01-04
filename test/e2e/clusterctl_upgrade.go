@@ -343,19 +343,19 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			if !input.SkipCleanup {
 				switch {
 				case discovery.ServerSupportsVersion(managementClusterProxy.GetClientSet().DiscoveryClient, clusterv1.GroupVersion) == nil:
-					Byf("Deleting all %s clusters in namespace: %s in management cluster: %s", clusterv1.GroupVersion, testNamespace.Name, managementClusterName)
+					Byf("Deleting all %s clusters in namespace %s in management cluster %s", clusterv1.GroupVersion, testNamespace.Name, managementClusterName)
 					framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
 						Client:    managementClusterProxy.GetClient(),
 						Namespace: testNamespace.Name,
 					}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
 				case discovery.ServerSupportsVersion(managementClusterProxy.GetClientSet().DiscoveryClient, clusterv1alpha4.GroupVersion) == nil:
-					Byf("Deleting all %s clusters in namespace: %s in management cluster: %s", clusterv1alpha4.GroupVersion, testNamespace.Name, managementClusterName)
+					Byf("Deleting all %s clusters in namespace %s in management cluster %s", clusterv1alpha4.GroupVersion, testNamespace.Name, managementClusterName)
 					deleteAllClustersAndWaitV1alpha4(ctx, framework.DeleteAllClustersAndWaitInput{
 						Client:    managementClusterProxy.GetClient(),
 						Namespace: testNamespace.Name,
 					}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
 				case discovery.ServerSupportsVersion(managementClusterProxy.GetClientSet().DiscoveryClient, clusterv1alpha3.GroupVersion) == nil:
-					Byf("Deleting all %s clusters in namespace: %s in management cluster: %s", clusterv1alpha3.GroupVersion, testNamespace.Name, managementClusterName)
+					Byf("Deleting all %s clusters in namespace %s in management cluster %s", clusterv1alpha3.GroupVersion, testNamespace.Name, managementClusterName)
 					deleteAllClustersAndWaitV1alpha3(ctx, framework.DeleteAllClustersAndWaitInput{
 						Client:    managementClusterProxy.GetClient(),
 						Namespace: testNamespace.Name,

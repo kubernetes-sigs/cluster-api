@@ -29,6 +29,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/format"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -98,6 +99,9 @@ func TestE2E(t *testing.T) {
 	}
 
 	RegisterFailHandler(Fail)
+
+	// Disable truncating of gomega: https://onsi.github.io/gomega/#adjusting-output
+	format.MaxLength = 0
 
 	if alsoLogToFile {
 		w, err := ginkgoextensions.EnableFileLogging(filepath.Join(artifactFolder, "ginkgo-log.txt"))

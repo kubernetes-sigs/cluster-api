@@ -23,9 +23,11 @@ import (
 	"path/filepath"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
 	"sigs.k8s.io/kind/pkg/cmd"
+	"sigs.k8s.io/kind/pkg/exec"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
@@ -143,27 +145,35 @@ func (k *KindClusterProvider) createKindCluster() {
 
 	kindCreateOptions = append(kindCreateOptions, kind.CreateWithRetain(true))
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 20; i++ {
 		clusterName := fmt.Sprintf("%s-%d", k.name, i)
-
-		log.Logf("Creating kind cluster %q", clusterName)
 
 		p := kind.NewProvider(kind.ProviderWithLogger(cmd.NewLogger()))
 
+		log.Logf("Creating kind cluster %q", clusterName)
 		err := p.Create(clusterName, kindCreateOptions...)
 		if err != nil {
 			log.Logf("Export logs for kind cluster %q", clusterName)
-
 			if artifactsDir, exists := os.LookupEnv("ARTIFACTS"); exists {
 				if err := p.CollectLogs(clusterName, filepath.Join(artifactsDir, "kind", clusterName)); err != nil {
-					Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Collecting logs from kind failed"))
+					log.Logf("Collecting logs from kind failed: %v", err)
 				}
 			}
 
-			Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to create the kind cluster: %s", err.Error())) // FIXME: to be tested if err.Error produces a better error, it seems to within the kind CLI.
+			errStr := fmt.Sprintf("Failed to create kind cluster %q: %v", clusterName, err)
+			var runErr *exec.RunError
+			if errors.As(err, &runErr) {
+				errStr += "\n" + string(runErr.Output)
+			}
+			Expect(err).ToNot(HaveOccurred(), errStr)
 		}
+
+		log.Logf("Deleting kind cluster %q", clusterName)
+		Expect(p.Delete(clusterName, k.kubeconfigPath)).To(Succeed())
 	}
-	Expect(fmt.Errorf("fail")).ToNot(HaveOccurred())
+
+	// Fail if the issue couldn't be reproduced.
+	Expect(fmt.Errorf("fail - couldn't reproduce")).ToNot(HaveOccurred())
 }
 
 // setDockerSockConfig returns a kind config for mounting /var/run/docker.sock into the kind node.

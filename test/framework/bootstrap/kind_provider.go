@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	kindv1 "sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	kind "sigs.k8s.io/kind/pkg/cluster"
+	"sigs.k8s.io/kind/pkg/cmd"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
@@ -139,8 +140,8 @@ func (k *KindClusterProvider) createKindCluster() {
 	}
 	kindCreateOptions = append(kindCreateOptions, kind.CreateWithNodeImage(nodeImage))
 
-	err := kind.NewProvider().Create(k.name, kindCreateOptions...)
-	Expect(err).ToNot(HaveOccurred(), "Failed to create the kind cluster %q")
+	err := kind.NewProvider(kind.ProviderWithLogger(cmd.NewLogger())).Create(k.name, kindCreateOptions...)
+	Expect(err).ToNot(HaveOccurred(), "Failed to create the kind cluster")
 }
 
 // setDockerSockConfig returns a kind config for mounting /var/run/docker.sock into the kind node.

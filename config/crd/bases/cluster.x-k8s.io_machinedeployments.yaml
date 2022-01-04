@@ -1039,7 +1039,6 @@ spec:
                 format: int32
                 type: integer
               replicas:
-                default: 1
                 description: Number of desired machines. Defaults to 1. This is a
                   pointer to distinguish between explicit zero and not specified.
                 format: int32

@@ -70,7 +70,6 @@ type MachineDeploymentSpec struct {
 	// Number of desired machines. Defaults to 1.
 	// This is a pointer to distinguish between explicit zero and not specified.
 	// +optional
-	// +kubebuilder:default=1
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Label selector for machines. Existing MachineSets whose machines are

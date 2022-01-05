@@ -26,7 +26,7 @@ require (
 	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
 	sigs.k8s.io/controller-runtime v0.11.0
 	sigs.k8s.io/controller-runtime/tools/setup-envtest v0.0.0-20211110210527-619e6b92dab9
-	sigs.k8s.io/controller-tools v0.7.1-0.20211110210727-ab52f76cc7d1
+	sigs.k8s.io/controller-tools v0.8.0
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20211028165026-57688c578b5d
 	sigs.k8s.io/promo-tools/v3 v3.3.0-beta.3
 )

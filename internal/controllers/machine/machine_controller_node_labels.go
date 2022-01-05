@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machine
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-func (r *MachineReconciler) reconcileInterruptibleNodeLabel(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (ctrl.Result, error) {
+func (r *Reconciler) reconcileInterruptibleNodeLabel(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (ctrl.Result, error) {
 	// Check that the Machine hasn't been deleted or in the process
 	// and that the Machine has a NodeRef.
 	if !machine.DeletionTimestamp.IsZero() || machine.Status.NodeRef == nil {
@@ -70,7 +70,7 @@ func (r *MachineReconciler) reconcileInterruptibleNodeLabel(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
-func (r *MachineReconciler) setInterruptibleNodeLabel(ctx context.Context, remoteClient client.Client, nodeName string) error {
+func (r *Reconciler) setInterruptibleNodeLabel(ctx context.Context, remoteClient client.Client, nodeName string) error {
 	node := &corev1.Node{}
 	if err := remoteClient.Get(ctx, client.ObjectKey{Name: nodeName}, node); err != nil {
 		return err

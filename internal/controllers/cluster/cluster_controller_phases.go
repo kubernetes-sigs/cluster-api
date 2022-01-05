@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package cluster
 
 import (
 	"context"
@@ -41,7 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
-func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluster) {
+func (r *Reconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluster) {
 	if cluster.Status.Phase == "" {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhasePending)
 	}
@@ -64,7 +64,7 @@ func (r *ClusterReconciler) reconcilePhase(_ context.Context, cluster *clusterv1
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Cluster.
-func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
+func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, ref); err != nil {
@@ -135,7 +135,7 @@ func (r *ClusterReconciler) reconcileExternal(ctx context.Context, cluster *clus
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Cluster.
-func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if cluster.Spec.InfrastructureRef == nil {
@@ -200,7 +200,7 @@ func (r *ClusterReconciler) reconcileInfrastructure(ctx context.Context, cluster
 }
 
 // reconcileControlPlane reconciles the Spec.ControlPlaneRef object on a Cluster.
-func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+func (r *Reconciler) reconcileControlPlane(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	if cluster.Spec.ControlPlaneRef == nil {
 		return ctrl.Result{}, nil
 	}
@@ -255,7 +255,7 @@ func (r *ClusterReconciler) reconcileControlPlane(ctx context.Context, cluster *
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterReconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+func (r *Reconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if !cluster.Spec.ControlPlaneEndpoint.IsValid() {

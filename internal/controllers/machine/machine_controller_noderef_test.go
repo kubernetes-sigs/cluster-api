@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machine
 
 import (
 	"testing"
@@ -126,7 +126,7 @@ func TestGetNode(t *testing.T) {
 	)
 	g.Expect(err).ToNot(HaveOccurred())
 
-	r := &MachineReconciler{
+	r := &Reconciler{
 		Tracker: tracker,
 		Client:  env,
 	}

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machine
 
 import (
 	"context"
@@ -46,7 +46,7 @@ var (
 	externalReadyWait = 30 * time.Second
 )
 
-func (r *MachineReconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
+func (r *Reconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
 	originalPhase := m.Status.Phase //nolint:ifshort // Cannot be inlined because m.Status.Phase might be changed before it is used in the if.
 
 	// Set the phase to "pending" if nil.
@@ -87,7 +87,7 @@ func (r *MachineReconciler) reconcilePhase(_ context.Context, m *clusterv1.Machi
 }
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
-func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
+func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, ref); err != nil {
@@ -171,7 +171,7 @@ func (r *MachineReconciler) reconcileExternal(ctx context.Context, cluster *clus
 }
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
-func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 
 	// If the bootstrap data is populated, set ready and return.
@@ -236,7 +236,7 @@ func (r *MachineReconciler) reconcileBootstrap(ctx context.Context, cluster *clu
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Machine.
-func (r *MachineReconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 
 	// Call generic external reconciler.

@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package cluster
 
 import (
 	"context"
@@ -25,12 +25,8 @@ import (
 
 	// +kubebuilder:scaffold:imports
 	. "github.com/onsi/gomega"
-	"github.com/onsi/gomega/types"
-	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -38,14 +34,12 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/internal/controllers/cluster"
-	"sigs.k8s.io/cluster-api/internal/controllers/machine"
+	machinecontroller "sigs.k8s.io/cluster-api/internal/controllers/machine"
 	"sigs.k8s.io/cluster-api/internal/envtest"
 )
 
 const (
-	timeout         = time.Second * 30
-	testClusterName = "test-cluster"
+	timeout = time.Second * 30
 )
 
 var (
@@ -88,40 +82,18 @@ func TestMain(m *testing.M) {
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))
 		}
-		if err := (&cluster.Reconciler{
+		if err := (&Reconciler{
 			Client:    mgr.GetClient(),
 			APIReader: mgr.GetClient(),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start ClusterReconciler: %v", err))
 		}
-		if err := (&machine.Reconciler{
+		if err := (&machinecontroller.Reconciler{
 			Client:    mgr.GetClient(),
 			APIReader: mgr.GetAPIReader(),
 			Tracker:   tracker,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
-		}
-		if err := (&MachineSetReconciler{
-			Client:    mgr.GetClient(),
-			APIReader: mgr.GetAPIReader(),
-			Tracker:   tracker,
-			recorder:  mgr.GetEventRecorderFor("machineset-controller"),
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-			panic(fmt.Sprintf("Failed to start MMachineSetReconciler: %v", err))
-		}
-		if err := (&MachineDeploymentReconciler{
-			Client:    mgr.GetClient(),
-			APIReader: mgr.GetAPIReader(),
-			recorder:  mgr.GetEventRecorderFor("machinedeployment-controller"),
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-			panic(fmt.Sprintf("Failed to start MMachineDeploymentReconciler: %v", err))
-		}
-		if err := (&MachineHealthCheckReconciler{
-			Client:   mgr.GetClient(),
-			Tracker:  tracker,
-			recorder: mgr.GetEventRecorderFor("machinehealthcheck-controller"),
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-			panic(fmt.Sprintf("Failed to start MachineHealthCheckReconciler : %v", err))
 		}
 	}
 
@@ -134,43 +106,4 @@ func TestMain(m *testing.M) {
 		SetupIndexes:     setupIndexes,
 		SetupReconcilers: setupReconcilers,
 	}))
-}
-
-func ContainRefOfGroupKind(group, kind string) types.GomegaMatcher {
-	return &refGroupKindMatcher{
-		kind:  kind,
-		group: group,
-	}
-}
-
-type refGroupKindMatcher struct {
-	kind  string
-	group string
-}
-
-func (matcher *refGroupKindMatcher) Match(actual interface{}) (success bool, err error) {
-	ownerRefs, ok := actual.([]metav1.OwnerReference)
-	if !ok {
-		return false, errors.Errorf("expected []metav1.OwnerReference; got %T", actual)
-	}
-
-	for _, ref := range ownerRefs {
-		gv, err := schema.ParseGroupVersion(ref.APIVersion)
-		if err != nil {
-			return false, nil //nolint:nilerr // If we can't get the group version we can't match, but it's not a failure
-		}
-		if ref.Kind == matcher.kind && gv.Group == clusterv1.GroupVersion.Group {
-			return true, nil
-		}
-	}
-
-	return false, nil
-}
-
-func (matcher *refGroupKindMatcher) FailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("Expected %+v to contain refs of Group %s and Kind %s", actual, matcher.group, matcher.kind)
-}
-
-func (matcher *refGroupKindMatcher) NegatedFailureMessage(actual interface{}) (message string) {
-	return fmt.Sprintf("Expected %+v not to contain refs of Group %s and Kind %s", actual, matcher.group, matcher.kind)
 }

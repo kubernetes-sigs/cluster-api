@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machine
 
 import (
 	"context"
@@ -38,14 +38,11 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/internal/controllers/cluster"
-	"sigs.k8s.io/cluster-api/internal/controllers/machine"
 	"sigs.k8s.io/cluster-api/internal/envtest"
 )
 
 const (
-	timeout         = time.Second * 30
-	testClusterName = "test-cluster"
+	timeout = time.Second * 30
 )
 
 var (
@@ -88,40 +85,12 @@ func TestMain(m *testing.M) {
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))
 		}
-		if err := (&cluster.Reconciler{
-			Client:    mgr.GetClient(),
-			APIReader: mgr.GetClient(),
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-			panic(fmt.Sprintf("Failed to start ClusterReconciler: %v", err))
-		}
-		if err := (&machine.Reconciler{
+		if err := (&Reconciler{
 			Client:    mgr.GetClient(),
 			APIReader: mgr.GetAPIReader(),
 			Tracker:   tracker,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
-		}
-		if err := (&MachineSetReconciler{
-			Client:    mgr.GetClient(),
-			APIReader: mgr.GetAPIReader(),
-			Tracker:   tracker,
-			recorder:  mgr.GetEventRecorderFor("machineset-controller"),
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-			panic(fmt.Sprintf("Failed to start MMachineSetReconciler: %v", err))
-		}
-		if err := (&MachineDeploymentReconciler{
-			Client:    mgr.GetClient(),
-			APIReader: mgr.GetAPIReader(),
-			recorder:  mgr.GetEventRecorderFor("machinedeployment-controller"),
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-			panic(fmt.Sprintf("Failed to start MMachineDeploymentReconciler: %v", err))
-		}
-		if err := (&MachineHealthCheckReconciler{
-			Client:   mgr.GetClient(),
-			Tracker:  tracker,
-			recorder: mgr.GetEventRecorderFor("machinehealthcheck-controller"),
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-			panic(fmt.Sprintf("Failed to start MachineHealthCheckReconciler : %v", err))
 		}
 	}
 

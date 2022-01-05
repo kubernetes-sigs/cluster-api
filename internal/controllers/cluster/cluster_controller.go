@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package cluster
 
 import (
 	"context"
@@ -62,8 +62,8 @@ const (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;clusters/finalizers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
-// ClusterReconciler reconciles a Cluster object.
-type ClusterReconciler struct {
+// Reconciler reconciles a Cluster object.
+type Reconciler struct {
 	Client    client.Client
 	APIReader client.Reader
 
@@ -74,7 +74,7 @@ type ClusterReconciler struct {
 	externalTracker external.ObjectTracker
 }
 
-func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		Watches(
@@ -96,7 +96,7 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	return nil
 }
 
-func (r *ClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the Cluster instance.
@@ -177,7 +177,7 @@ func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clust
 }
 
 // reconcile handles cluster reconciliation.
-func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 
 	if cluster.Spec.Topology != nil {
@@ -212,7 +212,7 @@ func (r *ClusterReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 }
 
 // reconcileDelete handles cluster deletion.
-func (r *ClusterReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
+func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	descendants, err := r.listDescendants(ctx, cluster)
@@ -385,7 +385,7 @@ func (c *clusterDescendants) descendantNames() string {
 }
 
 // listDescendants returns a list of all MachineDeployments, MachineSets, MachinePools and Machines for the cluster.
-func (r *ClusterReconciler) listDescendants(ctx context.Context, cluster *clusterv1.Cluster) (clusterDescendants, error) {
+func (r *Reconciler) listDescendants(ctx context.Context, cluster *clusterv1.Cluster) (clusterDescendants, error) {
 	var descendants clusterDescendants
 
 	listOptions := []client.ListOption{
@@ -461,7 +461,7 @@ func (c clusterDescendants) filterOwnedDescendants(cluster *clusterv1.Cluster) (
 	return ownedDescendants, nil
 }
 
-func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+func (r *Reconciler) reconcileControlPlaneInitialized(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Skip checking if the control plane is initialized when using a Control Plane Provider (this is reconciled in
@@ -498,7 +498,7 @@ func (r *ClusterReconciler) reconcileControlPlaneInitialized(ctx context.Context
 
 // controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update its status.controlPlaneInitialized field.
-func (r *ClusterReconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.Request {
+func (r *Reconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.Request {
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Machine but got a %T", o))

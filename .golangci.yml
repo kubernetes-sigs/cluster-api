@@ -237,7 +237,7 @@ issues:
   - linters:
     - ifshort
     text:  "variable 'isDeleteNodeAllowed' is only used in the if-statement.*"
-    path: ^controllers/machine_controller\.go$
+    path: ^internal/controllers/machine/machine_controller\.go$
 
 run:
   timeout: 10m

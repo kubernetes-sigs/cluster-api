@@ -433,6 +433,9 @@ export AZURE_LOCATION="centralus"
 # Select VM types.
 export AZURE_CONTROL_PLANE_MACHINE_TYPE="Standard_D2s_v3"
 export AZURE_NODE_MACHINE_TYPE="Standard_D2s_v3"
+
+# [Optional] Select resource group. The default value is ${CLUSTER_NAME}.
+export AZURE_RESOURCE_GROUP="<ResourceGroupName>"
 ```
 
 {{#/tab }}

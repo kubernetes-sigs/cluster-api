@@ -6,14 +6,14 @@ helmChartInflationGenerator:
     chartRepoUrl: https://grafana.github.io/helm-charts
     releaseNamespace: observability
     releaseName: promtail
-    values: ./hack/observability/promtail/values.yaml
+    values: ./promtail/values.yaml
   - chartName: loki
     chartRepoUrl: https://grafana.github.io/helm-charts
     releaseNamespace: observability
     releaseName: loki
-    values: ./hack/observability/loki/values.yaml
+    values: ./loki/values.yaml
   - chartName: grafana
     chartRepoUrl: https://grafana.github.io/helm-charts
     releaseNamespace: observability
     releaseName: grafana
-    values: ./hack/observability/grafana/values.yaml
+    values: ./grafana/values.yaml

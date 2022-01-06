@@ -154,6 +154,7 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
 		paths=./controllers/... \
+		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
 		paths=./$(EXP_DIR)/api/... \
 		paths=./$(EXP_DIR)/internal/controllers/... \

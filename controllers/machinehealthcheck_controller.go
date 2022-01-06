@@ -45,6 +45,7 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/controllers/machine"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -494,7 +495,7 @@ func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o client.Obje
 	var requests []reconcile.Request
 	for k := range mhcList.Items {
 		mhc := &mhcList.Items[k]
-		if hasMatchingLabels(mhc.Spec.Selector, m.Labels) {
+		if machine.HasMatchingLabels(mhc.Spec.Selector, m.Labels) {
 			key := util.ObjectKey(mhc)
 			requests = append(requests, reconcile.Request{NamespacedName: key})
 		}

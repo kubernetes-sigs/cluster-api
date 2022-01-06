@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/internal/mdutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func TestCalculateStatus(t *testing.T) {
@@ -491,5 +492,37 @@ func TestSyncDeploymentStatus(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			assertConditions(t, test.d, test.expectedConditions...)
 		})
+	}
+}
+
+// asserts the conditions set on the Getter object.
+// TODO: replace this with util.condition.MatchConditions (or a new matcher in internal/matchers).
+func assertConditions(t *testing.T, from conditions.Getter, conditions ...*clusterv1.Condition) {
+	t.Helper()
+
+	for _, condition := range conditions {
+		assertCondition(t, from, condition)
+	}
+}
+
+// asserts whether a condition of type is set on the Getter object
+// when the condition is true, asserting the reason/severity/message
+// for the condition are avoided.
+func assertCondition(t *testing.T, from conditions.Getter, condition *clusterv1.Condition) {
+	t.Helper()
+
+	g := NewWithT(t)
+	g.Expect(conditions.Has(from, condition.Type)).To(BeTrue())
+
+	if condition.Status == corev1.ConditionTrue {
+		conditions.IsTrue(from, condition.Type)
+	} else {
+		conditionToBeAsserted := conditions.Get(from, condition.Type)
+		g.Expect(conditionToBeAsserted.Status).To(Equal(condition.Status))
+		g.Expect(conditionToBeAsserted.Severity).To(Equal(condition.Severity))
+		g.Expect(conditionToBeAsserted.Reason).To(Equal(condition.Reason))
+		if condition.Message != "" {
+			g.Expect(conditionToBeAsserted.Message).To(Equal(condition.Message))
+		}
 	}
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package cluster
 
 import (
 	"testing"
@@ -473,7 +473,7 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 
-				r := &ClusterReconciler{
+				r := &Reconciler{
 					Client: fake.NewClientBuilder().WithObjects(cluster, controlPlaneWithNoderef, controlPlaneWithoutNoderef, nonControlPlaneWithNoderef, nonControlPlaneWithoutNoderef).Build(),
 				}
 				requests := r.controlPlaneMachineToCluster(tt.o)
@@ -748,7 +748,7 @@ func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {
 		},
 	}
 
-	r := &ClusterReconciler{}
+	r := &Reconciler{}
 	res, err := r.reconcileControlPlaneInitialized(ctx, c)
 	g.Expect(res.IsZero()).To(BeTrue())
 	g.Expect(err).NotTo(HaveOccurred())

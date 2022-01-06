@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machine
 
 import (
 	"testing"
@@ -116,7 +116,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
 
-		r := &MachineReconciler{
+		r := &Reconciler{
 			Client: fake.NewClientBuilder().
 				WithScheme(scheme.Scheme).
 				WithObjects(defaultCluster,
@@ -154,7 +154,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		bootstrapConfig := defaultBootstrap.DeepCopy()
 		infraConfig := defaultInfra.DeepCopy()
 
-		r := &MachineReconciler{
+		r := &Reconciler{
 			Client: fake.NewClientBuilder().
 				WithScheme(scheme.Scheme).
 				WithObjects(defaultCluster,
@@ -197,7 +197,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
 		machine.Status.LastUpdated = &lastUpdated
 
-		r := &MachineReconciler{
+		r := &Reconciler{
 			Client: fake.NewClientBuilder().
 				WithScheme(scheme.Scheme).
 				WithObjects(defaultCluster,
@@ -284,7 +284,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 				infraConfig,
 				defaultKubeconfigSecret,
 			).Build()
-		r := &MachineReconciler{
+		r := &Reconciler{
 			Client:  cl,
 			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 		}
@@ -350,7 +350,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 				infraConfig,
 				defaultKubeconfigSecret,
 			).Build()
-		r := &MachineReconciler{
+		r := &Reconciler{
 			Client:  cl,
 			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 		}
@@ -426,7 +426,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 				infraConfig,
 				defaultKubeconfigSecret,
 			).Build()
-		r := &MachineReconciler{
+		r := &Reconciler{
 			Client:  cl,
 			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 		}
@@ -486,7 +486,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 				infraConfig,
 			).Build()
 
-		r := &MachineReconciler{
+		r := &Reconciler{
 			Client:  cl,
 			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 		}
@@ -567,7 +567,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 				bootstrapConfig,
 				infraConfig,
 			).Build()
-		r := &MachineReconciler{
+		r := &Reconciler{
 			Client:   cl,
 			Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 			recorder: record.NewFakeRecorder(32),
@@ -866,7 +866,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			}
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
-			r := &MachineReconciler{
+			r := &Reconciler{
 				Client: fake.NewClientBuilder().
 					WithObjects(tc.machine,
 						builder.GenericBootstrapConfigCRD.DeepCopy(),
@@ -1076,7 +1076,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			}
 
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
-			r := &MachineReconciler{
+			r := &Reconciler{
 				Client: fake.NewClientBuilder().
 					WithObjects(tc.machine,
 						builder.GenericBootstrapConfigCRD.DeepCopy(),

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machine
 
 import (
 	"testing"
@@ -84,7 +84,7 @@ func TestHasMatchingLabels(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got := hasMatchingLabels(tc.selector, tc.labels)
+			got := HasMatchingLabels(tc.selector, tc.labels)
 			g.Expect(got).To(Equal(tc.expected))
 		})
 	}

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package cluster
 
 import (
 	"testing"
@@ -135,7 +135,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 						WithObjects(builder.GenericInfrastructureMachineCRD.DeepCopy(), tt.cluster).
 						Build()
 				}
-				r := &ClusterReconciler{
+				r := &Reconciler{
 					Client: c,
 				}
 
@@ -214,7 +214,7 @@ func TestClusterReconcilePhases(t *testing.T) {
 						WithObjects(tt.cluster, tt.secret).
 						Build()
 				}
-				r := &ClusterReconciler{
+				r := &Reconciler{
 					Client: c,
 				}
 				res, err := r.reconcileKubeconfig(ctx, tt.cluster)
@@ -363,7 +363,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 				WithObjects(tt.cluster).
 				Build()
 
-			r := &ClusterReconciler{
+			r := &Reconciler{
 				Client: c,
 			}
 			r.reconcilePhase(ctx, tt.cluster)
@@ -471,7 +471,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 				objs = append(objs, &unstructured.Unstructured{Object: tt.infraRef})
 			}
 
-			r := &ClusterReconciler{
+			r := &Reconciler{
 				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
 			}
 

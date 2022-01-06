@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machine
 
 import (
 	"testing"
@@ -383,7 +383,7 @@ func TestMachineFinalizer(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			mr := &MachineReconciler{
+			mr := &Reconciler{
 				Client: fake.NewClientBuilder().WithObjects(
 					clusterCorrectMeta,
 					machineValidCluster,
@@ -549,7 +549,7 @@ func TestMachineOwnerReference(t *testing.T) {
 				machineValidMachine,
 				machineValidControlled,
 			).Build()
-			mr := &MachineReconciler{
+			mr := &Reconciler{
 				Client:    c,
 				APIReader: c,
 			}
@@ -721,7 +721,7 @@ func TestReconcileRequest(t *testing.T) {
 				&infraConfig,
 			).Build()
 
-			r := &MachineReconciler{
+			r := &Reconciler{
 				Client:  clientFake,
 				Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			}
@@ -966,7 +966,7 @@ func TestMachineConditions(t *testing.T) {
 				node,
 			).Build()
 
-			r := &MachineReconciler{
+			r := &Reconciler{
 				Client:  clientFake,
 				Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
 			}
@@ -1055,7 +1055,7 @@ func TestReconcileDeleteExternal(t *testing.T) {
 				objs = append(objs, bootstrapConfig)
 			}
 
-			r := &MachineReconciler{
+			r := &Reconciler{
 				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
 			}
 
@@ -1097,7 +1097,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
-	mr := &MachineReconciler{
+	mr := &Reconciler{
 		Client: fake.NewClientBuilder().WithObjects(testCluster, m).Build(),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
@@ -1223,7 +1223,7 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 			var objs []client.Object
 			objs = append(objs, testCluster, tt.machine)
 
-			r := &MachineReconciler{
+			r := &Reconciler{
 				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
 			}
 
@@ -1572,7 +1572,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				m2.Labels[clusterv1.MachineControlPlaneLabelName] = ""
 			}
 
-			mr := &MachineReconciler{
+			mr := &Reconciler{
 				Client: fake.NewClientBuilder().WithObjects(
 					tc.cluster,
 					tc.machine,
@@ -1843,7 +1843,7 @@ func TestNodeToMachine(t *testing.T) {
 		},
 	}
 
-	r := &MachineReconciler{
+	r := &Reconciler{
 		Client: env,
 	}
 	for _, node := range fakeNodes {
@@ -1867,6 +1867,7 @@ func addConditionsToExternal(u *unstructured.Unstructured, newConditions cluster
 }
 
 // asserts the conditions set on the Getter object.
+// TODO: replace this with util.condition.MatchConditions (or a new matcher in internal/matchers).
 func assertConditions(t *testing.T, from conditions.Getter, conditions ...*clusterv1.Condition) {
 	t.Helper()
 

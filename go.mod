@@ -45,6 +45,8 @@ require (
 	sigs.k8s.io/yaml v1.3.0
 )
 
+require golang.org/x/net v0.0.0-20210825183410-e898025ed96a
+
 require (
 	cloud.google.com/go v0.93.3 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
@@ -129,7 +131,6 @@ require (
 	go.uber.org/zap v1.19.1 // indirect
 	go4.org v0.0.0-20201209231011-d4a079459e60 // indirect
 	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
-	golang.org/x/net v0.0.0-20210825183410-e898025ed96a // indirect
 	golang.org/x/sys v0.0.0-20211029165221-6e7872819dc8 // indirect
 	golang.org/x/term v0.0.0-20210615171337-6886f2dfbf5b // indirect
 	golang.org/x/text v0.3.7 // indirect

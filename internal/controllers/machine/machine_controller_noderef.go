@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machine
 
 import (
 	"context"
@@ -40,7 +40,7 @@ var (
 	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
 )
 
-func (r *MachineReconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (ctrl.Result, error) {
+func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "machine", machine.Name, "namespace", machine.Namespace)
 	log = log.WithValues("cluster", cluster.Name)
 
@@ -172,7 +172,7 @@ func summarizeNodeConditions(node *corev1.Node) (corev1.ConditionStatus, string)
 	return corev1.ConditionUnknown, message
 }
 
-func (r *MachineReconciler) getNode(ctx context.Context, c client.Reader, providerID *noderefutil.ProviderID) (*corev1.Node, error) {
+func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID *noderefutil.ProviderID) (*corev1.Node, error) {
 	log := ctrl.LoggerFrom(ctx, "providerID", providerID)
 	nodeList := corev1.NodeList{}
 	if err := c.List(ctx, &nodeList, client.MatchingFields{index.NodeProviderIDField: providerID.IndexKey()}); err != nil {

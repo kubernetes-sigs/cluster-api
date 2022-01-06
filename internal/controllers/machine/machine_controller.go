@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machine
 
 import (
 	"context"
@@ -55,8 +55,8 @@ import (
 )
 
 const (
-	// MachineControllerName defines the controller used when creating clients.
-	MachineControllerName = "machine-controller"
+	// controllerName defines the controller used when creating clients.
+	controllerName = "machine-controller"
 )
 
 var (
@@ -74,8 +74,8 @@ var (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status;machines/finalizers,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
-// MachineReconciler reconciles a Machine object.
-type MachineReconciler struct {
+// Reconciler reconciles a Machine object.
+type Reconciler struct {
 	Client    client.Client
 	APIReader client.Reader
 	Tracker   *remote.ClusterCacheTracker
@@ -88,7 +88,7 @@ type MachineReconciler struct {
 	externalTracker external.ObjectTracker
 }
 
-func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	clusterToMachines, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -125,7 +125,7 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	return nil
 }
 
-func (r *MachineReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the Machine instance
@@ -232,7 +232,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 	return patchHelper.Patch(ctx, machine, options...)
 }
 
-func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
@@ -275,7 +275,7 @@ func (r *MachineReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cl
 	return res, kerrors.NewAggregate(errs)
 }
 
-func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 
 	err := r.isDeleteNodeAllowed(ctx, cluster, m)
@@ -397,7 +397,7 @@ func (r *MachineReconciler) reconcileDelete(ctx context.Context, cluster *cluste
 	return ctrl.Result{}, nil
 }
 
-func (r *MachineReconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
+func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
 	if _, exists := m.ObjectMeta.Annotations[clusterv1.ExcludeNodeDrainingAnnotation]; exists {
 		return false
 	}
@@ -409,7 +409,7 @@ func (r *MachineReconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
 	return true
 }
 
-func (r *MachineReconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
+func (r *Reconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
 	// if the NodeDrainTineout type is not set by user
 	if machine.Spec.NodeDrainTimeout == nil || machine.Spec.NodeDrainTimeout.Seconds() <= 0 {
 		return false
@@ -428,7 +428,7 @@ func (r *MachineReconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine)
 
 // isDeleteNodeAllowed returns nil only if the Machine's NodeRef is not nil
 // and if the Machine is not the last control plane node in the cluster.
-func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
+func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 	// Return early if the cluster is being deleted.
 	if !cluster.DeletionTimestamp.IsZero() {
@@ -488,10 +488,10 @@ func (r *MachineReconciler) isDeleteNodeAllowed(ctx context.Context, cluster *cl
 	return nil
 }
 
-func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (ctrl.Result, error) {
+func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name, "node", nodeName)
 
-	restConfig, err := remote.RESTConfig(ctx, MachineControllerName, r.Client, util.ObjectKey(cluster))
+	restConfig, err := remote.RESTConfig(ctx, controllerName, r.Client, util.ObjectKey(cluster))
 	if err != nil {
 		log.Error(err, "Error creating a remote client while deleting Machine, won't retry")
 		return ctrl.Result{}, nil
@@ -560,7 +560,7 @@ func (r *MachineReconciler) drainNode(ctx context.Context, cluster *clusterv1.Cl
 // this could cause issue for some storage provisioner, for example, vsphere-volume this is problematic
 // because if the node is deleted before detach success, then the underline VMDK will be deleted together with the Machine
 // so after node draining we need to check if all volumes are detached before deleting the node.
-func (r *MachineReconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clusterv1.Cluster, nodeName string, machineName string) (bool, error) {
+func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clusterv1.Cluster, nodeName string, machineName string) (bool, error) {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name, "node", nodeName, "machine", machineName)
 
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
@@ -580,7 +580,7 @@ func (r *MachineReconciler) shouldWaitForNodeVolumes(ctx context.Context, cluste
 	return len(node.Status.VolumesAttached) != 0, nil
 }
 
-func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
+func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
 	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
 
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
@@ -601,7 +601,7 @@ func (r *MachineReconciler) deleteNode(ctx context.Context, cluster *clusterv1.C
 	return nil
 }
 
-func (r *MachineReconciler) reconcileDeleteBootstrap(ctx context.Context, m *clusterv1.Machine) (bool, error) {
+func (r *Reconciler) reconcileDeleteBootstrap(ctx context.Context, m *clusterv1.Machine) (bool, error) {
 	obj, err := r.reconcileDeleteExternal(ctx, m, m.Spec.Bootstrap.ConfigRef)
 	if err != nil {
 		return false, err
@@ -621,7 +621,7 @@ func (r *MachineReconciler) reconcileDeleteBootstrap(ctx context.Context, m *clu
 	return false, nil
 }
 
-func (r *MachineReconciler) reconcileDeleteInfrastructure(ctx context.Context, m *clusterv1.Machine) (bool, error) {
+func (r *Reconciler) reconcileDeleteInfrastructure(ctx context.Context, m *clusterv1.Machine) (bool, error) {
 	obj, err := r.reconcileDeleteExternal(ctx, m, &m.Spec.InfrastructureRef)
 	if err != nil {
 		return false, err
@@ -642,7 +642,7 @@ func (r *MachineReconciler) reconcileDeleteInfrastructure(ctx context.Context, m
 }
 
 // reconcileDeleteExternal tries to delete external references.
-func (r *MachineReconciler) reconcileDeleteExternal(ctx context.Context, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
+func (r *Reconciler) reconcileDeleteExternal(ctx context.Context, m *clusterv1.Machine, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	if ref == nil {
 		return nil, nil
 	}
@@ -667,11 +667,11 @@ func (r *MachineReconciler) reconcileDeleteExternal(ctx context.Context, m *clus
 	return obj, nil
 }
 
-func (r *MachineReconciler) shouldAdopt(m *clusterv1.Machine) bool {
+func (r *Reconciler) shouldAdopt(m *clusterv1.Machine) bool {
 	return metav1.GetControllerOf(m) == nil && !util.HasOwner(m.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"})
 }
 
-func (r *MachineReconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
+func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
 	// If there is no tracker, don't watch remote nodes
 	if r.Tracker == nil {
 		return nil
@@ -686,7 +686,7 @@ func (r *MachineReconciler) watchClusterNodes(ctx context.Context, cluster *clus
 	})
 }
 
-func (r *MachineReconciler) nodeToMachine(o client.Object) []reconcile.Request {
+func (r *Reconciler) nodeToMachine(o client.Object) []reconcile.Request {
 	node, ok := o.(*corev1.Node)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Node but got a %T", o))

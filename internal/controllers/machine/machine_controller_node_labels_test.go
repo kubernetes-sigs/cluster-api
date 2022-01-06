@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machine
 
 import (
 	"context"
@@ -114,7 +114,7 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 	}(cluster, ns, node, infraMachine, machine)
 
-	r := &MachineReconciler{
+	r := &Reconciler{
 		Client:   env.Client,
 		Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), env.Client, scheme.Scheme, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
 		recorder: record.NewFakeRecorder(32),

@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/controllers/machine"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -611,7 +612,7 @@ func (r *MachineSetReconciler) getMachineSetsForMachine(ctx context.Context, m *
 	var mss []*clusterv1.MachineSet
 	for idx := range msList.Items {
 		ms := &msList.Items[idx]
-		if hasMatchingLabels(ms.Spec.Selector, m.Labels) {
+		if machine.HasMatchingLabels(ms.Spec.Selector, m.Labels) {
 			mss = append(mss, ms)
 		}
 	}

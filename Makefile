@@ -153,7 +153,6 @@ generate-manifests: $(addprefix generate-manifests-,$(ALL_GENERATE_MODULES)) ## 
 generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.g. CRD, RBAC etc. for core
 	$(CONTROLLER_GEN) \
 		paths=./api/... \
-		paths=./controllers/... \
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
 		paths=./$(EXP_DIR)/api/... \

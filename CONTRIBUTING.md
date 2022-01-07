@@ -438,7 +438,7 @@ As of today there are following OWNERS files/Owner groups defining sub areas:
 - [Clusterctl](cmd/clusterctl)
 - [kubeadm Bootstrap Provider (CABPK)](bootstrap/kubeadm)
 - [kubeadm Control Plane Provider (KCP)](controlplane/kubeadm)
-- [Cluster Managed topologies, ClusterClass](controllers/topology)
+- [Cluster Managed topologies, ClusterClass](internal/controllers/topology)
 - [Infrastructure Provider Docker (CAPD)](test/infrastructure/docker)
 - [Test](test)
 - [Test Framework](test/framework)

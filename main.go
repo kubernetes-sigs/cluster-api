@@ -45,7 +45,6 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/controllers/topology"
 	addonsv1alpha3 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha3"
 	addonsv1alpha4 "sigs.k8s.io/cluster-api/exp/addons/api/v1alpha4"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
@@ -295,17 +294,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			os.Exit(1)
 		}
 
-		if err := (&topology.ClusterReconciler{
-			Client:                    mgr.GetClient(),
-			APIReader:                 mgr.GetAPIReader(),
-			UnstructuredCachingClient: unstructuredCachingClient,
-			WatchFilterValue:          watchFilterValue,
-		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterTopology")
-			os.Exit(1)
-		}
-
-		if err := (&topology.ClusterClassReconciler{
+		if err := (&controllers.ClusterClassReconciler{
 			Client:                    mgr.GetClient(),
 			APIReader:                 mgr.GetAPIReader(),
 			UnstructuredCachingClient: unstructuredCachingClient,
@@ -315,7 +304,17 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			os.Exit(1)
 		}
 
-		if err := (&topology.MachineDeploymentReconciler{
+		if err := (&controllers.ClusterTopologyReconciler{
+			Client:                    mgr.GetClient(),
+			APIReader:                 mgr.GetAPIReader(),
+			UnstructuredCachingClient: unstructuredCachingClient,
+			WatchFilterValue:          watchFilterValue,
+		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterTopology")
+			os.Exit(1)
+		}
+
+		if err := (&controllers.MachineDeploymentTopologyReconciler{
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
 			WatchFilterValue: watchFilterValue,
@@ -324,7 +323,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			os.Exit(1)
 		}
 
-		if err := (&topology.MachineSetReconciler{
+		if err := (&controllers.MachineSetTopologyReconciler{
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
 			WatchFilterValue: watchFilterValue,

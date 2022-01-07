@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinehealthcheck
 
 import (
 	"testing"
@@ -160,7 +160,7 @@ func TestGetTargetsFromMHC(t *testing.T) {
 			k8sClient := fake.NewClientBuilder().WithObjects(tc.toCreate...).Build()
 
 			// Create a test reconciler
-			reconciler := &MachineHealthCheckReconciler{
+			reconciler := &Reconciler{
 				Client: k8sClient,
 			}
 			for _, t := range tc.expectedTargets {
@@ -383,7 +383,7 @@ func TestHealthCheckTargets(t *testing.T) {
 			gs := NewWithT(t)
 
 			// Create a test reconciler.
-			reconciler := &MachineHealthCheckReconciler{
+			reconciler := &Reconciler{
 				recorder: record.NewFakeRecorder(5),
 			}
 

@@ -14,11 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinedeployment
 
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -34,9 +35,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -52,8 +55,8 @@ var (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinedeployments;machinedeployments/status;machinedeployments/finalizers,verbs=get;list;watch;create;update;patch;delete
 
-// MachineDeploymentReconciler reconciles a MachineDeployment object.
-type MachineDeploymentReconciler struct {
+// Reconciler reconciles a MachineDeployment object.
+type Reconciler struct {
 	Client    client.Client
 	APIReader client.Reader
 
@@ -63,7 +66,7 @@ type MachineDeploymentReconciler struct {
 	recorder record.EventRecorder
 }
 
-func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	clusterToMachineDeployments, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineDeploymentList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -100,7 +103,7 @@ func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr 
 	return nil
 }
 
-func (r *MachineDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the MachineDeployment instance.
@@ -176,7 +179,7 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, d *c
 	return patchHelper.Patch(ctx, d, options...)
 }
 
-func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, d *clusterv1.MachineDeployment) (ctrl.Result, error) {
+func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, d *clusterv1.MachineDeployment) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile MachineDeployment")
 
@@ -242,7 +245,7 @@ func (r *MachineDeploymentReconciler) reconcile(ctx context.Context, cluster *cl
 }
 
 // getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
-func (r *MachineDeploymentReconciler) getMachineSetsForDeployment(ctx context.Context, d *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
+func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// List all MachineSets to find those we own but that no longer match our selector.
@@ -295,7 +298,7 @@ func (r *MachineDeploymentReconciler) getMachineSetsForDeployment(ctx context.Co
 }
 
 // adoptOrphan sets the MachineDeployment as a controller OwnerReference to the MachineSet.
-func (r *MachineDeploymentReconciler) adoptOrphan(ctx context.Context, deployment *clusterv1.MachineDeployment, machineSet *clusterv1.MachineSet) error {
+func (r *Reconciler) adoptOrphan(ctx context.Context, deployment *clusterv1.MachineDeployment, machineSet *clusterv1.MachineSet) error {
 	patch := client.MergeFrom(machineSet.DeepCopy())
 	newRef := *metav1.NewControllerRef(deployment, machineDeploymentKind)
 	machineSet.OwnerReferences = append(machineSet.OwnerReferences, newRef)
@@ -303,7 +306,7 @@ func (r *MachineDeploymentReconciler) adoptOrphan(ctx context.Context, deploymen
 }
 
 // getMachineDeploymentsForMachineSet returns a list of MachineDeployments that could potentially match a MachineSet.
-func (r *MachineDeploymentReconciler) getMachineDeploymentsForMachineSet(ctx context.Context, ms *clusterv1.MachineSet) []*clusterv1.MachineDeployment {
+func (r *Reconciler) getMachineDeploymentsForMachineSet(ctx context.Context, ms *clusterv1.MachineSet) []*clusterv1.MachineDeployment {
 	log := ctrl.LoggerFrom(ctx)
 
 	if len(ms.Labels) == 0 {
@@ -337,7 +340,7 @@ func (r *MachineDeploymentReconciler) getMachineDeploymentsForMachineSet(ctx con
 
 // MachineSetToDeployments is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for MachineDeployments that might adopt an orphaned MachineSet.
-func (r *MachineDeploymentReconciler) MachineSetToDeployments(o client.Object) []ctrl.Request {
+func (r *Reconciler) MachineSetToDeployments(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	ms, ok := o.(*clusterv1.MachineSet)
@@ -366,6 +369,35 @@ func (r *MachineDeploymentReconciler) MachineSetToDeployments(o client.Object) [
 	return result
 }
 
-func (r *MachineDeploymentReconciler) shouldAdopt(md *clusterv1.MachineDeployment) bool {
+func (r *Reconciler) shouldAdopt(md *clusterv1.MachineDeployment) bool {
 	return !util.HasOwner(md.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"})
+}
+
+func reconcileExternalTemplateReference(ctx context.Context, c client.Client, apiReader client.Reader, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
+	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
+		return nil
+	}
+
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, c, apiReader, ref); err != nil {
+		return err
+	}
+
+	obj, err := external.Get(ctx, c, ref, cluster.Namespace)
+	if err != nil {
+		return err
+	}
+
+	patchHelper, err := patch.NewHelper(obj, c)
+	if err != nil {
+		return err
+	}
+
+	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+	}))
+
+	return patchHelper.Patch(ctx, obj)
 }

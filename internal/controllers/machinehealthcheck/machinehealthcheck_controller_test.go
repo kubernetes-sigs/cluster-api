@@ -13,7 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package controllers
+package machinehealthcheck
 
 import (
 	"context"
@@ -1804,7 +1804,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 func TestClusterToMachineHealthCheck(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 
-	r := &MachineHealthCheckReconciler{
+	r := &Reconciler{
 		Client: fakeClient,
 	}
 
@@ -1883,7 +1883,7 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 func TestMachineToMachineHealthCheck(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 
-	r := &MachineHealthCheckReconciler{
+	r := &Reconciler{
 		Client: fakeClient,
 	}
 
@@ -1958,7 +1958,7 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 func TestNodeToMachineHealthCheck(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().Build()
 
-	r := &MachineHealthCheckReconciler{
+	r := &Reconciler{
 		Client: fakeClient,
 	}
 
@@ -2589,7 +2589,7 @@ func TestPatchTargets(t *testing.T) {
 		machine2,
 		mhc,
 	).Build()
-	r := &MachineHealthCheckReconciler{
+	r := &Reconciler{
 		Client:   cl,
 		recorder: record.NewFakeRecorder(32),
 		Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: clusterName, Namespace: namespace}, "machinehealthcheck-watchClusterNodes"),

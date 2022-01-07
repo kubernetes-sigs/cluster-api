@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machineset
 
 import (
 	"context"
@@ -67,8 +67,8 @@ var (
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinesets;machinesets/status;machinesets/finalizers,verbs=get;list;watch;create;update;patch;delete
 
-// MachineSetReconciler reconciles a MachineSet object.
-type MachineSetReconciler struct {
+// Reconciler reconciles a MachineSet object.
+type Reconciler struct {
 	Client    client.Client
 	APIReader client.Reader
 	Tracker   *remote.ClusterCacheTracker
@@ -79,7 +79,7 @@ type MachineSetReconciler struct {
 	recorder record.EventRecorder
 }
 
-func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	clusterToMachineSets, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineSetList{}, mgr.GetScheme())
 	if err != nil {
 		return err
@@ -116,7 +116,7 @@ func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 	return nil
 }
 
-func (r *MachineSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	machineSet := &clusterv1.MachineSet{}
@@ -190,7 +190,7 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 	return patchHelper.Patch(ctx, machineSet, options...)
 }
 
-func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, machineSet *clusterv1.MachineSet) (ctrl.Result, error) {
+func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, machineSet *clusterv1.MachineSet) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile MachineSet")
 
@@ -336,7 +336,7 @@ func (r *MachineSetReconciler) reconcile(ctx context.Context, cluster *clusterv1
 }
 
 // syncReplicas scales Machine resources up or down.
-func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine) error {
+func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 	if ms.Spec.Replicas == nil {
 		return errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", ms.Name)
@@ -472,7 +472,7 @@ func (r *MachineSetReconciler) syncReplicas(ctx context.Context, ms *clusterv1.M
 
 // getNewMachine creates a new Machine object. The name of the newly created resource is going
 // to be created by the API server, we set the generateName field.
-func (r *MachineSetReconciler) getNewMachine(machineSet *clusterv1.MachineSet) *clusterv1.Machine {
+func (r *Reconciler) getNewMachine(machineSet *clusterv1.MachineSet) *clusterv1.Machine {
 	gv := clusterv1.GroupVersion
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -505,14 +505,14 @@ func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.M
 }
 
 // adoptOrphan sets the MachineSet as a controller OwnerReference to the Machine.
-func (r *MachineSetReconciler) adoptOrphan(ctx context.Context, machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) error {
+func (r *Reconciler) adoptOrphan(ctx context.Context, machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) error {
 	patch := client.MergeFrom(machine.DeepCopy())
 	newRef := *metav1.NewControllerRef(machineSet, machineSetKind)
 	machine.OwnerReferences = append(machine.OwnerReferences, newRef)
 	return r.Client.Patch(ctx, machine, patch)
 }
 
-func (r *MachineSetReconciler) waitForMachineCreation(ctx context.Context, machineList []*clusterv1.Machine) error {
+func (r *Reconciler) waitForMachineCreation(ctx context.Context, machineList []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	for i := 0; i < len(machineList); i++ {
@@ -538,7 +538,7 @@ func (r *MachineSetReconciler) waitForMachineCreation(ctx context.Context, machi
 	return nil
 }
 
-func (r *MachineSetReconciler) waitForMachineDeletion(ctx context.Context, machineList []*clusterv1.Machine) error {
+func (r *Reconciler) waitForMachineDeletion(ctx context.Context, machineList []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	for i := 0; i < len(machineList); i++ {
@@ -563,7 +563,7 @@ func (r *MachineSetReconciler) waitForMachineDeletion(ctx context.Context, machi
 
 // MachineToMachineSets is a handler.ToRequestsFunc to be used to enqeue requests for reconciliation
 // for MachineSets that might adopt an orphaned Machine.
-func (r *MachineSetReconciler) MachineToMachineSets(o client.Object) []ctrl.Request {
+func (r *Reconciler) MachineToMachineSets(o client.Object) []ctrl.Request {
 	ctx := context.Background()
 	// This won't log unless the global logger is set
 	log := ctrl.LoggerFrom(ctx, "object", client.ObjectKeyFromObject(o))
@@ -599,7 +599,7 @@ func (r *MachineSetReconciler) MachineToMachineSets(o client.Object) []ctrl.Requ
 	return result
 }
 
-func (r *MachineSetReconciler) getMachineSetsForMachine(ctx context.Context, m *clusterv1.Machine) ([]*clusterv1.MachineSet, error) {
+func (r *Reconciler) getMachineSetsForMachine(ctx context.Context, m *clusterv1.Machine) ([]*clusterv1.MachineSet, error) {
 	if len(m.Labels) == 0 {
 		return nil, fmt.Errorf("machine %v has no labels, this is unexpected", client.ObjectKeyFromObject(m))
 	}
@@ -620,13 +620,13 @@ func (r *MachineSetReconciler) getMachineSetsForMachine(ctx context.Context, m *
 	return mss, nil
 }
 
-func (r *MachineSetReconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
+func (r *Reconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 	return !util.HasOwner(ms.OwnerReferences, clusterv1.GroupVersion.String(), []string{"MachineDeployment", "Cluster"})
 }
 
 // updateStatus updates the Status field for the MachineSet
 // It checks for the current state of the replicas and updates the Status of the MachineSet.
-func (r *MachineSetReconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) error {
+func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 	newStatus := ms.Status.DeepCopy()
 
@@ -723,7 +723,7 @@ func (r *MachineSetReconciler) updateStatus(ctx context.Context, cluster *cluste
 	return nil
 }
 
-func (r *MachineSetReconciler) getMachineNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*corev1.Node, error) {
+func (r *Reconciler) getMachineNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (*corev1.Node, error) {
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return nil, err

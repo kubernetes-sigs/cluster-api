@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinedeployment
 
 import (
 	"context"
@@ -31,8 +31,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/internal/mdutil"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -370,7 +370,7 @@ func TestScaleMachineSet(t *testing.T) {
 				tc.machineSet,
 			}
 
-			r := &MachineDeploymentReconciler{
+			r := &Reconciler{
 				Client:   fake.NewClientBuilder().WithObjects(resources...).Build(),
 				recorder: record.NewFakeRecorder(32),
 			}
@@ -483,7 +483,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
-			r := &MachineDeploymentReconciler{
+			r := &Reconciler{
 				Client:   fake.NewClientBuilder().Build(),
 				recorder: record.NewFakeRecorder(32),
 			}

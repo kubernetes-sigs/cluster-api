@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machineset
 
 import (
 	"testing"
@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-var _ reconcile.Reconciler = &MachineSetReconciler{}
+var _ reconcile.Reconciler = &Reconciler{}
 
 func TestMachineSetReconciler(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) (*corev1.Namespace, *clusterv1.Cluster) {
@@ -409,7 +409,7 @@ func TestMachineSetOwnerReference(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			msr := &MachineSetReconciler{
+			msr := &Reconciler{
 				Client: fake.NewClientBuilder().WithObjects(
 					testCluster,
 					ms1,
@@ -461,7 +461,7 @@ func TestMachineSetReconcile(t *testing.T) {
 			NamespacedName: util.ObjectKey(ms),
 		}
 
-		msr := &MachineSetReconciler{
+		msr := &Reconciler{
 			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).Build(),
 			recorder: record.NewFakeRecorder(32),
 		}
@@ -483,7 +483,7 @@ func TestMachineSetReconcile(t *testing.T) {
 		}
 
 		rec := record.NewFakeRecorder(32)
-		msr := &MachineSetReconciler{
+		msr := &Reconciler{
 			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).Build(),
 			recorder: rec,
 		}
@@ -504,7 +504,7 @@ func TestMachineSetReconcile(t *testing.T) {
 		}
 
 		rec := record.NewFakeRecorder(32)
-		msr := &MachineSetReconciler{
+		msr := &Reconciler{
 			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).Build(),
 			recorder: rec,
 		}
@@ -590,7 +590,7 @@ func TestMachineSetToMachines(t *testing.T) {
 		},
 	}
 
-	r := &MachineSetReconciler{
+	r := &Reconciler{
 		Client: fake.NewClientBuilder().WithObjects(append(machineSetList, &m, &m2, &m3)...).Build(),
 	}
 
@@ -733,7 +733,7 @@ func TestAdoptOrphan(t *testing.T) {
 		},
 	}
 
-	r := &MachineSetReconciler{
+	r := &Reconciler{
 		Client: fake.NewClientBuilder().WithObjects(&m).Build(),
 	}
 	for _, tc := range testCases {
@@ -828,7 +828,7 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 	}
 	fakeClient := fake.NewClientBuilder().WithObjects(cluster, ms, builder.GenericInfrastructureMachineTemplateCRD.DeepCopy()).Build()
 
-	msr := &MachineSetReconciler{
+	msr := &Reconciler{
 		Client:   fakeClient,
 		recorder: record.NewFakeRecorder(32),
 	}
@@ -885,7 +885,7 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			msr := &MachineSetReconciler{
+			msr := &Reconciler{
 				Client:   fake.NewClientBuilder().WithObjects().Build(),
 				recorder: record.NewFakeRecorder(32),
 			}

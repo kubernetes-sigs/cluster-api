@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinehealthcheck
 
 import (
 	"context"
@@ -188,7 +188,7 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 
 // getTargetsFromMHC uses the MachineHealthCheck's selector to fetch machines
 // and their nodes targeted by the health check, ready for health checking.
-func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, clusterClient client.Reader, cluster *clusterv1.Cluster, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
+func (r *Reconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, clusterClient client.Reader, cluster *clusterv1.Cluster, mhc *clusterv1.MachineHealthCheck) ([]healthCheckTarget, error) {
 	machines, err := r.getMachinesFromMHC(ctx, mhc)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting machines from MachineHealthCheck")
@@ -232,7 +232,7 @@ func (r *MachineHealthCheckReconciler) getTargetsFromMHC(ctx context.Context, lo
 
 // getMachinesFromMHC fetches Machines matched by the MachineHealthCheck's
 // label selector.
-func (r *MachineHealthCheckReconciler) getMachinesFromMHC(ctx context.Context, mhc *clusterv1.MachineHealthCheck) ([]clusterv1.Machine, error) {
+func (r *Reconciler) getMachinesFromMHC(ctx context.Context, mhc *clusterv1.MachineHealthCheck) ([]clusterv1.Machine, error) {
 	selector, err := metav1.LabelSelectorAsSelector(metav1.CloneSelectorAndAddLabel(
 		&mhc.Spec.Selector, clusterv1.ClusterLabelName, mhc.Spec.ClusterName,
 	))
@@ -254,7 +254,7 @@ func (r *MachineHealthCheckReconciler) getMachinesFromMHC(ctx context.Context, m
 
 // getNodeFromMachine fetches the node from a local or remote cluster for a
 // given machine.
-func (r *MachineHealthCheckReconciler) getNodeFromMachine(ctx context.Context, clusterClient client.Reader, machine *clusterv1.Machine) (*corev1.Node, error) {
+func (r *Reconciler) getNodeFromMachine(ctx context.Context, clusterClient client.Reader, machine *clusterv1.Machine) (*corev1.Node, error) {
 	if machine.Status.NodeRef == nil {
 		return nil, nil
 	}
@@ -273,7 +273,7 @@ func (r *MachineHealthCheckReconciler) getNodeFromMachine(ctx context.Context, c
 
 // healthCheckTargets health checks a slice of targets
 // and gives a data to measure the average health.
-func (r *MachineHealthCheckReconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger, timeoutForMachineToHaveNode metav1.Duration) ([]healthCheckTarget, []healthCheckTarget, []time.Duration) {
+func (r *Reconciler) healthCheckTargets(targets []healthCheckTarget, logger logr.Logger, timeoutForMachineToHaveNode metav1.Duration) ([]healthCheckTarget, []healthCheckTarget, []time.Duration) {
 	var nextCheckTimes []time.Duration
 	var unhealthy []healthCheckTarget
 	var healthy []healthCheckTarget

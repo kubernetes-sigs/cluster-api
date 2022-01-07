@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinedeployment
 
 import (
 	"strconv"
@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/internal/mdutil"
+	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 )
 
 func TestReconcileNewMachineSet(t *testing.T) {
@@ -188,7 +188,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 				resources = append(resources, allMachineSets[key])
 			}
 
-			r := &MachineDeploymentReconciler{
+			r := &Reconciler{
 				Client:   fake.NewClientBuilder().WithObjects(resources...).Build(),
 				recorder: record.NewFakeRecorder(32),
 			}
@@ -380,7 +380,7 @@ func TestReconcileOldMachineSets(t *testing.T) {
 				resources = append(resources, allMachineSets[key])
 			}
 
-			r := &MachineDeploymentReconciler{
+			r := &Reconciler{
 				Client:   fake.NewClientBuilder().WithObjects(resources...).Build(),
 				recorder: record.NewFakeRecorder(32),
 			}

@@ -1,7 +1,5 @@
-# Clusterclass operations
-Clusterclass and managed topologies can be used to control a number of advanced behaviors in Cluster API. 
+# Changing a ClusterClass
 
-##  Changing a ClusterClass
 When you change a ClusterClass, the system validates the required changes according to the [compatibility rules defined in the ClusterClass proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/202105256-cluster-class-and-managed-topologies.md#clusterclass-compatibility).
 
 According to [Cluster API operational practices](https://cluster-api.sigs.k8s.io/tasks/updating-machine-templates.html), the recommended way for updating templates is by template rotation (create a new template, update the template reference in the ClusterClass, and then delete the old template).
@@ -31,6 +29,4 @@ Once the changes are applied, the topology controller reacts as described in the
 | workers.machineDeployments[].infrastructure.ref | If the referenced template has changes only in metadata labels or annotations, the corresponding InfrastructureMachineTemplates are updated (in place update). <br /> <br />If the referenced template has changes in the spec:<br />  -  Corresponding InfrastructureMachineTemplate are rotated (create new, delete old).<br />  -  Corresponding MachineDeployments objects are updated with the reference to the newly created template (in place update). <br />  - The corresponding worker Machines are updated accordingly (rollout) |
 
 
-Note: In case a provider supports in place template mutations, the Cluster API topology controller will adapt to them at the next reconciliation, but the system is not watching for those specific changes. When the underlying template is updated in this way the changes may not be reflected immediately, but will be put in place at the next full reconciliation. The maximum time for the next reconciliation to take place is related to the CAPI controller sync period - 10 minutes by default. 
-
-
+Note: In case a provider supports in place template mutations, the Cluster API topology controller will adapt to them at the next reconciliation, but the system is not watching for those specific changes. When the underlying template is updated in this way the changes may not be reflected immediately, but will be put in place at the next full reconciliation. The maximum time for the next reconciliation to take place is related to the CAPI controller sync period - 10 minutes by default.

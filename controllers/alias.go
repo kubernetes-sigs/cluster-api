@@ -24,10 +24,14 @@ import (
 
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	clustercontroller "sigs.k8s.io/cluster-api/internal/controllers/cluster"
+	clusterclasscontroller "sigs.k8s.io/cluster-api/internal/controllers/clusterclass"
 	machinecontroller "sigs.k8s.io/cluster-api/internal/controllers/machine"
 	machinedeploymentcontroller "sigs.k8s.io/cluster-api/internal/controllers/machinedeployment"
 	machinehealthcheckcontroller "sigs.k8s.io/cluster-api/internal/controllers/machinehealthcheck"
 	machinesetcontroller "sigs.k8s.io/cluster-api/internal/controllers/machineset"
+	clustertopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster"
+	machinedeploymenttopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/machinedeployment"
+	machinesettopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/machineset"
 )
 
 // Following types provides access to reconcilers implemented in internal/controllers, thus
@@ -119,5 +123,91 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 		Client:           r.Client,
 		Tracker:          r.Tracker,
 		WatchFilterValue: r.WatchFilterValue,
+	}).SetupWithManager(ctx, mgr, options)
+}
+
+// ClusterTopologyReconciler reconciles a managed topology for a Cluster object.
+type ClusterTopologyReconciler struct {
+	Client client.Client
+	// APIReader is used to list MachineSets directly via the API server to avoid
+	// race conditions caused by an outdated cache.
+	APIReader client.Reader
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
+	WatchFilterValue string
+
+	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
+	// thus allowing to optimize reads for templates or provider specific objects in a managed topology.
+	UnstructuredCachingClient client.Client
+}
+
+func (r *ClusterTopologyReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	return (&clustertopologycontroller.Reconciler{
+		Client:                    r.Client,
+		APIReader:                 r.APIReader,
+		UnstructuredCachingClient: r.UnstructuredCachingClient,
+		WatchFilterValue:          r.WatchFilterValue,
+	}).SetupWithManager(ctx, mgr, options)
+}
+
+// MachineDeploymentTopologyReconciler deletes referenced templates during deletion of topology-owned MachineDeployments.
+// The templates are only deleted, if they are not used in other MachineDeployments or MachineSets which are not in deleting state,
+// i.e. the templates would otherwise be orphaned after the MachineDeployment deletion completes.
+// Note: To achieve this the cluster topology controller sets a finalizer to hook into the MachineDeployment deletions.
+type MachineDeploymentTopologyReconciler struct {
+	Client client.Client
+	// APIReader is used to list MachineSets directly via the API server to avoid
+	// race conditions caused by an outdated cache.
+	APIReader        client.Reader
+	WatchFilterValue string
+}
+
+func (r *MachineDeploymentTopologyReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	return (&machinedeploymenttopologycontroller.Reconciler{
+		Client:           r.Client,
+		APIReader:        r.APIReader,
+		WatchFilterValue: r.WatchFilterValue,
+	}).SetupWithManager(ctx, mgr, options)
+}
+
+// MachineSetTopologyReconciler deletes referenced templates during deletion of topology-owned MachineSets.
+// The templates are only deleted, if they are not used in other MachineDeployments or MachineSets which are not in deleting state,
+// i.e. the templates would otherwise be orphaned after the MachineSet deletion completes.
+// Note: To achieve this the reconciler sets a finalizer to hook into the MachineSet deletions.
+type MachineSetTopologyReconciler struct {
+	Client client.Client
+	// APIReader is used to list MachineSets directly via the API server to avoid
+	// race conditions caused by an outdated cache.
+	APIReader        client.Reader
+	WatchFilterValue string
+}
+
+func (r *MachineSetTopologyReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	return (&machinesettopologycontroller.Reconciler{
+		Client:           r.Client,
+		APIReader:        r.APIReader,
+		WatchFilterValue: r.WatchFilterValue,
+	}).SetupWithManager(ctx, mgr, options)
+}
+
+// ClusterClassReconciler reconciles the ClusterClass object.
+type ClusterClassReconciler struct {
+	Client    client.Client
+	APIReader client.Reader
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
+	WatchFilterValue string
+
+	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
+	// thus allowing to optimize reads for templates or provider specific objects.
+	UnstructuredCachingClient client.Client
+}
+
+func (r *ClusterClassReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	return (&clusterclasscontroller.Reconciler{
+		Client:                    r.Client,
+		APIReader:                 r.APIReader,
+		UnstructuredCachingClient: r.UnstructuredCachingClient,
+		WatchFilterValue:          r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

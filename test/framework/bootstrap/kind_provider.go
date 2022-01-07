@@ -74,6 +74,13 @@ func WithIPv6Family() KindClusterOption {
 	})
 }
 
+// LogFolder implements a New Option that instruct the kindClusterProvider to dump bootstrap logs in a folder in case of errors.
+func LogFolder(path string) KindClusterOption {
+	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
+		k.logFolder = path
+	})
+}
+
 // NewKindClusterProvider returns a ClusterProvider that can create a kind cluster.
 func NewKindClusterProvider(name string, options ...KindClusterOption) *KindClusterProvider {
 	Expect(name).ToNot(BeEmpty(), "name is required for NewKindClusterProvider")
@@ -94,6 +101,7 @@ type KindClusterProvider struct {
 	kubeconfigPath string
 	nodeImage      string
 	ipFamily       clusterv1.ClusterIPFamily
+	logFolder      string
 }
 
 // Create a Kubernetes cluster using kind.
@@ -141,9 +149,18 @@ func (k *KindClusterProvider) createKindCluster() {
 		nodeImage = k.nodeImage
 	}
 	kindCreateOptions = append(kindCreateOptions, kind.CreateWithNodeImage(nodeImage))
+	kindCreateOptions = append(kindCreateOptions, kind.CreateWithRetain(true))
 
-	err := kind.NewProvider(kind.ProviderWithLogger(cmd.NewLogger())).Create(k.name, kindCreateOptions...)
+	provider := kind.NewProvider(kind.ProviderWithLogger(cmd.NewLogger()))
+	err := provider.Create(k.name, kindCreateOptions...)
 	if err != nil {
+		// if requested, dump kind logs
+		if k.logFolder != "" {
+			if err := provider.CollectLogs(k.name, k.logFolder); err != nil {
+				log.Logf("Failed to collect logs from kind: %v", err)
+			}
+		}
+
 		errStr := fmt.Sprintf("Failed to create kind cluster %q: %v", k.name, err)
 		// Extract the details of the RunError, if the cluster creation was triggered by a RunError.
 		var runErr *exec.RunError

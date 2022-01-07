@@ -49,6 +49,9 @@ type CreateKindBootstrapClusterAndLoadImagesInput struct {
 
 	// IPFamily is either ipv4 or ipv6. Default is ipv4.
 	IPFamily string
+
+	// LogFolder where to dump logs in case of errors
+	LogFolder string
 }
 
 // CreateKindBootstrapClusterAndLoadImages returns a new Kubernetes cluster with pre-loaded images.
@@ -67,6 +70,9 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 	}
 	if input.IPFamily == "IPv6" {
 		options = append(options, WithIPv6Family())
+	}
+	if input.LogFolder != "" {
+		options = append(options, LogFolder(input.LogFolder))
 	}
 
 	clusterProvider := NewKindClusterProvider(input.Name, options...)

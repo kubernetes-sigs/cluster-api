@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinedeployment
 
 import (
 	"testing"
@@ -39,7 +39,7 @@ const (
 	machineDeploymentNamespace = "md-test"
 )
 
-var _ reconcile.Reconciler = &MachineDeploymentReconciler{}
+var _ reconcile.Reconciler = &Reconciler{}
 
 func TestMachineDeploymentReconciler(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) (*corev1.Namespace, *clusterv1.Cluster) {
@@ -497,7 +497,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 		},
 	}
 
-	r := &MachineDeploymentReconciler{
+	r := &Reconciler{
 		Client:   fake.NewClientBuilder().WithObjects(machineDeplopymentList...).Build(),
 		recorder: record.NewFakeRecorder(32),
 	}
@@ -562,7 +562,7 @@ func TestGetMachineDeploymentsForMachineSet(t *testing.T) {
 		},
 	}
 
-	r := &MachineDeploymentReconciler{
+	r := &Reconciler{
 		Client:   fake.NewClientBuilder().WithObjects(append(machineDeploymentList, &ms1, &ms2)...).Build(),
 		recorder: record.NewFakeRecorder(32),
 	}
@@ -720,7 +720,7 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			r := &MachineDeploymentReconciler{
+			r := &Reconciler{
 				Client:   fake.NewClientBuilder().WithObjects(machineSetList...).Build(),
 				recorder: record.NewFakeRecorder(32),
 			}

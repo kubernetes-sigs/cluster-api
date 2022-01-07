@@ -20,7 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/internal/mdutil"
+	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 )
 
 // ClusterState holds all the objects representing the state of a managed Cluster topology.

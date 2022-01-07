@@ -25,6 +25,9 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	clustercontroller "sigs.k8s.io/cluster-api/internal/controllers/cluster"
 	machinecontroller "sigs.k8s.io/cluster-api/internal/controllers/machine"
+	machinedeploymentcontroller "sigs.k8s.io/cluster-api/internal/controllers/machinedeployment"
+	machinehealthcheckcontroller "sigs.k8s.io/cluster-api/internal/controllers/machinehealthcheck"
+	machinesetcontroller "sigs.k8s.io/cluster-api/internal/controllers/machineset"
 )
 
 // Following types provides access to reconcilers implemented in internal/controllers, thus
@@ -61,6 +64,59 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 	return (&machinecontroller.Reconciler{
 		Client:           r.Client,
 		APIReader:        r.APIReader,
+		Tracker:          r.Tracker,
+		WatchFilterValue: r.WatchFilterValue,
+	}).SetupWithManager(ctx, mgr, options)
+}
+
+// MachineSetReconciler reconciles a MachineSet object.
+type MachineSetReconciler struct {
+	Client    client.Client
+	APIReader client.Reader
+	Tracker   *remote.ClusterCacheTracker
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
+	WatchFilterValue string
+}
+
+func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	return (&machinesetcontroller.Reconciler{
+		Client:           r.Client,
+		APIReader:        r.APIReader,
+		Tracker:          r.Tracker,
+		WatchFilterValue: r.WatchFilterValue,
+	}).SetupWithManager(ctx, mgr, options)
+}
+
+// MachineDeploymentReconciler reconciles a MachineDeployment object.
+type MachineDeploymentReconciler struct {
+	Client    client.Client
+	APIReader client.Reader
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
+	WatchFilterValue string
+}
+
+func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	return (&machinedeploymentcontroller.Reconciler{
+		Client:           r.Client,
+		APIReader:        r.APIReader,
+		WatchFilterValue: r.WatchFilterValue,
+	}).SetupWithManager(ctx, mgr, options)
+}
+
+// MachineHealthCheckReconciler reconciles a MachineHealthCheck object.
+type MachineHealthCheckReconciler struct {
+	Client  client.Client
+	Tracker *remote.ClusterCacheTracker
+
+	// WatchFilterValue is the label value used to filter events prior to reconciliation.
+	WatchFilterValue string
+}
+
+func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	return (&machinehealthcheckcontroller.Reconciler{
+		Client:           r.Client,
 		Tracker:          r.Tracker,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)

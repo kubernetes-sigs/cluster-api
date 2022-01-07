@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinehealthcheck
 
 import (
 	"context"
@@ -71,8 +71,8 @@ const (
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch;delete
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machinehealthchecks;machinehealthchecks/status;machinehealthchecks/finalizers,verbs=get;list;watch;update;patch
 
-// MachineHealthCheckReconciler reconciles a MachineHealthCheck object.
-type MachineHealthCheckReconciler struct {
+// Reconciler reconciles a MachineHealthCheck object.
+type Reconciler struct {
 	Client  client.Client
 	Tracker *remote.ClusterCacheTracker
 
@@ -83,7 +83,7 @@ type MachineHealthCheckReconciler struct {
 	recorder   record.EventRecorder
 }
 
-func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineHealthCheck{}).
 		Watches(
@@ -114,7 +114,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 	return nil
 }
 
-func (r *MachineHealthCheckReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling")
 
@@ -184,7 +184,7 @@ func (r *MachineHealthCheckReconciler) Reconcile(ctx context.Context, req ctrl.R
 	return result, nil
 }
 
-func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger logr.Logger, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
+func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) (ctrl.Result, error) {
 	// Ensure the MachineHealthCheck is owned by the Cluster it belongs to
 	m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),
@@ -332,7 +332,7 @@ func (r *MachineHealthCheckReconciler) reconcile(ctx context.Context, logger log
 }
 
 // patchHealthyTargets patches healthy machines with MachineHealthCheckSucceededCondition.
-func (r *MachineHealthCheckReconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger, healthy []healthCheckTarget, m *clusterv1.MachineHealthCheck) []error {
+func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger, healthy []healthCheckTarget, m *clusterv1.MachineHealthCheck) []error {
 	errList := []error{}
 	for _, t := range healthy {
 		if m.Spec.RemediationTemplate != nil {
@@ -364,7 +364,7 @@ func (r *MachineHealthCheckReconciler) patchHealthyTargets(ctx context.Context, 
 }
 
 // patchUnhealthyTargets patches machines with MachineOwnerRemediatedCondition for remediation.
-func (r *MachineHealthCheckReconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logger, unhealthy []healthCheckTarget, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) []error {
+func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logger, unhealthy []healthCheckTarget, cluster *clusterv1.Cluster, m *clusterv1.MachineHealthCheck) []error {
 	// mark for remediation
 	errList := []error{}
 	for _, t := range unhealthy {
@@ -449,7 +449,7 @@ func (r *MachineHealthCheckReconciler) patchUnhealthyTargets(ctx context.Context
 
 // clusterToMachineHealthCheck maps events from Cluster objects to
 // MachineHealthCheck objects that belong to the Cluster.
-func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o client.Object) []reconcile.Request {
+func (r *Reconciler) clusterToMachineHealthCheck(o client.Object) []reconcile.Request {
 	c, ok := o.(*clusterv1.Cluster)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Cluster, got %T", o))
@@ -476,7 +476,7 @@ func (r *MachineHealthCheckReconciler) clusterToMachineHealthCheck(o client.Obje
 
 // machineToMachineHealthCheck maps events from Machine objects to
 // MachineHealthCheck objects that monitor the given machine.
-func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o client.Object) []reconcile.Request {
+func (r *Reconciler) machineToMachineHealthCheck(o client.Object) []reconcile.Request {
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Machine, got %T", o))
@@ -503,7 +503,7 @@ func (r *MachineHealthCheckReconciler) machineToMachineHealthCheck(o client.Obje
 	return requests
 }
 
-func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o client.Object) []reconcile.Request {
+func (r *Reconciler) nodeToMachineHealthCheck(o client.Object) []reconcile.Request {
 	node, ok := o.(*corev1.Node)
 	if !ok {
 		panic(fmt.Sprintf("Expected a corev1.Node, got %T", o))
@@ -517,7 +517,7 @@ func (r *MachineHealthCheckReconciler) nodeToMachineHealthCheck(o client.Object)
 	return r.machineToMachineHealthCheck(machine)
 }
 
-func (r *MachineHealthCheckReconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
+func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
 	// If there is no tracker, don't watch remote nodes
 	if r.Tracker == nil {
 		return nil
@@ -637,7 +637,7 @@ func unhealthyMachineCount(mhc *clusterv1.MachineHealthCheck) int {
 }
 
 // getExternalRemediationRequest gets reference to External Remediation Request, unstructured object.
-func (r *MachineHealthCheckReconciler) getExternalRemediationRequest(ctx context.Context, m *clusterv1.MachineHealthCheck, machineName string) (*unstructured.Unstructured, error) {
+func (r *Reconciler) getExternalRemediationRequest(ctx context.Context, m *clusterv1.MachineHealthCheck, machineName string) (*unstructured.Unstructured, error) {
 	remediationRef := &corev1.ObjectReference{
 		APIVersion: m.Spec.RemediationTemplate.APIVersion,
 		Kind:       strings.TrimSuffix(m.Spec.RemediationTemplate.Kind, clusterv1.TemplateSuffix),
@@ -652,7 +652,7 @@ func (r *MachineHealthCheckReconciler) getExternalRemediationRequest(ctx context
 
 // externalRemediationRequestExists checks if the External Remediation Request is created
 // for the machine.
-func (r *MachineHealthCheckReconciler) externalRemediationRequestExists(ctx context.Context, m *clusterv1.MachineHealthCheck, machineName string) bool {
+func (r *Reconciler) externalRemediationRequestExists(ctx context.Context, m *clusterv1.MachineHealthCheck, machineName string) bool {
 	remediationReq, err := r.getExternalRemediationRequest(ctx, m, machineName)
 	if err != nil {
 		return false

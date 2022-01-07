@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package controllers
+package machinedeployment
 
 import (
 	"context"
@@ -26,12 +26,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/internal/mdutil"
+	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // rolloutOnDelete implements the logic for the OnDelete MachineDeploymentStrategyType.
-func (r *MachineDeploymentReconciler) rolloutOnDelete(ctx context.Context, d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) error {
+func (r *Reconciler) rolloutOnDelete(ctx context.Context, d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) error {
 	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, d, msList, true)
 	if err != nil {
 		return err
@@ -74,7 +74,7 @@ func (r *MachineDeploymentReconciler) rolloutOnDelete(ctx context.Context, d *cl
 }
 
 // reconcileOldMachineSetsOnDelete handles reconciliation of Old MachineSets associated with the MachineDeployment in the OnDelete MachineDeploymentStrategyType.
-func (r *MachineDeploymentReconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs []*clusterv1.MachineSet, allMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs []*clusterv1.MachineSet, allMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
 	log := ctrl.LoggerFrom(ctx)
 	if deployment.Spec.Replicas == nil {
 		return errors.Errorf("spec replicas for MachineDeployment %q/%q is nil, this is unexpected",
@@ -161,7 +161,7 @@ func (r *MachineDeploymentReconciler) reconcileOldMachineSetsOnDelete(ctx contex
 }
 
 // reconcileNewMachineSetOnDelete handles reconciliation of the latest MachineSet associated with the MachineDeployment in the OnDelete MachineDeploymentStrategyType.
-func (r *MachineDeploymentReconciler) reconcileNewMachineSetOnDelete(ctx context.Context, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
 	// logic same as reconcile logic for RollingUpdate
 	log := ctrl.LoggerFrom(ctx)
 	if newMS.Annotations != nil {

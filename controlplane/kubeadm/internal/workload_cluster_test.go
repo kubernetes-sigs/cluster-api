@@ -38,6 +38,78 @@ import (
 	"sigs.k8s.io/cluster-api/util/yaml"
 )
 
+func TestGetControlPlaneNodes(t *testing.T) {
+	tests := []struct {
+		name          string
+		nodes         []corev1.Node
+		expectedNodes []string
+	}{
+		{
+			name: "Return control plane nodes",
+			nodes: []corev1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "control-plane-node-with-old-label",
+						Labels: map[string]string{
+							labelNodeRoleOldControlPlane: "",
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "control-plane-node-with-both-labels",
+						Labels: map[string]string{
+							labelNodeRoleOldControlPlane: "",
+							labelNodeRoleControlPlane:    "",
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "control-plane-node-with-new-label",
+						Labels: map[string]string{
+							labelNodeRoleControlPlane: "",
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:   "worker-node",
+						Labels: map[string]string{},
+					},
+				},
+			},
+			expectedNodes: []string{
+				"control-plane-node-with-both-labels",
+				"control-plane-node-with-old-label",
+				"control-plane-node-with-new-label",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			objs := []client.Object{}
+			for i := range tt.nodes {
+				objs = append(objs, &tt.nodes[i])
+			}
+			fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
+
+			w := &Workload{
+				Client: fakeClient,
+			}
+			nodes, err := w.getControlPlaneNodes(ctx)
+			g.Expect(err).ToNot(HaveOccurred())
+			var actualNodes []string
+			for _, n := range nodes.Items {
+				actualNodes = append(actualNodes, n.Name)
+			}
+			g.Expect(actualNodes).To(Equal(tt.expectedNodes))
+		})
+	}
+}
+
 func TestUpdateKubeProxyImageInfo(t *testing.T) {
 	tests := []struct {
 		name        string

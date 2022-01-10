@@ -1516,7 +1516,7 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
-			Labels: map[string]string{"node-role.kubernetes.io/master": ""},
+			Labels: map[string]string{"node-role.kubernetes.io/control-plane": ""},
 		},
 	}
 

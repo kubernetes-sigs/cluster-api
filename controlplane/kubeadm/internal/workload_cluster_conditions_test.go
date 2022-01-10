@@ -980,6 +980,9 @@ func fakeNode(name string, options ...fakeNodeOption) *corev1.Node {
 	p := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: name,
+			Labels: map[string]string{
+				labelNodeRoleControlPlane: "",
+			},
 		},
 	}
 	for _, opt := range options {

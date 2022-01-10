@@ -60,7 +60,11 @@ func NewHelper(original, modified client.Object, c client.Client, opts ...Helper
 
 	// Infer the list of paths managed by the topology controller in the previous patch operation;
 	// changes to those paths are going to be considered authoritative.
-	helperOptions.managedPaths = getManagedPaths(original)
+	managedPaths, err := getManagedPaths(original)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to marshal original object to json")
+	}
+	helperOptions.managedPaths = managedPaths
 
 	// Convert the input objects to json.
 	originalJSON, err := json.Marshal(original)

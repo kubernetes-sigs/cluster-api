@@ -17,8 +17,11 @@ limitations under the License.
 package mergepatch
 
 import (
-	"sort"
-	"strings"
+	"bytes"
+	"compress/gzip"
+	"encoding/base64"
+	"encoding/json"
+	"io"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -26,12 +29,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
-)
-
-const (
-	managedPathSeparator  = "."
-	managedPathDotReplace = "%"
-	managedFieldSeparator = ","
 )
 
 // DeepCopyWithManagedFieldAnnotation returns a copy of the object with an annotation
@@ -50,33 +47,7 @@ func deepCopyWithManagedFieldAnnotation(obj client.Object, ignorePaths []contrac
 	return objWithManagedFieldAnnotation, nil
 }
 
-// getManagedPaths infers the list of paths managed by the topology controller in the previous patch operation
-// by parsing the value of the managed field annotation.
-// NOTE: if for any reason the annotation is missing, the patch helper will fall back on standard
-// two-way merge behavior.
-func getManagedPaths(obj client.Object) []contract.Path {
-	// Gets the managed field annotation from the object.
-	managedFieldAnnotation := obj.GetAnnotations()[clusterv1.ClusterTopologyManagedFieldsAnnotation]
-
-	// Parses the managed field annotation value into a list of paths.
-	// NOTE: we are prepending "spec" to the paths to restore the correct absolute path inside the object.
-	managedFields := strings.Split(managedFieldAnnotation, managedFieldSeparator)
-	paths := make([]contract.Path, 0, len(managedFields))
-	for _, managedField := range managedFields {
-		if strings.TrimSpace(managedField) == "" {
-			continue
-		}
-
-		path := contract.Path{"spec"}
-		for _, f := range strings.Split(managedField, managedPathSeparator) {
-			path = append(path, strings.TrimSpace(strings.ReplaceAll(f, managedPathDotReplace, managedPathSeparator)))
-		}
-		paths = append(paths, path)
-	}
-	return paths
-}
-
-// Stores the list of paths managed by the topology controller into the managed field annotation.
+// storeManagedPaths stores the list of paths managed by the topology controller into the managed field annotation.
 // NOTE: The topology controller is only concerned about managed paths in the spec; given that
 // we are dropping spec. from the result to reduce verbosity of the generated annotation.
 // NOTE: Managed paths are relevant only for unstructured objects where it is not possible
@@ -91,69 +62,154 @@ func storeManagedPaths(obj client.Object, ignorePaths []contract.Path) error {
 	}
 
 	// Gets the object spec.
-	spec, ok, err := unstructured.NestedMap(u.UnstructuredContent(), "spec")
+	spec, _, err := unstructured.NestedMap(u.UnstructuredContent(), "spec")
 	if err != nil {
 		return errors.Wrap(err, "failed to get object spec")
 	}
 
-	// Build a string representation of the paths under spec which are being managed by the object (the fields
-	// a topology is expressing an opinion/value on, minus the ones we are explicitly ignoring).
-	managedFields := ""
-	if ok {
-		s := []string{}
-		paths := paths([]string{}, spec)
-		for _, p := range paths {
-			ignore := false
-			pathString := strings.Join(p, managedPathSeparator)
-			for _, i := range ignorePaths {
-				if i[0] != "spec" {
-					continue
-				}
-				ignorePathString := strings.Join(i[1:], managedPathSeparator)
-				if pathString == ignorePathString || strings.HasPrefix(pathString, ignorePathString+managedPathSeparator) {
-					ignore = true
-					break
-				}
-			}
-			if !ignore {
-				s = append(s, strings.Join(p, managedPathSeparator))
-			}
-		}
+	// Gets a map with the key of the fields we are going to set into spec.
+	managedFieldsMap := toManagedFieldsMap(spec, specIgnorePaths(ignorePaths))
 
-		// Sort paths to get a predictable order (useful for readability and testing, not relevant at parse time).
-		sort.Strings(s)
-
-		// Concatenate all the paths in a single string.
-		// NOTE: add an extra space between fields for better readability (not relevant at parse time).
-		managedFields = strings.Join(s, managedFieldSeparator+" ")
+	// Gets the annotation for the given map.
+	managedFieldAnnotation, err := toManagedFieldAnnotation(managedFieldsMap)
+	if err != nil {
+		return err
 	}
 
-	// Stores the list of managed paths in an annotation for
+	// Store the managed paths in an annotation.
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		annotations = make(map[string]string, 1)
 	}
-	annotations[clusterv1.ClusterTopologyManagedFieldsAnnotation] = managedFields
+	annotations[clusterv1.ClusterTopologyManagedFieldsAnnotation] = managedFieldAnnotation
 	obj.SetAnnotations(annotations)
 
 	return nil
 }
 
-// paths builds a slice of paths that exists in the unstructured content.
-func paths(path contract.Path, unstructuredContent map[string]interface{}) []contract.Path {
+// specIgnorePaths returns ignore paths that apply to spec.
+func specIgnorePaths(ignorePaths []contract.Path) []contract.Path {
+	specPaths := make([]contract.Path, 0, len(ignorePaths))
+	for _, i := range ignorePaths {
+		if i[0] == "spec" && len(i) > 1 {
+			specPaths = append(specPaths, i[1:])
+		}
+	}
+	return specPaths
+}
+
+// toManagedFieldsMap returns a map with the key of the fields we are going to set into spec.
+// Note: we are dropping ignorePaths.
+func toManagedFieldsMap(m map[string]interface{}, ignorePaths []contract.Path) map[string]interface{} {
+	r := make(map[string]interface{})
+	for k, v := range m {
+		// Drop the key if it matches ignore paths.
+		ignore := false
+		for _, i := range ignorePaths {
+			if i[0] == k && len(i) == 1 {
+				ignore = true
+			}
+		}
+		if ignore {
+			continue
+		}
+
+		// If the field has nested values, process them.
+		nestedV := make(map[string]interface{})
+		if nestedM, ok := v.(map[string]interface{}); ok {
+			nestedIgnorePaths := make([]contract.Path, 0)
+			for _, i := range ignorePaths {
+				if i[0] == k && len(i) > 1 {
+					nestedIgnorePaths = append(nestedIgnorePaths, i[1:])
+				}
+			}
+			nestedV = toManagedFieldsMap(nestedM, nestedIgnorePaths)
+		}
+		r[k] = nestedV
+	}
+	return r
+}
+
+// managedFieldAnnotation returns a managed field annotation for a given managedFieldsMap.
+func toManagedFieldAnnotation(managedFieldsMap map[string]interface{}) (string, error) {
+	if len(managedFieldsMap) == 0 {
+		return "", nil
+	}
+
+	// Converts to json.
+	managedFieldsJSON, err := json.Marshal(managedFieldsMap)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to marshal managed fields")
+	}
+
+	// gzip and base64 encode
+	var managedFieldsJSONGZIP bytes.Buffer
+	zw := gzip.NewWriter(&managedFieldsJSONGZIP)
+	if _, err := zw.Write(managedFieldsJSON); err != nil {
+		return "", errors.Wrap(err, "failed to write managed fields to gzip writer")
+	}
+	if err := zw.Close(); err != nil {
+		return "", errors.Wrap(err, "failed to close gzip writer for managed fields")
+	}
+	managedFields := base64.StdEncoding.EncodeToString(managedFieldsJSONGZIP.Bytes())
+	return managedFields, nil
+}
+
+// getManagedPaths infers the list of paths managed by the topology controller in the previous patch operation
+// by parsing the value of the managed field annotation.
+// NOTE: if for any reason the annotation is missing, the patch helper will fall back on standard
+// two-way merge behavior.
+func getManagedPaths(obj client.Object) ([]contract.Path, error) {
+	// Gets the managed field annotation from the object.
+	managedFieldAnnotation := obj.GetAnnotations()[clusterv1.ClusterTopologyManagedFieldsAnnotation]
+
+	if managedFieldAnnotation == "" {
+		return nil, nil
+	}
+
+	managedFieldsJSONGZIP, err := base64.StdEncoding.DecodeString(managedFieldAnnotation)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to decode managed fields")
+	}
+
+	var managedFieldsJSON bytes.Buffer
+	zr, err := gzip.NewReader(bytes.NewReader(managedFieldsJSONGZIP))
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create gzip reader for managed fields")
+	}
+
+	if _, err := io.Copy(&managedFieldsJSON, zr); err != nil { //nolint:gosec
+		return nil, errors.Wrap(err, "failed to copy from gzip reader")
+	}
+
+	if err := zr.Close(); err != nil {
+		return nil, errors.Wrap(err, "failed to close gzip reader for managed fields")
+	}
+
+	managedFieldsMap := make(map[string]interface{})
+	if err := json.Unmarshal(managedFieldsJSON.Bytes(), &managedFieldsMap); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal managed fields")
+	}
+
+	paths := flattenManagePaths([]string{"spec"}, managedFieldsMap)
+
+	return paths, nil
+}
+
+// flattenManagePaths builds a slice of paths from a managedFieldMap.
+func flattenManagePaths(path contract.Path, unstructuredContent map[string]interface{}) []contract.Path {
 	allPaths := []contract.Path{}
 	for k, m := range unstructuredContent {
-		key := strings.ReplaceAll(k, managedPathSeparator, managedPathDotReplace)
 		nested, ok := m.(map[string]interface{})
-		if !ok {
+		if ok && len(nested) == 0 {
 			// We have to use a copy of path, because otherwise the slice we append to
 			// allPaths would be overwritten in another iteration.
 			tmp := make([]string, len(path))
 			copy(tmp, path)
-			allPaths = append(allPaths, append(tmp, key))
+			allPaths = append(allPaths, append(tmp, k))
 			continue
 		}
-		allPaths = append(allPaths, paths(append(path, key), nested)...)
+		allPaths = append(allPaths, flattenManagePaths(append(path, k), nested)...)
 	}
 	return allPaths
 }

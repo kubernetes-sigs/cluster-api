@@ -22,6 +22,7 @@ updated info about which API version they are supporting.
 - [Exoscale](https://github.com/exoscale/cluster-api-provider-exoscale)
 - [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp)
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
+- [KubeVirt](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt)
 - [MAAS](https://github.com/spectrocloud/cluster-api-provider-maas)
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)

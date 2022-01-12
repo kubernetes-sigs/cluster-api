@@ -186,7 +186,7 @@ generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.
 generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for kubeadm control plane
 	$(CONTROLLER_GEN) \
 		paths=./controlplane/kubeadm/api/... \
-		paths=./controlplane/kubeadm/controllers/... \
+		paths=./controlplane/kubeadm/internal/controllers/... \
 		paths=./controlplane/kubeadm/internal/webhooks/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \

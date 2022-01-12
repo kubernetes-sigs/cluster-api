@@ -234,9 +234,49 @@ func validateVariableUpdates(clusters []clusterv1.Cluster, oldClusterClass, newC
 				continue
 			}
 		}
+
+		if cluster.Spec.Topology.Workers == nil {
+			continue
+		}
+
+		for _, md := range cluster.Spec.Topology.Workers.MachineDeployments {
+			// Continue if there are no variable overrides.
+			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
+				continue
+			}
+
+			for _, c := range md.Variables.Overrides {
+				// copy variable to avoid memory aliasing.
+				clusterVar := c
+
+				// 1) Error if a variable with a schema altered in the update is no longer valid on the Cluster.
+				if alteredVar, ok := varsDiff[variableValidationKey{clusterVar.Name, altered}]; ok {
+					if errs := variables.ValidateClusterVariable(&clusterVar, alteredVar, field.NewPath("")); len(errs) > 0 {
+						errorInfo.add(fmt.Sprintf("%s/%s", md.Name, alteredVar.Name), altered, cluster.Name)
+					}
+					continue
+				}
+
+				// 2) Error if a variable removed in the update is still in use in some Clusters.
+				if _, ok := varsDiff[variableValidationKey{clusterVar.Name, removed}]; ok {
+					errorInfo.add(fmt.Sprintf("%s/%s", md.Name, clusterVar.Name), removed, cluster.Name)
+					continue
+				}
+
+				// 3) Error if a variable has been added in the update check is no longer valid on the Cluster.
+				// NOTE: This can't occur in normal circumstances as a variable must be defined in a ClusterClass in order to be introduced in
+				// a Cluster. This check may catch errors in cases involving broken Clusters.
+				if addedVar, ok := varsDiff[variableValidationKey{clusterVar.Name, added}]; ok {
+					if errs := variables.ValidateClusterVariable(&clusterVar, addedVar, field.NewPath("")); len(errs) > 0 {
+						errorInfo.add(fmt.Sprintf("%s/%s", md.Name, addedVar.Name), added, cluster.Name)
+					}
+					continue
+				}
+			}
+		}
 	}
 
-	// 4) Error if a required variable is not defined in every cluster using the ClusterClass.
+	// 4) Error if a required variable is not defined top-level in every cluster using the ClusterClass.
 	for v := range varsDiff {
 		if v.action == required {
 			clustersMissingVariable := clustersWithoutVar(allClusters, tracker[v.name])

@@ -31,12 +31,19 @@ import (
 
 // DefaultClusterVariables defaults variables which do not exist in clusterVariable, if they
 // have a default value in the corresponding schema in clusterClassVariable.
-func DefaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) ([]clusterv1.ClusterVariable, field.ErrorList) {
+func DefaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path, createVariables bool) ([]clusterv1.ClusterVariable, field.ErrorList) {
 	var allErrs field.ErrorList
 
 	// Build maps for easier and faster access.
 	clusterVariablesMap := getClusterVariablesMap(clusterVariables)
 	clusterClassVariablesMap := getClusterClassVariablesMap(clusterClassVariables)
+
+	// Validate that all variables in the Cluster are defined in the ClusterClass.
+	// Note: If we don't validate this, we would get a nil pointer dereference below.
+	allErrs = append(allErrs, validateClusterVariablesDefined(clusterVariables, clusterClassVariablesMap, fldPath)...)
+	if len(allErrs) > 0 {
+		return nil, allErrs
+	}
 
 	// allVariables is used to get a full correctly ordered list of variables.
 	allVariables := []string{}
@@ -60,7 +67,7 @@ func DefaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clust
 		clusterClassVariable := clusterClassVariablesMap[variableName]
 		clusterVariable := clusterVariablesMap[variableName]
 
-		defaultedClusterVariable, errs := defaultClusterVariable(clusterVariable, clusterClassVariable, fldPath.Index(i))
+		defaultedClusterVariable, errs := defaultClusterVariable(clusterVariable, clusterClassVariable, fldPath.Index(i), createVariables)
 		if len(errs) > 0 {
 			allErrs = append(allErrs, errs...)
 			continue
@@ -84,10 +91,16 @@ func DefaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clust
 }
 
 // defaultClusterVariable defaults a clusterVariable based on the default value in the clusterClassVariable.
-func defaultClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterClassVariable *clusterv1.ClusterClassVariable, fldPath *field.Path) (*clusterv1.ClusterVariable, field.ErrorList) {
-	// Return if the variable does not exist yet and there is no top-level default value.
-	if clusterVariable == nil && clusterClassVariable.Schema.OpenAPIV3Schema.Default == nil {
-		return nil, nil
+func defaultClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterClassVariable *clusterv1.ClusterClassVariable, fldPath *field.Path, createVariable bool) (*clusterv1.ClusterVariable, field.ErrorList) {
+	if clusterVariable == nil {
+		// Return if the variable does not exist yet and createVariable is false.
+		if !createVariable {
+			return nil, nil
+		}
+		// Return if the variable does not exist yet and there is no top-level default value.
+		if clusterClassVariable.Schema.OpenAPIV3Schema.Default == nil {
+			return nil, nil
+		}
 	}
 
 	// Convert schema to Kubernetes APIExtensions schema.

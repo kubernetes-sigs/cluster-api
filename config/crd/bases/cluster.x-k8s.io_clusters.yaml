@@ -968,6 +968,42 @@ spec:
                                 of this value.
                               format: int32
                               type: integer
+                            variables:
+                              description: Variables can be used to customize the
+                                MachineDeployment through patches.
+                              properties:
+                                overrides:
+                                  description: Overrides can be used to override top-level
+                                    variables. They must comply to the corresponding
+                                    VariableClasses defined in the ClusterClass. Only
+                                    variables which are set top-level can be overridden.
+                                  items:
+                                    description: ClusterVariable can be used to customize
+                                      the Cluster through patches. It must comply
+                                      to the corresponding ClusterClassVariable defined
+                                      in the ClusterClass.
+                                    properties:
+                                      name:
+                                        description: Name of the variable.
+                                        type: string
+                                      value:
+                                        description: 'Value of the variable. Note:
+                                          the value will be validated against the
+                                          schema of the corresponding ClusterClassVariable
+                                          from the ClusterClass. Note: We have to
+                                          use apiextensionsv1.JSON instead of a custom
+                                          JSON type, because controller-tools has
+                                          a hard-coded schema for apiextensionsv1.JSON
+                                          which cannot be produced by another type
+                                          via controller-tools, i.e. it is not possible
+                                          to have no type field. Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111'
+                                        x-kubernetes-preserve-unknown-fields: true
+                                    required:
+                                    - name
+                                    - value
+                                    type: object
+                                  type: array
+                              type: object
                           required:
                           - class
                           - name

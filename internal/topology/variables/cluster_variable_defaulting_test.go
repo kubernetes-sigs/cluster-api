@@ -31,9 +31,24 @@ func Test_DefaultClusterVariables(t *testing.T) {
 		name                  string
 		clusterClassVariables []clusterv1.ClusterClassVariable
 		clusterVariables      []clusterv1.ClusterVariable
+		createVariables       bool
 		want                  []clusterv1.ClusterVariable
 		wantErr               bool
 	}{
+		{
+			name:                  "Return error if variable is not defined in ClusterClass",
+			clusterClassVariables: []clusterv1.ClusterClassVariable{},
+			clusterVariables: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+				},
+			},
+			createVariables: true,
+			wantErr:         true,
+		},
 		{
 			name: "Default one variable of each valid type",
 			clusterClassVariables: []clusterv1.ClusterClassVariable{
@@ -80,6 +95,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 				},
 			},
 			clusterVariables: []clusterv1.ClusterVariable{},
+			createVariables:  true,
 			want: []clusterv1.ClusterVariable{
 				{
 					Name: "cpu",
@@ -106,6 +122,24 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					},
 				},
 			},
+		},
+		{
+			name: "Don't default variable if variable creation is disabled",
+			clusterClassVariables: []clusterv1.ClusterClassVariable{
+				{
+					Name:     "cpu",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "integer",
+							Default: &apiextensionsv1.JSON{Raw: []byte(`1`)},
+						},
+					},
+				},
+			},
+			clusterVariables: []clusterv1.ClusterVariable{},
+			createVariables:  false,
+			want:             []clusterv1.ClusterVariable{},
 		},
 		{
 			name: "Don't default variables that are set",
@@ -141,6 +175,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					},
 				},
 			},
+			createVariables: true,
 			want: []clusterv1.ClusterVariable{
 				{
 					Name: "correct",
@@ -180,6 +215,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 				},
 			},
 			clusterVariables: []clusterv1.ClusterVariable{},
+			createVariables:  true,
 			want: []clusterv1.ClusterVariable{
 				{
 					Name: "cpu",
@@ -195,7 +231,7 @@ func Test_DefaultClusterVariables(t *testing.T) {
 			g := NewWithT(t)
 
 			vars, errList := DefaultClusterVariables(tt.clusterVariables, tt.clusterClassVariables,
-				field.NewPath("spec", "topology", "variables"))
+				field.NewPath("spec", "topology", "variables"), tt.createVariables)
 
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())
@@ -212,6 +248,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 		name                 string
 		clusterVariable      *clusterv1.ClusterVariable
 		clusterClassVariable *clusterv1.ClusterClassVariable
+		createVariable       bool
 		want                 *clusterv1.ClusterVariable
 		wantErr              bool
 	}{
@@ -227,12 +264,28 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "cpu",
 				Value: apiextensionsv1.JSON{
 					Raw: []byte(`1`),
 				},
 			},
+		},
+		{
+			name: "Don't default new integer variable if variable creation is disabled",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "cpu",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:    "integer",
+						Default: &apiextensionsv1.JSON{Raw: []byte(`1`)},
+					},
+				},
+			},
+			createVariable: false,
+			want:           nil,
 		},
 		{
 			name: "Don't default existing integer variable",
@@ -252,6 +305,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					Raw: []byte(`2`),
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "cpu",
 				Value: apiextensionsv1.JSON{
@@ -271,6 +325,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "location",
 				Value: apiextensionsv1.JSON{
@@ -296,6 +351,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					Raw: []byte(`"us-west"`),
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "location",
 				Value: apiextensionsv1.JSON{
@@ -315,6 +371,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "cpu",
 				Value: apiextensionsv1.JSON{
@@ -340,6 +397,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					Raw: []byte(`2.1`),
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "cpu",
 				Value: apiextensionsv1.JSON{
@@ -359,6 +417,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "correct",
 				Value: apiextensionsv1.JSON{
@@ -384,6 +443,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					Raw: []byte(`false`),
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "correct",
 				Value: apiextensionsv1.JSON{
@@ -414,6 +474,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "httpProxy",
 				Value: apiextensionsv1.JSON{
@@ -445,7 +506,8 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
-			want: nil,
+			createVariable: true,
+			want:           nil,
 		},
 		{
 			name: "Don't default existing object variable",
@@ -476,6 +538,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					Raw: []byte(`{"enabled":false,"url":"https://example.com"}`),
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "httpProxy",
 				Value: apiextensionsv1.JSON{
@@ -513,6 +576,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					Raw: []byte(`{"enabled":false}`),
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "httpProxy",
 				Value: apiextensionsv1.JSON{
@@ -543,6 +607,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					},
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "testVariable",
 				Value: apiextensionsv1.JSON{
@@ -579,6 +644,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 					Raw: []byte(`[]`),
 				},
 			},
+			createVariable: true,
 			want: &clusterv1.ClusterVariable{
 				Name: "testVariable",
 				Value: apiextensionsv1.JSON{
@@ -592,7 +658,7 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			g := NewWithT(t)
 
 			defaultedVariable, errList := defaultClusterVariable(tt.clusterVariable, tt.clusterClassVariable,
-				field.NewPath("spec", "topology", "variables").Index(0))
+				field.NewPath("spec", "topology", "variables").Index(0), tt.createVariable)
 
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())

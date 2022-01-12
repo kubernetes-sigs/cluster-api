@@ -1233,6 +1233,7 @@ func autoConvert_v1beta1_MachineDeploymentTopology_To_v1alpha4_MachineDeployment
 	out.Name = in.Name
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
+	// WARNING: in.Variables requires manual conversion: does not exist in peer-type
 	return nil
 }
 

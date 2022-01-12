@@ -273,7 +273,7 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 			Message:  message,
 		})
 
-		r.recorder.Eventf(
+		r.recorder.Event(
 			m,
 			corev1.EventTypeWarning,
 			EventRemediationRestricted,

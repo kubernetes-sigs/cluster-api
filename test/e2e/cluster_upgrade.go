@@ -167,19 +167,20 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 			})
 
-			By("Upgrading the machine deployment")
-			framework.UpgradeMachineDeploymentsAndWait(ctx, framework.UpgradeMachineDeploymentsAndWaitInput{
-				ClusterProxy:                input.BootstrapClusterProxy,
-				Cluster:                     clusterResources.Cluster,
-				UpgradeVersion:              input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-				MachineDeployments:          clusterResources.MachineDeployments,
-				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-			})
+			if workerMachineCount > 0 {
+				By("Upgrading the machine deployment")
+				framework.UpgradeMachineDeploymentsAndWait(ctx, framework.UpgradeMachineDeploymentsAndWaitInput{
+					ClusterProxy:                input.BootstrapClusterProxy,
+					Cluster:                     clusterResources.Cluster,
+					UpgradeVersion:              input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+					MachineDeployments:          clusterResources.MachineDeployments,
+					WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+				})
+			}
 		}
 
-		// Only attempt to upgrade MachinePools if they were provided in the template,
-		// also adjust the expected workerMachineCount if we have MachinePools
-		if len(clusterResources.MachinePools) > 0 {
+		// Only attempt to upgrade MachinePools if they were provided in the template.
+		if len(clusterResources.MachinePools) > 0 && workerMachineCount > 0 {
 			By("Upgrading the machinepool instances")
 			framework.UpgradeMachinePoolAndWait(ctx, framework.UpgradeMachinePoolAndWaitInput{
 				ClusterProxy:                   input.BootstrapClusterProxy,

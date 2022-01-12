@@ -25,9 +25,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/builder"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
-	. "sigs.k8s.io/cluster-api/internal/matchers"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
+	. "sigs.k8s.io/cluster-api/internal/test/matchers"
 )
 
 func TestGetCurrentState(t *testing.T) {

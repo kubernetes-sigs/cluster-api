@@ -37,7 +37,7 @@ import (
 	clustercontroller "sigs.k8s.io/cluster-api/internal/controllers/cluster"
 	machinecontroller "sigs.k8s.io/cluster-api/internal/controllers/machine"
 	machinesetcontroller "sigs.k8s.io/cluster-api/internal/controllers/machineset"
-	"sigs.k8s.io/cluster-api/internal/envtest"
+	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
 const (

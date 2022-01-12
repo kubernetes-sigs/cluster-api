@@ -42,7 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	machinesetcontroller "sigs.k8s.io/cluster-api/internal/controllers/machineset"
-	"sigs.k8s.io/cluster-api/internal/envtest"
+	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
 const (

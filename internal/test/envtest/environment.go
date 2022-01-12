@@ -54,7 +54,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/builder"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
@@ -152,7 +152,7 @@ type Environment struct {
 func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	// Get the root of the current file to use in CRD paths.
 	_, filename, _, _ := goruntime.Caller(0) //nolint:dogsled
-	root := path.Join(path.Dir(filename), "..", "..")
+	root := path.Join(path.Dir(filename), "..", "..", "..")
 
 	// Create the test environment.
 	env := &envtest.Environment{

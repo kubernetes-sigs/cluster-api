@@ -56,6 +56,12 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.KubeadmConfigSpec.Ignition = restored.Spec.KubeadmConfigSpec.Ignition
+	if restored.Spec.KubeadmConfigSpec.InitConfiguration != nil {
+		dst.Spec.KubeadmConfigSpec.InitConfiguration.Patches = restored.Spec.KubeadmConfigSpec.InitConfiguration.Patches
+	}
+	if restored.Spec.KubeadmConfigSpec.JoinConfiguration != nil {
+		dst.Spec.KubeadmConfigSpec.JoinConfiguration.Patches = restored.Spec.KubeadmConfigSpec.JoinConfiguration.Patches
+	}
 
 	return nil
 }

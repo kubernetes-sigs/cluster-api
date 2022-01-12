@@ -64,6 +64,8 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		joinControlPlanesFuzzer,
 		dnsFuzzer,
 		clusterConfigurationFuzzer,
+		kubeadmInitConfigurationFuzzer,
+		kubeadmJoinConfigurationFuzzer,
 	}
 }
 
@@ -93,4 +95,20 @@ func clusterConfigurationFuzzer(obj *ClusterConfiguration, c fuzz.Continue) {
 
 	// ClusterConfiguration.UseHyperKubeImage has been removed in v1alpha4, so setting it to false in order to avoid v1beta2 --> v1alpha4 --> v1beta2 round trip errors.
 	obj.UseHyperKubeImage = false
+}
+
+func kubeadmInitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// InitConfiguration.Patches does not exist in kubeadm v1beta1 API, so setting it to nil in order to avoid
+	// v1beta1 --> upstream v1beta2 -> v1beta1 round trip errors.
+	obj.Patches = nil
+}
+
+func kubeadmJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// JoinConfiguration.Patches does not exist in kubeadm v1beta1 API, so setting it to nil in order to avoid
+	// v1beta1 --> upstream v1beta2 -> v1beta1 round trip errors.
+	obj.Patches = nil
 }

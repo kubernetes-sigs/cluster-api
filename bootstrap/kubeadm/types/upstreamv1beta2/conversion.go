@@ -82,3 +82,13 @@ func Convert_upstreamv1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguratio
 	// ClusterConfiguration.UseHyperKubeImage was removed in kubeadm v1alpha4 API
 	return autoConvert_upstreamv1beta2_ClusterConfiguration_To_v1beta1_ClusterConfiguration(in, out, s)
 }
+
+func Convert_v1beta1_InitConfiguration_To_upstreamv1beta2_InitConfiguration(in *bootstrapv1.InitConfiguration, out *InitConfiguration, s apimachineryconversion.Scope) error {
+	// InitConfiguration.Patches does not exist in kubeadm v1beta2 API
+	return autoConvert_v1beta1_InitConfiguration_To_upstreamv1beta2_InitConfiguration(in, out, s)
+}
+
+func Convert_v1beta1_JoinConfiguration_To_upstreamv1beta2_JoinConfiguration(in *bootstrapv1.JoinConfiguration, out *JoinConfiguration, s apimachineryconversion.Scope) error {
+	// JoinConfiguration.Patches does not exist in kubeadm v1beta2 API
+	return autoConvert_v1beta1_JoinConfiguration_To_upstreamv1beta2_JoinConfiguration(in, out, s)
+}

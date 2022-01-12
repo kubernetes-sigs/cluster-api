@@ -130,14 +130,16 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 	}, input.WaitForEtcdUpgrade...)
 
 	for _, deployment := range input.MachineDeployments {
-		log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded to %s",
-			deployment.Namespace, deployment.Name, input.KubernetesUpgradeVersion)
-		WaitForMachineDeploymentMachinesToBeUpgraded(ctx, WaitForMachineDeploymentMachinesToBeUpgradedInput{
-			Lister:                   mgmtClient,
-			Cluster:                  input.Cluster,
-			MachineCount:             int(*deployment.Spec.Replicas),
-			KubernetesUpgradeVersion: input.KubernetesUpgradeVersion,
-			MachineDeployment:        *deployment,
-		}, input.WaitForMachinesToBeUpgraded...)
+		if *deployment.Spec.Replicas > 0 {
+			log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded to %s",
+				deployment.Namespace, deployment.Name, input.KubernetesUpgradeVersion)
+			WaitForMachineDeploymentMachinesToBeUpgraded(ctx, WaitForMachineDeploymentMachinesToBeUpgradedInput{
+				Lister:                   mgmtClient,
+				Cluster:                  input.Cluster,
+				MachineCount:             int(*deployment.Spec.Replicas),
+				KubernetesUpgradeVersion: input.KubernetesUpgradeVersion,
+				MachineDeployment:        *deployment,
+			}, input.WaitForMachinesToBeUpgraded...)
+		}
 	}
 }

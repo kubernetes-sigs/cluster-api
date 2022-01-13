@@ -1186,6 +1186,115 @@ func TestValidatePatches(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "pass if jsonPatch uses a user-defined variable which is defined",
+			clusterClass: clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					ControlPlane: clusterv1.ControlPlaneClass{
+						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+							Ref: &corev1.ObjectReference{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								Kind:       "ControlPlaneTemplate",
+							},
+						},
+					},
+					Patches: []clusterv1.ClusterClassPatch{
+						{
+							Name: "patch1",
+							Definitions: []clusterv1.PatchDefinition{
+								{
+									Selector: clusterv1.PatchSelector{
+										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										Kind:       "ControlPlaneTemplate",
+										MatchResources: clusterv1.PatchSelectorMatch{
+											ControlPlane: true,
+										},
+									},
+									JSONPatches: []clusterv1.JSONPatch{
+										{
+											Op:   "add",
+											Path: "/spec/template/spec/",
+											ValueFrom: &clusterv1.JSONPatchValue{
+												Variable: pointer.String("variableName"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					Variables: []clusterv1.ClusterClassVariable{
+						{
+							Name:     "variableName",
+							Required: true,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "pass if jsonPatch uses a nested user-defined variable which is defined",
+			clusterClass: clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					ControlPlane: clusterv1.ControlPlaneClass{
+						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+							Ref: &corev1.ObjectReference{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								Kind:       "ControlPlaneTemplate",
+							},
+						},
+					},
+					Patches: []clusterv1.ClusterClassPatch{
+						{
+							Name: "patch1",
+							Definitions: []clusterv1.PatchDefinition{
+								{
+									Selector: clusterv1.PatchSelector{
+										APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+										Kind:       "ControlPlaneTemplate",
+										MatchResources: clusterv1.PatchSelectorMatch{
+											ControlPlane: true,
+										},
+									},
+									JSONPatches: []clusterv1.JSONPatch{
+										{
+											Op:   "add",
+											Path: "/spec/template/spec/",
+											ValueFrom: &clusterv1.JSONPatchValue{
+												Variable: pointer.String("variableName.nestedField"),
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					Variables: []clusterv1.ClusterClassVariable{
+						{
+							Name:     "variableName",
+							Required: true,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]clusterv1.JSONSchemaProps{
+										"nestedField": {
+											Type: "string",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "error if jsonPatch uses a builtin variable which is not defined",
 			clusterClass: clusterv1.ClusterClass{
 				Spec: clusterv1.ClusterClassSpec{
@@ -1625,6 +1734,38 @@ func Test_validateSelectors(t *testing.T) {
 				return
 			}
 			g.Expect(err).To(BeNil())
+		})
+	}
+}
+
+func TestGetVariableName(t *testing.T) {
+	tests := []struct {
+		name         string
+		variable     string
+		variableName string
+	}{
+		{
+			name:         "simple variable",
+			variable:     "variableA",
+			variableName: "variableA",
+		},
+		{
+			name:         "variable object",
+			variable:     "variableObject.field",
+			variableName: "variableObject",
+		},
+		{
+			name:         "variable array",
+			variable:     "variableArray[0]",
+			variableName: "variableArray",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			g.Expect(getVariableName(tt.variable)).To(Equal(tt.variableName))
 		})
 	}
 }

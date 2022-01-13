@@ -296,7 +296,12 @@ func validateJSONPatchValues(jsonPatch clusterv1.JSONPatch, variableSet map[stri
 					))
 			}
 		} else {
-			if _, ok := variableSet[*jsonPatch.ValueFrom.Variable]; !ok {
+			// Note: We're only validating if the variable name exists without
+			// validating if the whole path is an existing variable.
+			// This could be done by re-using getVariableValue of the json patch
+			// generator but requires a refactoring first.
+			variableName := getVariableName(*jsonPatch.ValueFrom.Variable)
+			if _, ok := variableSet[variableName]; !ok {
 				allErrs = append(allErrs,
 					field.Invalid(
 						path.Child("valueFrom", "variable"),
@@ -307,6 +312,12 @@ func validateJSONPatchValues(jsonPatch clusterv1.JSONPatch, variableSet map[stri
 		}
 	}
 	return allErrs
+}
+
+func getVariableName(variable string) string {
+	return strings.FieldsFunc(variable, func(r rune) bool {
+		return r == '[' || r == '.'
+	})[0]
 }
 
 // This contains a list of all of the valid builtin variables.

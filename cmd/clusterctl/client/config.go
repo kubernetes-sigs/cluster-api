@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/utils/pointer"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/repository"
@@ -52,6 +53,45 @@ func (c *clusterctlClient) GetProviderComponents(provider string, providerType c
 	}
 
 	return components, nil
+}
+
+func (c *clusterctlClient) GenerateProvider(providerName string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error) {
+
+	providerName, providerVersion, err := parseProviderName(providerName)
+	if err != nil {
+		return nil, err
+	}
+
+	// Gets the provider configuration (that includes the location of the provider repository)
+	providerConfig, err := c.configClient.Providers().Get(providerName, providerType)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get a client for the provider repository and read the provider components;
+	// during the process, provider components will be processed performing variable substitution, customization of target
+	// namespace etc.
+	// Currently we are not supporting custom yaml processors for the provider
+	// components. So we revert to using the default SimpleYamlProcessor.
+	repositoryClientFactory, err := c.repositoryClientFactory(RepositoryClientFactoryInput{Provider: providerConfig})
+	if err != nil {
+		return nil, err
+	}
+
+	latestMetadata, err := repositoryClientFactory.Metadata(providerVersion).Get()
+	if err != nil {
+		return nil, err
+	}
+	// Gets the contract for the current release.
+	currentVersion, err := version.ParseSemantic(providerVersion)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse current version for the %s provider", providerName)
+	}
+	releaseSeries := latestMetadata.GetReleaseSeriesForVersion(currentVersion)
+	if releaseSeries.Contract != clusterv1.GroupVersion.Version {
+		return nil, errors.Errorf("current version of clusterctl is only compatible with %s providers, detected %s for provider %s", clusterv1.GroupVersion.Version, releaseSeries.Contract, providerVersion)
+	}
+	return c.GetProviderComponents(providerName, providerType, options)
 }
 
 // ReaderSourceOptions define the options to be used when reading a template

@@ -75,6 +75,9 @@ type Client interface {
 	// DescribeCluster returns the object tree representing the status of a Cluster API cluster.
 	DescribeCluster(options DescribeClusterOptions) (*tree.ObjectTree, error)
 
+	// GenerateProvider validates the input provider version is compatible with the version of clusterctl and returns the provider components.
+	GenerateProvider(providerName string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error)
+
 	// AlphaClient is an Interface for alpha features in clusterctl
 	AlphaClient
 }

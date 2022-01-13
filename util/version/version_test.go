@@ -156,7 +156,7 @@ func TestCompareWithBuildIdentifiers(t *testing.T) {
 			expected: -1,
 		},
 		{
-			name: "compare with pre release versions and  build identifiers",
+			name: "compare with pre release versions and build identifiers",
 			a: func() semver.Version {
 				v, _ := semver.ParseTolerant("v1.20.1-alpha.1+xyz.1")
 				return v
@@ -240,7 +240,7 @@ func TestCompareWithBuildIdentifiers(t *testing.T) {
 			expected: 1,
 		},
 		{
-			name: "compare with build identifiers - smaller non numeric",
+			name: "compare with build identifiers - different non numeric",
 			a: func() semver.Version {
 				v, _ := semver.ParseTolerant("v1.20.1+xyz.a")
 				return v
@@ -249,7 +249,19 @@ func TestCompareWithBuildIdentifiers(t *testing.T) {
 				v, _ := semver.ParseTolerant("v1.20.1+xyz.b")
 				return v
 			}(),
-			expected: -1,
+			expected: 2,
+		},
+		{
+			name: "compare with build identifiers - equal non numeric",
+			a: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.a")
+				return v
+			}(),
+			b: func() semver.Version {
+				v, _ := semver.ParseTolerant("v1.20.1+xyz.a")
+				return v
+			}(),
+			expected: 0,
 		},
 		{
 			name: "compare with build identifiers - smaller - a is numeric b is not",

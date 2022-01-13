@@ -145,7 +145,9 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 		return false, errors.Wrap(err, "failed to parse control plane status version")
 	}
 
-	return version.Compare(specV, statusV, version.WithBuildTags()) == 1, nil
+	// NOTE: we are considering the control plane upgrading when the version is greater
+	// or when the version has a different build metadata.
+	return version.Compare(specV, statusV, version.WithBuildTags()) >= 1, nil
 }
 
 // IsScaling returns true if the control plane is in the middle of a scale operation, false otherwise.

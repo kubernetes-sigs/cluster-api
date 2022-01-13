@@ -144,6 +144,7 @@ func newBuildIdentifier(s string) buildIdentifier {
 // -1 == v is less than o.
 // 0 == v is equal to o.
 // 1 == v is greater than o.
+// 2 == v is different than o (it is not possible to identify if lower or greater).
 // Note: number is considered lower than string.
 func (v buildIdentifier) compare(o buildIdentifier) int {
 	if v.IsNum && !o.IsNum {
@@ -162,14 +163,13 @@ func (v buildIdentifier) compare(o buildIdentifier) int {
 			return 1
 		}
 	} else { // both are strings
-		switch {
-		case v.IdentifierStr < o.IdentifierStr:
-			return -1
-		case v.IdentifierStr == o.IdentifierStr:
+		if v.IdentifierStr == o.IdentifierStr {
 			return 0
-		default:
-			return 1
 		}
+		// In order to support random build identifiers, like commit hashes,
+		// we return 2 when the strings are different to signal the
+		// build identifiers are different but we can't determine the precedence
+		return 2
 	}
 }
 
@@ -199,10 +199,18 @@ type CompareOption func(*comparer)
 // WithBuildTags modifies the version comparison to also consider build tags
 // when comparing versions.
 // Performs a standard version compare between a and b. If the versions
-// are equal, build identifiers will be used to compare further.
+// are equal, build identifiers will be used to compare further; precedence for two build
+// identifiers is determined by comparing each dot-separated identifier from left to right
+// until a difference is found as follows:
+// - Identifiers consisting of only digits are compared numerically.
+// - Numeric identifiers always have lower precedence than non-numeric identifiers.
+// - Identifiers with letters or hyphens are compared only for equality, otherwise, 2 is returned given
+// that it is not possible to identify if lower or greater (non-numeric identifiers could be random build
+// identifiers).
 //   -1 == a is less than b.
 //   0 == a is equal to b.
 //   1 == a is greater than b.
+//   2 == v is different than o (it is not possible to identify if lower or greater).
 func WithBuildTags() CompareOption {
 	return func(c *comparer) {
 		c.buildTags = true

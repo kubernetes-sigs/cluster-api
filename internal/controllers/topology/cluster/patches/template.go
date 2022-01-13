@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/extensions/patches/api"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/api"
 )
 
 // templateBuilder builds templates.

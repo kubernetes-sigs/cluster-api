@@ -25,9 +25,9 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/extensions/patches/api"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/extensions/patches/inline"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/extensions/patches/variables"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/api"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/inline"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 )

@@ -33,8 +33,8 @@ import (
 	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/extensions/patches/api"
-	patchvariables "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/extensions/patches/variables"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/api"
+	patchvariables "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 )
 
 // jsonPatchGenerator generates JSON patches for a GenerateRequest based on a ClusterClassPatch.

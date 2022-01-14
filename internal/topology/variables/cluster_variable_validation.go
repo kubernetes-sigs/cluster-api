@@ -27,8 +27,18 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// ValidateClusterVariables validates clusterVariable via the schemas in the corresponding clusterClassVariable.
-func ValidateClusterVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path, validateRequired bool) field.ErrorList {
+// ValidateClusterVariables validates ClusterVariables.
+func ValidateClusterVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
+	return validateClusterVariables(clusterVariables, clusterClassVariables, true, fldPath)
+}
+
+// ValidateMachineDeploymentVariables validates ValidateMachineDeploymentVariables.
+func ValidateMachineDeploymentVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
+	return validateClusterVariables(clusterVariables, clusterClassVariables, false, fldPath)
+}
+
+// validateClusterVariables validates variables via the schemas in the corresponding clusterClassVariable.
+func validateClusterVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, validateRequired bool, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// Build maps for easier and faster access.

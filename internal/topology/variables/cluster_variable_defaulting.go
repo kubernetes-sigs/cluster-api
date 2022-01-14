@@ -29,9 +29,19 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// DefaultClusterVariables defaults variables which do not exist in clusterVariable, if they
-// have a default value in the corresponding schema in clusterClassVariable.
-func DefaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path, createVariables bool) ([]clusterv1.ClusterVariable, field.ErrorList) {
+// DefaultClusterVariables defaults ClusterVariables.
+func DefaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) ([]clusterv1.ClusterVariable, field.ErrorList) {
+	return defaultClusterVariables(clusterVariables, clusterClassVariables, true, fldPath)
+}
+
+// DefaultMachineDeploymentVariables defaults MachineDeploymentVariables.
+func DefaultMachineDeploymentVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) ([]clusterv1.ClusterVariable, field.ErrorList) {
+	return defaultClusterVariables(clusterVariables, clusterClassVariables, false, fldPath)
+}
+
+// defaultClusterVariables defaults variables.
+// If they do not exist yet, they are created if createVariables is set.
+func defaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, createVariables bool, fldPath *field.Path) ([]clusterv1.ClusterVariable, field.ErrorList) {
 	var allErrs field.ErrorList
 
 	// Build maps for easier and faster access.

@@ -973,10 +973,8 @@ spec:
                                 MachineDeployment through patches.
                               properties:
                                 overrides:
-                                  description: Overrides can be used to override top-level
-                                    variables. They must comply to the corresponding
-                                    VariableClasses defined in the ClusterClass. Only
-                                    variables which are set top-level can be overridden.
+                                  description: Overrides can be used to override Cluster
+                                    level variables.
                                   items:
                                     description: ClusterVariable can be used to customize
                                       the Cluster through patches. It must comply

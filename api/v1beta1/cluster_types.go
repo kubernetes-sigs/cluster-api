@@ -157,7 +157,7 @@ type MachineDeploymentTopology struct {
 
 	// Variables can be used to customize the MachineDeployment through patches.
 	// +optional
-	Variables *ClusterVariablesOverrides `json:"variables,omitempty"`
+	Variables *MachineDeploymentVariables `json:"variables,omitempty"`
 }
 
 // ClusterVariable can be used to customize the Cluster through
@@ -177,14 +177,9 @@ type ClusterVariable struct {
 	Value apiextensionsv1.JSON `json:"value"`
 }
 
-// ClusterVariablesOverrides can be used to override top-level variables.
-// They must comply to the corresponding VariableClasses defined
-// in the ClusterClass.
-type ClusterVariablesOverrides struct {
-	// Overrides can be used to override top-level variables.
-	// They must comply to the corresponding VariableClasses defined
-	// in the ClusterClass.
-	// Only variables which are set top-level can be overridden.
+// MachineDeploymentVariables can be used to provide variables for a specific MachineDeployment.
+type MachineDeploymentVariables struct {
+	// Overrides can be used to override Cluster level variables.
 	// +optional
 	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }

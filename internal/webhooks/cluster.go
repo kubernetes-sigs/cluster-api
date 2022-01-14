@@ -88,7 +88,7 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 		var allErrs field.ErrorList
 
 		defaultedVariables, errs := variables.DefaultClusterVariables(cluster.Spec.Topology.Variables, clusterClass.Spec.Variables,
-			field.NewPath("spec", "topology", "variables"), true)
+			field.NewPath("spec", "topology", "variables"))
 		if len(errs) > 0 {
 			allErrs = append(allErrs, errs...)
 		} else {
@@ -102,8 +102,8 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 					continue
 				}
 
-				defaultedVariables, errs := variables.DefaultClusterVariables(md.Variables.Overrides, clusterClass.Spec.Variables,
-					field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"), true)
+				defaultedVariables, errs := variables.DefaultMachineDeploymentVariables(md.Variables.Overrides, clusterClass.Spec.Variables,
+					field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))
 				if len(errs) > 0 {
 					allErrs = append(allErrs, errs...)
 				} else {
@@ -245,7 +245,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 
 	// Check if the variables defined in the ClusterClass are valid.
 	allErrs = append(allErrs, variables.ValidateClusterVariables(newCluster.Spec.Topology.Variables, clusterClass.Spec.Variables,
-		field.NewPath("spec", "topology", "variables"), true)...)
+		field.NewPath("spec", "topology", "variables"))...)
 
 	if newCluster.Spec.Topology.Workers != nil {
 		for i, md := range newCluster.Spec.Topology.Workers.MachineDeployments {
@@ -256,8 +256,8 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 
 			allErrs = append(allErrs, variables.ValidateTopLevelClusterVariablesExist(md.Variables.Overrides, newCluster.Spec.Topology.Variables,
 				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))...)
-			allErrs = append(allErrs, variables.ValidateClusterVariables(md.Variables.Overrides, clusterClass.Spec.Variables,
-				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"), false)...)
+			allErrs = append(allErrs, variables.ValidateMachineDeploymentVariables(md.Variables.Overrides, clusterClass.Spec.Variables,
+				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))...)
 		}
 	}
 

@@ -176,7 +176,7 @@ func ControlPlane(controlPlaneTopology *clusterv1.ControlPlaneTopology, controlP
 func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clusterv1.MachineDeployment) (VariableMap, error) {
 	variables := VariableMap{}
 
-	// Add user defined variables from Cluster.spec.topology.variables.
+	// Add variables overrides for the MachineDeployment.
 	if mdTopology.Variables != nil {
 		for _, variable := range mdTopology.Variables.Overrides {
 			variables[variable.Name] = variable.Value

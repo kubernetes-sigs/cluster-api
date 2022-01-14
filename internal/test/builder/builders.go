@@ -196,7 +196,7 @@ func (m *MachineDeploymentTopologyBuilder) Build() clusterv1.MachineDeploymentTo
 	}
 
 	if len(m.variables) > 0 {
-		md.Variables = &clusterv1.ClusterVariablesOverrides{
+		md.Variables = &clusterv1.MachineDeploymentVariables{
 			Overrides: m.variables,
 		}
 	}

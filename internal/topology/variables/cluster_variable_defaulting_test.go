@@ -230,8 +230,8 @@ func Test_DefaultClusterVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			vars, errList := DefaultClusterVariables(tt.clusterVariables, tt.clusterClassVariables,
-				field.NewPath("spec", "topology", "variables"), tt.createVariables)
+			vars, errList := defaultClusterVariables(tt.clusterVariables, tt.clusterClassVariables, tt.createVariables,
+				field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())

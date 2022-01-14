@@ -141,7 +141,7 @@ func TestMachineDeployment(t *testing.T) {
 				Replicas: pointer.Int32(3),
 				Name:     "md-topology",
 				Class:    "md-class",
-				Variables: &clusterv1.ClusterVariablesOverrides{
+				Variables: &clusterv1.MachineDeploymentVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",
@@ -184,7 +184,7 @@ func TestMachineDeployment(t *testing.T) {
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Name:  "md-topology",
 				Class: "md-class",
-				Variables: &clusterv1.ClusterVariablesOverrides{
+				Variables: &clusterv1.MachineDeploymentVariables{
 					Overrides: []clusterv1.ClusterVariable{
 						{
 							Name:  "location",

@@ -224,8 +224,8 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateClusterVariables(tt.clusterVariables, tt.clusterClassVariables,
-				field.NewPath("spec", "topology", "variables"), tt.validateRequired)
+			errList := validateClusterVariables(tt.clusterVariables, tt.clusterClassVariables,
+				tt.validateRequired, field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())

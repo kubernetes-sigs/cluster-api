@@ -248,7 +248,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 						{
 							Class: "default-worker",
 							Name:  "md-1",
-							Variables: &clusterv1.ClusterVariablesOverrides{
+							Variables: &clusterv1.MachineDeploymentVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
 										Name:  "httpProxy",
@@ -272,7 +272,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 						{
 							Class: "default-worker",
 							Name:  "md-1",
-							Variables: &clusterv1.ClusterVariablesOverrides{
+							Variables: &clusterv1.MachineDeploymentVariables{
 								Overrides: []clusterv1.ClusterVariable{
 									{
 										Name: "httpProxy",

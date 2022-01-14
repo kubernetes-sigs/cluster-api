@@ -114,8 +114,7 @@ func toManagedFieldsMap(m map[string]interface{}, ignorePaths []contract.Path) m
 			continue
 		}
 
-		// If the field has nested values, process them.
-		nestedV := make(map[string]interface{})
+		// If the field has nested values (it is an object/map), process them.
 		if nestedM, ok := v.(map[string]interface{}); ok {
 			nestedIgnorePaths := make([]contract.Path, 0)
 			for _, i := range ignorePaths {
@@ -123,9 +122,19 @@ func toManagedFieldsMap(m map[string]interface{}, ignorePaths []contract.Path) m
 					nestedIgnorePaths = append(nestedIgnorePaths, i[1:])
 				}
 			}
-			nestedV = toManagedFieldsMap(nestedM, nestedIgnorePaths)
+			nestedV := toManagedFieldsMap(nestedM, nestedIgnorePaths)
+
+			// Note: we are considering the object managed only if it is setting a value for one of the nested fields.
+			// This prevents the topology controller to become authoritative on all the empty maps generated due to
+			// how serialization works.
+			if len(nestedV) > 0 {
+				r[k] = nestedV
+			}
+			continue
 		}
-		r[k] = nestedV
+
+		// Otherwise, it is a "simple" field so mark it as managed
+		r[k] = make(map[string]interface{})
 	}
 	return r
 }

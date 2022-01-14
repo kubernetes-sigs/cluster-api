@@ -17,25 +17,30 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/mergepatch"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	. "sigs.k8s.io/cluster-api/internal/test/matchers"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 var (
@@ -1169,6 +1174,593 @@ func TestReconcileMachineDeployments(t *testing.T) {
 						}
 					}
 				}
+			}
+		})
+	}
+}
+
+// TestReconcileReferencedObjectSequences tests multiple subsequent calls to reconcileReferencedObject
+// for a control-plane object to verify that the objects are reconciled as expected by tracking managed fields correctly.
+// NOTE: by Extension this tests validates managed field handling in mergePatches, and thus its usage in other parts of the
+// codebase.
+func TestReconcileReferencedObjectSequences(t *testing.T) {
+	type object struct {
+		spec map[string]interface{}
+	}
+
+	type externalStep struct {
+		name string
+		// object is the state of the control-plane object after an external modification.
+		object object
+	}
+	type reconcileStep struct {
+		name string
+		// desired is the desired control-plane object handed over to reconcileReferencedObject.
+		desired object
+		// want is the expected control-plane object after calling reconcileReferencedObject.
+		want object
+	}
+
+	tests := []struct {
+		name           string
+		reconcileSteps []interface{}
+	}{
+		{
+			name: "Should drop nested field",
+			// Note: This test verifies that reconcileReferencedObject treats changes to fields existing in templates as authoritative
+			// and most specifically it verifies that when a field in a template is deleted, it gets deleted
+			// from the generated object (and it is not being treated as instance specific value).
+			reconcileSteps: []interface{}{
+				reconcileStep{
+					name: "Initially reconcile KCP",
+					desired: object{
+						spec: map[string]interface{}{
+							"kubeadmConfigSpec": map[string]interface{}{
+								"clusterConfiguration": map[string]interface{}{
+									"controllerManager": map[string]interface{}{
+										"extraArgs": map[string]interface{}{
+											"enable-hostpath-provisioner": "true",
+										},
+									},
+								},
+							},
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"kubeadmConfigSpec": map[string]interface{}{
+								"clusterConfiguration": map[string]interface{}{
+									"controllerManager": map[string]interface{}{
+										"extraArgs": map[string]interface{}{
+											"enable-hostpath-provisioner": "true",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				reconcileStep{
+					name: "Drop enable-hostpath-provisioner",
+					desired: object{
+						spec: map[string]interface{}{
+							"kubeadmConfigSpec": map[string]interface{}{
+								"clusterConfiguration": map[string]interface{}{
+									// enable-hostpath-provisioner has been removed by e.g a change in ClusterClass (and extraArgs with it).
+									"controllerManager": map[string]interface{}{},
+								},
+							},
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"kubeadmConfigSpec": map[string]interface{}{
+								"clusterConfiguration": map[string]interface{}{
+									"controllerManager": map[string]interface{}{
+										// Reconcile to drop enable-hostpath-provisioner, extraArgs has been set to an empty object.
+										"extraArgs": map[string]interface{}{},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Should drop label",
+			// Note: This test verifies that reconcileReferencedObject treats changes to fields existing in templates as authoritative
+			// and most specifically it verifies that when a template label is deleted, it gets deleted
+			// from the generated object (and it is not being treated as instance specific value).
+			reconcileSteps: []interface{}{
+				reconcileStep{
+					name: "Initially reconcile KCP",
+					desired: object{
+						spec: map[string]interface{}{
+							"machineTemplate": map[string]interface{}{
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										"label.with.dots/owned": "true",
+										"anotherLabel":          "true",
+									},
+								},
+							},
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"machineTemplate": map[string]interface{}{
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										"label.with.dots/owned": "true",
+										"anotherLabel":          "true",
+									},
+								},
+							},
+						},
+					},
+				},
+				reconcileStep{
+					name: "Drop the label with dots",
+					desired: object{
+						spec: map[string]interface{}{
+							"machineTemplate": map[string]interface{}{
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										// label.with.dots/owned has been removed by e.g a change in Cluster.Topology.ControlPlane.Labels.
+										"anotherLabel": "true",
+									},
+								},
+							},
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"machineTemplate": map[string]interface{}{
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										// Reconcile to drop label.with.dots/owned label.
+										"anotherLabel": "true",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Should drop label in metadata (even if outside of .spec.machineTemplate.metadata)",
+			// Note: This test verifies that reconcileReferencedObject treats changes to fields existing in templates as authoritative
+			// and most specifically it verifies that when a spec.template label is deleted, it gets deleted
+			// from the generated object (and it is not being treated as instance specific value).
+			// E.g. AzureMachineTemplate has .spec.template.metadata.labels.
+			reconcileSteps: []interface{}{
+				reconcileStep{
+					name: "Initially reconcile",
+					desired: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										"label.with.dots/owned": "true",
+										"anotherLabel":          "true",
+									},
+								},
+							},
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										"label.with.dots/owned": "true",
+										"anotherLabel":          "true",
+									},
+								},
+							},
+						},
+					},
+				},
+				reconcileStep{
+					name: "Drop the label with dots",
+					desired: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										// label.with.dots/owned has been removed e.g a change in ClusterClass.
+										"anotherLabel": "true",
+									},
+								},
+							},
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										// Reconcile to drop label.with.dots/owned label.
+										"anotherLabel": "true",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Should enforce field",
+			// Note: This test verifies that reconcileReferencedObject treats changes to fields existing in templates as authoritative
+			// by reverting user changes to a manged field.
+			reconcileSteps: []interface{}{
+				reconcileStep{
+					name: "Initially reconcile",
+					desired: object{
+						spec: map[string]interface{}{
+							"stringField": "ccValue",
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"stringField": "ccValue",
+						},
+					},
+				},
+				externalStep{
+					name: "User changes value",
+					object: object{
+						spec: map[string]interface{}{
+							"stringField": "userValue",
+						},
+					},
+				},
+				reconcileStep{
+					name: "Reconcile overwrites value",
+					desired: object{
+						spec: map[string]interface{}{
+							// ClusterClass still proposing the old value.
+							"stringField": "ccValue",
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							// Reconcile to restore the old value.
+							"stringField": "ccValue",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Should preserve user-defined field while dropping managed field",
+			// Note: This test verifies that Topology treats changes to fields existing in templates as authoritative
+			// but allows setting additional/instance-specific values.
+			reconcileSteps: []interface{}{
+				reconcileStep{
+					name: "Initially reconcile KCP",
+					desired: object{
+						spec: map[string]interface{}{
+							"kubeadmConfigSpec": map[string]interface{}{
+								"clusterConfiguration": map[string]interface{}{
+									"controllerManager": map[string]interface{}{
+										"extraArgs": map[string]interface{}{
+											"enable-hostpath-provisioner": "true",
+										},
+									},
+								},
+							},
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"kubeadmConfigSpec": map[string]interface{}{
+								"clusterConfiguration": map[string]interface{}{
+									"controllerManager": map[string]interface{}{
+										"extraArgs": map[string]interface{}{
+											"enable-hostpath-provisioner": "true",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				externalStep{
+					name: "User adds an additional extraArg",
+					object: object{
+						spec: map[string]interface{}{
+							"kubeadmConfigSpec": map[string]interface{}{
+								"clusterConfiguration": map[string]interface{}{
+									"controllerManager": map[string]interface{}{
+										"extraArgs": map[string]interface{}{
+											"enable-hostpath-provisioner": "true",
+											// User adds enable-garbage-collector.
+											"enable-garbage-collector": "true",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+				reconcileStep{
+					name: "Previously set extraArgs is dropped from KCP, user-specified field is preserved.",
+					desired: object{
+						spec: map[string]interface{}{
+							"kubeadmConfigSpec": map[string]interface{}{
+								"clusterConfiguration": map[string]interface{}{
+									// enable-hostpath-provisioner has been removed by e.g a change in ClusterClass (and extraArgs with it).
+									"controllerManager": map[string]interface{}{},
+								},
+							},
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"kubeadmConfigSpec": map[string]interface{}{
+								"clusterConfiguration": map[string]interface{}{
+									"controllerManager": map[string]interface{}{
+										"extraArgs": map[string]interface{}{
+											// Reconcile to drop enable-hostpath-provisioner,
+											// while preserving user-defined enable-garbage-collector field.
+											"enable-garbage-collector": "true",
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Should preserve user-defined object field while dropping managed fields",
+			// Note: This test verifies that reconcileReferencedObject treats changes to fields existing in templates as authoritative
+			// but allows setting additional/instance-specific values.
+			reconcileSteps: []interface{}{
+				reconcileStep{
+					name: "Initially reconcile",
+					desired: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"spec": map[string]interface{}{},
+							},
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"spec": map[string]interface{}{},
+							},
+						},
+					},
+				},
+				externalStep{
+					name: "User adds an additional object",
+					object: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"spec": map[string]interface{}{
+									"userDefinedObject": map[string]interface{}{
+										"boolField":   true,
+										"stringField": "def",
+									},
+								},
+							},
+						},
+					},
+				},
+				reconcileStep{
+					name: "ClusterClass starts having an opinion about some fields",
+					desired: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"spec": map[string]interface{}{
+									"clusterClassObject": map[string]interface{}{
+										"boolField":   true,
+										"stringField": "def",
+									},
+									"clusterClassField": true,
+								},
+							},
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"spec": map[string]interface{}{
+									// User fields are preserved.
+									"userDefinedObject": map[string]interface{}{
+										"boolField":   true,
+										"stringField": "def",
+									},
+									// ClusterClass authoritative fields are added.
+									"clusterClassObject": map[string]interface{}{
+										"boolField":   true,
+										"stringField": "def",
+									},
+									"clusterClassField": true,
+								},
+							},
+						},
+					},
+				},
+				reconcileStep{
+					name: "ClusterClass stops having an opinion on the field",
+					desired: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"spec": map[string]interface{}{
+									"clusterClassObject": map[string]interface{}{
+										"boolField":   true,
+										"stringField": "def",
+									},
+									// clusterClassField has been removed by e.g a change in ClusterClass (and extraArgs with it).
+								},
+							},
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"spec": map[string]interface{}{
+									// Reconcile to drop clusterClassField,
+									// while preserving user-defined field and clusterClassField.
+									"userDefinedObject": map[string]interface{}{
+										"boolField":   true,
+										"stringField": "def",
+									},
+									"clusterClassObject": map[string]interface{}{
+										"boolField":   true,
+										"stringField": "def",
+									},
+								},
+							},
+						},
+					},
+				},
+				reconcileStep{
+					name: "ClusterClass stops having an opinion on the object",
+					desired: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"spec": map[string]interface{}{}, // clusterClassObject has been removed by e.g a change in ClusterClass (and extraArgs with it).
+							},
+						},
+					},
+					want: object{
+						spec: map[string]interface{}{
+							"template": map[string]interface{}{
+								"spec": map[string]interface{}{
+									// Reconcile to drop clusterClassObject,
+									// while preserving user-defined field.
+									"userDefinedObject": map[string]interface{}{
+										"boolField":   true,
+										"stringField": "def",
+									},
+									"clusterClassObject": map[string]interface{}{},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).Build()
+			r := Reconciler{
+				Client: fakeClient,
+				// NOTE: Intentionally using a fake recorder, so the test can also be run without testenv.
+				recorder: record.NewFakeRecorder(32),
+			}
+
+			s := scope.New(&clusterv1.Cluster{})
+			s.Blueprint = &scope.ClusterBlueprint{
+				ClusterClass: &clusterv1.ClusterClass{},
+			}
+
+			for i, step := range tt.reconcileSteps {
+				var currentControlPlane *unstructured.Unstructured
+
+				// Get current ControlPlane (on later steps).
+				if i > 0 {
+					currentControlPlane = &unstructured.Unstructured{
+						Object: map[string]interface{}{
+							"kind":       "KubeadmControlPlane",
+							"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+						},
+					}
+					g.Expect(fakeClient.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: "my-cluster"}, currentControlPlane)).To(Succeed())
+				}
+
+				if step, ok := step.(externalStep); ok {
+					// This is a user step, so let's just update the object.
+					patchHelper, err := patch.NewHelper(currentControlPlane, fakeClient)
+					g.Expect(err).ToNot(HaveOccurred())
+
+					g.Expect(unstructured.SetNestedField(currentControlPlane.Object, step.object.spec, "spec")).To(Succeed())
+					g.Expect(patchHelper.Patch(context.Background(), currentControlPlane)).To(Succeed())
+					continue
+				}
+
+				if step, ok := step.(reconcileStep); ok {
+					// This is a reconcile step, so let's execute a reconcile and then validate the result.
+
+					// Set the current control plane.
+					s.Current.ControlPlane = &scope.ControlPlaneState{
+						Object: currentControlPlane,
+					}
+					// Set the desired control plane.
+					s.Desired = &scope.ClusterState{
+						ControlPlane: &scope.ControlPlaneState{
+							Object: &unstructured.Unstructured{
+								Object: map[string]interface{}{
+									"kind":       "KubeadmControlPlane",
+									"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+									"metadata": map[string]interface{}{
+										"name":      "my-cluster",
+										"namespace": metav1.NamespaceDefault,
+									},
+									"spec": step.desired.spec,
+								},
+							},
+						},
+					}
+					if currentControlPlane != nil {
+						// Set the annotation of the current control plane.
+						annotations, found, err := unstructured.NestedFieldCopy(currentControlPlane.Object, "metadata", "annotations")
+						g.Expect(err).ToNot(HaveOccurred())
+						g.Expect(found).To(BeTrue())
+						g.Expect(unstructured.SetNestedField(s.Desired.ControlPlane.Object.Object, annotations, "metadata", "annotations")).To(Succeed())
+					}
+
+					// Execute a reconcile.0
+					g.Expect(r.reconcileReferencedObject(ctx, reconcileReferencedObjectInput{
+						cluster: s.Current.Cluster,
+						current: s.Current.ControlPlane.Object,
+						desired: s.Desired.ControlPlane.Object,
+						opts: []mergepatch.HelperOption{
+							mergepatch.AuthoritativePaths{
+								// Note: Just using .spec.machineTemplate.metadata here as an example.
+								contract.ControlPlane().MachineTemplate().Metadata().Path(),
+							},
+						}})).To(Succeed())
+
+					// Build the object for comparison.
+					want := &unstructured.Unstructured{
+						Object: map[string]interface{}{
+							"kind":       "KubeadmControlPlane",
+							"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+							"metadata": map[string]interface{}{
+								"name":      "my-cluster",
+								"namespace": metav1.NamespaceDefault,
+							},
+							"spec": step.want.spec,
+						},
+					}
+
+					// Get the reconciled object.
+					got := want.DeepCopy() // this is required otherwise Get will modify want
+					g.Expect(fakeClient.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: "my-cluster"}, got)).To(Succeed())
+
+					// Compare want with got.
+					// Ignore .metadata.resourceVersion and .metadata.annotations as we don't care about them in this test.
+					unstructured.RemoveNestedField(got.Object, "metadata", "resourceVersion")
+					unstructured.RemoveNestedField(got.Object, "metadata", "annotations")
+					g.Expect(got).To(EqualObject(want), fmt.Sprintf("Step %q failed: %v", step.name, cmp.Diff(want, got)))
+					continue
+				}
+
+				panic(fmt.Errorf("unknown step type %T", step))
 			}
 		})
 	}

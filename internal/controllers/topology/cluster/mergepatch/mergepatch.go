@@ -62,7 +62,7 @@ func NewHelper(original, modified client.Object, c client.Client, opts ...Helper
 	// changes to those paths are going to be considered authoritative.
 	managedPaths, err := getManagedPaths(original)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal original object to json")
+		return nil, errors.Wrap(err, "failed to get managed paths")
 	}
 	helperOptions.managedPaths = managedPaths
 

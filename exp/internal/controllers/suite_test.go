@@ -27,7 +27,7 @@ import (
 
 	// +kubebuilder:scaffold:imports
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
-	"sigs.k8s.io/cluster-api/internal/envtest"
+	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
 var (

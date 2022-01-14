@@ -26,9 +26,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"sigs.k8s.io/cluster-api/internal/builder"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	. "sigs.k8s.io/cluster-api/internal/matchers"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
+	. "sigs.k8s.io/cluster-api/internal/test/matchers"
 )
 
 func TestGetReference(t *testing.T) {

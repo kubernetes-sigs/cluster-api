@@ -30,7 +30,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
-	"sigs.k8s.io/cluster-api/internal/builder"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
 func TestClusterReconcilePhases(t *testing.T) {

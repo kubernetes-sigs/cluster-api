@@ -30,8 +30,8 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/builder"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
 func TestClusterClassReconciler_reconcile(t *testing.T) {

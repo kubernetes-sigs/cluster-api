@@ -36,7 +36,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	"sigs.k8s.io/cluster-api/internal/builder"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"

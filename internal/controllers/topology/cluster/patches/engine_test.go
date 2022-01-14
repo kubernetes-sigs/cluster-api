@@ -30,10 +30,10 @@ import (
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/builder"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/api"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
-	. "sigs.k8s.io/cluster-api/internal/matchers"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
+	. "sigs.k8s.io/cluster-api/internal/test/matchers"
 )
 
 func TestApply(t *testing.T) {

@@ -37,7 +37,7 @@ import (
 	fakeinfrastructure "sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test/providers/infrastructure"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/builder"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
 type FakeCluster struct {

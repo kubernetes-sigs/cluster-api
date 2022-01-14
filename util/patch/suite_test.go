@@ -23,8 +23,7 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	// +kubebuilder:scaffold:imports
-	"sigs.k8s.io/cluster-api/internal/envtest"
+	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
 const (

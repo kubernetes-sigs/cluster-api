@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // +kubebuilder:object:root=true
@@ -81,7 +82,7 @@ type ControlPlaneClass struct {
 	// LocalObjectTemplate contains the reference to the control plane provider.
 	LocalObjectTemplate `json:",inline"`
 
-	// MachineTemplate defines the metadata and infrastructure information
+	// MachineInfrastructure defines the metadata and infrastructure information
 	// for control plane machines.
 	//
 	// This field is supported if and only if the control plane provider template
@@ -89,6 +90,12 @@ type ControlPlaneClass struct {
 	//
 	// +optional
 	MachineInfrastructure *LocalObjectTemplate `json:"machineInfrastructure,omitempty"`
+
+	// MachineHealthCheck defines a MachineHealthCheck for this ControlPlaneClass.
+	// This field is supported if and only if the ControlPlane provider template
+	// referenced above is Machine based and supports setting replicas.
+	// +optional
+	MachineHealthCheck *MachineHealthCheckClass `json:"machineHealthCheck,omitempty"`
 }
 
 // WorkersClass is a collection of deployment classes.
@@ -110,6 +117,10 @@ type MachineDeploymentClass struct {
 	// Template is a local struct containing a collection of templates for creation of
 	// MachineDeployment objects representing a set of worker nodes.
 	Template MachineDeploymentClassTemplate `json:"template"`
+
+	// MachineHealthCheck defines a MachineHealthCheck for this MachineDeploymentClass.
+	// +optional
+	MachineHealthCheck *MachineHealthCheckClass `json:"machineHealthCheck,omitempty"`
 }
 
 // MachineDeploymentClassTemplate defines how a MachineDeployment generated from a MachineDeploymentClass
@@ -127,6 +138,42 @@ type MachineDeploymentClassTemplate struct {
 	// Infrastructure contains the infrastructure template reference to be used
 	// for the creation of worker Machines.
 	Infrastructure LocalObjectTemplate `json:"infrastructure"`
+}
+
+// MachineHealthCheckClass defines a MachineHealthCheck for a group of Machines.
+type MachineHealthCheckClass struct {
+	// UnhealthyConditions contains a list of the conditions that determine
+	// whether a node is considered unhealthy. The conditions are combined in a
+	// logical OR, i.e. if any of the conditions is met, the node is unhealthy.
+	UnhealthyConditions []UnhealthyCondition `json:"unhealthyConditions,omitempty"`
+
+	// Any further remediation is only allowed if at most "MaxUnhealthy" machines selected by
+	// "selector" are not healthy.
+	// +optional
+	MaxUnhealthy *intstr.IntOrString `json:"maxUnhealthy,omitempty"`
+
+	// Any further remediation is only allowed if the number of machines selected by "selector" as not healthy
+	// is within the range of "UnhealthyRange". Takes precedence over MaxUnhealthy.
+	// Eg. "[3-5]" - This means that remediation will be allowed only when:
+	// (a) there are at least 3 unhealthy machines (and)
+	// (b) there are at most 5 unhealthy machines
+	// +optional
+	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
+
+	// Machines older than this duration without a node will be considered to have
+	// failed and will be remediated.
+	// If you wish to disable this feature, set the value explicitly to 0.
+	// +optional
+	NodeStartupTimeout *metav1.Duration `json:"nodeStartupTimeout,omitempty"`
+
+	// RemediationTemplate is a reference to a remediation template
+	// provided by an infrastructure provider.
+	//
+	// This field is completely optional, when filled, the MachineHealthCheck controller
+	// creates a new object from the template referenced and hands off remediation of the machine to
+	// a controller that lives outside of Cluster API.
+	// +optional
+	RemediationTemplate *corev1.ObjectReference `json:"remediationTemplate,omitempty"`
 }
 
 // ClusterClassVariable defines a variable which can

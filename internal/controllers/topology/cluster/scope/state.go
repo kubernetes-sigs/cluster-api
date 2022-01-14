@@ -47,6 +47,10 @@ type ControlPlaneState struct {
 
 	// InfrastructureMachineTemplate holds the infrastructure template referenced by the ControlPlane object.
 	InfrastructureMachineTemplate *unstructured.Unstructured
+
+	// MachineHealthCheckClass holds the MachineHealthCheck for this ControlPlane.
+	// +optional
+	MachineHealthCheck *clusterv1.MachineHealthCheck
 }
 
 // MachineDeploymentsStateMap holds a collection of MachineDeployment states.
@@ -80,6 +84,10 @@ type MachineDeploymentState struct {
 
 	// InfrastructureMachineTemplate holds the infrastructure machine template referenced by the MachineDeployment object.
 	InfrastructureMachineTemplate *unstructured.Unstructured
+
+	// MachineHealthCheck holds a MachineHealthCheck linked to the MachineDeployment object.
+	// +optional
+	MachineHealthCheck *clusterv1.MachineHealthCheck
 }
 
 // IsRollingOut determines if the machine deployment is upgrading.

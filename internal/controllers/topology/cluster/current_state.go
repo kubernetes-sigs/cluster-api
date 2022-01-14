@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -119,6 +120,16 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, cluster *c
 		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s", tlog.KObj{Obj: res.Object})
 	}
 
+	mhc := &clusterv1.MachineHealthCheck{}
+	// MachineHealthCheck always has the same name and namespace as the ControlPlane object it belongs to.
+	if err := r.Client.Get(ctx, client.ObjectKey{Namespace: res.Object.GetNamespace(), Name: res.Object.GetName()}, mhc); err != nil {
+		// Not every ControlPlane will have an associated MachineHealthCheck. If no MachineHealthCheck is found return without error.
+		if apierrors.IsNotFound(err) {
+			return res, nil
+		}
+		return nil, errors.Wrapf(err, "failed to get MachineHealthCheck for %s", tlog.KObj{Obj: res.Object})
+	}
+	res.MachineHealthCheck = mhc
 	return res, nil
 }
 
@@ -176,15 +187,29 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, clust
 		if infraRef.Name == "" {
 			return nil, fmt.Errorf("%s does not have a reference to a InfrastructureMachineTemplate", tlog.KObj{Obj: m})
 		}
-		i, err := r.getReference(ctx, &infraRef)
+		infra, err := r.getReference(ctx, &infraRef)
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
+		}
+
+		// Gets the MachineHealthCheck.
+		mhc := &clusterv1.MachineHealthCheck{}
+		// MachineHealthCheck always has the same name and namespace as the MachineDeployment it belongs to.
+		if err := r.Client.Get(ctx, client.ObjectKey{Namespace: m.Namespace, Name: m.Name}, mhc); err != nil {
+			// reset the machineHealthCheck to nil if there is an error.
+			mhc = nil
+
+			// Each MachineDeployment isn't required to have a MachineHealthCheck. Ignore the error if it's of the type not found, but return any other error.
+			if !apierrors.IsNotFound(err) {
+				return nil, errors.Wrap(err, fmt.Sprintf("failed to get MachineHealthCheck for %s", tlog.KObj{Obj: m}))
+			}
 		}
 
 		state[mdTopologyName] = &scope.MachineDeploymentState{
 			Object:                        m,
 			BootstrapTemplate:             b,
-			InfrastructureMachineTemplate: i,
+			InfrastructureMachineTemplate: infra,
+			MachineHealthCheck:            mhc,
 		}
 	}
 	return state, nil

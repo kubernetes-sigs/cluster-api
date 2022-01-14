@@ -139,15 +139,37 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineD
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete infrastructure template for %s", tlog.KObj{Obj: md})
 	}
 
+	// If the MachineDeployment has a MachineHealthCheck delete it.
+	if err := r.deleteMachineHealthCheckForMachineDeployment(ctx, md); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Remove the finalizer so the MachineDeployment can be garbage collected by Kubernetes.
 	patchHelper, err := patch.NewHelper(md, r.Client)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: md})
 	}
+
 	controllerutil.RemoveFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)
 	if err := patchHelper.Patch(ctx, md); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: md})
 	}
-
 	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) deleteMachineHealthCheckForMachineDeployment(ctx context.Context, md *clusterv1.MachineDeployment) error {
+	// MachineHealthCheck will always share the name and namespace of the MachineDeployment which created it.
+	// Create a barebones MachineHealthCheck with the MachineDeployment name and namespace and delete the object.
+
+	mhc := &clusterv1.MachineHealthCheck{}
+	mhc.SetName(md.Name)
+	mhc.SetNamespace(md.Namespace)
+	if err := r.Client.Delete(ctx, mhc); err != nil {
+		// If there is no MachineHealthCheck associated with the machineDeployment return no error.
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return errors.Wrapf(err, "failed to delete %s", tlog.KObj{Obj: mhc})
+	}
+	return nil
 }

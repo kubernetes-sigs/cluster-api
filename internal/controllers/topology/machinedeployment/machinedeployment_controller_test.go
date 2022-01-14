@@ -41,6 +41,7 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 		WithBootstrapTemplate(mdBT).
 		WithInfrastructureTemplate(mdIMT).
 		Build()
+	mhc := builder.MachineHealthCheck(metav1.NamespaceDefault, "md").Build()
 	md.SetDeletionTimestamp(&deletionTimeStamp)
 
 	t.Run("Should delete templates of a MachineDeployment", func(t *testing.T) {
@@ -123,6 +124,25 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 		g.Expect(controllerutil.ContainsFinalizer(afterMD, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
 		g.Expect(templateExists(fakeClient, mdBT)).To(BeTrue())
 		g.Expect(templateExists(fakeClient, mdIMT)).To(BeTrue())
+	})
+	t.Run("Should delete a MachineHealthCheck when its linked MachineDeployment is deleted", func(t *testing.T) {
+		g := NewWithT(t)
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(fakeScheme).
+			WithObjects(md, mhc).
+			Build()
+
+		r := &Reconciler{
+			Client:    fakeClient,
+			APIReader: fakeClient,
+		}
+		_, err := r.reconcileDelete(ctx, md)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		gotMHC := clusterv1.MachineHealthCheck{}
+		err = fakeClient.Get(ctx, client.ObjectKeyFromObject(mhc), &gotMHC)
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})
 }
 

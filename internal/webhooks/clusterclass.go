@@ -142,6 +142,9 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 	// Ensure all MachineDeployment classes are unique.
 	allErrs = append(allErrs, check.MachineDeploymentClassesAreUnique(newClusterClass)...)
 
+	// Ensure MachineHealthChecks are valid.
+	allErrs = append(allErrs, validateMachineHealthCheckClasses(newClusterClass)...)
+
 	// Validate variables.
 	allErrs = append(allErrs,
 		variables.ValidateClusterClassVariables(newClusterClass.Spec.Variables, field.NewPath("spec", "variables"))...,
@@ -424,4 +427,40 @@ func getClusterClassVariablesMapWithReverseIndex(clusterClassVariables []cluster
 		variablesIndexMap[clusterClassVariables[i].Name] = i
 	}
 	return variablesMap, variablesIndexMap
+}
+
+func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Validate ControlPlane MachineHealthCheck if defined.
+	if clusterClass.Spec.ControlPlane.MachineHealthCheck != nil {
+		// Ensure ControlPlane does not define a MachineHealthCheck if it does not define MachineInfrastructure.
+		if clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
+			allErrs = append(allErrs, field.Forbidden(
+				field.NewPath("spec", "controlPlane", "machineHealthCheck"),
+				"can be set only if spec.controlPlane.machineInfrastructure is set",
+			))
+		}
+		// Ensure ControlPlane MachineHealthCheck defines UnhealthyConditions.
+		if len(clusterClass.Spec.ControlPlane.MachineHealthCheck.UnhealthyConditions) == 0 {
+			allErrs = append(allErrs, field.Forbidden(
+				field.NewPath("spec", "controlPlane", "machineHealthCheck", "unhealthyConditions"),
+				"must be defined and have at least one value",
+			))
+		}
+	}
+
+	// Ensure MachineDeployment MachineHealthChecks define UnhealthyConditions.
+	for i, md := range clusterClass.Spec.Workers.MachineDeployments {
+		if md.MachineHealthCheck == nil {
+			continue
+		}
+		if len(md.MachineHealthCheck.UnhealthyConditions) == 0 {
+			allErrs = append(allErrs, field.Forbidden(
+				field.NewPath("spec", "workers", "machineDeployments", "machineHealthCheck").Index(i).Child("unhealthyConditions"),
+				"must be defined and have at least one value",
+			))
+		}
+	}
+	return allErrs
 }

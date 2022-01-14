@@ -65,6 +65,11 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 		}
 	}
 
+	// If the clusterClass defines a valid MachineHealthCheck (including a defined MachineInfrastructure) set the blueprint MachineHealthCheck.
+	if blueprint.HasControlPlaneMachineHealthCheck() {
+		blueprint.ControlPlane.MachineHealthCheck = blueprint.ClusterClass.Spec.ControlPlane.MachineHealthCheck
+	}
+
 	// Loop over the machine deployments classes in ClusterClass
 	// and fetch the related templates.
 	for _, machineDeploymentClass := range blueprint.ClusterClass.Spec.Workers.MachineDeployments {
@@ -87,6 +92,10 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 			return nil, errors.Wrapf(err, "failed to get bootstrap machine template for %s, MachineDeployment class %q", tlog.KObj{Obj: blueprint.ClusterClass}, machineDeploymentClass.Class)
 		}
 
+		// If the machineDeploymentClass defines a MachineHealthCheck add it to the blueprint.
+		if machineDeploymentClass.MachineHealthCheck != nil {
+			machineDeploymentBlueprint.MachineHealthCheck = machineDeploymentClass.MachineHealthCheck
+		}
 		blueprint.MachineDeployments[machineDeploymentClass.Class] = machineDeploymentBlueprint
 	}
 

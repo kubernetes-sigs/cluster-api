@@ -20,11 +20,14 @@ import (
 	"fmt"
 	"regexp"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -729,87 +732,244 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	}
 }
 
+func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
+	g := NewWithT(t)
+	// Create InfrastructureMachineTemplates for test cases
+	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()
+
+	mhcClass := &clusterv1.MachineHealthCheckClass{
+		UnhealthyConditions: []clusterv1.UnhealthyCondition{
+			{
+				Type:    corev1.NodeReady,
+				Status:  corev1.ConditionUnknown,
+				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+			},
+		},
+	}
+	maxUnhealthy := intstr.Parse("45%")
+	// Create clusterClasses requiring controlPlaneInfrastructure and one not.
+	ccWithControlPlaneInfrastructure := &scope.ControlPlaneBlueprint{
+		InfrastructureMachineTemplate: infrastructureMachineTemplate,
+		MachineHealthCheck:            mhcClass,
+	}
+	ccWithoutControlPlaneInfrastructure := &scope.ControlPlaneBlueprint{
+		MachineHealthCheck: mhcClass,
+	}
+
+	// Create ControlPlane Object.
+	controlPlane1 := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
+		WithInfrastructureMachineTemplate(infrastructureMachineTemplate).
+		Build()
+
+	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "cp1").
+		WithSelector(*selectorForControlPlaneMHC()).
+		WithUnhealthyConditions(mhcClass.UnhealthyConditions).
+		WithClusterName("cluster1")
+
+	tests := []struct {
+		name    string
+		class   *scope.ControlPlaneBlueprint
+		current *scope.ControlPlaneState
+		desired *scope.ControlPlaneState
+		want    *clusterv1.MachineHealthCheck
+	}{
+		{
+			name:    "Should create desired ControlPlane MachineHealthCheck for a new ControlPlane",
+			class:   ccWithControlPlaneInfrastructure,
+			current: nil,
+			desired: &scope.ControlPlaneState{
+				Object:                        controlPlane1.DeepCopy(),
+				InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
+				MachineHealthCheck:            mhcBuilder.Build()},
+			want: mhcBuilder.
+				WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(controlPlane1)}).
+				Build(),
+		},
+		{
+			name:  "Should not create ControlPlane MachineHealthCheck when no MachineInfrastructure is defined",
+			class: ccWithoutControlPlaneInfrastructure,
+			current: &scope.ControlPlaneState{
+				Object: controlPlane1.DeepCopy(),
+				// Note this creation would be blocked by the validation Webhook. MHC with no MachineInfrastructure is not allowed.
+				MachineHealthCheck: mhcBuilder.Build()},
+			desired: &scope.ControlPlaneState{
+				Object: controlPlane1.DeepCopy(),
+				// ControlPlane does not have defined MachineInfrastructure.
+				//InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
+			},
+			want: nil,
+		},
+		{
+			name:  "Should update ControlPlane MachineHealthCheck when changed in desired state",
+			class: ccWithControlPlaneInfrastructure,
+			current: &scope.ControlPlaneState{
+				Object:                        controlPlane1.DeepCopy(),
+				InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
+				MachineHealthCheck:            mhcBuilder.Build()},
+			desired: &scope.ControlPlaneState{
+				Object:                        controlPlane1.DeepCopy(),
+				InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
+				MachineHealthCheck:            mhcBuilder.WithMaxUnhealthy(&maxUnhealthy).Build(),
+			},
+			// Want to get the updated version of the MachineHealthCheck after reconciliation.
+			want: mhcBuilder.WithMaxUnhealthy(&maxUnhealthy).Build(),
+		},
+		{
+			name:  "Should delete ControlPlane MachineHealthCheck when removed from desired state",
+			class: ccWithControlPlaneInfrastructure,
+			current: &scope.ControlPlaneState{
+				Object:                        controlPlane1.DeepCopy(),
+				InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
+				MachineHealthCheck:            mhcBuilder.Build()},
+			desired: &scope.ControlPlaneState{
+				Object:                        controlPlane1.DeepCopy(),
+				InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
+				// MachineHealthCheck removed from the desired state of the ControlPlane
+			},
+			want: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeObjs := make([]client.Object, 0)
+			s := scope.New(builder.Cluster(metav1.NamespaceDefault, "cluster1").Build())
+			s.Blueprint = &scope.ClusterBlueprint{
+				ClusterClass: &clusterv1.ClusterClass{},
+			}
+			if tt.class.InfrastructureMachineTemplate != nil {
+				s.Blueprint.ClusterClass.Spec.ControlPlane.MachineInfrastructure = &clusterv1.LocalObjectTemplate{
+					Ref: contract.ObjToRef(tt.class.InfrastructureMachineTemplate),
+				}
+			}
+
+			s.Current.ControlPlane = &scope.ControlPlaneState{}
+			if tt.current != nil {
+				s.Current.ControlPlane = tt.current
+				if tt.current.Object != nil {
+					fakeObjs = append(fakeObjs, tt.current.Object)
+				}
+				if tt.current.InfrastructureMachineTemplate != nil {
+					fakeObjs = append(fakeObjs, tt.current.InfrastructureMachineTemplate)
+				}
+				if tt.current.MachineHealthCheck != nil {
+					fakeObjs = append(fakeObjs, tt.current.MachineHealthCheck)
+				}
+			}
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(fakeScheme).
+				WithObjects(fakeObjs...).
+				Build()
+
+			r := Reconciler{
+				Client:   fakeClient,
+				recorder: env.GetEventRecorderFor("test"),
+			}
+
+			s.Desired = &scope.ClusterState{
+				ControlPlane: tt.desired,
+			}
+
+			// Run reconcileControlPlane with the states created in the initial section of the test.
+			err := r.reconcileControlPlane(ctx, s)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			// Create MachineHealthCheck object for fetching data into
+			gotMHC := &clusterv1.MachineHealthCheck{}
+			err = fakeClient.Get(ctx, client.ObjectKey{Namespace: controlPlane1.GetNamespace(), Name: controlPlane1.GetName()}, gotMHC)
+
+			// Nil case: If we want to find nothing (i.e. delete or MHC not created) and the Get call returns a NotFound error from the API the test succeeds.
+			if tt.want == nil && apierrors.IsNotFound(err) {
+				return
+			}
+
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Expect(gotMHC).To(EqualObject(tt.want, IgnoreAutogeneratedMetadata))
+		})
+	}
+}
+
 func TestReconcileMachineDeployments(t *testing.T) {
 	g := NewWithT(t)
 
 	infrastructureMachineTemplate1 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-1").Build()
 	bootstrapTemplate1 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-1").Build()
-	md1 := newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate1, bootstrapTemplate1)
+	md1 := newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate1, bootstrapTemplate1, nil)
 
 	infrastructureMachineTemplate2 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-2").Build()
 	bootstrapTemplate2 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-2").Build()
-	md2 := newFakeMachineDeploymentTopologyState("md-2", infrastructureMachineTemplate2, bootstrapTemplate2)
+	md2 := newFakeMachineDeploymentTopologyState("md-2", infrastructureMachineTemplate2, bootstrapTemplate2, nil)
 	infrastructureMachineTemplate2WithChanges := infrastructureMachineTemplate2.DeepCopy()
 	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate2WithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
-	md2WithRotatedInfrastructureMachineTemplate := newFakeMachineDeploymentTopologyState("md-2", infrastructureMachineTemplate2WithChanges, bootstrapTemplate2)
+	md2WithRotatedInfrastructureMachineTemplate := newFakeMachineDeploymentTopologyState("md-2", infrastructureMachineTemplate2WithChanges, bootstrapTemplate2, nil)
 
 	infrastructureMachineTemplate3 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-3").Build()
 	bootstrapTemplate3 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-3").Build()
-	md3 := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3)
+	md3 := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3, nil)
 	bootstrapTemplate3WithChanges := bootstrapTemplate3.DeepCopy()
 	g.Expect(unstructured.SetNestedField(bootstrapTemplate3WithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
-	md3WithRotatedBootstrapTemplate := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3WithChanges)
+	md3WithRotatedBootstrapTemplate := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3WithChanges, nil)
 	bootstrapTemplate3WithChangeKind := bootstrapTemplate3.DeepCopy()
 	bootstrapTemplate3WithChangeKind.SetKind("AnotherGenericBootstrapTemplate")
-	md3WithRotatedBootstrapTemplateChangedKind := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3WithChanges)
+	md3WithRotatedBootstrapTemplateChangedKind := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3WithChanges, nil)
 
 	infrastructureMachineTemplate4 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-4").Build()
 	bootstrapTemplate4 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-4").Build()
-	md4 := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate4, bootstrapTemplate4)
+	md4 := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate4, bootstrapTemplate4, nil)
 	infrastructureMachineTemplate4WithChanges := infrastructureMachineTemplate4.DeepCopy()
 	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate4WithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
 	bootstrapTemplate4WithChanges := bootstrapTemplate4.DeepCopy()
 	g.Expect(unstructured.SetNestedField(bootstrapTemplate4WithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
-	md4WithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate4WithChanges, bootstrapTemplate4WithChanges)
+	md4WithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate4WithChanges, bootstrapTemplate4WithChanges, nil)
 
 	infrastructureMachineTemplate4m := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-4m").Build()
 	bootstrapTemplate4m := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-4m").Build()
-	md4m := newFakeMachineDeploymentTopologyState("md-4m", infrastructureMachineTemplate4m, bootstrapTemplate4m)
+	md4m := newFakeMachineDeploymentTopologyState("md-4m", infrastructureMachineTemplate4m, bootstrapTemplate4m, nil)
 	infrastructureMachineTemplate4mWithChanges := infrastructureMachineTemplate4m.DeepCopy()
 	infrastructureMachineTemplate4mWithChanges.SetLabels(map[string]string{"foo": "bar"})
 	bootstrapTemplate4mWithChanges := bootstrapTemplate4m.DeepCopy()
 	bootstrapTemplate4mWithChanges.SetLabels(map[string]string{"foo": "bar"})
-	md4mWithInPlaceUpdatedTemplates := newFakeMachineDeploymentTopologyState("md-4m", infrastructureMachineTemplate4mWithChanges, bootstrapTemplate4mWithChanges)
+	md4mWithInPlaceUpdatedTemplates := newFakeMachineDeploymentTopologyState("md-4m", infrastructureMachineTemplate4mWithChanges, bootstrapTemplate4mWithChanges, nil)
 
 	infrastructureMachineTemplate5 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-5").Build()
 	bootstrapTemplate5 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-5").Build()
-	md5 := newFakeMachineDeploymentTopologyState("md-5", infrastructureMachineTemplate5, bootstrapTemplate5)
+	md5 := newFakeMachineDeploymentTopologyState("md-5", infrastructureMachineTemplate5, bootstrapTemplate5, nil)
 	infrastructureMachineTemplate5WithChangedKind := infrastructureMachineTemplate5.DeepCopy()
 	infrastructureMachineTemplate5WithChangedKind.SetKind("ChangedKind")
-	md5WithChangedInfrastructureMachineTemplateKind := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate5WithChangedKind, bootstrapTemplate5)
+	md5WithChangedInfrastructureMachineTemplateKind := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate5WithChangedKind, bootstrapTemplate5, nil)
 
 	infrastructureMachineTemplate6 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-6").Build()
 	bootstrapTemplate6 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-6").Build()
-	md6 := newFakeMachineDeploymentTopologyState("md-6", infrastructureMachineTemplate6, bootstrapTemplate6)
+	md6 := newFakeMachineDeploymentTopologyState("md-6", infrastructureMachineTemplate6, bootstrapTemplate6, nil)
 	bootstrapTemplate6WithChangedNamespace := bootstrapTemplate6.DeepCopy()
 	bootstrapTemplate6WithChangedNamespace.SetNamespace("ChangedNamespace")
-	md6WithChangedBootstrapTemplateNamespace := newFakeMachineDeploymentTopologyState("md-6", infrastructureMachineTemplate6, bootstrapTemplate6WithChangedNamespace)
+	md6WithChangedBootstrapTemplateNamespace := newFakeMachineDeploymentTopologyState("md-6", infrastructureMachineTemplate6, bootstrapTemplate6WithChangedNamespace, nil)
 
 	infrastructureMachineTemplate7 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-7").Build()
 	bootstrapTemplate7 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-7").Build()
-	md7 := newFakeMachineDeploymentTopologyState("md-7", infrastructureMachineTemplate7, bootstrapTemplate7)
+	md7 := newFakeMachineDeploymentTopologyState("md-7", infrastructureMachineTemplate7, bootstrapTemplate7, nil)
 
 	infrastructureMachineTemplate8Create := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-8-create").Build()
 	bootstrapTemplate8Create := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-create").Build()
-	md8Create := newFakeMachineDeploymentTopologyState("md-8-create", infrastructureMachineTemplate8Create, bootstrapTemplate8Create)
+	md8Create := newFakeMachineDeploymentTopologyState("md-8-create", infrastructureMachineTemplate8Create, bootstrapTemplate8Create, nil)
 	infrastructureMachineTemplate8Delete := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-8-delete").Build()
 	bootstrapTemplate8Delete := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-delete").Build()
-	md8Delete := newFakeMachineDeploymentTopologyState("md-8-delete", infrastructureMachineTemplate8Delete, bootstrapTemplate8Delete)
+	md8Delete := newFakeMachineDeploymentTopologyState("md-8-delete", infrastructureMachineTemplate8Delete, bootstrapTemplate8Delete, nil)
 	infrastructureMachineTemplate8Update := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-8-update").Build()
 	bootstrapTemplate8Update := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-update").Build()
-	md8Update := newFakeMachineDeploymentTopologyState("md-8-update", infrastructureMachineTemplate8Update, bootstrapTemplate8Update)
+	md8Update := newFakeMachineDeploymentTopologyState("md-8-update", infrastructureMachineTemplate8Update, bootstrapTemplate8Update, nil)
 	infrastructureMachineTemplate8UpdateWithChanges := infrastructureMachineTemplate8Update.DeepCopy()
 	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate8UpdateWithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
 	bootstrapTemplate8UpdateWithChanges := bootstrapTemplate3.DeepCopy()
 	g.Expect(unstructured.SetNestedField(bootstrapTemplate8UpdateWithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
-	md8UpdateWithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-8-update", infrastructureMachineTemplate8UpdateWithChanges, bootstrapTemplate8UpdateWithChanges)
+	md8UpdateWithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-8-update", infrastructureMachineTemplate8UpdateWithChanges, bootstrapTemplate8UpdateWithChanges, nil)
 
 	infrastructureMachineTemplate9m := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-9m").Build()
 	bootstrapTemplate9m := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-9m").Build()
-	md9 := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m)
+	md9 := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m, nil)
 	md9.Object.Spec.Template.ObjectMeta.Labels = map[string]string{clusterv1.ClusterLabelName: "cluster-name"}
 	md9.Object.Spec.Selector.MatchLabels = map[string]string{clusterv1.ClusterLabelName: "cluster-name"}
-	md9WithInstanceSpecificTemplateMetadataAndSelector := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m)
+	md9WithInstanceSpecificTemplateMetadataAndSelector := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m, nil)
 	md9WithInstanceSpecificTemplateMetadataAndSelector.Object.Spec.Template.ObjectMeta.Labels = map[string]string{"foo": "bar"}
 	md9WithInstanceSpecificTemplateMetadataAndSelector.Object.Spec.Selector.MatchLabels = map[string]string{"foo": "bar"}
 
@@ -1014,7 +1174,138 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	}
 }
 
-func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTemplate, bootstrapTemplate *unstructured.Unstructured) *scope.MachineDeploymentState {
+func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
+	md := builder.MachineDeployment(metav1.NamespaceDefault, "md-1").WithLabels(
+		map[string]string{
+			clusterv1.ClusterTopologyMachineDeploymentLabelName: "machine-deployment-one",
+		}).
+		Build()
+
+	maxUnhealthy := intstr.Parse("45%")
+	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
+		WithSelector(*selectorForMachineDeploymentMHC(md)).
+		WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+			{
+				Type:    corev1.NodeReady,
+				Status:  corev1.ConditionUnknown,
+				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+			},
+		}).
+		WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
+		WithClusterName("cluster1")
+
+	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-1").Build()
+	bootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-1").Build()
+
+	tests := []struct {
+		name    string
+		current []*scope.MachineDeploymentState
+		desired []*scope.MachineDeploymentState
+		want    []*clusterv1.MachineHealthCheck
+	}{
+		{
+			name:    "Create a MachineHealthCheck if the MachineDeployment is being created",
+			current: nil,
+			desired: []*scope.MachineDeploymentState{
+				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate, mhcBuilder.Build()),
+			},
+			want: []*clusterv1.MachineHealthCheck{
+				mhcBuilder.
+					WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
+					Build()},
+		},
+		{
+			name:    "Create a new MachineHealthCheck if the MachineDeployment is modified to include one",
+			current: []*scope.MachineDeploymentState{newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate, nil)},
+			// MHC is added in the desired state of the MachineDeployment
+			desired: []*scope.MachineDeploymentState{
+				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate, mhcBuilder.Build()),
+			},
+			want: []*clusterv1.MachineHealthCheck{
+				mhcBuilder.
+					WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
+					Build()}},
+		{
+			name: "Update MachineHealthCheck spec if the spec changes",
+			current: []*scope.MachineDeploymentState{
+				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate, mhcBuilder.Build()),
+			},
+			desired: []*scope.MachineDeploymentState{newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate, mhcBuilder.WithMaxUnhealthy(&maxUnhealthy).Build())},
+			want: []*clusterv1.MachineHealthCheck{
+				mhcBuilder.
+					WithMaxUnhealthy(&maxUnhealthy).
+					WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
+					Build()},
+		},
+		{
+			name: "Delete MachineHealthCheck spec if the MachineDeployment is modified to remove an existing one",
+			current: []*scope.MachineDeploymentState{
+				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate, mhcBuilder.Build()),
+			},
+			desired: []*scope.MachineDeploymentState{newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate, nil)},
+			want:    []*clusterv1.MachineHealthCheck{},
+		},
+		{
+			name: "Delete MachineHealthCheck spec if the MachineDeployment is deleted",
+			current: []*scope.MachineDeploymentState{
+				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate, mhcBuilder.Build()),
+			},
+			desired: []*scope.MachineDeploymentState{},
+			want:    []*clusterv1.MachineHealthCheck{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fakeObjs := make([]client.Object, 0)
+			for _, mdts := range tt.current {
+				fakeObjs = append(fakeObjs, mdts.Object.DeepCopy())
+				fakeObjs = append(fakeObjs, mdts.InfrastructureMachineTemplate.DeepCopy())
+				fakeObjs = append(fakeObjs, mdts.BootstrapTemplate.DeepCopy())
+				if mdts.MachineHealthCheck != nil {
+					fakeObjs = append(fakeObjs, mdts.MachineHealthCheck.DeepCopy())
+				}
+			}
+
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(fakeScheme).
+				WithObjects(fakeObjs...).
+				Build()
+
+			currentMachineDeploymentStates := toMachineDeploymentTopologyStateMap(tt.current)
+			s := scope.New(builder.Cluster(metav1.NamespaceDefault, "cluster-1").Build())
+			s.Current.MachineDeployments = currentMachineDeploymentStates
+
+			s.Desired = &scope.ClusterState{MachineDeployments: toMachineDeploymentTopologyStateMap(tt.desired)}
+
+			r := Reconciler{
+				Client:   fakeClient,
+				recorder: env.GetEventRecorderFor("test"),
+			}
+
+			err := r.reconcileMachineDeployments(ctx, s)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			var gotMachineHealthCheckList clusterv1.MachineHealthCheckList
+			g.Expect(fakeClient.List(ctx, &gotMachineHealthCheckList)).To(Succeed())
+			g.Expect(gotMachineHealthCheckList.Items).To(HaveLen(len(tt.want)))
+
+			g.Expect(len(tt.want)).To(Equal(len(gotMachineHealthCheckList.Items)))
+
+			for _, wantMHC := range tt.want {
+				for _, gotMHC := range gotMachineHealthCheckList.Items {
+					if wantMHC.Name == gotMHC.Name {
+						actual := gotMHC
+						g.Expect(wantMHC).To(EqualObject(&actual, IgnoreAutogeneratedMetadata))
+					}
+				}
+			}
+		})
+	}
+}
+
+func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTemplate, bootstrapTemplate *unstructured.Unstructured, machineHealthCheck *clusterv1.MachineHealthCheck) *scope.MachineDeploymentState {
 	return &scope.MachineDeploymentState{
 		Object: builder.MachineDeployment(metav1.NamespaceDefault, name).
 			WithInfrastructureTemplate(infrastructureMachineTemplate).
@@ -1023,6 +1314,7 @@ func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTem
 			Build(),
 		InfrastructureMachineTemplate: infrastructureMachineTemplate,
 		BootstrapTemplate:             bootstrapTemplate,
+		MachineHealthCheck:            machineHealthCheck,
 	}
 }
 
@@ -1032,4 +1324,117 @@ func toMachineDeploymentTopologyStateMap(states []*scope.MachineDeploymentState)
 		ret[state.Object.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]] = state
 	}
 	return ret
+}
+
+func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
+	// create a controlPlane object with enough information to be used as an OwnerReference for the MachineHealthCheck.
+	cp := builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()
+	cp.SetUID("very-unique-identifier")
+	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "cp1").
+		WithSelector(*selectorForControlPlaneMHC()).
+		WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+			{
+				Type:    corev1.NodeReady,
+				Status:  corev1.ConditionUnknown,
+				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+			},
+		}).
+		WithClusterName("cluster1")
+	tests := []struct {
+		name    string
+		current *clusterv1.MachineHealthCheck
+		desired *clusterv1.MachineHealthCheck
+		want    *clusterv1.MachineHealthCheck
+		wantErr bool
+	}{
+		{
+			name:    "Create a MachineHealthCheck",
+			current: nil,
+			desired: mhcBuilder.Build(),
+			want:    mhcBuilder.Build(),
+		},
+		{
+			name:    "Successfully create a valid Ownerreference on the MachineHealthCheck",
+			current: nil,
+			// update the unhealthy conditions in the MachineHealthCheck
+			desired: mhcBuilder.
+				// Desired object has an incomplete owner reference which has no UID.
+				WithOwnerReferences([]metav1.OwnerReference{{Name: cp.GetName(), Kind: cp.GetKind(), APIVersion: cp.GetAPIVersion()}}).
+				Build(),
+			// Want a reconciled object with a full ownerReference including UID
+			want: mhcBuilder.
+				WithOwnerReferences([]metav1.OwnerReference{{Name: cp.GetName(), Kind: cp.GetKind(), APIVersion: cp.GetAPIVersion(), UID: cp.GetUID()}}).
+				Build(),
+			wantErr: false,
+		},
+
+		{
+			name:    "Update a MachineHealthCheck with changes",
+			current: mhcBuilder.Build(),
+			// update the unhealthy conditions in the MachineHealthCheck
+			desired: mhcBuilder.WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+				{
+					Type:    corev1.NodeReady,
+					Status:  corev1.ConditionUnknown,
+					Timeout: metav1.Duration{Duration: 1000 * time.Minute},
+				},
+			}).Build(),
+			want: mhcBuilder.WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+				{
+					Type:    corev1.NodeReady,
+					Status:  corev1.ConditionUnknown,
+					Timeout: metav1.Duration{Duration: 1000 * time.Minute},
+				},
+			}).Build(),
+		},
+		{
+			name:    "Don't change a MachineHealthCheck with no difference between desired and current",
+			current: mhcBuilder.Build(),
+			// update the unhealthy conditions in the MachineHealthCheck
+			desired: mhcBuilder.Build(),
+			want:    mhcBuilder.Build(),
+		},
+		{
+			name:    "Delete a MachineHealthCheck",
+			current: mhcBuilder.Build(),
+			// update the unhealthy conditions in the MachineHealthCheck
+			desired: nil,
+			want:    nil,
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			got := &clusterv1.MachineHealthCheck{}
+			r := Reconciler{
+				Client: fake.NewClientBuilder().
+					WithScheme(fakeScheme).
+					WithObjects([]client.Object{cp}...).
+					Build(),
+				recorder: env.GetEventRecorderFor("test"),
+			}
+			if tt.current != nil {
+				g.Expect(r.Client.Create(ctx, tt.current)).To(Succeed())
+			}
+			if err := r.reconcileMachineHealthCheck(ctx, tt.current, tt.desired); err != nil {
+				if !tt.wantErr {
+					t.Errorf("reconcileMachineHealthCheck() error = %v, wantErr %v", err, tt.wantErr)
+				}
+			}
+
+			if err := r.Client.Get(ctx, client.ObjectKeyFromObject(mhcBuilder.Build()), got); err != nil {
+				if !tt.wantErr {
+					t.Errorf("reconcileMachineHealthCheck() error = %v, wantErr %v", err, tt.wantErr)
+				}
+
+				// Delete case: If we want to find nothing and the Get call returns a NotFound error from the API this is a deletion case and the test succeeds.
+				if tt.want == nil && apierrors.IsNotFound(err) {
+					return
+				}
+			}
+
+			g.Expect(got).To(EqualObject(tt.want, IgnoreAutogeneratedMetadata))
+		})
+	}
 }

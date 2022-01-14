@@ -91,6 +91,11 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Patches = restored.Spec.Patches
 	dst.Spec.Variables = restored.Spec.Variables
+	dst.Spec.ControlPlane.MachineHealthCheck = restored.Spec.ControlPlane.MachineHealthCheck
+
+	for i := range restored.Spec.Workers.MachineDeployments {
+		dst.Spec.Workers.MachineDeployments[i].MachineHealthCheck = restored.Spec.Workers.MachineDeployments[i].MachineHealthCheck
+	}
 
 	return nil
 }
@@ -237,4 +242,14 @@ func Convert_v1beta1_Topology_To_v1alpha4_Topology(in *clusterv1.Topology, out *
 func Convert_v1beta1_MachineDeploymentTopology_To_v1alpha4_MachineDeploymentTopology(in *clusterv1.MachineDeploymentTopology, out *MachineDeploymentTopology, s apiconversion.Scope) error {
 	// MachineDeploymentTopology.FailureDomain has been added with v1beta1.
 	return autoConvert_v1beta1_MachineDeploymentTopology_To_v1alpha4_MachineDeploymentTopology(in, out, s)
+}
+
+func Convert_v1beta1_MachineDeploymentClass_To_v1alpha4_MachineDeploymentClass(in *clusterv1.MachineDeploymentClass, out *MachineDeploymentClass, s apiconversion.Scope) error {
+	// machineDeploymentClass.machineHealthCheck has been added with v1beta1.
+	return autoConvert_v1beta1_MachineDeploymentClass_To_v1alpha4_MachineDeploymentClass(in, out, s)
+}
+
+func Convert_v1beta1_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *clusterv1.ControlPlaneClass, out *ControlPlaneClass, s apiconversion.Scope) error {
+	// controlPlaneClass.machineHealthCheck has been added with v1beta1.
+	return autoConvert_v1beta1_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in, out, s)
 }

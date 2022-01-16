@@ -17,13 +17,15 @@ limitations under the License.
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/fatih/color"
-	"github.com/gosuri/uitable"
+	"github.com/olekukonko/tablewriter"
 	. "github.com/onsi/gomega"
+	gtype "github.com/onsi/gomega/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -276,16 +278,18 @@ func Test_TreePrefix(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			var output bytes.Buffer
 
 			// Creates the output table
-			tbl := uitable.New()
+			tbl := tablewriter.NewWriter(&output)
+
+			formatTableTree(tbl)
 
 			// Add row for the root object, the cluster, and recursively for all the nodes representing the cluster status.
 			addObjectRow("", tbl, tt.objectTree, tt.objectTree.GetRoot())
+			tbl.Render()
 
-			for i := range tt.expectPrefix {
-				g.Expect(tbl.Rows[i].Cells[0].String()).To(Equal(tt.expectPrefix[i]))
-			}
+			g.Expect(output.String()).Should(MatchTable(tt.expectPrefix))
 		})
 	}
 }
@@ -330,4 +334,34 @@ func withCondition(c *clusterv1.Condition) func(ctrlclient.Object) {
 func withDeletionTimestamp(object ctrlclient.Object) {
 	now := metav1.Now()
 	object.SetDeletionTimestamp(&now)
+}
+
+type Table struct {
+	tableData []string
+}
+
+func MatchTable(expected []string) gtype.GomegaMatcher {
+	return &Table{tableData: expected}
+}
+
+func (t *Table) Match(actual interface{}) (bool, error) {
+	tableString := actual.(string)
+	tableParts := strings.Split(tableString, "\n")
+
+	for i := range t.tableData {
+		if !strings.HasPrefix(tableParts[i], t.tableData[i]) {
+			return false, nil
+		}
+	}
+	return true, nil
+}
+
+func (t *Table) FailureMessage(actual interface{}) string {
+	actualTable := strings.Split(actual.(string), "\n")
+	return fmt.Sprintf("Expected %v and received %v", t.tableData, actualTable)
+}
+
+func (t *Table) NegatedFailureMessage(actual interface{}) string {
+	actualTable := strings.Split(actual.(string), "\n")
+	return fmt.Sprintf("Expected %v and received %v", t.tableData, actualTable)
 }

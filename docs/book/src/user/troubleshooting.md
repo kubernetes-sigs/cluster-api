@@ -40,7 +40,7 @@ kubectl get nodes --no-headers -l '!node-role.kubernetes.io/master' -o jsonpath=
 
 ## Cluster API with Docker
 
-When provisioning workload clusters using Cluster API with Docker infrastructure,
+When provisioning workload clusters using Cluster API with the Docker infrastructure provider,
 provisioning might be stuck: 
  
 1. if there are stopped containers on your machine from previous runs. Clean unused containers with [docker rm -f ](https://docs.docker.com/engine/reference/commandline/rm/). 
@@ -50,3 +50,26 @@ provisioning might be stuck:
     * Run [docker system prune --volumes](https://docs.docker.com/engine/reference/commandline/system_prune/) to prune dangling images, containers, volumes and networks.
 
 
+## Cluster API with Docker Desktop - "too many open files"
+
+When using Cluster API and the Docker infrastructure provider on MacOS with Docker Desktop an error of "too many open files" has been observed.
+
+One solution to this issue is to increase the maximum inotify file watch settings in the Docker Desktop VM.
+
+To do so:
+
+1) Enter the Docker Desktop VM
+```
+nc -U ~/Library/Containers/com.docker.docker/Data/debug-shell.sock
+```
+2) Increase the inotify limits using sysctl
+```
+sysctl fs.inotify.max_user_watches=1048576
+sysctl fs.inotify.max_user_instances=8192
+```
+3) Exit the Docker Desktop VM
+```
+exit
+```
+
+Note: This error was observed in Docker 4.3. An alternative solution is to stick with an older version of Docker Desktop while this issue is being resolved. [An issue is currently open on the Docker Desktop repository.](https://github.com/docker/for-mac/issues/6071)

@@ -268,6 +268,21 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 				),
 			)
 		}
+		// A +2 minor version upgrade is not allowed.
+		ceilVersion := semver.Version{
+			Major: oldVersion.Major,
+			Minor: oldVersion.Minor + 2,
+			Patch: 0,
+		}
+		if inVersion.GTE(ceilVersion) {
+			allErrs = append(
+				allErrs,
+				field.Forbidden(
+					field.NewPath("spec", "topology", "version"),
+					fmt.Sprintf("version cannot be increased from %q to %q", oldVersion, inVersion),
+				),
+			)
+		}
 
 		// If the ClusterClass referenced in the Topology has changed compatibility checks are needed.
 		if oldCluster.Spec.Topology.Class != newCluster.Spec.Topology.Class {

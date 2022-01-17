@@ -398,6 +398,22 @@ func TestClusterTopologyValidation(t *testing.T) {
 				Build(),
 		},
 		{
+			name:      "should return error when upgrading +2 minor version",
+			expectErr: true,
+			old: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.2.3").
+					Build()).
+				Build(),
+			in: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.4.0").
+					Build()).
+				Build(),
+		},
+		{
 			name:      "should return error when duplicated MachineDeployments names exists in a Topology",
 			expectErr: true,
 			in: builder.Cluster("fooboo", "cluster1").

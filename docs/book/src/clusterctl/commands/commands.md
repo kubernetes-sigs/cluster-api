@@ -10,4 +10,4 @@
 * [`clusterctl delete`](delete.md)
 * [`clusterctl completion`](completion.md)
 * [`clusterctl alpha rollout`](alpha-rollout.md)
-* [`clusterctl config cluster` (deprecated)](config-cluster.md)
+* [`clusterctl alpha topology plan`](alpha-topology-plan.md)

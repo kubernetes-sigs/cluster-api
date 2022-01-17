@@ -1,4 +1,6 @@
-# Upgrade a Cluster using Managed Topology
+# Operating a managed Cluster
+
+## Upgrade the Cluster
 
 The `spec.topology` field added to the Cluster object as part of ClusterClass allows changes made on the Cluster to be propagated across all relevant objects. This turns a Kubernetes cluster upgrade into a one-touch operation.
 Let's assume we have created a CAPD cluster with ClusterClass and Kubernetes v1.21.2 (as documented in the [Quick Start guide]). Looking at the cluster, the version of the control plane and the MachineDeployments is v1.21.2.

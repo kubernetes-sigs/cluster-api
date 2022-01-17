@@ -21,6 +21,7 @@ Change `1.21.2` to `1.22.0` as below.
 ```bash
 kubectl patch cluster clusterclass-quickstart --type json --patch '[{"op": "replace", "path": "/spec/topology/version", "value": "v1.22.0"}]'
 ```
+**Important Note**: A +2 minor Kubernetes version upgrade is not allowed in Cluster Topologies. This is to align with existing control plane providers, like KubeadmControlPlane provider, that limit a +2 minor version upgrade. Example: Upgrading from `1.21.2` to `1.23.0` is not allowed.
 
 The upgrade will take some time to roll out as it will take place machine by machine with older versions of the machines only being removed after healthy newer versions come online.
 

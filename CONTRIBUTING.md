@@ -199,9 +199,8 @@ The [template](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/pro
 - Proposals or requests for enhacements (RFEs) MUST be associated with an issue.
   - Issues can be placed on the roadmap during planning if there is one or more folks
     that can dedicate time to writing a CAEP and/or implementating it after approval.
-- A proposal SHOULD be introduced and discussed during the weekly community meetings,
-  [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle),
-  or [discuss forum](https://discuss.kubernetes.io/c/contributors/cluster-api/).
+- A proposal SHOULD be introduced and discussed during the weekly community meetings or on the
+ [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle).
   - Submit and discuss proposals using a collaborative writing platform, preferably Google Docs, share documents with edit permissions with the [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle).
 - A proposal in a Google Doc MUST turn into a [Pull Request](https://github.com/kubernetes-sigs/cluster-api/pulls).
 - Proposals MUST be merged and in `implementable` state to be considered part of a major or minor release.

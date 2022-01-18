@@ -148,6 +148,10 @@ func (f fakeClient) RolloutUndo(options RolloutOptions) error {
 	return f.internalClient.RolloutUndo(options)
 }
 
+func (f fakeClient) DryRunTopology(options DryRunOptions) (*cluster.DryRunOutput, error) {
+	return f.internalClient.DryRunTopology(options)
+}
+
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
 // you can use WithCluster and WithRepository to prepare for the test case.
 func newFakeClient(configClient config.Client) *fakeClient {
@@ -316,6 +320,10 @@ func (f *fakeClusterClient) Template() cluster.TemplateClient {
 
 func (f *fakeClusterClient) WorkloadCluster() cluster.WorkloadCluster {
 	return f.internalclient.WorkloadCluster()
+}
+
+func (f *fakeClusterClient) Topology() cluster.TopologyClient {
+	return f.internalclient.Topology()
 }
 
 func (f *fakeClusterClient) WithObjs(objs ...client.Object) *fakeClusterClient {

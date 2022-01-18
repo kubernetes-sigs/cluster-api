@@ -1,0 +1,267 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-docker
+    cluster.x-k8s.io/v1beta1: v1beta1
+  name: dockerclusters.infrastructure.cluster.x-k8s.io
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-docker
+    cluster.x-k8s.io/v1beta1: v1beta1
+  name: dockerclustertemplates.infrastructure.cluster.x-k8s.io
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: control-plane-kubeadm
+    cluster.x-k8s.io/v1beta1: v1beta1
+  name: kubeadmcontrolplanetemplates.controlplane.cluster.x-k8s.io
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: control-plane-kubeadm
+    cluster.x-k8s.io/v1beta1: v1beta1
+  name: kubeadmcontrolplanes.controlplane.cluster.x-k8s.io
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  labels:
+    cluster.x-k8s.io/provider: infrastructure-docker
+    cluster.x-k8s.io/v1beta1: v1beta1
+  name: dockermachinetemplates.infrastructure.cluster.x-k8s.io
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: my-cluster-class
+  namespace: default
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: control-plane
+      namespace: default
+    machineInfrastructure:
+      ref:
+        kind: DockerMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: "control-plane"
+        namespace: default
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerClusterTemplate
+      name: my-cluster
+      namespace: default
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerClusterTemplate
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  template:
+    spec: {}
+---
+kind: KubeadmControlPlaneTemplate
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "control-plane"
+  namespace: default
+spec:
+  template:
+    spec:
+      replicas: 1
+      machineTemplate:
+        nodeDrainTimeout: 1s
+        infrastructureRef:
+          kind: DockerMachineTemplate
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          name: "control-plane"
+          namespace: default
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          controllerManager:
+            extraArgs: { enable-hostpath-provisioner: 'true' }
+          apiServer:
+            certSANs: [ localhost, 127.0.0.1 ]
+        initConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+              cgroup-driver: cgroupfs
+              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+        joinConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+              cgroup-driver: cgroupfs
+              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+      version: v1.21.2
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: "control-plane"
+  namespace: default
+spec:
+  template:
+    spec:
+      extraMounts:
+      - containerPath: "/var/run/docker.sock"
+        hostPath: "/var/run/docker.sock"
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: "my-cluster"
+  namespace: default
+  labels:
+    cni: kindnet
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ["10.128.0.0/12"]
+    pods:
+      cidrBlocks: ["192.168.0.0/16"]
+    serviceDomain: "cluster.local"
+  controlPlaneEndpoint:
+    host: 172.19.0.4
+    port: 6443
+  controlPlaneRef:
+    apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+    kind: KubeadmControlPlane
+    name: my-cluster-fwbpf
+    namespace: default
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+    kind: DockerCluster
+    name: my-cluster-zrq96
+    namespace: default
+  topology:
+    class: my-cluster-class
+    version: v1.21.2
+    controlPlane:
+      metadata: {}
+      replicas: 1
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerCluster
+metadata:
+  annotations:
+    cluster.x-k8s.io/cloned-from-groupkind: DockerClusterTemplate.infrastructure.cluster.x-k8s.io
+    cluster.x-k8s.io/cloned-from-name: my-cluster
+  finalizers:
+    - dockercluster.infrastructure.cluster.x-k8s.io
+  labels:
+    cluster.x-k8s.io/cluster-name: my-cluster
+    topology.cluster.x-k8s.io/owned: ""
+  name: my-cluster-zrq96
+  namespace: default
+spec:
+  controlPlaneEndpoint:
+    host: 172.19.0.4
+    port: 6443
+  loadBalancer: {}
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  annotations:
+    cluster.x-k8s.io/cloned-from-groupkind: KubeadmControlPlaneTemplate.controlplane.cluster.x-k8s.io
+    cluster.x-k8s.io/cloned-from-name: control-plane
+  finalizers:
+    - kubeadm.controlplane.cluster.x-k8s.io
+  labels:
+    cluster.x-k8s.io/cluster-name: my-cluster
+    topology.cluster.x-k8s.io/owned: ""
+  name: my-cluster-fwbpf
+  namespace: default
+  ownerReferences:
+    - apiVersion: cluster.x-k8s.io/v1beta1
+      blockOwnerDeletion: true
+      controller: true
+      kind: Cluster
+      name: my-cluster
+      uid: 3ba5ce4f-d279-4edb-8ade-62a2381d11a8
+spec:
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        certSANs:
+          - localhost
+          - 127.0.0.1
+      controllerManager:
+        extraArgs:
+          enable-hostpath-provisioner: "true"
+      dns: {}
+      etcd: {}
+      networking: {}
+      scheduler: {}
+    initConfiguration:
+      localAPIEndpoint: {}
+      nodeRegistration:
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cgroup-driver: cgroupfs
+          eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+    joinConfiguration:
+      discovery: {}
+      nodeRegistration:
+        criSocket: /var/run/containerd/containerd.sock
+        kubeletExtraArgs:
+          cgroup-driver: cgroupfs
+          eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerMachineTemplate
+      name: my-cluster-control-plane-44cd4
+      namespace: default
+    metadata:
+      labels:
+        cluster.x-k8s.io/cluster-name: my-cluster
+        topology.cluster.x-k8s.io/owned: ""
+    nodeDrainTimeout: 1s
+  replicas: 1
+  rolloutStrategy:
+    rollingUpdate:
+      maxSurge: 1
+    type: RollingUpdate
+  version: v1.21.2
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  annotations:
+    cluster.x-k8s.io/cloned-from-groupkind: DockerMachineTemplate.infrastructure.cluster.x-k8s.io
+    cluster.x-k8s.io/cloned-from-name: control-plane
+  labels:
+    cluster.x-k8s.io/cluster-name: my-cluster
+    topology.cluster.x-k8s.io/owned: ""
+  name: my-cluster-control-plane-44cd4
+  namespace: default
+  ownerReferences:
+    - apiVersion: cluster.x-k8s.io/v1beta1
+      kind: Cluster
+      name: my-cluster
+      uid: 3ba5ce4f-d279-4edb-8ade-62a2381d11a8
+spec:
+  template:
+    spec:
+      extraMounts:
+        - containerPath: /var/run/docker.sock
+          hostPath: /var/run/docker.sock

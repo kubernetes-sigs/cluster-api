@@ -482,6 +482,10 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, cluster *clust
 		// change, the metadata.labels might not match the selector anymore, if we don't delete outdated labels
 		// from the selector.
 		{"spec", "selector"},
+		// Note: We want to be authoritative for the failureDomain set in the MachineDeployment
+		// spec.template.spec.failureDomain. This ensures that a change to the MachineDeploymentTopology failureDomain
+		// is reconciled correctly.
+		{"spec", "template", "spec", "failureDomain"},
 	})
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: currentMD.Object})

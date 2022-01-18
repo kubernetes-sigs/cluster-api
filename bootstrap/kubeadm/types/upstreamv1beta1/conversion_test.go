@@ -63,6 +63,8 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		dnsFuzzer,
 		clusterConfigurationFuzzer,
 		kubeadmNodeRegistrationOptionsFuzzer,
+		kubeadmInitConfigurationFuzzer,
+		kubeadmJoinConfigurationFuzzer,
 	}
 }
 
@@ -86,4 +88,20 @@ func kubeadmNodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptio
 	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 API, so setting it to nil in order to avoid
 	// v1alpha4 --> v1beta1 -> v1alpha4 round trip errors.
 	obj.IgnorePreflightErrors = nil
+}
+
+func kubeadmInitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// InitConfiguration.Patches does not exist in kubeadm v1beta1 API, so setting it to nil in order to avoid
+	// v1beta1 --> upstream v1beta1 -> v1beta1 round trip errors.
+	obj.Patches = nil
+}
+
+func kubeadmJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// JoinConfiguration.Patches does not exist in kubeadm v1beta1 API, so setting it to nil in order to avoid
+	// v1beta1 --> upstream v1beta1 -> v1beta1 round trip errors.
+	obj.Patches = nil
 }

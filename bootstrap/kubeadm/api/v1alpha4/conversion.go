@@ -38,6 +38,12 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Ignition = restored.Spec.Ignition
+	if restored.Spec.InitConfiguration != nil {
+		dst.Spec.InitConfiguration.Patches = restored.Spec.InitConfiguration.Patches
+	}
+	if restored.Spec.JoinConfiguration != nil {
+		dst.Spec.JoinConfiguration.Patches = restored.Spec.JoinConfiguration.Patches
+	}
 
 	return nil
 }
@@ -78,6 +84,12 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Template.Spec.Ignition = restored.Spec.Template.Spec.Ignition
+	if restored.Spec.Template.Spec.InitConfiguration != nil {
+		dst.Spec.Template.Spec.InitConfiguration.Patches = restored.Spec.Template.Spec.InitConfiguration.Patches
+	}
+	if restored.Spec.Template.Spec.JoinConfiguration != nil {
+		dst.Spec.Template.Spec.JoinConfiguration.Patches = restored.Spec.Template.Spec.JoinConfiguration.Patches
+	}
 
 	return nil
 }
@@ -108,4 +120,14 @@ func (dst *KubeadmConfigTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 func Convert_v1beta1_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *KubeadmConfigSpec, s apiconversion.Scope) error {
 	// KubeadmConfigSpec.Ignition does not exist in kubeadm v1alpha4 API.
 	return autoConvert_v1beta1_KubeadmConfigSpec_To_v1alpha4_KubeadmConfigSpec(in, out, s)
+}
+
+func Convert_v1beta1_InitConfiguration_To_v1alpha4_InitConfiguration(in *bootstrapv1.InitConfiguration, out *InitConfiguration, s apiconversion.Scope) error {
+	// InitConfiguration.Patches does not exist in kubeadm v1alpha4 API.
+	return autoConvert_v1beta1_InitConfiguration_To_v1alpha4_InitConfiguration(in, out, s)
+}
+
+func Convert_v1beta1_JoinConfiguration_To_v1alpha4_JoinConfiguration(in *bootstrapv1.JoinConfiguration, out *JoinConfiguration, s apiconversion.Scope) error {
+	// InitConfiguration.Patches does not exist in kubeadm v1alpha4 API.
+	return autoConvert_v1beta1_JoinConfiguration_To_v1alpha4_JoinConfiguration(in, out, s)
 }

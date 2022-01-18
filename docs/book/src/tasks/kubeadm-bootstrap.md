@@ -86,6 +86,9 @@ The cloud-init script will be saved into a secret `KubeadmConfig.Status.DataSecr
 The `KubeadmConfig` object allows full control of Kubeadm init/join operations by exposing raw `InitConfiguration`,
 `ClusterConfiguration` and `JoinConfiguration` objects.
 
+`InitConfiguration` and `JoinConfiguration` exposes `Patches` field which can be used to specify the patches from a directory,
+this support is available from K8s 1.22 version onwards.
+
 CABPK will fill in some values if they are left empty with sensible defaults:
 
 | `KubeadmConfig` field                           | Default                                                      |

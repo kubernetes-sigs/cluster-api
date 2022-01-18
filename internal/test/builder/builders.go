@@ -157,9 +157,10 @@ func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 
 // MachineDeploymentTopologyBuilder holds the values needed to create a testable MachineDeploymentTopology.
 type MachineDeploymentTopologyBuilder struct {
-	class    string
-	name     string
-	replicas *int32
+	class     string
+	name      string
+	replicas  *int32
+	variables []clusterv1.ClusterVariable
 }
 
 // MachineDeploymentTopology returns a builder used to create a testable MachineDeploymentTopology.
@@ -181,13 +182,27 @@ func (m *MachineDeploymentTopologyBuilder) WithReplicas(replicas int32) *Machine
 	return m
 }
 
+// WithVariables adds variables used as the MachineDeploymentTopology variables value.
+func (m *MachineDeploymentTopologyBuilder) WithVariables(variables ...clusterv1.ClusterVariable) *MachineDeploymentTopologyBuilder {
+	m.variables = variables
+	return m
+}
+
 // Build returns a testable MachineDeploymentTopology with any values passed to the builder.
 func (m *MachineDeploymentTopologyBuilder) Build() clusterv1.MachineDeploymentTopology {
-	return clusterv1.MachineDeploymentTopology{
+	md := clusterv1.MachineDeploymentTopology{
 		Class:    m.class,
 		Name:     m.name,
 		Replicas: m.replicas,
 	}
+
+	if len(m.variables) > 0 {
+		md.Variables = &clusterv1.MachineDeploymentVariables{
+			Overrides: m.variables,
+		}
+	}
+
+	return md
 }
 
 // ClusterClassBuilder holds the variables and objects required to build a clusterv1.ClusterClass.

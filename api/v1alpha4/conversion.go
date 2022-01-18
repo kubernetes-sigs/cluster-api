@@ -42,6 +42,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 		if restored.Spec.Topology.Workers != nil {
 			for i := range restored.Spec.Topology.Workers.MachineDeployments {
 				dst.Spec.Topology.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Topology.Workers.MachineDeployments[i].FailureDomain
+				dst.Spec.Topology.Workers.MachineDeployments[i].Variables = restored.Spec.Topology.Workers.MachineDeployments[i].Variables
 			}
 		}
 	}

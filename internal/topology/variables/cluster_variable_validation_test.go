@@ -32,6 +32,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 		name                  string
 		clusterClassVariables []clusterv1.ClusterClassVariable
 		clusterVariables      []clusterv1.ClusterVariable
+		validateRequired      bool
 		wantErr               bool
 	}{
 		{
@@ -92,6 +93,7 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					},
 				},
 			},
+			validateRequired: true,
 		},
 		{
 			name: "Error if required ClusterClassVariable is not defined in ClusterVariables.",
@@ -127,7 +129,45 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			validateRequired: true,
+			wantErr:          true,
+		},
+		{
+			name: "Pass if required ClusterClassVariable is not defined in ClusterVariables but required validation is disabled.",
+			clusterClassVariables: []clusterv1.ClusterClassVariable{
+				{
+					Name:     "cpu",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:    "integer",
+							Minimum: pointer.Int64(1),
+						},
+					},
+				},
+				{
+					Name:     "zone",
+					Required: true,
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type:      "string",
+							MinLength: pointer.Int64(1),
+						},
+					},
+				},
+			},
+
+			clusterVariables: []clusterv1.ClusterVariable{
+				// cpu is missing in the ClusterVariables and is required in ClusterClassVariables,
+				// but required validation is disabled.
+				{
+					Name: "zone",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"longerThanOneCharacter"`),
+					},
+				},
+			},
+			validateRequired: false,
 		},
 		{
 			name: "Error if ClusterVariable defined which has no ClusterClassVariable definition.",
@@ -176,15 +216,145 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					},
 				},
 			},
-			wantErr: true,
+			validateRequired: true,
+			wantErr:          true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := ValidateClusterVariables(tt.clusterVariables, tt.clusterClassVariables,
-				field.NewPath("spec", "topology", "variables"))
+			errList := validateClusterVariables(tt.clusterVariables, tt.clusterClassVariables,
+				tt.validateRequired, field.NewPath("spec", "topology", "variables"))
+
+			if tt.wantErr {
+				g.Expect(errList).NotTo(BeEmpty())
+				return
+			}
+			g.Expect(errList).To(BeEmpty())
+		})
+	}
+}
+
+func Test_ValidateTopLevelClusterVariablesExist(t *testing.T) {
+	tests := []struct {
+		name                      string
+		clusterVariablesOverrides []clusterv1.ClusterVariable
+		clusterVariables          []clusterv1.ClusterVariable
+		wantErr                   bool
+	}{
+		{
+			name: "Pass if all variable overrides have corresponding top-level variables.",
+			clusterVariablesOverrides: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+				},
+				{
+					Name: "zone",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"longerThanOneCharacter"`),
+					},
+				},
+			},
+			clusterVariables: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+				},
+				{
+					Name: "zone",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"longerThanOneCharacter"`),
+					},
+				},
+			},
+		},
+		{
+			name:                      "Pass if there are no variable overrides and no top-level variables.",
+			clusterVariablesOverrides: []clusterv1.ClusterVariable{},
+			clusterVariables:          []clusterv1.ClusterVariable{},
+		},
+		{
+			name:                      "Pass if there are no variable overrides.",
+			clusterVariablesOverrides: []clusterv1.ClusterVariable{},
+			clusterVariables: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+				},
+				{
+					Name: "zone",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"longerThanOneCharacter"`),
+					},
+				},
+			},
+		},
+		{
+			name: "Error if a variable override is missing the corresponding top-level variables.",
+			clusterVariablesOverrides: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+				},
+				{
+					Name: "zone",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"longerThanOneCharacter"`),
+					},
+				},
+			},
+			clusterVariables: []clusterv1.ClusterVariable{
+				{
+					Name: "zone",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"longerThanOneCharacter"`),
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Pass if not every top-level variable has an override.",
+			clusterVariablesOverrides: []clusterv1.ClusterVariable{
+				{
+					Name: "zone",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"longerThanOneCharacter"`),
+					},
+				},
+			},
+			clusterVariables: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+				},
+				{
+					Name: "zone",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"longerThanOneCharacter"`),
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			errList := ValidateTopLevelClusterVariablesExist(tt.clusterVariablesOverrides, tt.clusterVariables,
+				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(0).Child("variables", "overrides"))
 
 			if tt.wantErr {
 				g.Expect(errList).NotTo(BeEmpty())

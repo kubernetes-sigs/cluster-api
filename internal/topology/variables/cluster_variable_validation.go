@@ -27,8 +27,18 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-// ValidateClusterVariables validates clusterVariable via the schemas in the corresponding clusterClassVariable.
+// ValidateClusterVariables validates ClusterVariables.
 func ValidateClusterVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
+	return validateClusterVariables(clusterVariables, clusterClassVariables, true, fldPath)
+}
+
+// ValidateMachineDeploymentVariables validates ValidateMachineDeploymentVariables.
+func ValidateMachineDeploymentVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
+	return validateClusterVariables(clusterVariables, clusterClassVariables, false, fldPath)
+}
+
+// validateClusterVariables validates variables via the schemas in the corresponding clusterClassVariable.
+func validateClusterVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, validateRequired bool, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	// Build maps for easier and faster access.
@@ -38,7 +48,9 @@ func ValidateClusterVariables(clusterVariables []clusterv1.ClusterVariable, clus
 	// Validate:
 	// * required variables from the ClusterClass exist on the Cluster.
 	// * all variables in the Cluster are defined in the ClusterClass.
-	allErrs = append(allErrs, validateRequiredClusterVariables(clusterVariablesMap, clusterClassVariablesMap, fldPath)...)
+	if validateRequired {
+		allErrs = append(allErrs, validateRequiredClusterVariables(clusterVariablesMap, clusterClassVariablesMap, fldPath)...)
+	}
 	allErrs = append(allErrs, validateClusterVariablesDefined(clusterVariables, clusterClassVariablesMap, fldPath)...)
 	if len(allErrs) > 0 {
 		return allErrs
@@ -84,6 +96,23 @@ func validateClusterVariablesDefined(clusterVariables []clusterv1.ClusterVariabl
 		if _, ok := clusterClassVariables[clusterVariable.Name]; !ok {
 			return field.ErrorList{field.Invalid(fldPath.Index(i).Child("name"), clusterVariable.Name,
 				fmt.Sprintf("variable with name %q is not defined in the ClusterClass", clusterVariable.Name))} // TODO: consider if to add ClusterClass name
+		}
+	}
+
+	return allErrs
+}
+
+// ValidateTopLevelClusterVariablesExist validates that all overrides have a corresponding top-level variable.
+func ValidateTopLevelClusterVariablesExist(clusterVariablesOverrides []clusterv1.ClusterVariable, clusterVariables []clusterv1.ClusterVariable, fldPath *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	// Build map for easier and faster access.
+	clusterVariablesMap := getClusterVariablesMap(clusterVariables)
+
+	for i, clusterVariableOverride := range clusterVariablesOverrides {
+		if _, ok := clusterVariablesMap[clusterVariableOverride.Name]; !ok {
+			return field.ErrorList{field.Invalid(fldPath.Index(i).Child("name"), clusterVariableOverride.Name,
+				fmt.Sprintf("variable override with name %q is missing a corresponding top-level variable", clusterVariableOverride.Name))}
 		}
 	}
 

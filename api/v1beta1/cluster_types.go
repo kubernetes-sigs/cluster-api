@@ -154,6 +154,10 @@ type MachineDeploymentTopology struct {
 	// of this value.
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
+
+	// Variables can be used to customize the MachineDeployment through patches.
+	// +optional
+	Variables *MachineDeploymentVariables `json:"variables,omitempty"`
 }
 
 // ClusterVariable can be used to customize the Cluster through
@@ -171,6 +175,13 @@ type ClusterVariable struct {
 	// i.e. it is not possible to have no type field.
 	// Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111
 	Value apiextensionsv1.JSON `json:"value"`
+}
+
+// MachineDeploymentVariables can be used to provide variables for a specific MachineDeployment.
+type MachineDeploymentVariables struct {
+	// Overrides can be used to override Cluster level variables.
+	// +optional
+	Overrides []ClusterVariable `json:"overrides,omitempty"`
 }
 
 // ANCHOR_END: ClusterSpec

@@ -1458,6 +1458,15 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 										Raw: []byte(`4`),
 									},
 								}).
+							WithMachineDeployment(builder.MachineDeploymentTopology("md-1").
+								WithVariables(clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`5`),
+									},
+								}).
+								Build(),
+							).
 							Build()).
 					Build(),
 			},
@@ -1536,6 +1545,61 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 			expectErr: true,
 		},
 		{
+			name: "Error if a Minimum ClusterClassVariable is changed and invalidates an existing ClusterVariable override",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`20`),
+									},
+								}).
+							WithMachineDeployment(builder.MachineDeploymentTopology("md-1").
+								WithVariables(clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`10`),
+									},
+								}).
+								Build(),
+							).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type:    "integer",
+								Minimum: pointer.Int64(1),
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+								// Minimum changed to a value that invalidates the ClusterVariable override.
+								Minimum: pointer.Int64(15),
+							},
+						},
+					}).
+				Build(),
+			expectErr: true,
+		},
+		{
 			name: "Pass if a Maximum ClusterClassVariable is changed but does not invalidate an existing ClusterVariable",
 			clusters: []client.Object{
 				builder.Cluster(metav1.NamespaceDefault, "cluster1").
@@ -1550,6 +1614,15 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 										Raw: []byte(`4`),
 									},
 								}).
+							WithMachineDeployment(builder.MachineDeploymentTopology("md-1").
+								WithVariables(clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`3`),
+									},
+								}).
+								Build(),
+							).
 							Build()).
 					Build(),
 			},
@@ -1637,11 +1710,20 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 							WithClass("class1").
 							WithVariables(
 								clusterv1.ClusterVariable{
-									Name: "cpu",
+									Name: "zone",
 									Value: apiextensionsv1.JSON{
 										Raw: []byte(`"us-east-1"`),
 									},
 								}).
+							WithMachineDeployment(builder.MachineDeploymentTopology("md-1").
+								WithVariables(clusterv1.ClusterVariable{
+									Name: "zone",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`"us-east-2"`),
+									},
+								}).
+								Build(),
+							).
 							Build()).
 					Build(),
 			},
@@ -1655,6 +1737,7 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 								Enum: []apiextensionsv1.JSON{
 									{Raw: []byte(`"us-east-1"`)},
 									{Raw: []byte(`"us-east-2"`)},
+									{Raw: []byte(`"us-east-3"`)},
 								},
 							},
 						},
@@ -1669,7 +1752,8 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 								Type: "string",
 								Enum: []apiextensionsv1.JSON{
 									{Raw: []byte(`"us-east-1"`)},
-									{Raw: []byte(`"us-east-3"`)},
+									{Raw: []byte(`"us-east-2"`)},
+									{Raw: []byte(`"us-east-4"`)},
 								},
 							},
 						},
@@ -1787,6 +1871,15 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 										Raw: []byte(`4`),
 									},
 								}).
+							WithMachineDeployment(builder.MachineDeploymentTopology("md-1").
+								WithVariables(clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`5`),
+									},
+								}).
+								Build(),
+							).
 							Build()).
 					Build(),
 			},
@@ -1875,6 +1968,15 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 										Raw: []byte{'1'},
 									},
 								}).
+							WithMachineDeployment(builder.MachineDeploymentTopology("md-1").
+								WithVariables(clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte{'1'},
+									},
+								}).
+								Build(),
+							).
 							Build()).
 					Build(),
 			},
@@ -1940,6 +2042,16 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 										Raw: []byte(`4`),
 									},
 								}).
+							WithMachineDeployment(builder.MachineDeploymentTopology("md-1").
+								WithVariables(clusterv1.ClusterVariable{
+									Name: "cpu",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`4`),
+									},
+									// Note: hdd is only required as top-level variable not as override.
+								}).
+								Build(),
+							).
 							Build()).
 					Build(),
 			},
@@ -2002,6 +2114,15 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 										Raw: []byte(`"first-zone"`),
 									},
 								}).
+							WithMachineDeployment(builder.MachineDeploymentTopology("md-1").
+								WithVariables(clusterv1.ClusterVariable{
+									Name: "zone",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`"second-zone"`),
+									},
+								}).
+								Build(),
+							).
 							Build()).
 					Build(),
 			},
@@ -2061,6 +2182,22 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 										Raw: []byte(`"first-zone"`),
 									},
 								}).
+							WithMachineDeployment(builder.MachineDeploymentTopology("md-1").
+								WithVariables(
+									clusterv1.ClusterVariable{
+										Name: "zone",
+										Value: apiextensionsv1.JSON{
+											Raw: []byte(`"first-zone"`),
+										},
+									},
+									clusterv1.ClusterVariable{
+										Name: "location",
+										Value: apiextensionsv1.JSON{
+											Raw: []byte(`"first-zone"`),
+										},
+									}).
+								Build(),
+							).
 							Build()).
 					Build(),
 			},

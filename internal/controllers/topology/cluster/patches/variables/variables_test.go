@@ -49,8 +49,8 @@ func TestGlobal(t *testing.T) {
 						Value: toJSON("8"),
 					},
 					{
-						// This is blocked by a webhook, but let's make sure we overwrite
-						// the user-defined variable with the builtin variable anyway.
+						// This is blocked by a webhook, but let's make sure that the user-defined
+						// variable is overwritten by the builtin variable anyway.
 						Name:  "builtin",
 						Value: toJSON("8"),
 					},
@@ -141,6 +141,35 @@ func TestMachineDeployment(t *testing.T) {
 				Replicas: pointer.Int32(3),
 				Name:     "md-topology",
 				Class:    "md-class",
+				Variables: &clusterv1.MachineDeploymentVariables{
+					Overrides: []clusterv1.ClusterVariable{
+						{
+							Name:  "location",
+							Value: toJSON("\"us-central\""),
+						},
+						{
+							Name:  "cpu",
+							Value: toJSON("8"),
+						},
+					},
+				},
+			},
+			md: builder.MachineDeployment(metav1.NamespaceDefault, "md1").
+				WithReplicas(3).
+				WithVersion("v1.21.1").
+				Build(),
+			want: VariableMap{
+				"location":   toJSON("\"us-central\""),
+				"cpu":        toJSON("8"),
+				BuiltinsName: toJSON("{\"machineDeployment\":{\"version\":\"v1.21.1\",\"class\":\"md-class\",\"name\":\"md1\",\"topologyName\":\"md-topology\",\"replicas\":3}}"),
+			},
+		},
+		{
+			name: "Should calculate MachineDeployment variables (without overrides)",
+			mdTopology: &clusterv1.MachineDeploymentTopology{
+				Replicas: pointer.Int32(3),
+				Name:     "md-topology",
+				Class:    "md-class",
 			},
 			md: builder.MachineDeployment(metav1.NamespaceDefault, "md1").
 				WithReplicas(3).
@@ -155,11 +184,25 @@ func TestMachineDeployment(t *testing.T) {
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Name:  "md-topology",
 				Class: "md-class",
+				Variables: &clusterv1.MachineDeploymentVariables{
+					Overrides: []clusterv1.ClusterVariable{
+						{
+							Name:  "location",
+							Value: toJSON("\"us-central\""),
+						},
+						{
+							Name:  "cpu",
+							Value: toJSON("8"),
+						},
+					},
+				},
 			},
 			md: builder.MachineDeployment(metav1.NamespaceDefault, "md1").
 				WithVersion("v1.21.1").
 				Build(),
 			want: VariableMap{
+				"location":   toJSON("\"us-central\""),
+				"cpu":        toJSON("8"),
 				BuiltinsName: toJSON("{\"machineDeployment\":{\"version\":\"v1.21.1\",\"class\":\"md-class\",\"name\":\"md1\",\"topologyName\":\"md-topology\"}}"),
 			},
 		},

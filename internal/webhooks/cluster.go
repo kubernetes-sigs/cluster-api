@@ -215,7 +215,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 		return allErrs
 	}
 
-	allErrs = append(allErrs, check.MachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(newCluster, clusterClass)...)
+	allErrs = append(allErrs, check.MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(newCluster, clusterClass)...)
 
 	// Check if the variables defined in the clusterClass are valid.
 	allErrs = append(allErrs, variables.ValidateClusterVariables(newCluster.Spec.Topology.Variables, clusterClass.Spec.Variables, field.NewPath("spec", "topology", "variables"))...)

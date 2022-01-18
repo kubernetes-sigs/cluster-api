@@ -837,6 +837,34 @@ func TestMachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(t *testing
 		wantErr      bool
 	}{
 		{
+			name: "fail if MachineDeploymentTopologies name is empty",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build()).
+				Build(),
+			cluster: builder.Cluster("fooboo", "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.1").
+					WithMachineDeployment(
+						// The name should not be empty.
+						builder.MachineDeploymentTopology("").
+							WithClass("aa").
+							Build()).
+					Build()).
+				Build(),
+			wantErr: true,
+		},
+		{
 			name: "pass if MachineDeploymentTopologies are unique and defined in ClusterClass",
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(
@@ -968,7 +996,7 @@ func TestMachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(t *testing
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			allErrs := MachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(tt.cluster, tt.clusterClass)
+			allErrs := MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(tt.cluster, tt.clusterClass)
 			if tt.wantErr {
 				g.Expect(allErrs).ToNot(BeEmpty())
 				return

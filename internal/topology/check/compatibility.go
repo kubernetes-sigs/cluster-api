@@ -263,8 +263,9 @@ func MachineDeploymentClassesAreUnique(clusterClass *clusterv1.ClusterClass) fie
 	return allErrs
 }
 
-// MachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass checks that each MachineDeploymentTopology name is unique, and each class in use is defined in ClusterClass.spec.Workers.MachineDeployments.
-func MachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(desired *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
+// MachineDeploymentTopologiesAreValidAndDefinedInClusterClass checks that each MachineDeploymentTopology name is not empty
+// and unique, and each class in use is defined in ClusterClass.spec.Workers.MachineDeployments.
+func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	if desired.Spec.Topology.Workers == nil {
 		return nil
@@ -286,6 +287,19 @@ func MachineDeploymentTopologiesAreUniqueAndDefinedInClusterClass(desired *clust
 				),
 			)
 		}
+
+		// MachineDeploymentTopology name should not be empty.
+		if md.Name == "" {
+			allErrs = append(
+				allErrs,
+				field.Required(
+					field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("name"),
+					"name must not be empty",
+				),
+			)
+			continue
+		}
+
 		if names.Has(md.Name) {
 			allErrs = append(allErrs,
 				field.Invalid(

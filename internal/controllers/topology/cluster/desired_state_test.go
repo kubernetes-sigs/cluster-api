@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -1430,6 +1431,7 @@ func TestMergeMap(t *testing.T) {
 }
 
 func Test_computeMachineHealthCheck(t *testing.T) {
+	maxUnhealthyValue := intstr.FromString("100%")
 	mhcSpec := &clusterv1.MachineHealthCheckClass{
 		UnhealthyConditions: []clusterv1.UnhealthyCondition{
 			{
@@ -1446,7 +1448,6 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 		NodeStartupTimeout: &metav1.Duration{
 			Duration: time.Duration(1)},
 	}
-
 	selector := &metav1.LabelSelector{MatchLabels: map[string]string{
 		"foo": "bar",
 	}}
@@ -1460,12 +1461,16 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "md1",
 			Namespace: "ns1",
+			// Label is added by defaulting values using MachineHealthCheck.Default()
+			Labels: map[string]string{"cluster.x-k8s.io/cluster-name": "cluster1"},
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
 			ClusterName: "cluster1",
 			Selector: metav1.LabelSelector{MatchLabels: map[string]string{
 				"foo": "bar",
 			}},
+			// MaxUnhealthy is added by defaulting values using MachineHealthCheck.Default()
+			MaxUnhealthy: &maxUnhealthyValue,
 			UnhealthyConditions: []clusterv1.UnhealthyCondition{
 				{
 					Type:    corev1.NodeReady,

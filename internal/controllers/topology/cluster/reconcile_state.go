@@ -291,7 +291,9 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 	ctx, log = log.WithObject(current).Into(ctx)
 
 	// Check differences between current and desired MachineHealthChecks, and patch if required.
-	patchHelper, err := mergepatch.NewHelper(current, desired, r.Client)
+	// NOTE: we want to be authoritative on the entire spec because the users are
+	// expected to change MHC fields from the ClusterClass only.
+	patchHelper, err := mergepatch.NewHelper(current, desired, r.Client, mergepatch.AuthoritativePaths{contract.Path{"spec"}})
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: current})
 	}

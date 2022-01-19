@@ -738,7 +738,7 @@ func ownerReferenceTo(obj client.Object) *metav1.OwnerReference {
 
 func computeMachineHealthCheck(healthCheckTarget client.Object, selector *metav1.LabelSelector, clusterName string, check *clusterv1.MachineHealthCheckClass) *clusterv1.MachineHealthCheck {
 	// Create a MachineHealthCheck with the spec given in the ClusterClass.
-	return &clusterv1.MachineHealthCheck{
+	mhc := &clusterv1.MachineHealthCheck{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       clusterv1.GroupVersion.WithKind("MachineHealthCheck").Kind,
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -757,6 +757,10 @@ func computeMachineHealthCheck(healthCheckTarget client.Object, selector *metav1
 			RemediationTemplate: check.RemediationTemplate,
 		},
 	}
+	// Default all fields in the MachineHealthCheck using the same function called in the webhook. This ensures the desired
+	// state of the object won't be different from the current state due to webhook Defaulting.
+	mhc.Default()
+	return mhc
 }
 
 func selectorForControlPlaneMHC() *metav1.LabelSelector {

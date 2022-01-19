@@ -173,6 +173,50 @@ func TestReconcileNewMachineSet(t *testing.T) {
 			},
 			error: nil,
 		},
+		{
+			name: "RollingUpdate strategy: Scale up accounts for deleting Machines to honour maxSurge",
+			machineDeployment: &clusterv1.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar",
+				},
+				Spec: clusterv1.MachineDeploymentSpec{
+					Strategy: &clusterv1.MachineDeploymentStrategy{
+						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+							MaxUnavailable: intOrStrPtr(0),
+							MaxSurge:       intOrStrPtr(0),
+						},
+					},
+					Replicas: pointer.Int32Ptr(1),
+				},
+			},
+			newMachineSet: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "foo",
+					Name:      "bar",
+				},
+				Spec: clusterv1.MachineSetSpec{
+					Replicas: pointer.Int32Ptr(0),
+				},
+			},
+			expectedNewMachineSetReplicas: 0,
+			oldMachineSets: []*clusterv1.MachineSet{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "foo",
+						Name:      "machine-not-yet-deleted",
+					},
+					Spec: clusterv1.MachineSetSpec{
+						Replicas: pointer.Int32Ptr(0),
+					},
+					Status: clusterv1.MachineSetStatus{
+						Replicas: 1,
+					},
+				},
+			},
+			error: nil,
+		},
 	}
 
 	for _, tc := range testCases {

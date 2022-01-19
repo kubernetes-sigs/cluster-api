@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	ctrlpredicates "sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -77,6 +78,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		For(&clusterv1.Cluster{}, builder.WithPredicates(
 			// Only reconcile Cluster with topology.
 			predicates.ClusterHasTopology(ctrl.LoggerFrom(ctx)),
+			// Only reconcile on Cluster Generation change to avoid reconciling on Status updates.
+			ctrlpredicates.GenerationChangedPredicate{},
 		)).
 		Named("topology/cluster").
 		Watches(

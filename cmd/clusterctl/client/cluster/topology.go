@@ -53,7 +53,7 @@ const (
 
 // TopologyClient has methods to work with ClusterClass and ManagedTopologies.
 type TopologyClient interface {
-	DryRun(in *DryRunInput) (*DryRunOutput, error)
+	Plan(in *TopologyPlanInput) (*TopologyPlanOutput, error)
 }
 
 // topologyClient implements TopologyClient.
@@ -73,37 +73,38 @@ func newTopologyClient(proxy Proxy, inventoryClient InventoryClient) TopologyCli
 	}
 }
 
-// DryRunInput defines the input for DryRun function.
-type DryRunInput struct {
+// TopologyPlanInput defines the input for the Plan function.
+type TopologyPlanInput struct {
 	Objs              []*unstructured.Unstructured
 	TargetClusterName string
+	TargetNamespace   string
 }
 
 // PatchSummary defined the patch observed on an object.
 type PatchSummary = dryrun.PatchSummary
 
-// ChangeSummary defines all the changes detected by the Dryrun execution.
+// ChangeSummary defines all the changes detected by the plan operation.
 type ChangeSummary = dryrun.ChangeSummary
 
-// DryRunOutput defines the output of the DryRun function.
-type DryRunOutput struct {
+// TopologyPlanOutput defines the output of the Plan function.
+type TopologyPlanOutput struct {
 	// Clusters is the list clusters affected by the input.
 	Clusters []client.ObjectKey
 	// ClusterClasses is the list of clusters affected by the input.
 	ClusterClasses []client.ObjectKey
 	// ReconciledCluster is the cluster on which the topology reconciler loop is executed.
 	// If there is only one affected cluster then it becomes the ReconciledCluster. If not,
-	// the ReconciledCluster is chosen using addition information in the DryRunInput.
+	// the ReconciledCluster is chosen using additional information in the TopologyPlanInput.
 	// ReconciledCluster can be empty if no single target cluster is provided.
-	ReconciledCluster client.ObjectKey
+	ReconciledCluster *client.ObjectKey
 	// ChangeSummary is the full list of changes (objects created, modified and deleted) observed
 	// on the ReconciledCluster. ChangeSummary is empty if ReconciledCluster is empty.
 	*ChangeSummary
 }
 
-// DryRun performs a dry run execution of the topology reconciler using the given inputs.
+// Plan performs a dry run execution of the topology reconciler using the given inputs.
 // It returns a summary of the changes observed during the execution.
-func (t *topologyClient) DryRun(in *DryRunInput) (*DryRunOutput, error) {
+func (t *topologyClient) Plan(in *TopologyPlanInput) (*TopologyPlanOutput, error) {
 	ctx := context.TODO()
 	log := logf.Log
 
@@ -128,16 +129,16 @@ func (t *topologyClient) DryRun(in *DryRunInput) (*DryRunOutput, error) {
 		}
 	}
 
-	// Prepare the inputs for a dry run operation. This includes steps like setting missing namespaces on objects
+	// Prepare the inputs for dry running the reconciler. This includes steps like setting missing namespaces on objects
 	// and adjusting cluster objects to reflect updated state.
 	if err := t.prepareInput(ctx, in, c); err != nil {
 		return nil, errors.Wrap(err, "failed preparing input")
 	}
 	// Run defaulting and validation on core CAPI objects - Cluster and ClusterClasses.
 	// This mimics the defaulting and validation webhooks that will run on the objects during a real execution.
-	// Running defaulting and validation on these objects helps to improve the UX of using the dry run operation.
+	// Running defaulting and validation on these objects helps to improve the UX of using the plan operation.
 	// This is especially important when working with Clusters and ClusterClasses that use variable and patches.
-	if err := t.defaultAndValidate(ctx, in, c); err != nil {
+	if err := t.runDefaultAndValidationWebhooks(ctx, in, c); err != nil {
 		return nil, errors.Wrap(err, "failed defaulting and validation on input objects")
 	}
 
@@ -148,7 +149,7 @@ func (t *topologyClient) DryRun(in *DryRunInput) (*DryRunOutput, error) {
 	}
 	// Add mock CRDs of all the provider objects in the input to the list used when initializing the dry run client.
 	// Adding these CRDs makes sure that UpdateReferenceAPIContract calls in the reconciler can work.
-	for _, o := range t.generateCRDs(in) {
+	for _, o := range t.generateCRDs(in.Objs) {
 		objs = append(objs, o)
 	}
 
@@ -164,7 +165,7 @@ func (t *topologyClient) DryRun(in *DryRunInput) (*DryRunOutput, error) {
 		return nil, errors.Wrap(err, "failed calculating affected Clusters")
 	}
 
-	res := &DryRunOutput{
+	res := &TopologyPlanOutput{
 		Clusters:       affectedClusters,
 		ClusterClasses: affectedClusterClasses,
 		ChangeSummary:  &dryrun.ChangeSummary{},
@@ -174,12 +175,15 @@ func (t *topologyClient) DryRun(in *DryRunInput) (*DryRunOutput, error) {
 	// Full changeset is only generated for the target cluster.
 	var targetCluster *client.ObjectKey
 	if in.TargetClusterName != "" {
-		// Check if the target cluster is among the list of affected clusters and use that
-		// as the target cluster.
-		if res := matchCluster(affectedClusters, in.TargetClusterName); res != nil {
-			targetCluster = res
+		// Check if the target cluster is among the list of affected clusters and use that.
+		target := client.ObjectKey{
+			Namespace: in.TargetNamespace,
+			Name:      in.TargetClusterName,
+		}
+		if inList(affectedClusters, target) {
+			targetCluster = &target
 		} else {
-			return nil, fmt.Errorf("target cluster %q is not among the list of affected clusters", in.TargetClusterName)
+			return nil, fmt.Errorf("target cluster %q is not among the list of affected clusters", target.String())
 		}
 	} else if len(affectedClusters) == 1 {
 		// If no target cluster is specified and if there is only one affected cluster, use that as the target cluster.
@@ -187,12 +191,12 @@ func (t *topologyClient) DryRun(in *DryRunInput) (*DryRunOutput, error) {
 	}
 
 	if targetCluster == nil {
-		// If there is no target cluster then return here. We will
+		// There is no target cluster, return here. We will
 		// not generate a full change summary.
 		return res, nil
 	}
 
-	res.ReconciledCluster = *targetCluster
+	res.ReconciledCluster = targetCluster
 	reconciler := &clustertopologycontroller.Reconciler{
 		Client:                    dryRunClient,
 		APIReader:                 dryRunClient,
@@ -204,7 +208,7 @@ func (t *topologyClient) DryRun(in *DryRunInput) (*DryRunOutput, error) {
 	if _, err := reconciler.Reconcile(ctx, request); err != nil {
 		return nil, errors.Wrap(err, "failed to dry run the topology controller")
 	}
-
+	// Calculate changes observed by dry run client.
 	changes, err := dryRunClient.Changes(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get changes made by the topology controller")
@@ -214,13 +218,25 @@ func (t *topologyClient) DryRun(in *DryRunInput) (*DryRunOutput, error) {
 	return res, nil
 }
 
-// validateInput checks that the dryrun input does not violate any of the below expectations:
+// validateInput checks that the topology plan input does not violate any of the below expectations:
 // - no more than 1 cluster in the input.
 // - no more than 1 clusterclass in the input.
-func (t *topologyClient) validateInput(in *DryRunInput) error {
-	if len(uniqueNamespaces(in.Objs)) != 1 {
+func (t *topologyClient) validateInput(in *TopologyPlanInput) error {
+	// Check all the objects in the input belong to the same namespace.
+	// Note: It is okay if all the objects in the input do not have any namespace.
+	// In such case, the list of unique namespaces will be [""].
+	namespaces := uniqueNamespaces(in.Objs)
+	if len(namespaces) != 1 {
 		return fmt.Errorf("all the objects in the input should belong to the same namespace")
 	}
+
+	ns := namespaces[0]
+	// If the objects have a non empty namespace make sure that it matches the TargetNamespace.
+	if ns != "" && in.TargetNamespace != "" && ns != in.TargetNamespace {
+		return fmt.Errorf("the namespace from the provided object(s) %q does not match the namespace %q", ns, in.TargetNamespace)
+	}
+	in.TargetNamespace = ns
+
 	clusterCount, clusterClassCount := len(getClusters(in.Objs)), len(getClusterClasses(in.Objs))
 	if clusterCount > maxClusterPerInput || clusterClassCount > maxClusterClassesPerInput {
 		return fmt.Errorf(
@@ -238,8 +254,8 @@ func (t *topologyClient) validateInput(in *DryRunInput) error {
 // - Set the target namespace on the objects if not set (this operation is generally done by kubectl)
 // - Prepare cluster objects so that the state of the cluster, if modified, correctly represents
 //   the expected changes.
-func (t *topologyClient) prepareInput(ctx context.Context, in *DryRunInput, apiReader client.Reader) error {
-	if err := t.setMissingNamespaces(in); err != nil {
+func (t *topologyClient) prepareInput(ctx context.Context, in *TopologyPlanInput, apiReader client.Reader) error {
+	if err := t.setMissingNamespaces(in.TargetNamespace, in.Objs); err != nil {
 		return errors.Wrap(err, "failed to set missing namespaces")
 	}
 
@@ -251,18 +267,22 @@ func (t *topologyClient) prepareInput(ctx context.Context, in *DryRunInput, apiR
 
 // setMissingNamespaces sets the object to the current namespace on objects
 // that are missing the namespace field.
-func (t *topologyClient) setMissingNamespaces(in *DryRunInput) error {
-	currentNamespace := metav1.NamespaceDefault
-	// If a cluster is available use the current namespace as defined in its kubeconfig.
-	if err := t.proxy.CheckClusterAvailable(); err == nil {
-		currentNamespace, err = t.proxy.CurrentNamespace()
-		if err != nil {
-			return errors.Wrap(err, "failed to get current namespace")
+func (t *topologyClient) setMissingNamespaces(currentNamespace string, objs []*unstructured.Unstructured) error {
+	if currentNamespace == "" {
+		// If TargetNamespace is not provided use "default" namespace.
+		currentNamespace = metav1.NamespaceDefault
+		// If a cluster is available use the current namespace as defined in its kubeconfig.
+		if err := t.proxy.CheckClusterAvailable(); err == nil {
+			currentNamespace, err = t.proxy.CurrentNamespace()
+			if err != nil {
+				return errors.Wrap(err, "failed to get current namespace")
+			}
 		}
 	}
-	for i := range in.Objs {
-		if in.Objs[i].GetNamespace() == "" {
-			in.Objs[i].SetNamespace(currentNamespace)
+	// Set namespace on objects that do not have namespace value.
+	for i := range objs {
+		if objs[i].GetNamespace() == "" {
+			objs[i].SetNamespace(currentNamespace)
 		}
 	}
 	return nil
@@ -324,14 +344,14 @@ func (t *topologyClient) prepareClusters(ctx context.Context, clusters []*unstru
 	return nil
 }
 
-// defaultAndValidate runs the defaulting and validation webhooks on the
+// runDefaultAndValidationWebhooks runs the defaulting and validation webhooks on the
 // ClusterClass and Cluster objects in the input thus replicating the real kube-apiserver flow
 // when applied.
 // Nb. Perform ValidateUpdate only if the object is already in the cluster. In all other cases,
 // ValidateCreate is performed.
 // *Important Note*: We cannot perform defaulting and validation on provider objects as we do not have access to
 // that code.
-func (t *topologyClient) defaultAndValidate(ctx context.Context, in *DryRunInput, apiReader client.Reader) error {
+func (t *topologyClient) runDefaultAndValidationWebhooks(ctx context.Context, in *TopologyPlanInput, apiReader client.Reader) error {
 	// Enable the ClusterTopology feature gate so that the defaulter and validators do not complain.
 	// Note: We don't need to disable it later because the CLI is short lived.
 	if err := feature.Gates.(featuregate.MutableFeatureGate).Set(fmt.Sprintf("%s=%v", feature.ClusterTopology, true)); err != nil {
@@ -475,11 +495,11 @@ func getTemplates(objs []*unstructured.Unstructured) []*unstructured.Unstructure
 // generateCRDs creates mock CRD objects for all the provider specific objects in the input.
 // These CRD objects will be added to the dry run client for UpdateReferenceAPIContract
 // to work as expected.
-func (t *topologyClient) generateCRDs(in *DryRunInput) []*apiextensionsv1.CustomResourceDefinition {
+func (t *topologyClient) generateCRDs(objs []*unstructured.Unstructured) []*apiextensionsv1.CustomResourceDefinition {
 	crds := []*apiextensionsv1.CustomResourceDefinition{}
 	crdMap := map[string]bool{}
 	var gvk schema.GroupVersionKind
-	for _, obj := range in.Objs {
+	for _, obj := range objs {
 		gvk = obj.GroupVersionKind()
 		if strings.HasSuffix(gvk.Group, ".cluster.x-k8s.io") && !crdMap[gvk.String()] {
 			crd := &apiextensionsv1.CustomResourceDefinition{
@@ -501,18 +521,19 @@ func (t *topologyClient) generateCRDs(in *DryRunInput) []*apiextensionsv1.Custom
 	return crds
 }
 
-func (t *topologyClient) affectedClusterClasses(ctx context.Context, in *DryRunInput, c client.Reader) ([]client.ObjectKey, error) {
+func (t *topologyClient) affectedClusterClasses(ctx context.Context, in *TopologyPlanInput, c client.Reader) ([]client.ObjectKey, error) {
 	affectedClusterClasses := map[client.ObjectKey]bool{}
+	ccList := &clusterv1.ClusterClassList{}
+	if err := c.List(
+		ctx,
+		ccList,
+		client.InNamespace(in.TargetNamespace),
+	); err != nil {
+		return nil, errors.Wrapf(err, "failed to list ClusterClasses in namespace %s", in.TargetNamespace)
+	}
+
 	// Each of the ClusterClass that uses any of the Templates in the input is an affected ClusterClass.
 	for _, template := range getTemplates(in.Objs) {
-		ccList := &clusterv1.ClusterClassList{}
-		if err := c.List(
-			ctx,
-			ccList,
-			client.InNamespace(template.GetNamespace()),
-		); err != nil {
-			return nil, errors.Wrapf(err, "failed to list ClusterClasses using Template Kind=%s %s/%s", template.GetKind(), template.GetNamespace(), template.GetName())
-		}
 		for i := range ccList.Items {
 			if clusterClassUsesTemplate(&ccList.Items[i], objToRef(template)) {
 				affectedClusterClasses[client.ObjectKeyFromObject(&ccList.Items[i])] = true
@@ -532,23 +553,23 @@ func (t *topologyClient) affectedClusterClasses(ctx context.Context, in *DryRunI
 	return affectedClusterClassesList, nil
 }
 
-func (t *topologyClient) affectedClusters(ctx context.Context, in *DryRunInput, c client.Reader) ([]client.ObjectKey, error) {
+func (t *topologyClient) affectedClusters(ctx context.Context, in *TopologyPlanInput, c client.Reader) ([]client.ObjectKey, error) {
 	affectedClusters := map[client.ObjectKey]bool{}
-
 	affectedClusterClasses, err := t.affectedClusterClasses(ctx, in, c)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get list of affected ClusterClasses")
 	}
+	clusterList := &clusterv1.ClusterList{}
+	if err := c.List(
+		ctx,
+		clusterList,
+		client.InNamespace(in.TargetNamespace),
+	); err != nil {
+		return nil, errors.Wrapf(err, "failed to list Clusters in namespace %s", in.TargetNamespace)
+	}
+
 	// Each of the Cluster that uses the ClusterClass in the input is an affected cluster.
 	for _, cc := range affectedClusterClasses {
-		clusterList := &clusterv1.ClusterList{}
-		if err := c.List(
-			ctx,
-			clusterList,
-			client.InNamespace(cc.Namespace),
-		); err != nil {
-			return nil, errors.Wrapf(err, "failed to list Clusters using ClusterClass %s/%s", cc.Namespace, cc.Name)
-		}
 		for i := range clusterList.Items {
 			if clusterList.Items[i].Spec.Topology != nil && clusterList.Items[i].Spec.Topology.Class == cc.Name {
 				affectedClusters[client.ObjectKeyFromObject(&clusterList.Items[i])] = true
@@ -568,13 +589,13 @@ func (t *topologyClient) affectedClusters(ctx context.Context, in *DryRunInput, 
 	return affectedClustersList, nil
 }
 
-func matchCluster(list []client.ObjectKey, name string) *client.ObjectKey {
+func inList(list []client.ObjectKey, target client.ObjectKey) bool {
 	for _, i := range list {
-		if i.Name == name {
-			return &i
+		if i == target {
+			return true
 		}
 	}
-	return nil
+	return false
 }
 
 // filterObjects returns a new list of objects after dropping all the objects that match any of the given GVKs.

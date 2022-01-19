@@ -22,34 +22,40 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
-// DryRunOptions define options for DryRunTopology.
-type DryRunOptions struct {
+// TopologyPlanOptions define options for TopologyPlan.
+type TopologyPlanOptions struct {
 	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty,
 	// default rules for kubeconfig discovery will be used.
 	Kubeconfig Kubeconfig
 
-	// Objs is the list of objects that are input to the dryrun operation.
+	// Objs is the list of objects that are input to the topology plan (dry run) operation.
 	// The objects can be among new/modified clusters, new/modifed ClusterClasses and new/modified templates.
 	Objs []*unstructured.Unstructured
 
 	// Cluster is the name of the cluster to dryrun reconcile if multiple clusters are affected by the input.
 	Cluster string
+
+	// Namespace is the target namespace for the operation.
+	// This namespace is used as default for objects with missing namespaces.
+	// If the namespace of any of the input objects conflicts with Namespace an error is returned.
+	Namespace string
 }
 
-// DryRunOutput defines the output of the dry run execution.
-type DryRunOutput = cluster.DryRunOutput
+// TopologyPlanOutput defines the output of the topology plan operation.
+type TopologyPlanOutput = cluster.TopologyPlanOutput
 
-// DryRunTopology performs a dry run execution of the topology reconciler using the given inputs.
+// TopologyPlan performs a dry run execution of the topology reconciler using the given inputs.
 // It returns a summary of the changes observed during the execution.
-func (c *clusterctlClient) DryRunTopology(options DryRunOptions) (*DryRunOutput, error) {
+func (c *clusterctlClient) TopologyPlan(options TopologyPlanOptions) (*TopologyPlanOutput, error) {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return nil, err
 	}
 
-	out, err := clusterClient.Topology().DryRun(&cluster.DryRunInput{
+	out, err := clusterClient.Topology().Plan(&cluster.TopologyPlanInput{
 		Objs:              options.Objs,
 		TargetClusterName: options.Cluster,
+		TargetNamespace:   options.Namespace,
 	})
 
 	return out, err

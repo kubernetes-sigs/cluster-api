@@ -481,6 +481,9 @@ docker-build-e2e: ## Rebuild all Cluster API provider images to be used in the e
 
 ## latest git tag for the commit, e.g., v0.3.10
 RELEASE_TAG ?= $(shell git describe --abbrev=0 2>/dev/null)
+ifneq (,$(findstring -,$(RELEASE_TAG)))
+    PRE_RELEASE=true
+endif
 # the previous release tag, e.g., v0.3.9, excluding pre-release tags
 PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort -V | grep -B1 $(RELEASE_TAG) | head -n 1 2>/dev/null)
 ## set by Prow, ref name of the base branch, e.g., main
@@ -594,7 +597,11 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
-	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md
+	if [ -n "${PRE_RELEASE}" ]; then \
+	echo ":rotating_light: This is a RELEASE CANDIDATE. Use it only for testing purposes. If you find any bugs, file an [issue](https://github.com/kubernetes-sigs/cluster-api/issues/new)." > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
+	else \
+	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
+	fi
 
 .PHONY: docker-build-all
 docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build all the architecture docker images

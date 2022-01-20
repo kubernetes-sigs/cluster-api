@@ -143,7 +143,7 @@ func YAMLForComponentSource(ctx context.Context, source ProviderVersionSource) (
 
 	switch source.Type {
 	case URLSource:
-		buf, err := getComponentSourceFromURL(source)
+		buf, err := getComponentSourceFromURL(ctx, source)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get component source YAML from URL")
 		}
@@ -173,7 +173,7 @@ func YAMLForComponentSource(ctx context.Context, source ProviderVersionSource) (
 }
 
 // getComponentSourceFromURL fetches contents of component source YAML file from provided URL source.
-func getComponentSourceFromURL(source ProviderVersionSource) ([]byte, error) {
+func getComponentSourceFromURL(ctx context.Context, source ProviderVersionSource) ([]byte, error) {
 	var buf []byte
 
 	u, err := url.Parse(source.Value)
@@ -189,14 +189,18 @@ func getComponentSourceFromURL(source ProviderVersionSource) ([]byte, error) {
 			return nil, errors.Wrap(err, "failed to read file")
 		}
 	case httpURIScheme, httpsURIScheme:
-		resp, err := http.Get(source.Value)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, source.Value, http.NoBody)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to get %s: failed to create request", source.Value)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get %s", source.Value)
 		}
 		defer resp.Body.Close()
 		buf, err = io.ReadAll(resp.Body)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrapf(err, "failed to get %s: failed to read body", source.Value)
 		}
 	default:
 		return nil, errors.Errorf("unknown scheme for component source %q: allowed values are file, http, https", u.Scheme)

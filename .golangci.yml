@@ -25,6 +25,7 @@ linters:
   - misspell
   - nakedret
   - nilerr
+  - noctx
   - nolintlint
   - prealloc
   - predeclared
@@ -37,6 +38,7 @@ linters:
   - typecheck
   - unconvert
   - unparam
+  - unused
   - varcheck
   - whitespace
 
@@ -149,6 +151,8 @@ linters-settings:
     - unnecessaryDefer
     - whyNoLint
     - wrapperFunc
+  unused:
+    go: "1.17"
 issues:
   max-same-issues: 0
   max-issues-per-linter: 0

@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -133,6 +134,8 @@ func (v *viperReader) Init(path string) error {
 }
 
 func downloadFile(url string, filepath string) error {
+	ctx := context.TODO()
+
 	// Create the file
 	out, err := os.Create(filepath)
 	if err != nil {
@@ -144,7 +147,12 @@ func downloadFile(url string, filepath string) error {
 		Timeout: 30 * time.Second,
 	}
 	// Get the data
-	resp, err := client.Get(url)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+	if err != nil {
+		return errors.Wrapf(err, "failed to download the clusterctl config file from %s: failed to create request", url)
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return errors.Wrapf(err, "failed to download the clusterctl config file from %s", url)
 	}

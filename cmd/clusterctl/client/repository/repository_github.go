@@ -262,6 +262,8 @@ func (g *gitHubRepository) getReleaseByTag(tag string) (*github.RepositoryReleas
 
 // downloadFilesFromRelease download a file from release.
 func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRelease, fileName string) ([]byte, error) {
+	ctx := context.TODO()
+
 	cacheID := fmt.Sprintf("%s/%s:%s:%s", g.owner, g.repository, *release.TagName, fileName)
 	if content, ok := cacheFiles[cacheID]; ok {
 		return content, nil
@@ -287,7 +289,12 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 		return nil, g.handleGithubErr(err, "failed to download file %q from %q release", *release.TagName, fileName)
 	}
 	if redirect != "" {
-		response, err := http.Get(redirect) //nolint:bodyclose,gosec // (NB: The reader is actually closed in a defer)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, redirect, http.NoBody)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to download file %q from %q release via redirect location %q: failed to create request", *release.TagName, fileName, redirect)
+		}
+
+		response, err := http.DefaultClient.Do(req) //nolint:bodyclose // (NB: The reader is actually closed in a defer)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to download file %q from %q release via redirect location %q", *release.TagName, fileName, redirect)
 		}

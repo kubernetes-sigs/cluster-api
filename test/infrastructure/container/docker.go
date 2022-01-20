@@ -341,28 +341,6 @@ func dockerContainerToContainer(container *types.Container) Container {
 	}
 }
 
-// ownerAndGroup gets the user configuration for the container (user:group).
-func (crc *RunContainerInput) ownerAndGroup() string {
-	if crc.User != "" {
-		if crc.Group != "" {
-			return fmt.Sprintf("%s:%s", crc.User, crc.Group)
-		}
-
-		return crc.User
-	}
-
-	return ""
-}
-
-// environmentVariables gets the collection of environment variables for the container.
-func (crc *RunContainerInput) environmentVariables() []string {
-	envVars := []string{}
-	for key, val := range crc.EnvironmentVars {
-		envVars = append(envVars, fmt.Sprintf("%s=%s", key, val))
-	}
-	return envVars
-}
-
 // RunContainer will run a docker container with the given settings and arguments, returning any errors.
 func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContainerInput, output io.Writer) error {
 	containerConfig := dockercontainer.Config{

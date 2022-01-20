@@ -222,7 +222,7 @@ To test another iteration, you'll need to follow the steps to build, push, updat
 
 [qs]: https://cluster-api.sigs.k8s.io/user/quick-start.html#usage
 
-## Videos explaining CAPI architecture and code walkthrough
+## Videos explaining CAPI architecture and code walkthroughs
 
 CAPI components and architecture
 
@@ -233,3 +233,4 @@ CAPI components and architecture
 Code walkthrough
 
 * [Cluster API CAPD Deep Dive - March 2021 v1alpha4](https://youtu.be/67kEp471MPk)
+* [Cluster API API conversion code walkthrough - January 2022](https://www.youtube.com/watch?v=Mk14N4SelNk)

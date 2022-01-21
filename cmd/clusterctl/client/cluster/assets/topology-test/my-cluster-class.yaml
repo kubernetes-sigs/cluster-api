@@ -1,0 +1,85 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: my-cluster-class
+  namespace: default
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: control-plane
+      namespace: default
+    machineInfrastructure:
+      ref:
+        kind: DockerMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: "control-plane"
+        namespace: default
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerClusterTemplate
+      name: my-cluster
+      namespace: default
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerClusterTemplate
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  template:
+    spec: {}
+---
+kind: KubeadmControlPlaneTemplate
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "control-plane"
+  namespace: default
+spec:
+  template:
+    spec:
+      replicas: 1
+      machineTemplate:
+        nodeDrainTimeout: 1s
+        infrastructureRef:
+          kind: DockerMachineTemplate
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          name: "control-plane"
+          namespace: default
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          controllerManager:
+            extraArgs: { enable-hostpath-provisioner: 'true' }
+          apiServer:
+            certSANs: [ localhost, 127.0.0.1 ]
+        initConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+              cgroup-driver: cgroupfs
+              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+        joinConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+              cgroup-driver: cgroupfs
+              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+      version: v1.21.2
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: "control-plane"
+  namespace: default
+spec:
+  template:
+    spec:
+      extraMounts:
+      - containerPath: "/var/run/docker.sock"
+        hostPath: "/var/run/docker.sock"

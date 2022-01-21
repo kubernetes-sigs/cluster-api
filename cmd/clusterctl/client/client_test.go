@@ -148,8 +148,8 @@ func (f fakeClient) RolloutUndo(options RolloutOptions) error {
 	return f.internalClient.RolloutUndo(options)
 }
 
-func (f fakeClient) DryRunTopology(options DryRunOptions) (*cluster.DryRunOutput, error) {
-	return f.internalClient.DryRunTopology(options)
+func (f fakeClient) TopologyPlan(options TopologyPlanOptions) (*cluster.TopologyPlanOutput, error) {
+	return f.internalClient.TopologyPlan(options)
 }
 
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.

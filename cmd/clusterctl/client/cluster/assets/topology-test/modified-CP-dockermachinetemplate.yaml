@@ -1,0 +1,14 @@
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: "control-plane"
+  namespace: default
+spec:
+  template:
+    metadata:
+      labels:
+        docker-machine-template: test-template-control-plane
+    spec:
+      extraMounts:
+      - containerPath: "/var/run/docker.sock"
+        hostPath: "/var/run/docker.sock"

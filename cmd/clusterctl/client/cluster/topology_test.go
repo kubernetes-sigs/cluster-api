@@ -35,17 +35,33 @@ var (
 	//go:embed assets/topology-test/new-clusterclass-and-cluster.yaml
 	newClusterClassAndClusterYAML []byte
 
-	//go:embed assets/topology-test/existing-clusterclass-and-cluster.yaml
-	existingClusterClassAndClusterYAML []byte
+	//go:embed assets/topology-test/mock-CRDs.yaml
+	mockCRDsYAML []byte
+
+	//go:embed assets/topology-test/my-cluster-class.yaml
+	existingMyClusterClassYAML []byte
+
+	//go:embed assets/topology-test/existing-my-cluster.yaml
+	existingMyClusterYAML []byte
+
+	//go:embed assets/topology-test/existing-my-second-cluster.yaml
+	existingMySecondClusterYAML []byte
 
 	// modifiedClusterYAML changes the control plane replicas from 1 to 3.
-	//go:embed assets/topology-test/modified-cluster.yaml
-	modifiedClusterYAML []byte
+	//go:embed assets/topology-test/modified-my-cluster.yaml
+	modifiedMyClusterYAML []byte
+
+	// modifiedDockerMachineTemplateYAML adds metadat to the docker machine used by the control plane template..
+	//go:embed assets/topology-test/modified-CP-dockermachinetemplate.yaml
+	modifiedDockerMachineTemplateYAML []byte
+
+	//go:embed assets/topology-test/objects-in-different-namespaces.yaml
+	objsInDifferentNamespacesYAML []byte
 )
 
-func Test_topologyClient_DryRun(t *testing.T) {
+func Test_topologyClient_Plan(t *testing.T) {
 	type args struct {
-		in *DryRunInput
+		in *TopologyPlanInput
 	}
 	type item struct {
 		kind       string
@@ -55,6 +71,7 @@ func Test_topologyClient_DryRun(t *testing.T) {
 	type out struct {
 		affectedClusters       []client.ObjectKey
 		affectedClusterClasses []client.ObjectKey
+		reconciledCluster      *client.ObjectKey
 		created                []item
 		modified               []item
 		deleted                []item
@@ -69,15 +86,9 @@ func Test_topologyClient_DryRun(t *testing.T) {
 		{
 			name: "Input with new ClusterClass and new Cluster",
 			args: args{
-				in: func() *DryRunInput {
-					objs, err := utilyaml.ToUnstructured(newClusterClassAndClusterYAML)
-					if err != nil {
-						panic(err)
-					}
-					return &DryRunInput{
-						Objs: convertToPtrSlice(objs),
-					}
-				}(),
+				in: &TopologyPlanInput{
+					Objs: mustToUnstructured(newClusterClassAndClusterYAML),
+				},
 			},
 			want: out{
 				created: []item{
@@ -95,46 +106,158 @@ func Test_topologyClient_DryRun(t *testing.T) {
 					{kind: "Cluster", namespace: "default", namePrefix: "my-cluster"},
 				},
 				affectedClusters: func() []client.ObjectKey {
-					cluster := client.ObjectKey{}
-					cluster.Namespace = "default"
-					cluster.Name = "my-cluster"
+					cluster := client.ObjectKey{Namespace: "default", Name: "my-cluster"}
 					return []client.ObjectKey{cluster}
 				}(),
 				affectedClusterClasses: func() []client.ObjectKey {
-					cc := client.ObjectKey{}
-					cc.Namespace = "default"
-					cc.Name = "my-cluster-class"
+					cc := client.ObjectKey{Namespace: "default", Name: "my-cluster-class"}
 					return []client.ObjectKey{cc}
 				}(),
+				reconciledCluster: &client.ObjectKey{Namespace: "default", Name: "my-cluster"},
 			},
 			wantErr: false,
 		},
 		{
 			name: "Modifying an existing Cluster",
-			existingObjects: func() []*unstructured.Unstructured {
-				objs, err := utilyaml.ToUnstructured(existingClusterClassAndClusterYAML)
-				if err != nil {
-					panic(err)
-				}
-				return convertToPtrSlice(objs)
-			}(),
+			existingObjects: mustToUnstructured(
+				mockCRDsYAML,
+				existingMyClusterClassYAML,
+				existingMyClusterYAML,
+			),
 			args: args{
-				in: func() *DryRunInput {
-					objs, err := utilyaml.ToUnstructured(modifiedClusterYAML)
-					if err != nil {
-						panic(err)
-					}
-					return &DryRunInput{
-						Objs: convertToPtrSlice(objs),
-					}
-				}(),
+				in: &TopologyPlanInput{
+					Objs: mustToUnstructured(modifiedMyClusterYAML),
+				},
 			},
 			want: out{
+				affectedClusters: func() []client.ObjectKey {
+					cluster := client.ObjectKey{Namespace: "default", Name: "my-cluster"}
+					return []client.ObjectKey{cluster}
+				}(),
+				affectedClusterClasses: []client.ObjectKey{},
 				modified: []item{
 					{kind: "KubeadmControlPlane", namespace: "default", namePrefix: "my-cluster-"},
 				},
+				reconciledCluster: &client.ObjectKey{Namespace: "default", Name: "my-cluster"},
 			},
 			wantErr: false,
+		},
+		{
+			name: "Modifying an existing DockerMachineTemplate. Template used by Control Plane of an existing Cluster.",
+			existingObjects: mustToUnstructured(
+				mockCRDsYAML,
+				existingMyClusterClassYAML,
+				existingMyClusterYAML,
+			),
+			args: args{
+				in: &TopologyPlanInput{
+					Objs: mustToUnstructured(modifiedDockerMachineTemplateYAML),
+				},
+			},
+			want: out{
+				affectedClusters: func() []client.ObjectKey {
+					cluster := client.ObjectKey{Namespace: "default", Name: "my-cluster"}
+					return []client.ObjectKey{cluster}
+				}(),
+				affectedClusterClasses: func() []client.ObjectKey {
+					cc := client.ObjectKey{Namespace: "default", Name: "my-cluster-class"}
+					return []client.ObjectKey{cc}
+				}(),
+				modified: []item{
+					{kind: "KubeadmControlPlane", namespace: "default", namePrefix: "my-cluster-"},
+				},
+				created: []item{
+					// Modifying the DockerClusterTemplate will result in template rotation. A new template will be created
+					// and used by KCP.
+					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-control-plane-"},
+				},
+				reconciledCluster: &client.ObjectKey{Namespace: "default", Name: "my-cluster"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Modifying an existing DockerMachineTemplate. Affects multiple clusters. Target Cluster not specified.",
+			existingObjects: mustToUnstructured(
+				mockCRDsYAML,
+				existingMyClusterClassYAML,
+				existingMyClusterYAML,
+				existingMySecondClusterYAML,
+			),
+			args: args{
+				in: &TopologyPlanInput{
+					Objs: mustToUnstructured(modifiedDockerMachineTemplateYAML),
+				},
+			},
+			want: out{
+				affectedClusters: func() []client.ObjectKey {
+					cluster := client.ObjectKey{Namespace: "default", Name: "my-cluster"}
+					cluster2 := client.ObjectKey{Namespace: "default", Name: "my-second-cluster"}
+					return []client.ObjectKey{cluster, cluster2}
+				}(),
+				affectedClusterClasses: func() []client.ObjectKey {
+					cc := client.ObjectKey{Namespace: "default", Name: "my-cluster-class"}
+					return []client.ObjectKey{cc}
+				}(),
+				modified:          []item{},
+				created:           []item{},
+				reconciledCluster: nil,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Modifying an existing DockerMachineTemplate. Affects multiple clusters. Target Cluster specified.",
+			existingObjects: mustToUnstructured(
+				mockCRDsYAML,
+				existingMyClusterClassYAML,
+				existingMyClusterYAML,
+				existingMySecondClusterYAML,
+			),
+			args: args{
+				in: &TopologyPlanInput{
+					Objs:              mustToUnstructured(modifiedDockerMachineTemplateYAML),
+					TargetClusterName: "my-cluster",
+				},
+			},
+			want: out{
+				affectedClusters: func() []client.ObjectKey {
+					cluster := client.ObjectKey{Namespace: "default", Name: "my-cluster"}
+					cluster2 := client.ObjectKey{Namespace: "default", Name: "my-second-cluster"}
+					return []client.ObjectKey{cluster, cluster2}
+				}(),
+				affectedClusterClasses: func() []client.ObjectKey {
+					cc := client.ObjectKey{Namespace: "default", Name: "my-cluster-class"}
+					return []client.ObjectKey{cc}
+				}(),
+				modified: []item{
+					{kind: "KubeadmControlPlane", namespace: "default", namePrefix: "my-cluster-"},
+				},
+				created: []item{
+					// Modifying the DockerClusterTemplate will result in template rotation. A new template will be created
+					// and used by KCP.
+					{kind: "DockerMachineTemplate", namespace: "default", namePrefix: "my-cluster-control-plane-"},
+				},
+				reconciledCluster: &client.ObjectKey{Namespace: "default", Name: "my-cluster"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Input with objects in different namespaces should return error",
+			args: args{
+				in: &TopologyPlanInput{
+					Objs: mustToUnstructured(objsInDifferentNamespacesYAML),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Input with TargetNamespace different from objects in input should return error",
+			args: args{
+				in: &TopologyPlanInput{
+					Objs:            mustToUnstructured(newClusterClassAndClusterYAML),
+					TargetNamespace: "different-namespace",
+				},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -152,46 +275,67 @@ func Test_topologyClient_DryRun(t *testing.T) {
 				inventoryClient,
 			)
 
-			res, err := tc.DryRun(tt.args.in)
+			res, err := tc.Plan(tt.args.in)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
+			// The plan should function should not return any error.
 			g.Expect(err).NotTo(HaveOccurred())
+
+			// Check affected ClusterClasses.
+			g.Expect(len(res.ClusterClasses)).To(Equal(len(tt.want.affectedClusterClasses)))
 			for _, cc := range tt.want.affectedClusterClasses {
 				g.Expect(res.ClusterClasses).To(ContainElement(cc))
 			}
+
+			// Check affected Clusters.
+			g.Expect(len(res.Clusters)).To(Equal(len(tt.want.affectedClusters)))
 			for _, cluster := range tt.want.affectedClusters {
 				g.Expect(res.Clusters).To(ContainElement(cluster))
 			}
-			for _, created := range tt.want.created {
-				g.Expect(res.Created).To(ContainElement(MatchDryRunOutputItem(created.kind, created.namespace, created.namePrefix)))
+
+			// Check the reconciled cluster.
+			if tt.want.reconciledCluster == nil {
+				g.Expect(res.ReconciledCluster).To(BeNil())
+			} else {
+				g.Expect(res.ReconciledCluster).NotTo(BeNil())
+				g.Expect(*res.ReconciledCluster).To(Equal(*tt.want.reconciledCluster))
 			}
+
+			// Check the created objects.
+			for _, created := range tt.want.created {
+				g.Expect(res.Created).To(ContainElement(MatchTopologyPlanOutputItem(created.kind, created.namespace, created.namePrefix)))
+			}
+
+			// Check the modified objects.
 			actualModifiedObjs := []*unstructured.Unstructured{}
 			for _, m := range res.Modified {
 				actualModifiedObjs = append(actualModifiedObjs, m.After)
 			}
 			for _, modified := range tt.want.modified {
-				g.Expect(actualModifiedObjs).To(ContainElement(MatchDryRunOutputItem(modified.kind, modified.namespace, modified.namePrefix)))
+				g.Expect(actualModifiedObjs).To(ContainElement(MatchTopologyPlanOutputItem(modified.kind, modified.namespace, modified.namePrefix)))
 			}
+
+			// Check the deleted objects.
 			for _, deleted := range tt.want.deleted {
-				g.Expect(res.Deleted).To(ContainElement(MatchDryRunOutputItem(deleted.kind, deleted.namespace, deleted.namePrefix)))
+				g.Expect(res.Deleted).To(ContainElement(MatchTopologyPlanOutputItem(deleted.kind, deleted.namespace, deleted.namePrefix)))
 			}
 		})
 	}
 }
 
-func MatchDryRunOutputItem(kind, namespace, namePrefix string) types.GomegaMatcher {
-	return &dryRunOutputItemMatcher{kind, namespace, namePrefix}
+func MatchTopologyPlanOutputItem(kind, namespace, namePrefix string) types.GomegaMatcher {
+	return &topologyPlanOutputItemMatcher{kind, namespace, namePrefix}
 }
 
-type dryRunOutputItemMatcher struct {
+type topologyPlanOutputItemMatcher struct {
 	kind       string
 	namespace  string
 	namePrefix string
 }
 
-func (m *dryRunOutputItemMatcher) Match(actual interface{}) (bool, error) {
+func (m *topologyPlanOutputItemMatcher) Match(actual interface{}) (bool, error) {
 	obj := actual.(*unstructured.Unstructured)
 	if obj.GetKind() != m.kind {
 		return false, nil
@@ -205,11 +349,11 @@ func (m *dryRunOutputItemMatcher) Match(actual interface{}) (bool, error) {
 	return true, nil
 }
 
-func (m *dryRunOutputItemMatcher) FailureMessage(actual interface{}) string {
+func (m *topologyPlanOutputItemMatcher) FailureMessage(actual interface{}) string {
 	return fmt.Sprintf("Expected item Kind=%s, Namespace=%s, Name(prefix)=%s to be present", m.kind, m.namespace, m.namePrefix)
 }
 
-func (m *dryRunOutputItemMatcher) NegatedFailureMessage(actual interface{}) string {
+func (m *topologyPlanOutputItemMatcher) NegatedFailureMessage(actual interface{}) string {
 	return fmt.Sprintf("Expected item Kind=%s, Namespace=%s, Name(prefix)=%s not to be present", m.kind, m.namespace, m.namePrefix)
 }
 
@@ -219,4 +363,16 @@ func convertToPtrSlice(objs []unstructured.Unstructured) []*unstructured.Unstruc
 		res = append(res, &objs[i])
 	}
 	return res
+}
+
+func mustToUnstructured(rawyamls ...[]byte) []*unstructured.Unstructured {
+	objects := []unstructured.Unstructured{}
+	for _, raw := range rawyamls {
+		objs, err := utilyaml.ToUnstructured(raw)
+		if err != nil {
+			panic(err)
+		}
+		objects = append(objects, objs...)
+	}
+	return convertToPtrSlice(objects)
 }

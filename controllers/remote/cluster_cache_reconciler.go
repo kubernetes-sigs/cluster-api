@@ -18,10 +18,12 @@ package remote
 
 import (
 	"context"
+	"runtime/debug"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -57,10 +59,14 @@ func (r *ClusterCacheReconciler) SetupWithManager(ctx context.Context, mgr ctrl.
 
 // Reconcile reconciles Clusters and removes ClusterCaches for any Cluster that cannot be retrieved from the
 // management cluster.
-func (r *ClusterCacheReconciler) Reconcile(ctx context.Context, req reconcile.Request) (reconcile.Result, error) {
+func (r *ClusterCacheReconciler) Reconcile(ctx context.Context, req reconcile.Request) (_ reconcile.Result, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconciling")
-
+	defer func() {
+		if r := recover(); r != nil {
+			retErr = kerrors.NewAggregate([]error{retErr, errors.Errorf("panic during reconcile: %s\n%s", r, string(debug.Stack()))})
+		}
+	}()
 	var cluster clusterv1.Cluster
 
 	err := r.Client.Get(ctx, req.NamespacedName, &cluster)

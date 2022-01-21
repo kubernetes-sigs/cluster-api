@@ -18,9 +18,11 @@ package controllers
 
 import (
 	"context"
+	"runtime/debug"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -63,7 +65,11 @@ func (r *ClusterResourceSetBindingReconciler) SetupWithManager(ctx context.Conte
 
 func (r *ClusterResourceSetBindingReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-
+	defer func() {
+		if r := recover(); r != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Errorf("panic during reconcile: %s\n%s", r, string(debug.Stack()))})
+		}
+	}()
 	// Fetch the ClusterResourceSetBinding instance.
 	binding := &addonsv1.ClusterResourceSetBinding{}
 	if err := r.Client.Get(ctx, req.NamespacedName, binding); err != nil {

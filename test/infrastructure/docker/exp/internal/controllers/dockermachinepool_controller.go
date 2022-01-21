@@ -20,10 +20,12 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -57,6 +59,11 @@ type DockerMachinePoolReconciler struct {
 
 func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (res ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
+	defer func() {
+		if r := recover(); r != nil {
+			rerr = kerrors.NewAggregate([]error{rerr, errors.Errorf("panic during reconcile: %s\n%s", r, string(debug.Stack()))})
+		}
+	}()
 	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)
 
 	// Fetch the DockerMachinePool instance.

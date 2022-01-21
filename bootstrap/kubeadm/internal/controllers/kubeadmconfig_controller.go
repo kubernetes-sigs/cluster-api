@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 	"strconv"
 	"time"
 
@@ -148,6 +149,11 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 // Reconcile handles KubeadmConfig events.
 func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
+	defer func() {
+		if r := recover(); r != nil {
+			rerr = kerrors.NewAggregate([]error{rerr, errors.Errorf("panic during reconcile: %s\n%s", r, string(debug.Stack()))})
+		}
+	}()
 
 	// Lookup the kubeadm config
 	config := &bootstrapv1.KubeadmConfig{}

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"runtime/debug"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -102,6 +103,11 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 
 func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
+	defer func() {
+		if r := recover(); r != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Errorf("panic during reconcile: %s\n%s", r, string(debug.Stack()))})
+		}
+	}()
 
 	mp := &expv1.MachinePool{}
 	if err := r.Client.Get(ctx, req.NamespacedName, mp); err != nil {

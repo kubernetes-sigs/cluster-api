@@ -18,9 +18,11 @@ package machinedeployment
 
 import (
 	"context"
+	"runtime/debug"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -80,8 +82,13 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 //       MachineDeployments.
 // We don't have to set the finalizer, as it's already set during MachineDeployment creation
 // in the cluster topology controller.
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
+	defer func() {
+		if r := recover(); r != nil {
+			retErr = kerrors.NewAggregate([]error{retErr, errors.Errorf("panic during reconcile: %s\n%s", r, string(debug.Stack()))})
+		}
+	}()
 
 	// Fetch the MachineDeployment instance.
 	md := &clusterv1.MachineDeployment{}

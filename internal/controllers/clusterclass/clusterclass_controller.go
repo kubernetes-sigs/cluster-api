@@ -19,6 +19,7 @@ package clusterclass
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -71,6 +72,11 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
+	defer func() {
+		if r := recover(); r != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Errorf("panic during reconcile: %s\n%s", r, string(debug.Stack()))})
+		}
+	}()
 
 	clusterClass := &clusterv1.ClusterClass{}
 	if err := r.Client.Get(ctx, req.NamespacedName, clusterClass); err != nil {

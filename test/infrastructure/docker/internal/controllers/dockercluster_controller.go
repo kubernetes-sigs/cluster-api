@@ -19,9 +19,11 @@ package controllers
 
 import (
 	"context"
+	"runtime/debug"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -52,6 +54,11 @@ type DockerClusterReconciler struct {
 // and what is in the DockerCluster.Spec.
 func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	log := ctrl.LoggerFrom(ctx)
+	defer func() {
+		if r := recover(); r != nil {
+			rerr = kerrors.NewAggregate([]error{rerr, errors.Errorf("panic during reconcile: %s\n%s", r, string(debug.Stack()))})
+		}
+	}()
 	ctx = container.RuntimeInto(ctx, r.ContainerRuntime)
 
 	// Fetch the DockerCluster instance

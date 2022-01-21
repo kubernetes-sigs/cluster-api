@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"runtime/debug"
 	"sort"
 	"time"
 
@@ -105,6 +106,11 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 
 func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
+	defer func() {
+		if r := recover(); r != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Errorf("panic during reconcile: %s\n%s", r, string(debug.Stack()))})
+		}
+	}()
 
 	// Fetch the ClusterResourceSet instance.
 	clusterResourceSet := &addonsv1.ClusterResourceSet{}

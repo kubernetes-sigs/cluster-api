@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"runtime/debug"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -113,6 +114,11 @@ func (r *Reconciler) SetupForDryRun(recorder record.EventRecorder) {
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
+	defer func() {
+		if r := recover(); r != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Errorf("panic during reconcile: %s\n%s", r, string(debug.Stack()))})
+		}
+	}()
 
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}

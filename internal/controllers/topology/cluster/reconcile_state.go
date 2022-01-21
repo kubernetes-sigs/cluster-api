@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -184,11 +185,11 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 
 		cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(s.Desired.ControlPlane.Object)
 		if err != nil {
-			return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: s.Desired.ControlPlane.InfrastructureMachineTemplate})
+			return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: s.Desired.ControlPlane.InfrastructureMachineTemplate})
 		}
 
 		// Create or update the MachineInfrastructureTemplate of the control plane.
-		err = r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
+		if err = r.reconcileReferencedTemplate(ctx, reconcileReferencedTemplateInput{
 			cluster:              s.Current.Cluster,
 			ref:                  cpInfraRef,
 			current:              s.Current.ControlPlane.InfrastructureMachineTemplate,
@@ -196,15 +197,14 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 			compatibilityChecker: check.ObjectsAreCompatible,
 			templateNamePrefix:   controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name),
 		},
-		)
-		if err != nil {
-			return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: s.Desired.ControlPlane.InfrastructureMachineTemplate})
+		); err != nil {
+			return err
 		}
 
 		// The controlPlaneObject.Spec.machineTemplate.infrastructureRef has to be updated in the desired object
 		err = contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(s.Desired.ControlPlane.Object, refToUnstructured(cpInfraRef))
 		if err != nil {
-			return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: s.Desired.ControlPlane.Object})
+			return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: s.Desired.ControlPlane.Object})
 		}
 	}
 
@@ -227,7 +227,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 			},
 		},
 	}); err != nil {
-		return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: s.Desired.ControlPlane.Object})
+		return err
 	}
 
 	// If the ControlPlane has defined a current or desired MachineHealthCheck attempt to reconcile it.
@@ -242,7 +242,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 
 		// Reconcile the current and desired state of the MachineHealthCheck.
 		if err := r.reconcileMachineHealthCheck(ctx, s.Current.ControlPlane.MachineHealthCheck, s.Desired.ControlPlane.MachineHealthCheck); err != nil {
-			return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: s.Desired.ControlPlane.MachineHealthCheck})
+			return err
 		}
 	}
 	return nil
@@ -403,7 +403,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, cluster *clust
 		cluster: cluster,
 		desired: md.InfrastructureMachineTemplate,
 	}); err != nil {
-		return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: md.Object})
+		return errors.Wrapf(err, "failed to create %s", md.Object.Kind)
 	}
 
 	bootstrapCtx, _ := log.WithObject(md.BootstrapTemplate).Into(ctx)
@@ -411,13 +411,13 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, cluster *clust
 		cluster: cluster,
 		desired: md.BootstrapTemplate,
 	}); err != nil {
-		return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: md.Object})
+		return errors.Wrapf(err, "failed to create %s", md.Object.Kind)
 	}
 
 	log = log.WithObject(md.Object)
 	log.Infof(fmt.Sprintf("Creating %s", tlog.KObj{Obj: md.Object}))
 	if err := r.Client.Create(ctx, md.Object.DeepCopy()); err != nil {
-		return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: md.Object})
+		return createErrorWithoutObjectName(err, md.Object)
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: md.Object})
 
@@ -429,7 +429,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, cluster *clust
 			*ownerReferenceTo(md.Object),
 		})
 		if err := r.reconcileMachineHealthCheck(ctx, nil, md.MachineHealthCheck); err != nil {
-			return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: md.MachineHealthCheck})
+			return err
 		}
 	}
 	return nil
@@ -448,7 +448,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, cluster *clust
 		templateNamePrefix:   infrastructureMachineTemplateNamePrefix(cluster.Name, mdTopologyName),
 		compatibilityChecker: check.ObjectsAreCompatible,
 	}); err != nil {
-		return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: currentMD.Object})
+		return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: currentMD.Object})
 	}
 
 	bootstrapCtx, _ := log.WithObject(desiredMD.BootstrapTemplate).Into(ctx)
@@ -460,13 +460,13 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, cluster *clust
 		templateNamePrefix:   bootstrapTemplateNamePrefix(cluster.Name, mdTopologyName),
 		compatibilityChecker: check.ObjectsAreInTheSameNamespace,
 	}); err != nil {
-		return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: currentMD.Object})
+		return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: currentMD.Object})
 	}
 
 	// Patch MachineHealthCheck for the MachineDeployment.
 	if desiredMD.MachineHealthCheck != nil || currentMD.MachineHealthCheck != nil {
 		if err := r.reconcileMachineHealthCheck(ctx, currentMD.MachineHealthCheck, desiredMD.MachineHealthCheck); err != nil {
-			return errors.Wrapf(err, "failed to update %s", tlog.KObj{Obj: desiredMD.MachineHealthCheck})
+			return err
 		}
 	}
 
@@ -525,7 +525,7 @@ func (r *Reconciler) deleteMachineDeployment(ctx context.Context, cluster *clust
 	// delete MachineHealthCheck for the MachineDeployment.
 	if md.MachineHealthCheck != nil {
 		if err := r.reconcileMachineHealthCheck(ctx, md.MachineHealthCheck, nil); err != nil {
-			return errors.Wrapf(err, "failed to delete %s", tlog.KObj{Obj: md.MachineHealthCheck})
+			return err
 		}
 	}
 	log.Infof("Deleting %s", tlog.KObj{Obj: md.Object})
@@ -587,7 +587,7 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 			return errors.Wrapf(err, "failed to create a copy of %s with the managed field annotation", tlog.KObj{Obj: in.desired})
 		}
 		if err := r.Client.Create(ctx, desiredWithManagedFieldAnnotation); err != nil {
-			return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: desiredWithManagedFieldAnnotation})
+			return createErrorWithoutObjectName(err, desiredWithManagedFieldAnnotation)
 		}
 		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: in.desired})
 		return nil
@@ -664,7 +664,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 			return errors.Wrapf(err, "failed to create a copy of %s with the managed field annotation", tlog.KObj{Obj: in.desired})
 		}
 		if err := r.Client.Create(ctx, desiredWithManagedFieldAnnotation); err != nil {
-			return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: desiredWithManagedFieldAnnotation})
+			return createErrorWithoutObjectName(err, desiredWithManagedFieldAnnotation)
 		}
 		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: in.desired})
 		return nil
@@ -716,7 +716,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 		return errors.Wrapf(err, "failed to create a copy of %s with the managed field annotation", tlog.KObj{Obj: in.desired})
 	}
 	if err := r.Client.Create(ctx, desiredWithManagedFieldAnnotation); err != nil {
-		return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: desiredWithManagedFieldAnnotation})
+		return createErrorWithoutObjectName(err, desiredWithManagedFieldAnnotation)
 	}
 	r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q as a replacement for %q (template rotation)", tlog.KObj{Obj: in.desired}, in.ref.Name)
 
@@ -726,4 +726,30 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	in.ref.Name = newName
 
 	return nil
+}
+
+// createErrorWithoutObjectName removes the name of the object from the error message. As each new Create call involves an
+// object with a unique generated name each error appears to be a different error. As the errors are being surfaced in a condition
+// on the Cluster, the name is removed here to prevent each creation error from triggering a new reconciliation.
+func createErrorWithoutObjectName(err error, obj client.Object) error {
+	var statusError *apierrors.StatusError
+	if errors.As(err, &statusError) {
+		if statusError.Status().Details != nil {
+			var causes []string
+			for _, cause := range statusError.Status().Details.Causes {
+				causes = append(causes, fmt.Sprintf("%s: %s: %s", cause.Type, cause.Field, cause.Message))
+			}
+			var msg string
+			if len(causes) > 0 {
+				msg = fmt.Sprintf("failed to create %s.%s: %s", statusError.Status().Details.Kind, statusError.Status().Details.Group, strings.Join(causes, " "))
+			} else {
+				msg = fmt.Sprintf("failed to create %s.%s", statusError.Status().Details.Kind, statusError.Status().Details.Group)
+			}
+			// Replace the statusError message with the constructed message.
+			statusError.ErrStatus.Message = msg
+			return statusError
+		}
+	}
+	// If this isn't a StatusError return a more generic error with the object details.
+	return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: obj})
 }

@@ -17,12 +17,14 @@ limitations under the License.
 package kubernetesversions
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -33,14 +35,21 @@ const (
 
 // LatestCIRelease fetches the latest main branch Kubernetes version.
 func LatestCIRelease() (string, error) {
-	resp, err := http.Get(ciVersionURL)
+	ctx := context.TODO()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ciVersionURL, http.NoBody)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to get %s: failed to create request", ciVersionURL)
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get %s", ciVersionURL)
 	}
 	defer resp.Body.Close()
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to get %s: failed to read body", ciVersionURL)
 	}
 
 	return strings.TrimSpace(string(b)), nil
@@ -48,18 +57,27 @@ func LatestCIRelease() (string, error) {
 
 // LatestPatchRelease returns the latest patch release matching.
 func LatestPatchRelease(searchVersion string) (string, error) {
+	ctx := context.TODO()
+
 	searchSemVer, err := semver.Make(strings.TrimPrefix(searchVersion, tagPrefix))
 	if err != nil {
 		return "", err
 	}
-	resp, err := http.Get(fmt.Sprintf(stableVersionURL, searchSemVer.Major, searchSemVer.Minor))
+
+	url := fmt.Sprintf(stableVersionURL, searchSemVer.Major, searchSemVer.Minor)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to get %s: failed to create request", url)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to get %s", url)
 	}
 	defer resp.Body.Close()
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to get %s: failed to read body", url)
 	}
 
 	return strings.TrimSpace(string(b)), nil

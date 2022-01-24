@@ -56,7 +56,7 @@ func (l Embed) Process(input *plugin.Input) error {
 			Path:   path.Join("/", repository, branch, filePath),
 		}
 
-		resp, err := http.Get(rawURL.String())
+		resp, err := http.Get(rawURL.String()) //nolint:noctx // NB: as we're just implementing an external interface we won't be able to get a context here.
 		if err != nil {
 			return "", err
 		}

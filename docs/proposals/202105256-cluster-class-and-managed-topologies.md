@@ -612,6 +612,10 @@ Note: Builtin variables are defined in [Builtin variables](#builtin-variables) b
       // of this value.
       // +optional
       Replicas *int `json:"replicas,omitempty"`
+    
+      // Variables can be used to customize the MachineDeployment through patches.
+      // +optional
+      Variables *MachineDeploymentVariables `json:"variables,omitempty"`
     }
     ```
 1.  The `ClusterVariable` object represents an instance of a variable.
@@ -627,6 +631,16 @@ Note: Builtin variables are defined in [Builtin variables](#builtin-variables) b
       // Note: the value will be validated against the schema
       // of the corresponding ClusterClassVariable from the ClusterClass.
       Value apiextensionsv1.JSON `json:"value"`
+    }
+    ```
+
+1.  The `MachineDeploymentVariables` represents variable overrides for a MachineDeployment topology .
+    ```golang
+    // MachineDeploymentVariables can be used to provide variables for a specific MachineDeployment.
+    type MachineDeploymentVariables struct {
+      // Overrides can be used to override Cluster level variables.
+      // +optional
+      Overrides []ClusterVariable `json:"overrides,omitempty"`
     }
     ```
 
@@ -720,6 +734,8 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
   - `spec.topology.workers.machineDeployments[i].name` field must be unique within a Cluster
   - (defaulting) variables are defaulted according to the corresponding `ClusterClassVariable`
   - all required variables must exist and match the schema defined in the corresponding `ClusterClassVariable` in the ClusterClass
+  - (defaulting) nested fields of `spec.topology.workers.machineDeployments[i].variables.overrides` are defaulted according to the corresponding `ClusterClassVariable`
+  - `spec.topology.workers.machineDeployments[i].variables.overrides` must match the schema defined in the corresponding `ClusterClassVariable` in the ClusterClass
 
 - For object updates:
   - If `spec.topology.class` is set it cannot be unset or modified, and if it's unset it cannot be set.
@@ -729,7 +745,9 @@ Builtin variables are available under the `builtin.` prefix. Some examples:
   - A set of worker nodes can be added to or removed from the `spec.topology.workers.machineDeployments` list.
   - (defaulting) variables are defaulted according to the corresponding `ClusterClassVariable`
   - all required variables must exist and match the schema defined in the corresponding `ClusterClassVariable` in the ClusterClass
-
+  - (defaulting) nested fields of `spec.topology.workers.machineDeployments[i].variables.overrides` are defaulted according to the corresponding `ClusterClassVariable`
+  - `spec.topology.workers.machineDeployments[i].variables.overrides` must match the schema defined in the corresponding `ClusterClassVariable` in the ClusterClass
+  
 #### ClusterClass compatibility
 
 There are cases where we must consider whether two ClusterClasses are compatible:
@@ -990,6 +1008,7 @@ to avoid creating separate ClusterClasses for every small deviation, e.g. a diff
    - Calculate patches:
      - evaluate patch selector
      - evaluate patch values
+       - if variable overrides are set, they are used instead of the Cluster-level variables. 
    - Apply patches to our local copies of the templates. 
      <br>**Note**: Patches are applied in the order in which they are defined in the ClusterClass.
 

@@ -58,12 +58,14 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
 		}
 		dst.Spec.InitConfiguration.Patches = restored.Spec.InitConfiguration.Patches
+		dst.Spec.InitConfiguration.SkipPhases = restored.Spec.InitConfiguration.SkipPhases
 	}
 	if restored.Spec.JoinConfiguration != nil {
 		if dst.Spec.JoinConfiguration == nil {
 			dst.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 		}
 		dst.Spec.JoinConfiguration.Patches = restored.Spec.JoinConfiguration.Patches
+		dst.Spec.JoinConfiguration.SkipPhases = restored.Spec.JoinConfiguration.SkipPhases
 	}
 
 	return nil
@@ -129,12 +131,14 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 			dst.Spec.Template.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
 		}
 		dst.Spec.Template.Spec.InitConfiguration.Patches = restored.Spec.Template.Spec.InitConfiguration.Patches
+		dst.Spec.Template.Spec.InitConfiguration.SkipPhases = restored.Spec.Template.Spec.InitConfiguration.SkipPhases
 	}
 	if restored.Spec.Template.Spec.JoinConfiguration != nil {
 		if dst.Spec.Template.Spec.JoinConfiguration == nil {
 			dst.Spec.Template.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
 		}
 		dst.Spec.Template.Spec.JoinConfiguration.Patches = restored.Spec.Template.Spec.JoinConfiguration.Patches
+		dst.Spec.Template.Spec.JoinConfiguration.SkipPhases = restored.Spec.Template.Spec.JoinConfiguration.SkipPhases
 	}
 
 	return nil

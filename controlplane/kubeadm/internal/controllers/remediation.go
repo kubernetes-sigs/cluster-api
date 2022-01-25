@@ -112,7 +112,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	// The cluster MUST have more than one replica, because this is the smallest cluster size that allows any etcd failure tolerance.
 	if controlPlane.Machines.Len() <= 1 {
 		log.Info("A control plane machine needs remediation, but the number of current replicas is less or equal to 1. Skipping remediation", "UnhealthyMachine", machineToBeRemediated.Name, "Replicas", controlPlane.Machines.Len())
-		conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate if current replicas are less or equal then 1")
+		conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate if current replicas are less or equal to 1")
 		return ctrl.Result{}, nil
 	}
 

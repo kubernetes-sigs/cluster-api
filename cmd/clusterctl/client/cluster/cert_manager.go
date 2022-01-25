@@ -337,11 +337,11 @@ func (cm *certManagerClient) shouldUpgrade(objs []unstructured.Unstructured) (st
 		c := version.Compare(objSemVersion, desiredSemVersion, version.WithBuildTags())
 		switch {
 		case c < 0 || c == 2:
-			// if version < current or same version and different non numeric build metadata, then upgrade
+			// if version < current or same version and different non-numeric build metadata, then upgrade
 			currentVersion = objVersion
 			needUpgrade = true
 		case c >= 0:
-			// the installed version is greather or equal than the one required by clusterctl, so we are ok
+			// the installed version is greater than or equal to one required by clusterctl, so we are ok
 			currentVersion = objVersion
 		}
 

@@ -484,6 +484,13 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			ImageTag:        "v1.6.6_foobar.2",
 		},
 	}
+	validUnsupportedCoreDNSVersion := dns.DeepCopy()
+	validUnsupportedCoreDNSVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
+		ImageMeta: bootstrapv1.ImageMeta{
+			ImageRepository: "gcr.io/capi-test",
+			ImageTag:        "v99.99.99",
+		},
+	}
 
 	unsetCoreDNSToVersion := dns.DeepCopy()
 	unsetCoreDNSToVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS = bootstrapv1.DNS{
@@ -745,6 +752,16 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       dnsBuildTag,
 		},
 		{
+			name:   "should succeed when using the same CoreDNS version",
+			before: dns,
+			kcp:    dns.DeepCopy(),
+		},
+		{
+			name:   "should succeed when using the same CoreDNS version - not supported",
+			before: validUnsupportedCoreDNSVersion,
+			kcp:    validUnsupportedCoreDNSVersion,
+		},
+		{
 			name:      "should fail when using an invalid DNS build",
 			expectErr: true,
 			before:    before,
@@ -756,6 +773,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			before:    dns,
 			kcp:       dnsInvalidCoreDNSToVersion,
 		},
+
 		{
 			name:      "should fail when making a change to the cluster config's certificatesDir",
 			expectErr: true,

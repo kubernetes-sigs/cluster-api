@@ -471,7 +471,11 @@ func (in *KubeadmControlPlane) validateCoreDNSVersion(prev *KubeadmControlPlane)
 		)
 		return allErrs
 	}
-
+	// If the versions are equal return here without error.
+	// This allows an upgrade where the version of CoreDNS in use is not supported by the migration tool.
+	if toVersion.Equals(fromVersion) {
+		return allErrs
+	}
 	if err := migration.ValidUpMigration(fromVersion.String(), toVersion.String()); err != nil {
 		allErrs = append(
 			allErrs,

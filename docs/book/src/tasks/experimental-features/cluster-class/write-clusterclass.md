@@ -21,7 +21,7 @@ general and how they can be written in a way that they are flexible enough to su
 ## Basic ClusterClass
 
 The following example shows a basic ClusterClass. It contains templates to shape the control plane, 
-infrastructure and workers of a Cluster.  When a Cluster is using this ClusterClass, the templates 
+infrastructure and workers of a Cluster. When a Cluster is using this ClusterClass, the templates 
 are used to generate the objects of the managed topology of the Cluster.
 
 ```yaml
@@ -88,16 +88,20 @@ spec:
     controlPlane:
       replicas: 3
       metadata:
-        labels: {}
-        annotations: {}
+        labels:
+          cpLabel: cpLabelValue 
+        annotations:
+          cpAnnotation: cpAnnotationValue
     workers:
       machineDeployments:
       - class: default-worker
         name: md-0
         replicas: 4
         metadata:
-          labels: {}
-          annotations: {}
+          labels:
+            mdLabel: mdLabelValue
+          annotations:
+            mdAnnotation: mdAnnotationValue
         failureDomain: region
 ```
 
@@ -350,6 +354,9 @@ spec:
         valueFrom:
           # This template is first rendered with Go templating, then parsed by 
           # a YAML/JSON parser and then used as value of the JSON patch.
+          # For example, if the variable etcdImageTag is set to `3.5.1-0` the 
+          # .../clusterConfiguration/etcd field will be set to:
+          # {"local": {"imageTag": "3.5.1-0"}}
           template: |
             local:
               imageTag: {{ .etcdImageTag }}
@@ -524,10 +531,22 @@ spec:
             names:
             - default-worker
       jsonPatches:
-      - op: replace
+      - op: add
         path: /spec/template/spec/instanceType
         valueFrom:
           variable: workerMachineType
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: AWSMachineTemplate
+metadata:
+  name: aws-clusterclass-v0.1.0-default-worker
+spec:
+  template:
+    spec:
+      # instanceType: workerMachineType will be set by the patch.
+      iamInstanceProfile: "nodes.cluster-api-provider-aws.sigs.k8s.io"
+---
+...
 ```
 
 In the Cluster resource the `workerMachineType` variable can then be set cluster-wide and

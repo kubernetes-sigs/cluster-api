@@ -770,7 +770,7 @@ intentionally use resources without patches and variables to focus on the simple
 ##### Create a new Cluster using ClusterClass object
 1. User creates a ClusterClass object.
    ```yaml
-    apiVersion: cluster.x-k8s.io/v1alpha4
+    apiVersion: cluster.x-k8s.io/v1beta1
     kind: ClusterClass
     metadata:
       name: mixed
@@ -778,9 +778,14 @@ intentionally use resources without patches and variables to focus on the simple
     spec:
       controlPlane:
         ref:
-          apiVersion: controlplane.cluster.x-k8s.io/v1alpha4
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
           kind: KubeadmControlPlaneTemplate
           name: vsphere-prod-cluster-template-kcp
+        machineInfrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: VSphereMachineTemplate
+            name: linux-vsphere-template
         # This will create a MachineHealthCheck for ControlPlane machines.
         machineHealthCheck:
           nodeStartupTimeout: 3m
@@ -793,17 +798,17 @@ intentionally use resources without patches and variables to focus on the simple
               status: "False"
               timeout: 300s
       workers:
-        deployments:
+        machineDeployments:
         - class: linux-worker
           template:
             bootstrap:
               ref:
-                apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+                apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
                 kind: KubeadmConfigTemplate
                 name: existing-boot-ref
             infrastructure:
               ref:
-                apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+                apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
                 kind: VSphereMachineTemplate
                 name: linux-vsphere-template
           # This will create a health check for each deployment created with the "linux-worker" MachineDeploymentClass
@@ -814,17 +819,17 @@ intentionally use resources without patches and variables to focus on the simple
                 timeout: 300s
               - type: Ready
                 status: "False"
-               timeout: 300s
+                timeout: 300s
         - class: windows-worker
           template:
             bootstrap:
               ref:
-                apiVersion: bootstrap.cluster.x-k8s.io/v1alpha4
+                apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
                 kind: KubeadmConfigTemplate
                 name: existing-boot-ref-windows
             infrastructure:
               ref:
-                apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+                apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
                 kind: VSphereMachineTemplate
                 name: windows-vsphere-template
           # This will create a health check for each deployment created with the "windows-worker" MachineDeploymentClass
@@ -835,16 +840,16 @@ intentionally use resources without patches and variables to focus on the simple
                 timeout: 300s
               - type: Ready
                 status: "False"
-               timeout: 300s
+                timeout: 300s
       infrastructure:
         ref:
-          apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
           kind: VSphereClusterTemplate
           name: vsphere-prod-cluster-template
    ```
 2. User creates a cluster using the class name and defining the topology.
    ```yaml
-    apiVersion: cluster.x-k8s.io/v1alpha4
+    apiVersion: cluster.x-k8s.io/v1beta1
     kind: Cluster
     metadata:
       name: foo
@@ -941,7 +946,7 @@ to avoid creating separate ClusterClasses for every small deviation, e.g. a diff
 
 1. User creates a ClusterClass object with variables and patches (other fields are omitted for brevity).
    ```yaml
-   apiVersion: cluster.x-k8s.io/v1alpha4
+   apiVersion: cluster.x-k8s.io/v1beta1
    kind: ClusterClass
    metadata:
      name: my-cluster-class
@@ -962,7 +967,7 @@ to avoid creating separate ClusterClasses for every small deviation, e.g. a diff
      - name: region
        definitions:
        - selector:
-           apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+           apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
            kind: AWSClusterTemplate
          jsonPatches:
          - op: replace
@@ -972,7 +977,7 @@ to avoid creating separate ClusterClasses for every small deviation, e.g. a diff
      - name: controlPlaneMachineType
        definitions:
        - selector:
-           apiVersion: infrastructure.cluster.x-k8s.io/v1alpha4
+           apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
            kind: AWSMachineTemplate
            matchResources:
              controlPlane: true
@@ -987,7 +992,7 @@ to avoid creating separate ClusterClasses for every small deviation, e.g. a diff
 
 1. User creates a Cluster referencing the ClusterClass created above and defining variables (other fields are omitted for brevity).
    ```yaml
-   apiVersion: cluster.x-k8s.io/v1alpha4
+   apiVersion: cluster.x-k8s.io/v1beta1
    kind: Cluster
    metadata:
      name: my-cluster

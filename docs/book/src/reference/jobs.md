@@ -14,7 +14,6 @@ This document intents to provide an overview over our jobs running via Prow, Git
 
 Prow Presubmits:
 * [pull-cluster-api-build-main] `./scripts/ci-build.sh`
-* ✳️️ ✴️ [pull-cluster-api-make-main] `./scripts/ci-make.sh`
 * ✳️️ [pull-cluster-api-apidiff-main] `./scripts/ci-apidiff.sh`
 * [pull-cluster-api-verify] `./scripts/ci-verify.sh`
 * [pull-cluster-api-test-main] `./scripts/ci-test.sh`
@@ -71,7 +70,6 @@ GitHub (On Release) Workflows:
 
 <!-- links -->
 [pull-cluster-api-build-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-build-main
-[pull-cluster-api-make-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-make-main
 [pull-cluster-api-apidiff-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-apidiff-main
 [pull-cluster-api-verify]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-verify-main
 [pull-cluster-api-test-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-test-main

@@ -72,8 +72,13 @@ ClusterClass is already very flexible. Via the topology on the Cluster the follo
 * `.spec.topology.version`: the Kubernetes version of the Cluster
 * `.spec.topology.controlPlane`: control plane replicas and their metadata
 * `.spec.topology.workers`: MachineDeployments and their replicas, metadata and failure domain
-    * **Note**: It's possible to create MachineDeployments with different configurations, by
-      defining multiple MachineDeployment classes in the ClusterClass. 
+
+<aside class="note">
+
+It's possible to create MachineDeployments with different configurations, by
+defining multiple MachineDeployment classes in the ClusterClass.
+
+</aside>
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -200,8 +205,12 @@ spec:
         example: k8s.gcr.io
 ```
 
-**Note**: The following basic types are supported: `string`, `integer`, `number` and `boolean`. Complex types 
-          are also supported (please see the corresponding section below).
+<aside class="note">
+
+The following basic types are supported: `string`, `integer`, `number` and `boolean`. We are also 
+supporting complex types, please see the [complex variables](#complex-variables) section.
+
+</aside>
 
 **Defining patches in the ClusterClass**
 
@@ -233,13 +242,16 @@ spec:
           variable: imageRepository
 ```
 
-**Notes**:
+<aside class="note">
+
 * Only fields below `/spec` can be patched.
 * Only `add`, `remove` and `replace` operations are supported.
 * It's only possible to append and prepend to arrays. Insertions at a specific index are 
   not supported.
 * Be careful, appending or prepending an array variable to an array leads to a nested array
   (for more details please see this [issue](https://github.com/kubernetes-sigs/cluster-api/issues/5944)).
+
+</aside>
 
 **Setting variable values in the Cluster**
 
@@ -259,9 +271,13 @@ spec:
       value: k8s.gcr.io
 ```
 
-**Note**: If the user does not set the value, the variable is automatically added with its 
-          default value by the Cluster webhook, as specified in the corresponding variable 
-          definition in the ClusterClass.
+<aside class="note">
+
+If the user does not set the value, the variable is automatically added with its 
+default value by the Cluster webhook, as specified in the corresponding variable 
+definition in the ClusterClass.
+
+</aside>
 
 ## Advanced features of ClusterClass with patches
 
@@ -274,11 +290,11 @@ referenced in patches:
 - `builtin.cluster.{name,namespace}`
 - `builtin.cluster.topology.{version,class}`
 - `builtin.controlPlane.{replicas,version}`
-    - **Note**: These variables are only available when patching control plane or control plane 
-                machine templates.
+    - Please note, these variables are only available when patching control plane or control plane 
+      machine templates.
 - `builtin.machineDeployment.{replicas,version,class,name,topologyName}`
-    - **Note**: These variables are only available when patching the templates of a MachineDeployment 
-                and contain the values of the current `MachineDeploymentTopology`.
+    - Please note, these variables are only available when patching the templates of a MachineDeployment 
+      and contain the values of the current `MachineDeployment` topology.
 
 Builtin variables can be referenced just like regular variables, e.g.:
 ```yaml
@@ -372,12 +388,16 @@ spec:
         value: "my.custom.registry"
 ```
 
-**Paths**
+<aside class="note">
+
+<h1>Variable paths</h1>
 
 * Paths can be used in `.valueFrom.template` and `.valueFrom.variable` to access nested fields of arrays and objects.
 * `.` is used to access a field of an object, e.g. `httpProxy.url`.
 * `[i]` is used to access an array element, e.g. `dnsServers[0]`.
-* Because of how Go templates work, the paths in templates have a leading `.`.
+* Because of the way Go templates work, the paths in templates have to start with a dot.
+
+</aside>
 
 **Tips & Tricks**
 

@@ -122,6 +122,14 @@ Best practices:
 
 <aside class="note">
 
+For a full example ClusterClass for CAPD you can take a look at
+[clusterclass-quickstart.yaml](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/templates/clusterclass-quick-start.yaml)
+(which is also used in the CAPD quickstart with ClusterClass).
+
+</aside>
+
+<aside class="note">
+
 <h1>Tip: clusterctl alpha topology plan</h1>
 
 The `clusterctl alpha topology plan` command can be used to test ClusterClasses; the output will show

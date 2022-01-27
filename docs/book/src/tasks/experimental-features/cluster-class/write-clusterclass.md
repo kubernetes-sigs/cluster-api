@@ -70,7 +70,7 @@ with the corresponding `DockerMachineTemplate`, a `DockerCluster` and a `Machine
 the corresponding `KubeadmConfigTemplate` and `DockerMachineTemplate` will be created. This basic 
 ClusterClass is already very flexible. Via the topology on the Cluster the following can be configured:
 * `.spec.topology.version`: the Kubernetes version of the Cluster
-* `.spec.topology.controlPlane`: control plane replicas and their metadata
+* `.spec.topology.controlPlane`: ControlPlane replicas and their metadata
 * `.spec.topology.workers`: MachineDeployments and their replicas, metadata and failure domain
 
 <aside class="note">

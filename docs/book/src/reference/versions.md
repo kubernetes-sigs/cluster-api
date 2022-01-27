@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-The Cluster API team maintains branches for **v1.0 (v1beta1)** **v0.4 (v1alpha4)** and **v0.3 (v1alpha3)**, the most recent releases.
+The Cluster API team maintains branches for **v1.x (v1beta1)** **v0.4 (v1alpha4)** and **v0.3 (v1alpha3)**, the most recent releases.
 
 Releases include these components:
 
@@ -26,8 +26,8 @@ The Core Provider, Kubeadm Bootstrap Provider, and Kubeadm Control Plane Provide
 In some cases, the Management Cluster is separate from the Workload Clusters. The Kubernetes version of the Management and Workload Clusters are allowed to be different.
 
 Management Clusters and Workload Clusters can be upgraded independently and in any order, however, if you are additionally moving from
-v1alpha3 (v0.3.x) to v1beta1 (v1.0.x) as part of the upgrade rollout, the management cluster will need to be upgraded to at least v1.19.x,
-prior to upgrading any workload cluster using Cluster API v1beta1 (v1.0.x)
+v1alpha3 (v0.3.x) to v1beta1 (v1.x) as part of the upgrade rollout, the management cluster will need to be upgraded to at least v1.19.x,
+prior to upgrading any workload cluster using Cluster API v1beta1 (v1.x)
 
 These diagrams show the relationships between components in a Cluster API release (yellow), and other components (white).
 
@@ -43,7 +43,7 @@ These diagrams show the relationships between components in a Cluster API releas
 
 #### Core Provider (`cluster-api-controller`)
 
-|                  |  CAPI v1alpha3 (v0.3) Management | CAPI v1alpha3 (v0.3) Workload |  CAPI v1alpha4 (v0.4) Management | CAPI v1alpha4 (v0.4) Workload |  CAPI v1beta1 (v1.0) Management | CAPI v1beta1 (v1.0) Workload |
+|                  |  CAPI v1alpha3 (v0.3) Management | CAPI v1alpha3 (v0.3) Workload |  CAPI v1alpha4 (v0.4) Management | CAPI v1alpha4 (v0.4) Workload |  CAPI v1beta1 (v1.x) Management | CAPI v1beta1 (v1.x) Workload |
 | ---------------- | -------------------------------- | ----------------------------- | -------------------------------- | ----------------------------- | -------------------------------- | ----------------------------- |
 | Kubernetes v1.16 | ✓                                | ✓                             |                                  |                               |                                  |                               |
 | Kubernetes v1.17 | ✓                                | ✓                             |                                  |                               |                                  |                               |
@@ -52,13 +52,16 @@ These diagrams show the relationships between components in a Cluster API releas
 | Kubernetes v1.20 | ✓                                | ✓                             | ✓                                | ✓                             | ✓                                | ✓                             |
 | Kubernetes v1.21 | ✓                                | ✓                             | ✓                                | ✓                             | ✓                                | ✓                             |
 | Kubernetes v1.22 |                                  | ✓                             | ✓                                | ✓                             | ✓                                | ✓                             |
-| Kubernetes v1.23 |                                  |                               | ✓                                | ✓                             | ✓                                | ✓                             |
+| Kubernetes v1.23* |                                  |                               | ✓                                | ✓                             | ✓                                | ✓                             |
+
+\* There is an issue with CRDs in Kubernetes v1.23.{0-2}. ClusterClass with patches is affected by that (for more details please see [this issue](https://github.com/kubernetes-sigs/cluster-api/issues/5990)). Therefore we recommend to use Kubernetes v1.23.3+ with ClusterClass.
+   Previous Kubernetes **minor** versions are not affected.
 
 The Core Provider also talks to API server of every Workload Cluster. Therefore, the Workload Cluster's Kubernetes version must also be compatible.
 
 #### Kubeadm Bootstrap Provider (`kubeadm-bootstrap-controller`)
 
-|                                    |  CAPI v1alpha3 (v0.3) Management | CAPI v1alpha3 (v0.3) Workload | CAPI v1alpha4 (v0.4) Management | CAPI v1alpha4 (v0.4) Workload | CAPI v1beta1 (v1.0) Management | CAPI v1beta1 (v1.0) Workload |
+|                                    |  CAPI v1alpha3 (v0.3) Management | CAPI v1alpha3 (v0.3) Workload | CAPI v1alpha4 (v0.4) Management | CAPI v1alpha4 (v0.4) Workload | CAPI v1beta1 (v1.x) Management | CAPI v1beta1 (v1.x) Workload |
 | ---------------------------------- | -------------------------------- | ----------------------------- | ------------------------------- | ----------------------------- | ------------------------------- | ----------------------------- |
 | Kubernetes v1.16 + kubeadm/v1beta2 | ✓                                | ✓                             |                                 |                               |                                 |                               |
 | Kubernetes v1.17 + kubeadm/v1beta2 | ✓                                | ✓                             |                                 |                               |                                 |                               |
@@ -73,7 +76,7 @@ The Kubeadm Bootstrap Provider generates kubeadm configuration using the API ver
 
 #### Kubeadm Control Plane Provider (`kubeadm-control-plane-controller`)
 
-|                            | CAPI v1alpha3 (v0.3) Management | CAPI v1alpha3 (v0.3) Workload | CAPI v1alpha4 (v0.4) Management | CAPI v1alpha4 (v0.4) Workload | CAPI v1beta1 (v1.0) Management | CAPI v1beta1 (v1.0) Workload |
+|                            | CAPI v1alpha3 (v0.3) Management | CAPI v1alpha3 (v0.3) Workload | CAPI v1alpha4 (v0.4) Management | CAPI v1alpha4 (v0.4) Workload | CAPI v1beta1 (v1.x) Management | CAPI v1beta1 (v1.x) Workload |
 | -------------------------- | ------------------------------- | ----------------------------- | ------------------------------- | ----------------------------- | ------------------------------- | ----------------------------- |
 | Kubernetes v1.16 + etcd/v3 | ✓                               | ✓                             |                                 |                               |                                 |                               |
 | Kubernetes v1.17 + etcd/v3 | ✓                               | ✓                             |                                 |                               |                                 |                               |

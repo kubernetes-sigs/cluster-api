@@ -1,10 +1,9 @@
 
 # Writing a ClusterClass
 
-While a ClusterClass can be also used for a single Cluster, usually a ClusterClass is used across many
-clusters. Therefore a ClusterClass becomes more useful when it's flexible enough to support a wide
-range of use cases. The goal of this document is to explain how ClusterClasses can be written in
-general and how they can be written in a way that they are flexible enough to support many use cases.
+A ClusterClass becomes more useful and valuable when it can be used to create many Cluster of a similar 
+shape. The goal of this document is to explain how ClusterClasses can be written in a way that they are 
+flexible enough to be used in as many Cluster as possible by supporting variants of the same base Cluster shape.
 
 **Table of Contents**
 
@@ -113,15 +112,16 @@ Best practices:
   of a ClusterClass to another, consider including a version suffix in the ClusterClass name.
   For more information about changing a ClusterClass please see: [Changing a ClusterClass].
 * Prefix the templates used in a ClusterClass with the name of the ClusterClass.
-* Don't use templates with the same name in multiple ClusterClasses. This is automatically taken care
+* Don't reuse the same template in multiple ClusterClasses. This is automatically taken care
   of by prefixing the templates with the name of the ClusterClass.
 
 <aside class="note">
 
 <h1>Tip: clusterctl alpha topology plan</h1>
 
-`clusterctl alpha topology plan` can be used to render objects of a managed topology without having to create or update
-a Cluster or a ClusterClass in Kubernetes. For more details please see: [clusterctl alpha topology plan].
+The `clusterctl alpha topology plan` command can be used to test ClusterClasses; the output will show
+you how the resulting Cluster will look like, but without actually creating it.
+For more details please see: [clusterctl alpha topology plan].
 
 </aside>
 
@@ -243,7 +243,8 @@ spec:
 
 **Setting variable values in the Cluster**
 
-The user can now provide a value for the variable in the Cluster.
+After creating a ClusterClass with a variable definition, the user can now provide a value for 
+the variable in the Cluster as in the example below.
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1

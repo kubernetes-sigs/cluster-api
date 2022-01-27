@@ -137,7 +137,7 @@ func downloadFile(url string, filepath string) error {
 	ctx := context.TODO()
 
 	// Create the file
-	out, err := os.Create(filepath)
+	out, err := os.Create(filepath) //nolint:gosec // No security issue: filepath is safe.
 	if err != nil {
 		return errors.Wrapf(err, "failed to create the clusterctl config file %s", filepath)
 	}

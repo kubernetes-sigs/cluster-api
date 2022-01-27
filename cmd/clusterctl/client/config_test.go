@@ -823,7 +823,7 @@ func newFakeClientWithoutCluster(configClient config.Client) *fakeClient {
 		InjectConfig(fake.configClient),
 		InjectRepositoryFactory(func(input RepositoryClientFactoryInput) (repository.Client, error) {
 			if _, ok := fake.repositories[input.Provider.ManifestLabel()]; !ok {
-				return nil, errors.Errorf("Repository for kubeconfig %q does not exist.", input.Provider.ManifestLabel())
+				return nil, errors.Errorf("repository for kubeconfig %q does not exist", input.Provider.ManifestLabel())
 			}
 			return fake.repositories[input.Provider.ManifestLabel()], nil
 		}),

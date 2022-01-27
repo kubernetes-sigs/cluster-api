@@ -36,7 +36,7 @@ func CreateLogFile(input CreateLogFileInput) *LogFile {
 	filePath := filepath.Join(input.LogFolder, input.Name)
 	Expect(os.MkdirAll(filepath.Dir(filePath), 0750)).To(Succeed(), "Failed to create log folder %s", filepath.Dir(filePath))
 
-	f, err := os.Create(filePath)
+	f, err := os.Create(filePath) //nolint:gosec // No security issue: filepath is safe.
 	Expect(err).ToNot(HaveOccurred(), "Failed to create log file %s", filePath)
 
 	return &LogFile{

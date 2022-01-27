@@ -58,7 +58,7 @@ func EnableFileLogging(path string) (io.WriteCloser, error) {
 }
 
 func newFileWriter(path string) (io.WriteCloser, error) {
-	f, err := os.Create(path)
+	f, err := os.Create(path) //nolint:gosec // No security issue: path is safe.
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create file")
 	}

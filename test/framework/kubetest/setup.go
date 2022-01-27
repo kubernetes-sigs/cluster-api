@@ -31,7 +31,7 @@ func copyFile(srcFilePath, destFilePath string) error {
 	if err != nil {
 		return err
 	}
-	destFile, err := os.Create(destFilePath)
+	destFile, err := os.Create(destFilePath) //nolint:gosec // No security issue: destFilePath is safe.
 	if err != nil {
 		return err
 	}

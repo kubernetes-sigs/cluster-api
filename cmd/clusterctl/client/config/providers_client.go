@@ -298,8 +298,7 @@ func validateProvider(r Provider) error {
 		return errors.Errorf("name %s must be used with the %s type (name: %s, type: %s)", ClusterAPIProviderName, clusterctlv1.CoreProviderType, r.Name(), r.Type())
 	}
 
-	errMsgs := validation.IsDNS1123Subdomain(r.Name())
-	if len(errMsgs) != 0 {
+	if errMsgs := validation.IsDNS1123Subdomain(r.Name()); len(errMsgs) != 0 {
 		return errors.Errorf("invalid provider name: %s", strings.Join(errMsgs, "; "))
 	}
 	if r.URL() == "" {

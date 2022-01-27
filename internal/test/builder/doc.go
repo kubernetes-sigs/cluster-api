@@ -15,4 +15,5 @@ limitations under the License.
 */
 
 // Package builder implements builder and CRDs for creating API objects for testing.
+// +kubebuilder:object:generate=true
 package builder

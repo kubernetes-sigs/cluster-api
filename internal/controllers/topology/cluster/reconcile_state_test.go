@@ -1775,6 +1775,17 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 		Build()
 
 	maxUnhealthy := intstr.Parse("45%")
+	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
+		WithSelector(*selectorForMachineDeploymentMHC(md)).
+		WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+			{
+				Type:    corev1.NodeReady,
+				Status:  corev1.ConditionUnknown,
+				Timeout: metav1.Duration{Duration: 5 * time.Minute},
+			},
+		}).
+		WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
+		WithClusterName("cluster1")
 
 	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-1").Build()
 	bootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-1").Build()
@@ -1790,33 +1801,10 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			current: nil,
 			desired: []*scope.MachineDeploymentState{
 				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate,
-					builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-						WithSelector(*selectorForMachineDeploymentMHC(md)).
-						WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
-							{
-								Type:    corev1.NodeReady,
-								Status:  corev1.ConditionUnknown,
-								Timeout: metav1.Duration{Duration: 5 * time.Minute},
-							},
-						}).
-						WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-						WithClusterName("cluster1").
-						Build()),
+					mhcBuilder.DeepCopy().Build()),
 			},
 			want: []*clusterv1.MachineHealthCheck{
-				builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-					WithSelector(*selectorForMachineDeploymentMHC(md)).
-					WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
-						{
-							Type:    corev1.NodeReady,
-							Status:  corev1.ConditionUnknown,
-							Timeout: metav1.Duration{Duration: 5 * time.Minute},
-						},
-					}).
-					WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-					WithClusterName("cluster1").
-					WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-					Build()},
+				mhcBuilder.DeepCopy().Build()},
 		},
 		{
 			name: "Create a new MachineHealthCheck if the MachineDeployment is modified to include one",
@@ -1826,141 +1814,43 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			// MHC is added in the desired state of the MachineDeployment
 			desired: []*scope.MachineDeploymentState{
 				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate,
-					builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-						WithSelector(*selectorForMachineDeploymentMHC(md)).
-						WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
-							{
-								Type:    corev1.NodeReady,
-								Status:  corev1.ConditionUnknown,
-								Timeout: metav1.Duration{Duration: 5 * time.Minute},
-							},
-						}).
-						WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-						WithClusterName("cluster1").
-						Build()),
+					mhcBuilder.DeepCopy().Build()),
 			},
 			want: []*clusterv1.MachineHealthCheck{
-				builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-					WithSelector(*selectorForMachineDeploymentMHC(md)).
-					WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
-						{
-							Type:    corev1.NodeReady,
-							Status:  corev1.ConditionUnknown,
-							Timeout: metav1.Duration{Duration: 5 * time.Minute},
-						},
-					}).
-					WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-					WithClusterName("cluster1").
-					WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-					Build()}},
+				mhcBuilder.DeepCopy().Build()}},
 		{
 			name: "Update MachineHealthCheck spec adding a field if the spec adds a field",
 			current: []*scope.MachineDeploymentState{
 				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate,
-					builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-						WithSelector(*selectorForMachineDeploymentMHC(md)).
-						WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
-							{
-								Type:    corev1.NodeReady,
-								Status:  corev1.ConditionUnknown,
-								Timeout: metav1.Duration{Duration: 5 * time.Minute},
-							},
-						}).
-						WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-						WithClusterName("cluster1").
-						Build()),
+					mhcBuilder.DeepCopy().Build()),
 			},
 			desired: []*scope.MachineDeploymentState{
 				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate,
-					builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-						WithSelector(*selectorForMachineDeploymentMHC(md)).
-						WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
-							{
-								Type:    corev1.NodeReady,
-								Status:  corev1.ConditionUnknown,
-								Timeout: metav1.Duration{Duration: 5 * time.Minute},
-							},
-						}).
-						WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-						WithClusterName("cluster1").WithMaxUnhealthy(&maxUnhealthy).
-						Build())},
+					mhcBuilder.DeepCopy().WithMaxUnhealthy(&maxUnhealthy).Build())},
 			want: []*clusterv1.MachineHealthCheck{
-				builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-					WithSelector(*selectorForMachineDeploymentMHC(md)).
-					WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
-						{
-							Type:    corev1.NodeReady,
-							Status:  corev1.ConditionUnknown,
-							Timeout: metav1.Duration{Duration: 5 * time.Minute},
-						},
-					}).
+				mhcBuilder.DeepCopy().
 					WithMaxUnhealthy(&maxUnhealthy).
-					WithClusterName("cluster1").
-					WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
 					Build()},
 		},
 		{
 			name: "Update MachineHealthCheck spec removing a field if the spec removes a field",
 			current: []*scope.MachineDeploymentState{
 				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate,
-					builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-						WithSelector(*selectorForMachineDeploymentMHC(md)).
-						WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
-							{
-								Type:    corev1.NodeReady,
-								Status:  corev1.ConditionUnknown,
-								Timeout: metav1.Duration{Duration: 5 * time.Minute},
-							},
-						}).
-						WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-						WithClusterName("cluster1").WithMaxUnhealthy(&maxUnhealthy).
-						Build()),
+					mhcBuilder.DeepCopy().WithMaxUnhealthy(&maxUnhealthy).Build()),
 			},
 			desired: []*scope.MachineDeploymentState{
 				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate,
-					builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-						WithSelector(*selectorForMachineDeploymentMHC(md)).
-						WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
-							{
-								Type:    corev1.NodeReady,
-								Status:  corev1.ConditionUnknown,
-								Timeout: metav1.Duration{Duration: 5 * time.Minute},
-							},
-						}).
-						WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-						WithClusterName("cluster1").
-						Build()),
+					mhcBuilder.DeepCopy().Build()),
 			},
 			want: []*clusterv1.MachineHealthCheck{
-				builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-					WithSelector(*selectorForMachineDeploymentMHC(md)).
-					WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
-						{
-							Type:    corev1.NodeReady,
-							Status:  corev1.ConditionUnknown,
-							Timeout: metav1.Duration{Duration: 5 * time.Minute},
-						},
-					}).
-					WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-					WithClusterName("cluster1").
-					Build()},
+				mhcBuilder.DeepCopy().Build(),
+			},
 		},
 		{
 			name: "Delete MachineHealthCheck spec if the MachineDeployment is modified to remove an existing one",
 			current: []*scope.MachineDeploymentState{
 				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate,
-					builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-						WithSelector(*selectorForMachineDeploymentMHC(md)).
-						WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
-							{
-								Type:    corev1.NodeReady,
-								Status:  corev1.ConditionUnknown,
-								Timeout: metav1.Duration{Duration: 5 * time.Minute},
-							},
-						}).
-						WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-						WithClusterName("cluster1").
-						Build()),
+					mhcBuilder.DeepCopy().Build()),
 			},
 			desired: []*scope.MachineDeploymentState{newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate, nil)},
 			want:    []*clusterv1.MachineHealthCheck{},
@@ -1969,18 +1859,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			name: "Delete MachineHealthCheck spec if the MachineDeployment is deleted",
 			current: []*scope.MachineDeploymentState{
 				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate,
-					builder.MachineHealthCheck(metav1.NamespaceDefault, "md-1").
-						WithSelector(*selectorForMachineDeploymentMHC(md)).
-						WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
-							{
-								Type:    corev1.NodeReady,
-								Status:  corev1.ConditionUnknown,
-								Timeout: metav1.Duration{Duration: 5 * time.Minute},
-							},
-						}).
-						WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
-						WithClusterName("cluster1").
-						Build()),
+					mhcBuilder.DeepCopy().Build()),
 			},
 			desired: []*scope.MachineDeploymentState{},
 			want:    []*clusterv1.MachineHealthCheck{},
@@ -2082,19 +1961,19 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 		{
 			name:    "Create a MachineHealthCheck",
 			current: nil,
-			desired: mhcBuilder.Build(),
-			want:    mhcBuilder.Build(),
+			desired: mhcBuilder.DeepCopy().Build(),
+			want:    mhcBuilder.DeepCopy().Build(),
 		},
 		{
 			name:    "Successfully create a valid Ownerreference on the MachineHealthCheck",
 			current: nil,
 			// update the unhealthy conditions in the MachineHealthCheck
-			desired: mhcBuilder.
+			desired: mhcBuilder.DeepCopy().
 				// Desired object has an incomplete owner reference which has no UID.
 				WithOwnerReferences([]metav1.OwnerReference{{Name: cp.GetName(), Kind: cp.GetKind(), APIVersion: cp.GetAPIVersion()}}).
 				Build(),
 			// Want a reconciled object with a full ownerReference including UID
-			want: mhcBuilder.
+			want: mhcBuilder.DeepCopy().
 				WithOwnerReferences([]metav1.OwnerReference{{Name: cp.GetName(), Kind: cp.GetKind(), APIVersion: cp.GetAPIVersion(), UID: cp.GetUID()}}).
 				Build(),
 			wantErr: false,
@@ -2102,16 +1981,16 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 
 		{
 			name:    "Update a MachineHealthCheck with changes",
-			current: mhcBuilder.Build(),
+			current: mhcBuilder.DeepCopy().Build(),
 			// update the unhealthy conditions in the MachineHealthCheck
-			desired: mhcBuilder.WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+			desired: mhcBuilder.DeepCopy().WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
 				{
 					Type:    corev1.NodeReady,
 					Status:  corev1.ConditionUnknown,
 					Timeout: metav1.Duration{Duration: 1000 * time.Minute},
 				},
 			}).Build(),
-			want: mhcBuilder.WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
+			want: mhcBuilder.DeepCopy().WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
 				{
 					Type:    corev1.NodeReady,
 					Status:  corev1.ConditionUnknown,
@@ -2121,14 +2000,14 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 		},
 		{
 			name:    "Don't change a MachineHealthCheck with no difference between desired and current",
-			current: mhcBuilder.Build(),
+			current: mhcBuilder.DeepCopy().Build(),
 			// update the unhealthy conditions in the MachineHealthCheck
-			desired: mhcBuilder.Build(),
-			want:    mhcBuilder.Build(),
+			desired: mhcBuilder.DeepCopy().Build(),
+			want:    mhcBuilder.DeepCopy().Build(),
 		},
 		{
 			name:    "Delete a MachineHealthCheck",
-			current: mhcBuilder.Build(),
+			current: mhcBuilder.DeepCopy().Build(),
 			// update the unhealthy conditions in the MachineHealthCheck
 			desired: nil,
 			want:    nil,

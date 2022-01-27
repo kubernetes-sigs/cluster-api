@@ -394,6 +394,7 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 }
 
 // InfrastructureMachineTemplateBuilder holds the variables and objects needed to build an InfrastructureMachineTemplate.
+// +kubebuilder:object:generate=false
 type InfrastructureMachineTemplateBuilder struct {
 	namespace  string
 	name       string
@@ -437,6 +438,7 @@ func (i *InfrastructureMachineTemplateBuilder) Build() *unstructured.Unstructure
 }
 
 // BootstrapTemplateBuilder holds the variables needed to build a generic BootstrapTemplate.
+// +kubebuilder:object:generate=false
 type BootstrapTemplateBuilder struct {
 	namespace  string
 	name       string
@@ -473,6 +475,7 @@ func (b *BootstrapTemplateBuilder) Build() *unstructured.Unstructured {
 }
 
 // InfrastructureClusterTemplateBuilder holds the variables needed to build a generic InfrastructureClusterTemplate.
+// +kubebuilder:object:generate=false
 type InfrastructureClusterTemplateBuilder struct {
 	namespace  string
 	name       string
@@ -517,6 +520,7 @@ func (i *InfrastructureClusterTemplateBuilder) Build() *unstructured.Unstructure
 }
 
 // ControlPlaneTemplateBuilder holds the variables and objects needed to build a generic ControlPlane template.
+// +kubebuilder:object:generate=false
 type ControlPlaneTemplateBuilder struct {
 	namespace                     string
 	name                          string
@@ -573,6 +577,7 @@ func (c *ControlPlaneTemplateBuilder) Build() *unstructured.Unstructured {
 }
 
 // InfrastructureClusterBuilder holds the variables and objects needed to build a generic InfrastructureCluster.
+// +kubebuilder:object:generate=false
 type InfrastructureClusterBuilder struct {
 	namespace  string
 	name       string
@@ -613,6 +618,7 @@ func (i *InfrastructureClusterBuilder) Build() *unstructured.Unstructured {
 }
 
 // ControlPlaneBuilder holds the variables and objects needed to build a generic object for cluster.spec.controlPlaneRef.
+// +kubebuilder:object:generate=false
 type ControlPlaneBuilder struct {
 	namespace                     string
 	name                          string

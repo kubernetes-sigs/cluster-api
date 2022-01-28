@@ -11,11 +11,11 @@ flexible enough to be used in as many Cluster as possible by supporting variants
 * [ClusterClass with MachineHealthChecks](#clusterclass-with-machinehealthchecks)
 * [ClusterClass with patches](#clusterclass-with-patches)
 * [Advanced features of ClusterClass with patches](#advanced-features-of-clusterclass-with-patches)
-    * [Builtin variables](#builtin-variables)
-    * [JSON patch values](#json-patch-values)
-    * [Complex variables](#complex-variables)
-    * [Optional patches](#optional-patches)
     * [MachineDeployment variable overrides](#machinedeployment-variable-overrides)
+    * [Builtin variables](#builtin-variables)
+    * [Complex variable types](#complex-variable-types)
+    * [Using variable values in JSON patches](#using-variable-values-in-json-patches)
+    * [Optional patches](#optional-patches)
 
 ## Basic ClusterClass
 
@@ -72,13 +72,6 @@ ClusterClass is already very flexible. Via the topology on the Cluster the follo
 * `.spec.topology.version`: the Kubernetes version of the Cluster
 * `.spec.topology.controlPlane`: ControlPlane replicas and their metadata
 * `.spec.topology.workers`: MachineDeployments and their replicas, metadata and failure domain
-
-<aside class="note">
-
-It's possible to create MachineDeployments with different configurations, by
-defining multiple MachineDeployment classes in the ClusterClass.
-
-</aside>
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -183,10 +176,11 @@ spec:
 As shown above, basic ClusterClasses are already very powerful. But there are cases where 
 more powerful mechanisms are required. Let's assume you want to manage multiple Clusters 
 with the same ClusterClass, but they require different values for a field in one of the 
-referenced templates of a ClusterClass. A concrete example would be to deploy Clusters in 
-different AWS regions. In this case, every cluster needs a Cluster-specific value for 
-`.spec.region` in `AWSCluster`. Use cases like this can be implemented with ClusterClass 
-patches.
+referenced templates of a ClusterClass.
+
+A concrete example would be to deploy Clusters with different registries. In this case, 
+every cluster needs a Cluster-specific value for `.spec.kubeadmConfigSpec.clusterConfiguration.imageRepository` 
+in `KubeadmControlPlane`. Use cases like this can be implemented with ClusterClass patches.
 
 **Defining variables in the ClusterClass**
 
@@ -214,6 +208,8 @@ spec:
 ```
 
 <aside class="note">
+
+<h1>Supported types</h1>
 
 The following basic types are supported: `string`, `integer`, `number` and `boolean`. We are also 
 supporting complex types, please see the [complex variables](#complex-variables) section.
@@ -252,6 +248,8 @@ spec:
 
 <aside class="note">
 
+<h1>Writing JSON patches</h1>
+
 * Only fields below `/spec` can be patched.
 * Only `add`, `remove` and `replace` operations are supported.
 * It's only possible to append and prepend to arrays. Insertions at a specific index are 
@@ -276,14 +274,15 @@ spec:
     ...
     variables:
     - name: imageRepository
-      value: k8s.gcr.io
+      value: my.custom.registry
 ```
 
 <aside class="note">
 
-If the user does not set the value, the variable is automatically added with its 
-default value by the Cluster webhook, as specified in the corresponding variable 
-definition in the ClusterClass.
+<h1>Variable defaulting</h1>
+
+If the user does not set the value, but the corresponding variable definition in ClusterClass has
+a default value, the value is automatically added to the variables list.
 
 </aside>
 
@@ -291,245 +290,10 @@ definition in the ClusterClass.
 
 This section will explain more advanced features of ClusterClass patches.
 
-### Builtin variables
-
-In addition to variables specified in the ClusterClass, the following builtin variables can be 
-referenced in patches:
-- `builtin.cluster.{name,namespace}`
-- `builtin.cluster.topology.{version,class}`
-- `builtin.controlPlane.{replicas,version}`
-    - Please note, these variables are only available when patching control plane or control plane 
-      machine templates.
-- `builtin.machineDeployment.{replicas,version,class,name,topologyName}`
-    - Please note, these variables are only available when patching the templates of a MachineDeployment 
-      and contain the values of the current `MachineDeployment` topology.
-
-Builtin variables can be referenced just like regular variables, e.g.:
-```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: ClusterClass
-metadata:
-  name: docker-clusterclass-v0.1.0
-spec:
-  ...
-  patches:
-  - name: clusterName
-    definitions:
-    - selector:
-      ...
-      jsonPatches:
-      - op: add
-        path: /spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/cluster-name
-        valueFrom:
-          variable: builtin.cluster.name
-```
-
-**Tips & Tricks**
-
-Builtin variables can be used to dynamically calculate image names. The version used in the patch 
-will always be the same as the one we set in the corresponding MachineDeployment (works the same way 
-with `.builtin.controlPlane.version`).
-
-```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: ClusterClass
-metadata:
-  name: docker-clusterclass-v0.1.0
-spec:
-  ...
-  patches:
-  - name: customImage
-    description: "Sets the container image that is used for running dockerMachines."
-    definitions:
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: DockerMachineTemplate
-        matchResources:
-          machineDeploymentClass:
-            names:
-            - default-worker
-      jsonPatches:
-      - op: add
-        path: /spec/template/spec/customImage
-        valueFrom:
-          template: |
-            kindest/node:{{ .builtin.machineDeployment.version }}
-```
-
-### JSON patch values
-
-We already saw above that it's possible to use variable values in JSON patches. It's also 
-possible to calculate values via Go templating or to use hard-coded values.
-
-```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: ClusterClass
-metadata:
-  name: docker-clusterclass-v0.1.0
-spec:
-  ...
-  patches:
-  - name: etcdImageTag
-    definitions:
-    - selector:
-      ...
-      jsonPatches:
-      - op: add
-        path: /spec/template/spec/kubeadmConfigSpec/clusterConfiguration/etcd
-        valueFrom:
-          # This template is first rendered with Go templating, then parsed by 
-          # a YAML/JSON parser and then used as value of the JSON patch.
-          # For example, if the variable etcdImageTag is set to `3.5.1-0` the 
-          # .../clusterConfiguration/etcd field will be set to:
-          # {"local": {"imageTag": "3.5.1-0"}}
-          template: |
-            local:
-              imageTag: {{ .etcdImageTag }}
-  - name: imageRepository
-    definitions:
-    - selector:
-      ...
-      jsonPatches:
-      - op: add
-        path: /spec/template/spec/kubeadmConfigSpec/clusterConfiguration/imageRepository
-        # This hard-coded value is used directly as value of the JSON patch.
-        value: "my.custom.registry"
-```
-
-<aside class="note">
-
-<h1>Variable paths</h1>
-
-* Paths can be used in `.valueFrom.template` and `.valueFrom.variable` to access nested fields of arrays and objects.
-* `.` is used to access a field of an object, e.g. `httpProxy.url`.
-* `[i]` is used to access an array element, e.g. `dnsServers[0]`.
-* Because of the way Go templates work, the paths in templates have to start with a dot.
-
-</aside>
-
-**Tips & Tricks**
-
-Templates can be used to implement defaulting behavior during JSON patch value calculation. This can be used if the simple
-constant default value which can be specified in the schema is not enough.
-```yaml
-        valueFrom:
-          # If .vnetName is set, it is used. Otherwise, we will use `{{.builtin.cluster.name}}-vnet`.  
-          template: "{{ if .vnetName }}{{.vnetName}}{{else}}{{.builtin.cluster.name}}-vnet{{end}}"
-```
-
-### Complex variables
-
-Variables can also be objects and arrays. An object is specified with the type `object` and 
-by the schemas of the fields of the object. An array is specified via the type `array` and 
-the schema of the array items.
-
-```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: ClusterClass
-metadata:
-  name: docker-clusterclass-v0.1.0
-spec:
-  ...
-  variables:
-  - name: httpProxy
-    schema:
-      openAPIV3Schema:
-        type: object
-        properties: 
-          # Schema of the url field.
-          url: 
-            type: string
-          # Schema of the noProxy field.
-          noProxy:
-            type: string
-  - name: dnsServers
-    schema:
-      openAPIV3Schema:
-        type: array
-        items:
-          # Schema of the array items.
-          type: string
-```
-
-Objects and arrays can be used in patches either directly by referencing the variable name, 
-or by accessing individual fields. For example:
-```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: ClusterClass
-metadata:
-  name: docker-clusterclass-v0.1.0
-spec:
-  ...
-      jsonPatches:
-      - op: add
-        path: /spec/template/spec/httpProxy/url
-        valueFrom:
-          # Use the url field of the httpProxy variable.
-          variable: httpProxy.url
-      - op: add
-        path: /spec/template/spec/dnsServers
-        valueFrom:
-          # Use the entire dnsServers array.
-          variable: dnsServers
-      - op: add
-        path: /spec/template/spec/dnsServer
-        valueFrom:
-          # Use the first item of the dnsServers array.
-          variable: dnsServers[0]
-```
-
-### Optional patches
-
-Patches can also be conditionally enabled. This can be done by configuring a Go template via `enabledIf`. 
-The patch is then only applied if the Go template evaluates to `true`. In the following example the `httpProxy` 
-patch is only applied if the `httpProxy` variable is set (and not empty).
-
-```yaml
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: ClusterClass
-metadata:
-  name: docker-clusterclass-v0.1.0
-spec:
-  ...
-  variables:
-  - name: httpProxy
-    schema:
-      openAPIV3Schema:
-        type: string
-  patches:
-  - name: httpProxy
-    enabledIf: "{{ if .httpProxy }}true{{end}}"
-    definitions:
-    ...  
-```
-
-**Tips & Tricks**:
-
-Hard-coded values can be used to test the impact of a patch during development, gradually roll out patches, etc. .
-```yaml
-    enabledIf: false
-```
-
-A boolean variable can be used to enable/disable a patch (or "feature"). This can have opt-in or opt-out behavior
-depending on the default value of the variable.
-```yaml
-    enabledIf: "{{ .httpProxyEnabled }}"
-```
-
-Of course the same is possible by adding a boolean variable to a configuration object.
-```yaml
-    enabledIf: "{{ .httpProxy.enabled }}"
-```
-
-Builtin variables can be leveraged to apply a patch only for a specific Kubernetes version.
-```yaml
-    enabledIf: "{{ if eq "v1.21.1" .builtin.controlPlane.version }}true{{end}}"
-```
-
 ### MachineDeployment variable overrides
 
-If you want to use many variations of MachineDeployments in Clusters, you can either define 
-a MachineDeployment class for every variation or you can define patches and variables to 
+If you want to use many variations of MachineDeployments in Clusters, you can either define
+a MachineDeployment class for every variation or you can define patches and variables to
 make a single MachineDeployment class more flexible.
 
 In the following example we make the `instanceType` of a `AWSMachineTemplate` customizable.
@@ -612,6 +376,240 @@ spec:
       value: t3.large
 ```
 
+### Builtin variables
+
+In addition to variables specified in the ClusterClass, the following builtin variables can be 
+referenced in patches:
+- `builtin.cluster.{name,namespace}`
+- `builtin.cluster.topology.{version,class}`
+- `builtin.controlPlane.{replicas,version}`
+    - Please note, these variables are only available when patching control plane or control plane 
+      machine templates.
+- `builtin.machineDeployment.{replicas,version,class,name,topologyName}`
+    - Please note, these variables are only available when patching the templates of a MachineDeployment 
+      and contain the values of the current `MachineDeployment` topology.
+
+Builtin variables can be referenced just like regular variables, e.g.:
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  ...
+  patches:
+  - name: clusterName
+    definitions:
+    - selector:
+      ...
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/clusterConfiguration/controllerManager/extraArgs/cluster-name
+        valueFrom:
+          variable: builtin.cluster.name
+```
+
+**Tips & Tricks**
+
+Builtin variables can be used to dynamically calculate image names. The version used in the patch 
+will always be the same as the one we set in the corresponding MachineDeployment (works the same way 
+with `.builtin.controlPlane.version`).
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  ...
+  patches:
+  - name: customImage
+    description: "Sets the container image that is used for running dockerMachines."
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachineTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/customImage
+        valueFrom:
+          template: |
+            kindest/node:{{ .builtin.machineDeployment.version }}
+```
+
+### Complex variable types
+
+Variables can also be objects and arrays. An object is specified with the type `object` and
+by the schemas of the fields of the object. An array is specified via the type `array` and
+the schema of the array items.
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  ...
+  variables:
+  - name: httpProxy
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties: 
+          # Schema of the url field.
+          url: 
+            type: string
+          # Schema of the noProxy field.
+          noProxy:
+            type: string
+  - name: dnsServers
+    schema:
+      openAPIV3Schema:
+        type: array
+        items:
+          # Schema of the array items.
+          type: string
+```
+
+Objects and arrays can be used in patches either directly by referencing the variable name,
+or by accessing individual fields. For example:
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  ...
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/httpProxy/url
+        valueFrom:
+          # Use the url field of the httpProxy variable.
+          variable: httpProxy.url
+      - op: add
+        path: /spec/template/spec/dnsServers
+        valueFrom:
+          # Use the entire dnsServers array.
+          variable: dnsServers
+      - op: add
+        path: /spec/template/spec/dnsServer
+        valueFrom:
+          # Use the first item of the dnsServers array.
+          variable: dnsServers[0]
+```
+
+### Using variable values in JSON patches
+
+We already saw above that it's possible to use variable values in JSON patches. It's also 
+possible to calculate values via Go templating or to use hard-coded values.
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  ...
+  patches:
+  - name: etcdImageTag
+    definitions:
+    - selector:
+      ...
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/clusterConfiguration/etcd
+        valueFrom:
+          # This template is first rendered with Go templating, then parsed by 
+          # a YAML/JSON parser and then used as value of the JSON patch.
+          # For example, if the variable etcdImageTag is set to `3.5.1-0` the 
+          # .../clusterConfiguration/etcd field will be set to:
+          # {"local": {"imageTag": "3.5.1-0"}}
+          template: |
+            local:
+              imageTag: {{ .etcdImageTag }}
+  - name: imageRepository
+    definitions:
+    - selector:
+      ...
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/kubeadmConfigSpec/clusterConfiguration/imageRepository
+        # This hard-coded value is used directly as value of the JSON patch.
+        value: "my.custom.registry"
+```
+
+<aside class="note">
+
+<h1>Variable paths</h1>
+
+* Paths can be used in `.valueFrom.template` and `.valueFrom.variable` to access nested fields of arrays and objects.
+* `.` is used to access a field of an object, e.g. `httpProxy.url`.
+* `[i]` is used to access an array element, e.g. `dnsServers[0]`.
+* Because of the way Go templates work, the paths in templates have to start with a dot.
+
+</aside>
+
+**Tips & Tricks**
+
+Templates can be used to implement defaulting behavior during JSON patch value calculation. This can be used if the simple
+constant default value which can be specified in the schema is not enough.
+```yaml
+        valueFrom:
+          # If .vnetName is set, it is used. Otherwise, we will use `{{.builtin.cluster.name}}-vnet`.  
+          template: "{{ if .vnetName }}{{.vnetName}}{{else}}{{.builtin.cluster.name}}-vnet{{end}}"
+```
+
+### Optional patches
+
+Patches can also be conditionally enabled. This can be done by configuring a Go template via `enabledIf`. 
+The patch is then only applied if the Go template evaluates to `true`. In the following example the `httpProxy` 
+patch is only applied if the `httpProxy` variable is set (and not empty).
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: docker-clusterclass-v0.1.0
+spec:
+  ...
+  variables:
+  - name: httpProxy
+    schema:
+      openAPIV3Schema:
+        type: string
+  patches:
+  - name: httpProxy
+    enabledIf: "{{ if .httpProxy }}true{{end}}"
+    definitions:
+    ...  
+```
+
+**Tips & Tricks**:
+
+Hard-coded values can be used to test the impact of a patch during development, gradually roll out patches, etc. .
+```yaml
+    enabledIf: false
+```
+
+A boolean variable can be used to enable/disable a patch (or "feature"). This can have opt-in or opt-out behavior
+depending on the default value of the variable.
+```yaml
+    enabledIf: "{{ .httpProxyEnabled }}"
+```
+
+Of course the same is possible by adding a boolean variable to a configuration object.
+```yaml
+    enabledIf: "{{ .httpProxy.enabled }}"
+```
+
+Builtin variables can be leveraged to apply a patch only for a specific Kubernetes version.
+```yaml
+    enabledIf: "{{ if eq "v1.21.1" .builtin.controlPlane.version }}true{{end}}"
+```
 
 <!-- links -->
 [Changing a ClusterClass]: ./change-clusterclass.md

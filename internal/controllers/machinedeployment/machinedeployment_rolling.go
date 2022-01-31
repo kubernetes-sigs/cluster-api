@@ -50,7 +50,7 @@ func (r *Reconciler) rolloutRolling(ctx context.Context, d *clusterv1.MachineDep
 		return err
 	}
 
-	if err := r.syncDeploymentStatus(allMSs, newMS, d); err != nil {
+	if err := updateMachineDeploymentStatus(allMSs, newMS, d); err != nil {
 		return err
 	}
 
@@ -59,7 +59,7 @@ func (r *Reconciler) rolloutRolling(ctx context.Context, d *clusterv1.MachineDep
 		return err
 	}
 
-	if err := r.syncDeploymentStatus(allMSs, newMS, d); err != nil {
+	if err := updateMachineDeploymentStatus(allMSs, newMS, d); err != nil {
 		return err
 	}
 

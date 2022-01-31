@@ -166,6 +166,8 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, d *c
 	conditions.SetSummary(d,
 		conditions.WithConditions(
 			clusterv1.MachineDeploymentAvailableCondition,
+			clusterv1.ResizedCondition,
+			clusterv1.MachineSetsReadyCondition,
 		),
 	)
 
@@ -174,6 +176,8 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, d *c
 		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
 			clusterv1.ReadyCondition,
 			clusterv1.MachineDeploymentAvailableCondition,
+			clusterv1.ResizedCondition,
+			clusterv1.MachineSetsReadyCondition,
 		}},
 	)
 	return patchHelper.Patch(ctx, d, options...)

@@ -45,7 +45,68 @@ func TestCalculateStatus(t *testing.T) {
 		deployment     *clusterv1.MachineDeployment
 		expectedStatus clusterv1.MachineDeploymentStatus
 	}{
-		"all machines are running": {
+		"When availableReplicas < minDesiredReplicas (desiredReplicas - mdutil.MaxUnavailable(*deployment)) then MachineDeploymentAvailableCondition is false ": {
+			machineSets: []*clusterv1.MachineSet{{
+				Spec: clusterv1.MachineSetSpec{
+					Replicas: pointer.Int32Ptr(2),
+				},
+				Status: clusterv1.MachineSetStatus{
+					Selector:           "",
+					AvailableReplicas:  1,
+					ReadyReplicas:      2,
+					Replicas:           2,
+					ObservedGeneration: 1,
+				},
+			}},
+			newMachineSet: &clusterv1.MachineSet{
+				Spec: clusterv1.MachineSetSpec{
+					Replicas: pointer.Int32Ptr(2),
+				},
+				Status: clusterv1.MachineSetStatus{
+					Selector:           "",
+					AvailableReplicas:  1,
+					ReadyReplicas:      2,
+					Replicas:           2,
+					ObservedGeneration: 1,
+				},
+			},
+			deployment: &clusterv1.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Generation: 2,
+				},
+				Spec: clusterv1.MachineDeploymentSpec{
+					Strategy: &clusterv1.MachineDeploymentStrategy{
+						Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+						RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+							MaxUnavailable: intOrStrPtr(0),
+							MaxSurge:       intOrStrPtr(1),
+							DeletePolicy:   pointer.StringPtr("Oldest"),
+						},
+					},
+					Replicas: pointer.Int32Ptr(2),
+				},
+			},
+			expectedStatus: clusterv1.MachineDeploymentStatus{
+				ObservedGeneration:  2,
+				Replicas:            2,
+				UpdatedReplicas:     2,
+				ReadyReplicas:       2,
+				AvailableReplicas:   1,
+				UnavailableReplicas: 1,
+				Phase:               "Running",
+				Conditions: []clusterv1.Condition{
+					{
+						Type:   clusterv1.MachineDeploymentAvailableCondition,
+						Status: corev1.ConditionTrue,
+					},
+					{
+						Type:   clusterv1.ResizedCondition,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
+		},
+		"When the new MachineSet readyReplicas = MachineDeployment.spec.replicas then phase=Running": {
 			machineSets: []*clusterv1.MachineSet{{
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: pointer.Int32Ptr(2),
@@ -75,6 +136,7 @@ func TestCalculateStatus(t *testing.T) {
 					Generation: 2,
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
+					Strategy: &clusterv1.MachineDeploymentStrategy{},
 					Replicas: pointer.Int32Ptr(2),
 				},
 			},
@@ -86,9 +148,19 @@ func TestCalculateStatus(t *testing.T) {
 				AvailableReplicas:   2,
 				UnavailableReplicas: 0,
 				Phase:               "Running",
+				Conditions: []clusterv1.Condition{
+					{
+						Type:   clusterv1.MachineDeploymentAvailableCondition,
+						Status: corev1.ConditionTrue,
+					},
+					{
+						Type:   clusterv1.ResizedCondition,
+						Status: corev1.ConditionTrue,
+					},
+				},
 			},
 		},
-		"scaling up": {
+		"When the new MachineSet readyReplicas < MachineDeployment.spec.replicas then phase=scalingUp": {
 			machineSets: []*clusterv1.MachineSet{{
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: pointer.Int32Ptr(2),
@@ -118,6 +190,7 @@ func TestCalculateStatus(t *testing.T) {
 					Generation: 2,
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
+					Strategy: &clusterv1.MachineDeploymentStrategy{},
 					Replicas: pointer.Int32Ptr(2),
 				},
 			},
@@ -129,9 +202,21 @@ func TestCalculateStatus(t *testing.T) {
 				AvailableReplicas:   1,
 				UnavailableReplicas: 1,
 				Phase:               "ScalingUp",
+				Conditions: []clusterv1.Condition{
+					{
+						Type:   clusterv1.MachineDeploymentAvailableCondition,
+						Status: corev1.ConditionTrue,
+					},
+					{
+						Type:     clusterv1.ResizedCondition,
+						Status:   corev1.ConditionFalse,
+						Reason:   clusterv1.ScalingUpReason,
+						Severity: clusterv1.ConditionSeverityWarning,
+					},
+				},
 			},
 		},
-		"scaling down": {
+		"When the new MachineSet availableReplicas > MachineDeployment.spec.replicas then phase=ScalingDown": {
 			machineSets: []*clusterv1.MachineSet{{
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: pointer.Int32Ptr(2),
@@ -161,6 +246,7 @@ func TestCalculateStatus(t *testing.T) {
 					Generation: 2,
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
+					Strategy: &clusterv1.MachineDeploymentStrategy{},
 					Replicas: pointer.Int32Ptr(2),
 				},
 			},
@@ -172,9 +258,21 @@ func TestCalculateStatus(t *testing.T) {
 				AvailableReplicas:   3,
 				UnavailableReplicas: 0,
 				Phase:               "ScalingDown",
+				Conditions: []clusterv1.Condition{
+					{
+						Type:   clusterv1.MachineDeploymentAvailableCondition,
+						Status: corev1.ConditionTrue,
+					},
+					{
+						Type:     clusterv1.ResizedCondition,
+						Status:   corev1.ConditionFalse,
+						Reason:   clusterv1.ScalingDownReason,
+						Severity: clusterv1.ConditionSeverityWarning,
+					},
+				},
 			},
 		},
-		"MachineSet failed": {
+		"When the new MachineSet has a FailureReason then Phase=Failed": {
 			machineSets: []*clusterv1.MachineSet{{
 				Spec: clusterv1.MachineSetSpec{
 					Replicas: pointer.Int32Ptr(2),
@@ -205,6 +303,7 @@ func TestCalculateStatus(t *testing.T) {
 					Generation: 2,
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
+					Strategy: &clusterv1.MachineDeploymentStrategy{},
 					Replicas: pointer.Int32Ptr(2),
 				},
 			},
@@ -216,6 +315,16 @@ func TestCalculateStatus(t *testing.T) {
 				AvailableReplicas:   0,
 				UnavailableReplicas: 2,
 				Phase:               "Failed",
+				Conditions: []clusterv1.Condition{
+					{
+						Type:   clusterv1.MachineDeploymentAvailableCondition,
+						Status: corev1.ConditionTrue,
+					},
+					{
+						Type:   clusterv1.ResizedCondition,
+						Status: corev1.ConditionTrue,
+					},
+				},
 			},
 		},
 	}
@@ -224,8 +333,14 @@ func TestCalculateStatus(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			actualStatus := calculateStatus(test.machineSets, test.newMachineSet, test.deployment)
-			g.Expect(actualStatus).To(Equal(test.expectedStatus))
+			err := updateMachineDeploymentStatus(test.machineSets, test.newMachineSet, test.deployment)
+			g.Expect(err).ToNot(HaveOccurred())
+			assertConditions(t, test.deployment, test.expectedStatus.Conditions...)
+
+			// Remove conditions to compare status, otherwise LastTransitionTime will make the comparison fail.
+			test.deployment.Status.Conditions = nil
+			test.expectedStatus.Conditions = nil
+			g.Expect(test.deployment.Status).To(Equal(test.expectedStatus))
 		})
 	}
 }
@@ -398,110 +513,13 @@ func TestScaleMachineSet(t *testing.T) {
 	}
 }
 
-func newTestMachineDeployment(pds *int32, replicas, statusReplicas, updatedReplicas, availableReplicas int32, conditions clusterv1.Conditions) *clusterv1.MachineDeployment {
-	d := &clusterv1.MachineDeployment{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "progress-test",
-		},
-		Spec: clusterv1.MachineDeploymentSpec{
-			ProgressDeadlineSeconds: pds,
-			Replicas:                &replicas,
-			Strategy: &clusterv1.MachineDeploymentStrategy{
-				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
-				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
-					MaxUnavailable: intOrStrPtr(0),
-					MaxSurge:       intOrStrPtr(1),
-					DeletePolicy:   pointer.StringPtr("Oldest"),
-				},
-			},
-		},
-		Status: clusterv1.MachineDeploymentStatus{
-			Replicas:          statusReplicas,
-			UpdatedReplicas:   updatedReplicas,
-			AvailableReplicas: availableReplicas,
-			Conditions:        conditions,
-		},
-	}
-	return d
-}
-
-// helper to create MS with given availableReplicas.
-func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, availableReplicas int32) *clusterv1.MachineSet {
-	return &clusterv1.MachineSet{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              name,
-			CreationTimestamp: metav1.Time{},
-			Namespace:         metav1.NamespaceDefault,
-		},
-		Spec: clusterv1.MachineSetSpec{
-			Replicas: pointer.Int32Ptr(specReplicas),
-		},
-		Status: clusterv1.MachineSetStatus{
-			AvailableReplicas: availableReplicas,
-			Replicas:          statusReplicas,
-		},
-	}
-}
-
-func TestSyncDeploymentStatus(t *testing.T) {
-	pds := int32(60)
-	tests := []struct {
-		name               string
-		d                  *clusterv1.MachineDeployment
-		oldMachineSets     []*clusterv1.MachineSet
-		newMachineSet      *clusterv1.MachineSet
-		expectedConditions []*clusterv1.Condition
-	}{
-		{
-			name:           "Deployment not available: MachineDeploymentAvailableCondition should exist and be false",
-			d:              newTestMachineDeployment(&pds, 3, 2, 2, 2, clusterv1.Conditions{}),
-			oldMachineSets: []*clusterv1.MachineSet{},
-			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 2, 2),
-			expectedConditions: []*clusterv1.Condition{
-				{
-					Type:     clusterv1.MachineDeploymentAvailableCondition,
-					Status:   corev1.ConditionFalse,
-					Severity: clusterv1.ConditionSeverityWarning,
-					Reason:   clusterv1.WaitingForAvailableMachinesReason,
-				},
-			},
-		},
-		{
-			name:           "Deployment Available: MachineDeploymentAvailableCondition should exist and be true",
-			d:              newTestMachineDeployment(&pds, 3, 3, 3, 3, clusterv1.Conditions{}),
-			oldMachineSets: []*clusterv1.MachineSet{},
-			newMachineSet:  newTestMachinesetWithReplicas("foo", 3, 3, 3),
-			expectedConditions: []*clusterv1.Condition{
-				{
-					Type:   clusterv1.MachineDeploymentAvailableCondition,
-					Status: corev1.ConditionTrue,
-				},
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			g := NewWithT(t)
-			r := &Reconciler{
-				Client:   fake.NewClientBuilder().Build(),
-				recorder: record.NewFakeRecorder(32),
-			}
-			allMachineSets := append(test.oldMachineSets, test.newMachineSet)
-			err := r.syncDeploymentStatus(allMachineSets, test.newMachineSet, test.d)
-			g.Expect(err).ToNot(HaveOccurred())
-			assertConditions(t, test.d, test.expectedConditions...)
-		})
-	}
-}
-
 // asserts the conditions set on the Getter object.
 // TODO: replace this with util.condition.MatchConditions (or a new matcher in internal/matchers).
-func assertConditions(t *testing.T, from conditions.Getter, conditions ...*clusterv1.Condition) {
+func assertConditions(t *testing.T, from conditions.Getter, conditions ...clusterv1.Condition) {
 	t.Helper()
 
-	for _, condition := range conditions {
-		assertCondition(t, from, condition)
+	for i := range conditions {
+		assertCondition(t, from, &conditions[i])
 	}
 }
 

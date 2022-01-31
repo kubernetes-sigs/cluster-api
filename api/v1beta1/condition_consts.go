@@ -235,6 +235,9 @@ const (
 	// MachinesReadyCondition reports an aggregate of current status of the machines controlled by the MachineSet.
 	MachinesReadyCondition ConditionType = "MachinesReady"
 
+	// MachineSetsReadyCondition reports an aggregate of current status of the MachineSets controlled by the MachineDeployment.
+	MachineSetsReadyCondition ConditionType = "MachineSetsReady"
+
 	// BootstrapTemplateCloningFailedReason (Severity=Error) documents a MachineSet failing to
 	// clone the bootstrap template.
 	BootstrapTemplateCloningFailedReason = "BootstrapTemplateCloningFailed"
@@ -247,7 +250,7 @@ const (
 	// generate a machine object.
 	MachineCreationFailedReason = "MachineCreationFailed"
 
-	// ResizedCondition documents a MachineSet is resizing the set of controlled machines.
+	// ResizedCondition documents a MachineDeployment or a MachineSet is resizing the set of controlled machines.
 	ResizedCondition ConditionType = "Resized"
 
 	// ScalingUpReason (Severity=Info) documents a MachineSet is increasing the number of replicas.

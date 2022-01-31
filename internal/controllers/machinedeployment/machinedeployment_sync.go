@@ -60,7 +60,7 @@ func (r *Reconciler) sync(ctx context.Context, d *clusterv1.MachineDeployment, m
 	// // TODO: Clean up the deployment when it's paused and no rollback is in flight.
 	//
 	allMSs := append(oldMSs, newMS)
-	return r.syncDeploymentStatus(allMSs, newMS, d)
+	return updateMachineDeploymentStatus(allMSs, newMS, d)
 }
 
 // getAllMachineSetsAndSyncRevision returns all the machine sets for the provided deployment (new and all old), with new MS's and deployment's revision updated.
@@ -366,27 +366,14 @@ func (r *Reconciler) scale(ctx context.Context, deployment *clusterv1.MachineDep
 	return nil
 }
 
-// syncDeploymentStatus checks if the status is up-to-date and sync it if necessary.
-func (r *Reconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, d *clusterv1.MachineDeployment) error {
-	d.Status = calculateStatus(allMSs, newMS, d)
-
-	// minReplicasNeeded will be equal to d.Spec.Replicas when the strategy is not RollingUpdateMachineDeploymentStrategyType.
-	minReplicasNeeded := *(d.Spec.Replicas) - mdutil.MaxUnavailable(*d)
-
-	if d.Status.AvailableReplicas >= minReplicasNeeded {
-		// NOTE: The structure of calculateStatus() does not allow us to update the machinedeployment directly, we can only update the status obj it returns. Ideally, we should change calculateStatus() --> updateStatus() to be consistent with the rest of the code base, until then, we update conditions here.
-		conditions.MarkTrue(d, clusterv1.MachineDeploymentAvailableCondition)
-	} else {
-		conditions.MarkFalse(d, clusterv1.MachineDeploymentAvailableCondition, clusterv1.WaitingForAvailableMachinesReason, clusterv1.ConditionSeverityWarning, "Minimum availability requires %d replicas, current %d available", minReplicasNeeded, d.Status.AvailableReplicas)
-	}
-	return nil
-}
-
-// calculateStatus calculates the latest status for the provided deployment by looking into the provided MachineSets.
-func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) clusterv1.MachineDeploymentStatus {
+// updateMachineDeploymentStatus updates the status field for the provided MachineDeployment by looking into the provided MachineSets.
+func updateMachineDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, machineDeployment *clusterv1.MachineDeployment) error {
 	availableReplicas := mdutil.GetAvailableReplicaCountForMachineSets(allMSs)
 	totalReplicas := mdutil.GetReplicaCountForMachineSets(allMSs)
 	unavailableReplicas := totalReplicas - availableReplicas
+	readyReplicas := mdutil.GetReadyReplicaCountForMachineSets(allMSs)
+	desiredReplicas := *machineDeployment.Spec.Replicas
+	var phase string
 
 	// If unavailableReplicas is negative, then that means the Deployment has more available replicas running than
 	// desired, e.g. whenever it scales down. In such a case we should simply default unavailableReplicas to zero.
@@ -395,40 +382,64 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 	}
 
 	// Calculate the label selector. We check the error in the MD reconcile function, ignore here.
-	selector, _ := metav1.LabelSelectorAsSelector(&deployment.Spec.Selector)
+	selector, _ := metav1.LabelSelectorAsSelector(&machineDeployment.Spec.Selector)
 
-	status := clusterv1.MachineDeploymentStatus{
-		// TODO: Ensure that if we start retrying status updates, we won't pick up a new Generation value.
-		ObservedGeneration:  deployment.Generation,
-		Selector:            selector.String(),
-		Replicas:            mdutil.GetActualReplicaCountForMachineSets(allMSs),
-		UpdatedReplicas:     mdutil.GetActualReplicaCountForMachineSets([]*clusterv1.MachineSet{newMS}),
-		ReadyReplicas:       mdutil.GetReadyReplicaCountForMachineSets(allMSs),
-		AvailableReplicas:   availableReplicas,
-		UnavailableReplicas: unavailableReplicas,
-		Conditions:          deployment.Status.Conditions,
+	if desiredReplicas == readyReplicas {
+		phase = string(clusterv1.MachineDeploymentPhaseRunning)
+		conditions.MarkTrue(machineDeployment, clusterv1.ResizedCondition)
 	}
-
-	if *deployment.Spec.Replicas == status.ReadyReplicas {
-		status.Phase = string(clusterv1.MachineDeploymentPhaseRunning)
-	}
-	if *deployment.Spec.Replicas > status.ReadyReplicas {
-		status.Phase = string(clusterv1.MachineDeploymentPhaseScalingUp)
+	if desiredReplicas > readyReplicas {
+		phase = string(clusterv1.MachineDeploymentPhaseScalingUp)
+		conditions.MarkFalse(machineDeployment, clusterv1.ResizedCondition, clusterv1.ScalingUpReason, clusterv1.ConditionSeverityWarning,
+			"Scaling up MachineDeployment to %d replicas (actual %d)", desiredReplicas, readyReplicas)
 	}
 	// This is the same as unavailableReplicas, but we have to recalculate because unavailableReplicas
 	// would have been reset to zero above if it was negative
 	if totalReplicas-availableReplicas < 0 {
-		status.Phase = string(clusterv1.MachineDeploymentPhaseScalingDown)
+		phase = string(clusterv1.MachineDeploymentPhaseScalingDown)
+		conditions.MarkFalse(machineDeployment, clusterv1.ResizedCondition, clusterv1.ScalingDownReason, clusterv1.ConditionSeverityWarning,
+			"Scaling down MachineDeployment to %d replicas (actual %d)", desiredReplicas, availableReplicas)
 	}
+
+	msConditionsGetterList := make([]conditions.Getter, 0, len(allMSs))
 	for _, ms := range allMSs {
 		if ms != nil {
 			if ms.Status.FailureReason != nil || ms.Status.FailureMessage != nil {
-				status.Phase = string(clusterv1.MachineDeploymentPhaseFailed)
+				phase = string(clusterv1.MachineDeploymentPhaseFailed)
 				break
 			}
 		}
+		msConditionsGetterList = append(msConditionsGetterList, ms)
 	}
-	return status
+
+	// Aggregate the operational state of all the MachineSets; while aggregating we are adding the
+	// source ref (reason@machineset/name) so the problem can be easily tracked down to its source.
+	conditions.SetAggregate(machineDeployment, clusterv1.MachineSetsReadyCondition, msConditionsGetterList, conditions.AddSourceRef(), conditions.WithStepCounterIf(false))
+
+	// minReplicasNeeded will be equal to d.Spec.Replicas when the strategy is not RollingUpdateMachineDeploymentStrategyType.
+	minReplicasNeeded := desiredReplicas - mdutil.MaxUnavailable(*machineDeployment)
+	if availableReplicas >= minReplicasNeeded {
+		conditions.MarkTrue(machineDeployment, clusterv1.MachineDeploymentAvailableCondition)
+	} else {
+		conditions.MarkFalse(machineDeployment, clusterv1.MachineDeploymentAvailableCondition, clusterv1.WaitingForAvailableMachinesReason, clusterv1.ConditionSeverityWarning,
+			"Minimum availability requires %d replicas, current %d available", minReplicasNeeded, availableReplicas)
+	}
+
+	newStatus := clusterv1.MachineDeploymentStatus{
+		// TODO: Ensure that if we start retrying status updates, we won't pick up a new Generation value.
+		ObservedGeneration:  machineDeployment.Generation,
+		Selector:            selector.String(),
+		Replicas:            mdutil.GetActualReplicaCountForMachineSets(allMSs),
+		UpdatedReplicas:     mdutil.GetActualReplicaCountForMachineSets([]*clusterv1.MachineSet{newMS}),
+		ReadyReplicas:       readyReplicas,
+		AvailableReplicas:   availableReplicas,
+		UnavailableReplicas: unavailableReplicas,
+		Phase:               phase,
+		Conditions:          machineDeployment.Status.Conditions,
+	}
+	machineDeployment.Status = newStatus
+
+	return nil
 }
 
 func (r *Reconciler) scaleMachineSet(ctx context.Context, ms *clusterv1.MachineSet, newScale int32, deployment *clusterv1.MachineDeployment) error {

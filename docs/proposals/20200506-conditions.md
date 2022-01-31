@@ -295,6 +295,9 @@ the following constraints/design principles MUST be applied:
   of the underlying `Machines.Status.Conditions[Ready]` conditions.
 - A corollary of the above set of constraints is that an object SHOULD NEVER be in status `Ready=True`
   if one of the object's conditions are `false` or if one of the object dependents is in status `Ready=False`.
+- During a successful deletion operation conditions that summarise readiness must be cleaned up before removing the finalizer.
+  Otherwise, upper lever resources which aggregates this resource will see and permanently store ready=false for this resource right before it goes away.
+  This would mistakenly impact in the readiness of the owner resource which should disregard the particular ready condition of a resource legitimately deleted since is not intended to exist anymore. 
 
 ##### Controller changes
 

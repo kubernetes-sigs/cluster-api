@@ -51,7 +51,7 @@ func (r *Reconciler) rolloutOnDelete(ctx context.Context, d *clusterv1.MachineDe
 		return err
 	}
 
-	if err := r.syncDeploymentStatus(allMSs, newMS, d); err != nil {
+	if err := updateMachineDeploymentStatus(allMSs, newMS, d); err != nil {
 		return err
 	}
 
@@ -60,7 +60,7 @@ func (r *Reconciler) rolloutOnDelete(ctx context.Context, d *clusterv1.MachineDe
 		return err
 	}
 
-	if err := r.syncDeploymentStatus(allMSs, newMS, d); err != nil {
+	if err := updateMachineDeploymentStatus(allMSs, newMS, d); err != nil {
 		return err
 	}
 

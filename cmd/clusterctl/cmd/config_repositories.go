@@ -78,7 +78,7 @@ func init() {
 
 func runGetRepositories(cfgFile string, out io.Writer) error {
 	if cro.output != RepositoriesOutputText && cro.output != RepositoriesOutputYaml {
-		return errors.Errorf("Invalid output format %q. Valid values: %v.", cro.output, RepositoriesOutputs)
+		return errors.Errorf("invalid output format %q, valid values: %v", cro.output, RepositoriesOutputs)
 	}
 
 	if out == nil {

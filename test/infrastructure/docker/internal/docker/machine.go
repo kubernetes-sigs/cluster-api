@@ -308,7 +308,7 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 		if err != nil {
 			return errors.Wrap(err, "failed to open image")
 		}
-		defer f.Close()
+		defer f.Close() //nolint:gocritic // No resource leak.
 
 		ps := m.container.Commander.Command("ctr", "--namespace=k8s.io", "images", "import", "-")
 		ps.SetStdin(f)

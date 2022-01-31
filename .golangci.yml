@@ -3,6 +3,7 @@ linters:
   enable:
   - asciicheck
   - bodyclose
+  - containedctx
   - deadcode
   - depguard
   - dogsled
@@ -236,12 +237,20 @@ issues:
     - typecheck
     text: import (".+") is a program, not an importable package
     path: ^tools\.go$
-  # Ignore ifshort false positive
-  # TODO(sbueringer) false positive: https://github.com/esimonov/ifshort/issues/23
+  # TODO(sbueringer) Ignore ifshort false positive: https://github.com/esimonov/ifshort/issues/23
   - linters:
     - ifshort
     text:  "variable 'isDeleteNodeAllowed' is only used in the if-statement.*"
     path: ^internal/controllers/machine/machine_controller\.go$
+  - linters:
+    - ifshort
+    text: "variable 'kcpMachinesWithErrors' is only used in the if-statement.*"
+    path: ^controlplane/kubeadm/internal/workload_cluster_conditions\.go$
+  # We don't care about defer in for loops in test files.
+  - linters:
+    - gocritic
+    text: "deferInLoop: Possible resource leak, 'defer' is called in the 'for' loop"
+    path: _test\.go
 
 run:
   timeout: 10m

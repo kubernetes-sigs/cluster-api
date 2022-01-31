@@ -36,13 +36,13 @@ func (r *rollout) ObjectResumer(proxy cluster.Proxy, ref corev1.ObjectReference)
 			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
 		if !deployment.Spec.Paused {
-			return errors.Errorf("MachineDeployment is not currently paused: %v/%v\n", ref.Kind, ref.Name)
+			return errors.Errorf("MachineDeployment is not currently paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // MachineDeployment is intentionally capitalized.
 		}
 		if err := resumeMachineDeployment(proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
 	default:
-		return errors.Errorf("Invalid resource type %q, valid values are %v", ref.Kind, validResourceTypes)
+		return errors.Errorf("invalid resource type %q, valid values are %v", ref.Kind, validResourceTypes)
 	}
 	return nil
 }

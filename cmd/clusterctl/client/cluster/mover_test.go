@@ -929,7 +929,7 @@ func Test_objectMover_filesToObjs(t *testing.T) {
 
 			for _, fileName := range tt.files {
 				path := filepath.Join(dir, fileName)
-				file, err := os.Create(path)
+				file, err := os.Create(path) //nolint:gosec // No security issue: unit test.
 				if err != nil {
 					return
 				}

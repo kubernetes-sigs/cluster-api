@@ -116,7 +116,7 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 				return err
 			}
 			if provider.Namespace == "" {
-				return errors.Errorf("Failed to identify the namespace for the %q provider.", provider.ProviderName)
+				return errors.Errorf("failed to identify the namespace for the %q provider", provider.ProviderName)
 			}
 
 			if provider.Version != "" {
@@ -125,7 +125,7 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 					return err
 				}
 				if provider.Version != version {
-					return errors.Errorf("Failed to identity the provider %q with version %q.", provider.ProviderName, provider.Version)
+					return errors.Errorf("failed to identify the provider %q with version %q", provider.ProviderName, provider.Version)
 				}
 			}
 

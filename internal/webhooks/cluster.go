@@ -81,7 +81,7 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 		clusterClass, err := webhook.getClusterClassForCluster(ctx, cluster)
 		if err != nil {
 			// Return early with errors if the ClusterClass can't be retrieved.
-			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be validated. ClusterClass %s can not be retrieved.", cluster.Name, cluster.Spec.Topology.Class))
+			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be validated. ClusterClass %s can not be retrieved", cluster.Name, cluster.Spec.Topology.Class))
 		}
 
 		// We gather all defaulting errors and return them together.

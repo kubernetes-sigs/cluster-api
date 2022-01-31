@@ -45,8 +45,7 @@ var _ webhook.Validator = &DockerCluster{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
 func (c *DockerCluster) ValidateCreate() error {
-	allErrs := validateDockerClusterSpec(c.Spec)
-	if len(allErrs) > 0 {
+	if allErrs := validateDockerClusterSpec(c.Spec); len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("DockerCluster").GroupKind(), c.Name, allErrs)
 	}
 	return nil

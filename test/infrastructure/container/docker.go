@@ -78,7 +78,7 @@ func (d *dockerRuntime) SaveContainerImage(ctx context.Context, image, dest stri
 	}
 	defer reader.Close()
 
-	tar, err := os.Create(dest)
+	tar, err := os.Create(dest) //nolint:gosec // No security issue: dest is safe.
 	if err != nil {
 		return fmt.Errorf("failed to create destination file %q: %v", dest, err)
 	}

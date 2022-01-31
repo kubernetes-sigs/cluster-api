@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -102,26 +103,8 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 			continue
 		}
 
-		// Create the etcd Client for the etcd Pod scheduled on the Node
-		etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, []string{node.Name})
+		currentMembers, err := w.getCurrentEtcdMembers(ctx, machine, node.Name)
 		if err != nil {
-			conditions.MarkUnknown(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberInspectionFailedReason, "Failed to connect to the etcd pod on the %s node: %s", node.Name, err)
-			continue
-		}
-		defer etcdClient.Close()
-
-		// While creating a new client, forFirstAvailableNode retrieves the status for the endpoint; check if the endpoint has errors.
-		if len(etcdClient.Errors) > 0 {
-			conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Etcd member status reports errors: %s", strings.Join(etcdClient.Errors, ", "))
-			continue
-		}
-
-		// Gets the list etcd members known by this member.
-		currentMembers, err := etcdClient.Members(ctx)
-		if err != nil {
-			// NB. We should never be in here, given that we just received answer to the etcd calls included in forFirstAvailableNode;
-			// however, we are considering the calls to Members a signal of etcd not being stable.
-			conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Failed get answer from the etcd member on the %s node", node.Name)
 			continue
 		}
 
@@ -180,6 +163,33 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 		unknownReason:     controlplanev1.EtcdClusterUnknownReason,
 		note:              "etcd member",
 	})
+}
+
+func (w *Workload) getCurrentEtcdMembers(ctx context.Context, machine *clusterv1.Machine, nodeName string) ([]*etcd.Member, error) {
+	// Create the etcd Client for the etcd Pod scheduled on the Node
+	etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, []string{nodeName})
+	if err != nil {
+		conditions.MarkUnknown(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberInspectionFailedReason, "Failed to connect to the etcd pod on the %s node: %s", nodeName, err)
+		return nil, errors.Wrapf(err, "failed to get current etcd members: failed to connect to the etcd pod on the %s node", nodeName)
+	}
+	defer etcdClient.Close()
+
+	// While creating a new client, forFirstAvailableNode retrieves the status for the endpoint; check if the endpoint has errors.
+	if len(etcdClient.Errors) > 0 {
+		conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Etcd member status reports errors: %s", strings.Join(etcdClient.Errors, ", "))
+		return nil, errors.Errorf("failed to get current etcd members: etcd member status reports errors: %s", strings.Join(etcdClient.Errors, ", "))
+	}
+
+	// Gets the list etcd members known by this member.
+	currentMembers, err := etcdClient.Members(ctx)
+	if err != nil {
+		// NB. We should never be in here, given that we just received answer to the etcd calls included in forFirstAvailableNode;
+		// however, we are considering the calls to Members a signal of etcd not being stable.
+		conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "Failed get answer from the etcd member on the %s node", nodeName)
+		return nil, errors.Errorf("failed to get current etcd members: failed get answer from the etcd member on the %s node", nodeName)
+	}
+
+	return currentMembers, nil
 }
 
 func compareMachinesAndMembers(controlPlane *ControlPlane, members []*etcd.Member, kcpErrors []string) []string {

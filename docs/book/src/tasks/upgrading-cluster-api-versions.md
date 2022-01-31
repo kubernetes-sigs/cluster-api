@@ -35,5 +35,5 @@ You should now be able to manage your resources using the `v1alpha4` version of 
 <!-- links -->
 [components]: ../reference/glossary.md#provider-components
 [management cluster]: ../reference/glossary.md#management-cluster
-[Cluster API v1alpha3 compared to v1alpha4 section]: ../developer/providers/v1alpha3-to-v1alpha4.md
-[Cluster API v1alpha4 compared to v1beta1 section]: ../developer/providers/v1alpha4-to-v1beta1.md
+[Cluster API v1alpha3 compared to v1alpha4 section]: ../developer/providers/v0.3-to-v0.4.md
+[Cluster API v1alpha4 compared to v1beta1 section]: ../developer/providers/v0.4-to-v1.0.md

@@ -417,7 +417,7 @@ In Cluster API all the test MUST use [Gomega] assertions.
 
 In Cluster API Unit and integration test MUST use [go test].
 
-[Cluster API quick start]: https://cluster-api.sigs.k8s.io/user/quick-start.html
+[Cluster API quick start]: ../user/quick-start.md
 [Cluster API test framework]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc
 [e2e development]: ./e2e.md
 [Ginkgo]: http://onsi.github.io/ginkgo/

@@ -8,7 +8,7 @@ Much of the information here was adapted directly from it.
 This is an _infrastructure_ provider - tasked with managing provider-specific resources for clusters and machines.
 There are also [bootstrap providers][bootstrap], which turn machines into Kubernetes nodes.
 
-[bootstrap]: https://cluster-api.sigs.k8s.io/reference/providers.html?highlight=bootstrap#bootstrap
+[bootstrap]: ../../../reference/providers.md#bootstrap
 
 ## Prerequisites
 

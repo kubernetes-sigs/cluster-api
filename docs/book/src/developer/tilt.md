@@ -276,7 +276,7 @@ some of the clusterctl commands like clusterctl config won't work.
 
 This limitation is an acceptable trade-off while executing fast dev-test iterations on controllers logic. If instead
 you are interested in testing clusterctl workflows, you should refer to the
-[clusterctl developer instructions](https://cluster-api.sigs.k8s.io/clusterctl/developers.html).
+[clusterctl developer instructions](../clusterctl/developers.md).
 
 </aside>
 

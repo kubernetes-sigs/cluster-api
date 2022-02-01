@@ -199,7 +199,7 @@ The [test E2E package] provides examples of how this can be achieved by implemen
 test specs for the most common Cluster API use cases.
 
 <!-- links -->
-[Cluster API quick start]: https://cluster-api.sigs.k8s.io/user/quick-start.html
+[Cluster API quick start]:  ../user/quick-start.md
 [Cluster API test framework]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc
 [deprecated E2E config file]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#Config
 [deprecated InitManagementCluster method]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#InitManagementCluster

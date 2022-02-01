@@ -33,7 +33,7 @@ The easiest way to do this is with [kind] v0.9 or newer, as explained in the qui
 Make sure your cluster is set as the default for `kubectl`.
 If it's not, you will need to modify subsequent `kubectl` commands below.
 
-[mcluster]: https://cluster-api.sigs.k8s.io/reference/glossary.html#management-cluster
+[mcluster]: ../reference/glossary.md#management-cluster
 [kind]: https://github.com/kubernetes-sigs/kind
 
 ### A container registry
@@ -220,7 +220,7 @@ information on each suite.
 Now you can [create CAPI objects][qs]!
 To test another iteration, you'll need to follow the steps to build, push, update the manifests, and apply.
 
-[qs]: https://cluster-api.sigs.k8s.io/user/quick-start.html#usage
+[qs]: ../user/quick-start.md#usage
 
 ## Videos explaining CAPI architecture and code walkthroughs
 

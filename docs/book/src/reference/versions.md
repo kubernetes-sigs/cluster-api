@@ -77,19 +77,28 @@ The Kubeadm Bootstrap Provider generates kubeadm configuration using the API ver
 #### Kubeadm Control Plane Provider (`kubeadm-control-plane-controller`)
 
 |                            | CAPI v1alpha3 (v0.3) Management | CAPI v1alpha3 (v0.3) Workload | CAPI v1alpha4 (v0.4) Management | CAPI v1alpha4 (v0.4) Workload | CAPI v1beta1 (v1.x) Management | CAPI v1beta1 (v1.x) Workload |
-| -------------------------- | ------------------------------- | ----------------------------- | ------------------------------- | ----------------------------- | ------------------------------- | ----------------------------- |
+| -------------------------- | ------------------------------- |-------------------------------|---------------------------------|-------------------------------| ------------------------------- | ----------------------------- |
 | Kubernetes v1.16 + etcd/v3 | ✓                               | ✓                             |                                 |                               |                                 |                               |
 | Kubernetes v1.17 + etcd/v3 | ✓                               | ✓                             |                                 |                               |                                 |                               |
 | Kubernetes v1.18 + etcd/v3 | ✓                               | ✓                             |                                 | ✓                             |                                 | ✓                             |
 | Kubernetes v1.19 + etcd/v3 | ✓                               | ✓                             | ✓                               | ✓                             | ✓                               | ✓                             |
 | Kubernetes v1.20 + etcd/v3 | ✓                               | ✓                             | ✓                               | ✓                             | ✓                               | ✓                             |
 | Kubernetes v1.21 + etcd/v3 | ✓                               | ✓                             | ✓                               | ✓                             | ✓                               | ✓                             |
-| Kubernetes v1.22 + etcd/v3 |                                 | ✓                             | ✓                               | ✓                             | ✓                               | ✓                             |
-| Kubernetes v1.23 + etcd/v3 |                                 |                               | ✓                               | ✓                             | ✓                               | ✓                             |
+| Kubernetes v1.22 + etcd/v3 |                                 | ✓*                            | ✓                               | ✓                             | ✓                               | ✓                             |
+| Kubernetes v1.23 + etcd/v3 |                                 |                               | ✓*                              | ✓*                            | ✓                               | ✓                             |
 
 The Kubeadm Control Plane Provider talks to the API server and etcd members of every Workload Cluster whose control plane it owns. It uses the etcd v3 API.
 
 The Kubeadm Control Plane requires the Kubeadm Bootstrap Provider.
+
+\*  Newer versions of CoreDNS may not be compatible as an upgrade target for clusters managed with Cluster API. Kubernetes versions marked on the table are supported as an upgrade target only if CoreDNS is not upgraded to the latest version supported by the respective Kubernetes version. The versions supported are represented in the below table.
+
+| CAPI Version    | Max CoreDNS Version for Upgrade |
+|-----------------|---------------------------------|
+| v0.3 (v1alpha3) | v1.8.4                          |
+| v0.4 (v1alpha4) | v1.8.4                          |
+| v1.0 (v1beta1)  | v1.8.5                          | 
+| v1.1 (v1beta1)  | v1.8.6                          |
 
 #### clusterctl
 

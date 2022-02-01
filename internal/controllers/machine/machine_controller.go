@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -46,12 +47,14 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 const (
@@ -250,6 +253,14 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 			Name:       cluster.Name,
 			UID:        cluster.UID,
 		})
+	}
+
+	ok, err := r.isVersionAllowed(ctx, m, cluster)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to check machine version")
+	}
+	if !ok {
+		return ctrl.Result{}, errors.Wrap(err, "machine version is not allowed")
 	}
 
 	phases := []func(context.Context, *clusterv1.Cluster, *clusterv1.Machine) (ctrl.Result, error){
@@ -486,6 +497,74 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 	}
 	// Otherwise it is okay to delete the NodeRef.
 	return nil
+}
+
+// isVersionAllowed returns true if the machine version conforms to the Kubernetes version skew policy.
+// If the Machine is part of the control plane, then its major.minor version must be greater than or equal to the
+// control plane actual major.minor version, and less than or equal to the control plane desired major.minor version.
+// If the Machine is not part of the control plane, then its major.minor version must be less than or equal to the control
+// plane actual major.minor version.
+func (r *Reconciler) isVersionAllowed(ctx context.Context, machine *clusterv1.Machine, cluster *clusterv1.Cluster) (bool, error) {
+	// Skip the check if Version nil, because it is an optional field.
+	if machine.Spec.Version == nil {
+		return true, nil
+	}
+
+	// Skip the check if ControlPlaneRef is nil, because it is an optional field.
+	if cluster.Spec.ControlPlaneRef == nil {
+		return true, nil
+	}
+
+	mv, err := semver.ParseTolerant(*machine.Spec.Version)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to parse machine version")
+	}
+
+	controlPlane, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Spec.ControlPlaneRef.Namespace)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to get control plane object")
+	}
+
+	controlPlaneActualVersionStr, err := contract.ControlPlane().StatusVersion().Get(controlPlane)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to read control plane actual version")
+	}
+	// controlPlaneVersionStr is not nil, because Get did not return an error.
+	controlPlaneActualVersion, err := semver.ParseTolerant(*controlPlaneActualVersionStr)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to parse control plane actual version")
+	}
+
+	controlPlaneDesiredVersionStr, err := contract.ControlPlane().Version().Get(controlPlane)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to read control plane desired version")
+	}
+	// controlPlaneVersionStr is not nil, because Get did not return an error.
+	controlPlaneDesiredVersion, err := semver.ParseTolerant(*controlPlaneDesiredVersionStr)
+	if err != nil {
+		return false, errors.Wrap(err, "failed to parse control plane desired version")
+	}
+
+	if util.IsControlPlaneMachine(machine) {
+		if version.Compare(mv, controlPlaneDesiredVersion, version.IgnorePatchVersion()) == 1 {
+			return false, errors.Errorf("machine major.minor version (%d.%d) must be less than or equal to"+
+				"the control plane desired major.minor (%d.%d) version", mv.Major, mv.Minor,
+				controlPlaneDesiredVersion.Major, controlPlaneDesiredVersion.Minor)
+		}
+		if version.Compare(mv, controlPlaneActualVersion, version.IgnorePatchVersion()) == -1 {
+			return false, errors.Errorf("machine major.minor version (%d.%d) must be greater than or equal to"+
+				"the control plane actual major.minor (%d.%d) version", mv.Major, mv.Minor,
+				controlPlaneActualVersion.Major, controlPlaneActualVersion.Minor)
+		}
+	} else {
+		if version.Compare(mv, controlPlaneActualVersion, version.IgnorePatchVersion()) == 1 {
+			return false, errors.Errorf("machine major.minor version (%d.%d) must be less than or equal to"+
+				"the control plane actual major.minor (%d.%d) version", mv.Major, mv.Minor,
+				controlPlaneActualVersion.Major, controlPlaneActualVersion.Minor)
+		}
+	}
+
+	return true, nil
 }
 
 func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (ctrl.Result, error) {

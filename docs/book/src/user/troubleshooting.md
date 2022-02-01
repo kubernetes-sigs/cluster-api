@@ -35,7 +35,10 @@ kubectl label nodes <name> node-role.kubernetes.io/worker=""
 For convenience, here is an example one-liner to do this post installation
 
 ```
+# Kubernetes 1.19 (kubeadm 1.19 sets only the node-role.kubernetes.io/master label)
 kubectl get nodes --no-headers -l '!node-role.kubernetes.io/master' -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}' | xargs -I{} kubectl label node {} node-role.kubernetes.io/worker=''
+# Kubernetes >= 1.20 (kubeadm >= 1.20 sets the node-role.kubernetes.io/control-plane label) 
+kubectl get nodes --no-headers -l '!node-role.kubernetes.io/control-plane' -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}' | xargs -I{} kubectl label node {} node-role.kubernetes.io/worker=''
 ```                  
 
 ## Cluster API with Docker

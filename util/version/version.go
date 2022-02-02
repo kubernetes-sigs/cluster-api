@@ -190,7 +190,8 @@ func CompareWithBuildIdentifiers(a semver.Version, b semver.Version) int {
 }
 
 type comparer struct {
-	buildTags bool
+	buildTags          bool
+	ignorePatchVersion bool
 }
 
 // CompareOption is a configuration option for Compare.
@@ -217,6 +218,13 @@ func WithBuildTags() CompareOption {
 	}
 }
 
+// IgnorePatchVersion modifies the version comparison to ignore the patch versions.
+func IgnorePatchVersion() CompareOption {
+	return func(c *comparer) {
+		c.ignorePatchVersion = true
+	}
+}
+
 // Compare 2 semver versions.
 // Defaults to doing the standard semver comparison when no options are specified.
 // The comparison logic can be modified by passing additional compare options.
@@ -226,6 +234,11 @@ func Compare(a, b semver.Version, options ...CompareOption) int {
 	c := &comparer{}
 	for _, o := range options {
 		o(c)
+	}
+
+	if c.ignorePatchVersion {
+		a.Patch = 0
+		b.Patch = 0
 	}
 
 	if c.buildTags {

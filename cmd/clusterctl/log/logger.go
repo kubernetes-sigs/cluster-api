@@ -54,7 +54,7 @@ func NewLogger(options ...Option) logr.Logger {
 	for _, o := range options {
 		o(l)
 	}
-	return l
+	return logr.New(l)
 }
 
 // logger defines a clusterctl friendly logr.Logger.
@@ -65,10 +65,13 @@ type logger struct {
 	values    []interface{}
 }
 
-var _ logr.Logger = &logger{}
+var _ logr.LogSink = &logger{}
+
+func (l *logger) Init(info logr.RuntimeInfo) {
+}
 
 // Enabled tests whether this Logger is enabled.
-func (l *logger) Enabled() bool {
+func (l *logger) Enabled(level int) bool {
 	if l.threshold == nil {
 		return true
 	}
@@ -76,8 +79,8 @@ func (l *logger) Enabled() bool {
 }
 
 // Info logs a non-error message with the given key/value pairs as context.
-func (l *logger) Info(msg string, kvs ...interface{}) {
-	if l.Enabled() {
+func (l *logger) Info(level int, msg string, kvs ...interface{}) {
+	if l.Enabled(level) {
 		values := copySlice(l.values)
 		values = append(values, kvs...)
 		values = append(values, "msg", msg)
@@ -94,14 +97,14 @@ func (l *logger) Error(err error, msg string, kvs ...interface{}) {
 }
 
 // V returns an InfoLogger value for a specific verbosity level.
-func (l *logger) V(level int) logr.Logger {
+func (l *logger) V(level int) logr.LogSink {
 	nl := l.clone()
 	nl.level = level
 	return nl
 }
 
 // WithName adds a new element to the logger's name.
-func (l *logger) WithName(name string) logr.Logger {
+func (l *logger) WithName(name string) logr.LogSink {
 	nl := l.clone()
 	if len(l.prefix) > 0 {
 		nl.prefix = l.prefix + "/"
@@ -111,7 +114,7 @@ func (l *logger) WithName(name string) logr.Logger {
 }
 
 // WithValues adds some key-value pairs of context to a logger.
-func (l *logger) WithValues(kvList ...interface{}) logr.Logger {
+func (l *logger) WithValues(kvList ...interface{}) logr.LogSink {
 	nl := l.clone()
 	nl.values = append(nl.values, kvList...)
 	return nl

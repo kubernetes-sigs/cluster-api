@@ -67,5 +67,5 @@ func (f *LogFile) Close() {
 }
 
 func (f *LogFile) Logger() logr.Logger {
-	return &logger{writer: f}
+	return logr.New(&logger{writer: f})
 }

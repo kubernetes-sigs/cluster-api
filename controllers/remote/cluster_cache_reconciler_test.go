@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -91,7 +92,7 @@ func TestClusterCacheReconciler(t *testing.T) {
 
 			t.Log("Creating the ClusterCacheReconciler")
 			r := &ClusterCacheReconciler{
-				Log:     log.NullLogger{},
+				Log:     logr.New(log.NullLogSink{}),
 				Client:  mgr.GetClient(),
 				Tracker: cct,
 			}

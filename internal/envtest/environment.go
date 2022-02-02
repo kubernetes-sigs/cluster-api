@@ -159,7 +159,7 @@ func new(uncachedObjs ...client.Object) *Environment {
 			filepath.Join(root, "controlplane", "kubeadm", "config", "crd", "bases"),
 			filepath.Join(root, "bootstrap", "kubeadm", "config", "crd", "bases"),
 		},
-		CRDs: []client.Object{
+		CRDs: []*apiextensionsv1.CustomResourceDefinition{
 			testtypes.GenericBootstrapConfigCRD.DeepCopy(),
 			testtypes.GenericBootstrapConfigTemplateCRD.DeepCopy(),
 			testtypes.GenericControlPlaneCRD.DeepCopy(),

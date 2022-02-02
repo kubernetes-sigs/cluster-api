@@ -98,9 +98,8 @@ func TestClusterCacheTracker(t *testing.T) {
 			t.Log("Creating a test cluster")
 			clusterA = &clusterv1.Cluster{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace:   ns.GetName(),
-					Name:        "test-cluster",
-					Annotations: make(map[string]string),
+					Namespace: ns.GetName(),
+					Name:      "test-cluster",
 				},
 			}
 			g.Expect(k8sClient.Create(ctx, clusterA)).To(Succeed())
@@ -150,7 +149,9 @@ func TestClusterCacheTracker(t *testing.T) {
 			}).Should(Equal(0))
 
 			t.Log("Updating the cluster")
-			clusterA.Annotations["update1"] = "1"
+			clusterA.Annotations = map[string]string{
+				"update1": "1",
+			}
 			g.Expect(k8sClient.Update(ctx, clusterA)).To(Succeed())
 
 			t.Log("Waiting to receive the watch notification")

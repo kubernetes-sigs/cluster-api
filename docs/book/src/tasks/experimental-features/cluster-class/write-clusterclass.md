@@ -484,22 +484,47 @@ metadata:
   name: docker-clusterclass-v0.1.0
 spec:
   ...
-      jsonPatches:
-      - op: add
-        path: /spec/template/spec/httpProxy/url
-        valueFrom:
-          # Use the url field of the httpProxy variable.
-          variable: httpProxy.url
-      - op: add
-        path: /spec/template/spec/dnsServers
-        valueFrom:
-          # Use the entire dnsServers array.
-          variable: dnsServers
-      - op: add
-        path: /spec/template/spec/dnsServer
-        valueFrom:
-          # Use the first item of the dnsServers array.
-          variable: dnsServers[0]
+  jsonPatches:
+  - op: add
+    path: /spec/template/spec/httpProxy/url
+    valueFrom:
+      # Use the url field of the httpProxy variable.
+      variable: httpProxy.url
+  - op: add
+    path: /spec/template/spec/dnsServers
+    valueFrom:
+      # Use the entire dnsServers array.
+      variable: dnsServers
+  - op: add
+    path: /spec/template/spec/dnsServer
+    valueFrom:
+      # Use the first item of the dnsServers array.
+      variable: dnsServers[0]
+```
+
+**Tips & Tricks**
+
+Complex variables can be used to make references in templates configurable, e.g. the `identityRef` used in `AzureCluster`.
+Of course it's also possible to only make the name of the reference configurable, including restricting the valid values 
+to a pre-defined enum.
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: azure-clusterclass-v0.1.0
+spec:
+  ...
+  variables:
+  - name: clusterIdentityRef
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          kind:
+            type: string
+          name:
+            type: string
 ```
 
 ### Using variable values in JSON patches

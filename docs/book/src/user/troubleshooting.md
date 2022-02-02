@@ -50,3 +50,28 @@ provisioning might be stuck:
     * Run [docker system prune --volumes](https://docs.docker.com/engine/reference/commandline/system_prune/) to prune dangling images, containers, volumes and networks.
 
 
+## Failed clusterctl init - 'failed to get cert-manager object'
+
+When using older versions of Cluster API 0.4 and 1.0 releases - 0.4.6, 1.0.3 and older respectively - Cert Manager may not be downloadable due to a change in the repository location. This will cause `clusterctl init` to fail with the error:
+
+```bash
+$ cluster-api % clusterctl init --infrastructure docker
+
+Fetching providers
+Installing cert-manager Version="v1.5.3"
+Error: action failed after 10 attempts: failed to get cert-manager object /, Kind=, /: Object 'Kind' is missing in 'unstructured object has no kind'
+```
+
+This error was fixed in more recent Cluster API releases on the 0.4 and 1.0 release branches. The simplest way to resolve the issue is to upgrade to a newer version of Cluster API for a given release. For who need to continue using an older release it is possible to override the repository used by `clusterctl init` in the clusterctl config file. The default location of this file is in `~/.cluster-api/clusterctl.yaml`.
+
+To do so add the following to the file:
+```yaml
+cert-manager:
+  url: "https://github.com/cert-manager/cert-manager/releases/latest/cert-manager.yaml"
+```
+
+Alternatively a Cert Manager yaml file can be placed in the [clusterctl overrides layer](../clusterctl/configuration.md#overrides-layer) which is by default in `$HOME/.cluster-api/overrides`. A Cert Manager yaml file can be placed at `$(HOME)/.cluster-api/overrides/cert-manager/v1.5.3/cert-manager.yaml`
+
+More information on the clusterctl config file can be found at [its page in the book](../clusterctl/configuration.md#clusterctl-configuration-file)
+
+>>>>>>> 98e3f975d (Fix cert manager repo and add troubleshooting guide)

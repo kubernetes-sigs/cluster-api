@@ -704,7 +704,7 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 				g.Expect(string(fileContents)).To(Equal(expectedFileContents))
 
 				// Add delay so we ensure the file ModTime of updated files is different from old ones in the original files
-				time.Sleep(time.Millisecond * 5)
+				time.Sleep(time.Millisecond * 50)
 
 				// Running backupTargetObject should override any existing files since it represents a new backup
 				err = mover.backupTargetObject(node, dir)

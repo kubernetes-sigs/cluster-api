@@ -222,7 +222,7 @@ variables:
   # NOTE: INIT_WITH_BINARY and INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
   # the management cluster to be upgraded.
   # NOTE: We test the latest release with a previous contract.
-  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/clusterctl-{OS}-{ARCH}"
+  INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/clusterctl-{OS}-{ARCH}"
   INIT_WITH_PROVIDERS_CONTRACT: "v1alpha4"
   INIT_WITH_KUBERNETES_VERSION: "v1.23.3"
 

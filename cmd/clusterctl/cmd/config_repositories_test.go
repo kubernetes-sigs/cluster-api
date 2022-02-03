@@ -115,6 +115,7 @@ byoh                InfrastructureProvider   https://github.com/vmware-tanzu/clu
 digitalocean        InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean/releases/latest/        infrastructure-components.yaml
 docker              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api/releases/latest/                              infrastructure-components-development.yaml
 gcp                 InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/                 infrastructure-components.yaml
+hetzner             InfrastructureProvider   https://github.com/syself/cluster-api-provider-hetzner/releases/latest/                      infrastructure-components.yaml
 ibmcloud            InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/            infrastructure-components.yaml
 maas                InfrastructureProvider   https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/                   infrastructure-components.yaml
 metal3              InfrastructureProvider   https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/                    infrastructure-components.yaml
@@ -186,6 +187,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: gcp
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/
+- File: infrastructure-components.yaml
+  Name: hetzner
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/syself/cluster-api-provider-hetzner/releases/latest/
 - File: infrastructure-components.yaml
   Name: ibmcloud
   ProviderType: InfrastructureProvider

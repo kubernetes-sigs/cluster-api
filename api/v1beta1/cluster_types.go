@@ -218,8 +218,8 @@ type NetworkRanges struct {
 	CIDRBlocks []string `json:"cidrBlocks"`
 }
 
-func (n *NetworkRanges) String() string {
-	if n == nil {
+func (n NetworkRanges) String() string {
+	if len(n.CIDRBlocks) == 0 {
 		return ""
 	}
 	return strings.Join(n.CIDRBlocks, ",")

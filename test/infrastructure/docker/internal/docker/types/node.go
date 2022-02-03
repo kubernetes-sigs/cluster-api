@@ -58,7 +58,7 @@ func (n *Node) WithStatus(status string) *Node {
 }
 
 // String returns the name of the node.
-func (n *Node) String() string {
+func (n Node) String() string {
 	return n.Name
 }
 

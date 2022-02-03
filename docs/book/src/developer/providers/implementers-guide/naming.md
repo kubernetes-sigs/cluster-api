@@ -18,10 +18,10 @@ Cluster API itself becomes [CAPI], pronounced "Cappy."
 cluster-api-provider-aws is [CAPA], pronounced "KappA."
 cluster-api-provider-gcp is [CAPG], pronounced "Cap Gee," [and so on][letterc].
 
-[CAPI]: https://cluster-api.sigs.k8s.io/reference/glossary.html#capi
-[CAPA]: https://cluster-api.sigs.k8s.io/reference/glossary.html#capa
-[CAPG]: https://cluster-api.sigs.k8s.io/reference/glossary.html#capg
-[letterc]: https://cluster-api.sigs.k8s.io/reference/glossary.html#c
+[CAPI]: ../../../reference/glossary.md#capi
+[CAPA]: ../../../reference/glossary.md#capa
+[CAPG]: ../../../reference/glossary.md#capg
+[letterc]: ../../../reference/glossary.md#c
 
 ## Resource Naming
 

@@ -200,7 +200,7 @@ func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	}
 	return c.Watch(
 		&source.Kind{Type: &clusterv1.Cluster{}},
-		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFuncWithExternallyManagedCheck(ctx, infrav1.GroupVersion.WithKind("DockerCluster"), mgr.GetClient(), &infrav1.DockerCluster{})),
+		handler.EnqueueRequestsFromMapFunc(util.ClusterToInfrastructureMapFunc(ctx, infrav1.GroupVersion.WithKind("DockerCluster"), mgr.GetClient(), &infrav1.DockerCluster{})),
 		predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 	)
 }

@@ -47,6 +47,9 @@ Cluster API Provider DigitalOcean
 ### CAPG
 Cluster API Google Cloud Provider
 
+### CAPH
+Cluster API Provider Hetzner
+
 ### CAPIBM
 Cluster API Provider IBM Cloud
 

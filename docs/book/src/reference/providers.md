@@ -21,6 +21,7 @@ updated info about which API version they are supporting.
 - [DigitalOcean](https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean)
 - [Exoscale](https://github.com/exoscale/cluster-api-provider-exoscale)
 - [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp)
+- [Hetzner](https://github.com/syself/cluster-api-provider-hetzner)
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
 - [KubeVirt](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt)
 - [MAAS](https://github.com/spectrocloud/cluster-api-provider-maas)

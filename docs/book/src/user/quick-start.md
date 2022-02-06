@@ -185,7 +185,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Metal3,OpenStack,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Metal3,OpenStack,vSphere"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
@@ -301,6 +301,11 @@ export GCP_B64ENCODED_CREDENTIALS=$( cat /path/to/gcp-credentials.json | base64 
 # Finally, initialize the management cluster
 clusterctl init --infrastructure gcp
 ```
+
+{{#/tab }}
+{{#tab Hetzner}}
+
+Please visit the [Hetzner project][Hetzner provider].
 
 {{#/tab }}
 {{#tab Metal3}}
@@ -822,6 +827,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [clusterctl]: ../clusterctl/overview.md
 [Docker]: https://www.docker.com/
 [GCP provider]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp
+[Hetzner provider]: https://github.com/syself/cluster-api-provider-hetzner
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider
 [kind]: https://kind.sigs.k8s.io/
 [KubeadmControlPlane]: ../developer/architecture/controllers/control-plane.md

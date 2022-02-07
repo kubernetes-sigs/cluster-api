@@ -39,6 +39,7 @@ const (
 	CNIResources                 = "CNI_RESOURCES"
 	KubernetesVersionUpgradeFrom = "KUBERNETES_VERSION_UPGRADE_FROM"
 	KubernetesVersionUpgradeTo   = "KUBERNETES_VERSION_UPGRADE_TO"
+	MachineTemplateUpgradeTo     = "MACHINE_TEMPLATE_UPGRADE_TO"
 	EtcdVersionUpgradeTo         = "ETCD_VERSION_UPGRADE_TO"
 	CoreDNSVersionUpgradeTo      = "COREDNS_VERSION_UPGRADE_TO"
 	IPFamily                     = "IP_FAMILY"

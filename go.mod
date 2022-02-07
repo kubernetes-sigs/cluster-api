@@ -47,6 +47,8 @@ require (
 
 require golang.org/x/net v0.0.0-20210825183410-e898025ed96a
 
+require github.com/go-logr/zapr v1.2.0 // indirect
+
 require (
 	cloud.google.com/go v0.93.3 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect

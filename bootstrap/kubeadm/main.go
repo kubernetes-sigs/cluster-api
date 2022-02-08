@@ -159,6 +159,7 @@ func main() {
 		ctrl.SetLogger(klogr.New())
 	}
 
+	ctrl.SetLogger(klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog)))
 	if profilerAddress != "" {
 		klog.Infof("Profiler listening for requests at %s", profilerAddress)
 		go func() {

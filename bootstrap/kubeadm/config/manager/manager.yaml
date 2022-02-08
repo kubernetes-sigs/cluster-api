@@ -22,6 +22,7 @@ spec:
         - "--leader-elect"
         - "--metrics-bind-addr=localhost:8080"
         - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},KubeadmBootstrapFormatIgnition=${EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION:=false}"
+        - "--logging-format=json"
         image: controller:latest
         name: manager
         ports:

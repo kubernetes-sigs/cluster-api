@@ -158,6 +158,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Error(err, "Failed to get config")
 		return ctrl.Result{}, err
 	}
+	log.Info("msg")
 
 	// Look up the owner of this kubeadm config if there is one
 	configOwner, err := bsutil.GetConfigOwner(ctx, r.Client, config)
@@ -173,6 +174,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 	log = log.WithValues("kind", configOwner.GetKind(), "version", configOwner.GetResourceVersion(), "name", configOwner.GetName())
+	log.Info("msg")
 
 	// Lookup the cluster the config owner is associated with
 	cluster, err := util.GetClusterByName(ctx, r.Client, configOwner.GetNamespace(), configOwner.ClusterName())

@@ -1,19 +1,19 @@
 resources:
   - namespace.yaml
 
-helmChartInflationGenerator:
-  - chartName: promtail
-    chartRepoUrl: https://grafana.github.io/helm-charts
-    releaseNamespace: observability
+helmCharts:
+  - name: promtail
+    repo: https://grafana.github.io/helm-charts
     releaseName: promtail
-    values: ./promtail/values.yaml
-  - chartName: loki
-    chartRepoUrl: https://grafana.github.io/helm-charts
-    releaseNamespace: observability
+    namespace: observability
+    valuesFile: ./promtail/values.yaml
+  - name: loki
+    repo: https://grafana.github.io/helm-charts
     releaseName: loki
-    values: ./loki/values.yaml
-  - chartName: grafana
-    chartRepoUrl: https://grafana.github.io/helm-charts
-    releaseNamespace: observability
+    namespace: observability
+    valuesFile: ./loki/values.yaml
+  - name: grafana
+    repo: https://grafana.github.io/helm-charts
     releaseName: grafana
-    values: ./grafana/values.yaml
+    namespace: observability
+    valuesFile: ./grafana/values.yaml

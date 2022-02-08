@@ -622,7 +622,6 @@ metadata:
 
 		t.Log("Getting ClusterResourceSetBinding")
 		oldHash := ""
-		var lastApplied *metav1.Time
 		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
@@ -639,8 +638,6 @@ metadata:
 			// only one resource is applied
 			resource := bindings[0].Resources[0]
 			oldHash = resource.Hash
-			lastApplied = resource.LastAppliedTime
-
 			return resource.Applied
 
 		}, timeout).Should(BeTrue())
@@ -691,7 +688,8 @@ data:
 
 			// only one resource is applied
 			resource := bindings[0].Resources[0]
-			return resource.Hash != oldHash && resource.Applied && !lastApplied.Equal(resource.LastAppliedTime)
+			t.Logf("old hash and new binding: %s, %v", oldHash, resource)
+			return resource.Hash != oldHash
 
 		}, reconcileTimeout).Should(BeTrue())
 	})
@@ -729,7 +727,6 @@ data:
 
 		t.Log("Getting ClusterResourceSetBinding")
 		oldHash := ""
-		var lastApplied *metav1.Time
 		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
@@ -746,8 +743,6 @@ data:
 			// only one resource is applied
 			resource := bindings[0].Resources[0]
 			oldHash = resource.Hash
-			lastApplied = resource.LastAppliedTime
-
 			return resource.Applied
 
 		}, timeout).Should(BeTrue())
@@ -783,6 +778,7 @@ data:
 		g.Expect(env.Update(ctx, secretUpdate)).To(Succeed())
 
 		t.Log("Check if reconciled hash has updated for the changed secret resource")
+
 		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
@@ -798,7 +794,8 @@ data:
 
 			// only one resource is applied
 			resource := bindings[0].Resources[0]
-			return resource.Hash != oldHash && resource.Applied && !lastApplied.Equal(resource.LastAppliedTime)
+			t.Logf("old hash and new binding: %s, %v", oldHash, resource)
+			return resource.Hash != oldHash
 
 		}, reconcileTimeout).Should(BeTrue())
 	})

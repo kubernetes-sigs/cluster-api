@@ -1,0 +1,9 @@
+resources:
+  - ../namespace.yaml
+
+helmCharts:
+  - name: loki
+    repo: https://grafana.github.io/helm-charts
+    releaseName: loki
+    namespace: observability
+    valuesFile: values.yaml

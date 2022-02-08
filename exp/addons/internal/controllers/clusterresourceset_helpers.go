@@ -55,7 +55,7 @@ func isJSONList(data []byte) (bool, error) {
 	return bytes.HasPrefix(trim, jsonListPrefix), nil
 }
 
-func apply(ctx context.Context, c client.Client, data []byte) error {
+func apply(ctx context.Context, c client.Client, strategy addonsv1.ClusterResourceSetStrategy, data []byte) error {
 	isJSONList, err := isJSONList(data)
 	if err != nil {
 		return err
@@ -83,29 +83,61 @@ func apply(ctx context.Context, c client.Client, data []byte) error {
 	errList := []error{}
 	sortedObjs := utilresource.SortForCreate(objs)
 	for i := range sortedObjs {
-		if err := applyUnstructured(ctx, c, &objs[i]); err != nil {
+		if err := applyUnstructured(ctx, c, strategy, &objs[i]); err != nil {
 			errList = append(errList, err)
 		}
 	}
 	return kerrors.NewAggregate(errList)
 }
 
-func applyUnstructured(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error {
+func applyUnstructured(ctx context.Context, c client.Client, strategy addonsv1.ClusterResourceSetStrategy, obj *unstructured.Unstructured) error {
 	// Create the object on the API server.
 	// TODO: Errors are only logged. If needed, exponential backoff or requeuing could be used here for remedying connection glitches etc.
 	if err := c.Create(ctx, obj); err != nil {
 		// The create call is idempotent, so if the object already exists
 		// then do not consider it to be an error.
-		if !apierrors.IsAlreadyExists(err) {
-			return errors.Wrapf(
-				err,
-				"failed to create object %s %s/%s",
-				obj.GroupVersionKind(),
-				obj.GetNamespace(),
-				obj.GetName())
+		if apierrors.IsAlreadyExists(err) {
+			if strategy == addonsv1.ClusterResourceSetStrategyApplyAlways {
+				// The object here has already been created, so attempt to
+				// update the object here. first we must get the obj we are trying to update and get the ResourceVersion
+
+				objKey := client.ObjectKey{
+					Namespace: obj.GetNamespace(),
+					Name:      obj.GetName(),
+				}
+
+				// this will be the object that currently exists in the api
+				existingObj := &unstructured.Unstructured{}
+				existingObj.SetAPIVersion(obj.GetAPIVersion())
+				existingObj.SetKind(obj.GetKind())
+
+				errGet := c.Get(ctx, objKey, existingObj)
+				if errGet != nil {
+					return wrapClientError(obj, "get", errGet)
+				}
+				obj.SetUID(existingObj.GetUID())
+				obj.SetResourceVersion(existingObj.GetResourceVersion())
+
+				errUpdating := c.Update(ctx, obj)
+				if errUpdating != nil {
+					return wrapClientError(obj, "update", errUpdating)
+				}
+			}
+		} else {
+			return wrapClientError(obj, "create", err)
 		}
 	}
 	return nil
+}
+
+func wrapClientError(obj *unstructured.Unstructured, clientOperation string, err error) error {
+	return errors.Wrapf(
+		err,
+		"failed to %s object %s %s/%s",
+		clientOperation,
+		obj.GroupVersionKind(),
+		obj.GetNamespace(),
+		obj.GetName())
 }
 
 // getOrCreateClusterResourceSetBinding retrieves ClusterResourceSetBinding resource owned by the cluster or create a new one if not found.

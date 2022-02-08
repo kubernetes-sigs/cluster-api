@@ -46,7 +46,7 @@ type ClusterResourceSetSpec struct {
 	Resources []ResourceRef `json:"resources,omitempty"`
 
 	// Strategy is the strategy to be used during applying resources. Defaults to ApplyOnce. This field is immutable.
-	// +kubebuilder:validation:Enum=ApplyOnce
+	// +kubebuilder:validation:Enum=ApplyOnce;ApplyAlways
 	// +optional
 	Strategy string `json:"strategy,omitempty"`
 }
@@ -80,6 +80,9 @@ const (
 	// ClusterResourceSetStrategyApplyOnce is the default strategy a ClusterResourceSet strategy is assigned by
 	// ClusterResourceSet controller after being created if not specified by user.
 	ClusterResourceSetStrategyApplyOnce ClusterResourceSetStrategy = "ApplyOnce"
+	// ClusterResourceSetStrategyApplyAlways is the strategy where changes to the ClusterResourceSet
+	// are applied always if they exist already in clusters or created if they do not.
+	ClusterResourceSetStrategyApplyAlways ClusterResourceSetStrategy = "ApplyAlways"
 )
 
 // SetTypedStrategy sets the Strategy field to the string representation of ClusterResourceSetStrategy.

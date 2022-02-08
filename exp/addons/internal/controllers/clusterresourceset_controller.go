@@ -79,17 +79,15 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 		Watches(
 			&source.Kind{Type: &corev1.ConfigMap{}},
 			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
-			builder.OnlyMetadata,
 			builder.WithPredicates(
-				resourcepredicates.ResourceCreate(ctrl.LoggerFrom(ctx)),
+				resourcepredicates.ResourceCreateUpdate(ctrl.LoggerFrom(ctx)),
 			),
 		).
 		Watches(
 			&source.Kind{Type: &corev1.Secret{}},
 			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
-			builder.OnlyMetadata,
 			builder.WithPredicates(
-				resourcepredicates.ResourceCreate(ctrl.LoggerFrom(ctx)),
+				resourcepredicates.ResourceCreateUpdate(ctrl.LoggerFrom(ctx)),
 			),
 		).
 		WithOptions(options).
@@ -220,7 +218,7 @@ func (r *ClusterResourceSetReconciler) getClustersByClusterResourceSetSelector(c
 		return nil, errors.Wrap(err, "failed to list clusters")
 	}
 
-	clusters := []*clusterv1.Cluster{}
+	clusters := make([]*clusterv1.Cluster, 0)
 	for i := range clusterList.Items {
 		c := &clusterList.Items[i]
 		if c.DeletionTimestamp.IsZero() {
@@ -263,13 +261,16 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		}
 	}()
 
-	errList := []error{}
+	errList := make([]error, 0)
 	resourceSetBinding := clusterResourceSetBinding.GetOrCreateBinding(clusterResourceSet)
 
 	// Iterate all resources and apply them to the cluster and update the resource status in the ClusterResourceSetBinding object.
 	for _, resource := range clusterResourceSet.Spec.Resources {
+
+		strategy := addonsv1.ClusterResourceSetStrategy(clusterResourceSet.Spec.Strategy)
+
 		// If resource is already applied successfully and clusterResourceSet mode is "ApplyOnce", continue. (No need to check hash changes here)
-		if resourceSetBinding.IsApplied(resource) {
+		if resourceSetBinding.IsApplied(resource) && strategy == addonsv1.ClusterResourceSetStrategyApplyOnce {
 			continue
 		}
 
@@ -341,7 +342,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		for i := range dataList {
 			data := dataList[i]
 
-			if err := apply(ctx, remoteClient, data); err != nil {
+			if err := apply(ctx, remoteClient, strategy, data); err != nil {
 				isSuccessful = false
 				log.Error(err, "failed to apply ClusterResourceSet resource", "Resource kind", resource.Kind, "Resource name", resource.Name)
 				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ApplyFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
@@ -422,7 +423,7 @@ func (r *ClusterResourceSetReconciler) patchOwnerRefToResource(ctx context.Conte
 
 // clusterToClusterResourceSet is mapper function that maps clusters to ClusterResourceSet.
 func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o client.Object) []ctrl.Request {
-	result := []ctrl.Request{}
+	result := make([]ctrl.Request, 0)
 
 	cluster, ok := o.(*clusterv1.Cluster)
 	if !ok {
@@ -460,7 +461,7 @@ func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o client.Obje
 
 // resourceToClusterResourceSet is mapper function that maps resources to ClusterResourceSet.
 func (r *ClusterResourceSetReconciler) resourceToClusterResourceSet(o client.Object) []ctrl.Request {
-	result := []ctrl.Request{}
+	result := make([]ctrl.Request, 0)
 
 	// Add all ClusterResourceSet owners.
 	for _, owner := range o.GetOwnerReferences() {

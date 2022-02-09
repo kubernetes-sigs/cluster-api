@@ -34,8 +34,7 @@ import (
 )
 
 const (
-	timeout          = time.Second * 15
-	reconcileTimeout = time.Second * 15
+	timeout = time.Second * 15
 )
 
 func TestClusterResourceSetReconciler(t *testing.T) {
@@ -639,7 +638,6 @@ metadata:
 			resource := bindings[0].Resources[0]
 			oldHash = resource.Hash
 			return resource.Applied
-
 		}, timeout).Should(BeTrue())
 
 		// Get configmap obj, update the configmap
@@ -688,10 +686,8 @@ data:
 
 			// only one resource is applied
 			resource := bindings[0].Resources[0]
-			t.Logf("old hash and new binding: %s, %v", oldHash, resource)
 			return resource.Hash != oldHash
-
-		}, reconcileTimeout).Should(BeTrue())
+		}, timeout).Should(BeTrue())
 	})
 
 	t.Run("Should create ClusterResourceSet with strategy 'AlwaysApply' and reconcile when secret changes data", func(t *testing.T) {
@@ -744,7 +740,6 @@ data:
 			resource := bindings[0].Resources[0]
 			oldHash = resource.Hash
 			return resource.Applied
-
 		}, timeout).Should(BeTrue())
 
 		secretKey := client.ObjectKey{
@@ -778,7 +773,6 @@ data:
 		g.Expect(env.Update(ctx, secretUpdate)).To(Succeed())
 
 		t.Log("Check if reconciled hash has updated for the changed secret resource")
-
 		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
@@ -794,9 +788,7 @@ data:
 
 			// only one resource is applied
 			resource := bindings[0].Resources[0]
-			t.Logf("old hash and new binding: %s, %v", oldHash, resource)
 			return resource.Hash != oldHash
-
-		}, reconcileTimeout).Should(BeTrue())
+		}, timeout).Should(BeTrue())
 	})
 }

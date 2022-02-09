@@ -29,6 +29,7 @@ require (
 	github.com/valyala/fastjson v1.6.3
 	go.etcd.io/etcd/api/v3 v3.5.1
 	go.etcd.io/etcd/client/v3 v3.5.1
+	golang.org/x/net v0.0.0-20210825183410-e898025ed96a
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8
 	google.golang.org/grpc v1.42.0
 	k8s.io/api v0.23.0
@@ -154,3 +155,5 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.13.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.0 // indirect
 )
+
+require github.com/go-logr/zapr v1.2.0 // indirect

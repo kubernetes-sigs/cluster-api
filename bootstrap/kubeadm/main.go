@@ -54,12 +54,10 @@ import (
 
 var (
 	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	setupLog = ctrl.Log.WithName("setup/KubeadmConfig")
 )
 
 func init() {
-	klog.InitFlags(nil)
-
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
 	_ = expv1.AddToScheme(scheme)
@@ -159,7 +157,20 @@ func main() {
 		ctrl.SetLogger(klogr.New())
 	}
 
-	ctrl.SetLogger(klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog)))
+	if err := logOptions.ValidateAndApply(); err != nil {
+		setupLog.V(0).Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	// The JSON log format requires the Klog format in klog, otherwise log lines
+	// are serialized twice, e.g.:
+	// { ... "msg":"controller/cluster \"msg\"=\"Starting workers\"\n"}
+	if logOptions.Config.Format == logs.JSONLogFormat {
+		ctrl.SetLogger(klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog)))
+	} else {
+		ctrl.SetLogger(klogr.New())
+	}
+
 	if profilerAddress != "" {
 		klog.Infof("Profiler listening for requests at %s", profilerAddress)
 		go func() {
@@ -188,8 +199,9 @@ func main() {
 		HealthProbeBindAddress: healthAddr,
 		CertDir:                webhookCertDir,
 	})
+
 	if err != nil {
-		setupLog.Error(err, "unable to start manager")
+		setupLog.V(0).Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
@@ -201,21 +213,21 @@ func main() {
 	setupReconcilers(ctx, mgr)
 
 	// +kubebuilder:scaffold:builder
-	setupLog.Info("starting manager", "version", version.Get().String())
+	setupLog.V(1).Info("starting manager", "version", version.Get().String())
 	if err := mgr.Start(ctx); err != nil {
-		setupLog.Error(err, "problem running manager")
+		setupLog.V(0).Error(err, "problem running manager")
 		os.Exit(1)
 	}
 }
 
 func setupChecks(mgr ctrl.Manager) {
 	if err := mgr.AddReadyzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
-		setupLog.Error(err, "unable to create ready check")
+		setupLog.V(0).Error(err, "unable to create ready check")
 		os.Exit(1)
 	}
 
 	if err := mgr.AddHealthzCheck("webhook", mgr.GetWebhookServer().StartedChecker()); err != nil {
-		setupLog.Error(err, "unable to create health check")
+		setupLog.V(0).Error(err, "unable to create health check")
 		os.Exit(1)
 	}
 }
@@ -226,18 +238,18 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		WatchFilterValue: watchFilterValue,
 		TokenTTL:         tokenTTL,
 	}).SetupWithManager(ctx, mgr, concurrency(kubeadmConfigConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "KubeadmConfig")
+		setupLog.V(0).Error(err, "unable to create controller", "controller", "KubeadmConfig")
 		os.Exit(1)
 	}
 }
 
 func setupWebhooks(mgr ctrl.Manager) {
 	if err := (&bootstrapv1.KubeadmConfig{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
+		setupLog.V(0).Error(err, "unable to create webhook", "webhook", "KubeadmConfig")
 		os.Exit(1)
 	}
 	if err := (&bootstrapv1.KubeadmConfigTemplate{}).SetupWebhookWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
+		setupLog.V(0).Error(err, "unable to create webhook", "webhook", "KubeadmConfigTemplate")
 		os.Exit(1)
 	}
 }

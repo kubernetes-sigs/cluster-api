@@ -52,7 +52,7 @@ func NewControlPlaneInitMutex(log logr.Logger, client client.Client) *ControlPla
 func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) bool {
 	sema := newSemaphore()
 	cmName := configMapName(cluster.Name)
-	log := c.log.WithValues("namespace", cluster.Namespace, "cluster-name", cluster.Name, "configmap-name", cmName, "machine-name", machine.Name)
+	log := c.log.WithValues("Cluster", newkObj(cluster), "Machine", newkObj(machine), "ConfigMap", fmt.Sprintf("%s/%s", cluster.Namespace, cmName))
 	err := c.client.Get(ctx, client.ObjectKey{
 		Namespace: cluster.Namespace,
 		Name:      cmName,
@@ -61,12 +61,12 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 	case apierrors.IsNotFound(err):
 		break
 	case err != nil:
-		log.Error(err, "Failed to acquire lock")
+		log.V(4).Error(err, "Failed to acquire lock")
 		return false
 	default: // Successfully found an existing config map.
 		info, err := sema.information()
 		if err != nil {
-			log.Error(err, "Failed to get information about the existing lock")
+			log.V(4).Error(err, "Failed to get information about the existing lock")
 			return false
 		}
 		// The machine requesting the lock is the machine that created the lock, therefore the lock is acquired.
@@ -79,12 +79,12 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 			Namespace: cluster.Namespace,
 			Name:      info.MachineName,
 		}, &clusterv1.Machine{}); err != nil {
-			log.Error(err, "Failed to get machine holding ControlPlane lock")
+			log.V(4).Error(err, "Failed to get machine holding ControlPlane lock")
 			if apierrors.IsNotFound(err) {
 				c.Unlock(ctx, cluster)
 			}
 		}
-		log.Info("Waiting on another machine to initialize", "init-machine", info.MachineName)
+		log.V(4).Info("Waiting on another machine to initialize", "init-machine", info.MachineName)
 		return false
 	}
 
@@ -92,18 +92,19 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 	sema.setMetadata(cluster)
 	// Adds the additional information
 	if err := sema.setInformation(&information{MachineName: machine.Name}); err != nil {
-		log.Error(err, "Failed to acquire lock while setting semaphore information")
+		log.V(4).Error(err, "Failed to acquire lock while setting semaphore information")
 		return false
 	}
 
-	log.Info("Attempting to acquire the lock")
+	log.V(4).Info("Attempting to acquire the lock")
+	log.V(0).Info("Deleting %s", newkObj(sema.ConfigMap))
 	err = c.client.Create(ctx, sema.ConfigMap)
 	switch {
 	case apierrors.IsAlreadyExists(err):
-		log.Info("Cannot acquire the lock. The lock has been acquired by someone else")
+		log.V(4).Info("Cannot acquire the lock. The lock has been acquired by someone else")
 		return false
 	case err != nil:
-		log.Error(err, "Error acquiring the lock")
+		log.V(4).Error(err, "Error acquiring the lock")
 		return false
 	default:
 		return true
@@ -114,26 +115,27 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 func (c *ControlPlaneInitMutex) Unlock(ctx context.Context, cluster *clusterv1.Cluster) bool {
 	sema := newSemaphore()
 	cmName := configMapName(cluster.Name)
-	log := c.log.WithValues("namespace", cluster.Namespace, "cluster-name", cluster.Name, "configmap-name", cmName)
-	log.Info("Checking for lock")
+	log := c.log.WithValues("ConfigMap", fmt.Sprintf("%s/%s", cluster.Namespace, cmName), "Cluster", newkObj(cluster))
+	log.V(4).Info("Checking for lock")
 	err := c.client.Get(ctx, client.ObjectKey{
 		Namespace: cluster.Namespace,
 		Name:      cmName,
 	}, sema.ConfigMap)
 	switch {
 	case apierrors.IsNotFound(err):
-		log.Info("Control plane init lock not found, it may have been released already")
+		log.V(4).Info("Control plane init lock not found, it may have been released already")
 		return true
 	case err != nil:
-		log.Error(err, "Error unlocking the control plane init lock")
+		log.V(4).Error(err, "Error unlocking the control plane init lock")
 		return false
 	default:
+		log.V(0).Info("Deleting %s", newkObj(sema.ConfigMap))
 		// Delete the config map semaphore if there is no error fetching it
 		if err := c.client.Delete(ctx, sema.ConfigMap); err != nil {
 			if apierrors.IsNotFound(err) {
 				return true
 			}
-			log.Error(err, "Error deleting the config map underlying the control plane init lock")
+			log.V(4).Error(err, "Error deleting the config map underlying the control plane init lock")
 			return false
 		}
 		return true
@@ -190,4 +192,9 @@ func (s *semaphore) setMetadata(cluster *clusterv1.Cluster) {
 			},
 		},
 	}
+}
+
+// FIXME: this should either be replaced by the tlog package or something else. Done here for convenience.
+func newkObj(object client.Object) string {
+	return fmt.Sprintf("%s/%s", object.GetNamespace(), object.GetName())
 }

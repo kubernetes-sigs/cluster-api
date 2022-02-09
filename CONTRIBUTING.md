@@ -435,11 +435,11 @@ Whenever you meet requisites for taking responsibilities in a subarea, the follo
 3. Get positive feedback and +1s in the PR and wait one week lazy consensus after agreement.
 
 As of today there are following OWNERS files/Owner groups defining sub areas:
-- [Clusterctl](cmd/clusterctl)
-- [kubeadm Bootstrap Provider (CABPK)](bootstrap/kubeadm)
-- [kubeadm Control Plane Provider (KCP)](controlplane/kubeadm)
-- [Cluster Managed topologies, ClusterClass](internal/controllers/topology)
-- [Infrastructure Provider Docker (CAPD)](test/infrastructure/docker)
-- [Test](test)
-- [Test Framework](test/framework)
-- [Docs](docs)
+- [Clusterctl](https://github.com/kubernetes-sigs/cluster-api/tree/main/cmd/clusterctl)
+- [kubeadm Bootstrap Provider (CABPK)](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm)
+- [kubeadm Control Plane Provider (KCP)](https://github.com/kubernetes-sigs/cluster-api/tree/main/controlplane/kubeadm)
+- [Cluster Managed topologies, ClusterClass](https://github.com/kubernetes-sigs/cluster-api/tree/main/internal/controllers/topology)
+- [Infrastructure Provider Docker (CAPD)](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker)
+- [Test](https://github.com/kubernetes-sigs/cluster-api/tree/main/test)
+- [Test Framework](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/framework)
+- [Docs](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs)

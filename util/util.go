@@ -237,13 +237,11 @@ func ClusterToInfrastructureMapFuncWithExternallyManagedCheck(ctx context.Contex
 
 			if err := c.Get(ctx, key, providerCluster); err != nil {
 				log.V(4).Error(err, fmt.Sprintf("Failed to get %T", providerCluster))
-				fmt.Printf("failed to get %s: %v\n", key, err)
 				continue
 			}
 
 			if annotations.IsExternallyManaged(providerCluster) {
 				log.V(4).Info(fmt.Sprintf("%T is externally managed, skipping mapping", providerCluster))
-				fmt.Printf("%T is externally managed\n", providerCluster)
 				continue
 			}
 

@@ -11,10 +11,10 @@ patchesJson6902:
     group: controlplane.cluster.x-k8s.io
     kind: KubeadmControlPlane
     name: ".*-control-plane"
-    version: v1alpha4
+    version: v1beta1
 - path: kubeadmconfigtemplate-patch.yaml
   target:
     group: bootstrap.cluster.x-k8s.io
     kind: KubeadmConfigTemplate
     name: ".*-md-0"
-    version: v1alpha4
+    version: v1beta1

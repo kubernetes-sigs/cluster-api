@@ -361,7 +361,7 @@ def prepare_all():
                 debug = debug,
             )
 
-    cmd = "make tilt-prepare && ./hack/tools/bin/tilt-prepare {allow_k8s_arg}{tools_arg}{cert_manager_arg}{kustomize_build_arg}{providers_arg}".format(
+    cmd = "make -B tilt-prepare && ./hack/tools/bin/tilt-prepare {allow_k8s_arg}{tools_arg}{cert_manager_arg}{kustomize_build_arg}{providers_arg}".format(
         allow_k8s_arg = allow_k8s_arg,
         tools_arg = tools_arg,
         cert_manager_arg = cert_manager_arg,

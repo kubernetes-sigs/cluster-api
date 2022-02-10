@@ -162,6 +162,13 @@ func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp 
 	// to allow a comparison with the KubeadmConfig referenced from the machine.
 	kcpConfig := getAdjustedKcpConfig(kcp, machineConfig)
 
+	// Default both KubeadmConfigSpecs before comparison.
+	// *Note* This assumes that newly added default values never
+	// introduce a semantic difference to the unset value.
+	// But that is something that is ensured by our API guarantees.
+	bootstrapv1.DefaultKubeadmConfigSpec(kcpConfig)
+	bootstrapv1.DefaultKubeadmConfigSpec(&machineConfig.Spec)
+
 	// cleanups all the fields that are not relevant for the comparison.
 	cleanupConfigFields(kcpConfig, machineConfig)
 

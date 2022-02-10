@@ -25,9 +25,41 @@ import (
 	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api/feature"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
-func TestClusterValidate(t *testing.T) {
+func TestKubeadmConfigDefault(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+
+	g := NewWithT(t)
+
+	kubeadmConfig := &KubeadmConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+		},
+		Spec: KubeadmConfigSpec{},
+	}
+	updateDefaultingKubeadmConfig := kubeadmConfig.DeepCopy()
+	updateDefaultingKubeadmConfig.Spec.Verbosity = pointer.Int32Ptr(4)
+	t.Run("for KubeadmConfig", utildefaulting.DefaultValidateTest(updateDefaultingKubeadmConfig))
+
+	kubeadmConfig.Default()
+
+	g.Expect(kubeadmConfig.Spec.Format).To(Equal(CloudConfig))
+
+	ignitionKubeadmConfig := &KubeadmConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+		},
+		Spec: KubeadmConfigSpec{
+			Format: Ignition,
+		},
+	}
+	ignitionKubeadmConfig.Default()
+	g.Expect(ignitionKubeadmConfig.Spec.Format).To(Equal(Ignition))
+}
+
+func TestKubeadmConfigValidate(t *testing.T) {
 	cases := map[string]struct {
 		in                    *KubeadmConfig
 		enableIgnitionFeature bool

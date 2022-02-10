@@ -196,6 +196,15 @@ func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig
 	kcpConfig.ClusterConfiguration = nil
 	machineConfig.Spec.ClusterConfiguration = nil
 
+	// We have to treat the "empty" and CloudConfig format the same
+	// otherwise defaulting on KCP will trigger a machine rollout.
+	if kcpConfig.Format == "" {
+		kcpConfig.Format = bootstrapv1.CloudConfig
+	}
+	if machineConfig.Spec.Format == "" {
+		machineConfig.Spec.Format = bootstrapv1.CloudConfig
+	}
+
 	// If KCP JoinConfiguration is not present, set machine JoinConfiguration to nil (nothing can trigger rollout here).
 	// NOTE: this is required because CABPK applies an empty joinConfiguration in case no one is provided.
 	if kcpConfig.JoinConfiguration == nil {

@@ -148,6 +148,20 @@ func TestGetAdjustedKcpConfig(t *testing.T) {
 }
 
 func TestCleanupConfigFields(t *testing.T) {
+	t.Run("Format gets set to cloud-config if not set", func(t *testing.T) {
+		g := NewWithT(t)
+		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
+			Format: "",
+		}
+		machineConfig := &bootstrapv1.KubeadmConfig{
+			Spec: bootstrapv1.KubeadmConfigSpec{
+				Format: "",
+			},
+		}
+		cleanupConfigFields(kcpConfig, machineConfig)
+		g.Expect(kcpConfig.Format).To(Equal(bootstrapv1.CloudConfig))
+		g.Expect(machineConfig.Spec.Format).To(Equal(bootstrapv1.CloudConfig))
+	})
 	t.Run("ClusterConfiguration gets removed from KcpConfig and MachineConfig", func(t *testing.T) {
 		g := NewWithT(t)
 		kcpConfig := &bootstrapv1.KubeadmConfigSpec{
@@ -280,6 +294,52 @@ func TestMatchInitOrJoinConfiguration(t *testing.T) {
 		g := NewWithT(t)
 		kcp := &controlplanev1.KubeadmControlPlane{}
 		g.Expect(matchInitOrJoinConfiguration(nil, kcp)).To(BeTrue())
+	})
+	t.Run("returns true if one format is empty and the other one cloud-config", func(t *testing.T) {
+		g := NewWithT(t)
+		kcp := &controlplanev1.KubeadmControlPlane{
+			Spec: controlplanev1.KubeadmControlPlaneSpec{
+				KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+					Format: bootstrapv1.CloudConfig,
+				},
+			},
+		}
+		m := &clusterv1.Machine{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "KubeadmConfig",
+				APIVersion: clusterv1.GroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      "test",
+			},
+			Spec: clusterv1.MachineSpec{
+				Bootstrap: clusterv1.Bootstrap{
+					ConfigRef: &corev1.ObjectReference{
+						Kind:       "KubeadmConfig",
+						Namespace:  "default",
+						Name:       "test",
+						APIVersion: bootstrapv1.GroupVersion.String(),
+					},
+				},
+			},
+		}
+		machineConfigs := map[string]*bootstrapv1.KubeadmConfig{
+			m.Name: {
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "default",
+					Name:      "test",
+				},
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Format: "",
+				},
+			},
+		}
+		g.Expect(matchInitOrJoinConfiguration(machineConfigs[m.Name], kcp)).To(BeTrue())
 	})
 	t.Run("returns true if InitConfiguration is equal", func(t *testing.T) {
 		g := NewWithT(t)

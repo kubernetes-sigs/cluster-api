@@ -69,7 +69,7 @@ func MatchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructure
 			return false
 		}
 
-		// Check if the machine template metadata matches with the infrastructure object.
+		// Check if the machine template metadata matches with the infrastructure object.
 		if !matchMachineTemplateMetadata(kcp, infraObj) {
 			return false
 		}
@@ -103,7 +103,7 @@ func MatchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.Kubead
 			return true
 		}
 
-		// Check if the machine template metadata matches with the infrastructure object.
+		// Check if the machine template metadata matches with the infrastructure object.
 		if !matchMachineTemplateMetadata(kcp, machineConfig) {
 			return false
 		}

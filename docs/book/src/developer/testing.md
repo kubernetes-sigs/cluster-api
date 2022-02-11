@@ -12,11 +12,11 @@ be fast and great for getting the first signal on the current implementation, bu
 allowing integration bugs to slip through.
 
 In Cluster API most of the unit tests are developed using [go test], [gomega] and the [fakeclient]; however using
-[fakeclient] is not suitable for all the use cases due to some limitation derived by how it is implemented,
-so in some cases contributors will be required to use [envtest]. See the [quick reference](#quick-reference) below for more details.
+[fakeclient] is not suitable for all the use cases due to some limitations in how it is implemented. In some cases
+contributors will be required to use [envtest]. See the [quick reference](#quick-reference) below for more details.
 
 ### Mocking external APIs
-In some cases when writing tests it is required to mock external API, e.g. etcd client API or the AWS sdk API.
+In some cases when writing tests it is required to mock external API, e.g. etcd client API or the AWS SDK API.
 
 This problem is usually well scoped in core Cluster API, and in most cases it is already solved by using fake
 implementations of the target API to be injected during tests.
@@ -26,11 +26,12 @@ some providers can use simulators reproducing the behaviour of a real infrastruc
 if this is not possible, a viable solution is to use mocks (e.g CAPA).
 
 ### Generic providers
-While testing core Cluster API contributors should ensure that the code works with any providers, and thus it is required
-to not use any specific provider implementation. Instead, the so-called generic providers should be used because they
-implement the plain Cluster API contract, thus preventing developers to make assumptions we cannot rely on.
+When writing tests core Cluster API contributors should ensure that the code works with any providers, and thus it is required
+to not use any specific provider implementation. Instead, the so-called generic providers e.g. "GenericInfrastructureCluster" 
+should be used because they implement the plain Cluster API contract. This prevents tests from relying on assumptions that 
+may not hold true in all cases.
 
-Please note that in the long tern we would like to improve current implementation of generic providers, centralizing
+Please note that in the long term we would like to improve the implementation of generic providers, centralizing
 the existing set of utilities scattered across the codebase, but while details of this work will be defined do not
 hesitate to reach out to reviewers and maintainers for guidance.
 
@@ -39,7 +40,7 @@ hesitate to reach out to reviewers and maintainers for guidance.
 Integration tests are focused on testing the behavior of an entire controller or the interactions between two or
 more Cluster API controllers.
 
-In Cluster API, integration test are based on [envtest] and one or more controllers configured to run against
+In Cluster API, integration tests are based on [envtest] and one or more controllers configured to run against
 the test cluster.
 
 With this approach it is possible to interact with Cluster API almost like in a real environment, by creating/updating
@@ -49,9 +50,9 @@ Also in case of integration tests, considerations about [mocking external APIs](
 
 ## Test maintainability
 
-As a matter of fact test are integral part of the project codebase.
+Tests are an integral part of the project codebase.
 
-Cluster API maintainers and all the contributors should be committed to help in ensuring that test are easily maintainable,
+Cluster API maintainers and all the contributors should be committed to help in ensuring that tests are easily maintainable,
 easily readable, well documented and consistent across the code base.
 
 In light of continuing improving our practice around this ambitious goal, we are starting to introduce a shared set of:
@@ -63,7 +64,7 @@ Each contribution in growing this set of utilities or their adoption across the 
 
 Another consideration that can help in improving test maintainability is the idea of testing "by layers"; this idea could 
 apply whenever we are testing "higher-level" functions that internally uses one or more "lower-level" functions;
-in order to avoid writing/maintaining redundant test, whenever possible contributors should take care of testing
+in order to avoid writing/maintaining redundant tests, whenever possible contributors should take care of testing
 _only_ the logic that is implemented in the "higher-level" function, delegating the test function called internally
 to a "lower-level" set of unit tests.
 
@@ -317,8 +318,8 @@ func TestMain(m *testing.M) {
 }
 ```
 
-By the combination of pre-configured validation and mutating webhooks and reconcilers/indexes it is possible
-to use [envtest] for developing Cluster API integration tests that can mimic very closely how the system
+By combining pre-configured validation and mutating webhooks and reconcilers/indexes it is possible
+to use [envtest] for developing Cluster API integration tests that can mimic how the system
 behaves in real Cluster.
 
 Please note that, because [envtest] uses a real kube-apiserver that is shared across many test cases, the developer
@@ -327,10 +328,10 @@ should take care in ensuring each test runs in isolation from the others, by:
 - Creating objects in separated namespaces.
 - Avoiding object name conflict.
 
-Another thing that the developer should usually take care of when using [envtest] is the fact that the informers cache
-used internally the controller runtime client depends on actual etcd watches/API calls for updates, and thus it could
-happen that after creating or deleting objects the cache takes a few milliseconds to get updated. This can lead to 
-test flakes, and thus it always recommended to use patterns like create and wait or delete and wait; Cluster API env
+Developers should also be aware of the fact that the informers cache used to access the [envtest]
+depends on actual etcd watches/API calls for updates, and thus it could happen that after creating 
+or deleting objects the cache takes a few milliseconds to get updated. This can lead to test flakes, 
+and thus it always recommended to use patterns like create and wait or delete and wait; Cluster API env
 test provides a set of utils for this scope.
 
 However, developers should be aware that in some ways, the test control plane will behave differently from “real”
@@ -414,7 +415,7 @@ comes with a set of limitations that could hamper the validity of a test, most n
 
 - it does not properly handle a set of fields which are common in the Kubernetes API objects (and Cluster API objects as well)
   like e.g. `creationTimestamp`, `resourceVersion`, `generation`, `uid`
-- API calls does not execute defaulting or validation webhooks, so there are no enforced guarantees about the semantic accuracy
+- [fakeclient] operations do not trigger defaulting or validation webhooks, so there are no enforced guarantees about the semantic accuracy
   of the test objects.
 - the [fakeclient] does not use a cache based on informers/API calls/etcd watches, so the test written in this way
   can't help in surfacing race conditions related to how those components behave in real cluster.

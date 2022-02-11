@@ -7,29 +7,16 @@ workflow that offers easy deployments and rapid iterative builds.
 
 ## Prerequisites
 
-1. [Docker](https://docs.docker.com/install/) v19.03 or newer
-1. [kind](https://kind.sigs.k8s.io) v0.9 or newer (other clusters can be
+1. [Docker](https://docs.docker.com/install/): v19.03 or newer
+1. [kind](https://kind.sigs.k8s.io): v0.9 or newer (other clusters can be
    used if `preload_images_for_kind` is set to false)
-1. [kustomize](https://kubectl.docs.kubernetes.io/installation/kustomize/)
-   standalone (`kubectl kustomize` does not work because it is missing
-   some features of kustomize v3)
-1. [Tilt](https://docs.tilt.dev/install.html) v0.22.2 or newer
-1. [envsubst](https://github.com/drone/envsubst) or similar to handle
-   clusterctl var replacement. Note: drone/envsubst releases v1.0.2 and
-   earlier do not have the binary packaged under cmd/envsubst. It is
-   available in Go pseudo-version `v1.0.3-0.20200709231038-aa43e1c1a629`
-1. Clone the [Cluster
-   API](https://github.com/kubernetes-sigs/cluster-api) repository
+1. [Tilt](https://docs.tilt.dev/install.html): v0.22.2 or newer
+1. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
+1. [envsubst](https://github.com/drone/envsubst): provided via `make envsubst`
+1. [helm](https://github.com/helm/helm): v3.7.1 or newer 
+1. Clone the [Cluster API](https://github.com/kubernetes-sigs/cluster-api) repository
    locally
 1. Clone the provider(s) you want to deploy locally as well
-
-We provide a make target to generate the envsubst binary if desired.
-See the [provider contract](./../clusterctl/provider-contract.md) for
-more details about how clusterctl uses variables.
-
-```
-make envsubst
-```
 
 ## Getting started
 

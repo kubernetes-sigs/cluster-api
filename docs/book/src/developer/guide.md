@@ -224,14 +224,20 @@ To test another iteration, you'll need to follow the steps to build, push, updat
 
 ## Videos explaining CAPI architecture and code walkthroughs
 
-CAPI components and architecture
+**CAPI components and architecture**
 
 * [Cluster API Deep Dive - Dec 2020 v1alpha3](https://youtu.be/npFO5Fixqcc)
 * [Cluster API Deep Dive - Sept 2020 v1alpha3](https://youtu.be/9SfuQQeeK6Q)
 * [Declarative Kubernetes Clusters with Cluster API - Oct 2020 v1alpha3](https://youtu.be/i6OWn2zRsZg)
 * [TGI Kubernetes 178: ClusterAPI - ClusterClass & Managed Topologies - Dec 2020 v1beta1](https://www.youtube.com/watch?v=U9CDND0nzRI&list=PL7bmigfV0EqQzxcNpmcdTJ9eFRPBe-iZa&index=5)
 
-Code walkthrough
+**Code walkthroughs**
 
 * [Cluster API CAPD Deep Dive - March 2021 v1alpha4](https://youtu.be/67kEp471MPk)
 * [Cluster API API conversion code walkthrough - January 2022](https://www.youtube.com/watch?v=Mk14N4SelNk)
+
+**Let's chat about ...**
+
+We are currently hosting "Let's chat about ..." sessions where we are talking about topics relevant to 
+contributors and users of the Cluster API project. For more details and recordings of past sessions please 
+see [Let's chat about ...](https://github.com/kubernetes-sigs/cluster-api/discussions/6106) .

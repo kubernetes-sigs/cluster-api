@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 // ClusterBuilder holds the variables and objects required to build a clusterv1.Cluster.
@@ -712,6 +713,101 @@ func (f *ControlPlaneBuilder) Build() *unstructured.Unstructured {
 	return obj
 }
 
+// MachinePoolBuilder holds the variables and objects needed to build a generic MachinePool.
+type MachinePoolBuilder struct {
+	namespace              string
+	name                   string
+	bootstrapTemplate      *unstructured.Unstructured
+	infrastructureTemplate *unstructured.Unstructured
+	version                *string
+	clusterName            string
+	replicas               *int32
+	labels                 map[string]string
+	status                 *expv1.MachinePoolStatus
+}
+
+// MachinePool creates a MachinePoolBuilder with the given name and namespace.
+func MachinePool(namespace, name string) *MachinePoolBuilder {
+	return &MachinePoolBuilder{
+		name:      name,
+		namespace: namespace,
+	}
+}
+
+// WithBootstrapTemplate adds the passed Unstructured object to the MachinePoolBuilder as a bootstrapTemplate.
+func (m *MachinePoolBuilder) WithBootstrapTemplate(ref *unstructured.Unstructured) *MachinePoolBuilder {
+	m.bootstrapTemplate = ref
+	return m
+}
+
+// WithInfrastructureTemplate adds the passed unstructured object to the MachinePool builder as an infrastructureMachineTemplate.
+func (m *MachinePoolBuilder) WithInfrastructureTemplate(ref *unstructured.Unstructured) *MachinePoolBuilder {
+	m.infrastructureTemplate = ref
+	return m
+}
+
+// WithLabels adds the given labels to the MachinePoolBuilder.
+func (m *MachinePoolBuilder) WithLabels(labels map[string]string) *MachinePoolBuilder {
+	m.labels = labels
+	return m
+}
+
+// WithVersion sets the passed version on the MachinePool spec.
+func (m *MachinePoolBuilder) WithVersion(version string) *MachinePoolBuilder {
+	m.version = &version
+	return m
+}
+
+// WithClusterName sets the passed clusterName on the MachinePool spec.
+func (m *MachinePoolBuilder) WithClusterName(clusterName string) *MachinePoolBuilder {
+	m.clusterName = clusterName
+	return m
+}
+
+// WithReplicas sets the number of replicas for the MachinePoolBuilder.
+func (m *MachinePoolBuilder) WithReplicas(replicas int32) *MachinePoolBuilder {
+	m.replicas = &replicas
+	return m
+}
+
+// WithStatus sets the passed status object as the status of the MachinePool object.
+func (m *MachinePoolBuilder) WithStatus(status expv1.MachinePoolStatus) *MachinePoolBuilder {
+	m.status = &status
+	return m
+}
+
+// Build creates a new MachinePool with the variables and objects passed to the MachinePoolBuilder.
+func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
+	obj := &expv1.MachinePool{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "MachinePool",
+			APIVersion: expv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      m.name,
+			Namespace: m.namespace,
+			Labels:    m.labels,
+		},
+		Spec: expv1.MachinePoolSpec{
+			ClusterName: m.clusterName,
+			Replicas:    m.replicas,
+		},
+	}
+	if m.bootstrapTemplate != nil {
+		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrapTemplate)
+	}
+	if m.infrastructureTemplate != nil {
+		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(m.infrastructureTemplate)
+	}
+	if m.version != nil {
+		obj.Spec.Template.Spec.Version = m.version
+	}
+	if m.status != nil {
+		obj.Status = *m.status
+	}
+	return obj
+}
+
 // MachineDeploymentBuilder holds the variables and objects needed to build a generic MachineDeployment.
 type MachineDeploymentBuilder struct {
 	namespace              string
@@ -870,6 +966,77 @@ func (m *MachineSetBuilder) Build() *clusterv1.MachineSet {
 		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(m.infrastructureTemplate)
 	}
 	return obj
+}
+
+// MachineBuilder holds the variables required to build a Machine.
+type MachineBuilder struct {
+	name        string
+	namespace   string
+	version     *string
+	clusterName string
+	bootstrap   *unstructured.Unstructured
+	labels      map[string]string
+}
+
+// Machine returns a MachineBuilder.
+func Machine(namespace, name string) *MachineBuilder {
+	return &MachineBuilder{
+		name:      name,
+		namespace: namespace,
+	}
+}
+
+// WithVersion adds a version to the MachineBuilder.
+func (m *MachineBuilder) WithVersion(version string) *MachineBuilder {
+	m.version = &version
+	return m
+}
+
+// WithBootstrapTemplate adds a bootstrap template to the MachineBuilder.
+func (m *MachineBuilder) WithBootstrapTemplate(bootstrap *unstructured.Unstructured) *MachineBuilder {
+	m.bootstrap = bootstrap
+	return m
+}
+
+// WithClusterName adds a clusterName to the MachineBuilder.
+func (m *MachineBuilder) WithClusterName(clusterName string) *MachineBuilder {
+	m.clusterName = clusterName
+	return m
+}
+
+// WithLabels adds the given labels to the MachineSetBuilder.
+func (m *MachineBuilder) WithLabels(labels map[string]string) *MachineBuilder {
+	m.labels = labels
+	return m
+}
+
+// Build produces a Machine object from the information passed to the MachineBuilder.
+func (m *MachineBuilder) Build() *clusterv1.Machine {
+	machine := &clusterv1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Machine",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: m.namespace,
+			Name:      m.name,
+			Labels:    m.labels,
+		},
+		Spec: clusterv1.MachineSpec{
+			Version:     m.version,
+			ClusterName: m.clusterName,
+		},
+	}
+	if m.bootstrap != nil {
+		machine.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrap)
+	}
+	if m.clusterName != "" {
+		if len(m.labels) == 0 {
+			machine.Labels = map[string]string{}
+		}
+		machine.ObjectMeta.Labels[clusterv1.ClusterLabelName] = m.clusterName
+	}
+	return machine
 }
 
 // objToRef returns a reference to the given object.

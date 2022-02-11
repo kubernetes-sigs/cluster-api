@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
 func TestKubeadmConfigReconciler(t *testing.T) {
@@ -34,13 +35,12 @@ func TestKubeadmConfigReconciler(t *testing.T) {
 			ns, err := env.CreateNamespace(ctx, "test-kubeadm-config-reconciler")
 			g.Expect(err).To(BeNil())
 
-			cluster := newCluster("cluster1", ns.Name)
+			cluster := builder.Cluster(ns.Name, "cluster1").Build()
 			g.Expect(env.Create(ctx, cluster)).To(Succeed())
-
-			machine := newMachine(cluster, "my-machine", ns.Name)
+			machine := newWorkerMachineForCluster(cluster)
 			g.Expect(env.Create(ctx, machine)).To(Succeed())
 
-			config := newKubeadmConfig(machine, "my-machine-config", ns.Name)
+			config := newKubeadmConfig(ns.Name, "my-machine-config")
 			g.Expect(env.Create(ctx, config)).To(Succeed())
 			defer func(do ...client.Object) {
 				g.Expect(env.Cleanup(ctx, do...)).To(Succeed())

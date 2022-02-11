@@ -54,12 +54,17 @@ provisioning might be stuck:
 
 
 ## Cluster API with Docker Desktop - "too many open files"
-
 When using Cluster API and the Docker infrastructure provider on MacOS with Docker Desktop an error of "too many open files" has been observed.
 
-One solution to this issue is to increase the maximum inotify file watch settings in the Docker Desktop VM.
+Note: This error was observed in Docker 4.3 and 4.4. It can be resolved by updating to Docker Desktop for Mac 4.5 or using a version lower than 4.3.
 
-To do so:
+[The upstream issue for this error is closed as of the release of Docker 4.5.0](https://github.com/docker/for-mac/issues/6071)
+
+Note: The below workaround is not recommended unless upgrade or downgrade can not be performed.
+
+If using a version of Docker Desktop for Mac 4.3 or 4.4, the following workaround can be used:
+
+Increase the maximum inotify file watch settings in the Docker Desktop VM:
 
 1) Enter the Docker Desktop VM
 ```
@@ -74,8 +79,6 @@ sysctl fs.inotify.max_user_instances=8192
 ```
 exit
 ```
-
-Note: This error was observed in Docker 4.3. An alternative solution is to stick with an older version of Docker Desktop while this issue is being resolved. [An issue is currently open on the Docker Desktop repository.](https://github.com/docker/for-mac/issues/6071)
 
 ## Failed clusterctl init - 'failed to get cert-manager object'
 

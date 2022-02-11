@@ -34,12 +34,18 @@ import (
 	"k8s.io/api/policy/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+)
+
+const (
+	nodeRoleOldControlPlane = "node-role.kubernetes.io/master" // Deprecated: https://github.com/kubernetes/kubeadm/issues/2200
+	nodeRoleControlPlane    = "node-role.kubernetes.io/control-plane"
 )
 
 // WaitForDeploymentsAvailableInput is the input for WaitForDeploymentsAvailable.
@@ -306,10 +312,23 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 		},
 	}
 	if input.ControlPlane != nil {
-		workloadDeployment.Spec.Template.Spec.NodeSelector = map[string]string{"node-role.kubernetes.io/master": ""}
+		serverVersion, err := workloadClient.ServerVersion()
+		Expect(err).ToNot(HaveOccurred())
+
+		// Use the control-plane label for Kubernetes version >= v1.20.0.
+		if utilversion.MustParseGeneric(serverVersion.String()).AtLeast(utilversion.MustParseGeneric("v1.20.0")) {
+			workloadDeployment.Spec.Template.Spec.NodeSelector = map[string]string{nodeRoleControlPlane: ""}
+		} else {
+			workloadDeployment.Spec.Template.Spec.NodeSelector = map[string]string{nodeRoleOldControlPlane: ""}
+		}
+
 		workloadDeployment.Spec.Template.Spec.Tolerations = []corev1.Toleration{
 			{
-				Key:    "node-role.kubernetes.io/master",
+				Key:    nodeRoleOldControlPlane,
+				Effect: "NoSchedule",
+			},
+			{
+				Key:    nodeRoleControlPlane,
 				Effect: "NoSchedule",
 			},
 		}

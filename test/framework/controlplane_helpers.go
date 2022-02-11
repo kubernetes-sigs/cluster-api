@@ -285,6 +285,7 @@ type UpgradeControlPlaneAndWaitForUpgradeInput struct {
 	Cluster                     *clusterv1.Cluster
 	ControlPlane                *controlplanev1.KubeadmControlPlane
 	KubernetesUpgradeVersion    string
+	UpgradeMachineTemplate      *string
 	EtcdImageTag                string
 	DNSImageTag                 string
 	WaitForMachinesToBeUpgraded []interface{}
@@ -310,7 +311,9 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	Expect(err).ToNot(HaveOccurred())
 
 	input.ControlPlane.Spec.Version = input.KubernetesUpgradeVersion
-
+	if input.UpgradeMachineTemplate != nil {
+		input.ControlPlane.Spec.MachineTemplate.InfrastructureRef.Name = *input.UpgradeMachineTemplate
+	}
 	// If the ClusterConfiguration is not specified, create an empty one.
 	if input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration == nil {
 		input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration = new(bootstrapv1.ClusterConfiguration)

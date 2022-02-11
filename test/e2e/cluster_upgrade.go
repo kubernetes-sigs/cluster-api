@@ -154,6 +154,10 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		} else {
 			// Cluster is not using ClusterClass, upgrade via individual resources.
 			By("Upgrading the Kubernetes control-plane")
+			var upgradeMachineTemplateTo *string
+			if input.E2EConfig.HasVariable(MachineTemplateUpgradeTo) {
+				upgradeMachineTemplateTo = pointer.StringPtr(input.E2EConfig.GetVariable(MachineTemplateUpgradeTo))
+			}
 			framework.UpgradeControlPlaneAndWaitForUpgrade(ctx, framework.UpgradeControlPlaneAndWaitForUpgradeInput{
 				ClusterProxy:                input.BootstrapClusterProxy,
 				Cluster:                     clusterResources.Cluster,
@@ -161,6 +165,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
 				DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
 				KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+				UpgradeMachineTemplate:      upgradeMachineTemplateTo,
 				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 				WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
 				WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
@@ -173,6 +178,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 					ClusterProxy:                input.BootstrapClusterProxy,
 					Cluster:                     clusterResources.Cluster,
 					UpgradeVersion:              input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+					UpgradeMachineTemplate:      upgradeMachineTemplateTo,
 					MachineDeployments:          clusterResources.MachineDeployments,
 					WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 				})

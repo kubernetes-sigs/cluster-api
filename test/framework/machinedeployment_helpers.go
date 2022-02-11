@@ -153,6 +153,7 @@ type UpgradeMachineDeploymentsAndWaitInput struct {
 	ClusterProxy                ClusterProxy
 	Cluster                     *clusterv1.Cluster
 	UpgradeVersion              string
+	UpgradeMachineTemplate      *string
 	MachineDeployments          []*clusterv1.MachineDeployment
 	WaitForMachinesToBeUpgraded []interface{}
 }
@@ -174,6 +175,9 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 
 		oldVersion := deployment.Spec.Template.Spec.Version
 		deployment.Spec.Template.Spec.Version = &input.UpgradeVersion
+		if input.UpgradeMachineTemplate != nil {
+			deployment.Spec.Template.Spec.InfrastructureRef.Name = *input.UpgradeMachineTemplate
+		}
 		Expect(patchHelper.Patch(ctx, deployment)).To(Succeed())
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s",

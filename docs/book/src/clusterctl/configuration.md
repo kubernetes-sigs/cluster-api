@@ -57,7 +57,7 @@ the environment variable takes precedence.
 While doing init, clusterctl checks if there is a version of cert-manager already installed. If not, clusterctl will
 install a default version.
 
-By default, cert-manager will be fetched from `https://github.com/jetstack/cert-manager/releases`; however, if the user
+By default, cert-manager will be fetched from `https://github.com/cert-manager/cert-manager/releases`; however, if the user
 wants to use a different repository, it is possible to use the following configuration:
 
 ```yaml

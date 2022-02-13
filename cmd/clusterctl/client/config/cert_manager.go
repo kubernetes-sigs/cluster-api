@@ -19,7 +19,7 @@ package config
 // CertManager defines cert-manager configuration.
 type CertManager interface {
 	// URL returns the name of the cert-manager repository.
-	// If empty, "https://github.com/jetstack/cert-manager/releases/latest/cert-manager.yaml" will be used.
+	// If empty, "https://github.com/cert-manager/cert-manager/releases/latest/cert-manager.yaml" will be used.
 	URL() string
 
 	// Version returns the cert-manager version to install.

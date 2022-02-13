@@ -1,0 +1,36 @@
+# Configuration for prometheus chart, see https://github.com/prometheus-community/helm-charts/tree/main/charts/prometheus
+
+# These components do not make sense in a local dev environment
+# and can be disabled.
+alertmanager:
+  enabled: false
+kubeStateMetrics:
+  enabled: false
+nodeExporter:
+  enabled: false
+pushgateway:
+  enabled: false
+
+# Scrape metrics from deployed providers
+extraScrapeConfigs: |
+  - job_name: 'capi-providers'
+    metrics_path: /metrics
+    kubernetes_sd_configs:
+      - role: pod
+
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_labelpresent_cluster_x_k8s_io_provider]
+        action: keep
+        regex: true
+      - source_labels: [__meta_kubernetes_pod_container_port_name]
+        action: keep
+        regex: metrics
+      - source_labels: [__meta_kubernetes_pod_label_cluster_x_k8s_io_provider]
+        action: replace
+        target_label: provider
+      - source_labels: [__meta_kubernetes_namespace]
+        action: replace
+        target_label: namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        action: replace
+        target_label: pod

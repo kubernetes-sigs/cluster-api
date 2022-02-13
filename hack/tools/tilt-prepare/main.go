@@ -33,6 +33,7 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/net/context"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -415,6 +416,11 @@ func providerTask(path, out string, debug bool) taskFunction {
 			}
 		}
 
+		if err := prepareDeploymentForObservability(prefix, objs); err != nil {
+			errCh <- err
+			return
+		}
+
 		providerObj, err := getProviderObj(prefix, objs)
 		if err != nil {
 			errCh <- err
@@ -467,20 +473,12 @@ func writeIfChanged(prefix string, path string, yaml []byte) error {
 // prepareDeploymentForDebug alter controller deployments for working nicely with delve debugger;
 // most specifically, liveness and readiness probes are dropper and leader election turned off.
 func prepareDeploymentForDebug(prefix string, objs []unstructured.Unstructured) error {
-	for i := range objs {
-		obj := objs[i]
-		if obj.GetKind() != "Deployment" {
-			continue
-		}
-
-		// Convert Unstructured into a typed object
-		d := &appsv1.Deployment{}
-		if err := scheme.Scheme.Convert(&obj, d, nil); err != nil {
-			return errors.Wrapf(err, "[%s] failed to convert Deployment to typed object", prefix)
-		}
-
-		for j := range d.Spec.Template.Spec.Containers {
-			container := d.Spec.Template.Spec.Containers[j]
+	return updateDeployment(prefix, objs, func(d *appsv1.Deployment) {
+		for j, container := range d.Spec.Template.Spec.Containers {
+			if container.Name != "manager" {
+				// as defined in clusterctl Provider Contract "Controllers & Watching namespace"
+				continue
+			}
 
 			// Drop liveness and readiness probes.
 			container.LivenessProbe = nil
@@ -498,7 +496,63 @@ func prepareDeploymentForDebug(prefix string, objs []unstructured.Unstructured) 
 
 			d.Spec.Template.Spec.Containers[j] = container
 		}
+	})
+}
 
+// prepareDeploymentForObservability alters controller deployments for working
+// nicely with prometheus metrics scraping. Specifically, the metrics endpoint is set to
+// listen on all interfaces instead of only localhost, and another port is added to the
+// container to expose the metrics endpoint.
+func prepareDeploymentForObservability(prefix string, objs []unstructured.Unstructured) error {
+	return updateDeployment(prefix, objs, func(d *appsv1.Deployment) {
+		for j, container := range d.Spec.Template.Spec.Containers {
+			if container.Name != "manager" {
+				// as defined in clusterctl Provider Contract "Controllers & Watching namespace"
+				continue
+			}
+
+			args := make([]string, 0, len(container.Args))
+			for _, a := range container.Args {
+				if strings.HasPrefix(a, "--metrics-bind-addr=") {
+					args = append(args, "--metrics-bind-addr=0.0.0.0:8080")
+					continue
+				}
+				args = append(args, a)
+			}
+			container.Args = args
+
+			container.Ports = append(container.Ports, corev1.ContainerPort{
+				Name:          "metrics",
+				ContainerPort: 8080,
+				Protocol:      "TCP",
+			})
+
+			d.Spec.Template.Spec.Containers[j] = container
+		}
+	})
+}
+
+type updateDeploymentFunction func(deployment *appsv1.Deployment)
+
+// updateDeployment passes all (typed) deployments to the updateDeploymentFunction
+// to modify as needed.
+func updateDeployment(prefix string, objs []unstructured.Unstructured, f updateDeploymentFunction) error {
+	for i := range objs {
+		obj := objs[i]
+		if obj.GetKind() != "Deployment" {
+			continue
+		}
+
+		// Convert Unstructured into a typed object
+		d := &appsv1.Deployment{}
+		if err := scheme.Scheme.Convert(&obj, d, nil); err != nil {
+			return errors.Wrapf(err, "[%s] failed to convert Deployment to typed object", prefix)
+		}
+
+		// Call updater function
+		f(d)
+
+		// Convert back to Unstructured
 		if err := scheme.Scheme.Convert(d, &obj, nil); err != nil {
 			return errors.Wrapf(err, "[%s] failed to convert Deployment to unstructured", prefix)
 		}

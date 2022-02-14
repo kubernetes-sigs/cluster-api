@@ -19,11 +19,11 @@ The approach most Cluster API projects is using [a `Makefile` that uses `sed` to
 Cluster API uses [cert-manager] to manage the certificates it needs for its webhooks.
 Before you apply Cluster API's yaml, you should [install `cert-manager`][cm-install]
 
-[cert-manager]: https://github.com/jetstack/cert-manager
+[cert-manager]: https://github.com/cert-manager/cert-manager
 [cm-install]: https://cert-manager.io/docs/installation/
 
 ```
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/<version>/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/<version>/cert-manager.yaml
 ```
 
 ### Cluster API

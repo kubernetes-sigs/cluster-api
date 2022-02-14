@@ -62,6 +62,10 @@ for each selected provider.
 
 You can specify the provider version by appending a version tag to the provider name, e.g. `aws:v0.4.1`.
 
+Pinning the version provides better control over what clusterctl chooses to install
+(usually required in an enterprise environment). Version pinning should always be used when using [image overrides](../configuration.md#image-overrides), or when relying on internal repositories with a separated
+software supply chain, or a custom versioning schema.
+
 </aside>
 
 <aside class="note">

@@ -101,3 +101,26 @@ Alternatively a Cert Manager yaml file can be placed in the [clusterctl override
 
 More information on the clusterctl config file can be found at [its page in the book](../clusterctl/configuration.md#clusterctl-configuration-file)
 
+## Clusterctl failing to start providers due to outdated image overrides
+
+clusterctl allows users to configure [image overrides](../clusterctl/configuration.md#image-overrides) via the clusterctl config file.
+However, when the image override is pinning a provider image to a specific version, it could happen that this
+conflicts with clusterctl behavior of picking the latest version of a provider.
+
+E.g., if you are pinning KCP images to version v1.0.2 but then clusterctl init fetches yamls for version v1.1.0 or greater KCP will 
+fail to start with the following error: 
+
+```
+invalid argument "ClusterTopology=false,KubeadmBootstrapFormatIgnition=false" for "--feature-gates" flag: unrecognized feature gate: KubeadmBootstrapFormatIgnition
+```
+
+In order to solve this problem you should specify the version of the provider you are installing by appending a
+version tag to the provider name:
+
+```shell
+clusterctl init -b kubeadm:v1.0.2 -c kubeadm:v1.0.2 --core cluster-api:v1.0.2 -i docker:v1.0.2
+```
+
+Even if slightly verbose, pinning the version provides a better control over what is installed, as usually
+required in an enterprise environment, especially if you rely on an internal repository with a separated
+software supply chain or a custom versioning schema.

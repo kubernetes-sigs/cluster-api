@@ -385,7 +385,7 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	)
 }
 
-// DockerClusterToDockerMachines is a handler.ToRequestsFunc to be used to enqeue
+// DockerClusterToDockerMachines is a handler.ToRequestsFunc to be used to enqueue
 // requests for reconciliation of DockerMachines.
 func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}

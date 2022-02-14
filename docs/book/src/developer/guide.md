@@ -81,7 +81,7 @@ The generated binary can be found at ./hack/tools/bin/envsubst
 You'll need to deploy [cert-manager] components on your [management cluster][mcluster], using `kubectl`
 
 ```bash
-kubectl apply -f https://github.com/jetstack/cert-manager/releases/download/v1.5.3/cert-manager.yaml
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.5.3/cert-manager.yaml
 ```
 
 Ensure the cert-manager webhook service is ready before creating the Cluster API components.
@@ -92,7 +92,7 @@ This can be done by running:
 kubectl wait --for=condition=Available --timeout=300s apiservice v1beta1.webhook.cert-manager.io
 ```
 
-[cert-manager]: https://github.com/jetstack/cert-manager
+[cert-manager]: https://github.com/cert-manager/cert-manager
 
 ## Development
 

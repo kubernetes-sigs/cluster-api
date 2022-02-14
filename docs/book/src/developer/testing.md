@@ -11,29 +11,69 @@ Unit tests focus on individual pieces of logic - a single func - and don't requi
 be fast and great for getting the first signal on the current implementation, but unit tests have the risk of
 allowing integration bugs to slip through.
 
-Historically, in Cluster API unit tests were developed using [go test], [gomega] and the [fakeclient]; see the quick reference below.
+In Cluster API most of the unit tests are developed using [go test], [gomega] and the [fakeclient]; however using
+[fakeclient] is not suitable for all the use cases due to some limitations in how it is implemented. In some cases
+contributors will be required to use [envtest]. See the [quick reference](#quick-reference) below for more details.
 
-However, considering some changes introduced in the v0.3.x releases (e.g. ObservedGeneration, Conditions), there is a common
-agreement among Cluster API maintainers that using [fakeclient] should be progressively deprecated in favor of using
-[envtest]. See the quick reference below.
+### Mocking external APIs
+In some cases when writing tests it is required to mock external API, e.g. etcd client API or the AWS SDK API.
+
+This problem is usually well scoped in core Cluster API, and in most cases it is already solved by using fake
+implementations of the target API to be injected during tests.
+
+Instead, mocking is much more relevant for infrastructure providers; in order to address the issue
+some providers can use simulators reproducing the behaviour of a real infrastructure providers (e.g CAPV);
+if this is not possible, a viable solution is to use mocks (e.g CAPA).
+
+### Generic providers
+When writing tests core Cluster API contributors should ensure that the code works with any providers, and thus it is required
+to not use any specific provider implementation. Instead, the so-called generic providers e.g. "GenericInfrastructureCluster" 
+should be used because they implement the plain Cluster API contract. This prevents tests from relying on assumptions that 
+may not hold true in all cases.
+
+Please note that in the long term we would like to improve the implementation of generic providers, centralizing
+the existing set of utilities scattered across the codebase, but while details of this work will be defined do not
+hesitate to reach out to reviewers and maintainers for guidance.
 
 ## Integration tests
 
 Integration tests are focused on testing the behavior of an entire controller or the interactions between two or
 more Cluster API controllers.
 
-In older versions of Cluster API, integration tests were based on a real cluster and meant to be run in CI only; however,
-now we are considering a different approach based on [envtest] and with one or more controllers configured to run against
+In Cluster API, integration tests are based on [envtest] and one or more controllers configured to run against
 the test cluster.
 
-With this approach it is possible to interact with Cluster API like in a real environment, by creating/updating
-Kubernetes objects and waiting for the controllers to take action.
+With this approach it is possible to interact with Cluster API almost like in a real environment, by creating/updating
+Kubernetes objects and waiting for the controllers to take action. See the [quick reference](#quick-reference) below for more details.
 
-Please note that while using this mode, as of today, when testing the interactions with an infrastructure provider
-some infrastructure components will be generated, and this could have relevant impacts on test durations (and requirements).
+Also in case of integration tests, considerations about [mocking external APIs](#mocking-external-apis) and usage of [generic providers](#generic-providers) apply. 
 
-While, as of today this is a strong limitation, in the future we might consider to have a "dry-run" option in CAPD or
-a fake infrastructure provider to allow test coverage for testing the interactions with an infrastructure provider as well.
+## Test maintainability
+
+Tests are an integral part of the project codebase.
+
+Cluster API maintainers and all the contributors should be committed to help in ensuring that tests are easily maintainable,
+easily readable, well documented and consistent across the code base.
+
+In light of continuing improving our practice around this ambitious goal, we are starting to introduce a shared set of:
+
+- Builders (`sigs.k8s.io/cluster-api/internal/test/builder`), allowing to create test objects in a simple and consistent way.
+- Matchers (`sigs.k8s.io/cluster-api/internal/test/matchers`), improving how we write test assertions.
+
+Each contribution in growing this set of utilities or their adoption across the codebase is more than welcome!
+
+Another consideration that can help in improving test maintainability is the idea of testing "by layers"; this idea could 
+apply whenever we are testing "higher-level" functions that internally uses one or more "lower-level" functions;
+in order to avoid writing/maintaining redundant tests, whenever possible contributors should take care of testing
+_only_ the logic that is implemented in the "higher-level" function, delegating the test function called internally
+to a "lower-level" set of unit tests.
+
+A similar concern could be raised also in the case whenever there is overlap between unit tests and integration tests,
+but in this case the distinctive value of the two layers of testing is determined by how test are designed:
+
+- unit test are focused on code structure: func(input) = output, including edge case values, asserting error conditions etc.
+- integration test are user story driven: as a user, I want express some desired state using API objects, wait for the
+  reconcilers to take action, check the new system state.
 
 ## Running unit and integration tests
 
@@ -240,21 +280,10 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
-		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
-			panic(fmt.Sprintf("unable to setup index: %v", err))
-		}
-	}
+	// Setup envtest
+	...
 
-	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
-		if err := (&MyReconciler{
-			Client:  mgr.GetClient(),
-			Log:     log.NullLogger{},
-		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
-			panic(fmt.Sprintf("Failed to start the MyReconciler: %v", err))
-		}
-	}
-
+	// Run tests
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
 		M:        m,
 		SetupEnv: func(e *envtest.Environment) { env = e },
@@ -265,14 +294,11 @@ func TestMain(m *testing.M) {
 ```
 
 Most notably, [envtest] provides not only a real API server to use during testing, but it offers the opportunity
-to configure one or more controllers to run against the test cluster. By using this feature it is possible to use
-[envtest] for developing Cluster API integration tests.
+to configure one or more controllers to run against the test cluster, as well as creating informers index. 
 
 ```golang
 func TestMain(m *testing.M) {
-	// Bootstrapping test environment
-	...
-
+	// Setup envtest
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
 		if err := (&MyReconciler{
 			Client:  mgr.GetClient(),
@@ -282,16 +308,31 @@ func TestMain(m *testing.M) {
 		}
 	}
 
-	// Run tests
+	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
+		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
+		panic(fmt.Sprintf("unable to setup index: %v", err))
+	}
+    
+    // Run tests
 	...
 }
 ```
 
-Please note that, because [envtest] uses a real kube-apiserver that is shared across many tests, the developer
+By combining pre-configured validation and mutating webhooks and reconcilers/indexes it is possible
+to use [envtest] for developing Cluster API integration tests that can mimic how the system
+behaves in real Cluster.
+
+Please note that, because [envtest] uses a real kube-apiserver that is shared across many test cases, the developer
 should take care in ensuring each test runs in isolation from the others, by:
 
 - Creating objects in separated namespaces.
 - Avoiding object name conflict.
+
+Developers should also be aware of the fact that the informers cache used to access the [envtest]
+depends on actual etcd watches/API calls for updates, and thus it could happen that after creating 
+or deleting objects the cache takes a few milliseconds to get updated. This can lead to test flakes, 
+and thus it always recommended to use patterns like create and wait or delete and wait; Cluster API env
+test provides a set of utils for this scope.
 
 However, developers should be aware that in some ways, the test control plane will behave differently from “real”
 clusters, and that might have an impact on how you write tests.
@@ -374,13 +415,15 @@ comes with a set of limitations that could hamper the validity of a test, most n
 
 - it does not properly handle a set of fields which are common in the Kubernetes API objects (and Cluster API objects as well)
   like e.g. `creationTimestamp`, `resourceVersion`, `generation`, `uid`
-- API calls doe not execute defaulting or validation webhooks, so there are no enforced guarantees about the semantic accuracy
+- [fakeclient] operations do not trigger defaulting or validation webhooks, so there are no enforced guarantees about the semantic accuracy
   of the test objects.
+- the [fakeclient] does not use a cache based on informers/API calls/etcd watches, so the test written in this way
+  can't help in surfacing race conditions related to how those components behave in real cluster.
+- there is no support for cache index/operations using cache indexes. 
 
-Historically, [fakeclient] is widely used in Cluster API, however, given the growing relevance of the above limitations
-with regard to some changes introduced in the v0.3.x releases (e.g. ObservedGeneration, Conditions), there is a common
-agreement among Cluster API maintainers that using [fakeclient] should be progressively deprecated in favor of use
-of [envtest].
+Accordingly, using [fakeclient] is not suitable for all the use cases, so in some cases contributors will be required
+to use [envtest] instead. In case of doubts about which one to use when writing tests, don't hesitate to ask for
+guidance from project maintainers.
 
 ### `ginkgo`
 [Ginkgo] is a Go testing framework built to help you efficiently write expressive and comprehensive tests using Behavior-Driven Development (“BDD”) style.

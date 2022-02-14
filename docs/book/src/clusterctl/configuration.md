@@ -170,6 +170,9 @@ overridesFolder: /Users/foobar/workspace/dev-releases
 Image override is an advanced feature and wrong configuration can easily lead to non-functional clusters.
 It's strongly recommended to test configurations on dev/test environments before using this functionality in production.
 
+This feature must always be used in conjunction with 
+[version tag](commands/init.md#provider-version) when executing clusterctl commands.
+
 </aside>
 
 When working in air-gapped environments, it's necessary to alter the manifests to be installed in order to pull

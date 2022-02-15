@@ -11,3 +11,5 @@
 * [`clusterctl completion`](completion.md)
 * [`clusterctl alpha rollout`](alpha-rollout.md)
 * [`clusterctl alpha topology plan`](alpha-topology-plan.md)
+* [`clusterctl backup`](backup.md)
+* [`clusterctl restore`](restore.md)

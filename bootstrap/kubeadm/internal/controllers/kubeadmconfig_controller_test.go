@@ -30,7 +30,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
-	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -1179,9 +1178,6 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 		KubeadmInitLock:    &myInitLocker{},
 		remoteClientGetter: fakeremote.NewClusterClient,
 	}
-	scope := &Scope{
-		Logger: klogr.New(),
-	}
 	caHash := []string{"...."}
 	bootstrapToken := bootstrapv1.Discovery{
 		BootstrapToken: &bootstrapv1.BootstrapTokenDiscovery{
@@ -1307,7 +1303,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			res, err := k.reconcileDiscovery(ctx, tc.cluster, tc.config, secret.Certificates{}, scope)
+			res, err := k.reconcileDiscovery(ctx, tc.cluster, tc.config, secret.Certificates{})
 			g.Expect(res.IsZero()).To(BeTrue())
 			g.Expect(err).NotTo(HaveOccurred())
 
@@ -1320,9 +1316,6 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 // Test failure cases for the discovery reconcile function.
 func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t *testing.T) {
 	k := &KubeadmConfigReconciler{}
-	scope := &Scope{
-		Logger: klogr.New(),
-	}
 	testcases := []struct {
 		name    string
 		cluster *clusterv1.Cluster
@@ -1353,7 +1346,7 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t 
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			res, err := k.reconcileDiscovery(ctx, tc.cluster, tc.config, secret.Certificates{}, scope)
+			res, err := k.reconcileDiscovery(ctx, tc.cluster, tc.config, secret.Certificates{})
 			g.Expect(res).To(Equal(tc.result))
 			if tc.err == nil {
 				g.Expect(err).To(BeNil())
@@ -1367,9 +1360,6 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileFailureBehaviors(t 
 // Set cluster configuration defaults based on dynamic values from the cluster object.
 func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguration(t *testing.T) {
 	k := &KubeadmConfigReconciler{}
-	scope := &Scope{
-		Logger: klogr.New(),
-	}
 	testcases := []struct {
 		name    string
 		cluster *clusterv1.Cluster
@@ -1442,7 +1432,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			k.reconcileTopLevelObjectSettings(ctx, tc.cluster, tc.machine, tc.config, scope)
+			k.reconcileTopLevelObjectSettings(ctx, tc.cluster, tc.machine, tc.config)
 
 			g.Expect(tc.config.Spec.ClusterConfiguration.ControlPlaneEndpoint).To(Equal("myControlPlaneEndpoint:6443"))
 			g.Expect(tc.config.Spec.ClusterConfiguration.ClusterName).To(Equal("mycluster"))

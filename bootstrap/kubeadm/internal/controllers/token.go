@@ -25,11 +25,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	bootstrapapi "k8s.io/cluster-bootstrap/token/api"
 	bootstraputil "k8s.io/cluster-bootstrap/token/util"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // createToken attempts to create a token with the given ID.
 func createToken(ctx context.Context, c client.Client, ttl time.Duration) (string, error) {
+	log := ctrl.LoggerFrom(ctx)
 	token, err := bootstraputil.GenerateBootstrapToken()
 	if err != nil {
 		return "", errors.Wrap(err, "unable to generate bootstrap token")
@@ -60,8 +62,9 @@ func createToken(ctx context.Context, c client.Client, ttl time.Duration) (strin
 		},
 	}
 
+	log.Info("Creating new bootstrap token", "Secret", newkObj(secretToken))
 	if err := c.Create(ctx, secretToken); err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "failed to create bootstrap token")
 	}
 	return token, nil
 }

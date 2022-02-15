@@ -99,7 +99,7 @@ func (in *KubeadmControlPlane) ValidateCreate() error {
 	spec := in.Spec
 	allErrs := validateKubeadmControlPlaneSpec(spec, in.Namespace, field.NewPath("spec"))
 	allErrs = append(allErrs, validateClusterConfiguration(spec.KubeadmConfigSpec.ClusterConfiguration, nil, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
-	allErrs = append(allErrs, in.Spec.KubeadmConfigSpec.Validate()...)
+	allErrs = append(allErrs, spec.KubeadmConfigSpec.Validate(field.NewPath("spec", "kubeadmConfigSpec"))...)
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
 	}
@@ -208,7 +208,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs = append(allErrs, in.validateVersion(prev.Spec.Version)...)
 	allErrs = append(allErrs, validateClusterConfiguration(in.Spec.KubeadmConfigSpec.ClusterConfiguration, prev.Spec.KubeadmConfigSpec.ClusterConfiguration, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, in.validateCoreDNSVersion(prev)...)
-	allErrs = append(allErrs, in.Spec.KubeadmConfigSpec.Validate()...)
+	allErrs = append(allErrs, in.Spec.KubeadmConfigSpec.Validate(field.NewPath("spec", "kubeadmConfigSpec"))...)
 
 	if len(allErrs) > 0 {
 		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
@@ -371,6 +371,18 @@ func validateClusterConfiguration(newClusterConfiguration, oldClusterConfigurati
 		)
 	}
 
+	if newClusterConfiguration.DNS.ImageTag != "" {
+		if _, err := version.ParseMajorMinorPatchTolerant(newClusterConfiguration.DNS.ImageTag); err != nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("dns", "imageTag"),
+					newClusterConfiguration.DNS.ImageTag,
+					fmt.Sprintf("failed to parse CoreDNS version: %v", err),
+				),
+			)
+		}
+	}
+
 	// TODO: Remove when kubeadm types include OpenAPI validation
 	if newClusterConfiguration.Etcd.Local != nil && !container.ImageTagIsValid(newClusterConfiguration.Etcd.Local.ImageTag) {
 		allErrs = append(
@@ -481,9 +493,10 @@ func (in *KubeadmControlPlane) validateCoreDNSVersion(prev *KubeadmControlPlane)
 	fromVersion, err := version.ParseMajorMinorPatchTolerant(prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag)
 	if err != nil {
 		allErrs = append(allErrs,
-			field.InternalError(
+			field.Invalid(
 				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "dns", "imageTag"),
-				fmt.Errorf("failed to parse CoreDNS current version: %v", prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag),
+				prev.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag,
+				fmt.Sprintf("failed to parse current CoreDNS version: %v", err),
 			),
 		)
 		return allErrs
@@ -495,7 +508,7 @@ func (in *KubeadmControlPlane) validateCoreDNSVersion(prev *KubeadmControlPlane)
 			field.Invalid(
 				field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration", "dns", "imageTag"),
 				targetDNS.ImageTag,
-				fmt.Sprintf("failed to parse CoreDNS target version: %v", targetDNS.ImageTag),
+				fmt.Sprintf("failed to parse target CoreDNS version: %v", err),
 			),
 		)
 		return allErrs

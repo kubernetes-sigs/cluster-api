@@ -52,7 +52,7 @@ func (r *KubeadmConfigTemplate) ValidateDelete() error {
 func (r *KubeadmConfigTemplateSpec) validate(name string) error {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, r.Template.Spec.Validate()...)
+	allErrs = append(allErrs, r.Template.Spec.Validate(field.NewPath("spec", "template", "spec"))...)
 
 	if len(allErrs) == 0 {
 		return nil

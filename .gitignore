@@ -61,6 +61,7 @@ vendor
 # User-supplied Tiltfile extensions, settings, and builds
 tilt.d
 tilt-settings.json
+tilt-settings.yaml
 .tiltbuild
 
 # User-supplied clusterctl hacks settings

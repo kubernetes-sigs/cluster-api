@@ -11,8 +11,8 @@ settings = {
 }
 
 # global settings
-settings.update(read_json(
-    "tilt-settings.json",
+settings.update(read_yaml(
+    "./tilt-settings.yaml" if os.path.exists("./tilt-settings.yaml") else "./tilt-settings.json",
     default = {},
 ))
 
@@ -119,8 +119,10 @@ def load_provider_tiltfiles():
     provider_repos = settings.get("provider_repos", [])
 
     for repo in provider_repos:
-        file = repo + "/tilt-provider.json"
-        provider_details = read_json(file, default = {})
+        file = repo + "/tilt-provider.yaml" if os.path.exists(repo + "/tilt-provider.yaml") else repo + "/tilt-provider.json"
+        if not os.path.exists(file):
+            fail("Failed to load provider. No tilt-provider.{yaml|json} file found in " + repo)
+        provider_details = read_yaml(file, default = {})
         if type(provider_details) != type([]):
             provider_details = [provider_details]
         for item in provider_details:
@@ -350,6 +352,8 @@ def prepare_all():
     providers_arg = ""
     for name in get_providers():
         p = providers.get(name)
+        if p == None:
+            fail("Provider with name " + name + " not found")
         if p.get("kustomize_config", True):
             context = p.get("context")
             debug = ""

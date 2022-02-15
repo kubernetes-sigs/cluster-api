@@ -111,7 +111,12 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 		addMachineFunc(controlPlane, cp)
 	}
 
-	if len(machinesList.Items) == len(controlPlaneMachines) {
+	machinePoolList, err := getMachinePoolsInCluster(ctx, c, cluster.Namespace, cluster.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(machinesList.Items) == len(controlPlaneMachines) && len(machinePoolList.Items) == 0 {
 		return tree, nil
 	}
 
@@ -154,7 +159,7 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 		}
 	}
 
-	err = addMachinePoolsToObjectTree(ctx, c, cluster, workers, machinesList, tree, addMachineFunc)
+	err = addMachinePoolsToObjectTree(ctx, c, cluster, workers, machinePoolList, machinesList, tree, addMachineFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -176,12 +181,7 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 	return tree, nil
 }
 
-func addMachinePoolsToObjectTree(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workers *unstructured.Unstructured, machinesList *clusterv1.MachineList, tree *ObjectTree, addMachineFunc func(parent client.Object, m *clusterv1.Machine)) error {
-	machinePoolList, err := getMachinePoolsInCluster(ctx, c, cluster.Namespace, cluster.Name)
-	if err != nil {
-		return err
-	}
-
+func addMachinePoolsToObjectTree(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workers *unstructured.Unstructured, machinePoolList *expv1.MachinePoolList, machinesList *clusterv1.MachineList, tree *ObjectTree, addMachineFunc func(parent client.Object, m *clusterv1.Machine)) error {
 	for i := range machinePoolList.Items {
 		mp := &machinePoolList.Items[i]
 		tree.Add(workers, mp, GroupingObject(true))

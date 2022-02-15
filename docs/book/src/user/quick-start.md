@@ -101,7 +101,7 @@ The clusterctl CLI tool handles the lifecycle of a Cluster API management cluste
 #### Install clusterctl binary with curl on linux
 Download the latest release; on linux, type:
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.0.x"}} -o clusterctl
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.1.x"}} -o clusterctl
 ```
 Make the clusterctl binary executable.
 ```
@@ -122,12 +122,12 @@ clusterctl version
 #### Install clusterctl binary with curl on macOS
 Download the latest release; on macOS, type:
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.0.x"}} -o clusterctl
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.1.x"}} -o clusterctl
 ```
 
 Or if your Mac has an M1 CPU ("Apple Silicon"):
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.0.x"}} -o clusterctl
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.1.x"}} -o clusterctl
 ```
 
 Make the clusterctl binary executable.

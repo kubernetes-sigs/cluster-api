@@ -143,7 +143,7 @@ ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-* and generate-go-conversions-* targets
-	$(MAKE) generate-manifests generate-go-deepcopy generate-go-conversions
+	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions
 	$(MAKE) -C $(CAPD_DIR) generate
 
 .PHONY: generate-manifests
@@ -280,8 +280,14 @@ generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate con
 		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
-.PHONY: diagrams
-diagrams: ## Generate diagrams for *.plantuml files
+.PHONY: generate-modules
+generate-modules: ## Run go mod tidy to ensure modules are up to date
+	go mod tidy
+	cd $(TOOLS_DIR); go mod tidy
+	cd $(TEST_DIR); go mod tidy
+
+.PHONY: generate-diagrams
+generate-diagrams: ## Generate diagrams for *.plantuml files
 	$(MAKE) -C docs diagrams
 
 ## --------------------------------------
@@ -289,12 +295,6 @@ diagrams: ## Generate diagrams for *.plantuml files
 ## --------------------------------------
 
 ##@ lint and verify:
-
-.PHONY: modules
-modules: ## Run go mod tidy to ensure modules are up to date
-	go mod tidy
-	cd $(TOOLS_DIR); go mod tidy
-	cd $(TEST_DIR); go mod tidy
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint the codebase
@@ -306,13 +306,13 @@ lint: $(GOLANGCI_LINT) ## Lint the codebase
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
 	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
 
+.PHONY: tiltfile-fix
+tiltfile-fix: ## Format the Tiltfile
+	./hack/verify-starlark.sh fix
+
 .PHONY: apidiff
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(shell git rev-parse origin/main) --print-compatible
-
-.PHONY: format-tiltfile
-format-tiltfile: ## Format the Tiltfile
-	./hack/verify-starlark.sh fix
 
 ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions docker-provider book-links
 
@@ -320,7 +320,7 @@ ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversio
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
 
 .PHONY: verify-modules
-verify-modules: modules  ## Verify go modules are up to date
+verify-modules: generate-modules  ## Verify go modules are up to date
 	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
@@ -399,10 +399,16 @@ docker-pull-prerequisites:
 	docker pull $(GO_CONTAINER_IMAGE)
 	docker pull gcr.io/distroless/static:latest
 
+.PHONY: docker-build-all
+docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build docker images for all architectures
+
+docker-build-%:
+	$(MAKE) ARCH=$* docker-build
+
 ALL_DOCKER_BUILD = core kubeadm-bootstrap kubeadm-control-plane
 
 .PHONY: docker-build
-docker-build: docker-pull-prerequisites ## Run all docker-build-* targets
+docker-build: docker-pull-prerequisites ## Run docker-build-* targets for all providers
 	$(MAKE) ARCH=$(ARCH) $(addprefix docker-build-,$(ALL_DOCKER_BUILD)) 
 
 .PHONY: docker-build-core
@@ -427,6 +433,10 @@ docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm contro
 e2e-framework: ## Builds the CAPI e2e framework
 	cd $(E2E_FRAMEWORK_DIR); go build ./...
 
+.PHONY: serve-book
+serve-book: ## Build and serve the book (with live-reload)
+	$(MAKE) -C docs/book serve
+
 ## --------------------------------------
 ## Testing
 ## --------------------------------------
@@ -441,32 +451,28 @@ KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILD
 test: $(SETUP_ENVTEST) ## Run unit and integration tests
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 
-.PHONY: test-e2e
-test-e2e: ## Run the e2e tests
-	$(MAKE) -C $(TEST_DIR)/e2e run
+.PHONY: test-verbose
+test-verbose: ## Run unit and integration tests with verbose flag
+	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"
 
 .PHONY: test-junit
-test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run tests with verbose setting and generate a junit report
+test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report
 	set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.exitcode) | tee $(ARTIFACTS)/junit.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.xml --raw-command cat $(ARTIFACTS)/junit.stdout
 	exit $$(cat $(ARTIFACTS)/junit.exitcode)
 
 .PHONY: test-cover
-test-cover: ## Run tests with code coverage and code generate reports
+test-cover: ## Run unit and integration tests and generate a coverage report
 	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -coverprofile=out/coverage.out"
 	go tool cover -func=out/coverage.out -o out/coverage.txt
 	go tool cover -html=out/coverage.out -o out/coverage.html
 
-.PHONY: test-verbose
-test-verbose: ## Run tests with verbose settings
-	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"
-
-.PHONY: serve-book
-serve-book: ## Build and serve the book with live-reloading enabled
-	$(MAKE) -C docs/book serve
+.PHONY: test-e2e
+test-e2e: ## Run e2e tests
+	$(MAKE) -C $(TEST_DIR)/e2e run
 
 .PHONY: kind-cluster
-kind-cluster: ## Create a new kind cluster designed for testing with Tilt
+kind-cluster: ## Create a new kind cluster designed for development with Tilt
 	hack/kind-install-for-capd.sh
 
 .PHONY: docker-build-e2e
@@ -603,12 +609,6 @@ release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 	else \
 	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
 	fi
-
-.PHONY: docker-build-all
-docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build all the architecture docker images
-
-docker-build-%:
-	$(MAKE) ARCH=$* docker-build
 
 .PHONY: promote-images
 promote-images: $(KPROMO)

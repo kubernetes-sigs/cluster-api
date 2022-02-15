@@ -1,0 +1,9 @@
+resources:
+  - ../namespace.yaml
+
+helmCharts:
+  - name: grafana
+    repo: https://grafana.github.io/helm-charts
+    releaseName: grafana
+    namespace: observability
+    valuesFile: values.yaml

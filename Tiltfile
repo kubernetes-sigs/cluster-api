@@ -322,11 +322,17 @@ def deploy_provider_crds():
     )
 
 def deploy_observability():
-    k8s_yaml(read_file("./.tiltbuild/yaml/observability.tools.yaml"))
+    if "promtail" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/promtail.observability.yaml"), allow_duplicates = True)
+        k8s_resource(workload = "promtail", extra_pod_selectors = [{"app": "promtail"}], labels = ["observability"], resource_deps = ["loki"])
 
-    k8s_resource(workload = "promtail", extra_pod_selectors = [{"app": "promtail"}], labels = ["observability"])
-    k8s_resource(workload = "loki", extra_pod_selectors = [{"app": "loki"}], labels = ["observability"])
-    k8s_resource(workload = "grafana", port_forwards = "3000", extra_pod_selectors = [{"app": "grafana"}], labels = ["observability"])
+    if "loki" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/loki.observability.yaml"), allow_duplicates = True)
+        k8s_resource(workload = "loki", extra_pod_selectors = [{"app": "loki"}], labels = ["observability"])
+
+    if "grafana" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/grafana.observability.yaml"), allow_duplicates = True)
+        k8s_resource(workload = "grafana", port_forwards = "3000", extra_pod_selectors = [{"app": "grafana"}], labels = ["observability"])
 
 def prepare_all():
     allow_k8s_arg = ""
@@ -345,8 +351,8 @@ def prepare_all():
     # Note: we are creating clusterctl CRDs using kustomize (vs using clusterctl) because we want to create
     # a dependency between these resources and provider resources.
     kustomize_build_arg = "--kustomize-builds clusterctl.crd:./cmd/clusterctl/config/crd/ "
-    if settings.get("deploy_observability"):
-        kustomize_build_arg = kustomize_build_arg + "--kustomize-builds observability.tools:./hack/observability/ "
+    for tool in settings.get("deploy_observability", []):
+        kustomize_build_arg = kustomize_build_arg + "--kustomize-builds {tool}.observability:./hack/observability/{tool}/ ".format(tool = tool)
     providers_arg = ""
     for name in get_providers():
         p = providers.get(name)
@@ -382,7 +388,6 @@ prepare_all()
 
 deploy_provider_crds()
 
-if settings.get("deploy_observability"):
-    deploy_observability()
+deploy_observability()
 
 enable_providers()

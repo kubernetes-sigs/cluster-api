@@ -66,8 +66,8 @@ for more details.
 **kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
 provider's yaml.
 
-**deploy_observability** (Bool, default=false): If set to true, it will instrall grafana, loki and promtail in the dev
-cluster. Grafana UI will be accessible via a link in the tilt console.
+**deploy_observability** ([string], default=[]): If set, installs on the dev cluster one of more observability
+tools. Supported values are `grafana`, `loki` and/or `promtail` (Note: the UI for `grafana` will be accessible via a link in the tilt console).
 Important! This feature requires the `helm` command to be available in the user's path.
 
 **debug** (Map{string: Map} default{}): A map of named configurations for the provider. The key is the name of the provider.

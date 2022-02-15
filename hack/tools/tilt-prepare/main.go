@@ -355,6 +355,8 @@ func kustomizeTask(path, out string) taskFunction {
 			path,
 			// enable helm to enable helmChartInflationGenerator.
 			"--enable-helm",
+			// to allow picking up resource files from a different folder.
+			"--load-restrictor=LoadRestrictionsNone",
 		)
 
 		var stdout, stderr bytes.Buffer

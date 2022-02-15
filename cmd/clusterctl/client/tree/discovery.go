@@ -19,11 +19,14 @@ package tree
 import (
 	"context"
 
+	// corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -76,9 +79,9 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 	}
 
 	// Adds control plane
-	controlPLane, err := external.Get(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+	controlPlane, err := external.Get(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 	if err == nil {
-		tree.Add(cluster, controlPLane, ObjectMetaName("ControlPlane"), GroupingObject(true))
+		tree.Add(cluster, controlPlane, ObjectMetaName("ControlPlane"), GroupingObject(true))
 	}
 
 	// Adds control plane machines.
@@ -105,7 +108,7 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 	controlPlaneMachines := selectControlPlaneMachines(machinesList)
 	for i := range controlPlaneMachines {
 		cp := controlPlaneMachines[i]
-		addMachineFunc(controlPLane, cp)
+		addMachineFunc(controlPlane, cp)
 	}
 
 	if len(machinesList.Items) == len(controlPlaneMachines) {
@@ -151,6 +154,11 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 		}
 	}
 
+	err = addMachinePoolsToObjectTree(ctx, c, cluster, workers, machinesList, tree, addMachineFunc)
+	if err != nil {
+		return nil, err
+	}
+
 	// Handles orphan machines.
 	if len(machineMap) < len(machinesList.Items) {
 		other := VirtualObject(cluster.Namespace, "OtherGroup", "Other")
@@ -166,6 +174,33 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 	}
 
 	return tree, nil
+}
+
+func addMachinePoolsToObjectTree(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, workers *unstructured.Unstructured, machinesList *clusterv1.MachineList, tree *ObjectTree, addMachineFunc func(parent client.Object, m *clusterv1.Machine)) error {
+	machinePoolList, err := getMachinePoolsInCluster(ctx, c, cluster.Namespace, cluster.Name)
+	if err != nil {
+		return err
+	}
+
+	for i := range machinePoolList.Items {
+		mp := &machinePoolList.Items[i]
+		tree.Add(workers, mp, GroupingObject(true))
+		if machinePoolInfra, err := external.Get(ctx, c, &mp.Spec.Template.Spec.InfrastructureRef, cluster.Namespace); err == nil {
+			tree.Add(mp, machinePoolInfra, ObjectMetaName("MachinePoolInfrastructure"), NoEcho(true))
+		}
+
+		if machinePoolBootstrap, err := external.Get(ctx, c, mp.Spec.Template.Spec.Bootstrap.ConfigRef, cluster.Namespace); err == nil {
+			tree.Add(mp, machinePoolBootstrap, ObjectMetaName("BootstrapConfig"), NoEcho(true))
+			// TODO: should this BootstrapConfig go under the MachinePool or individual Machine?
+		}
+
+		machines := selectMachinesControlledBy(machinesList, mp)
+		for _, w := range machines {
+			addMachineFunc(mp, w)
+		}
+	}
+
+	return nil
 }
 
 func getMachinesInCluster(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.MachineList, error) {
@@ -196,6 +231,21 @@ func getMachineDeploymentsInCluster(ctx context.Context, c client.Client, namesp
 	}
 
 	return machineDeploymentList, nil
+}
+
+func getMachinePoolsInCluster(ctx context.Context, c client.Client, namespace, name string) (*expv1.MachinePoolList, error) {
+	if name == "" {
+		return nil, nil
+	}
+
+	machinePoolList := &expv1.MachinePoolList{}
+	labels := map[string]string{clusterv1.ClusterLabelName: name}
+
+	if err := c.List(ctx, machinePoolList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
+		return nil, err
+	}
+
+	return machinePoolList, nil
 }
 
 func getMachineSetsInCluster(ctx context.Context, c client.Client, namespace, name string) (*clusterv1.MachineSetList, error) {

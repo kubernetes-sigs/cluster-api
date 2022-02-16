@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,6 +43,7 @@ import (
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/internal/docker"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -260,6 +262,14 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	}
 
 	dockerMachinePool.Status.Ready = len(dockerMachinePool.Spec.ProviderIDList) == int(*machinePool.Spec.Replicas)
+	if dockerMachinePool.Status.Ready {
+		conditions.MarkTrue(dockerMachinePool, expv1.ReplicasReadyCondition)
+	} else {
+		conditions.MarkFalse(dockerMachinePool, expv1.ReplicasReadyCondition, expv1.WaitingForReplicasReadyReason, clusterv1.ConditionSeverityInfo, "")
+		// TODO: is this requeue necessary?
+		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	}
+
 	return ctrl.Result{}, nil
 }
 
@@ -268,11 +278,18 @@ func getDockerMachinePoolProviderID(clusterName, dockerMachinePoolName string) s
 }
 
 func patchDockerMachinePool(ctx context.Context, patchHelper *patch.Helper, dockerMachinePool *infraexpv1.DockerMachinePool) error {
-	// TODO: add conditions
+	conditions.SetSummary(dockerMachinePool,
+		conditions.WithConditions(
+			expv1.ReplicasReadyCondition,
+		),
+	)
 
-	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	return patchHelper.Patch(
 		ctx,
 		dockerMachinePool,
+		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			clusterv1.ReadyCondition,
+			expv1.ReplicasReadyCondition,
+		}},
 	)
 }

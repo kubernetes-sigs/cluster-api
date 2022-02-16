@@ -54,9 +54,15 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Ignition = restored.Spec.Ignition
 	if restored.Spec.InitConfiguration != nil {
+		if dst.Spec.InitConfiguration == nil {
+			dst.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
+		}
 		dst.Spec.InitConfiguration.Patches = restored.Spec.InitConfiguration.Patches
 	}
 	if restored.Spec.JoinConfiguration != nil {
+		if dst.Spec.JoinConfiguration == nil {
+			dst.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
 		dst.Spec.JoinConfiguration.Patches = restored.Spec.JoinConfiguration.Patches
 	}
 
@@ -119,9 +125,15 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Template.Spec.Ignition = restored.Spec.Template.Spec.Ignition
 	if restored.Spec.Template.Spec.InitConfiguration != nil {
+		if dst.Spec.Template.Spec.InitConfiguration == nil {
+			dst.Spec.Template.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
+		}
 		dst.Spec.Template.Spec.InitConfiguration.Patches = restored.Spec.Template.Spec.InitConfiguration.Patches
 	}
 	if restored.Spec.Template.Spec.JoinConfiguration != nil {
+		if dst.Spec.Template.Spec.JoinConfiguration == nil {
+			dst.Spec.Template.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
 		dst.Spec.Template.Spec.JoinConfiguration.Patches = restored.Spec.Template.Spec.JoinConfiguration.Patches
 	}
 

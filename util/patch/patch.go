@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
@@ -124,7 +125,7 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	}
 
 	// Calculate and store the top-level field changes (e.g. "metadata", "spec", "status") we have before/after.
-	h.changes, err = h.calculateChanges(obj)
+	h.changes, err = h.calculateChanges(ctx, obj)
 	if err != nil {
 		return err
 	}
@@ -277,7 +278,8 @@ func (h *Helper) shouldPatch(in string) bool {
 
 // calculate changes tries to build a patch from the before/after objects we have
 // and store in a map which top-level fields (e.g. `metadata`, `spec`, `status`, etc.) have changed.
-func (h *Helper) calculateChanges(after client.Object) (map[string]bool, error) {
+func (h *Helper) calculateChanges(ctx context.Context, after client.Object) (map[string]bool, error) {
+	log := ctrl.LoggerFrom(ctx)
 	// Calculate patch data.
 	patch := client.MergeFrom(h.beforeObject)
 	diff, err := patch.Data(after)
@@ -290,7 +292,12 @@ func (h *Helper) calculateChanges(after client.Object) (map[string]bool, error) 
 	if err := json.Unmarshal(diff, &patchDiff); err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal patch data into a map")
 	}
-
+	if len(patchDiff) == 0 {
+		log.Info("No changes for this object")
+	} else {
+		//FIXME: This can expose secrets or other sensitive information e.g. bootstrap token.
+		log.Info("Object changes in patch form", "patch", patchDiff)
+	}
 	// Return the map.
 	res := make(map[string]bool, len(patchDiff))
 	for key := range patchDiff {

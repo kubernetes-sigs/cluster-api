@@ -187,7 +187,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Info("Reconcile finished - waiting for KubeadmConfig owner to be set by other controllers")
 		return ctrl.Result{}, nil
 	}
-	log, ctx = contextLoggerWithValues(ctx, configOwner.GetKind(), configOwner)
+	log, ctx = contextLoggerWithValues(ctx, configOwner.GetKind(), newkObj(configOwner))
 
 	log.V(4).Info(fmt.Sprintf("KubeConfig owner %s found", newkObj(configOwner)))
 
@@ -235,10 +235,8 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		)
 		// TODO: check if we can move this in the patch helper
 		// TODO: Make this the patch rather than the entire object. Don't print this line if the patch is empty.
-		log.V(4).Info("Patching KubeadmConfig")
-		log, ctx = contextLoggerWithValues(ctx, "patch", config)
+		log.Info("Patching KubeadmConfig")
 
-		log.Info("With config")
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{}
 		if rerr == nil {

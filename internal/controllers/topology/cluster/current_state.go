@@ -35,6 +35,8 @@ import (
 // getCurrentState gets information about the current state of a Cluster by inspecting the state of the InfrastructureCluster,
 // the ControlPlane, and the MachineDeployments associated with the Cluster.
 func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scope.ClusterState, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.topology.ClusterReconciler.getCurrentState")
+	defer span.End()
 	// NOTE: current scope has been already initialized with the Cluster.
 	currentState := s.Current
 

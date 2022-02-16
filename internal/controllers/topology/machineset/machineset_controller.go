@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/trace"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+	traceutil "sigs.k8s.io/cluster-api/util/trace"
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io,resources=*,verbs=delete
@@ -50,19 +52,22 @@ type Reconciler struct {
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
 	APIReader        client.Reader
+	TraceProvider    trace.TracerProvider
 	WatchFilterValue string
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	tr := traceutil.Reconciler(r, r.TraceProvider, "controllers.topology.MachineSetReconciler", "machineset")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineSet{}).
 		Named("topology/machineset").
 		WithOptions(options).
+		WithLoggerCustomizer(tlog.LoggerCustomizer(mgr.GetLogger(), "topology/machineset", "machineset")).
 		WithEventFilter(predicates.All(ctrl.LoggerFrom(ctx),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
 			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx)),
 		)).
-		Complete(r)
+		Complete(tr)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

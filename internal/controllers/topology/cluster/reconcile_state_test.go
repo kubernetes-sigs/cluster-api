@@ -26,6 +26,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -76,6 +77,7 @@ func TestReconcileShim(t *testing.T) {
 		// Run reconcileClusterShim.
 		r := Reconciler{
 			Client: fakeClient,
+			Tracer: otel.Tracer("capi-test"),
 		}
 		err := r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -112,6 +114,7 @@ func TestReconcileShim(t *testing.T) {
 		// Run reconcileClusterShim.
 		r := Reconciler{
 			Client: fakeClient,
+			Tracer: otel.Tracer("capi-test"),
 		}
 		err := r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -154,6 +157,7 @@ func TestReconcileShim(t *testing.T) {
 		// Run reconcileClusterShim.
 		r := Reconciler{
 			Client: fakeClient,
+			Tracer: otel.Tracer("capi-test"),
 		}
 		err := r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -193,6 +197,7 @@ func TestReconcileShim(t *testing.T) {
 		// Run reconcileClusterShim.
 		r := Reconciler{
 			Client: fakeClient,
+			Tracer: otel.Tracer("capi-test"),
 		}
 		err := r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -223,6 +228,7 @@ func TestReconcileShim(t *testing.T) {
 		// Run reconcileClusterShim using a nil client, so an error will be triggered if any operation is attempted
 		r := Reconciler{
 			Client: nil,
+			Tracer: otel.Tracer("capi-test"),
 		}
 		err := r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -282,6 +288,7 @@ func TestReconcileCluster(t *testing.T) {
 
 			r := Reconciler{
 				Client:   fakeClient,
+				Tracer:   otel.Tracer("capi-test"),
 				recorder: env.GetEventRecorderFor("test"),
 			}
 			err := r.reconcileCluster(ctx, s)
@@ -387,6 +394,7 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 
 			r := Reconciler{
 				Client:   fakeClient,
+				Tracer:   otel.Tracer("capi-test"),
 				recorder: env.GetEventRecorderFor("test"),
 			}
 			err := r.reconcileInfrastructureCluster(ctx, s)
@@ -545,6 +553,7 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 
 			r := Reconciler{
 				Client:   fakeClient,
+				Tracer:   otel.Tracer("capi-test"),
 				recorder: env.GetEventRecorderFor("test"),
 			}
 
@@ -680,6 +689,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 			r := Reconciler{
 				Client:   fakeClient,
+				Tracer:   otel.Tracer("capi-test"),
 				recorder: env.GetEventRecorderFor("test"),
 			}
 			s.Desired = &scope.ClusterState{ControlPlane: &scope.ControlPlaneState{Object: tt.desired.Object, InfrastructureMachineTemplate: tt.desired.InfrastructureMachineTemplate}}
@@ -868,6 +878,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 
 			r := Reconciler{
 				Client:   fakeClient,
+				Tracer:   otel.Tracer("capi-test"),
 				recorder: env.GetEventRecorderFor("test"),
 			}
 
@@ -1101,6 +1112,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 
 			r := Reconciler{
 				Client:   fakeClient,
+				Tracer:   otel.Tracer("capi-test"),
 				recorder: env.GetEventRecorderFor("test"),
 			}
 			err := r.reconcileMachineDeployments(ctx, s)
@@ -1660,6 +1672,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).Build()
 			r := Reconciler{
 				Client: fakeClient,
+				Tracer: otel.Tracer("capi-test"),
 				// NOTE: Intentionally using a fake recorder, so the test can also be run without testenv.
 				recorder: record.NewFakeRecorder(32),
 			}
@@ -1892,6 +1905,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 
 			r := Reconciler{
 				Client:   fakeClient,
+				Tracer:   otel.Tracer("capi-test"),
 				recorder: env.GetEventRecorderFor("test"),
 			}
 
@@ -2023,6 +2037,7 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 					WithScheme(fakeScheme).
 					WithObjects([]client.Object{cp}...).
 					Build(),
+				Tracer:   otel.Tracer("capi-test"),
 				recorder: env.GetEventRecorderFor("test"),
 			}
 			if tt.current != nil {

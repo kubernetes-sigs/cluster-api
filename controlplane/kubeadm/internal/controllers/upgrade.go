@@ -37,7 +37,9 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	controlPlane *internal.ControlPlane,
 	machinesRequireUpgrade collections.Machines,
 ) (ctrl.Result, error) {
-	logger := controlPlane.Logger()
+	ctx, span := r.Tracer.Start(ctx, "controllers.KubeadmControlPlaneReconciler.upgradeControlPlane")
+	defer span.End()
+	logger := ctrl.LoggerFrom(ctx)
 
 	if kcp.Spec.RolloutStrategy == nil || kcp.Spec.RolloutStrategy.RollingUpdate == nil {
 		return ctrl.Result{}, errors.New("rolloutStrategy is not set")

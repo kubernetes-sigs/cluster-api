@@ -50,6 +50,8 @@ const (
 // the entire reconcile operation will fail. This might be improved in the future if support for reconciling
 // subset of a topology will be implemented.
 func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
+	ctx, span := r.Tracer.Start(ctx, "controllers.topology.ClusterReconciler.reconcileState")
+	defer span.End()
 	log := tlog.LoggerFrom(ctx)
 	log.Infof("Reconciling state for topology owned objects")
 
@@ -82,6 +84,8 @@ func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 // Reconcile the Cluster shim, a temporary object used a mean to collect objects/templates
 // that might be orphaned in case of errors during the remaining part of the reconcile process.
 func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) error {
+	ctx, span := r.Tracer.Start(ctx, "controllers.topology.ClusterReconciler.reconcileClusterShim")
+	defer span.End()
 	shim := clusterShim(s.Current.Cluster)
 
 	// If we are going to create the InfrastructureCluster or the ControlPlane object, then
@@ -165,6 +169,8 @@ func hasOwnerReferenceFrom(obj, owner client.Object) bool {
 
 // reconcileInfrastructureCluster reconciles the desired state of the InfrastructureCluster object.
 func (r *Reconciler) reconcileInfrastructureCluster(ctx context.Context, s *scope.Scope) error {
+	ctx, span := r.Tracer.Start(ctx, "controllers.topology.ClusterReconciler.reconcileInfrastructureCluster")
+	defer span.End()
 	ctx, _ = tlog.LoggerFrom(ctx).WithObject(s.Desired.InfrastructureCluster).Into(ctx)
 	return r.reconcileReferencedObject(ctx, reconcileReferencedObjectInput{
 		cluster: s.Current.Cluster,
@@ -179,6 +185,8 @@ func (r *Reconciler) reconcileInfrastructureCluster(ctx context.Context, s *scop
 // reconcileControlPlane works to bring the current state of a managed topology in line with the desired state. This involves
 // updating the cluster where needed.
 func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) error {
+	ctx, span := r.Tracer.Start(ctx, "controllers.topology.ClusterReconciler.reconcileControlPlane")
+	defer span.End()
 	// If the clusterClass mandates the controlPlane has infrastructureMachines, reconcile it.
 	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
 		ctx, _ := tlog.LoggerFrom(ctx).WithObject(s.Desired.ControlPlane.InfrastructureMachineTemplate).Into(ctx)
@@ -343,6 +351,8 @@ func (r *Reconciler) resolveOwnerReferenceIfIncomplete(ctx context.Context, name
 // most specifically, after a Cluster is created it is assumed that the reference to the InfrastructureCluster /
 // ControlPlane objects should never change (only the content of the objects can change).
 func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error {
+	ctx, span := r.Tracer.Start(ctx, "controllers.topology.ClusterReconciler.reconcileCluster")
+	defer span.End()
 	ctx, log := tlog.LoggerFrom(ctx).WithObject(s.Desired.Cluster).Into(ctx)
 
 	// Check differences between current and desired state, and eventually patch the current object.
@@ -365,6 +375,8 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 
 // reconcileMachineDeployments reconciles the desired state of the MachineDeployment objects.
 func (r *Reconciler) reconcileMachineDeployments(ctx context.Context, s *scope.Scope) error {
+	ctx, span := r.Tracer.Start(ctx, "controllers.topology.ClusterReconciler.reconcileMachineDeployments")
+	defer span.End()
 	diff := calculateMachineDeploymentDiff(s.Current.MachineDeployments, s.Desired.MachineDeployments)
 
 	// Create MachineDeployments.

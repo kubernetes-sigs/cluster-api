@@ -432,6 +432,8 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 }
 
 func (r *Reconciler) scaleMachineSet(ctx context.Context, ms *clusterv1.MachineSet, newScale int32, deployment *clusterv1.MachineDeployment) error {
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineDeploymentReconciler.scaleMachineSet")
+	defer span.End()
 	if ms.Spec.Replicas == nil {
 		return errors.Errorf("spec.replicas for MachineSet %v is nil, this is unexpected", client.ObjectKeyFromObject(ms))
 	}

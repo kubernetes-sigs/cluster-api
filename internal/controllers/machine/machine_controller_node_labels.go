@@ -31,6 +31,8 @@ import (
 )
 
 func (r *Reconciler) reconcileInterruptibleNodeLabel(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (ctrl.Result, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineReconciler.reconcileInterruptibleNodeLabel")
+	defer span.End()
 	// Check that the Machine hasn't been deleted or in the process
 	// and that the Machine has a NodeRef.
 	if !machine.DeletionTimestamp.IsZero() || machine.Status.NodeRef == nil {

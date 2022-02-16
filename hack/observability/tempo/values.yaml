@@ -1,0 +1,3 @@
+# Placeholder for tempo chart configuration, see https://github.com/grafana/helm-charts/tree/main/charts/tempo
+tempo:
+  searchEnabled: true

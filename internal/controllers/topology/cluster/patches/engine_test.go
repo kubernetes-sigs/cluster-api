@@ -24,6 +24,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -427,7 +428,7 @@ func TestApply(t *testing.T) {
 			}
 
 			// Apply patches.
-			g.Expect(patchEngine.Apply(context.Background(), blueprint, desired)).To(Succeed())
+			g.Expect(patchEngine.Apply(context.Background(), otel.Tracer("capi-test"), blueprint, desired)).To(Succeed())
 
 			// Compare the patched desired objects with the expected desired objects.
 			g.Expect(desired.Cluster).To(EqualObject(expectedCluster))

@@ -27,6 +27,7 @@ import (
 
 	// +kubebuilder:scaffold:imports
 	"github.com/spf13/pflag"
+	"go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,6 +57,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	"sigs.k8s.io/cluster-api/feature"
+	traceutil "sigs.k8s.io/cluster-api/util/trace"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
@@ -87,6 +89,8 @@ var (
 	webhookCertDir                string
 	healthAddr                    string
 	logOptions                    = logs.NewOptions()
+	tracingEndpoint               string
+	tracingSamplingRatePerMillion int
 )
 
 func init() {
@@ -176,6 +180,15 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
+	// Tracing flags ~ aligned to apiserver TracingConfiguration.
+	// https://github.com/grpc/grpc/blob/master/doc/naming.md
+	// => tempo.observability:4317
+	fs.StringVar(&tracingEndpoint, "tracing-endpoint", "",
+		"endpoint to send traces to")
+
+	fs.IntVar(&tracingSamplingRatePerMillion, "tracing-sampling-rate", 0,
+		"sample rate per million for tracing")
+
 	feature.MutableGates.AddFlag(fs)
 }
 
@@ -208,6 +221,8 @@ func main() {
 		}()
 	}
 
+	tp := traceutil.NewProvider(tracingEndpoint, tracingSamplingRatePerMillion, "capi-controller-manager")
+
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-controller-manager")
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
@@ -239,7 +254,7 @@ func main() {
 
 	setupChecks(mgr)
 	setupIndexes(ctx, mgr)
-	setupReconcilers(ctx, mgr)
+	setupReconcilers(ctx, mgr, tp)
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
@@ -269,15 +284,16 @@ func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager, tp trace.TracerProvider) {
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 	// requiring a connection to a remote cluster
 	log := ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")
 	tracker, err := remote.NewClusterCacheTracker(
 		mgr,
 		remote.ClusterCacheTrackerOptions{
-			Log:     &log,
-			Indexes: remote.DefaultIndexes,
+			Log:           &log,
+			Indexes:       remote.DefaultIndexes,
+			TraceProvider: tp,
 		},
 	)
 	if err != nil {
@@ -315,6 +331,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			APIReader:                 mgr.GetAPIReader(),
 			UnstructuredCachingClient: unstructuredCachingClient,
 			WatchFilterValue:          watchFilterValue,
+			TraceProvider:             tp,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterClassConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterClass")
 			os.Exit(1)
@@ -325,6 +342,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			APIReader:                 mgr.GetAPIReader(),
 			UnstructuredCachingClient: unstructuredCachingClient,
 			WatchFilterValue:          watchFilterValue,
+			TraceProvider:             tp,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterTopology")
 			os.Exit(1)
@@ -333,6 +351,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		if err := (&controllers.MachineDeploymentTopologyReconciler{
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
+			TraceProvider:    tp,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MachineDeploymentTopology")
@@ -342,6 +361,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		if err := (&controllers.MachineSetTopologyReconciler{
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
+			TraceProvider:    tp,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MachineSetTopology")
@@ -351,6 +371,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if err := (&controllers.ClusterReconciler{
 		Client:           mgr.GetClient(),
 		APIReader:        mgr.GetAPIReader(),
+		TraceProvider:    tp,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
@@ -360,6 +381,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Client:           mgr.GetClient(),
 		APIReader:        mgr.GetAPIReader(),
 		Tracker:          tracker,
+		TraceProvider:    tp,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Machine")
@@ -368,6 +390,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if err := (&controllers.MachineSetReconciler{
 		Client:           mgr.GetClient(),
 		APIReader:        mgr.GetAPIReader(),
+		TraceProvider:    tp,
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineSetConcurrency)); err != nil {
@@ -377,6 +400,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if err := (&controllers.MachineDeploymentReconciler{
 		Client:           mgr.GetClient(),
 		APIReader:        mgr.GetAPIReader(),
+		TraceProvider:    tp,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineDeploymentConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
@@ -413,6 +437,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&controllers.MachineHealthCheckReconciler{
 		Client:           mgr.GetClient(),
+		TraceProvider:    tp,
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineHealthCheckConcurrency)); err != nil {

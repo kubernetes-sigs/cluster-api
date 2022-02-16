@@ -26,6 +26,7 @@ import (
 
 	ignition "github.com/flatcar-linux/ignition/config/v2_3"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -456,6 +457,7 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	k := &KubeadmConfigReconciler{
 		Client:             myclient,
 		KubeadmInitLock:    &myInitLocker{},
+		Tracer:             otel.Tracer("capi-test"),
 		remoteClientGetter: fakeremote.NewClusterClient,
 	}
 

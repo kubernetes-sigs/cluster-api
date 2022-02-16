@@ -25,6 +25,7 @@ import (
 
 	// +kubebuilder:scaffold:imports
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -83,15 +84,19 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))
 		}
 		if err := (&Reconciler{
-			Client:    mgr.GetClient(),
-			APIReader: mgr.GetClient(),
+			Client:        mgr.GetClient(),
+			APIReader:     mgr.GetClient(),
+			TraceProvider: otel.GetTracerProvider(),
+			Tracer:        otel.Tracer("capi-test"),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start ClusterReconciler: %v", err))
 		}
 		if err := (&machinecontroller.Reconciler{
-			Client:    mgr.GetClient(),
-			APIReader: mgr.GetAPIReader(),
-			Tracker:   tracker,
+			Client:        mgr.GetClient(),
+			APIReader:     mgr.GetAPIReader(),
+			Tracker:       tracker,
+			TraceProvider: otel.GetTracerProvider(),
+			Tracer:        otel.Tracer("capi-test"),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
 		}

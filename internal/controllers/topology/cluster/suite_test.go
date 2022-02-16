@@ -24,6 +24,7 @@ import (
 	"time"
 
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -76,6 +77,8 @@ func TestMain(m *testing.M) {
 		if err := (&Reconciler{
 			Client:                    mgr.GetClient(),
 			APIReader:                 mgr.GetAPIReader(),
+			TraceProvider:             otel.GetTracerProvider(),
+			Tracer:                    otel.Tracer("capi-test"),
 			UnstructuredCachingClient: unstructuredCachingClient,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 5}); err != nil {
 			panic(fmt.Sprintf("unable to create topology cluster reconciler: %v", err))
@@ -83,6 +86,7 @@ func TestMain(m *testing.M) {
 		if err := (&clusterclass.Reconciler{
 			Client:                    mgr.GetClient(),
 			APIReader:                 mgr.GetAPIReader(),
+			TraceProvider:             otel.GetTracerProvider(),
 			UnstructuredCachingClient: unstructuredCachingClient,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 5}); err != nil {
 			panic(fmt.Sprintf("unable to create clusterclass reconciler: %v", err))

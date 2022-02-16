@@ -31,6 +31,8 @@ import (
 
 // rolloutRolling implements the logic for rolling a new MachineSet.
 func (r *Reconciler) rolloutRolling(ctx context.Context, d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) error {
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineDeploymentReconciler.rolloutRolling")
+	defer span.End()
 	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, d, msList, true)
 	if err != nil {
 		return err
@@ -73,6 +75,8 @@ func (r *Reconciler) rolloutRolling(ctx context.Context, d *clusterv1.MachineDep
 }
 
 func (r *Reconciler) reconcileNewMachineSet(ctx context.Context, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineDeploymentReconciler.reconcileNewMachineSet")
+	defer span.End()
 	if deployment.Spec.Replicas == nil {
 		return errors.Errorf("spec.replicas for MachineDeployment %v is nil, this is unexpected", client.ObjectKeyFromObject(deployment))
 	}
@@ -99,6 +103,8 @@ func (r *Reconciler) reconcileNewMachineSet(ctx context.Context, allMSs []*clust
 }
 
 func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineDeploymentReconciler.reconcileOldMachineSets")
+	defer span.End()
 	log := ctrl.LoggerFrom(ctx)
 
 	if deployment.Spec.Replicas == nil {
@@ -182,6 +188,8 @@ func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clus
 
 // cleanupUnhealthyReplicas will scale down old MachineSets with unhealthy replicas, so that all unhealthy replicas will be deleted.
 func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment, maxCleanupCount int32) ([]*clusterv1.MachineSet, int32, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineDeploymentReconciler.cleanupUnhealthyReplicas")
+	defer span.End()
 	log := ctrl.LoggerFrom(ctx)
 
 	sort.Sort(mdutil.MachineSetsByCreationTimestamp(oldMSs))
@@ -238,6 +246,8 @@ func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clu
 // scaleDownOldMachineSetsForRollingUpdate scales down old MachineSets when deployment strategy is "RollingUpdate".
 // Need check maxUnavailable to ensure availability.
 func (r *Reconciler) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context, allMSs []*clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) (int32, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineDeploymentReconciler.scaleDownOldMachineSetsForRollingUpdate")
+	defer span.End()
 	log := ctrl.LoggerFrom(ctx)
 
 	if deployment.Spec.Replicas == nil {

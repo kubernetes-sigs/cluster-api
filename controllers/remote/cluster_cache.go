@@ -24,6 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -62,6 +63,7 @@ type ClusterCacheTracker struct {
 	lock             sync.RWMutex
 	clusterAccessors map[client.ObjectKey]*clusterAccessor
 	indexes          []Index
+	traceProvider    trace.TracerProvider
 }
 
 // ClusterCacheTrackerOptions defines options to configure
@@ -76,6 +78,8 @@ type ClusterCacheTrackerOptions struct {
 	// Defaults to never caching ConfigMap and Secret if not set.
 	ClientUncachedObjects []client.Object
 	Indexes               []Index
+
+	TraceProvider trace.TracerProvider
 }
 
 func setDefaultOptions(opts *ClusterCacheTrackerOptions) {
@@ -103,6 +107,7 @@ func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOpt
 		scheme:                manager.GetScheme(),
 		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
 		indexes:               options.Indexes,
+		traceProvider:         options.TraceProvider,
 	}, nil
 }
 

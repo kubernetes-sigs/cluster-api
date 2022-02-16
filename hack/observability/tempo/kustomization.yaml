@@ -1,0 +1,10 @@
+resources:
+  - ../namespace.yaml
+
+# FIXME: wait for: https://github.com/grafana/helm-charts/pull/1053
+helmCharts:
+  - name: tempo
+    repo: https://grafana.github.io/helm-charts
+    releaseName: tempo
+    namespace: observability
+    valuesFile: values.yaml

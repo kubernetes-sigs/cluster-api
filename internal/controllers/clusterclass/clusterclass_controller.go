@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -37,6 +38,7 @@ import (
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+	traceutil "sigs.k8s.io/cluster-api/util/trace"
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io;controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch;update;patch
@@ -45,8 +47,9 @@ import (
 
 // Reconciler reconciles the ClusterClass object.
 type Reconciler struct {
-	Client    client.Client
-	APIReader client.Reader
+	Client        client.Client
+	APIReader     client.Reader
+	TraceProvider trace.TracerProvider
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -57,12 +60,14 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	tr := traceutil.Reconciler(r, r.TraceProvider, "controllers.ClusterClassReconciler", "clusterclass")
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.ClusterClass{}).
-		Named("topology/clusterclass").
+		Named("clusterclass").
 		WithOptions(options).
+		WithLoggerCustomizer(tlog.LoggerCustomizer(mgr.GetLogger(), "clusterclass", "clusterclass")).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Complete(r)
+		Complete(tr)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

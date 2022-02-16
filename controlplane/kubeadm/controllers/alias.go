@@ -20,6 +20,7 @@ import (
 	"context"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -30,9 +31,10 @@ import (
 
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object.
 type KubeadmControlPlaneReconciler struct {
-	Client    client.Client
-	APIReader client.Reader
-	Tracker   *remote.ClusterCacheTracker
+	Client        client.Client
+	APIReader     client.Reader
+	TraceProvider trace.TracerProvider
+	Tracker       *remote.ClusterCacheTracker
 
 	EtcdDialTimeout time.Duration
 
@@ -45,6 +47,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 	return (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
 		Client:           r.Client,
 		APIReader:        r.APIReader,
+		TraceProvider:    r.TraceProvider,
 		Tracker:          r.Tracker,
 		EtcdDialTimeout:  r.EtcdDialTimeout,
 		WatchFilterValue: r.WatchFilterValue,

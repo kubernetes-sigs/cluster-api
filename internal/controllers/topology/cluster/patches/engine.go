@@ -19,9 +19,12 @@ package patches
 
 import (
 	"context"
+	"time"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -34,7 +37,7 @@ import (
 
 // Engine is a patch engine which applies patches defined in a ClusterBlueprint to a ClusterState.
 type Engine interface {
-	Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, desired *scope.ClusterState) error
+	Apply(ctx context.Context, tracer trace.Tracer, blueprint *scope.ClusterBlueprint, desired *scope.ClusterState) error
 }
 
 // NewEngine creates a new patch engine.
@@ -58,7 +61,10 @@ type engine struct {
 // * Then for all ClusterClassPatches of a ClusterClass, JSON or JSON merge patches are generated
 //   and successively applied to the templates in the GenerateRequest.
 // * Eventually the patched templates are used to update the specs of the desired objects.
-func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, desired *scope.ClusterState) error {
+func (e *engine) Apply(ctx context.Context, tracer trace.Tracer, blueprint *scope.ClusterBlueprint, desired *scope.ClusterState) error {
+	ctx, span := tracer.Start(ctx, "controllers.topology.ClusterReconciler.PatchEngine.Apply")
+	defer span.End()
+
 	// Return if there are no patches.
 	if len(blueprint.ClusterClass.Spec.Patches) == 0 {
 		return nil
@@ -67,6 +73,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 	log := tlog.LoggerFrom(ctx)
 
 	// Create a patch generation request.
+	span.AddEvent("createRequest", trace.WithTimestamp(time.Now()))
 	req, err := createRequest(blueprint, desired)
 	if err != nil {
 		return errors.Wrapf(err, "failed to generate patch request")
@@ -76,6 +83,8 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 	// respecting the order in which they are defined.
 	for i := range blueprint.ClusterClass.Spec.Patches {
 		clusterClassPatch := blueprint.ClusterClass.Spec.Patches[i]
+		span.AddEvent("generatePatch", trace.WithTimestamp(time.Now()),
+			trace.WithAttributes(attribute.String("patch", clusterClassPatch.Name)))
 		ctx, log = log.WithValues("patch", clusterClassPatch.Name).Into(ctx)
 
 		log.V(5).Infof("Applying patch to templates")
@@ -102,6 +111,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 	}
 
 	// Use patched templates to update the desired state objects.
+	span.AddEvent("applyPatches", trace.WithTimestamp(time.Now()))
 	log.V(5).Infof("Applying patched templates to desired state")
 	if err := updateDesiredState(ctx, req, blueprint, desired); err != nil {
 		return errors.Wrapf(err, "failed to apply patches to desired state")

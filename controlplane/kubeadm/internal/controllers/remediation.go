@@ -37,6 +37,8 @@ import (
 // reconcileUnhealthyMachines tries to remediate KubeadmControlPlane unhealthy machines
 // based on the process described in https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20191017-kubeadm-based-control-plane.md#remediation-using-delete-and-recreate
 func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlane *internal.ControlPlane) (ret ctrl.Result, retErr error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.KubeadmControlPlaneReconciler.reconcileUnhealthyMachines")
+	defer span.End()
 	log := ctrl.LoggerFrom(ctx)
 
 	// Cleanup pending remediation actions not completed for any reasons (e.g. number of current replicas is less or equal to 1)

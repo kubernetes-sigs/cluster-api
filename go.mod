@@ -45,9 +45,25 @@ require (
 	sigs.k8s.io/yaml v1.3.0
 )
 
-require golang.org/x/net v0.0.0-20210825183410-e898025ed96a
+require (
+	go.opentelemetry.io/otel v0.20.0
+	go.opentelemetry.io/otel/exporters/otlp v0.20.0
+	go.opentelemetry.io/otel/sdk v0.20.0
+	go.opentelemetry.io/otel/trace v0.20.0
+	golang.org/x/net v0.0.0-20210825183410-e898025ed96a
+)
 
-require github.com/go-logr/zapr v1.2.0 // indirect
+require (
+	github.com/felixge/httpsnoop v1.0.1 // indirect
+	github.com/go-logr/zapr v1.2.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
+	go.opentelemetry.io/contrib v0.20.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.20.0 // indirect
+	go.opentelemetry.io/otel/metric v0.20.0 // indirect
+	go.opentelemetry.io/otel/sdk/export/metric v0.20.0 // indirect
+	go.opentelemetry.io/otel/sdk/metric v0.20.0 // indirect
+	go.opentelemetry.io/proto/otlp v0.7.0 // indirect
+)
 
 require (
 	cloud.google.com/go v0.93.3 // indirect
@@ -86,7 +102,7 @@ require (
 	github.com/google/cel-go v0.9.0 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
-	github.com/google/uuid v1.1.2 // indirect
+	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.5.5 // indirect
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
@@ -154,3 +170,9 @@ require (
 	sigs.k8s.io/kustomize/kyaml v0.13.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.0 // indirect
 )
+
+// pick up a klog version with the "v" fix
+replace k8s.io/klog/v2 => k8s.io/klog/v2 v2.40.2-0.20220216121836-84f3ebd27f1b
+
+// pick up a CR version with the LoggerCustomizer
+replace sigs.k8s.io/controller-runtime => github.com/sbueringer/controller-runtime v0.2.0-beta.1.0.20220216141822-42d8935efb64

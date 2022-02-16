@@ -25,6 +25,7 @@ import (
 
 	"github.com/blang/semver"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -420,6 +421,7 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 	fakeClient := newFakeClient(kcp.DeepCopy(), cluster.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
+		Tracer:   otel.Tracer("capi-test"),
 		recorder: record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: fakeClient},

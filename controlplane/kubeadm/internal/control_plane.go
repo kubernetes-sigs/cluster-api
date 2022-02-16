@@ -19,7 +19,6 @@ package internal
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -88,11 +87,6 @@ func NewControlPlane(ctx context.Context, client client.Client, cluster *cluster
 		infraResources:       infraObjects,
 		reconciliationTime:   metav1.Now(),
 	}, nil
-}
-
-// Logger returns a logger with useful context.
-func (c *ControlPlane) Logger() logr.Logger {
-	return Log.WithValues("namespace", c.KCP.Namespace, "name", c.KCP.Name, "cluster-name", c.Cluster.Name)
 }
 
 // FailureDomains returns a slice of failure domain objects synced from the infrastructure provider into Cluster.Status.

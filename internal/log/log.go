@@ -22,11 +22,22 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
+
+// LoggerCustomizer is a util to create a LoggerCustomizer.
+func LoggerCustomizer(log logr.Logger, controllerName, kind string) func(_ logr.Logger, req reconcile.Request) logr.Logger {
+	return func(_ logr.Logger, req reconcile.Request) logr.Logger {
+		return log.
+			WithValues("controller", controllerName).
+			WithValues(kind, klog.KRef(req.Namespace, req.Name).String())
+	}
+}
 
 // LoggerFrom returns a logger with predefined values from a context.Context.
 // The logger, when used with controllers, can be expected to contain basic information about the object

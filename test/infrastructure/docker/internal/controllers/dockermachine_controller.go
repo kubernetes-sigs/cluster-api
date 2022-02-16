@@ -23,8 +23,10 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -35,6 +37,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
@@ -43,12 +46,15 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+	traceutil "sigs.k8s.io/cluster-api/util/trace"
 )
 
 // DockerMachineReconciler reconciles a DockerMachine object.
 type DockerMachineReconciler struct {
 	client.Client
 	ContainerRuntime container.Runtime
+	TraceProvider    trace.TracerProvider
+	Tracer           trace.Tracer
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachines,verbs=get;list;watch;create;update;patch;delete
@@ -80,7 +86,8 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("machine", machine.Name)
+	log = log.WithValues("machine", klog.KObj(machine).String())
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Fetch the Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machine.ObjectMeta)
@@ -93,7 +100,8 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("cluster", cluster.Name)
+	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, dockerMachine) {
@@ -111,8 +119,6 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Info("DockerCluster is not available yet")
 		return ctrl.Result{}, nil
 	}
-
-	log = log.WithValues("docker-cluster", dockerCluster.Name)
 
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(dockerMachine, r)
@@ -190,6 +196,8 @@ func patchDockerMachine(ctx context.Context, patchHelper *patch.Helper, dockerMa
 }
 
 func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) (res ctrl.Result, retErr error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.DockerMachineReconciler.reconcileNormal")
+	defer span.End()
 	log := ctrl.LoggerFrom(ctx)
 
 	// if the machine is already provisioned, return
@@ -231,6 +239,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 
 	// Create the machine if not existing yet
 	if !externalMachine.Exists() {
+		span.AddEvent("createMachine", trace.WithTimestamp(time.Now()))
 		if err := externalMachine.Create(ctx, role, machine.Spec.Version, dockerMachine.Spec.ExtraMounts); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
 		}
@@ -238,6 +247,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 
 	// Preload images into the container
 	if len(dockerMachine.Spec.PreLoadImages) > 0 {
+		span.AddEvent("preloadLoadImages", trace.WithTimestamp(time.Now()))
 		if err := externalMachine.PreloadLoadImages(ctx, dockerMachine.Spec.PreLoadImages); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to pre-load images into the DockerMachine")
 		}
@@ -247,6 +257,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	// we should only do this once, as reconfiguration more or less ensures
 	// node ref setting fails
 	if util.IsControlPlaneMachine(machine) && !dockerMachine.Status.LoadBalancerConfigured {
+		span.AddEvent("updateLoadBalancer", trace.WithTimestamp(time.Now()))
 		if err := externalLoadBalancer.UpdateConfiguration(ctx); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
 		}
@@ -284,11 +295,13 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		timeoutctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 		defer cancel()
 		// Run the bootstrap script. Simulates cloud-init/Ignition.
+		span.AddEvent("execMachineBootstrap", trace.WithTimestamp(time.Now()))
 		if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData, format); err != nil {
 			conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
 			return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
 		}
 		// Check for bootstrap success
+		span.AddEvent("checkMachineBootstrapSuccess", trace.WithTimestamp(time.Now()))
 		if err := externalMachine.CheckForBootstrapSuccess(timeoutctx); err != nil {
 			conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
 			return ctrl.Result{}, errors.Wrap(err, "failed to check for existence of bootstrap success file at /run/cluster-api/bootstrap-success.complete")
@@ -325,6 +338,8 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 }
 
 func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, machine *clusterv1.Machine, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.DockerMachineReconciler.reconcileDelete")
+	defer span.End()
 	// Set the ContainerProvisionedCondition reporting delete is started, and issue a patch in order to make
 	// this visible to the users.
 	// NB. The operation in docker is fast, so there is the chance the user will not notice the status change;
@@ -339,12 +354,14 @@ func (r *DockerMachineReconciler) reconcileDelete(ctx context.Context, machine *
 	}
 
 	// delete the machine
+	span.AddEvent("deleteMachine", trace.WithTimestamp(time.Now()))
 	if err := externalMachine.Delete(ctx); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete DockerMachine")
 	}
 
 	// if the deleted machine is a control-plane node, remove it from the load balancer configuration;
 	if util.IsControlPlaneMachine(machine) {
+		span.AddEvent("updateLoadBalancer", trace.WithTimestamp(time.Now()))
 		if err := externalLoadBalancer.UpdateConfiguration(ctx); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update DockerCluster.loadbalancer configuration")
 		}
@@ -362,9 +379,12 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		return err
 	}
 
+	r.Tracer = r.TraceProvider.Tracer("capi")
+	tr := traceutil.Reconciler(r, r.TraceProvider, "controllers.DockerMachineReconciler", "dockermachine")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerMachine{}).
 		WithOptions(options).
+		WithLoggerCustomizer(tlog.LoggerCustomizer(mgr.GetLogger(), "dockermachine", "dockermachine")).
 		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
@@ -374,7 +394,7 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 			&source.Kind{Type: &infrav1.DockerCluster{}},
 			handler.EnqueueRequestsFromMapFunc(r.DockerClusterToDockerMachines),
 		).
-		Build(r)
+		Build(tr)
 	if err != nil {
 		return err
 	}

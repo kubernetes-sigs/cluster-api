@@ -19,9 +19,12 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/trace"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -30,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
@@ -37,12 +41,15 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+	traceutil "sigs.k8s.io/cluster-api/util/trace"
 )
 
 // DockerClusterReconciler reconciles a DockerCluster object.
 type DockerClusterReconciler struct {
 	client.Client
 	ContainerRuntime container.Runtime
+	TraceProvider    trace.TracerProvider
+	Tracer           trace.Tracer
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockerclusters,verbs=get;list;watch;create;update;patch;delete
@@ -73,7 +80,8 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("cluster", cluster.Name)
+	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Create a helper for managing a docker container hosting the loadbalancer.
 	externalLoadBalancer, err := docker.NewLoadBalancer(ctx, cluster, dockerCluster)
@@ -138,6 +146,10 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 }
 
 func (r *DockerClusterReconciler) reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.DockerClusterReconciler.reconcileNormal")
+	defer span.End()
+
+	span.AddEvent("createLoadBalancer", trace.WithTimestamp(time.Now()))
 	// Create the docker container hosting the load balancer.
 	if err := externalLoadBalancer.Create(ctx); err != nil {
 		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
@@ -164,6 +176,8 @@ func (r *DockerClusterReconciler) reconcileNormal(ctx context.Context, dockerClu
 }
 
 func (r *DockerClusterReconciler) reconcileDelete(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.DockerClusterReconciler.reconcileDelete")
+	defer span.End()
 	// Set the LoadBalancerAvailableCondition reporting delete is started, and issue a patch in order to make
 	// this visible to the users.
 	// NB. The operation in docker is fast, so there is the chance the user will not notice the status change;
@@ -178,6 +192,7 @@ func (r *DockerClusterReconciler) reconcileDelete(ctx context.Context, dockerClu
 	}
 
 	// Delete the docker container hosting the load balancer
+	span.AddEvent("deleteLoadBalancer", trace.WithTimestamp(time.Now()))
 	if err := externalLoadBalancer.Delete(ctx); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to delete load balancer")
 	}
@@ -190,11 +205,14 @@ func (r *DockerClusterReconciler) reconcileDelete(ctx context.Context, dockerClu
 
 // SetupWithManager will add watches for this controller.
 func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	r.Tracer = r.TraceProvider.Tracer("capi")
+	tr := traceutil.Reconciler(r, r.TraceProvider, "controllers.DockerClusterReconciler", "dockercluster")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&infrav1.DockerCluster{}).
 		WithOptions(options).
+		WithLoggerCustomizer(tlog.LoggerCustomizer(mgr.GetLogger(), "dockercluster", "dockercluster")).
 		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
-		Build(r)
+		Build(tr)
 	if err != nil {
 		return err
 	}

@@ -332,6 +332,11 @@ def deploy_observability():
         k8s_yaml(read_file("./.tiltbuild/yaml/loki.observability.yaml"), allow_duplicates = True)
         k8s_resource(workload = "loki", extra_pod_selectors = [{"app": "loki"}], labels = ["observability"])
 
+    if "tempo" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/tempo.observability.yaml"), allow_duplicates = True)
+        # Port-forward the tracing port to localhost, so we can also send traces from local.
+        k8s_resource(workload = "tempo", port_forwards = "4317:4317", extra_pod_selectors = [{"app": "tempo"}], labels = ["observability"])
+
     if "grafana" in settings.get("deploy_observability", []):
         k8s_yaml(read_file("./.tiltbuild/yaml/grafana.observability.yaml"), allow_duplicates = True)
         k8s_resource(workload = "grafana", port_forwards = "3001:3000", extra_pod_selectors = [{"app": "grafana"}], labels = ["observability"])

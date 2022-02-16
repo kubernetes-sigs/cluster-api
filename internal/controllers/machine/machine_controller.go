@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,12 +47,14 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+	traceutil "sigs.k8s.io/cluster-api/util/trace"
 )
 
 const (
@@ -76,9 +79,11 @@ var (
 
 // Reconciler reconciles a Machine object.
 type Reconciler struct {
-	Client    client.Client
-	APIReader client.Reader
-	Tracker   *remote.ClusterCacheTracker
+	Client        client.Client
+	APIReader     client.Reader
+	Tracker       *remote.ClusterCacheTracker
+	TraceProvider trace.TracerProvider
+	Tracer        trace.Tracer
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -102,11 +107,14 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		r.nodeDeletionRetryTimeout = 10 * time.Second
 	}
 
+	r.Tracer = r.TraceProvider.Tracer("capi")
+	tr := traceutil.Reconciler(r, r.TraceProvider, "controllers.MachineReconciler", "machine")
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Machine{}).
 		WithOptions(options).
+		WithLoggerCustomizer(log.LoggerCustomizer(mgr.GetLogger(), "machine", "machine")).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Build(r)
+		Build(tr)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -154,6 +162,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
 			m.Spec.ClusterName, m.Name, m.Namespace)
 	}
+
+	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, m) {
@@ -241,6 +252,8 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 }
 
 func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineReconciler.reconcile")
+	defer span.End()
 	log := ctrl.LoggerFrom(ctx)
 
 	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
@@ -284,7 +297,9 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 }
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineReconciler.reconcileDelete")
+	defer span.End()
+	log := ctrl.LoggerFrom(ctx)
 
 	err := r.isDeleteNodeAllowed(ctx, cluster, m)
 	isDeleteNodeAllowed := err == nil
@@ -340,7 +355,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 			if conditions.Get(m, clusterv1.VolumeDetachSucceededCondition) == nil {
 				conditions.MarkFalse(m, clusterv1.VolumeDetachSucceededCondition, clusterv1.WaitingForVolumeDetachReason, clusterv1.ConditionSeverityInfo, "Waiting for node volumes to be detached")
 			}
-			if ok, err := r.shouldWaitForNodeVolumes(ctx, cluster, m.Status.NodeRef.Name, m.Name); ok || err != nil {
+			if ok, err := r.shouldWaitForNodeVolumes(ctx, cluster, m.Status.NodeRef.Name); ok || err != nil {
 				if err != nil {
 					r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedWaitForVolumeDetach", "error wait for volume detach, node %q: %v", m.Status.NodeRef.Name, err)
 					return ctrl.Result{}, err
@@ -443,7 +458,7 @@ func (r *Reconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
 // isDeleteNodeAllowed returns nil only if the Machine's NodeRef is not nil
 // and if the Machine is not the last control plane node in the cluster.
 func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) error {
-	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+	log := ctrl.LoggerFrom(ctx, "cluster", klog.KObj(cluster).String())
 	// Return early if the cluster is being deleted.
 	if !cluster.DeletionTimestamp.IsZero() {
 		return errClusterIsBeingDeleted
@@ -503,7 +518,9 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 }
 
 func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name, "node", nodeName)
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineReconciler.drainNode")
+	defer span.End()
+	log := ctrl.LoggerFrom(ctx, "node", nodeName)
 
 	restConfig, err := remote.RESTConfig(ctx, controllerName, r.Client, util.ObjectKey(cluster))
 	if err != nil {
@@ -542,7 +559,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 				verbStr = "Evicted"
 			}
 			log.Info(fmt.Sprintf("%s pod from Node", verbStr),
-				"pod", fmt.Sprintf("%s/%s", pod.Name, pod.Namespace))
+				"pod", klog.KObj(pod).String())
 		},
 		Out:    writer{klog.Info},
 		ErrOut: writer{klog.Error},
@@ -574,8 +591,10 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 // this could cause issue for some storage provisioner, for example, vsphere-volume this is problematic
 // because if the node is deleted before detach success, then the underline VMDK will be deleted together with the Machine
 // so after node draining we need to check if all volumes are detached before deleting the node.
-func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clusterv1.Cluster, nodeName string, machineName string) (bool, error) {
-	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name, "node", nodeName, "machine", machineName)
+func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (bool, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineReconciler.shouldWaitForNodeVolumes")
+	defer span.End()
+	log := ctrl.LoggerFrom(ctx, "node", nodeName)
 
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
@@ -595,7 +614,9 @@ func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clus
 }
 
 func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster, name string) error {
-	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineReconciler.deleteNode")
+	defer span.End()
+	log := ctrl.LoggerFrom(ctx)
 
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
@@ -616,6 +637,8 @@ func (r *Reconciler) deleteNode(ctx context.Context, cluster *clusterv1.Cluster,
 }
 
 func (r *Reconciler) reconcileDeleteBootstrap(ctx context.Context, m *clusterv1.Machine) (bool, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineReconciler.reconcileDeleteBootstrap")
+	defer span.End()
 	obj, err := r.reconcileDeleteExternal(ctx, m, m.Spec.Bootstrap.ConfigRef)
 	if err != nil {
 		return false, err
@@ -636,6 +659,8 @@ func (r *Reconciler) reconcileDeleteBootstrap(ctx context.Context, m *clusterv1.
 }
 
 func (r *Reconciler) reconcileDeleteInfrastructure(ctx context.Context, m *clusterv1.Machine) (bool, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineReconciler.reconcileDeleteInfrastructure")
+	defer span.End()
 	obj, err := r.reconcileDeleteExternal(ctx, m, &m.Spec.InfrastructureRef)
 	if err != nil {
 		return false, err

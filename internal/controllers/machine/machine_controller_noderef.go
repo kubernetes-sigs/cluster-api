@@ -41,8 +41,9 @@ var (
 )
 
 func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "machine", machine.Name, "namespace", machine.Namespace)
-	log = log.WithValues("cluster", cluster.Name)
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineReconciler.reconcileNode")
+	defer span.End()
+	log := ctrl.LoggerFrom(ctx)
 
 	// Check that the Machine has a valid ProviderID.
 	if machine.Spec.ProviderID == nil || *machine.Spec.ProviderID == "" {

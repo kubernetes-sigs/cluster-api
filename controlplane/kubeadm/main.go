@@ -28,6 +28,7 @@ import (
 
 	// +kubebuilder:scaffold:imports
 	"github.com/spf13/pflag"
+	"go.opentelemetry.io/otel/trace"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -52,6 +53,7 @@ import (
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
 	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
+	traceutil "sigs.k8s.io/cluster-api/util/trace"
 	"sigs.k8s.io/cluster-api/version"
 )
 
@@ -89,6 +91,8 @@ var (
 	healthAddr                     string
 	etcdDialTimeout                time.Duration
 	logOptions                     = logs.NewOptions()
+	tracingEndpoint                string
+	tracingSamplingRatePerMillion  int
 )
 
 // InitFlags initializes the flags.
@@ -138,6 +142,15 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&etcdDialTimeout, "etcd-dial-timeout-duration", 10*time.Second,
 		"Duration that the etcd client waits at most to establish a connection with etcd")
 
+	// Tracing flags ~ aligned to apiserver TracingConfiguration.
+	// https://github.com/grpc/grpc/blob/master/doc/naming.md
+	// => tempo.observability:4317
+	fs.StringVar(&tracingEndpoint, "tracing-endpoint", "",
+		"endpoint to send traces to")
+
+	fs.IntVar(&tracingSamplingRatePerMillion, "tracing-sampling-rate", 0,
+		"sample rate per million for tracing")
+
 	feature.MutableGates.AddFlag(fs)
 }
 func main() {
@@ -169,6 +182,8 @@ func main() {
 		}()
 	}
 
+	tp := traceutil.NewProvider(tracingEndpoint, tracingSamplingRatePerMillion, "capi-kubeadm-control-plane-controller-manager")
+
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-kubeadm-control-plane-manager")
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
@@ -199,7 +214,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	setupChecks(mgr)
-	setupReconcilers(ctx, mgr)
+	setupReconcilers(ctx, mgr, tp)
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
@@ -222,7 +237,7 @@ func setupChecks(mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager, tp trace.TracerProvider) {
 	// Set up a ClusterCacheTracker to provide to controllers
 	// requiring a connection to a remote cluster
 	tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{
@@ -252,6 +267,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
 		Client:           mgr.GetClient(),
 		APIReader:        mgr.GetAPIReader(),
+		TraceProvider:    tp,
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
 		EtcdDialTimeout:  etcdDialTimeout,

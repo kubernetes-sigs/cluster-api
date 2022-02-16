@@ -26,6 +26,7 @@ import (
 
 	// +kubebuilder:scaffold:imports
 	"github.com/spf13/pflag"
+	"go.opentelemetry.io/otel/trace"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -51,6 +52,7 @@ import (
 	infraexpv1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/controllers"
+	traceutil "sigs.k8s.io/cluster-api/util/trace"
 )
 
 var (
@@ -58,15 +60,17 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 
 	// flags.
-	metricsBindAddr      string
-	enableLeaderElection bool
-	profilerAddress      string
-	syncPeriod           time.Duration
-	concurrency          int
-	healthAddr           string
-	webhookPort          int
-	webhookCertDir       string
-	logOptions           = logs.NewOptions()
+	metricsBindAddr               string
+	enableLeaderElection          bool
+	profilerAddress               string
+	syncPeriod                    time.Duration
+	concurrency                   int
+	healthAddr                    string
+	webhookPort                   int
+	webhookCertDir                string
+	logOptions                    = logs.NewOptions()
+	tracingEndpoint               string
+	tracingSamplingRatePerMillion int
 )
 
 func init() {
@@ -102,6 +106,15 @@ func initFlags(fs *pflag.FlagSet) {
 		"Webhook Server port")
 	fs.StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
 		"Webhook cert dir, only used when webhook-port is specified.")
+
+	// Tracing flags ~ aligned to apiserver TracingConfiguration.
+	// https://github.com/grpc/grpc/blob/master/doc/naming.md
+	// => tempo.observability:4317
+	fs.StringVar(&tracingEndpoint, "tracing-endpoint", "",
+		"endpoint to send traces to")
+
+	fs.IntVar(&tracingSamplingRatePerMillion, "tracing-sampling-rate", 0,
+		"sample rate per million for tracing")
 
 	feature.MutableGates.AddFlag(fs)
 }
@@ -139,6 +152,8 @@ func main() {
 		}()
 	}
 
+	tp := traceutil.NewProvider(tracingEndpoint, tracingSamplingRatePerMillion, "capd-controller-manager")
+
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-docker-controller-manager")
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
@@ -161,7 +176,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	setupChecks(mgr)
-	setupReconcilers(ctx, mgr)
+	setupReconcilers(ctx, mgr, tp)
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
@@ -184,7 +199,7 @@ func setupChecks(mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager, tp trace.TracerProvider) {
 	// Set our runtime client into the context for later use
 	runtimeClient, err := container.NewDockerClient()
 	if err != nil {
@@ -195,6 +210,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if err := (&controllers.DockerMachineReconciler{
 		Client:           mgr.GetClient(),
 		ContainerRuntime: runtimeClient,
+		TraceProvider:    tp,
 	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: concurrency,
 	}); err != nil {
@@ -205,6 +221,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if err := (&controllers.DockerClusterReconciler{
 		Client:           mgr.GetClient(),
 		ContainerRuntime: runtimeClient,
+		TraceProvider:    tp,
 	}).SetupWithManager(ctx, mgr, controller.Options{}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DockerCluster")
 		os.Exit(1)

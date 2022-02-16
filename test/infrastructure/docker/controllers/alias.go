@@ -20,6 +20,7 @@ package controllers
 import (
 	"context"
 
+	"go.opentelemetry.io/otel/trace"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -35,6 +36,7 @@ import (
 type DockerMachineReconciler struct {
 	Client           client.Client
 	ContainerRuntime container.Runtime
+	TraceProvider    trace.TracerProvider
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -42,6 +44,7 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	return (&dockercontrollers.DockerMachineReconciler{
 		Client:           r.Client,
 		ContainerRuntime: r.ContainerRuntime,
+		TraceProvider:    r.TraceProvider,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
@@ -49,6 +52,7 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 type DockerClusterReconciler struct {
 	Client           client.Client
 	ContainerRuntime container.Runtime
+	TraceProvider    trace.TracerProvider
 }
 
 // SetupWithManager sets up the reconciler with the Manager.
@@ -56,5 +60,6 @@ func (r *DockerClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	return (&dockercontrollers.DockerClusterReconciler{
 		Client:           r.Client,
 		ContainerRuntime: r.ContainerRuntime,
+		TraceProvider:    r.TraceProvider,
 	}).SetupWithManager(ctx, mgr, options)
 }

@@ -26,6 +26,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,6 +35,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -46,11 +48,13 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+	traceutil "sigs.k8s.io/cluster-api/util/trace"
 )
 
 const (
@@ -73,8 +77,9 @@ const (
 
 // Reconciler reconciles a MachineHealthCheck object.
 type Reconciler struct {
-	Client  client.Client
-	Tracker *remote.ClusterCacheTracker
+	Client        client.Client
+	Tracker       *remote.ClusterCacheTracker
+	TraceProvider trace.TracerProvider
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -84,6 +89,7 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	tr := traceutil.Reconciler(r, r.TraceProvider, "controllers.MachineHealthCheck", "machinehealthcheck")
 	controller, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineHealthCheck{}).
 		Watches(
@@ -91,8 +97,9 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.machineToMachineHealthCheck),
 		).
 		WithOptions(options).
+		WithLoggerCustomizer(tlog.LoggerCustomizer(mgr.GetLogger(), "machinehealthcheck", "machinehealthcheck")).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Build(r)
+		Build(tr)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -132,7 +139,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	log = log.WithValues("cluster", m.Spec.ClusterName)
+	log = log.WithValues("cluster", klog.KRef(m.Namespace, m.Spec.ClusterName).String())
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, m.Namespace, m.Spec.ClusterName)

@@ -21,10 +21,13 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,10 +40,12 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+	traceutil "sigs.k8s.io/cluster-api/util/trace"
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io;controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch;create;update;patch;delete
@@ -56,7 +61,9 @@ type Reconciler struct {
 	Client client.Client
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
-	APIReader client.Reader
+	APIReader     client.Reader
+	TraceProvider trace.TracerProvider
+	Tracer        trace.Tracer
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -73,6 +80,8 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	r.Tracer = r.TraceProvider.Tracer("capi")
+	tr := traceutil.Reconciler(r, r.TraceProvider, "controllers.topology.ClusterReconciler", "cluster")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}, builder.WithPredicates(
 			// Only reconcile Cluster with topology.
@@ -90,8 +99,9 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			builder.WithPredicates(predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))),
 		).
 		WithOptions(options).
+		WithLoggerCustomizer(tlog.LoggerCustomizer(mgr.GetLogger(), "topology/cluster", "cluster")).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Build(r)
+		Build(tr)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -107,6 +117,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 // SetupForDryRun prepares the Reconciler for a dry run execution.
 func (r *Reconciler) SetupForDryRun(recorder record.EventRecorder) {
+	r.Tracer = otel.Tracer("capi")
 	r.patchEngine = patches.NewEngine()
 	r.recorder = recorder
 }
@@ -128,6 +139,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 	cluster.Kind = "Cluster"
+
+	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early, if the Cluster does not use a managed topology.
 	// NOTE: We're already filtering events, but this is a safeguard for cases like e.g. when

@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -86,9 +87,11 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))
 		}
 		if err := (&Reconciler{
-			Client:    mgr.GetClient(),
-			APIReader: mgr.GetAPIReader(),
-			Tracker:   tracker,
+			Client:        mgr.GetClient(),
+			APIReader:     mgr.GetAPIReader(),
+			Tracer:        otel.Tracer("capi-test"),
+			TraceProvider: otel.GetTracerProvider(),
+			Tracker:       tracker,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
 		}

@@ -31,6 +31,8 @@ import (
 // It also converts and patches all ObjectReferences in ClusterClass and ControlPlane to the latest apiVersion of the current contract.
 // NOTE: This function assumes that cluster.Spec.Topology.Class is set.
 func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluster) (_ *scope.ClusterBlueprint, reterr error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.topology.ClusterReconciler.getBlueprint")
+	defer span.End()
 	blueprint := &scope.ClusterBlueprint{
 		Topology:           cluster.Spec.Topology,
 		ClusterClass:       &clusterv1.ClusterClass{},

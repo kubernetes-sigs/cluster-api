@@ -41,6 +41,8 @@ import (
 // the entire compute operation will fail. This might be improved in the future if support for reconciling
 // subset of a topology will be implemented.
 func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*scope.ClusterState, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.topology.ClusterReconciler.computeDesiredState")
+	defer span.End()
 	var err error
 	desiredState := &scope.ClusterState{
 		ControlPlane: &scope.ControlPlaneState{},
@@ -93,7 +95,8 @@ func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*
 	// are preserved during patching. When desired objects are computed their spec is copied from a template, in some cases
 	// further modifications to the spec are made afterwards. In those cases we have to make sure those fields are not overwritten
 	// in apply patches. Some examples are .spec.machineTemplate and .spec.version in control planes.
-	if err := r.patchEngine.Apply(ctx, s.Blueprint, desiredState); err != nil {
+	// FIXME: move tracer into ctx? or use a global one?
+	if err := r.patchEngine.Apply(ctx, r.Tracer, s.Blueprint, desiredState); err != nil {
 		return nil, errors.Wrap(err, "failed to apply patches")
 	}
 

@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -537,6 +538,7 @@ func TestGetCurrentState(t *testing.T) {
 			r := &Reconciler{
 				Client:                    fakeClient,
 				APIReader:                 fakeClient,
+				Tracer:                    otel.Tracer("capi-test"),
 				UnstructuredCachingClient: fakeClient,
 			}
 			got, err := r.getCurrentState(ctx, s)

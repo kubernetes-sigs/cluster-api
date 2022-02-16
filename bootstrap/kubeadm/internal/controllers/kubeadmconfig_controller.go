@@ -20,17 +20,20 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/blang/semver"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -48,12 +51,14 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
+	traceutil "sigs.k8s.io/cluster-api/util/trace"
 )
 
 const (
@@ -79,6 +84,8 @@ type InitLocker interface {
 // KubeadmConfigReconciler reconciles a KubeadmConfig object.
 type KubeadmConfigReconciler struct {
 	Client          client.Client
+	TraceProvider   trace.TracerProvider
+	Tracer          trace.Tracer
 	KubeadmInitLock InitLocker
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
@@ -110,9 +117,12 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		r.TokenTTL = DefaultTokenTTL
 	}
 
+	r.Tracer = r.TraceProvider.Tracer("capi")
+	tr := traceutil.Reconciler(r, r.TraceProvider, "controllers.KubeadmConfigReconciler", "kubeadmconfig")
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&bootstrapv1.KubeadmConfig{}).
 		WithOptions(options).
+		WithLoggerCustomizer(tlog.LoggerCustomizer(mgr.GetLogger(), "kubeadmconfig", "kubeadmconfig")).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToBootstrapMapFunc),
@@ -125,7 +135,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue))
 	}
 
-	c, err := b.Build(r)
+	c, err := b.Build(tr)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -172,7 +182,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if configOwner == nil {
 		return ctrl.Result{}, nil
 	}
-	log = log.WithValues("kind", configOwner.GetKind(), "version", configOwner.GetResourceVersion(), "name", configOwner.GetName())
+	log = log.WithValues(strings.ToLower(configOwner.GetKind()), klog.KRef(configOwner.GetNamespace(), configOwner.GetName()).String(), "version", configOwner.GetResourceVersion())
 
 	// Lookup the cluster the config owner is associated with
 	cluster, err := util.GetClusterByName(ctx, r.Client, configOwner.GetNamespace(), configOwner.ClusterName())
@@ -189,6 +199,9 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Error(err, "Could not get cluster with metadata")
 		return ctrl.Result{}, err
 	}
+
+	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	if annotations.IsPaused(cluster, config) {
 		log.Info("Reconciliation is paused for this object")
@@ -288,6 +301,8 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 }
 
 func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.KubeadmConfigReconciler.refreshBootstrapToken")
+	defer span.End()
 	log := ctrl.LoggerFrom(ctx)
 	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
@@ -307,6 +322,8 @@ func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, con
 }
 
 func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster, scope *Scope) (ctrl.Result, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.KubeadmConfigReconciler.rotateMachinePoolBootstrapToken")
+	defer span.End()
 	log := ctrl.LoggerFrom(ctx)
 	log.V(2).Info("Config is owned by a MachinePool, checking if token should be rotated")
 	remoteClient, err := r.remoteClientGetter(ctx, KubeadmConfigControllerName, r.Client, util.ObjectKey(cluster))
@@ -488,6 +505,8 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 }
 
 func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) (ctrl.Result, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.KubeadmConfigReconciler.joinWorker")
+	defer span.End()
 	certificates := secret.NewCertificatesForWorker(scope.Config.Spec.JoinConfiguration.CACertPath)
 	err := certificates.Lookup(
 		ctx,
@@ -579,6 +598,8 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 }
 
 func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.Result, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.KubeadmConfigReconciler.joinControlplane")
+	defer span.End()
 	if !scope.ConfigOwner.IsControlPlaneMachine() {
 		return ctrl.Result{}, fmt.Errorf("%s is not a valid control plane kind, only Machine is supported", scope.ConfigOwner.GetKind())
 	}

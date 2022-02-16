@@ -32,6 +32,8 @@ import (
 
 // rolloutOnDelete implements the logic for the OnDelete MachineDeploymentStrategyType.
 func (r *Reconciler) rolloutOnDelete(ctx context.Context, d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) error {
+	ctx, span := r.Tracer.Start(ctx, "controllers.MachineDeploymentReconciler.rolloutOnDelete")
+	defer span.End()
 	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, d, msList, true)
 	if err != nil {
 		return err

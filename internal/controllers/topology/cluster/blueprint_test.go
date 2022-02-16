@@ -22,6 +22,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
+	"go.opentelemetry.io/otel"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -316,6 +317,7 @@ func TestGetBlueprint(t *testing.T) {
 			r := &Reconciler{
 				Client:                    fakeClient,
 				UnstructuredCachingClient: fakeClient,
+				Tracer:                    otel.Tracer("capi-test"),
 			}
 			got, err := r.getBlueprint(ctx, scope.New(cluster).Current.Cluster)
 

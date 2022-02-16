@@ -23,11 +23,13 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
+	"go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -43,6 +45,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -50,6 +53,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
+	traceutil "sigs.k8s.io/cluster-api/util/trace"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -64,6 +68,8 @@ import (
 type KubeadmControlPlaneReconciler struct {
 	Client          client.Client
 	APIReader       client.Reader
+	TraceProvider   trace.TracerProvider
+	Tracer          trace.Tracer
 	controller      controller.Controller
 	recorder        record.EventRecorder
 	Tracker         *remote.ClusterCacheTracker
@@ -77,12 +83,15 @@ type KubeadmControlPlaneReconciler struct {
 }
 
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	r.Tracer = r.TraceProvider.Tracer("capi")
+	tr := traceutil.Reconciler(r, r.TraceProvider, "controllers.KubeadmControlPlaneReconciler", "kubeadmcontrolplane")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&controlplanev1.KubeadmControlPlane{}).
 		Owns(&clusterv1.Machine{}).
 		WithOptions(options).
+		WithLoggerCustomizer(tlog.LoggerCustomizer(mgr.GetLogger(), "kubeadmcontrolplane", "kubeadmcontrolplane")).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Build(r)
+		Build(tr)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -142,7 +151,8 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Info("Cluster Controller has not yet set OwnerRef")
 		return ctrl.Result{}, nil
 	}
-	log = log.WithValues("cluster", cluster.Name)
+	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	if annotations.IsPaused(cluster, kcp) {
 		log.Info("Reconciliation is paused for this object")
@@ -247,8 +257,9 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 
 // reconcile handles KubeadmControlPlane reconciliation.
 func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (res ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
-	log.Info("Reconcile KubeadmControlPlane")
+	ctx, span := r.Tracer.Start(ctx, "controllers.KubeadmControlPlaneReconciler.reconcile")
+	defer span.End()
+	log := ctrl.LoggerFrom(ctx)
 
 	// Make sure to reconcile the external infrastructure reference.
 	if err := r.reconcileExternalReference(ctx, cluster, &kcp.Spec.MachineTemplate.InfrastructureRef); err != nil {
@@ -407,7 +418,9 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 // The implementation does not take non-control plane workloads into consideration. This may or may not change in the future.
 // Please see https://github.com/kubernetes-sigs/cluster-api/issues/2064.
 func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+	ctx, span := r.Tracer.Start(ctx, "controllers.KubeadmControlPlaneReconciler.reconcileDelete")
+	defer span.End()
+	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconcile KubeadmControlPlane deletion")
 
 	// Gets all machines, not just control plane machines.
@@ -461,7 +474,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	var errs []error
 	for i := range machinesToDelete {
 		m := machinesToDelete[i]
-		logger := log.WithValues("machine", m)
+		logger := log.WithValues("machine", klog.KObj(m).String())
 		if err := r.Client.Delete(ctx, machinesToDelete[i]); err != nil && !apierrors.IsNotFound(err) {
 			logger.Error(err, "Failed to cleanup owned machine")
 			errs = append(errs, err)
@@ -496,6 +509,9 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o client.Ob
 // reconcileControlPlaneConditions is responsible of reconciling conditions reporting the status of static pods and
 // the status of the etcd cluster.
 func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneConditions(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	ctx, span := r.Tracer.Start(ctx, "controllers.KubeadmControlPlaneReconciler.reconcileControlPlaneConditions")
+	defer span.End()
+
 	// If the cluster is not yet initialized, there is no way to connect to the workload cluster and fetch information
 	// for updating conditions. Return early.
 	if !controlPlane.KCP.Status.Initialized {
@@ -525,7 +541,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneConditions(ctx cont
 //
 // NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneConditions before this.
 func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "cluster", controlPlane.Cluster.Name)
+	ctx, span := r.Tracer.Start(ctx, "controllers.KubeadmControlPlaneReconciler.reconcileEtcdMembers")
+	defer span.End()
+	log := ctrl.LoggerFrom(ctx)
 
 	// If etcd is not managed by KCP this is a no-op.
 	if !controlPlane.IsEtcdManaged() {

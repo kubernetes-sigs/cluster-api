@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"go.opentelemetry.io/otel/trace"
 	"golang.org/x/net/context"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,8 +40,9 @@ import (
 
 // ClusterReconciler reconciles a Cluster object.
 type ClusterReconciler struct {
-	Client    client.Client
-	APIReader client.Reader
+	Client        client.Client
+	APIReader     client.Reader
+	TraceProvider trace.TracerProvider
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -51,14 +53,16 @@ func (r *ClusterReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		Client:           r.Client,
 		APIReader:        r.APIReader,
 		WatchFilterValue: r.WatchFilterValue,
+		TraceProvider:    r.TraceProvider,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
 // MachineReconciler reconciles a Machine object.
 type MachineReconciler struct {
-	Client    client.Client
-	APIReader client.Reader
-	Tracker   *remote.ClusterCacheTracker
+	Client        client.Client
+	APIReader     client.Reader
+	Tracker       *remote.ClusterCacheTracker
+	TraceProvider trace.TracerProvider
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -70,14 +74,16 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		APIReader:        r.APIReader,
 		Tracker:          r.Tracker,
 		WatchFilterValue: r.WatchFilterValue,
+		TraceProvider:    r.TraceProvider,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
 // MachineSetReconciler reconciles a MachineSet object.
 type MachineSetReconciler struct {
-	Client    client.Client
-	APIReader client.Reader
-	Tracker   *remote.ClusterCacheTracker
+	Client        client.Client
+	APIReader     client.Reader
+	Tracker       *remote.ClusterCacheTracker
+	TraceProvider trace.TracerProvider
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -88,14 +94,16 @@ func (r *MachineSetReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Ma
 		Client:           r.Client,
 		APIReader:        r.APIReader,
 		Tracker:          r.Tracker,
+		TraceProvider:    r.TraceProvider,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
 // MachineDeploymentReconciler reconciles a MachineDeployment object.
 type MachineDeploymentReconciler struct {
-	Client    client.Client
-	APIReader client.Reader
+	Client        client.Client
+	APIReader     client.Reader
+	TraceProvider trace.TracerProvider
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -105,14 +113,16 @@ func (r *MachineDeploymentReconciler) SetupWithManager(ctx context.Context, mgr 
 	return (&machinedeploymentcontroller.Reconciler{
 		Client:           r.Client,
 		APIReader:        r.APIReader,
+		TraceProvider:    r.TraceProvider,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
 // MachineHealthCheckReconciler reconciles a MachineHealthCheck object.
 type MachineHealthCheckReconciler struct {
-	Client  client.Client
-	Tracker *remote.ClusterCacheTracker
+	Client        client.Client
+	Tracker       *remote.ClusterCacheTracker
+	TraceProvider trace.TracerProvider
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -122,6 +132,7 @@ func (r *MachineHealthCheckReconciler) SetupWithManager(ctx context.Context, mgr
 	return (&machinehealthcheckcontroller.Reconciler{
 		Client:           r.Client,
 		Tracker:          r.Tracker,
+		TraceProvider:    r.TraceProvider,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }
@@ -131,7 +142,8 @@ type ClusterTopologyReconciler struct {
 	Client client.Client
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
-	APIReader client.Reader
+	APIReader     client.Reader
+	TraceProvider trace.TracerProvider
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -145,6 +157,7 @@ func (r *ClusterTopologyReconciler) SetupWithManager(ctx context.Context, mgr ct
 	return (&clustertopologycontroller.Reconciler{
 		Client:                    r.Client,
 		APIReader:                 r.APIReader,
+		TraceProvider:             r.TraceProvider,
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
 		WatchFilterValue:          r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
@@ -158,7 +171,9 @@ type MachineDeploymentTopologyReconciler struct {
 	Client client.Client
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
-	APIReader        client.Reader
+	APIReader     client.Reader
+	TraceProvider trace.TracerProvider
+
 	WatchFilterValue string
 }
 
@@ -166,6 +181,7 @@ func (r *MachineDeploymentTopologyReconciler) SetupWithManager(ctx context.Conte
 	return (&machinedeploymenttopologycontroller.Reconciler{
 		Client:           r.Client,
 		APIReader:        r.APIReader,
+		TraceProvider:    r.TraceProvider,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }
@@ -178,7 +194,9 @@ type MachineSetTopologyReconciler struct {
 	Client client.Client
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
-	APIReader        client.Reader
+	APIReader     client.Reader
+	TraceProvider trace.TracerProvider
+
 	WatchFilterValue string
 }
 
@@ -186,14 +204,16 @@ func (r *MachineSetTopologyReconciler) SetupWithManager(ctx context.Context, mgr
 	return (&machinesettopologycontroller.Reconciler{
 		Client:           r.Client,
 		APIReader:        r.APIReader,
+		TraceProvider:    r.TraceProvider,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }
 
 // ClusterClassReconciler reconciles the ClusterClass object.
 type ClusterClassReconciler struct {
-	Client    client.Client
-	APIReader client.Reader
+	Client        client.Client
+	APIReader     client.Reader
+	TraceProvider trace.TracerProvider
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -209,5 +229,6 @@ func (r *ClusterClassReconciler) SetupWithManager(ctx context.Context, mgr ctrl.
 		APIReader:                 r.APIReader,
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
 		WatchFilterValue:          r.WatchFilterValue,
+		TraceProvider:             r.TraceProvider,
 	}).SetupWithManager(ctx, mgr, options)
 }

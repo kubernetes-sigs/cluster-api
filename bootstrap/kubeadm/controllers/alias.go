@@ -20,6 +20,7 @@ import (
 	"context"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -37,7 +38,8 @@ const (
 
 // KubeadmConfigReconciler reconciles a KubeadmConfig object.
 type KubeadmConfigReconciler struct {
-	Client client.Client
+	Client        client.Client
+	TraceProvider trace.TracerProvider
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -50,6 +52,7 @@ type KubeadmConfigReconciler struct {
 func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
 		Client:           r.Client,
+		TraceProvider:    r.TraceProvider,
 		WatchFilterValue: r.WatchFilterValue,
 		TokenTTL:         r.TokenTTL,
 	}).SetupWithManager(ctx, mgr, options)

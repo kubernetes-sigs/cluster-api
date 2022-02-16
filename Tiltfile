@@ -332,7 +332,7 @@ def deploy_observability():
 
     if "grafana" in settings.get("deploy_observability", []):
         k8s_yaml(read_file("./.tiltbuild/yaml/grafana.observability.yaml"), allow_duplicates = True)
-        k8s_resource(workload = "grafana", port_forwards = "3000", extra_pod_selectors = [{"app": "grafana"}], labels = ["observability"])
+        k8s_resource(workload = "grafana", port_forwards = "3001:3000", extra_pod_selectors = [{"app": "grafana"}], labels = ["observability"])
 
 def prepare_all():
     allow_k8s_arg = ""

@@ -33,6 +33,8 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -84,11 +86,10 @@ var (
 	webhookPort                   int
 	webhookCertDir                string
 	healthAddr                    string
+	logOptions                    = logs.NewOptions()
 )
 
 func init() {
-	klog.InitFlags(nil)
-
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
 
@@ -109,6 +110,9 @@ func init() {
 
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
+	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
+	logOptions.AddFlags(fs)
+
 	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", "localhost:8080",
 		"The address the metric endpoint binds to.")
 
@@ -183,7 +187,19 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
-	ctrl.SetLogger(klogr.New())
+	if err := logOptions.ValidateAndApply(); err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	// The JSON log format requires the Klog format in klog, otherwise log lines
+	// are serialized twice, e.g.:
+	// { ... "msg":"controller/cluster \"msg\"=\"Starting workers\"\n"}
+	if logOptions.Config.Format == logs.JSONLogFormat {
+		ctrl.SetLogger(klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog)))
+	} else {
+		ctrl.SetLogger(klogr.New())
+	}
 
 	if profilerAddress != "" {
 		klog.Infof("Profiler listening for requests at %s", profilerAddress)

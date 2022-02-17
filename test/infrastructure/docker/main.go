@@ -31,6 +31,8 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -64,11 +66,10 @@ var (
 	healthAddr           string
 	webhookPort          int
 	webhookCertDir       string
+	logOptions           = logs.NewOptions()
 )
 
 func init() {
-	klog.InitFlags(nil)
-
 	_ = scheme.AddToScheme(myscheme)
 	_ = infrav1alpha3.AddToScheme(myscheme)
 	_ = infrav1alpha4.AddToScheme(myscheme)
@@ -82,6 +83,9 @@ func init() {
 }
 
 func initFlags(fs *pflag.FlagSet) {
+	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
+	logOptions.AddFlags(fs)
+
 	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", "localhost:8080",
 		"The address the metric endpoint binds to.")
 	fs.IntVar(&concurrency, "concurrency", 10,
@@ -105,6 +109,7 @@ func initFlags(fs *pflag.FlagSet) {
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	if _, err := os.ReadDir("/tmp/"); err != nil {
+		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
 
@@ -113,7 +118,19 @@ func main() {
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.Parse()
 
-	ctrl.SetLogger(klogr.New())
+	if err := logOptions.ValidateAndApply(); err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	// The JSON log format requires the Klog format in klog, otherwise log lines
+	// are serialized twice, e.g.:
+	// { ... "msg":"controller/cluster \"msg\"=\"Starting workers\"\n"}
+	if logOptions.Config.Format == logs.JSONLogFormat {
+		ctrl.SetLogger(klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog)))
+	} else {
+		ctrl.SetLogger(klogr.New())
+	}
 
 	if profilerAddress != "" {
 		klog.Infof("Profiler listening for requests at %s", profilerAddress)

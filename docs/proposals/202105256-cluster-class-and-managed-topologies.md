@@ -649,6 +649,7 @@ Note: Builtin variables are defined in [Builtin variables](#builtin-variables) b
 It’s also possible to use so-called builtin variables in addition to user-defined variables. The following builtin variables are available:
 - `builtin.cluster.{name,namespace}`
 - `builtin.cluster.topology.{version,class}`
+- `builtin.cluster.network.{serviceDomain,services,pods,ipFamily}`
 - `builtin.controlPlane.{replicas,version,name}`
     - **Note**: these variables are only available when patching control plane or control plane machine templates.
 - `builtin.controlPlane.machineTemplate.infrastructureRef.name`

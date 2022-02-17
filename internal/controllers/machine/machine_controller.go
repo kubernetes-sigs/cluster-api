@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2"
 	kubedrain "k8s.io/kubectl/pkg/drain"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -530,8 +529,10 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 			log.Info(fmt.Sprintf("%s pod from Node", verbStr),
 				"pod", fmt.Sprintf("%s/%s", pod.Name, pod.Namespace))
 		},
-		Out:    writer{klog.Info},
-		ErrOut: writer{klog.Error},
+		Out: writer{log.Info},
+		ErrOut: writer{func(msg string, keysAndValues ...interface{}) {
+			log.Error(nil, msg, keysAndValues)
+		}},
 	}
 
 	if noderefutil.IsNodeUnreachable(node) {
@@ -743,7 +744,7 @@ func (r *Reconciler) nodeToMachine(o client.Object) []reconcile.Request {
 
 // writer implements io.Writer interface as a pass-through for klog.
 type writer struct {
-	logFunc func(args ...interface{})
+	logFunc func(msg string, keysAndValues ...interface{})
 }
 
 // Write passes string(p) into writer's logFunc and always returns len(p).

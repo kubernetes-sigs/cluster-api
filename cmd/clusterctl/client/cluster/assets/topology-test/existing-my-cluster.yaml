@@ -88,14 +88,14 @@ spec:
     initConfiguration:
       localAPIEndpoint: {}
       nodeRegistration:
-        criSocket: /var/run/containerd/containerd.sock
+        criSocket: unix:///var/run/containerd/containerd.sock
         kubeletExtraArgs:
           cgroup-driver: cgroupfs
           eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
     joinConfiguration:
       discovery: {}
       nodeRegistration:
-        criSocket: /var/run/containerd/containerd.sock
+        criSocket: unix:///var/run/containerd/containerd.sock
         kubeletExtraArgs:
           cgroup-driver: cgroupfs
           eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%

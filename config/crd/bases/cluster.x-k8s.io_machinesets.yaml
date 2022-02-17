@@ -850,6 +850,11 @@ spec:
       jsonPath: .status.replicas
       name: Replicas
       type: integer
+    - description: Total number of machines desired by this machineset
+      jsonPath: .spec.replicas
+      name: Desired
+      priority: 10
+      type: integer
     - description: Total number of ready machines targeted by this machineset.
       jsonPath: .status.readyReplicas
       name: Ready

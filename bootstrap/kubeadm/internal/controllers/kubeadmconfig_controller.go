@@ -18,9 +18,12 @@ package controllers
 
 import (
 	"context"
-	"crypto/rand"
+	crand "crypto/rand"
 	"encoding/binary"
 	"fmt"
+	"k8s.io/klog/v2"
+	"math/rand"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strconv"
 	"time"
 
@@ -113,6 +116,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&bootstrapv1.KubeadmConfig{}).
+		WithLoggerCustomizer(LoggerCustomizer(mgr.GetLogger(), "kubeadmconfig", "kubeadmconfig")).
 		WithOptions(options).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
@@ -233,14 +237,11 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				bootstrapv1.CertificatesAvailableCondition,
 			),
 		)
-		// TODO: check if we can move this in the patch helper
-		// TODO: Make this the patch rather than the entire object. Don't print this line if the patch is empty.
-		log.Info("Patching KubeadmConfig")
-
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{}
 		if rerr == nil {
 			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
+			patchOpts = append(patchOpts, patch.WithLogFullPatch{})
 		}
 		if err := patchHelper.Patch(ctx, config, patchOpts...); err != nil {
 			// TODO: aggregated the error
@@ -1000,4 +1001,23 @@ func contextLoggerWithValues(ctx context.Context, keysAndValues ...interface{}) 
 	log = log.WithValues(keysAndValues...)
 	ctx = ctrl.LoggerInto(ctx, log)
 	return log, ctx
+}
+
+// LoggerCustomizer is a util to create a LoggerCustomizer.
+// FIXME: will be moved to a util package.
+func LoggerCustomizer(log logr.Logger, controllerName, kind string) func(_ logr.Logger, req reconcile.Request) logr.Logger {
+	// FIXME: just a hack for now
+	var rngSeed int64
+	_ = binary.Read(crand.Reader, binary.LittleEndian, &rngSeed)
+	randSource := rand.New(rand.NewSource(rngSeed)) //nolint:gosec // weak rng is fine here.
+
+	return func(_ logr.Logger, req reconcile.Request) logr.Logger {
+		// FIXME: TBD if we use the actual TraceID type here already
+		tid := [16]byte{}
+		_, _ = randSource.Read(tid[:])
+		return log.
+			WithValues("controller", controllerName).
+			WithValues(kind, klog.KRef(req.Namespace, req.Name).String()).
+			WithValues("traceID", fmt.Sprintf("%02x", tid[:]))
+	}
 }

@@ -125,7 +125,7 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	}
 
 	// Calculate and store the top-level field changes (e.g. "metadata", "spec", "status") we have before/after.
-	h.changes, err = h.calculateChanges(ctx, obj)
+	h.changes, err = h.calculateChanges(ctx, obj, options.LogFullPatch)
 	if err != nil {
 		return err
 	}
@@ -278,7 +278,7 @@ func (h *Helper) shouldPatch(in string) bool {
 
 // calculate changes tries to build a patch from the before/after objects we have
 // and store in a map which top-level fields (e.g. `metadata`, `spec`, `status`, etc.) have changed.
-func (h *Helper) calculateChanges(ctx context.Context, after client.Object) (map[string]bool, error) {
+func (h *Helper) calculateChanges(ctx context.Context, after client.Object, logFullPatch bool) (map[string]bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 	// Calculate patch data.
 	patch := client.MergeFrom(h.beforeObject)
@@ -295,8 +295,10 @@ func (h *Helper) calculateChanges(ctx context.Context, after client.Object) (map
 	if len(patchDiff) == 0 {
 		log.Info("No changes for this object")
 	} else {
-		//FIXME: This can expose secrets or other sensitive information e.g. bootstrap token.
-		log.Info("Object changes in patch form", "patch", patchDiff)
+		log.Info("Patch created for this object")
+		if logFullPatch {
+			log.Info("Object changes in patch form", "patch", patchDiff)
+		}
 	}
 	// Return the map.
 	res := make(map[string]bool, len(patchDiff))

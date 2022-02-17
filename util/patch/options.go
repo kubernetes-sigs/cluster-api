@@ -37,6 +37,10 @@ type HelperOptions struct {
 	// OwnedConditions defines condition types owned by the controller.
 	// In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
 	OwnedConditions []clusterv1.ConditionType
+
+	// LogFullPatch enables the patch helper to log the full content of the patch at klog level 2.
+	// Warning: This will log all keys and values from a patch including any sensitive information contained within.
+	LogFullPatch bool
 }
 
 // WithForceOverwriteConditions allows the patch helper to overwrite conditions in case of conflicts.
@@ -66,4 +70,13 @@ type WithOwnedConditions struct {
 // ApplyToHelper applies this configuration to the given HelperOptions.
 func (w WithOwnedConditions) ApplyToHelper(in *HelperOptions) {
 	in.OwnedConditions = w.Conditions
+}
+
+// WithLogFullPatch enables the patch helper to log the full content of the patch at klog level 2.
+// Warning: This will log all keys and values from a patch including any sensitive information contained within.
+type WithLogFullPatch struct{}
+
+// ApplyToHelper applies this configuration to the given HelperOptions.
+func (w WithLogFullPatch) ApplyToHelper(in *HelperOptions) {
+	in.LogFullPatch = true
 }

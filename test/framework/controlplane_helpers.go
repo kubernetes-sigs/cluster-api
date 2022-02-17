@@ -383,8 +383,9 @@ func ScaleAndWaitControlPlane(ctx context.Context, input ScaleAndWaitControlPlan
 
 	patchHelper, err := patch.NewHelper(input.ControlPlane, input.ClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred())
+	scaleBefore := pointer.Int32Deref(input.ControlPlane.Spec.Replicas, 0)
 	input.ControlPlane.Spec.Replicas = pointer.Int32Ptr(input.Replicas)
-	log.Logf("Scaling controlplane %s/%s from %v to %v replicas", input.ControlPlane.Namespace, input.ControlPlane.Name, input.ControlPlane.Spec.Replicas, input.Replicas)
+	log.Logf("Scaling controlplane %s/%s from %v to %v replicas", input.ControlPlane.Namespace, input.ControlPlane.Name, scaleBefore, input.Replicas)
 	Expect(patchHelper.Patch(ctx, input.ControlPlane)).To(Succeed())
 
 	log.Logf("Waiting for correct number of replicas to exist")

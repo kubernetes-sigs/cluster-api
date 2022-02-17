@@ -1,0 +1,9 @@
+resources:
+  - ../namespace.yaml
+
+helmCharts:
+  - name: prometheus
+    repo: https://prometheus-community.github.io/helm-charts
+    releaseName: prometheus
+    namespace: observability
+    valuesFile: values.yaml

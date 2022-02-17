@@ -336,6 +336,10 @@ def deploy_observability():
         k8s_yaml(read_file("./.tiltbuild/yaml/grafana.observability.yaml"), allow_duplicates = True)
         k8s_resource(workload = "grafana", port_forwards = "3001:3000", extra_pod_selectors = [{"app": "grafana"}], labels = ["observability"])
 
+    if "prometheus" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/prometheus.observability.yaml"), allow_duplicates = True)
+        k8s_resource(workload = "prometheus-server", new_name = "prometheus", port_forwards = "9090", extra_pod_selectors = [{"app": "prometheus"}], labels = ["observability"])
+
 def prepare_all():
     allow_k8s_arg = ""
     if settings.get("allowed_contexts"):

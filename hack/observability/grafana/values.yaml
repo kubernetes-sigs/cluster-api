@@ -18,6 +18,9 @@ datasources:
     - name: Loki
       type: loki
       url: http://loki:3100
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus-server
 
 # Disable grafana test framework
 testFramework:

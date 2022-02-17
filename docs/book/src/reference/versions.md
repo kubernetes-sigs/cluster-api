@@ -15,7 +15,27 @@ All Infrastructure Providers are maintained by independent teams. Other Bootstra
 
 ## Supported Kubernetes Versions
 
-The project aims to keep the current minor release compatible with the actively supported Kubernetes minor releases, i.e., the current release (N), N-1, and N-2. To find out the exact range of Kubernetes versions supported by each component, please see the [tables](#release-components) below.
+The project aims to keep the current minor release compatible with the actively supported Kubernetes minor releases, i.e., 
+the current release (N), N-1, and N-2. Where possible we will go above and beyond this trying to help our users support
+both newer and older versions of Kubernetes:
+
+- For a given Cluster API minor release, we give best-effort support for future Kubernetes versions that are released 
+  during the release's active support period. Depending on the changes made in Kubernetes, users may be required to
+  update to the next patch release of Cluster API to maintain compatibility.
+- In some cases where support for future Kubernetes versions can't be added, or is considered not practical or too risky
+  adding it, the Kubernetes version support matrix for an existing Cluster API minor release will stop at the last supported version.
+- Cluster API offers best-effort support for older Kubernetes versions where possible.
+  Important! this is not a replacement/alternative for upstream Kubernetes support policies! 
+  Support for older version of Kubernetes is limited to "Cluster API can start a Cluster with this Kubernetes version"
+  and "Cluster API  can upgrade to the next Kubernetes version"; it does not include any extended support to Kubernetes itself.
+
+Whenever a new Cluster API release is cut, we will document the Kubernetes version compatibility matrix the release
+has been tested with. Summaries of Kubernetes versions supported by each component are additionally maintained in
+the [tables](#release-components) below.
+
+On a final comment, let's praise all the contributors keeping care of such a wide support matrix. 
+If someone is looking for opportunities to help with the project, this is definitely an area where additional hands
+and eyes will be more than welcome and greatly beneficial to the entire community.
 
 See the [following section](#kubernetes-version-support-as-a-function-of-cluster-topology) to understand how cluster topology affects version support.
 

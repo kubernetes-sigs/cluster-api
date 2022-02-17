@@ -106,9 +106,8 @@ func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorLis
 			if file.ContentFrom.Secret.Name == "" {
 				allErrs = append(
 					allErrs,
-					field.Invalid(
+					field.Required(
 						pathPrefix.Child("files").Index(i).Child("contentFrom", "secret", "name"),
-						file,
 						missingSecretNameMsg,
 					),
 				)
@@ -116,9 +115,8 @@ func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorLis
 			if file.ContentFrom.Secret.Key == "" {
 				allErrs = append(
 					allErrs,
-					field.Invalid(
+					field.Required(
 						pathPrefix.Child("files").Index(i).Child("contentFrom", "secret", "key"),
-						file,
 						missingSecretKeyMsg,
 					),
 				)

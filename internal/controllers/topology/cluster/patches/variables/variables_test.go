@@ -68,6 +68,15 @@ func TestGlobal(t *testing.T) {
 						Class:   "clusterClass1",
 						Version: "v1.21.1",
 					},
+					ClusterNetwork: &clusterv1.ClusterNetwork{
+						Services: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.10.10.1/24"},
+						},
+						Pods: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"11.10.10.1/24"},
+						},
+						ServiceDomain: "cluster.local",
+					},
 				},
 			},
 			want: VariableMap{
@@ -76,11 +85,177 @@ func TestGlobal(t *testing.T) {
 				BuiltinsName: toJSONCompact(`{
 					"cluster":{
 						"name": "cluster1",
-						"namespace": "default",
-						"topology":{
-							"version": "v1.21.1",
-							"class": "clusterClass1"
-						}
+  						"namespace": "default",
+ 						 "topology":{
+  						  	"version": "v1.21.1",
+ 						   	"class": "clusterClass1"
+  						},
+  						"network":{
+							"serviceDomain":"cluster.local",
+  						 	"services":["10.10.10.1/24"],
+   							"pods":["11.10.10.1/24"],
+    						"ipFamily": "IPv4"
+						}}}`,
+				),
+			},
+		},
+		{
+			name: "Should calculate when serviceDomain is not set",
+			clusterTopology: &clusterv1.Topology{
+				Variables: []clusterv1.ClusterVariable{
+					{
+						Name:  "location",
+						Value: toJSON("\"us-central\""),
+					},
+					{
+						Name:  "cpu",
+						Value: toJSON("8"),
+					},
+					{
+						// This is blocked by a webhook, but let's make sure that the user-defined
+						// variable is overwritten by the builtin variable anyway.
+						Name:  "builtin",
+						Value: toJSON("8"),
+					},
+				},
+			},
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster1",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{
+						Class:   "clusterClass1",
+						Version: "v1.21.1",
+					},
+					ClusterNetwork: &clusterv1.ClusterNetwork{
+						Services: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.10.10.1/24"},
+						},
+						Pods: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"11.10.10.1/24"},
+						},
+					},
+				},
+			},
+			want: VariableMap{
+				"location": toJSON("\"us-central\""),
+				"cpu":      toJSON("8"),
+				BuiltinsName: toJSONCompact(`{
+					"cluster":{
+						"name": "cluster1",
+  						"namespace": "default",
+ 						 "topology":{
+  						  	"version": "v1.21.1",
+ 						   	"class": "clusterClass1"
+  						},
+  						"network":{
+  						 	"services":["10.10.10.1/24"],
+   							"pods":["11.10.10.1/24"],
+    						"ipFamily": "IPv4"
+						}}}`,
+				),
+			},
+		},
+		{
+			name: "Should calculate where some variables  are nil",
+			clusterTopology: &clusterv1.Topology{
+				Variables: []clusterv1.ClusterVariable{
+					{
+						Name:  "location",
+						Value: toJSON("\"us-central\""),
+					},
+					{
+						Name:  "cpu",
+						Value: toJSON("8"),
+					},
+					{
+						// This is blocked by a webhook, but let's make sure that the user-defined
+						// variable is overwritten by the builtin variable anyway.
+						Name:  "builtin",
+						Value: toJSON("8"),
+					},
+				},
+			},
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster1",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{
+						Class:   "clusterClass1",
+						Version: "v1.21.1",
+					},
+					ClusterNetwork: &clusterv1.ClusterNetwork{
+						Services:      nil,
+						Pods:          &clusterv1.NetworkRanges{},
+						ServiceDomain: "cluster.local",
+					},
+				},
+			},
+			want: VariableMap{
+				"location": toJSON("\"us-central\""),
+				"cpu":      toJSON("8"),
+				BuiltinsName: toJSONCompact(`{
+					"cluster":{
+  						"name": "cluster1",
+  						"namespace": "default",
+ 						"topology":{
+    						"version": "v1.21.1",
+    						"class": "clusterClass1"
+  						},
+  						"network":{
+    						"serviceDomain":"cluster.local",
+    						"ipFamily": "IPv4"
+						}}}`),
+			},
+		},
+		{
+			name: "Should calculate where ClusterNetwork is nil",
+			clusterTopology: &clusterv1.Topology{
+				Variables: []clusterv1.ClusterVariable{
+					{
+						Name:  "location",
+						Value: toJSON("\"us-central\""),
+					},
+					{
+						Name:  "cpu",
+						Value: toJSON("8"),
+					},
+					{
+						// This is blocked by a webhook, but let's make sure that the user-defined
+						// variable is overwritten by the builtin variable anyway.
+						Name:  "builtin",
+						Value: toJSON("8"),
+					},
+				},
+			},
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster1",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{
+						Class:   "clusterClass1",
+						Version: "v1.21.1",
+					},
+					ClusterNetwork: nil,
+				},
+			},
+			want: VariableMap{
+				"location": toJSON("\"us-central\""),
+				"cpu":      toJSON("8"),
+				BuiltinsName: toJSONCompact(`{
+					"cluster":{
+  						"name": "cluster1",
+  						"namespace": "default",
+  						"topology":{
+						"version": "v1.21.1",
+   						 "class": "clusterClass1"
+					}
 					}}`),
 			},
 		},
@@ -417,7 +592,6 @@ func toJSON(value string) apiextensionsv1.JSON {
 	return apiextensionsv1.JSON{Raw: []byte(value)}
 }
 
-// toJSONCompact is used to be able to write JSON values in a readable manner.
 func toJSONCompact(value string) apiextensionsv1.JSON {
 	var compactValue bytes.Buffer
 	if err := json.Compact(&compactValue, []byte(value)); err != nil {

@@ -51,6 +51,9 @@ type ClusterBuiltins struct {
 
 	// Topology represents the cluster topology variables.
 	Topology *ClusterTopologyBuiltins `json:"topology,omitempty"`
+
+	// Network represents the cluster network variables.
+	Network *ClusterNetworkBuiltins `json:"network,omitempty"`
 }
 
 // ClusterTopologyBuiltins represents builtin cluster topology variables.
@@ -62,6 +65,18 @@ type ClusterTopologyBuiltins struct {
 
 	// Class is the name of the ClusterClass of the Cluster.
 	Class string `json:"class,omitempty"`
+}
+
+// ClusterNetworkBuiltins represents builtin cluster network variables.
+type ClusterNetworkBuiltins struct {
+	// ServiceDomain is the domain name for services.
+	ServiceDomain *string `json:"serviceDomain,omitempty"`
+	// Services is the network ranges from which service VIPs are allocated.
+	Services []string `json:"services,omitempty"`
+	// Pods is the network ranges from which Pod networks are allocated.
+	Pods []string `json:"pods,omitempty"`
+	// IPFamily is the IPFamily the Cluster is operating in. One of Invalid, IPv4, IPv6, DualStack.
+	IPFamily string `json:"ipFamily,omitempty"`
 }
 
 // ControlPlaneBuiltins represents builtin ControlPlane variables.
@@ -176,6 +191,24 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster) (Va
 			},
 		},
 	}
+	if cluster.Spec.ClusterNetwork != nil {
+		clusterNetworkIPFamily, err := cluster.GetIPFamily()
+		if err != nil {
+			return nil, err
+		}
+		builtin.Cluster.Network = &ClusterNetworkBuiltins{
+			IPFamily: ipFamilyToString(clusterNetworkIPFamily),
+		}
+		if cluster.Spec.ClusterNetwork.ServiceDomain != "" {
+			builtin.Cluster.Network.ServiceDomain = &cluster.Spec.ClusterNetwork.ServiceDomain
+		}
+		if cluster.Spec.ClusterNetwork.Services != nil && cluster.Spec.ClusterNetwork.Services.CIDRBlocks != nil {
+			builtin.Cluster.Network.Services = cluster.Spec.ClusterNetwork.Services.CIDRBlocks
+		}
+		if cluster.Spec.ClusterNetwork.Pods != nil && cluster.Spec.ClusterNetwork.Pods.CIDRBlocks != nil {
+			builtin.Cluster.Network.Pods = cluster.Spec.ClusterNetwork.Pods.CIDRBlocks
+		}
+	}
 
 	// Add builtin variables derived from the cluster object.
 	if err := setVariable(variables, BuiltinsName, builtin); err != nil {
@@ -283,4 +316,17 @@ func setVariable(variables VariableMap, name string, value interface{}) error {
 
 	variables[name] = apiextensionsv1.JSON{Raw: marshalledValue}
 	return nil
+}
+
+func ipFamilyToString(ipFamily clusterv1.ClusterIPFamily) string {
+	switch ipFamily {
+	case clusterv1.DualStackIPFamily:
+		return "DualStack"
+	case clusterv1.IPv4IPFamily:
+		return "IPv4"
+	case clusterv1.IPv6IPFamily:
+		return "IPv6"
+	default:
+		return "Invalid"
+	}
 }

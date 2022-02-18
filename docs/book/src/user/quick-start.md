@@ -95,7 +95,7 @@ a target [management cluster] on the selected [infrastructure provider].
 ### Install clusterctl
 The clusterctl CLI tool handles the lifecycle of a Cluster API management cluster.
 
-{{#tabs name:"install-clusterctl" tabs:"linux,macOS,homebrew"}}
+{{#tabs name:"install-clusterctl" tabs:"linux,macOS,homebrew,Windows"}}
 {{#tab linux}}
 
 #### Install clusterctl binary with curl on linux
@@ -152,6 +152,23 @@ Install the latest release using homebrew:
 ```bash
 brew install clusterctl
 ```
+
+Test to ensure the version you installed is up-to-date:
+```
+clusterctl version
+```
+
+{{#/tab }}
+{{#tab windows}}
+
+#### Install clusterctl binary with curl on Windows using PowerShell
+Go to the working directory where you want clusterctl downloaded.
+
+Download the latest release; on Windows, type:
+```
+curl {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.1.x"}} -o clusterctl.exe
+```
+Append or prepend the path of that directory to the `PATH` environment variable.
 
 Test to ensure the version you installed is up-to-date:
 ```

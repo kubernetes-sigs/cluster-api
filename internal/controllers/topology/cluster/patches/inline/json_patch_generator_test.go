@@ -67,12 +67,12 @@ func TestGenerate(t *testing.T) {
 									Variable: pointer.String("variableA"),
 								},
 							},
-							// .valueFrom.template
+							// .valueFrom.template using sprig functions
 							{
 								Op:   "replace",
 								Path: "/spec/valueFrom/template",
 								ValueFrom: &clusterv1.JSONPatchValue{
-									Template: pointer.String(`template {{ .variableB }}`),
+									Template: pointer.String(`template {{ .variableB | lower | repeat 5 }}`),
 								},
 							},
 							// template-specific variable takes precedent, if the same variable exists
@@ -138,7 +138,7 @@ func TestGenerate(t *testing.T) {
 						Patch: toJSONCompact(`[
 {"op":"replace","path":"/spec/value","value":1},
 {"op":"replace","path":"/spec/valueFrom/variable","value":"A"},
-{"op":"replace","path":"/spec/valueFrom/template","value":"template B"},
+{"op":"replace","path":"/spec/valueFrom/template","value":"template bbbbb"},
 {"op":"replace","path":"/spec/templatePrecedent","value":"C-template"},
 {"op":"replace","path":"/spec/builtinClusterName","value":"cluster-name"},
 {"op":"replace","path":"/spec/builtinControlPlaneReplicas","value":3}

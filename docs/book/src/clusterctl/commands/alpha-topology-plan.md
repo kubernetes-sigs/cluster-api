@@ -104,13 +104,13 @@ spec:
             certSANs: [ localhost, 127.0.0.1 ]
         initConfiguration:
           nodeRegistration:
-            criSocket: /var/run/containerd/containerd.sock
+            criSocket: unix:///var/run/containerd/containerd.sock
             kubeletExtraArgs:
               cgroup-driver: cgroupfs
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
         joinConfiguration:
           nodeRegistration:
-            criSocket: /var/run/containerd/containerd.sock
+            criSocket: unix:///var/run/containerd/containerd.sock
             kubeletExtraArgs:
               cgroup-driver: cgroupfs
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'

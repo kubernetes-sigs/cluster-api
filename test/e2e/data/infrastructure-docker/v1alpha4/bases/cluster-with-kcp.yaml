@@ -66,7 +66,7 @@ spec:
         certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
     initConfiguration:
       nodeRegistration:
-        criSocket: /var/run/containerd/containerd.sock
+        criSocket: unix:///var/run/containerd/containerd.sock
         kubeletExtraArgs:
           # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
           # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
@@ -74,7 +74,7 @@ spec:
           eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
     joinConfiguration:
       nodeRegistration:
-        criSocket: /var/run/containerd/containerd.sock
+        criSocket: unix:///var/run/containerd/containerd.sock
         kubeletExtraArgs:
           # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
           # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726

@@ -24,8 +24,39 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
+
+func TestKubeadmControlPlaneTemplateDefault(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+
+	g := NewWithT(t)
+
+	kcpTemplate := &KubeadmControlPlaneTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+		},
+		Spec: KubeadmControlPlaneTemplateSpec{
+			Template: KubeadmControlPlaneTemplateResource{
+				Spec: KubeadmControlPlaneTemplateResourceSpec{
+					MachineTemplate: &KubeadmControlPlaneTemplateMachineTemplate{
+						NodeDrainTimeout: &metav1.Duration{Duration: 10 * time.Second},
+					},
+				},
+			},
+		},
+	}
+	updateDefaultingValidationKCPTemplate := kcpTemplate.DeepCopy()
+	updateDefaultingValidationKCPTemplate.Spec.Template.Spec.MachineTemplate.NodeDrainTimeout = &metav1.Duration{Duration: 20 * time.Second}
+	t.Run("for KubeadmControlPlaneTemplate", utildefaulting.DefaultValidateTest(updateDefaultingValidationKCPTemplate))
+	kcpTemplate.Default()
+
+	g.Expect(kcpTemplate.Spec.Template.Spec.KubeadmConfigSpec.Format).To(Equal(bootstrapv1.CloudConfig))
+	g.Expect(kcpTemplate.Spec.Template.Spec.RolloutStrategy.Type).To(Equal(RollingUpdateStrategyType))
+	g.Expect(kcpTemplate.Spec.Template.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
+}
 
 func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()

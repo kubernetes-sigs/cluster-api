@@ -68,6 +68,8 @@ func defaultKubeadmControlPlaneSpec(s *KubeadmControlPlaneSpec, namespace string
 		s.Version = "v" + s.Version
 	}
 
+	bootstrapv1.DefaultKubeadmConfigSpec(&s.KubeadmConfigSpec)
+
 	s.RolloutStrategy = defaultRolloutStrategy(s.RolloutStrategy)
 }
 

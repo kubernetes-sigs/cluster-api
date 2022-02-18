@@ -21,9 +21,28 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/pointer"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
+
+func TestKubeadmConfigTemplateDefault(t *testing.T) {
+	g := NewWithT(t)
+
+	kubeadmConfigTemplate := &bootstrapv1.KubeadmConfigTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: "foo",
+		},
+	}
+	updateDefaultingKubeadmConfigTemplate := kubeadmConfigTemplate.DeepCopy()
+	updateDefaultingKubeadmConfigTemplate.Spec.Template.Spec.Verbosity = pointer.Int32Ptr(4)
+	t.Run("for KubeadmConfigTemplate", utildefaulting.DefaultValidateTest(updateDefaultingKubeadmConfigTemplate))
+
+	kubeadmConfigTemplate.Default()
+
+	g.Expect(kubeadmConfigTemplate.Spec.Template.Spec.Format).To(Equal(bootstrapv1.CloudConfig))
+}
 
 func TestKubeadmConfigTemplateValidation(t *testing.T) {
 	cases := map[string]struct {

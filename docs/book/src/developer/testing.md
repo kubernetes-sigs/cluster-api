@@ -246,6 +246,44 @@ The following env variables can be set to customize the test execution:
 
 Furthermore, it's possible to overwrite all env variables specified in `variables` in `test/e2e/config/docker.yaml`.
 
+## Troubleshooting end-to-end tests
+
+### Analyzing logs
+
+Logs of e2e tests can be analyzed with our development environment by pushing logs to Loki and then
+analyzing them via Grafana.
+
+1. Start the development environment as described in [Developing Cluster API with Tilt](./tilt.md).
+    * Make sure to deploy Loki and Grafana via `deploy_observability`.
+    * If you only want to see imported logs, don't deploy promtail (via `deploy_observability`).
+    * If you want to drop all logs from Loki, just delete the Loki Pod in the `observability` namespace.
+2. You can then import logs via the `Import Logs` button on the top right of the [Loki resource page](http://localhost:10350/r/loki/overview).
+   Just click on the downwards arrow, enter either a ProwJob URL, a GCS path or a local folder and click on `Import Logs`.
+   This will retrieve the logs and push them to Loki. Alternatively, the logs can be imported via:
+   ```bash
+   go run ./hack/tools/log-push --log-path=<log-path>
+   ```
+   Examples for log paths:
+    * ProwJob URL: `https://prow.k8s.io/view/gs/kubernetes-jenkins/pr-logs/pull/kubernetes-sigs_cluster-api/6189/pull-cluster-api-e2e-main/1496954690603061248`
+    * GCS path: `gs://kubernetes-jenkins/pr-logs/pull/kubernetes-sigs_cluster-api/6189/pull-cluster-api-e2e-main/1496954690603061248`
+    * Local folder: `./_artifacts`
+4. Now the logs are available:
+    * via [Grafana](http://localhost:3001/explore)
+    * via [Loki logcli](https://grafana.com/docs/loki/latest/getting-started/logcli/)
+      ```bash
+      logcli query '{app="capi-controller-manager"}' --timezone=UTC --from="2022-02-22T10:00:00Z"
+      ```
+
+<aside class="note">
+
+<h1>Caveats</h1>
+
+* Make sure you query the correct time range via Grafana or `logcli`.
+* The logs are currently uploaded by using now as the timestamp, because otherwise it would
+  take a few minutes until the logs show up in Loki.
+
+</aside>
+
 ### Known Issues
 
 #### Building images on SELinux

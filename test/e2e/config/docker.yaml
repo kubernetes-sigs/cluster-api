@@ -37,16 +37,16 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-      - sourcePath: "../data/shared/v1alpha3/metadata.yaml"
+    - sourcePath: "../data/shared/v1alpha3/metadata.yaml"
   - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/core-components.yaml"
     type: "url"
     contract: v1alpha4
     replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
     files:
-      - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
+    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
   - name: v1.1.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/core-components.yaml"
     type: "url"
@@ -60,7 +60,7 @@ providers:
     value: ../../../config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
-      new: --metrics-bind-addr=:8080
+      new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
     files:
     - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
@@ -72,19 +72,19 @@ providers:
     type: "url"
     contract: v1alpha3
     replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
     files:
-      - sourcePath: "../data/shared/v1alpha3/metadata.yaml"
+    - sourcePath: "../data/shared/v1alpha3/metadata.yaml"
   - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/bootstrap-components.yaml"
     type: "url"
     contract: v1alpha4
     replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
     files:
-      - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
+    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
   - name: v1.1.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/bootstrap-components.yaml"
     type: "url"
@@ -98,7 +98,7 @@ providers:
     value: ../../../bootstrap/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
-      new: --metrics-bind-addr=:8080
+      new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
     files:
     - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
@@ -110,19 +110,19 @@ providers:
     type: "url"
     contract: v1alpha3
     replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
     files:
-      - sourcePath: "../data/shared/v1alpha3/metadata.yaml"
+    - sourcePath: "../data/shared/v1alpha3/metadata.yaml"
   - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/control-plane-components.yaml"
     type: "url"
     contract: v1alpha4
     replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
     files:
-      - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
+    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
   - name: v1.1.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/control-plane-components.yaml"
     type: "url"
@@ -136,7 +136,7 @@ providers:
     value: ../../../controlplane/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
-      new: --metrics-bind-addr=:8080
+      new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
     files:
     - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
@@ -148,21 +148,21 @@ providers:
     type: "url"
     contract: v1alpha3
     replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
     files:
-      - sourcePath: "../data/shared/v1alpha3/metadata.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1alpha3/cluster-template.yaml"
+    - sourcePath: "../data/shared/v1alpha3/metadata.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1alpha3/cluster-template.yaml"
   - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/infrastructure-components-development.yaml"
     type: "url"
     contract: v1alpha4
     replacements:
-      - old: --metrics-addr=127.0.0.1:8080
-        new: --metrics-addr=:8080
+    - old: --metrics-addr=127.0.0.1:8080
+      new: --metrics-addr=:8080
     files:
-      - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
-      - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template.yaml"
+    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template.yaml"
   - name: v1.1.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/infrastructure-components-development.yaml"
     type: "url"
@@ -177,7 +177,7 @@ providers:
     value: ../../../test/infrastructure/docker/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
-      new: --metrics-bind-addr=:8080
+      new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
     files:
     # Add cluster templates
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template.yaml"

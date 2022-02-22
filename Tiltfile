@@ -1,4 +1,7 @@
 # -*- mode: Python -*-
+
+load("ext://uibutton", "cmd_button", "text_input")
+
 # set defaults
 version_settings(True, ">=0.22.2")
 
@@ -328,7 +331,18 @@ def deploy_observability():
 
     if "loki" in settings.get("deploy_observability", []):
         k8s_yaml(read_file("./.tiltbuild/yaml/loki.observability.yaml"), allow_duplicates = True)
-        k8s_resource(workload = "loki", extra_pod_selectors = [{"app": "loki"}], labels = ["observability"])
+        k8s_resource(workload = "loki", port_forwards = "3100", extra_pod_selectors = [{"app": "loki"}], labels = ["observability"])
+
+        cmd_button(
+            "loki:import logs",
+            argv = ["sh", "-c", "cd ./hack/tools/log-push && go run ./main.go --log-path=$LOG_PATH"],
+            resource = "loki",
+            icon_name = "import_export",
+            text = "Import logs",
+            inputs = [
+                text_input("LOG_PATH", label = "Log path, one of: GCS path, ProwJob URL or local folder"),
+            ],
+        )
 
     if "grafana" in settings.get("deploy_observability", []):
         k8s_yaml(read_file("./.tiltbuild/yaml/grafana.observability.yaml"), allow_duplicates = True)

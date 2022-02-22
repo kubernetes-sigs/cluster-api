@@ -310,9 +310,11 @@ lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported
 tiltfile-fix: ## Format the Tiltfile
 	./hack/verify-starlark.sh fix
 
+APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
+
 .PHONY: apidiff
 apidiff: $(GO_APIDIFF) ## Check for API differences
-	$(GO_APIDIFF) $(shell git rev-parse origin/main) --print-compatible
+	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
 ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions docker-provider book-links
 

@@ -1,5 +1,9 @@
 # Configuration for grafana chart, see https://github.com/grafana/helm-charts/tree/main/charts/grafana
 
+# Set a password explicitly to avoid infinite tilt reloads because
+# of a random password.
+adminPassword: admin
+
 grafana.ini:
   # Disable the grafana login form.
   auth:

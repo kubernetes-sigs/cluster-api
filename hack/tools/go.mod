@@ -16,7 +16,6 @@ require (
 	golang.org/x/net v0.0.0-20211118161319-6a13c67c3ce4
 	golang.org/x/tools v0.1.8-0.20211029000441-d6a9af8af023
 	google.golang.org/api v0.61.0
-	gotest.tools/gotestsum v1.6.4
 	k8s.io/api v0.23.0
 	k8s.io/apimachinery v0.23.0
 	k8s.io/client-go v0.23.0
@@ -30,11 +29,6 @@ require (
 
 require (
 	cloud.google.com/go v0.97.0 // indirect
-	cloud.google.com/go/containeranalysis v0.1.0 // indirect
-	cloud.google.com/go/errorreporting v0.1.0 // indirect
-	cloud.google.com/go/grafeas v0.0.0-20210817223811-71387f0142a4 // indirect
-	cloud.google.com/go/logging v1.4.2 // indirect
-	cloud.google.com/go/storage v1.18.2 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
@@ -107,9 +101,6 @@ require (
 	github.com/spf13/viper v1.9.0 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
 	github.com/subosito/gotenv v1.2.0 // indirect
-	github.com/valyala/fastjson v1.6.3 // indirect
-	github.com/vbatts/tar-split v0.11.2 // indirect
-	github.com/xanzy/ssh-agent v0.3.0 // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20211013180041-c96bc1413d57 // indirect
@@ -139,3 +130,9 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.0 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
+
+// pick up a klog version with the "v" fix
+replace k8s.io/klog/v2 => k8s.io/klog/v2 v2.40.2-0.20220216121836-84f3ebd27f1b
+
+// pick up a CR version with the LoggerCustomizer
+replace sigs.k8s.io/controller-runtime => github.com/sbueringer/controller-runtime v0.2.0-beta.1.0.20220216141822-42d8935efb64

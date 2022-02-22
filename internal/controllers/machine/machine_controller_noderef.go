@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -41,8 +42,7 @@ var (
 )
 
 func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "machine", machine.Name, "namespace", machine.Namespace)
-	log = log.WithValues("cluster", cluster.Name)
+	log := ctrl.LoggerFrom(ctx)
 
 	// Check that the Machine has a valid ProviderID.
 	if machine.Spec.ProviderID == nil || *machine.Spec.ProviderID == "" {
@@ -189,7 +189,7 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID *n
 			for key, node := range nl.Items {
 				nodeProviderID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
 				if err != nil {
-					log.Error(err, "Failed to parse ProviderID", "node", client.ObjectKeyFromObject(&nl.Items[key]).String())
+					log.Error(err, "Failed to parse ProviderID", "node", klog.KRef("", nl.Items[key].GetName()).String())
 					continue
 				}
 

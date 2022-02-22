@@ -130,3 +130,9 @@ require (
 	sigs.k8s.io/json v0.0.0-20211020170558-c049b76a60c6 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.0 // indirect
 )
+
+// pick up a klog version with the "v" fix
+replace k8s.io/klog/v2 => k8s.io/klog/v2 v2.40.2-0.20220216121836-84f3ebd27f1b
+
+// pick up a CR version with the LoggerCustomizer
+replace sigs.k8s.io/controller-runtime => github.com/sbueringer/controller-runtime v0.2.0-beta.1.0.20220216141822-42d8935efb64

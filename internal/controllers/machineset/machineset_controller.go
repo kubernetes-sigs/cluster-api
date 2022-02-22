@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -40,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -85,6 +87,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return err
 	}
 
+	tr := tlog.Reconciler(r)
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineSet{}).
 		Owns(&clusterv1.Machine{}).
@@ -93,8 +96,9 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.MachineToMachineSets),
 		).
 		WithOptions(options).
+		WithLoggerCustomizer(tlog.LoggerCustomizer(mgr.GetLogger(), "machineset", "machineset")).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Build(r)
+		Build(tr)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -134,6 +138,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, machineSet) {
@@ -259,11 +266,11 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
 		if metav1.GetControllerOf(machine) == nil {
 			if err := r.adoptOrphan(ctx, machineSet, machine); err != nil {
-				log.Error(err, "Failed to adopt Machine", "machine", machine.Name)
+				log.Error(err, "Failed to adopt Machine", "machine", klog.KObj(machine).String())
 				r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt Machine %q: %v", machine.Name, err)
 				continue
 			}
-			log.Info("Adopted Machine", "machine", machine.Name)
+			log.Info("Adopted Machine", "machine", klog.KObj(machine).String())
 			r.recorder.Eventf(machineSet, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted Machine %q", machine.Name)
 		}
 
@@ -278,7 +285,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 			continue
 		}
 		if conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition) {
-			log.Info("Deleting unhealthy machine", "machine", machine.GetName())
+			log.Info("Deleting unhealthy machine", "machine", klog.KObj(machine).String())
 			patch := client.MergeFrom(machine.DeepCopy())
 			if err := r.Client.Delete(ctx, machine); err != nil {
 				errs = append(errs, errors.Wrap(err, "failed to delete"))
@@ -566,7 +573,7 @@ func (r *Reconciler) waitForMachineDeletion(ctx context.Context, machineList []*
 func (r *Reconciler) MachineToMachineSets(o client.Object) []ctrl.Request {
 	ctx := context.Background()
 	// This won't log unless the global logger is set
-	log := ctrl.LoggerFrom(ctx, "object", client.ObjectKeyFromObject(o))
+	log := ctrl.LoggerFrom(ctx, "object", klog.KObj(o).String())
 	result := []ctrl.Request{}
 
 	m, ok := o.(*clusterv1.Machine)
@@ -689,7 +696,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 		newStatus.ObservedGeneration = ms.Generation
 		newStatus.DeepCopyInto(&ms.Status)
 
-		log.V(4).Info(fmt.Sprintf("Updating status for %v: %s/%s, ", ms.Kind, ms.Namespace, ms.Name) +
+		log.V(4).Info("Updating status: " +
 			fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, newStatus.Replicas, desiredReplicas) +
 			fmt.Sprintf("fullyLabeledReplicas %d->%d, ", ms.Status.FullyLabeledReplicas, newStatus.FullyLabeledReplicas) +
 			fmt.Sprintf("readyReplicas %d->%d, ", ms.Status.ReadyReplicas, newStatus.ReadyReplicas) +

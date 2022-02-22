@@ -53,15 +53,17 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	tr := tlog.Reconciler(r)
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineDeployment{}).
 		Named("topology/machinedeployment").
 		WithOptions(options).
+		WithLoggerCustomizer(tlog.LoggerCustomizer(mgr.GetLogger(), "topology/machinedeployment", "machinedeployment")).
 		WithEventFilter(predicates.All(ctrl.LoggerFrom(ctx),
 			predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
 			predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx)),
 		)).
-		Complete(r)
+		Complete(tr)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

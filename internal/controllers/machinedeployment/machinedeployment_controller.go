@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -36,6 +37,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -72,6 +74,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return err
 	}
 
+	tr := tlog.Reconciler(r)
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.MachineDeployment{}).
 		Owns(&clusterv1.MachineSet{}).
@@ -80,8 +83,9 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			handler.EnqueueRequestsFromMapFunc(r.MachineSetToDeployments),
 		).
 		WithOptions(options).
+		WithLoggerCustomizer(tlog.LoggerCustomizer(mgr.GetLogger(), "machinedeployment", "machinedeployment")).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Build(r)
+		Build(tr)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -118,10 +122,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
+	log = log.WithValues("machinedeployment", klog.KObj(deployment).String())
+	ctx = ctrl.LoggerInto(ctx, log)
+
 	cluster, err := util.GetClusterByName(ctx, r.Client, deployment.Namespace, deployment.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, deployment) {
@@ -260,19 +270,19 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 
 		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 		if err != nil {
-			log.Error(err, "Skipping MachineSet, failed to get label selector from spec selector", "machineset", ms.Name)
+			log.Error(err, "Skipping MachineSet, failed to get label selector from spec selector", "machineset", klog.KObj(ms).String())
 			continue
 		}
 
 		// If a MachineDeployment with a nil or empty selector creeps in, it should match nothing, not everything.
 		if selector.Empty() {
-			log.Info("Skipping MachineSet as the selector is empty", "machineset", ms.Name)
+			log.Info("Skipping MachineSet as the selector is empty", "machineset", klog.KObj(ms).String())
 			continue
 		}
 
 		// Skip this MachineSet unless either selector matches or it has a controller ref pointing to this MachineDeployment
 		if !selector.Matches(labels.Set(ms.Labels)) && !metav1.IsControlledBy(ms, d) {
-			log.V(4).Info("Skipping MachineSet, label mismatch", "machineset", ms.Name)
+			log.V(4).Info("Skipping MachineSet, label mismatch", "machineset", klog.KObj(ms).String())
 			continue
 		}
 
@@ -283,7 +293,7 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 				r.recorder.Eventf(d, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt MachineSet %q: %v", ms.Name, err)
 				continue
 			}
-			log.Info("Adopted MachineSet into MachineDeployment", "machineset", ms.Name)
+			log.Info("Adopted MachineSet into MachineDeployment", "machineset", klog.KObj(ms).String())
 			r.recorder.Eventf(d, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted MachineSet %q", ms.Name)
 		}
 

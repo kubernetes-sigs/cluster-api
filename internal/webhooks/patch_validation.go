@@ -23,6 +23,7 @@ import (
 	"strings"
 	"text/template"
 
+	sprig "github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -99,7 +100,7 @@ func validateEnabledIf(enabledIf *string, path *field.Path) field.ErrorList {
 
 	if enabledIf != nil {
 		// Error if template can not be parsed.
-		_, err := template.New("enabledIf").Parse(*enabledIf)
+		_, err := template.New("enabledIf").Funcs(sprig.HermeticTxtFuncMap()).Parse(*enabledIf)
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
@@ -272,7 +273,7 @@ func validateJSONPatchValues(jsonPatch clusterv1.JSONPatch, variableSet map[stri
 
 	if jsonPatch.ValueFrom != nil && jsonPatch.ValueFrom.Template != nil {
 		// Error if template can not be parsed.
-		_, err := template.New("valueFrom.template").Parse(*jsonPatch.ValueFrom.Template)
+		_, err := template.New("valueFrom.template").Funcs(sprig.HermeticTxtFuncMap()).Parse(*jsonPatch.ValueFrom.Template)
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(

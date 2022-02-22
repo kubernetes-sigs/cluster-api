@@ -99,6 +99,7 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 				tree.Add(m, machineInfra, ObjectMetaName("MachineInfrastructure"), NoEcho(true))
 			}
 
+			// Note: this reference doesn't exist on MachinePool Machines
 			if machineBootstrap, err := external.Get(ctx, c, m.Spec.Bootstrap.ConfigRef, cluster.Namespace); err == nil {
 				tree.Add(m, machineBootstrap, ObjectMetaName("BootstrapConfig"), NoEcho(true))
 			}

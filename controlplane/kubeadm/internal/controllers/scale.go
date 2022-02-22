@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -36,7 +37,7 @@ import (
 )
 
 func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
-	logger := controlPlane.Logger()
+	logger := ctrl.LoggerFrom(ctx)
 
 	// Perform an uncached read of all the owned machines. This check is in place to make sure
 	// that the controller cache is not misbehaving and we end up initializing the cluster more than once.
@@ -65,7 +66,7 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 }
 
 func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
-	logger := controlPlane.Logger()
+	logger := ctrl.LoggerFrom(ctx)
 
 	// Run preflight checks to ensure that the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
 	if result, err := r.preflightChecks(ctx, controlPlane); err != nil || !result.IsZero() {
@@ -92,7 +93,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	controlPlane *internal.ControlPlane,
 	outdatedMachines collections.Machines,
 ) (ctrl.Result, error) {
-	logger := controlPlane.Logger()
+	logger := ctrl.LoggerFrom(ctx)
 
 	// Pick the Machine that we should scale down.
 	machineToDelete, err := selectMachineForScaleDown(controlPlane, outdatedMachines)
@@ -140,7 +141,7 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 		return ctrl.Result{}, err
 	}
 
-	logger = logger.WithValues("machine", machineToDelete.Name)
+	logger = logger.WithValues("machine", klog.KObj(machineToDelete))
 	if err := r.Client.Delete(ctx, machineToDelete); err != nil && !apierrors.IsNotFound(err) {
 		logger.Error(err, "Failed to delete control plane machine")
 		r.recorder.Eventf(kcp, corev1.EventTypeWarning, "FailedScaleDown",
@@ -160,8 +161,8 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 // If the control plane is not passing preflight checks, it requeue.
 //
 // NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneConditions before this.
-func (r *KubeadmControlPlaneReconciler) preflightChecks(_ context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) (ctrl.Result, error) { //nolint:unparam
-	logger := controlPlane.Logger()
+func (r *KubeadmControlPlaneReconciler) preflightChecks(ctx context.Context, controlPlane *internal.ControlPlane, excludeFor ...*clusterv1.Machine) (ctrl.Result, error) { //nolint:unparam
+	logger := ctrl.LoggerFrom(ctx)
 
 	// If there is no KCP-owned control-plane machines, then control-plane has not been initialized yet,
 	// so it is considered ok to proceed.

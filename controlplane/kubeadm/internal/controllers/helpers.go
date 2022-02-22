@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -103,7 +104,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 
 func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster, configSecret *corev1.Secret, controllerOwnerRef metav1.OwnerReference) error {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Adopting KubeConfig secret created by v1alpha2 controllers", "Name", configSecret.Name)
+	log.Info("Adopting KubeConfig secret created by v1alpha2 controllers", "secret", klog.KObj(configSecret))
 
 	patch, err := patch.NewHelper(configSecret, r.Client)
 	if err != nil {

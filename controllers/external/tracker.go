@@ -54,7 +54,7 @@ func (o *ObjectTracker) Watch(log logr.Logger, obj runtime.Object, handler handl
 	u := &unstructured.Unstructured{}
 	u.SetGroupVersionKind(gvk)
 
-	log.Info("Adding watcher on external object", "GroupVersionKind", gvk.String())
+	log.Info("Adding watcher on external object", "groupVersionKind", gvk.String())
 	err := o.Controller.Watch(
 		&source.Kind{Type: u},
 		handler,

@@ -22,11 +22,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -36,14 +37,12 @@ const semaphoreInformationKey = "lock-information"
 
 // ControlPlaneInitMutex uses a ConfigMap to synchronize cluster initialization.
 type ControlPlaneInitMutex struct {
-	log    logr.Logger
 	client client.Client
 }
 
 // NewControlPlaneInitMutex returns a lock that can be held by a control plane node before init.
-func NewControlPlaneInitMutex(log logr.Logger, client client.Client) *ControlPlaneInitMutex {
+func NewControlPlaneInitMutex(client client.Client) *ControlPlaneInitMutex {
 	return &ControlPlaneInitMutex{
-		log:    log,
 		client: client,
 	}
 }
@@ -52,7 +51,7 @@ func NewControlPlaneInitMutex(log logr.Logger, client client.Client) *ControlPla
 func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) bool {
 	sema := newSemaphore()
 	cmName := configMapName(cluster.Name)
-	log := c.log.WithValues("namespace", cluster.Namespace, "cluster-name", cluster.Name, "configmap-name", cmName, "machine-name", machine.Name)
+	log := ctrl.LoggerFrom(ctx, "configMap", klog.KRef(cluster.Namespace, cmName))
 	err := c.client.Get(ctx, client.ObjectKey{
 		Namespace: cluster.Namespace,
 		Name:      cmName,
@@ -61,12 +60,12 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 	case apierrors.IsNotFound(err):
 		break
 	case err != nil:
-		log.Error(err, "Failed to acquire lock")
+		log.Error(err, "Failed to acquire init lock")
 		return false
 	default: // Successfully found an existing config map.
 		info, err := sema.information()
 		if err != nil {
-			log.Error(err, "Failed to get information about the existing lock")
+			log.Error(err, "Failed to get information about the existing init lock")
 			return false
 		}
 		// The machine requesting the lock is the machine that created the lock, therefore the lock is acquired.
@@ -79,12 +78,12 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 			Namespace: cluster.Namespace,
 			Name:      info.MachineName,
 		}, &clusterv1.Machine{}); err != nil {
-			log.Error(err, "Failed to get machine holding ControlPlane lock")
+			log.Error(err, "Failed to get machine holding init lock")
 			if apierrors.IsNotFound(err) {
 				c.Unlock(ctx, cluster)
 			}
 		}
-		log.Info("Waiting on another machine to initialize", "init-machine", info.MachineName)
+		log.Info(fmt.Sprintf("Waiting for Machine %s to initialize", info.MachineName))
 		return false
 	}
 
@@ -92,7 +91,7 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 	sema.setMetadata(cluster)
 	// Adds the additional information
 	if err := sema.setInformation(&information{MachineName: machine.Name}); err != nil {
-		log.Error(err, "Failed to acquire lock while setting semaphore information")
+		log.Error(err, "Failed to acquire init lock while setting semaphore information")
 		return false
 	}
 
@@ -100,10 +99,10 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 	err = c.client.Create(ctx, sema.ConfigMap)
 	switch {
 	case apierrors.IsAlreadyExists(err):
-		log.Info("Cannot acquire the lock. The lock has been acquired by someone else")
+		log.Info("Cannot acquire the init lock. The init lock has been acquired by someone else")
 		return false
 	case err != nil:
-		log.Error(err, "Error acquiring the lock")
+		log.Error(err, "Error acquiring the init lock")
 		return false
 	default:
 		return true
@@ -114,8 +113,7 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 func (c *ControlPlaneInitMutex) Unlock(ctx context.Context, cluster *clusterv1.Cluster) bool {
 	sema := newSemaphore()
 	cmName := configMapName(cluster.Name)
-	log := c.log.WithValues("namespace", cluster.Namespace, "cluster-name", cluster.Name, "configmap-name", cmName)
-	log.Info("Checking for lock")
+	log := ctrl.LoggerFrom(ctx, "configMap", klog.KRef(cluster.Namespace, cmName))
 	err := c.client.Get(ctx, client.ObjectKey{
 		Namespace: cluster.Namespace,
 		Name:      cmName,

@@ -20,18 +20,32 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *MachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*expv1.MachinePool)
 
-	return Convert_v1alpha4_MachinePool_To_v1beta1_MachinePool(src, dst, nil)
+	if err := Convert_v1alpha4_MachinePool_To_v1beta1_MachinePool(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &expv1.MachinePool{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
+	return nil
 }
 
 func (dst *MachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*expv1.MachinePool)
 
-	return Convert_v1beta1_MachinePool_To_v1alpha4_MachinePool(src, dst, nil)
+	if err := Convert_v1beta1_MachinePool_To_v1alpha4_MachinePool(src, dst, nil); err != nil {
+		return err
+	}
+	return utilconversion.MarshalData(src, dst)
 }
 
 func (src *MachinePoolList) ConvertTo(dstRaw conversion.Hub) error {

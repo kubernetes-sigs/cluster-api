@@ -97,7 +97,12 @@ documentation][scale].
 * `machineTemplate.nodeDrainTimeout` - is a *metav1.Duration defining the total amount of time
   that the controller will spend on draining a control plane node.
   The default value is 0, meaning that the node can be drained without any time limitations.
-  
+
+* `machineTemplate.nodeDeletionTimeout` - is a *metav1.Duration defining how long the controller
+  will attempt to delete the Node that is hosted by a Machine after the Machine is marked for
+  deletion. A duration of 0 will retry deletion indefinitely. It defaults to 10 seconds on the
+  Machine.
+
 #### Required `status` fields
 
 The `ImplementationControlPlane` object **must** have a `status` object.

@@ -96,6 +96,10 @@ func kubeadmInitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c fuzz.C
 	// InitConfiguration.Patches does not exist in kubeadm v1beta1 API, so setting it to nil in order to avoid
 	// v1beta1 --> upstream v1beta1 -> v1beta1 round trip errors.
 	obj.Patches = nil
+
+	// InitConfiguration.SkipPhases does not exist in kubeadm v1beta1 API, so setting it to nil in order to avoid
+	// v1beta1 --> upstream v1beta1 -> v1beta1 round trip errors.
+	obj.SkipPhases = nil
 }
 
 func kubeadmJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.Continue) {
@@ -104,4 +108,8 @@ func kubeadmJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.C
 	// JoinConfiguration.Patches does not exist in kubeadm v1beta1 API, so setting it to nil in order to avoid
 	// v1beta1 --> upstream v1beta1 -> v1beta1 round trip errors.
 	obj.Patches = nil
+
+	// JoinConfiguration.SkipPhases does not exist in kubeadm v1beta1 API, so setting it to nil in order to avoid
+	// v1beta1 --> upstream v1beta1 -> v1beta1 round trip errors.
+	obj.SkipPhases = nil
 }

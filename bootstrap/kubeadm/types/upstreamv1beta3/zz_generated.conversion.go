@@ -644,7 +644,7 @@ func autoConvert_upstreamv1beta3_InitConfiguration_To_v1beta1_InitConfiguration(
 		return err
 	}
 	// WARNING: in.CertificateKey requires manual conversion: does not exist in peer-type
-	// WARNING: in.SkipPhases requires manual conversion: does not exist in peer-type
+	out.SkipPhases = *(*[]string)(unsafe.Pointer(&in.SkipPhases))
 	out.Patches = (*v1beta1.Patches)(unsafe.Pointer(in.Patches))
 	return nil
 }
@@ -657,6 +657,7 @@ func autoConvert_v1beta1_InitConfiguration_To_upstreamv1beta3_InitConfiguration(
 	if err := Convert_v1beta1_APIEndpoint_To_upstreamv1beta3_APIEndpoint(&in.LocalAPIEndpoint, &out.LocalAPIEndpoint, s); err != nil {
 		return err
 	}
+	out.SkipPhases = *(*[]string)(unsafe.Pointer(&in.SkipPhases))
 	out.Patches = (*Patches)(unsafe.Pointer(in.Patches))
 	return nil
 }
@@ -683,7 +684,7 @@ func autoConvert_upstreamv1beta3_JoinConfiguration_To_v1beta1_JoinConfiguration(
 	} else {
 		out.ControlPlane = nil
 	}
-	// WARNING: in.SkipPhases requires manual conversion: does not exist in peer-type
+	out.SkipPhases = *(*[]string)(unsafe.Pointer(&in.SkipPhases))
 	out.Patches = (*v1beta1.Patches)(unsafe.Pointer(in.Patches))
 	return nil
 }
@@ -705,6 +706,7 @@ func autoConvert_v1beta1_JoinConfiguration_To_upstreamv1beta3_JoinConfiguration(
 	} else {
 		out.ControlPlane = nil
 	}
+	out.SkipPhases = *(*[]string)(unsafe.Pointer(&in.SkipPhases))
 	out.Patches = (*Patches)(unsafe.Pointer(in.Patches))
 	return nil
 }

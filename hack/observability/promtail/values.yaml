@@ -3,3 +3,15 @@
 config:
   # publish data to loki
   lokiAddress: http://loki:3100/loki/api/v1/push
+
+  snippets:
+    pipelineStages:
+    # Parse cluster and machine to make them available as labels.
+    - cri: { }
+    - json:
+        expressions:
+          cluster: cluster
+          machine: machine
+    - labels:
+        cluster:
+        machine:

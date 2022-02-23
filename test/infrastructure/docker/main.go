@@ -123,14 +123,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// The JSON log format requires the Klog format in klog, otherwise log lines
-	// are serialized twice, e.g.:
-	// { ... "msg":"controller/cluster \"msg\"=\"Starting workers\"\n"}
-	if logOptions.Config.Format == logs.JSONLogFormat {
-		ctrl.SetLogger(klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog)))
-	} else {
-		ctrl.SetLogger(klogr.New())
-	}
+	// Set the Klog format, as the Serialize format shouldn't be used anymore.
+	// This makes sure that the logs are formatted correctly, i.e.:
+	// * JSON logging format: msg isn't serialized twice
+	// * text logging format: values are formatted with their .String() func.
+	ctrl.SetLogger(klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog)))
 
 	if profilerAddress != "" {
 		klog.Infof("Profiler listening for requests at %s", profilerAddress)

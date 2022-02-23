@@ -113,6 +113,8 @@ The following diagram shows the typical logic for a machine infrastructure provi
 1. If the `Cluster` to which this resource belongs cannot be found, exit the reconciliation
 1. Add the provider-specific finalizer, if needed
 1. If the associated `Cluster`'s `status.infrastructureReady` is `false`, exit the reconciliation
+    1. **Note**: This check should not be blocking any further delete reconciliation flows.
+    1. **Note**: This check should only be performed after appropriate owner references (if any) are updated.
 1. If the associated `Machine`'s `spec.bootstrap.dataSecretName` is `nil`, exit the reconciliation
 1. Reconcile provider-specific machine infrastructure
     1. If any errors are encountered:

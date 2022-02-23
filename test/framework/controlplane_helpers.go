@@ -401,12 +401,12 @@ func ScaleAndWaitControlPlane(ctx context.Context, input ScaleAndWaitControlPlan
 			return -1, err
 		}
 
-		selectorMap, err := metav1.LabelSelectorAsMap(kcpLabelSelector)
+		selector, err := metav1.LabelSelectorAsSelector(kcpLabelSelector)
 		if err != nil {
 			return -1, err
 		}
 		machines := &clusterv1.MachineList{}
-		if err := input.ClusterProxy.GetClient().List(ctx, machines, client.InNamespace(input.ControlPlane.Namespace), client.MatchingLabels(selectorMap)); err != nil {
+		if err := input.ClusterProxy.GetClient().List(ctx, machines, &client.ListOptions{LabelSelector: selector, Namespace: input.ControlPlane.Namespace}); err != nil {
 			return -1, err
 		}
 		nodeRefCount := 0

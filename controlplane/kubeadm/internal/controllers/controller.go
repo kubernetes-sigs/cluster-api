@@ -149,12 +149,6 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{}, nil
 	}
 
-	// Wait for the cluster infrastructure to be ready before creating machines
-	if !cluster.Status.InfrastructureReady {
-		log.Info("Cluster infrastructure is not ready yet")
-		return ctrl.Result{}, nil
-	}
-
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(kcp, r.Client)
 	if err != nil {
@@ -253,6 +247,12 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// Make sure to reconcile the external infrastructure reference.
 	if err := r.reconcileExternalReference(ctx, cluster, &kcp.Spec.MachineTemplate.InfrastructureRef); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	// Wait for the cluster infrastructure to be ready before creating machines
+	if !cluster.Status.InfrastructureReady {
+		log.Info("Cluster infrastructure is not ready yet")
+		return ctrl.Result{}, nil
 	}
 
 	// Generate Cluster Certificates if needed

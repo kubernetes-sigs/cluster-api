@@ -11,9 +11,18 @@ Started by the Kubernetes Special Interest Group (SIG) [Cluster Lifecycle](https
 * [Developer guide](./developer/guide.md)
 * [Contributing](./CONTRIBUTING.md)
 
-**Using Cluster API v1alpha3 or v1alpha4?** Please see the corresponding documentation:
-* [release-0-3.cluster-api.sigs.k8s.io](https://release-0-3.cluster-api.sigs.k8s.io)
+<aside class="note">
+
+<h1>ClusterAPI documentation versions</h1>
+
+This book documents ClusterAPI v1.2. For other Cluster API versions please see the corresponding documentation:
+* [main.cluster-api.sigs.k8s.io](https://main.cluster-api.sigs.k8s.io)
+* [release-1-1.cluster-api.sigs.k8s.io](https://release-1-1.cluster-api.sigs.k8s.io)
+* [release-1-0.cluster-api.sigs.k8s.io](https://release-1-0.cluster-api.sigs.k8s.io)
 * [release-0-4.cluster-api.sigs.k8s.io](https://release-0-4.cluster-api.sigs.k8s.io)
+* [release-0-3.cluster-api.sigs.k8s.io](https://release-0-3.cluster-api.sigs.k8s.io)
+
+</aside>
 
 ## Why build Cluster API?
 

@@ -38,21 +38,9 @@ func IsExternallyManaged(o metav1.Object) bool {
 	return hasAnnotation(o, clusterv1.ManagedByAnnotation)
 }
 
-// HasPausedAnnotation returns true if the object has the `paused` annotation.
-// Deprecated: this is going to be removed in a next release. Please use `HasPaused` instead.
-func HasPausedAnnotation(o metav1.Object) bool {
-	return hasAnnotation(o, clusterv1.PausedAnnotation)
-}
-
 // HasPaused returns true if the object has the `paused` annotation.
 func HasPaused(o metav1.Object) bool {
 	return hasAnnotation(o, clusterv1.PausedAnnotation)
-}
-
-// HasSkipRemediationAnnotation returns true if the object has the `skip-remediation` annotation.
-// Deprecated: this is going to be removed in a next release. Please use `HasSkipRemediation` instead.
-func HasSkipRemediationAnnotation(o metav1.Object) bool {
-	return hasAnnotation(o, clusterv1.MachineSkipRemediationAnnotation)
 }
 
 // HasSkipRemediation returns true if the object has the `skip-remediation` annotation.

@@ -37,6 +37,14 @@ type HelperOptions struct {
 	// OwnedConditions defines condition types owned by the controller.
 	// In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
 	OwnedConditions []clusterv1.ConditionType
+
+	// PatchLogging enables the patch helper to log the content of the patch.
+	// Warning: This will log all keys and values from a patch including any sensitive information contained within.
+	// To sanitize information in the patch, paths to be redacted can be supplied to WithSanitizedLoggingPaths.
+	PatchLogging bool
+
+	// PatchLoggingSanitizedPaths will replace the values at each of the passed keys with "redacted".
+	PatchLoggingSanitizedPaths []string
 }
 
 // WithForceOverwriteConditions allows the patch helper to overwrite conditions in case of conflicts.
@@ -66,4 +74,16 @@ type WithOwnedConditions struct {
 // ApplyToHelper applies this configuration to the given HelperOptions.
 func (w WithOwnedConditions) ApplyToHelper(in *HelperOptions) {
 	in.OwnedConditions = w.Conditions
+}
+
+// WithPatchLogging adds the patch to the log messages; it accepts a list of paths that refers to sensitive data
+// to be redacted while adding the patch to the log message.
+type WithPatchLogging struct {
+	PatchLoggingSanitizedPaths []string
+}
+
+// ApplyToHelper applies this configuration to the given HelperOptions.
+func (w WithPatchLogging) ApplyToHelper(in *HelperOptions) {
+	in.PatchLogging = true
+	in.PatchLoggingSanitizedPaths = w.PatchLoggingSanitizedPaths
 }

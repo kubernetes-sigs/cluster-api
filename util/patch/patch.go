@@ -19,7 +19,9 @@ package patch
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -29,10 +31,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -82,6 +86,8 @@ func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 
 // Patch will attempt to patch the given object, including its status.
 func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	// Return early if the object is nil.
 	if err := checkNilObject(obj); err != nil {
 		return err
@@ -124,9 +130,21 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	}
 
 	// Calculate and store the top-level field changes (e.g. "metadata", "spec", "status") we have before/after.
-	h.changes, err = h.calculateChanges(obj)
+	var patchDiff map[string]interface{}
+
+	h.changes, patchDiff, err = h.calculateChanges(obj)
 	if err != nil {
 		return err
+	}
+
+	// log whether a patch is created. If enabled log the full patch.
+	if len(patchDiff) == 0 {
+		log.Info(fmt.Sprintf("No changes for %s", tlog.KObj{Obj: h.after}))
+	} else {
+		if options.PatchLogging {
+			log = log.WithValues("patch", sanitizePatch(patchDiff, options.PatchLoggingSanitizedPaths))
+		}
+		log.Info(fmt.Sprintf("Patching %s", tlog.KObj{Obj: h.after}))
 	}
 
 	// Issue patches and return errors in an aggregate.
@@ -277,26 +295,26 @@ func (h *Helper) shouldPatch(in string) bool {
 
 // calculate changes tries to build a patch from the before/after objects we have
 // and store in a map which top-level fields (e.g. `metadata`, `spec`, `status`, etc.) have changed.
-func (h *Helper) calculateChanges(after client.Object) (map[string]bool, error) {
+func (h *Helper) calculateChanges(after client.Object) (map[string]bool, map[string]interface{}, error) {
 	// Calculate patch data.
 	patch := client.MergeFrom(h.beforeObject)
 	diff, err := patch.Data(after)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to calculate patch data")
+		return nil, nil, errors.Wrapf(err, "failed to calculate patch data")
 	}
 
 	// Unmarshal patch data into a local map.
 	patchDiff := map[string]interface{}{}
 	if err := json.Unmarshal(diff, &patchDiff); err != nil {
-		return nil, errors.Wrapf(err, "failed to unmarshal patch data into a map")
+		return nil, nil, errors.Wrapf(err, "failed to unmarshal patch data into a map")
 	}
 
 	// Return the map.
-	res := make(map[string]bool, len(patchDiff))
+	changes := make(map[string]bool, len(patchDiff))
 	for key := range patchDiff {
-		res[key] = true
+		changes[key] = true
 	}
-	return res, nil
+	return changes, patchDiff, nil
 }
 
 func checkNilObject(obj client.Object) error {
@@ -306,4 +324,35 @@ func checkNilObject(obj client.Object) error {
 		return errors.Errorf("expected non-nil object")
 	}
 	return nil
+}
+
+// removePath excludes any path passed in the ignorePath MatchOption from the diff.
+func sanitizePatch(diffMap map[string]interface{}, paths []string) map[string]interface{} {
+	for _, p := range paths {
+		path := strings.Split(p, ".")
+		sanitizePath(diffMap, path)
+	}
+	return diffMap
+}
+
+func sanitizePath(diffMap map[string]interface{}, path []string) map[string]interface{} {
+	sanitizedString := "redacted"
+	switch len(path) {
+	case 0:
+		// If path is empty, no-op.
+		break
+	case 1:
+		// If we are at the end of a path, sanitize the corresponding entry.
+		if _, ok := diffMap[path[0]]; ok {
+			diffMap[path[0]] = sanitizedString
+		}
+	default:
+		// If in the middle of a path, go into the nested map.
+		nestedMap, ok := diffMap[path[0]].(map[string]interface{})
+		if !ok {
+			break
+		}
+		diffMap = sanitizePath(nestedMap, path[1:])
+	}
+	return diffMap
 }

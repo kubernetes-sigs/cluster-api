@@ -17,6 +17,7 @@ limitations under the License.
 package patch
 
 import (
+	"log"
 	"reflect"
 	"testing"
 
@@ -917,4 +918,146 @@ func TestNewHelperNil(t *testing.T) {
 	g.Expect(err).NotTo(BeNil())
 	_, err = NewHelper(nil, nil)
 	g.Expect(err).NotTo(BeNil())
+}
+
+func Test_sanitizePatch(t *testing.T) {
+	tests := []struct {
+		name    string
+		diffMap map[string]interface{}
+		paths   []string
+		want    map[string]interface{}
+	}{
+		{
+			name: "Simple patch",
+			diffMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"joinConfiguration": "config",
+				},
+			},
+			paths: []string{"spec.joinConfiguration"},
+			want: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"joinConfiguration": "redacted",
+				},
+			},
+		},
+		{
+			name: "Realistic object patch",
+			diffMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"joinConfiguration": map[string]interface{}{
+						"controlPlane": map[string]interface{}{
+							"localAPIEndpoint": map[string]interface{}{},
+						},
+						"discovery": map[string]interface{}{
+							"bootstrapToken": map[string]interface{}{
+								"apiServerEndpoint": "10.10.10.10:443",
+								"caCertHashes":      "string full of hashes",
+								"token":             "a very secret token",
+							},
+						},
+					}},
+				"status": map[string]interface{}{
+					"observedGeneration": "90",
+				},
+			},
+			paths: []string{"spec.joinConfiguration.discovery.bootstrapToken.token", "spec.joinConfiguration.discovery.bootstrapToken.caCertHashes"},
+			want: map[string]interface{}{"spec": map[string]interface{}{
+				"joinConfiguration": map[string]interface{}{
+					"controlPlane": map[string]interface{}{
+						"localAPIEndpoint": map[string]interface{}{},
+					},
+					"discovery": map[string]interface{}{
+						"bootstrapToken": map[string]interface{}{
+							"apiServerEndpoint": "10.10.10.10:443",
+							"caCertHashes":      "redacted",
+							"token":             "redacted",
+						},
+					},
+				}},
+				"status": map[string]interface{}{
+					"observedGeneration": "90",
+				},
+			},
+		},
+		{
+			name: "Full struct under path gets redacted",
+			diffMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"joinConfiguration": map[string]interface{}{
+						"controlPlane": map[string]interface{}{
+							"localAPIEndpoint": map[string]interface{}{},
+						},
+						"discovery": map[string]interface{}{
+							"bootstrapToken": map[string]interface{}{
+								"apiServerEndpoint": "10.10.10.10:443",
+								"caCertHashes":      "string full of hashes",
+								"token":             "a very secret token",
+							},
+						},
+					},
+				},
+				"status": map[string]interface{}{
+					"observedGeneration": "90",
+				},
+			},
+			paths: []string{"spec.joinConfiguration", "spec.joinConfiguration.discovery.bootstrapToken.caCertHashes"},
+			want: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"joinConfiguration": "redacted",
+				},
+				"status": map[string]interface{}{
+					"observedGeneration": "90",
+				},
+			},
+		},
+		{
+			name: "Non existent path doesn't cause changes",
+			diffMap: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"joinConfiguration": map[string]interface{}{
+						"controlPlane": map[string]interface{}{
+							"localAPIEndpoint": map[string]interface{}{},
+						},
+						"discovery": map[string]interface{}{
+							"bootstrapToken": map[string]interface{}{
+								"apiServerEndpoint": "10.10.10.10:443",
+								"caCertHashes":      "string full of hashes",
+								"token":             "a very secret token",
+							},
+						},
+					}},
+				"status": map[string]interface{}{
+					"observedGeneration": "90",
+				},
+			},
+			paths: []string{"spec.joinConfiguration.discovery.bootstrapToken.NON_EXISTENT_PATH", "spec.joinConfiguration.discovery.bootstrapToken.caCertHashes"},
+			want: map[string]interface{}{"spec": map[string]interface{}{
+				"joinConfiguration": map[string]interface{}{
+					"controlPlane": map[string]interface{}{
+						"localAPIEndpoint": map[string]interface{}{},
+					},
+					"discovery": map[string]interface{}{
+						"bootstrapToken": map[string]interface{}{
+							"apiServerEndpoint": "10.10.10.10:443",
+							"caCertHashes":      "redacted",
+							"token":             "a very secret token",
+						},
+					},
+				}},
+				"status": map[string]interface{}{
+					"observedGeneration": "90",
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := sanitizePatch(tt.diffMap, tt.paths)
+			if !reflect.DeepEqual(got, tt.want) {
+				log.Print(cmp.Diff(got, tt.want))
+				t.Errorf("sanitizePatch() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

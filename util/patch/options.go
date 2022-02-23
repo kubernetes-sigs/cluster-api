@@ -38,9 +38,12 @@ type HelperOptions struct {
 	// In case of conflicts for the owned conditions, the patch helper will always use the value provided by the controller.
 	OwnedConditions []clusterv1.ConditionType
 
-	// LogFullPatch enables the patch helper to log the full content of the patch at klog level 2.
+	// LoggingEnabled enables the patch helper to log the full content of the patch at klog level 2.
 	// Warning: This will log all keys and values from a patch including any sensitive information contained within.
-	LogFullPatch bool
+	LoggingEnabled bool
+
+	// SanitizedLoggingPaths will replace the values at each of the passed keys with
+	SanitizedLoggingPaths []string
 }
 
 // WithForceOverwriteConditions allows the patch helper to overwrite conditions in case of conflicts.
@@ -72,12 +75,11 @@ func (w WithOwnedConditions) ApplyToHelper(in *HelperOptions) {
 	in.OwnedConditions = w.Conditions
 }
 
-// WithLogFullPatch enables the patch helper to log the full content of the patch at klog level 2.
-// Warning: This will log all keys and values from a patch including any sensitive information contained within.
-type WithLogFullPatch struct {
-}
+// WithSanitizedLogging enables logging for the Patch but replaces the values at each path in the array with "redacted"
+type WithSanitizedLogging []string
 
 // ApplyToHelper applies this configuration to the given HelperOptions.
-func (w WithLogFullPatch) ApplyToHelper(in *HelperOptions) {
-	in.LogFullPatch = true
+func (w WithSanitizedLogging) ApplyToHelper(in *HelperOptions) {
+	in.LoggingEnabled = true
+	in.SanitizedLoggingPaths = w
 }

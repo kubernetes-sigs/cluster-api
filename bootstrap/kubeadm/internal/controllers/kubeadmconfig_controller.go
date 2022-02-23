@@ -227,7 +227,10 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		patchOpts := []patch.Option{}
 		if rerr == nil {
 			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
-			patchOpts = append(patchOpts, patch.WithLogFullPatch{})
+			patchOpts = append(patchOpts, patch.WithSanitizedLogging{
+				"spec.joinConfiguration.discovery.bootstrapToken.token",
+				"spec.joinConfiguration.discovery.bootstrapToken",
+			})
 		}
 		if err := patchHelper.Patch(ctx, config, patchOpts...); err != nil {
 			// TODO: aggregated the error

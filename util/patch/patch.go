@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -127,7 +128,7 @@ func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) e
 	}
 
 	// Calculate and store the top-level field changes (e.g. "metadata", "spec", "status") we have before/after.
-	h.changes, err = h.calculateChanges(ctx, obj, options.LogFullPatch)
+	h.changes, err = h.calculateChanges(ctx, obj, options)
 	if err != nil {
 		return err
 	}
@@ -280,7 +281,7 @@ func (h *Helper) shouldPatch(in string) bool {
 
 // calculate changes tries to build a patch from the before/after objects we have
 // and store in a map which top-level fields (e.g. `metadata`, `spec`, `status`, etc.) have changed.
-func (h *Helper) calculateChanges(ctx context.Context, after client.Object, logFullPatch bool) (map[string]bool, error) {
+func (h *Helper) calculateChanges(ctx context.Context, after client.Object, options *HelperOptions) (map[string]bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 	// Calculate patch data.
 	patch := client.MergeFrom(h.beforeObject)
@@ -299,8 +300,8 @@ func (h *Helper) calculateChanges(ctx context.Context, after client.Object, logF
 	if len(patchDiff) == 0 {
 		log.Info(fmt.Sprintf("No changes for %s", tlog.KObj{Obj: h.after}))
 	} else {
-		if logFullPatch {
-			log = log.WithValues("patch", patchDiff)
+		if options.LoggingEnabled {
+			log = log.WithValues("patch", sanitizePatch(patchDiff, options.SanitizedLoggingPaths))
 		}
 		log.Info(fmt.Sprintf("Patching %s", tlog.KObj{Obj: h.after}))
 	}
@@ -319,4 +320,33 @@ func checkNilObject(obj client.Object) error {
 		return errors.Errorf("expected non-nil object")
 	}
 	return nil
+}
+
+// removePath excludes any path passed in the ignorePath MatchOption from the diff.
+func sanitizePatch(diffMap map[string]interface{}, paths []string) map[string]interface{} {
+	for _, p := range paths {
+		path := strings.Split(p, ".")
+		sanitizePath(diffMap, path)
+	}
+	return diffMap
+}
+
+func sanitizePath(diffMap map[string]interface{}, path []string) map[string]interface{} {
+	sanitizedString := "redacted"
+	switch len(path) {
+	case 0:
+		// If path is empty, no-op.
+		break
+	case 1:
+		// If we are at the end of a path, sanitize the corresponding entry.
+		diffMap[path[0]] = sanitizedString
+	default:
+		// If in the middle of a path, go into the nested map.
+		nestedMap, ok := diffMap[path[0]].(map[string]interface{})
+		if !ok {
+			break
+		}
+		nestedMap = sanitizePath(nestedMap, path[1:])
+	}
+	return diffMap
 }

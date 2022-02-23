@@ -74,7 +74,8 @@ func (w WithOwnedConditions) ApplyToHelper(in *HelperOptions) {
 
 // WithLogFullPatch enables the patch helper to log the full content of the patch at klog level 2.
 // Warning: This will log all keys and values from a patch including any sensitive information contained within.
-type WithLogFullPatch struct{}
+type WithLogFullPatch struct {
+}
 
 // ApplyToHelper applies this configuration to the given HelperOptions.
 func (w WithLogFullPatch) ApplyToHelper(in *HelperOptions) {

@@ -18,12 +18,7 @@ package controllers
 
 import (
 	"context"
-	crand "crypto/rand"
-	"encoding/binary"
 	"fmt"
-	"k8s.io/klog/v2"
-	"math/rand"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strconv"
 	"time"
 
@@ -53,6 +48,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -113,10 +109,10 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	if r.TokenTTL == 0 {
 		r.TokenTTL = DefaultTokenTTL
 	}
-
+	tr := tlog.Reconciler(r)
 	b := ctrl.NewControllerManagedBy(mgr).
 		For(&bootstrapv1.KubeadmConfig{}).
-		WithLoggerCustomizer(LoggerCustomizer(mgr.GetLogger(), "kubeadmconfig", "kubeadmconfig")).
+		WithLoggerCustomizer(tlog.LoggerCustomizer(mgr.GetLogger(), "kubeadmconfig", "kubeadmconfig")).
 		WithOptions(options).
 		Watches(
 			&source.Kind{Type: &clusterv1.Machine{}},
@@ -130,7 +126,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		).WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue))
 	}
 
-	c, err := b.Build(r)
+	c, err := b.Build(tr)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -153,34 +149,22 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 // Reconcile handles KubeadmConfig events.
 func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, rerr error) {
 	// Setup logging including trace_id and deferred log.
-	// TODO: This setup could be a common util used across reconcilers
-	log, ctx := contextLoggerWithValues(ctx, "KubeadmConfig", req.NamespacedName, "trace_id", traceID())
-
-	// TODO: move this into "the framework" (controller runtime or something centralized in our code)
-	log.Info("Reconcile started")
-	// Defer calling a "reconcile finished log"
-	defer func() {
-		log.Info("Reconcile finished")
-	}()
+	log := ctrl.LoggerFrom(ctx)
 
 	// Lookup the kubeadm config
 	config := &bootstrapv1.KubeadmConfig{}
 	if err := r.Client.Get(ctx, req.NamespacedName, config); err != nil {
 		if apierrors.IsNotFound(err) {
-			// TODO: this is an exit point, always provide context (why, what's next)
 			log.Info("Reconciled object not found, dropping reconcile request")
 			return ctrl.Result{}, nil
 		}
-		// TODO: let "the framework" to log errors
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get KubeadmConfig")
 	}
 
 	// Look up the owner of this kubeadm config if there is one
-	// TODO: check this func, what's the diff between IsNotFound and configOwner == nil; simplify or surface this in the logs
 	configOwner, err := bsutil.GetConfigOwner(ctx, r.Client, config)
 	if apierrors.IsNotFound(err) {
-		// TODO: this is an exit point, always provide context (why, what's next)
-		log.Info("Reconcile finished because waiting for KubeadmConfig owner to be set by other controllers")
+		log.Info("Reconcile finished - waiting for KubeadmConfig owner to be set by Machine or MachinePool controller")
 		// Could not find the owner yet, this is not an error and will rereconcile when the owner gets set.
 		return ctrl.Result{}, nil
 	}
@@ -191,16 +175,15 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Info("Reconcile finished - waiting for KubeadmConfig owner to be set by other controllers")
 		return ctrl.Result{}, nil
 	}
-	log, ctx = contextLoggerWithValues(ctx, configOwner.GetKind(), newkObj(configOwner))
-
-	log.V(4).Info(fmt.Sprintf("KubeConfig owner %s found", newkObj(configOwner)))
+	log = log.WithValues(configOwner.GetKind(), tlog.KObj{Obj: configOwner})
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	log, ctx = withOwnerReferences(ctx, r.Client, log, configOwner)
 	// Lookup the cluster the config owner is associated with
 	cluster, err := util.GetClusterByName(ctx, r.Client, configOwner.GetNamespace(), configOwner.ClusterName())
 	if err != nil {
 		if errors.Cause(err) == util.ErrNoCluster {
-			log.Info(fmt.Sprintf("Reconcile finished - witing for KubeadmConfig owner %s to belong to a Cluster", configOwner.GetKind()))
+			log.Info(fmt.Sprintf("Reconcile finished - waiting for KubeadmConfig owner %s to belong to a Cluster", configOwner.GetKind()))
 			return ctrl.Result{}, nil
 		}
 
@@ -211,7 +194,10 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, errors.Wrapf(err, "could not get Cluster for KubeadmConfig")
 	}
 
-	log, ctx = contextLoggerWithValues(ctx, cluster.Kind, newkObj(cluster))
+	log = log.WithValues(cluster.Kind, tlog.KObj{Obj: cluster})
+	ctx = ctrl.LoggerInto(ctx, log)
+	// This is the point at which we have all of the object references.
+	log.Info(fmt.Sprintf("Reconciling %s", tlog.KObj{Obj: config}))
 
 	if annotations.IsPaused(cluster, config) {
 		log.Info("Reconciliation is paused for this KubeadmConfig")
@@ -279,7 +265,6 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 		}
 		// In any other case just return as the config is already generated and need not be generated again.
-		log.Info("Reconciliation finished - KubeConfig is Ready. No changes made during reconcile")
 		return ctrl.Result{}, nil
 	}
 
@@ -313,7 +298,6 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("Infrastructure is not ready. Refreshing Join config")
 	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
 	remoteClient, err := r.remoteClientGetter(ctx, KubeadmConfigControllerName, r.Client, util.ObjectKey(cluster))
@@ -321,10 +305,11 @@ func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, con
 		return ctrl.Result{}, err
 	}
 
-	log.V(4).Info("Refreshing token until the infrastructure has a chance to consume it")
 	if err := refreshToken(ctx, remoteClient, token, r.TokenTTL); err != nil {
 		return ctrl.Result{}, err
 	}
+
+	log.Info("Machine Infrastructure is not ready yet - token lifetime extended")
 	return ctrl.Result{
 		RequeueAfter: r.TokenTTL / 2,
 	}, nil
@@ -332,8 +317,6 @@ func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, con
 
 func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster, scope *Scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-
-	log.V(4).Info("Refreshing MachinePool token")
 	remoteClient, err := r.remoteClientGetter(ctx, KubeadmConfigControllerName, r.Client, util.ObjectKey(cluster))
 	if err != nil {
 		return ctrl.Result{}, err
@@ -355,6 +338,8 @@ func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Co
 		// update the bootstrap data
 		return r.joinWorker(ctx, scope)
 	}
+
+	log.Info("Extending MachinePool token lifetime")
 	return ctrl.Result{
 		RequeueAfter: r.TokenTTL / 3,
 	}, nil
@@ -362,7 +347,6 @@ func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Co
 
 func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Context, scope *Scope) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("ControlPlane not initialized")
 
 	// initialize the DataSecretAvailableCondition if missing.
 	// this is required in order to avoid the condition's LastTransitionTime to flicker in case of errors surfacing
@@ -373,12 +357,13 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 
 	// if it's NOT a control plane machine, requeue
 	if !scope.ConfigOwner.IsControlPlaneMachine() {
+		log.Info("Reconcile finished - control plane is not ready, requeuing joining machine until Control Plane ready")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
 	// if the machine has not ClusterConfiguration and InitConfiguration, requeue
 	if scope.Config.Spec.InitConfiguration == nil && scope.Config.Spec.ClusterConfiguration == nil {
-		log.V(4).Info("Control plane is not ready, requeuing joining control planes until ready")
+		log.Info("Reconcile finished - control plane is not ready, requeuing joining control planes until ready")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
@@ -391,7 +376,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	// as control plane get processed here
 	// if not the first, requeue
 	if !r.KubeadmInitLock.Lock(ctx, scope.Cluster, machine) {
-		log.V(4).Info("A control plane is already being initialized, requeuing until control plane is ready")
+		log.Info("Reconcile finished - a control plane is already being initialized, requeuing until control plane is ready")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
@@ -504,12 +489,12 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		return ctrl.Result{}, err
 	}
 
+	log.Info("Reconcile finished - bootstrap data generated for Machine")
 	return ctrl.Result{}, nil
 }
 
 func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("Attempting to join Worker")
 
 	certificates := secret.NewCertificatesForWorker(scope.Config.Spec.JoinConfiguration.CACertPath)
 	err := certificates.Lookup(
@@ -531,6 +516,7 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	if res, err := r.reconcileDiscovery(ctx, scope.Cluster, scope.Config, certificates); err != nil {
 		return ctrl.Result{}, err
 	} else if !res.IsZero() {
+		log.Info("Reconcile finished - discovery configuration set")
 		return res, nil
 	}
 
@@ -548,8 +534,6 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	if scope.Config.Spec.JoinConfiguration.ControlPlane != nil {
 		return ctrl.Result{}, errors.New("Machine is a Worker, but JoinConfiguration.ControlPlane is set in the KubeadmConfig object")
 	}
-
-	log.V(2).Info("Creating BootstrapData for the worker node")
 
 	verbosityFlag := ""
 	if scope.Config.Spec.Verbosity != nil {
@@ -595,12 +579,12 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	if err := r.storeBootstrapData(ctx, scope, bootstrapJoinData); err != nil {
 		return ctrl.Result{}, err
 	}
+	log.Info("Reconcile finished - created BootstrapData for the worker node")
 	return ctrl.Result{}, nil
 }
 
 func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("Attempting to join ControlPlane")
 
 	if !scope.ConfigOwner.IsControlPlaneMachine() {
 		return ctrl.Result{}, fmt.Errorf("%s is not a valid control plane kind, only Machine is supported", scope.ConfigOwner.GetKind())
@@ -630,6 +614,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	if res, err := r.reconcileDiscovery(ctx, scope.Cluster, scope.Config, certificates); err != nil {
 		return ctrl.Result{}, err
 	} else if !res.IsZero() {
+		log.Info("Reconcile finished - discovery configuration set")
 		return res, nil
 	}
 
@@ -672,7 +657,6 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 			UseExperimentalRetry: scope.Config.Spec.UseExperimentalRetryJoin,
 		},
 	}
-	// TODO: Should we do a trace log of the full object config object here?
 	var bootstrapJoinData []byte
 	switch scope.Config.Spec.Format {
 	case bootstrapv1.Ignition:
@@ -681,7 +665,6 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 			Ignition:              scope.Config.Spec.Ignition,
 		})
 	default:
-		log.V(4).Info("Creating CloudInit JoinData")
 		bootstrapJoinData, err = cloudinit.NewJoinControlPlane(controlPlaneJoinInput)
 	}
 	if err != nil {
@@ -692,6 +675,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return ctrl.Result{}, err
 	}
 
+	log.Info("Reconcile finished - created BootstrapData for the Control Plane node")
 	return ctrl.Result{}, nil
 }
 
@@ -844,7 +828,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 	apiServerEndpoint := config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint
 	if apiServerEndpoint == "" {
 		if !cluster.Spec.ControlPlaneEndpoint.IsValid() {
-			log.V(4).Info("Waiting for Cluster Controller to set Cluster.Spec.ControlPlaneEndpoint")
+			log.Info("Reconcile finished - waiting for Cluster Controller to set a ControlPlane endpoint")
 			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 		}
 
@@ -869,10 +853,8 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 
 	// If the BootstrapToken does not contain any CACertHashes then force skip CA Verification
 	if len(config.Spec.JoinConfiguration.Discovery.BootstrapToken.CACertHashes) == 0 {
-		log.V(4).Info("`spec.joinConfiguration.discovery.bootstrapToken.cACertHashes` is empty. Falling back to insecure discover method by skipping CA Cert validation")
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.UnsafeSkipCAVerification = true
 	}
-
 	return ctrl.Result{}, nil
 }
 
@@ -944,18 +926,18 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 	}
 
 	// Add the secretName for the logger
-	log = log.WithValues("Secret", newkObj(secret))
+	log = log.WithValues("Secret", tlog.KObj{Obj: secret})
 
 	// as secret creation and scope.Config status patch are not atomic operations
 	// it is possible that secret creation happens but the config.Status patches are not applied
-	log.Info("Creating KubeadmConfig data secret %s", newkObj(secret))
+	log.Info(fmt.Sprintf("Creating KubeadmConfig data secret %s", tlog.KObj{Obj: secret}))
 	if err := r.Client.Create(ctx, secret); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
-			return errors.Wrapf(err, "failed to create KubeadmConfig data secret %s", newkObj(secret))
+			return errors.Wrapf(err, "failed to create KubeadmConfig data secret %s", tlog.KObj{Obj: secret})
 		}
-		log.Info("Updating KubeadmConfig bootstrap data secret %s", newkObj(secret))
+		log.Info(fmt.Sprintf("Data secret %s already exists. Updating", tlog.KObj{Obj: secret}))
 		if err := r.Client.Update(ctx, secret); err != nil {
-			return errors.Wrapf(err, "failed to update KubeadmConfig data secret %s", newkObj(secret))
+			return errors.Wrapf(err, "failed to update KubeadmConfig data secret %s", tlog.KObj{Obj: secret})
 		}
 	}
 	scope.Config.Status.DataSecretName = pointer.StringPtr(secret.Name)
@@ -964,60 +946,21 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 	return nil
 }
 
-// FIXME: this should either be replaced by the tlog package or something else. Done here for convenience.
-func newkObj(object client.Object) string {
-	return fmt.Sprintf("%s/%s", object.GetNamespace(), object.GetName())
-}
-
-// FIXME: This function could be part of a log utils package. It may not be needed depending on how traceID is implemented.
-func traceID() string {
-	// traceID is a random byte array with length 16. We turn it into a string to add to the logger as a unique ID for this reconciliation.
-	traceID := make([]byte, 16)
-	_, _ = rand.Read(traceID)
-	return fmt.Sprintf("%v", binary.BigEndian.Uint64(traceID))
-}
-
-// TODO: This method for adding owner references to the logs is very specific to the Bootstrap controller.
 // We could have a method that finds all owner references in the full tree of an object and adds them as K/v pairs to the logger for any reconciled object.
 func withOwnerReferences(ctx context.Context, getter client.Client, log logr.Logger, configOwner client.Object) (logr.Logger, context.Context) {
 	for _, owner := range configOwner.GetOwnerReferences() {
 		// Machine owners can either be KubeadmControlPlane or MachineSet. If it's MachineSet find the owning MachineDeployment.
-		log, ctx = contextLoggerWithValues(ctx, owner.Kind, fmt.Sprintf("%s/%s", configOwner.GetNamespace(), owner.Name))
+		log = log.WithValues(owner.Kind, tlog.KObj{Obj: configOwner})
+		ctx = ctrl.LoggerInto(ctx, log)
 		if owner.Kind == "MachineSet" {
 			ms := &clusterv1.MachineSet{}
 			if err := getter.Get(ctx, client.ObjectKey{Namespace: configOwner.GetNamespace(), Name: owner.Name}, ms); err == nil {
 				for _, ref := range ms.GetOwnerReferences() {
-					log, ctx = contextLoggerWithValues(ctx, ref.Kind, fmt.Sprintf("%s/%s", ms.Namespace, ref.Name))
+					log = log.WithValues(ref.Kind, tlog.KObj{Obj: ms})
+					ctx = ctrl.LoggerInto(ctx, log)
 				}
 			}
 		}
 	}
 	return log, ctx
-}
-
-// TODO: This should either be made part of a standalone log package in Cluster API or be brought to controller runtime or klog as a dependency.
-func contextLoggerWithValues(ctx context.Context, keysAndValues ...interface{}) (logr.Logger, context.Context) {
-	log := ctrl.LoggerFrom(ctx)
-	log = log.WithValues(keysAndValues...)
-	ctx = ctrl.LoggerInto(ctx, log)
-	return log, ctx
-}
-
-// LoggerCustomizer is a util to create a LoggerCustomizer.
-// FIXME: will be moved to a util package.
-func LoggerCustomizer(log logr.Logger, controllerName, kind string) func(_ logr.Logger, req reconcile.Request) logr.Logger {
-	// FIXME: just a hack for now
-	var rngSeed int64
-	_ = binary.Read(crand.Reader, binary.LittleEndian, &rngSeed)
-	randSource := rand.New(rand.NewSource(rngSeed)) //nolint:gosec // weak rng is fine here.
-
-	return func(_ logr.Logger, req reconcile.Request) logr.Logger {
-		// FIXME: TBD if we use the actual TraceID type here already
-		tid := [16]byte{}
-		_, _ = randSource.Read(tid[:])
-		return log.
-			WithValues("controller", controllerName).
-			WithValues(kind, klog.KRef(req.Namespace, req.Name).String()).
-			WithValues("traceID", fmt.Sprintf("%02x", tid[:]))
-	}
 }

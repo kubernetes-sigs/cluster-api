@@ -19,6 +19,7 @@ package patch
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -34,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -292,13 +294,15 @@ func (h *Helper) calculateChanges(ctx context.Context, after client.Object, logF
 	if err := json.Unmarshal(diff, &patchDiff); err != nil {
 		return nil, errors.Wrapf(err, "failed to unmarshal patch data into a map")
 	}
+
+	// log whether a patch is created. If enabled log the full patch.
 	if len(patchDiff) == 0 {
-		log.Info("No changes for this object")
+		log.Info(fmt.Sprintf("No changes for %s", tlog.KObj{Obj: h.after}))
 	} else {
-		log.Info("Patch created for this object")
 		if logFullPatch {
-			log.Info("Object changes in patch form", "patch", patchDiff)
+			log = log.WithValues("patch", patchDiff)
 		}
+		log.Info(fmt.Sprintf("Patching %s", tlog.KObj{Obj: h.after}))
 	}
 	// Return the map.
 	res := make(map[string]bool, len(patchDiff))

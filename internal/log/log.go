@@ -18,15 +18,74 @@ package log
 
 import (
 	"context"
+	crand "crypto/rand"
+	"encoding/binary"
+	"encoding/hex"
 	"fmt"
+	"math/rand"
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
+
+// LoggerCustomizer is a util to create a LoggerCustomizer.
+func LoggerCustomizer(log logr.Logger, controllerName, kind string) func(_ logr.Logger, req reconcile.Request) logr.Logger {
+	// FIXME: We need further discussion on how we want to to customize the CR logger/context
+	// e.g. to make it future-proof for tracing.
+	var rngSeed int64
+	_ = binary.Read(crand.Reader, binary.LittleEndian, &rngSeed)
+	randSource := rand.New(rand.NewSource(rngSeed)) //nolint:gosec // math/rand is enough, we don't need crypto/rand.
+
+	return func(_ logr.Logger, req reconcile.Request) logr.Logger {
+		return log.
+			WithValues("controller", controllerName).
+			WithValues("reconcileID", generateReconcileID(randSource)).
+			WithValues(kind, klog.KRef(req.Namespace, req.Name).String())
+	}
+}
+
+// logReconciler adds logging.
+type logReconciler struct {
+	Reconciler reconcile.Reconciler
+	randSource *rand.Rand
+}
+
+// Reconciler creates a reconciles which wraps the current reconciler and adds logs & traces.
+func Reconciler(reconciler reconcile.Reconciler) reconcile.Reconciler {
+	var rngSeed int64
+	_ = binary.Read(crand.Reader, binary.LittleEndian, &rngSeed)
+	return &logReconciler{
+		Reconciler: reconciler,
+		randSource: rand.New(rand.NewSource(rngSeed)), //nolint:gosec // math/rand is enough, we don't need crypto/rand.
+	}
+}
+
+// Reconcile
+// FIXME: We should really make sure the log.Error in CR gets our k/v pairs too (currently reconcileID).
+// * creating this span in CR.
+// * disabling the error log in CR and doing it ourselves.
+func (r *logReconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
+	log := ctrl.LoggerFrom(ctx)
+	log = log.WithValues("reconcileID", generateReconcileID(r.randSource))
+	ctx = ctrl.LoggerInto(ctx, log)
+	res, err := r.Reconciler.Reconcile(ctx, req)
+	if err != nil {
+		log.Error(err, "Reconciliation finished with error")
+	}
+	return res, err
+}
+
+func generateReconcileID(randSource *rand.Rand) string {
+	id := [16]byte{}
+	_, _ = randSource.Read(id[:])
+	return hex.EncodeToString(id[:])
+}
 
 // LoggerFrom returns a logger with predefined values from a context.Context.
 // The logger, when used with controllers, can be expected to contain basic information about the object
@@ -152,7 +211,7 @@ func (ref KObj) String() string {
 	if ref.Obj == nil {
 		return ""
 	}
-	return fmt.Sprintf("%s/%s", ref.Obj.GetObjectKind().GroupVersionKind().Kind, ref.Obj.GetName())
+	return fmt.Sprintf("%s/%s", ref.Obj.GetNamespace(), ref.Obj.GetName())
 }
 
 // KRef return a reference to a Kubernetes object in the same format used by kubectl commands (kind/name).

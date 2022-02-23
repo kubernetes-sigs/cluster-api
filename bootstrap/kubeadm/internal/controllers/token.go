@@ -27,6 +27,8 @@ import (
 	bootstraputil "k8s.io/cluster-bootstrap/token/util"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 )
 
 // createToken attempts to create a token with the given ID.
@@ -62,7 +64,7 @@ func createToken(ctx context.Context, c client.Client, ttl time.Duration) (strin
 		},
 	}
 
-	log.Info("Creating new bootstrap token", "Secret", newkObj(secretToken))
+	log.Info("Creating new bootstrap token", "Secret", tlog.KObj{Obj: secretToken})
 	if err := c.Create(ctx, secretToken); err != nil {
 		return "", errors.Wrapf(err, "failed to create bootstrap token")
 	}

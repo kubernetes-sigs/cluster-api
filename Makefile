@@ -316,7 +316,7 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions docker-provider book-links
+ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions docker-provider
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
@@ -363,10 +363,6 @@ verify-tiltfile: ## Verify Tiltfile format
 verify-docker-provider:
 	@echo "Verifying CAPD"
 	cd $(CAPD_DIR); $(MAKE) verify
-
-.PHONY: verify-book-links
-verify-book-links: ## Verify book links
-	$(MAKE) -C docs/book verify
 
 ## --------------------------------------
 ## Binaries
@@ -434,6 +430,10 @@ docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm contro
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework
 	cd $(E2E_FRAMEWORK_DIR); go build ./...
+
+.PHONY: build-book
+build-book: ## Build the book
+	$(MAKE) -C docs/book build
 
 .PHONY: serve-book
 serve-book: ## Build and serve the book (with live-reload)

@@ -222,21 +222,23 @@ kustomize_substitutions:
 Set to `manual` to disable auto-rebuilding and require users to trigger rebuilds of individual changed components through the UI.
 
 **extra_args** (Object, default={}): A mapping of provider to additional arguments to pass to the main binary configured
-for this provider. Each item in the array will be passed in to the manager for the given provider.
+for this provider. Each item in the array will be passed in to the manager for the given provider. (Note: Some args are already
+set in the provider's `manager.yaml` file, e.g. [docker](https://github.com/kubernetes-sigs/cluster-api/blob/main/test/infrastructure/docker/config/manager/manager.yaml#L20),
+and cannot be overwritten via **extra_args**).
 
 Example:
 
 ```yaml
 extra_args:
-  core: ["--feature-gates=MachinePool=true"]
-  kubeadm-bootstrap: ["--feature-gates=MachinePool=true"]
-  azure: ["--feature-gates=MachinePool=true"]
+  core: ["--v=5", "--logging-format=json"]
+  kubeadm-bootstrap: ["--v=5", "--logging-format=json"]
+  azure: ["--v=5", "--logging-format=json"]
 ```
 
 With this config, the respective managers will be invoked with:
 
 ```bash
-manager --feature-gates=MachinePool=true
+manager --v=5 --logging-format=json
 ```
 
 ### Run Tilt!

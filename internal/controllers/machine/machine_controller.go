@@ -545,7 +545,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 		},
 		Out: writer{log.Info},
 		ErrOut: writer{func(msg string, keysAndValues ...interface{}) {
-			log.Error(nil, msg, keysAndValues)
+			log.Error(nil, msg, keysAndValues...)
 		}},
 	}
 

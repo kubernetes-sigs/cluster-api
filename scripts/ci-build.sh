@@ -21,7 +21,7 @@ set -o pipefail
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 
 # Core Cluster API
-cd "${REPO_ROOT}" && make managers clusterctl e2e-framework
+cd "${REPO_ROOT}" && make managers clusterctl e2e-framework build-book
 
 echo "*** Building Cluster API Provider Docker ***"
 # Docker provider

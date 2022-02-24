@@ -19,7 +19,6 @@ package internal
 import (
 	"context"
 	"errors"
-	"fmt"
 	"testing"
 
 	"github.com/blang/semver"
@@ -365,9 +364,10 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 		objs               []client.Object
 		expectErr          bool
 		expectCgroupDriver string
+		expectNewConfigMap bool
 	}{
 		{
-			name:    "create new config map",
+			name:    "create new config map for 1.19 --> 1.20 (anything < 1.24); config map for previous version is copied",
 			version: semver.Version{Major: 1, Minor: 20},
 			objs: []client.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -379,32 +379,51 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 					kubeletConfigKey: yaml.Raw(`
 						apiVersion: kubelet.config.k8s.io/v1beta1
 						kind: KubeletConfiguration
+						foo: bar
 						`),
 				},
 			}},
-			expectErr:          false,
-			expectCgroupDriver: "",
+			expectNewConfigMap: true,
 		},
 		{
-			name:    "KubeletConfig 1.21 gets the cgroupDriver set if empty",
-			version: semver.Version{Major: 1, Minor: 21},
+			name:    "create new config map 1.23 --> 1.24; config map for previous version is copied",
+			version: semver.Version{Major: 1, Minor: 24},
 			objs: []client.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:            "kubelet-config-1.20",
+					Name:            "kubelet-config-1.23",
 					Namespace:       metav1.NamespaceSystem,
 					ResourceVersion: "some-resource-version",
 				},
 				Data: map[string]string{
 					kubeletConfigKey: yaml.Raw(`
 						apiVersion: kubelet.config.k8s.io/v1beta1
-						kind: KubeletConfiguration`),
+						kind: KubeletConfiguration
+						foo: bar
+						`),
 				},
 			}},
-			expectErr:          false,
-			expectCgroupDriver: "systemd",
+			expectNewConfigMap: true,
 		},
 		{
-			name:    "KubeletConfig 1.21 preserves cgroupDriver if already set",
+			name:    "create new config map >=1.24 --> next; no op",
+			version: semver.Version{Major: 1, Minor: 25},
+			objs: []client.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "kubelet-config",
+					Namespace:       metav1.NamespaceSystem,
+					ResourceVersion: "some-resource-version",
+				},
+				Data: map[string]string{
+					kubeletConfigKey: yaml.Raw(`
+						apiVersion: kubelet.config.k8s.io/v1beta1
+						kind: KubeletConfiguration
+						foo: bar
+						`),
+				},
+			}},
+		},
+		{
+			name:    "1.20 --> 1.21 sets the cgroupDriver if empty",
 			version: semver.Version{Major: 1, Minor: 21},
 			objs: []client.Object{&corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
@@ -416,18 +435,38 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 					kubeletConfigKey: yaml.Raw(`
 						apiVersion: kubelet.config.k8s.io/v1beta1
 						kind: KubeletConfiguration
-						cgroupDriver: foo`),
+						foo: bar
+						`),
 				},
 			}},
-			expectErr:          false,
-			expectCgroupDriver: "foo",
+			expectCgroupDriver: "systemd",
+			expectNewConfigMap: true,
 		},
 		{
-			name:               "returns error if cannot find previous config map",
-			version:            semver.Version{Major: 1, Minor: 21},
-			objs:               nil,
-			expectErr:          true,
-			expectCgroupDriver: "",
+			name:    "1.20 --> 1.21 preserves cgroupDriver if already set",
+			version: semver.Version{Major: 1, Minor: 21},
+			objs: []client.Object{&corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:            "kubelet-config-1.20",
+					Namespace:       metav1.NamespaceSystem,
+					ResourceVersion: "some-resource-version",
+				},
+				Data: map[string]string{
+					kubeletConfigKey: yaml.Raw(`
+						apiVersion: kubelet.config.k8s.io/v1beta1
+						kind: KubeletConfiguration
+						cgroupDriver: cgroupfs
+						foo: bar
+					`),
+				},
+			}},
+			expectCgroupDriver: "cgroupfs",
+			expectNewConfigMap: true,
+		},
+		{
+			name:      "returns error if cannot find previous config map",
+			version:   semver.Version{Major: 1, Minor: 21},
+			expectErr: true,
 		},
 	}
 
@@ -444,14 +483,24 @@ func TestUpdateKubeletConfigMap(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
+
+			// Check if the resulting ConfigMap exists
 			var actualConfig corev1.ConfigMap
 			g.Expect(w.Client.Get(
 				ctx,
-				client.ObjectKey{Name: fmt.Sprintf("kubelet-config-%d.%d", tt.version.Major, tt.version.Minor), Namespace: metav1.NamespaceSystem},
+				client.ObjectKey{Name: generateKubeletConfigName(tt.version), Namespace: metav1.NamespaceSystem},
 				&actualConfig,
 			)).To(Succeed())
-			g.Expect(actualConfig.ResourceVersion).ToNot(Equal("some-resource-version"))
+			// Check other values are carried over for previous config map
+			g.Expect(actualConfig.Data[kubeletConfigKey]).To(ContainSubstring("foo"))
+			// Check the cgroupvalue has the expected value
 			g.Expect(actualConfig.Data[kubeletConfigKey]).To(ContainSubstring(tt.expectCgroupDriver))
+			// check if the config map is new
+			if tt.expectNewConfigMap {
+				g.Expect(actualConfig.ResourceVersion).ToNot(Equal("some-resource-version"))
+			} else {
+				g.Expect(actualConfig.ResourceVersion).To(Equal("some-resource-version"))
+			}
 		})
 	}
 }

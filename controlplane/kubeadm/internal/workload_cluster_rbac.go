@@ -41,8 +41,11 @@ const (
 	// KubeletConfigMapRolePrefix defines base kubelet configuration ConfigMap role prefix.
 	KubeletConfigMapRolePrefix = "kubeadm:"
 
-	// KubeletConfigMapName defines base kubelet configuration ConfigMap name.
+	// KubeletConfigMapName defines base kubelet configuration ConfigMap name for kubeadm < 1.24.
 	KubeletConfigMapName = "kubelet-config-%d.%d"
+
+	// UnversionedKubeletConfigMapName defines base kubelet configuration ConfigMap for kubeadm >= 1.24.
+	UnversionedKubeletConfigMapName = "kubelet-config"
 )
 
 // EnsureResource creates a resoutce if the target resource doesn't exist. If the resource exists already, this function will ignore the resource instead.
@@ -101,6 +104,10 @@ func (w *Workload) AllowBootstrapTokensToGetNodes(ctx context.Context) error {
 }
 
 func generateKubeletConfigName(version semver.Version) string {
+	majorMinor := semver.Version{Major: version.Major, Minor: version.Minor}
+	if majorMinor.GTE(minVerUnversionedKubeletConfig) {
+		return UnversionedKubeletConfigMapName
+	}
 	return fmt.Sprintf(KubeletConfigMapName, version.Major, version.Minor)
 }
 

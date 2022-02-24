@@ -75,7 +75,7 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	log = log.WithValues("cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Create a helper for managing a docker container hosting the loadbalancer.

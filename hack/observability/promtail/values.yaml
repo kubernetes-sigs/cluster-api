@@ -10,8 +10,10 @@ config:
     - cri: { }
     - json:
         expressions:
-          cluster: cluster
-          machine: machine
+          controller:
+          cluster: join('/',[cluster.namespace,cluster.name])
+          machine: join('/',[machine.namespace,machine.name])
     - labels:
+        controller:
         cluster:
         machine:

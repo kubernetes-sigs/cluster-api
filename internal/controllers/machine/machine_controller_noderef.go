@@ -189,7 +189,7 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID *n
 			for key, node := range nl.Items {
 				nodeProviderID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
 				if err != nil {
-					log.Error(err, "Failed to parse ProviderID", "node", klog.KRef("", nl.Items[key].GetName()).String())
+					log.Error(err, "Failed to parse ProviderID", "node", klog.KRef("", nl.Items[key].GetName()))
 					continue
 				}
 

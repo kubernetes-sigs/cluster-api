@@ -64,6 +64,7 @@ tilt-settings.json
 tilt-settings.yaml
 tilt_modules
 .tiltbuild
+tilt_modules
 
 # User-supplied clusterctl hacks settings
 clusterctl-settings.json

@@ -122,7 +122,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	log = log.WithValues("machinedeployment", klog.KObj(deployment).String())
+	log = log.WithValues("machinedeployment", klog.KObj(deployment))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, deployment.Namespace, deployment.Spec.ClusterName)
@@ -130,7 +130,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	log = log.WithValues("cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
@@ -270,19 +270,19 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 
 		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 		if err != nil {
-			log.Error(err, "Skipping MachineSet, failed to get label selector from spec selector", "machineset", klog.KObj(ms).String())
+			log.Error(err, "Skipping MachineSet, failed to get label selector from spec selector", "machineset", klog.KObj(ms))
 			continue
 		}
 
 		// If a MachineDeployment with a nil or empty selector creeps in, it should match nothing, not everything.
 		if selector.Empty() {
-			log.Info("Skipping MachineSet as the selector is empty", "machineset", klog.KObj(ms).String())
+			log.Info("Skipping MachineSet as the selector is empty", "machineset", klog.KObj(ms))
 			continue
 		}
 
 		// Skip this MachineSet unless either selector matches or it has a controller ref pointing to this MachineDeployment
 		if !selector.Matches(labels.Set(ms.Labels)) && !metav1.IsControlledBy(ms, d) {
-			log.V(4).Info("Skipping MachineSet, label mismatch", "machineset", klog.KObj(ms).String())
+			log.V(4).Info("Skipping MachineSet, label mismatch", "machineset", klog.KObj(ms))
 			continue
 		}
 
@@ -293,7 +293,7 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 				r.recorder.Eventf(d, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt MachineSet %q: %v", ms.Name, err)
 				continue
 			}
-			log.Info("Adopted MachineSet into MachineDeployment", "machineset", klog.KObj(ms).String())
+			log.Info("Adopted MachineSet into MachineDeployment", "machineset", klog.KObj(ms))
 			r.recorder.Eventf(d, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted MachineSet %q", ms.Name)
 		}
 

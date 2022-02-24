@@ -136,7 +136,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	log = log.WithValues("cluster", klog.KRef(m.Namespace, m.Spec.ClusterName).String())
+	log = log.WithValues("cluster", klog.KRef(m.Namespace, m.Spec.ClusterName))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, m.Namespace, m.Spec.ClusterName)

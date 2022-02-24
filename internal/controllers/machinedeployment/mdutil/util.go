@@ -169,7 +169,7 @@ func getMaxReplicasAnnotation(ms *clusterv1.MachineSet, logger logr.Logger) (int
 }
 
 func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger logr.Logger) (int32, bool) {
-	logger = logger.WithValues("machineset", klog.KObj(ms).String(), "annotationKey", annotationKey)
+	logger = logger.WithValues("machineset", klog.KObj(ms), "annotationKey", annotationKey)
 
 	annotationValue, ok := ms.Annotations[annotationKey]
 	if !ok {
@@ -186,7 +186,7 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 // SetNewMachineSetAnnotations sets new machine set's annotations appropriately by updating its revision and
 // copying required deployment annotations to it; it returns true if machine set's annotation is changed.
 func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS *clusterv1.MachineSet, newRevision string, exists bool, logger logr.Logger) bool {
-	logger = logger.WithValues("machineset", klog.KObj(newMS).String())
+	logger = logger.WithValues("machineset", klog.KObj(newMS))
 
 	// First, copy deployment's annotations (except for apply and revision annotations)
 	annotationChanged := copyDeploymentAnnotationsToMachineSet(deployment, newMS)

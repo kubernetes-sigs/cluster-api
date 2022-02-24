@@ -133,7 +133,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 	cluster.Kind = "Cluster"
 
-	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	log = log.WithValues("cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early, if the Cluster does not use a managed topology.

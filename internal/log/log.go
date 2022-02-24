@@ -46,7 +46,7 @@ func LoggerCustomizer(log logr.Logger, controllerName, kind string) func(_ logr.
 		return log.
 			WithValues("controller", controllerName).
 			WithValues("reconcileID", generateReconcileID(randSource)).
-			WithValues(kind, klog.KRef(req.Namespace, req.Name).String())
+			WithValues(kind, klog.KRef(req.Namespace, req.Name))
 	}
 }
 

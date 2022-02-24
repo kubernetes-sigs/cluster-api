@@ -146,7 +146,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		log.Info("Cluster Controller has not yet set OwnerRef")
 		return ctrl.Result{}, nil
 	}
-	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	log = log.WithValues("cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	if annotations.IsPaused(cluster, kcp) {
@@ -466,7 +466,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, clu
 	var errs []error
 	for i := range machinesToDelete {
 		m := machinesToDelete[i]
-		logger := log.WithValues("machine", klog.KObj(m).String())
+		logger := log.WithValues("machine", klog.KObj(m))
 		if err := r.Client.Delete(ctx, machinesToDelete[i]); err != nil && !apierrors.IsNotFound(err) {
 			logger.Error(err, "Failed to cleanup owned machine")
 			errs = append(errs, err)

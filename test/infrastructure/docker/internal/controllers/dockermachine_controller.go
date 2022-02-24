@@ -82,7 +82,7 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("machine", klog.KObj(machine).String())
+	log = log.WithValues("machine", klog.KObj(machine))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Fetch the Cluster.
@@ -96,7 +96,7 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	log = log.WithValues("cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.

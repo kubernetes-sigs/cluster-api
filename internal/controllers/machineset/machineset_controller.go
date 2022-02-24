@@ -139,7 +139,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	log = log.WithValues("cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
@@ -266,11 +266,11 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
 		if metav1.GetControllerOf(machine) == nil {
 			if err := r.adoptOrphan(ctx, machineSet, machine); err != nil {
-				log.Error(err, "Failed to adopt Machine", "machine", klog.KObj(machine).String())
+				log.Error(err, "Failed to adopt Machine", "machine", klog.KObj(machine))
 				r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt Machine %q: %v", machine.Name, err)
 				continue
 			}
-			log.Info("Adopted Machine", "machine", klog.KObj(machine).String())
+			log.Info("Adopted Machine", "machine", klog.KObj(machine))
 			r.recorder.Eventf(machineSet, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted Machine %q", machine.Name)
 		}
 
@@ -285,7 +285,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 			continue
 		}
 		if conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition) {
-			log.Info("Deleting unhealthy machine", "machine", klog.KObj(machine).String())
+			log.Info("Deleting unhealthy machine", "machine", klog.KObj(machine))
 			patch := client.MergeFrom(machine.DeepCopy())
 			if err := r.Client.Delete(ctx, machine); err != nil {
 				errs = append(errs, errors.Wrap(err, "failed to delete"))
@@ -573,7 +573,7 @@ func (r *Reconciler) waitForMachineDeletion(ctx context.Context, machineList []*
 func (r *Reconciler) MachineToMachineSets(o client.Object) []ctrl.Request {
 	ctx := context.Background()
 	// This won't log unless the global logger is set
-	log := ctrl.LoggerFrom(ctx, "object", klog.KObj(o).String())
+	log := ctrl.LoggerFrom(ctx, "object", klog.KObj(o))
 	result := []ctrl.Request{}
 
 	m, ok := o.(*clusterv1.Machine)

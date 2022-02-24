@@ -177,7 +177,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if configOwner == nil {
 		return ctrl.Result{}, nil
 	}
-	log = log.WithValues(strings.ToLower(configOwner.GetKind()), klog.KRef(configOwner.GetNamespace(), configOwner.GetName()).String(), "version", configOwner.GetResourceVersion())
+	log = log.WithValues(strings.ToLower(configOwner.GetKind()), klog.KRef(configOwner.GetNamespace(), configOwner.GetName()), "version", configOwner.GetResourceVersion())
 
 	// Lookup the cluster the config owner is associated with
 	cluster, err := util.GetClusterByName(ctx, r.Client, configOwner.GetNamespace(), configOwner.ClusterName())
@@ -195,7 +195,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, err
 	}
 
-	log = log.WithValues("cluster", klog.KObj(cluster).String())
+	log = log.WithValues("cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	if annotations.IsPaused(cluster, config) {

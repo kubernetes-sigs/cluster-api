@@ -37,14 +37,27 @@ help:  ## Display this help
 TOOLS_DIR := $(REPO_ROOT)/hack/tools
 BIN_DIR := bin
 TOOLS_BIN_DIR := $(TOOLS_DIR)/$(BIN_DIR)
-GINKGO := $(TOOLS_BIN_DIR)/ginkgo
-KUSTOMIZE := $(TOOLS_BIN_DIR)/kustomize
+GINGKO_VER := v1.16.5
+GINKGO_BIN := ginkgo
+GINKGO := $(abspath $(TOOLS_BIN_DIR)/$(GINKGO_BIN)-$(GINGKO_VER))
+GINKGO_PKG := github.com/onsi/ginkgo/ginkgo
+GO_INSTALL := $(REPO_ROOT)/scripts/go_install.sh
+KUSTOMIZE_BIN := kustomize
+KUSTOMIZE_VER := $(shell grep "^KUSTOMIZE_VER" $(REPO_ROOT)/Makefile | awk '{print $$NF}')
+KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
+KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
 
 $(GINKGO): # Build ginkgo from tools folder.
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(BIN_DIR)/ginkgo github.com/onsi/ginkgo/ginkgo
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GINKGO_PKG) $(GINKGO_BIN) $(GINGKO_VER)
 
 $(KUSTOMIZE): # Build kustomize from tools folder.
-	$(REPO_ROOT)/hack/ensure-kustomize.sh
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)
+
+.PHONY: $(GINKGO_BIN)
+$(GINKGO_BIN): $(GINKGO) ## Build a local copy of ginkgo
+
+.PHONY: $(KUSTOMIZE_BIN)
+$(KUSTOMIZE_BIN): $(KUSTOMIZE) ## Build a local copy of kustomize
 
 ## --------------------------------------
 ## Templates

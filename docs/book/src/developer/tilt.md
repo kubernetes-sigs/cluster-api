@@ -8,8 +8,7 @@ workflow that offers easy deployments and rapid iterative builds.
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install/): v19.03 or newer
-1. [kind](https://kind.sigs.k8s.io): v0.9 or newer (other clusters can be
-   used if `preload_images_for_kind` is set to false)
+1. [kind](https://kind.sigs.k8s.io): v0.9 or newer
 1. [Tilt](https://docs.tilt.dev/install.html): v0.22.2 or newer
 1. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
 1. [envsubst](https://github.com/drone/envsubst): provided via `make envsubst`
@@ -69,8 +68,6 @@ documentation](https://docs.tilt.dev/api.html#api.default_registry) for more det
 
 **enable_providers** (Array[]String, default=['docker']): A list of the providers to enable. See [available providers](#available-providers)
 for more details.
-
-**kind_cluster_name** (String, default="kind"): The name of the kind cluster to use when preloading images.
 
 **kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
 provider's yaml.
@@ -215,8 +212,6 @@ kustomize_substitutions:
 {{#/tabs }}
 
 **deploy_cert_manager** (Boolean, default=`true`): Deploys cert-manager into the cluster for use for webhook registration.
-
-**preload_images_for_kind** (Boolean, default=`true`): Uses `kind load docker-image` to preload images into a kind cluster.
 
 **trigger_mode** (String, default=`auto`): Optional setting to configure if tilt should automatically rebuild on changes.
 Set to `manual` to disable auto-rebuilding and require users to trigger rebuilds of individual changed components through the UI.

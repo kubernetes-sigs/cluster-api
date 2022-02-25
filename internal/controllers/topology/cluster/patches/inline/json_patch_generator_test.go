@@ -102,6 +102,14 @@ func TestGenerate(t *testing.T) {
 									Variable: pointer.String("builtin.controlPlane.replicas"),
 								},
 							},
+							// test .builtin.controlPlane.machineTemplate.InfrastructureRef.name var.
+							{
+								Op:   "replace",
+								Path: "/spec/template/spec/files",
+								ValueFrom: &clusterv1.JSONPatchValue{
+									Template: pointer.String(`[{"contentFrom":{"secret":{"key":"control-plane-azure.json","name":"{{ .builtin.controlPlane.machineTemplate.infrastructureRef.name }}-azure-json"}}}]`),
+								},
+							},
 						},
 					},
 				},
@@ -121,7 +129,7 @@ func TestGenerate(t *testing.T) {
 							TemplateType: api.ControlPlaneTemplateType,
 						},
 						Variables: map[string]apiextensionsv1.JSON{
-							"builtin":   {Raw: []byte(`{"controlPlane":{"replicas":3}}`)},
+							"builtin":   {Raw: []byte(`{"controlPlane":{"replicas":3,"machineTemplate":{"infrastructureRef":{"name":"controlPlaneInfrastructureMachineTemplate1"}}}}`)},
 							"variableC": {Raw: []byte(`"C-template"`)},
 						},
 					},
@@ -141,8 +149,15 @@ func TestGenerate(t *testing.T) {
 {"op":"replace","path":"/spec/valueFrom/template","value":"template bbbbb"},
 {"op":"replace","path":"/spec/templatePrecedent","value":"C-template"},
 {"op":"replace","path":"/spec/builtinClusterName","value":"cluster-name"},
-{"op":"replace","path":"/spec/builtinControlPlaneReplicas","value":3}
-]`),
+{"op":"replace","path":"/spec/builtinControlPlaneReplicas","value":3},
+{"op":"replace","path":"/spec/template/spec/files","value":[{
+  "contentFrom":{
+    "secret":{
+      "key":"control-plane-azure.json",
+      "name":"controlPlaneInfrastructureMachineTemplate1-azure-json"
+    }
+  }
+}]}]`),
 						PatchType: api.JSONPatchType,
 					},
 				},

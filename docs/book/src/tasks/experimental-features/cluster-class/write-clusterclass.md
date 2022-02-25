@@ -382,11 +382,17 @@ In addition to variables specified in the ClusterClass, the following builtin va
 referenced in patches:
 - `builtin.cluster.{name,namespace}`
 - `builtin.cluster.topology.{version,class}`
-- `builtin.controlPlane.{replicas,version}`
+- `builtin.controlPlane.{replicas,version,name}`
     - Please note, these variables are only available when patching control plane or control plane 
       machine templates.
+- `builtin.controlPlane.machineTemplate.infrastructureRef.name`
+    - Please note, these variables are only available when using a control plane with machines and 
+      when patching control plane or control plane machine templates.
 - `builtin.machineDeployment.{replicas,version,class,name,topologyName}`
     - Please note, these variables are only available when patching the templates of a MachineDeployment 
+      and contain the values of the current `MachineDeployment` topology.
+- `builtin.machineDeployment.{infrastructureRef.name,bootstrap.configRef.name}`
+    - Please note, these variables are only available when patching the templates of a MachineDeployment
       and contain the values of the current `MachineDeployment` topology.
 
 Builtin variables can be referenced just like regular variables, e.g.:

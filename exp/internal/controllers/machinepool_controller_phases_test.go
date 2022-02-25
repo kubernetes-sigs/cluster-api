@@ -22,11 +22,14 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -893,6 +896,87 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				g.Expect(m.Status.InfrastructureReady).To(BeFalse())
 			},
 		},
+		{
+			name: "ready bootstrap, infra, and nodeRef, machinepool is running, replicas 0, providerIDList not set",
+			machinepool: &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machinepool-test",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: expv1.MachinePoolSpec{
+					Replicas: pointer.Int32Ptr(0),
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{
+								ConfigRef: &corev1.ObjectReference{
+									APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+									Kind:       "BootstrapConfig",
+									Name:       "bootstrap-config1",
+								},
+							},
+							InfrastructureRef: corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureConfig",
+								Name:       "infra-config1",
+							},
+						},
+					},
+				},
+				Status: expv1.MachinePoolStatus{
+					BootstrapReady:      true,
+					InfrastructureReady: true,
+					NodeRefs:            []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}},
+				},
+			},
+			bootstrapConfig: map[string]interface{}{
+				"kind":       "BootstrapConfig",
+				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready":          true,
+					"dataSecretName": "secret-data",
+				},
+			},
+			infraConfig: map[string]interface{}{
+				"kind":       "InfrastructureConfig",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+				},
+			},
+			expectError:        false,
+			expectRequeueAfter: false,
+			expected: func(g *WithT, m *expv1.MachinePool) {
+				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
+				g.Expect(m.Status.ReadyReplicas).To(Equal(int32(0)))
+				g.Expect(m.Status.AvailableReplicas).To(Equal(int32(0)))
+				g.Expect(m.Status.UnavailableReplicas).To(Equal(int32(0)))
+				g.Expect(m.Status.FailureMessage).To(BeNil())
+				g.Expect(m.Status.FailureReason).To(BeNil())
+				g.Expect(m.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -911,6 +995,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			res, err := r.reconcileInfrastructure(ctx, defaultCluster, tc.machinepool)
 			if tc.expectRequeueAfter {
 				g.Expect(res.RequeueAfter).To(BeNumerically(">=", 0))
+			} else {
+				g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
 			}
 			r.reconcilePhase(tc.machinepool)
 			if tc.expectError {
@@ -924,4 +1010,325 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
+	g := NewWithT(t)
+
+	ns, err := env.CreateNamespace(ctx, "machinepool-scale-zero")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Set up cluster to test against.
+	testCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			GenerateName: "machinepool-scale-zero-",
+			Namespace:    ns.Name,
+		},
+	}
+	g.Expect(env.Create(ctx, testCluster)).To(BeNil())
+	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+	defer func(do ...client.Object) {
+		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+	}(ns, testCluster)
+
+	defaultMachinePool := expv1.MachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machinepool-test",
+			Namespace: ns.Name,
+		},
+		Spec: expv1.MachinePoolSpec{
+			ClusterName: testCluster.Name,
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+							Kind:       "BootstrapConfig",
+							Name:       "bootstrap-config1",
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "InfrastructureConfig",
+						Name:       "infra-config1",
+					},
+				},
+			},
+		},
+		Status: expv1.MachinePoolStatus{},
+	}
+
+	defaultBootstrap := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "BootstrapConfig",
+			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "bootstrap-config1",
+				"namespace": ns.Name,
+			},
+			"spec": map[string]interface{}{},
+			"status": map[string]interface{}{
+				"ready":          true,
+				"dataSecretName": "secret-data",
+			},
+		},
+	}
+
+	defaultInfra := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "InfrastructureConfig",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-config1",
+				"namespace": ns.Name,
+			},
+			"spec": map[string]interface{}{},
+			"status": map[string]interface{}{
+				"ready": true,
+			},
+		},
+	}
+
+	t.Run("Should set `ScalingDown` when scaling to zero", func(t *testing.T) {
+		g := NewWithT(t)
+
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "machinepool-test-node",
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "test://machinepool-test-node",
+			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{Type: corev1.NodeReady, Status: corev1.ConditionTrue},
+				},
+			},
+		}
+		g.Expect(env.Create(ctx, node)).To(BeNil())
+		defer func(do ...client.Object) {
+			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+		}(node)
+
+		kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
+		machinepool := defaultMachinePool.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Setup prerequisites - a running MachinePool with one instance and user sets Replicas to 0
+
+		// set replicas to 0
+		machinepool.Spec.Replicas = pointer.Int32(0)
+
+		// set nodeRefs to one instance
+		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
+
+		// set infra providerIDList
+		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://machinepool-test-node"}, "spec", "providerIDList")
+		g.Expect(err).NotTo(HaveOccurred())
+
+		// set infra replicas
+		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
+		g.Expect(err).NotTo(HaveOccurred())
+
+		r := &MachinePoolReconciler{
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			recorder: record.NewFakeRecorder(32),
+		}
+
+		res, err := r.reconcile(ctx, testCluster, machinepool)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
+
+		r.reconcilePhase(machinepool)
+
+		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseScalingDown))
+
+		delNode := &corev1.Node{}
+		g.Expect(env.Get(ctx, client.ObjectKeyFromObject(node), delNode)).To(BeNil())
+	})
+
+	t.Run("Should delete retired nodes when scaled to zero", func(t *testing.T) {
+		g := NewWithT(t)
+
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "machinepool-test-node",
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "test://machinepool-test-node",
+			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{Type: corev1.NodeReady, Status: corev1.ConditionTrue},
+				},
+			},
+		}
+		g.Expect(env.Create(ctx, node)).To(BeNil())
+		defer func(do ...client.Object) {
+			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+		}(node)
+
+		kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
+		machinepool := defaultMachinePool.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Setup prerequisites - a running MachinePool with one instance and user sets Replicas to 0
+
+		// set replicas to 0
+		machinepool.Spec.Replicas = pointer.Int32(0)
+
+		// set nodeRefs to one instance
+		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
+
+		// set infra replicas
+		err = unstructured.SetNestedField(infraConfig.Object, int64(0), "status", "replicas")
+		g.Expect(err).NotTo(HaveOccurred())
+
+		r := &MachinePoolReconciler{
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			recorder: record.NewFakeRecorder(32),
+		}
+
+		res, err := r.reconcile(ctx, testCluster, machinepool)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
+
+		r.reconcilePhase(machinepool)
+
+		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
+
+		delNode := &corev1.Node{}
+		err = env.Get(ctx, client.ObjectKeyFromObject(node), delNode)
+		g.Expect(err).ToNot(BeNil())
+		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+	})
+
+	t.Run("Should set `Running` when scaled to zero", func(t *testing.T) {
+		g := NewWithT(t)
+
+		kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
+		machinepool := defaultMachinePool.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Setup prerequisites - a running MachinePool with no instances and replicas set to 0
+
+		// set replicas to 0
+		machinepool.Spec.Replicas = pointer.Int32(0)
+
+		// set nodeRefs to no instance
+		machinepool.Status.NodeRefs = []corev1.ObjectReference{}
+
+		// set infra replicas
+		err := unstructured.SetNestedField(infraConfig.Object, int64(0), "status", "replicas")
+		g.Expect(err).NotTo(HaveOccurred())
+
+		r := &MachinePoolReconciler{
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			recorder: record.NewFakeRecorder(32),
+		}
+
+		res, err := r.reconcile(ctx, testCluster, machinepool)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
+
+		r.reconcilePhase(machinepool)
+
+		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
+	})
+
+	t.Run("Should set `ScalingUp` when scaling from zero to one", func(t *testing.T) {
+		g := NewWithT(t)
+
+		kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
+		machinepool := defaultMachinePool.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Setup prerequisites - a running MachinePool with no instances and replicas set to 1
+
+		// set replicas to 1
+		machinepool.Spec.Replicas = pointer.Int32(1)
+
+		// set nodeRefs to no instance
+		machinepool.Status.NodeRefs = []corev1.ObjectReference{}
+
+		// set infra replicas
+		err := unstructured.SetNestedField(infraConfig.Object, int64(0), "status", "replicas")
+		g.Expect(err).NotTo(HaveOccurred())
+
+		r := &MachinePoolReconciler{
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			recorder: record.NewFakeRecorder(32),
+		}
+
+		res, err := r.reconcile(ctx, testCluster, machinepool)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
+
+		r.reconcilePhase(machinepool)
+
+		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseScalingUp))
+	})
+
+	t.Run("Should set `Running` when scaled from zero to one", func(t *testing.T) {
+		g := NewWithT(t)
+
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "machinepool-test-node",
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "test://machinepool-test-node",
+			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{Type: corev1.NodeReady, Status: corev1.ConditionTrue},
+				},
+			},
+		}
+		g.Expect(env.Create(ctx, node)).To(BeNil())
+		defer func(do ...client.Object) {
+			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
+		}(node)
+
+		kubeconfigSecret := kubeconfig.GenerateSecret(testCluster, kubeconfig.FromEnvTestConfig(env.Config, testCluster))
+		machinepool := defaultMachinePool.DeepCopy()
+		bootstrapConfig := defaultBootstrap.DeepCopy()
+		infraConfig := defaultInfra.DeepCopy()
+
+		// Setup prerequisites - a running MachinePool with no refs but providerIDList and replicas set to 1
+
+		// set replicas to 1
+		machinepool.Spec.Replicas = pointer.Int32(1)
+
+		// set nodeRefs to no instance
+		machinepool.Status.NodeRefs = []corev1.ObjectReference{}
+
+		// set infra providerIDList
+		err = unstructured.SetNestedStringSlice(infraConfig.Object, []string{"test://machinepool-test-node"}, "spec", "providerIDList")
+		g.Expect(err).NotTo(HaveOccurred())
+
+		// set infra replicas
+		err = unstructured.SetNestedField(infraConfig.Object, int64(1), "status", "replicas")
+		g.Expect(err).NotTo(HaveOccurred())
+
+		r := &MachinePoolReconciler{
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			recorder: record.NewFakeRecorder(32),
+		}
+
+		res, err := r.reconcile(ctx, testCluster, machinepool)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res.Requeue).To(BeFalse())
+
+		r.reconcilePhase(machinepool)
+
+		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
+
+		delNode := &corev1.Node{}
+		g.Expect(env.Get(ctx, client.ObjectKeyFromObject(node), delNode)).To(BeNil())
+	})
 }

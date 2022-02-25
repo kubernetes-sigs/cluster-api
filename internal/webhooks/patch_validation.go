@@ -333,21 +333,27 @@ var builtinVariables = sets.NewString(
 
 	// ClusterTopology builtins.
 	"builtin.cluster.topology",
-	"builtin.cluster.topology.version",
 	"builtin.cluster.topology.class",
+	"builtin.cluster.topology.version",
 
 	// ControlPlane builtins.
 	"builtin.controlPlane",
-	"builtin.controlPlane.version",
+	"builtin.controlPlane.name",
 	"builtin.controlPlane.replicas",
+	"builtin.controlPlane.version",
+	// ControlPlane ref builtins.
+	"builtin.controlPlane.machineTemplate.infrastructureRef.name",
 
 	// MachineDeployment builtins.
 	"builtin.machineDeployment",
-	"builtin.machineDeployment.version",
 	"builtin.machineDeployment.class",
 	"builtin.machineDeployment.name",
-	"builtin.machineDeployment.topologyName",
 	"builtin.machineDeployment.replicas",
+	"builtin.machineDeployment.topologyName",
+	"builtin.machineDeployment.version",
+	// MachineDeployment ref builtins.
+	"builtin.machineDeployment.bootstrap.configRef.name",
+	"builtin.machineDeployment.infrastructureRef.name",
 )
 
 // validateIndexAccess checks to see if the jsonPath is attempting to add an element in the array i.e. access by number

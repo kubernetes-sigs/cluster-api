@@ -68,7 +68,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	log = log.WithValues("cluster", cluster.Name)
 
 	// Check that the MachinePool has valid ProviderIDList.
-	if len(mp.Spec.ProviderIDList) == 0 {
+	if len(mp.Spec.ProviderIDList) == 0 && (mp.Spec.Replicas == nil || *mp.Spec.Replicas != 0) {
 		log.V(2).Info("MachinePool doesn't have any ProviderIDs yet")
 		return ctrl.Result{}, nil
 	}

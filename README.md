@@ -3,6 +3,9 @@
 <a href="https://prow.k8s.io/?job=post-cluster-api-push-images">
 <img alt="Build Status" src="https://prow.k8s.io/badge.svg?jobs=post-cluster-api-push-images"></a>
 <a href="https://godoc.org/sigs.k8s.io/cluster-api"><img src="https://godoc.org/sigs.k8s.io/cluster-api?status.svg"></a>
+<!-- join kubernetes slack channel for cluster-api -->
+<a href="http://slack.k8s.io/">
+<img src="https://img.shields.io/badge/join%20slack-%23cluster--api-brightgreen"></a>
 </p>
 
 # Cluster API

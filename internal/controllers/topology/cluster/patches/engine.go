@@ -138,7 +138,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 	req.Items = append(req.Items, t)
 
 	// Calculate controlPlane variables.
-	controlPlaneVariables, err := variables.ControlPlane(&blueprint.Topology.ControlPlane, desired.ControlPlane.Object)
+	controlPlaneVariables, err := variables.ControlPlane(&blueprint.Topology.ControlPlane, desired.ControlPlane.Object, desired.ControlPlane.InfrastructureMachineTemplate)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to calculate ControlPlane variables")
 	}
@@ -188,7 +188,7 @@ func createRequest(blueprint *scope.ClusterBlueprint, desired *scope.ClusterStat
 		}
 
 		// Calculate MachineDeployment variables.
-		mdVariables, err := variables.MachineDeployment(mdTopology, md.Object)
+		mdVariables, err := variables.MachineDeployment(mdTopology, md.Object, md.BootstrapTemplate, md.InfrastructureMachineTemplate)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to calculate variables for %s", tlog.KObj{Obj: md.Object})
 		}

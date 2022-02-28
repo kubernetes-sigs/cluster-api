@@ -250,6 +250,10 @@ const (
 	// ResizedCondition documents a MachineSet is resizing the set of controlled machines.
 	ResizedCondition ConditionType = "Resized"
 
+	// MachinesSucceededCondition reports if any Machine didn't succeed because of a permanent failure.
+	MachinesSucceededCondition ConditionType = "MachinesSucceeded"
+	PermanentFailureReason                   = "PermanentFailure"
+
 	// ScalingUpReason (Severity=Info) documents a MachineSet is increasing the number of replicas.
 	ScalingUpReason = "ScalingUp"
 

@@ -420,6 +420,8 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 	if totalReplicas-availableReplicas < 0 {
 		status.Phase = string(clusterv1.MachineDeploymentPhaseScalingDown)
 	}
+
+	var machinesSucceededConditionFalse *clusterv1.Condition
 	for _, ms := range allMSs {
 		if ms != nil {
 			if ms.Status.FailureReason != nil || ms.Status.FailureMessage != nil {
@@ -427,7 +429,18 @@ func calculateStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet
 				break
 			}
 		}
+
+		if conditions.IsFalse(ms, clusterv1.MachinesSucceededCondition) {
+			machinesSucceededConditionFalse = conditions.Get(ms, clusterv1.MachinesSucceededCondition)
+		}
 	}
+
+	if machinesSucceededConditionFalse != nil {
+		conditions.Set(deployment, machinesSucceededConditionFalse)
+	} else {
+		conditions.MarkTrue(deployment, clusterv1.MachinesSucceededCondition)
+	}
+
 	return status
 }
 

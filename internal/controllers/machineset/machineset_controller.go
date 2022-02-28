@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/utils/pointer"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -648,6 +650,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 	availableReplicasCount := 0
 	desiredReplicas := *ms.Spec.Replicas
 	templateLabel := labels.Set(ms.Spec.Template.Labels).AsSelectorPreValidated()
+	var machineFailures []error
 
 	for _, machine := range filteredMachines {
 		if templateLabel.Matches(labels.Set(machine.Labels)) {
@@ -671,6 +674,20 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 				availableReplicasCount++
 			}
 		}
+
+		if pointer.StringDeref(machine.Status.FailureMessage, "") != "" {
+			machineFailures = append(machineFailures, fmt.Errorf("machine %q failed: %s. %s",
+				machine.GetName(), *machine.Status.FailureMessage, *machine.Status.FailureMessage))
+		}
+	}
+
+	// TODO (alberto): if len(machineFailures) is bigger than a threshold it's likely all machines are failing because
+	// of a common reason e.g cloud provider quota so we can introduce some cleverness here and return a single one to control verbosity here.
+	if len(machineFailures) > 0 {
+		failuresError := kerrors.NewAggregate(machineFailures)
+		conditions.MarkFalse(ms, clusterv1.MachinesSucceededCondition, clusterv1.PermanentFailureReason, clusterv1.ConditionSeverityError, failuresError.Error())
+	} else {
+		conditions.MarkTrue(ms, clusterv1.MachinesSucceededCondition)
 	}
 
 	newStatus.Replicas = int32(len(filteredMachines))

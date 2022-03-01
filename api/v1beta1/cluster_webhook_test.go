@@ -391,6 +391,24 @@ func TestClusterTopologyValidation(t *testing.T) {
 			},
 		},
 		{
+			name:      "should return error on update when old has no Topology and new adds Topology",
+			expectErr: true,
+			old: &Cluster{
+				Spec: ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{},
+				},
+			},
+			in: &Cluster{
+				Spec: ClusterSpec{
+					InfrastructureRef: &corev1.ObjectReference{},
+					Topology: &Topology{
+						Class:   "bar",
+						Version: "v1.19.1",
+					},
+				},
+			},
+		},
+		{
 			name:      "should return error on update when Topology version is downgraded",
 			expectErr: true,
 			old: &Cluster{

@@ -31,6 +31,14 @@ import (
 )
 
 func Test_githubRepository_newGitHubRepository(t *testing.T) {
+	client, mux, teardown := test.NewFakeGitHub()
+	defer teardown()
+
+	mux.HandleFunc("/repos/o/r", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"name":"r", "owner": {"name": "o"}}`)
+	})
+
 	type field struct {
 		providerConfig config.Provider
 		variableClient config.VariablesClient
@@ -44,26 +52,26 @@ func Test_githubRepository_newGitHubRepository(t *testing.T) {
 		{
 			name: "can create a new GitHub repo",
 			field: field{
-				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				providerConfig: config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
 				variableClient: test.NewFakeVariableClient(),
 			},
 			want: &gitHubRepository{
-				providerConfig:           config.NewProvider("test", "https://github.com/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				providerConfig:           config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
 				configVariablesClient:    test.NewFakeVariableClient(),
 				authenticatingHTTPClient: nil,
 				owner:                    "o",
-				repository:               "r1",
+				repository:               "r",
 				defaultVersion:           "v0.4.1",
 				rootPath:                 ".",
 				componentsPath:           "path",
-				injectClient:             nil,
+				injectClient:             client,
 			},
 			wantErr: false,
 		},
 		{
 			name: "missing variableClient",
 			field: field{
-				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				providerConfig: config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
 				variableClient: nil,
 			},
 			want:    nil,
@@ -112,7 +120,7 @@ func Test_githubRepository_newGitHubRepository(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gitHub, err := NewGitHubRepository(tt.field.providerConfig, tt.field.variableClient)
+			gitHub, err := NewGitHubRepository(tt.field.providerConfig, tt.field.variableClient, injectGithubClient(client))
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -175,6 +183,11 @@ func Test_githubRepository_getFile(t *testing.T) {
 		fmt.Fprint(w, "content")
 	})
 
+	mux.HandleFunc("/repos/o/r", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"name":"r", "owner": {"name": "o"}}`)
+	})
+
 	configVariablesClient := test.NewFakeVariableClient()
 
 	tests := []struct {
@@ -232,7 +245,7 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 	defer teardown()
 
 	// setup an handler for returning 5 fake releases
-	mux.HandleFunc("/repos/o/r1/releases", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/repos/o/r/releases", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `[`)
 		fmt.Fprint(w, `{"id":1, "tag_name": "v0.4.0"},`)
@@ -241,6 +254,11 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 		fmt.Fprint(w, `{"id":4, "tag_name": "v0.4.3-alpha"},`) // prerelease
 		fmt.Fprint(w, `{"id":5, "tag_name": "foo"}`)           // no semantic version tag
 		fmt.Fprint(w, `]`)
+	})
+
+	mux.HandleFunc("/repos/o/r", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"name":"r", "owner": {"name": "o"}}`)
 	})
 
 	configVariablesClient := test.NewFakeVariableClient()
@@ -257,7 +275,7 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 		{
 			name: "Get versions",
 			field: field{
-				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				providerConfig: config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
 			},
 			want:    []string{"v0.4.0", "v0.4.1", "v0.4.2", "v0.4.3-alpha"},
 			wantErr: false,
@@ -288,7 +306,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 	defer teardown()
 
 	// setup an handler for returning 3 fake releases
-	mux.HandleFunc("/repos/o/r1/releases", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/repos/o/r/releases", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `[`)
 		fmt.Fprint(w, `{"id":1, "tag_name": "v0.5.0", "assets": [{"id": 1, "name": "metadata.yaml"}]},`)
@@ -299,17 +317,22 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 	})
 
 	// test.NewFakeGitHub and handler for returning a fake release
-	mux.HandleFunc("/repos/o/r1/releases/tags/v0.5.0", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/repos/o/r/releases/tags/v0.5.0", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `{"id":13, "tag_name": "v0.5.0", "assets": [{"id": 1, "name": "metadata.yaml"}] }`)
 	})
 
 	// test.NewFakeGitHub an handler for returning a fake release metadata file
-	mux.HandleFunc("/repos/o/r1/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/repos/o/r/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Disposition", "attachment; filename=metadata.yaml")
 		fmt.Fprint(w, "apiVersion: clusterctl.cluster.x-k8s.io/v1alpha3\nreleaseSeries:\n  - major: 0\n    minor: 4\n    contract: v1alpha4\n  - major: 0\n    minor: 5\n    contract: v1alpha4\n  - major: 0\n    minor: 3\n    contract: v1alpha3\n")
+	})
+
+	mux.HandleFunc("/repos/o/r", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"name":"r", "owner": {"name": "o"}}`)
 	})
 
 	configVariablesClient := test.NewFakeVariableClient()
@@ -327,7 +350,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 		{
 			name: "Get latest release if it matches the contract",
 			field: field{
-				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/latest/path", clusterctlv1.CoreProviderType),
+				providerConfig: config.NewProvider("test", "https://github.com/o/r/releases/latest/path", clusterctlv1.CoreProviderType),
 			},
 			contract: "v1alpha4",
 			want:     "v0.5.0",
@@ -336,7 +359,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 		{
 			name: "Get previous release if the latest doesn't match the contract",
 			field: field{
-				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/latest/path", clusterctlv1.CoreProviderType),
+				providerConfig: config.NewProvider("test", "https://github.com/o/r/releases/latest/path", clusterctlv1.CoreProviderType),
 			},
 			contract: "v1alpha3",
 			want:     "v0.3.2",
@@ -345,7 +368,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 		{
 			name: "Return the latest release if the contract doesn't exist",
 			field: field{
-				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/latest/path", clusterctlv1.CoreProviderType),
+				providerConfig: config.NewProvider("test", "https://github.com/o/r/releases/latest/path", clusterctlv1.CoreProviderType),
 			},
 			want:     "v0.5.0",
 			contract: "foo",
@@ -400,6 +423,21 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 		fmt.Fprint(w, `{"id":2, "tag_name": "v0.1.0-alpha.1"},`)
 		fmt.Fprint(w, `{"id":3, "tag_name": "v0.1.0-alpha.2"}`)
 		fmt.Fprint(w, `]`)
+	})
+
+	mux.HandleFunc("/repos/o/r1", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"name":"r1", "owner": {"name": "o"}}`)
+	})
+
+	mux.HandleFunc("/repos/o/r2", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"name":"r2", "owner": {"name": "o"}}`)
+	})
+
+	mux.HandleFunc("/repos/o/r3", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"name":"r3", "owner": {"name": "o"}}`)
 	})
 
 	configVariablesClient := test.NewFakeVariableClient()
@@ -463,13 +501,18 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 	defer teardown()
 
 	// setup an handler for returning 3 fake releases
-	mux.HandleFunc("/repos/o/r1/releases", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc("/repos/o/r/releases", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `[`)
 		fmt.Fprint(w, `{"id":1, "tag_name": "v0.4.0"},`)
 		fmt.Fprint(w, `{"id":2, "tag_name": "v0.3.2"},`)
 		fmt.Fprint(w, `{"id":3, "tag_name": "v1.3.2"}`)
 		fmt.Fprint(w, `]`)
+	})
+
+	mux.HandleFunc("/repos/o/r", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"name":"r", "owner": {"name": "o"}}`)
 	})
 
 	major0 := uint(0)
@@ -492,7 +535,7 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 		{
 			name: "Get latest patch release, no Major/Minor specified",
 			field: field{
-				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/latest/path", clusterctlv1.CoreProviderType),
+				providerConfig: config.NewProvider("test", "https://github.com/o/r/releases/latest/path", clusterctlv1.CoreProviderType),
 			},
 			minor:   nil,
 			major:   nil,
@@ -502,7 +545,7 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 		{
 			name: "Get latest patch release, for Major 0 and Minor 3",
 			field: field{
-				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/latest/path", clusterctlv1.CoreProviderType),
+				providerConfig: config.NewProvider("test", "https://github.com/o/r/releases/latest/path", clusterctlv1.CoreProviderType),
 			},
 			major:   &major0,
 			minor:   &minor3,
@@ -512,7 +555,7 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 		{
 			name: "Get latest patch release, for Major 0 and Minor 4",
 			field: field{
-				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/latest/path", clusterctlv1.CoreProviderType),
+				providerConfig: config.NewProvider("test", "https://github.com/o/r/releases/latest/path", clusterctlv1.CoreProviderType),
 			},
 			major:   &major0,
 			minor:   &minor4,
@@ -549,6 +592,11 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 	mux.HandleFunc("/repos/o/r/releases/tags/foo", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `{"id":13, "tag_name": "v0.4.1"}`)
+	})
+
+	mux.HandleFunc("/repos/o/r", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"name":"r", "owner": {"name": "o"}}`)
 	})
 
 	configVariablesClient := test.NewFakeVariableClient()
@@ -616,6 +664,11 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Disposition", "attachment; filename=file.yaml")
 		fmt.Fprint(w, "content")
+	})
+
+	mux.HandleFunc("/repos/o/r", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, `{"name":"r", "owner": {"name": "o"}}`)
 	})
 
 	configVariablesClient := test.NewFakeVariableClient()

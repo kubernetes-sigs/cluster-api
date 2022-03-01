@@ -216,6 +216,15 @@ The e2e tests also create a local clusterctl repository. After it has been creat
 skipped by setting `-e2e.cluster-config=<ARTIFACTS>/repository/clusterctl-config.yaml`. This also works with a clusterctl repository created 
 via [Create the local repository](http://localhost:3000/clusterctl/developers.html#create-the-local-repository).
 
+**Feature gates**: E2E tests often use features which need to be enabled first. Make sure to enable the feature gates in the tilt settings file:
+```yaml
+kustomize_substitutions:
+  CLUSTER_TOPOLOGY: "true"
+  EXP_MACHINE_POOL: "true"
+  EXP_CLUSTER_RESOURCE_SET: "true"
+  EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
+```
+
 </aside>
 
 ### Running specific tests

@@ -70,7 +70,14 @@ documentation](https://docs.tilt.dev/api.html#api.default_registry) for more det
 for more details.
 
 **kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
-provider's yaml.
+provider's yaml. **Note**: It's recommended to enable the following feature flags for local dev environment to ensure e2e tests run through:
+```yaml
+kustomize_substitutions:
+  CLUSTER_TOPOLOGY: "true"
+  EXP_MACHINE_POOL: "true"
+  EXP_CLUSTER_RESOURCE_SET: "true"
+  EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
+```
 
 **deploy_observability** ([string], default=[]): If set, installs on the dev cluster one of more observability
 tools. Supported values are `grafana`, `loki`, `promtail` and/or `prometheus` (Note: the UI for `grafana` and `prometheus` will be accessible via a link in the tilt console).

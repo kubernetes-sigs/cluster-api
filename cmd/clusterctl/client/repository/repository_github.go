@@ -172,6 +172,10 @@ func NewGitHubRepository(providerConfig config.Provider, configVariablesClient c
 		repo.setClientToken(token)
 	}
 
+	if err := repo.resolveRedirects(); err != nil {
+		return nil, errors.Wrap(err, "failed to resolve repository redirects")
+	}
+
 	if defaultVersion == githubLatestReleaseLabel {
 		repo.defaultVersion, err = latestContractRelease(repo, clusterv1.GroupVersion.Version)
 		if err != nil {
@@ -318,4 +322,26 @@ func (g *gitHubRepository) handleGithubErr(err error, message string, args ...in
 		return errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")
 	}
 	return errors.Wrapf(err, message, args...)
+}
+
+// resolveRedirects resolves a renamed GitHub repository to the correct one.
+// For example, https://github.com/jetstack/cert-manager got renamed to  https://github.com/cert-manager/cert-manager
+// this behavior should be caught before we do any operations
+func (g *gitHubRepository) resolveRedirects() error {
+	client := g.getClient()
+
+	repo, _, err := client.Repositories.Get(context.TODO(), g.owner, g.repository)
+	if err != nil {
+		return g.handleGithubErr(err, "failed to resolve repository %s/%s", g.owner, g.repository)
+	}
+
+	if g.repository != *repo.Name {
+		g.repository = *repo.Name
+	}
+
+	if g.owner != *repo.Owner.Login {
+		g.owner = *repo.Owner.Login
+	}
+
+	return nil
 }

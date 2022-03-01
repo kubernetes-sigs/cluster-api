@@ -197,6 +197,18 @@ func (c *Cluster) validateTopology(old *Cluster) field.ErrorList {
 			)
 		}
 	default: // On update
+		if old.Spec.Topology == nil || old.Spec.Topology.Class == "" {
+			allErrs = append(
+				allErrs,
+				field.Forbidden(
+					field.NewPath("spec", "topology", "class"),
+					"class cannot be set on an existing Cluster",
+				),
+			)
+			// return early here if there is no class to compare.
+			return allErrs
+		}
+
 		// Class could not be mutated.
 		if c.Spec.Topology.Class != old.Spec.Topology.Class {
 			allErrs = append(

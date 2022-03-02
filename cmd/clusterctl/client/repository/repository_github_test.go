@@ -39,6 +39,13 @@ func Test_githubRepository_newGitHubRepository(t *testing.T) {
 		fmt.Fprint(w, `{"name":"r", "owner": {"name": "o"}}`)
 	})
 
+	mux.HandleFunc("/repos/old_org/old_name", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		// w.Header().Add("Location", fmt.Sprintf("%s/o/r", r.Host))
+		w.Header().Add("Location", "/repos/o/r")
+		w.WriteHeader(301)
+	})
+
 	type field struct {
 		providerConfig config.Provider
 		variableClient config.VariablesClient
@@ -112,6 +119,25 @@ func Test_githubRepository_newGitHubRepository(t *testing.T) {
 			},
 			want:    nil,
 			wantErr: true,
+		},
+		{
+			name: "renamed repos should be redirected to the new location",
+			field: field{
+				providerConfig: config.NewProvider("test", "https://github.com/old_org/old_name/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				variableClient: test.NewFakeVariableClient(),
+			},
+			want: &gitHubRepository{
+				providerConfig:           config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
+				configVariablesClient:    test.NewFakeVariableClient(),
+				authenticatingHTTPClient: nil,
+				owner:                    "o",
+				repository:               "r",
+				defaultVersion:           "v0.4.1",
+				rootPath:                 ".",
+				componentsPath:           "path",
+				injectClient:             client,
+			},
+			wantErr: false,
 		},
 	}
 

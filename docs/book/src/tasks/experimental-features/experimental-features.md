@@ -78,7 +78,7 @@ Similarly, to **validate** if a particular feature is enabled, see cluster-api-p
 
 * [MachinePools](./machine-pools.md)
 * [ClusterResourceSet](./cluster-resource-set.md)
-* [ClusterClass](./cluster-class/index.md)
+* [ClusterClass](./cluster-classes.md)
 * [Ignition Bootstrap configuration](./ignition.md)
 
 **Warning**: Experimental features are unreliable, i.e., some may one day be promoted to the main repository, or they may be modified arbitrarily or even disappear altogether.

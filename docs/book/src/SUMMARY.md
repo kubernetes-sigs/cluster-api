@@ -18,7 +18,7 @@
     - [Experimental Features](./tasks/experimental-features/experimental-features.md)
         - [MachinePools](./tasks/experimental-features/machine-pools.md)
         - [ClusterResourceSet](./tasks/experimental-features/cluster-resource-set.md)
-        - [ClusterClass](./tasks/experimental-features/cluster-class/index.md)
+        - [ClusterClass](./tasks/experimental-features/cluster-classes.md)
             - [Writing a ClusterClass](./tasks/experimental-features/cluster-class/write-clusterclass.md)
             - [Changing a ClusterClass](./tasks/experimental-features/cluster-class/change-clusterclass.md)
             - [Operating a managed Cluster](./tasks/experimental-features/cluster-class/operate-cluster.md)

@@ -643,7 +643,12 @@ Of course the same is possible by adding a boolean variable to a configuration o
 
 Builtin variables can be leveraged to apply a patch only for a specific Kubernetes version.
 ```yaml
-    enabledIf: "{{ if eq "v1.21.1" .builtin.controlPlane.version }}true{{end}}"
+    enabledIf: '{{ semverCompare "1.21.1" .builtin.controlPlane.version }}'
+```
+
+With `semverCompare` and `coalesce` a feature can be enabled in newer versions of Kubernetes for both KubeadmConfigTemplate and KubeadmControlPlane.
+```yaml
+    enabledIf: '{{ semverCompare "^1.22.0" (coalesce .builtin.controlPlane.version .builtin.machineDeployment.version )}}'
 ```
 
 <!-- links -->

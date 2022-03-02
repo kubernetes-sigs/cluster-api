@@ -484,7 +484,11 @@ serve-book: ## Build and serve the book (with live-reload)
 
 ARTIFACTS ?= ${ROOT_DIR}/_artifacts
 
-KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+ifeq ($(shell go env GOOS),darwin) # Use the darwin/amd64 binary until an arm64 version is available
+	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path --arch amd64 $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+else
+	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+endif
 
 .PHONY: test
 test: $(SETUP_ENVTEST) ## Run unit and integration tests

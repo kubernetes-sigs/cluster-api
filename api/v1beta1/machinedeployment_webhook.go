@@ -200,4 +200,11 @@ func PopulateDefaultsMachineDeployment(d *MachineDeployment) {
 	// Make sure selector and template to be in the same cluster.
 	d.Spec.Selector.MatchLabels[ClusterLabelName] = d.Spec.ClusterName
 	d.Spec.Template.Labels[ClusterLabelName] = d.Spec.ClusterName
+
+	if d.Spec.Template.Spec.InfrastructureRef.Namespace == "" {
+		d.Spec.Template.Spec.InfrastructureRef.Namespace = d.Namespace
+	}
+	if d.Spec.Template.Spec.Bootstrap.ConfigRef != nil && d.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace == "" {
+		d.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = d.Namespace
+	}
 }

@@ -76,8 +76,6 @@ cert-manager:
 For situations when resources are limited or the network is slow, the cert-manager wait time to be running can be customized by adding a field to the clusterctl config file, for example:
 
 ```yaml
-
-```yaml
 cert-manager:
   ...
   timeout: 15m

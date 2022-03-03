@@ -46,6 +46,7 @@ aliases:
 
   cluster-api-bootstrap-provider-kubeadm-maintainers:
   cluster-api-bootstrap-provider-kubeadm-reviewers:
+    - killianmuldoon
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for bootstrap/kubeadm/internal/ignition
@@ -97,4 +98,5 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-docs-reviewers:
+    - killianmuldoon
   cluster-api-docs-maintainers:

@@ -1,52 +1,56 @@
 # Cluster API Roadmap
 
-This roadmap is a constant work in progress, subject to frequent revision. Dates are approximations.
+The roadmap is inspired by the project [goals](introduction.html#goals); it is a constant work in progress, 
+subject to frequent revision. Dates are approximations.
 
-## v0.4 (v1alpha4) ~ Q1 2021
 
-|Area|Description|Issue/Proposal|
-|--|--|--|
-|Operator, Providers|Move to a single manager watching all namespaces for each provider|[#3042](https://github.com/kubernetes-sigs/cluster-api/issues/3042)
-|Clusterctl|Redefine the scope of clusterctl move|[#3354](https://github.com/kubernetes-sigs/cluster-api/issues/3354)
-|Extensibility|Support pluggable machine load balancers|[#1250](https://github.com/kubernetes-sigs/cluster-api/issues/1250)|
-|Core Improvements|Move away from corev1.ObjectReference|[#2318](https://github.com/kubernetes-sigs/cluster-api/issues/2318)|
-|Dependency|Kubeadm v1beta2 types and support|[#2769](https://github.com/kubernetes-sigs/cluster-api/issues/2769)|
-|UX, Bootstrap|Machine bootstrap failure detection with sentinel files|[#3716](https://github.com/kubernetes-sigs/cluster-api/issues/3716)|
-|Operator|Management cluster operator|[#3427](https://github.com/kubernetes-sigs/cluster-api/issues/3427)|
-|Features, KubeadmControlPlane|Support for MachineHealthCheck based remediation|[#2976](https://github.com/kubernetes-sigs/cluster-api/issues/2976)|
-|Features, KubeadmControlPlane|KubeadmControlPlane Spec should be fully mutable|[#2083](https://github.com/kubernetes-sigs/cluster-api/issues/2083)|
-|Testing, Clusterctl|Implement a new E2E test for verifying clusterctl upgrades|[#3690](https://github.com/kubernetes-sigs/cluster-api/issues/3690)|
-|UX, Kubeadm|Insulate users from kubeadm API version changes|[#2769](https://github.com/kubernetes-sigs/cluster-api/issues/2769)|
-|Cleanup|Generate v1alpha4 types, remove support for v1alpha2|[#3428](https://github.com/kubernetes-sigs/cluster-api/issues/3428)|
-|Cleanup|Remove Status.Phase and other boolean fields in favor of conditions in all types|[#3153](https://github.com/kubernetes-sigs/cluster-api/issues/3153)|
-|Cleanup|Deprecate Status.{FailureMessage, FailureReason} in favor of conditions in types and contracts|[#3692](https://github.com/kubernetes-sigs/cluster-api/issues/3692)|
-|UX, Clusterctl|Support plugins in clusterctl to make provider-specific setup easier|[#3255](https://github.com/kubernetes-sigs/cluster-api/issues/3255)|
-|Tooling, Visibility|Distributed Tracing|[#3760](https://github.com/kubernetes-sigs/cluster-api/issues/3760)|
-|Bootstrap Improvements|Support composition of bootstrapping of kubeadm, cloud-init/ignition/talos/etc... and secrets transport|[#3761](https://github.com/kubernetes-sigs/cluster-api/issues/3761)|
-|Bootstrap Improvements|Add ignition support experiment as a bootstrap provider|[#3430](https://github.com/kubernetes-sigs/cluster-api/issues/3430)|
-|Integration|Autoscaler scale to and from zero|[#2530](https://github.com/kubernetes-sigs/cluster-api/issues/2530)|
-|API, Contracts|Support multiple kubeconfigs for a provider|[#3661](https://github.com/kubernetes-sigs/cluster-api/issues/3661)|
-|API, Networking|Http proxy support for egress traffic|[#3751](https://github.com/kubernetes-sigs/cluster-api/issues/3751)|
-|Features, Integration|Windows support for worker nodes|[#3616](https://github.com/kubernetes-sigs/cluster-api/pull/3616)|
-|Clusterctl, UX|Provide "at glance" view of cluster conditions|[#3802](https://github.com/kubernetes-sigs/cluster-api/issues/3802)|
+## v1.2 ~ Q2 2022
 
-## v1beta1/v1 ~ TBA
+> Items within this category have been selected as candidate for the release;
+> actual implementation depends on contributors' bandwidth.
 
 |Area|Description|Issue/Proposal|
 |--|--|--|
-|Maturity, Feedback|Submit the project for Kubernetes API Review|TBA|
+|Security|Set up Cluster API on oss-fuzz|[#6059](https://github.com/kubernetes-sigs/cluster-api/issues/6059)|
+|UX, Clusterctl|Explore alternatives to rate limited GitHub API for clusterctl|[#3982](https://github.com/kubernetes-sigs/cluster-api/issues/3982)|
+|API, Contracts|Inconsistent provider behaviour with API server ports|[#5517](https://github.com/kubernetes-sigs/cluster-api/issues/5517)|
+|API, Core Improvements|Represent Failure domains availability|[#4031](https://github.com/kubernetes-sigs/cluster-api/issues/4031)|
+|Core Improvements|Support syncing Node labels |[#493](https://github.com/kubernetes-sigs/cluster-api/issues/493)|
+|Core Improvements|Drain workload clusters of service Type=Loadbalancer on teardown|[#3075](https://github.com/kubernetes-sigs/cluster-api/issues/3075)|
+|Core Improvements|Bubble up conditions for worker nodes|[#3486](https://github.com/kubernetes-sigs/cluster-api/issues/3486)|
+|Core Improvements|Support multiple kubeconfigs for a provider|[#3661](https://github.com/kubernetes-sigs/cluster-api/issues/3661)|
+|Core Improvements|Block on unsupported Kubernetes version|[#4321](https://github.com/kubernetes-sigs/cluster-api/issues/4321)|
+|Core Improvements|Improve certificate management in Cluster API|[#5490](https://github.com/kubernetes-sigs/cluster-api/issues/5490)|
+|Core Improvements|Add support for RolloutAfter to MachineDeployments|[#4536](https://github.com/kubernetes-sigs/cluster-api/issues/4536)|
+|Core Improvements|Add support for RolloutAfter to ClusterClass|[#5218](https://github.com/kubernetes-sigs/cluster-api/issues/5218)|
+|Core Improvements|MHC should provide support for checking Machine conditions|[#5450](https://github.com/kubernetes-sigs/cluster-api/issues/5450)|
+|Core Improvements|MachinePool workers support in ClusterClass|[#5991](https://github.com/kubernetes-sigs/cluster-api/issues/5991)|
+|Core Improvements|Allow using a ClusterClass across namespaces|[#5673](https://github.com/kubernetes-sigs/cluster-api/issues/5673)|
+|Extensibility|Introduce the runtime SDK|[#6181](https://github.com/kubernetes-sigs/cluster-api/pull/6181)|
+|Extensibility|Introduce topology mutation hooks| |
+|Extensibility|Introduce lifecycle hooks for enabling addon orchestration|[#5491](https://github.com/kubernetes-sigs/cluster-api/issues/5491)|
+|Extensibility|Continuous ClusterResourceSetStrategy|[#4807](https://github.com/kubernetes-sigs/cluster-api/issues/4807)|
+|Visibility|Integrate with the Cluster API metrics project| |
+|Visibility|Improve CAPI logs and ensure consistent with updated K8s guidelines| |
+
+For a detailed view of all the issues in the milestone see [milestone v1.2](https://github.com/kubernetes-sigs/cluster-api/issues?q=is%3Aopen+is%3Aissue+milestone%3Av1.2). 
 
 ---
 
 ## Backlog
 
 > Items within this category have been identified as potential candidates for the project
-> and can be moved up into a milestone if there is enough interest.
+> and can be moved up into a milestone if there is enough interest/volounteers for implementation.
 
 |Area|Description|Issue/Proposal|
 |--|--|--|
 |Security|Machine attestation for secure kubelet registration|[#3762](https://github.com/kubernetes-sigs/cluster-api/issues/3762)|
-|Conformance| Define Cluster API provider conformance|TBA|
-|Core Improvements|Pluggable MachineDeployment upgrade strategies|[#1754](https://github.com/kubernetes-sigs/cluster-api/issues/1754)|
-|UX|Simplified cluster creation experience|[#1227](https://github.com/kubernetes-sigs/cluster-api/issues/1227)|
-|Bootstrap, Infrastructure|Document approaches for infrastructure providers to consider for securing sensitive bootstrap data|[#1739](https://github.com/kubernetes-sigs/cluster-api/issues/1739)|
+|UX, Clusterctl|Support plugins in clusterctl to make provider-specific setup easier|[#3255](https://github.com/kubernetes-sigs/cluster-api/issues/3255)|
+|API, Contracts|Support multiple kubeconfigs for a provider|[#3661](https://github.com/kubernetes-sigs/cluster-api/issues/3661)|
+|Core Improvements|Cleaner separation of kubeadm and machine bootstrapping|[#2318](https://github.com/kubernetes-sigs/cluster-api/issues/2318)|
+|Core Improvements|Move away from corev1.ObjectReference|[#5294](https://github.com/kubernetes-sigs/cluster-api/issues/5294)|
+|Extensibility|Support pluggable machine load balancers|[#1250](https://github.com/kubernetes-sigs/cluster-api/issues/1250)|
+|Visibility|Add tracing to Cluster API reconcile loops| |
+|Conformance| Define Cluster API provider conformance||
+
+For a detailed view of all the issues in the milestone see [milestone Next](https://github.com/kubernetes-sigs/cluster-api/issues?q=is%3Aopen+is%3Aissue+milestone%3ANext).

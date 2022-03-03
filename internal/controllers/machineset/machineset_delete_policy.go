@@ -97,7 +97,13 @@ type sortableMachines struct {
 func (m sortableMachines) Len() int      { return len(m.machines) }
 func (m sortableMachines) Swap(i, j int) { m.machines[i], m.machines[j] = m.machines[j], m.machines[i] }
 func (m sortableMachines) Less(i, j int) bool {
-	return m.priority(m.machines[j]) < m.priority(m.machines[i]) // high to low
+	priorityI, priorityJ := m.priority(m.machines[i]), m.priority(m.machines[j])
+	if priorityI == priorityJ {
+		// In cases where the priority is identical, it should be ensured that the same machine order is returned each time.
+		// Ordering by name is a simple way to do this.
+		return m.machines[i].Name < m.machines[j].Name
+	}
+	return priorityJ < priorityI // high to low
 }
 
 func getMachinesToDeletePrioritized(filteredMachines []*clusterv1.Machine, diff int, fun deletePriorityFunc) []*clusterv1.Machine {

@@ -107,6 +107,9 @@ func DiscoveryAndWaitForMachinePools(ctx context.Context, input DiscoveryAndWait
 			Getter:      input.Getter,
 			MachinePool: machinepool,
 		}, intervals...)
+
+		// TODO: check for failure domains; currently MP doesn't provide a way to check where Machine are placed
+		//  (checking infrastructure is the only alternative, but this makes test not portable)
 	}
 	return machinePools
 }

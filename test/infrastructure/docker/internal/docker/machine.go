@@ -58,16 +58,14 @@ type nodeCreator interface {
 type Machine struct {
 	cluster   string
 	machine   string
-	image     string
 	ipFamily  clusterv1.ClusterIPFamily
-	labels    map[string]string
 	container *types.Node
 
 	nodeCreator nodeCreator
 }
 
 // NewMachine returns a new Machine service for the given Cluster/DockerCluster pair.
-func NewMachine(ctx context.Context, cluster *clusterv1.Cluster, machine, image string, labels map[string]string) (*Machine, error) {
+func NewMachine(ctx context.Context, cluster *clusterv1.Cluster, machine string, filterLabels map[string]string) (*Machine, error) {
 	if cluster == nil {
 		return nil, errors.New("cluster is required when creating a docker.Machine")
 	}
@@ -81,7 +79,7 @@ func NewMachine(ctx context.Context, cluster *clusterv1.Cluster, machine, image 
 	filters := container.FilterBuilder{}
 	filters.AddKeyNameValue(filterLabel, clusterLabelKey, cluster.Name)
 	filters.AddKeyValue(filterName, fmt.Sprintf("^%s$", machineContainerName(cluster.Name, machine)))
-	for key, val := range labels {
+	for key, val := range filterLabels {
 		filters.AddKeyNameValue(filterLabel, key, val)
 	}
 
@@ -98,10 +96,8 @@ func NewMachine(ctx context.Context, cluster *clusterv1.Cluster, machine, image 
 	return &Machine{
 		cluster:     cluster.Name,
 		machine:     machine,
-		image:       image,
 		ipFamily:    ipFamily,
 		container:   newContainer,
-		labels:      labels,
 		nodeCreator: &Manager{},
 	}, nil
 }
@@ -136,9 +132,7 @@ func ListMachinesByCluster(ctx context.Context, cluster *clusterv1.Cluster, labe
 		machines[i] = &Machine{
 			cluster:     cluster.Name,
 			machine:     machineFromContainerName(cluster.Name, containerNode.Name),
-			image:       containerNode.Image,
 			ipFamily:    ipFamily,
-			labels:      labels,
 			container:   containerNode,
 			nodeCreator: &Manager{},
 		}
@@ -153,17 +147,6 @@ func (m *Machine) IsControlPlane() bool {
 		return false
 	}
 	return m.container.ClusterRole == constants.ControlPlaneNodeRoleValue
-}
-
-// ImageVersion returns the version of the image used or nil if not specified
-// NOTE: Image version might be different from the Kubernetes version, because some characters
-// allowed by semver (e.g. +) can't be used for image tags, so they are replaced with "_".
-func (m *Machine) ImageVersion() string {
-	if m.image == "" {
-		return defaultImageTag
-	}
-
-	return m.image[strings.LastIndex(m.image, ":")+1 : len(m.image)]
 }
 
 // Exists returns true if the container for this machine exists.
@@ -200,8 +183,17 @@ func (m *Machine) Address(ctx context.Context) (string, error) {
 	return ipv4, nil
 }
 
+// ContainerImage return the image of the container for this machine
+// or empty string if the container does not exist yet.
+func (m *Machine) ContainerImage() string {
+	if m.container == nil {
+		return ""
+	}
+	return m.container.Image
+}
+
 // Create creates a docker container hosting a Kubernetes node.
-func (m *Machine) Create(ctx context.Context, role string, version *string, mounts []infrav1.Mount) error {
+func (m *Machine) Create(ctx context.Context, image string, role string, version *string, labels map[string]string, mounts []infrav1.Mount) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Create if not exists.
@@ -209,8 +201,8 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 		var err error
 
 		machineImage := m.machineImage(version)
-		if m.image != "" {
-			machineImage = m.image
+		if image != "" {
+			machineImage = image
 		}
 
 		switch role {
@@ -225,7 +217,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 				0,
 				kindMounts(mounts),
 				nil,
-				m.labels,
+				labels,
 				m.ipFamily,
 			)
 			if err != nil {
@@ -240,7 +232,7 @@ func (m *Machine) Create(ctx context.Context, role string, version *string, moun
 				m.cluster,
 				kindMounts(mounts),
 				nil,
-				m.labels,
+				labels,
 				m.ipFamily,
 			)
 			if err != nil {

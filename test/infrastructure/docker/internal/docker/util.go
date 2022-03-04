@@ -27,10 +27,22 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker/types"
 )
 
-const clusterLabelKey = "io.x-k8s.kind.cluster"
-const nodeRoleLabelKey = "io.x-k8s.kind.role"
-const filterLabel = "label"
-const filterName = "name"
+const (
+	clusterLabelKey  = "io.x-k8s.kind.cluster"
+	nodeRoleLabelKey = "io.x-k8s.kind.role"
+	filterLabel      = "label"
+	filterName       = "name"
+
+	failureDomainLabelKey = "io.x-k8s.cluster.failureDomain"
+)
+
+// FailureDomainLabel returns a map with the docker label for the given failure domain.
+func FailureDomainLabel(failureDomain *string) map[string]string {
+	if failureDomain != nil && *failureDomain != "" {
+		return map[string]string{failureDomainLabelKey: *failureDomain}
+	}
+	return nil
+}
 
 func machineContainerName(cluster, machine string) string {
 	if strings.HasPrefix(machine, cluster) {
@@ -100,6 +112,7 @@ func list(ctx context.Context, visit func(context.Context, string, *types.Node),
 		cluster := clusterLabelKey
 		image := cntr.Image
 		status := cntr.Status
+
 		visit(ctx, cluster, types.NewNode(name, image, "undetermined").WithStatus(status))
 	}
 

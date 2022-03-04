@@ -371,7 +371,7 @@ spec:
                         is suitable for use by control plane machines.
                       type: boolean
                   type: object
-                description: FailureDomains are not usulaly defined on the spec. The
+                description: FailureDomains are usually not defined in the spec. The
                   docker provider is special since failure domains don't mean anything
                   in a local docker environment. Instead, the docker cluster controller
                   will simply copy these into the Status and allow the Cluster API

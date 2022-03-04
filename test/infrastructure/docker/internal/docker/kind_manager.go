@@ -79,6 +79,7 @@ func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, image, clust
 		Role:         constants.ControlPlaneNodeRoleValue,
 		PortMappings: portMappingsWithAPIServer,
 		Mounts:       mounts,
+		Labels:       labels,
 		IPFamily:     ipFamily,
 	}
 	node, err := createNode(ctx, createOpts)

@@ -46,7 +46,7 @@ patchesStrategicMerge
 - manager_config.yaml
 ```
 
-[kustomizeyaml]: https://github.com/kubernetes-sigs/kustomize/blob/master/docs/glossary.md#kustomization
+[kustomizeyaml]: https://kubectl.docs.kubernetes.io/references/kustomize/kustomization
 [patch]: https://git.k8s.io/community/contributors/devel/sig-api-machinery/strategic-merge-patch.md
 
 ## Our configuration

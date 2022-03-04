@@ -289,7 +289,7 @@ analyzing them via Grafana.
 
 * Make sure you query the correct time range via Grafana or `logcli`.
 * The logs are currently uploaded by using now as the timestamp, because otherwise it would
-  take a few minutes until the logs show up in Loki.
+  take a few minutes until the logs show up in Loki. The original timestamp is preserved as `original_ts`.
 
 </aside>
 

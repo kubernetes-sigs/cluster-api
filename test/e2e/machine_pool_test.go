@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing MachinePools", func() {
+var _ = Describe("When testing MachinePools [PR-Blocking]", func() {
 	MachinePoolSpec(ctx, func() MachinePoolInput {
 		return MachinePoolInput{
 			E2EConfig:             e2eConfig,

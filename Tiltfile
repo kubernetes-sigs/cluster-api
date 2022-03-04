@@ -12,8 +12,9 @@ settings = {
 }
 
 # global settings
+tilt_file = "./tilt-settings.yaml" if os.path.exists("./tilt-settings.yaml") else "./tilt-settings.json"
 settings.update(read_yaml(
-    "./tilt-settings.yaml" if os.path.exists("./tilt-settings.yaml") else "./tilt-settings.json",
+    tilt_file,
     default = {},
 ))
 
@@ -28,7 +29,6 @@ if settings.get("trigger_mode") == "manual":
 default_registry(settings.get("default_registry"))
 
 always_enable_providers = ["core"]
-extra_args = settings.get("extra_args", {})
 
 providers = {
     "core": {
@@ -235,13 +235,7 @@ def enable_provider(name, debug):
     links = []
 
     if debug_port != 0:
-        # Add delve when debugging. Delve will always listen on the pod side on port 30000.
-        entrypoint = ["sh", "/start.sh", "/dlv", "--listen=:" + str(30000), "--accept-multiclient", "--api-version=2", "--headless=true", "exec", "--", "/manager"]
         port_forwards.append(port_forward(debug_port, 30000))
-        if debug.get("continue", True):
-            entrypoint.insert(8, "--continue")
-    else:
-        entrypoint = ["sh", "/start.sh", "/manager"]
 
     metrics_port = int(debug.get("metrics_port", 0))
     profiler_port = int(debug.get("profiler_port", 0))
@@ -251,21 +245,15 @@ def enable_provider(name, debug):
 
     if profiler_port != 0:
         port_forwards.append(port_forward(profiler_port, 6060))
-        entrypoint.extend(["--profiler-address", ":6060"])
         links.append(link("http://localhost:" + str(profiler_port) + "/debug/pprof", "profiler"))
 
     # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
     # build into the container.
-    provider_args = extra_args.get(name)
-    if provider_args:
-        entrypoint.extend(provider_args)
-
     docker_build(
         ref = p.get("image"),
         context = context + "/.tiltbuild/bin/",
         dockerfile_contents = dockerfile_contents,
         target = "tilt",
-        entrypoint = entrypoint,
         only = "manager",
         live_update = [
             sync(context + "/.tiltbuild/bin/manager", "/manager"),
@@ -379,20 +367,20 @@ def prepare_all():
         if p.get("kustomize_config", True):
             context = p.get("context")
             debug = ""
-            if name in settings.get("debug"):
-                debug = ":debug"
-            providers_arg = providers_arg + "--providers {name}:{context}{debug} ".format(
+            providers_arg = providers_arg + "--providers {name}:{context} ".format(
                 name = name,
                 context = context,
-                debug = debug,
             )
 
-    cmd = "make -B tilt-prepare && ./hack/tools/bin/tilt-prepare {allow_k8s_arg}{tools_arg}{cert_manager_arg}{kustomize_build_arg}{providers_arg}".format(
+    tilt_settings_file_arg = "--tilt-settings-file " + tilt_file
+
+    cmd = "make -B tilt-prepare && ./hack/tools/bin/tilt-prepare {allow_k8s_arg}{tools_arg}{cert_manager_arg}{kustomize_build_arg}{providers_arg}{tilt_settings_file_arg}".format(
         allow_k8s_arg = allow_k8s_arg,
         tools_arg = tools_arg,
         cert_manager_arg = cert_manager_arg,
         kustomize_build_arg = kustomize_build_arg,
         providers_arg = providers_arg,
+        tilt_settings_file_arg = tilt_settings_file_arg,
     )
     local(cmd, env = settings.get("kustomize_substitutions", {}))
 

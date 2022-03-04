@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -80,18 +81,21 @@ func NewNodePool(ctx context.Context, c client.Client, cluster *clusterv1.Cluste
 // (all existing machines are killed before new ones are created).
 // TODO: consider if to support a Rollout strategy (a more progressive node replacement).
 func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) {
+	log := logf.FromContext(ctx)
 	desiredReplicas := int(*np.machinePool.Spec.Replicas)
 
 	// Delete all the machines in excess (outdated machines or machines exceeding desired replica count).
 	machineDeleted := false
 	totalNumberOfMachines := 0
 	for _, machine := range np.machines {
+		log.Info(fmt.Sprintf("ReconcileMachines: Looking at %v", machine.Name()))
 		totalNumberOfMachines++
 		if totalNumberOfMachines > desiredReplicas || !np.isMachineMatchingInfrastructureSpec(machine) {
 			externalMachine, err := docker.NewMachine(ctx, np.cluster, machine.Name(), np.labelFilters)
 			if err != nil {
 				return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
 			}
+			log.Info(fmt.Sprintf("ReconcileMachines: Deleting %v", machine.Name()))
 			if err := externalMachine.Delete(ctx); err != nil {
 				return ctrl.Result{}, errors.Wrapf(err, "failed to delete machine %s", machine.Name())
 			}
@@ -99,6 +103,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 			totalNumberOfMachines-- // remove deleted machine from the count
 		}
 	}
+	log.Info(fmt.Sprintf("ReconcileMachines: After Delete Desired %d Total %d", desiredReplicas, totalNumberOfMachines))
 	if machineDeleted {
 		if err := np.refresh(ctx); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to refresh the node pool")
@@ -110,6 +115,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 	matchingMachineCount := len(np.machinesMatchingInfrastructureSpec())
 	if matchingMachineCount < desiredReplicas {
 		for i := 0; i < desiredReplicas-matchingMachineCount; i++ {
+			log.Info("ReconcileMachines: Creating machine")
 			if err := np.addMachine(ctx); err != nil {
 				return ctrl.Result{}, errors.Wrap(err, "failed to create a new docker machine")
 			}
@@ -147,6 +153,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 			result = util.LowestNonZeroResult(result, res)
 		}
 	}
+	log.Info("DockerMachinePoolReconciler: end of ReconcileMachines", "res", result)
 	return result, nil
 }
 
@@ -224,6 +231,10 @@ func (np *NodePool) refresh(ctx context.Context) error {
 		return errors.Wrapf(err, "failed to list all machines in the cluster")
 	}
 
+	log := logf.FromContext(ctx)
+
+	log.Info(fmt.Sprintf("Found machines: %+v", machines))
+
 	np.machines = make([]*docker.Machine, 0, len(machines))
 	for i := range machines {
 		machine := machines[i]
@@ -255,6 +266,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		}
 		np.dockerMachinePool.Status.Instances = append(np.dockerMachinePool.Status.Instances, machineStatus)
 		// return to surface the new machine exists.
+		log.Info("DockerMachinePoolReconciler: !isFound => requeue: true", "_container", machine.Name())
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -296,6 +308,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 
 		machineStatus.Bootstrapped = true
 		// return to surface the machine has been bootstrapped.
+		log.Info("DockerMachinePoolReconciler: !machineStatus.Bootstrapped => requeue: true", "_container", machine.Name())
 		return ctrl.Result{Requeue: true}, nil
 	}
 
@@ -306,6 +319,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		if err != nil {
 			// Requeue if there is an error, as this is likely momentary load balancer
 			// state changes during control plane provisioning.
+			log.Info("DockerMachinePoolReconciler: machineStatus.Addresses == nil => requeue: true", "_container", machine.Name())
 			return ctrl.Result{Requeue: true}, nil //nolint:nilerr
 		}
 
@@ -332,6 +346,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		// state changes during control plane provisioning.
 		if err := externalMachine.SetNodeProviderID(ctx); err != nil {
 			log.V(4).Info("transient error setting the provider id")
+			log.Info("DockerMachinePoolReconciler: machineStatus.ProviderID => requeue: true", "_container", machine.Name())
 			return ctrl.Result{Requeue: true}, nil //nolint:nilerr
 		}
 		// Set ProviderID so the Cluster API Machine Controller can pull it
@@ -340,6 +355,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 	}
 
 	machineStatus.Ready = true
+	log.Info("DockerMachinePoolReconciler: reconcileMachine => machine ready", "_container", machine.Name())
 	return ctrl.Result{}, nil
 }
 

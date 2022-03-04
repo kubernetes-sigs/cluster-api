@@ -64,8 +64,10 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	dockerMachinePool := &infraexpv1.DockerMachinePool{}
 	if err := r.Client.Get(ctx, req.NamespacedName, dockerMachinePool); err != nil {
 		if apierrors.IsNotFound(err) {
+			log.Info("DockerMachinePoolReconciler: apierrors.IsNotFound")
 			return ctrl.Result{}, nil
 		}
+		log.Info("DockerMachinePoolReconciler: .Get no not found error")
 		return ctrl.Result{}, err
 	}
 
@@ -103,6 +105,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Always attempt to Patch the DockerMachinePool object and status after each reconciliation.
 	defer func() {
+		log.Info("Finished reconciliation", "res", res, "err", err, "fullDockerMachinePool", dockerMachinePool)
 		if err := patchDockerMachinePool(ctx, patchHelper, dockerMachinePool); err != nil {
 			log.Error(err, "failed to patch DockerMachinePool")
 			if rerr == nil {
@@ -116,6 +119,8 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		controllerutil.AddFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
 		return ctrl.Result{}, nil
 	}
+
+	log.Info("Started reconciliation")
 
 	// Handle deleted machines
 	if !dockerMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -180,14 +185,18 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 		machinePool.Spec.Replicas = pointer.Int32Ptr(1)
 	}
 
+	log.Info("docker.NewNodePool")
+
 	pool, err := docker.NewNodePool(ctx, r.Client, cluster, machinePool, dockerMachinePool)
 	if err != nil {
+		log.Info("DockerMachinePoolReconciler: error docker.NewNodePool")
 		return ctrl.Result{}, errors.Wrap(err, "failed to build new node pool")
 	}
 
 	// Reconcile machines and updates Status.Instances
 	res, err := pool.ReconcileMachines(ctx)
 	if err != nil {
+		log.Info("DockerMachinePoolReconciler: pool.ReconcileMachines")
 		return res, err
 	}
 
@@ -212,8 +221,10 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 
 	// if some machine is still provisioning, force reconcile in few seconds to check again infrastructure.
 	if !dockerMachinePool.Status.Ready && res.IsZero() {
+		log.Info("DockerMachinePoolReconciler: dockerMachinePool.Status.Ready && res.IsZero()")
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
+	log.Info("DockerMachinePoolReconciler: end of reconcileNormal")
 	return res, nil
 }
 

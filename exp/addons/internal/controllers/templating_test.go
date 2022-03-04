@@ -48,7 +48,7 @@ func Test_renderTemplates(t *testing.T) {
 		{"no template values", makeTestConfigMap("testing"), makeTestConfigMap("testing")},
 		{"annotation values", makeTestConfigMap(`{{ annotation "cluster.x-k8s.io/my-test" }}`), makeTestConfigMap("just-a-value")},
 		{"label values", makeTestConfigMap(`{{ label "cluster.x-k8s.io/my-label" }}`), makeTestConfigMap("label-value")},
-		{"data value", makeTestConfigMap(`{{ .ObjectMeta.Name }}`), makeTestConfigMap(testCluster.ObjectMeta.Name)},
+		{"data value", makeTestConfigMap(`{{ .ClusterName }}`), makeTestConfigMap(testCluster.ObjectMeta.Name)},
 		{"missing element", makeTestConfigMap(`{{ label "unknown" }}`), makeTestConfigMap("")},
 	}
 

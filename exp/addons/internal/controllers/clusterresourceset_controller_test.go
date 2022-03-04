@@ -328,7 +328,7 @@ metadata:
 				Namespace: ns.Name,
 			},
 			Data: map[string]string{
-				"testing.yaml": "kind: ConfigMap\napiVersion: v1\nmetadata:\n name: demo-configmap\n namespace: " + ns.Name + "\ndata:\n testing: '{{ .ObjectMeta.Name }}'\n",
+				"testing.yaml": "kind: ConfigMap\napiVersion: v1\nmetadata:\n name: demo-configmap\n namespace: " + ns.Name + "\ndata:\n testing: '{{ .ClusterName }}'\n",
 			},
 		}
 		g.Expect(env.Create(ctx, newConfigmap)).To(Succeed())

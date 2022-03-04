@@ -32,10 +32,10 @@ func lookup(m map[string]string) func(s string) string {
 	}
 }
 
-func makeFuncMap(cl *clusterv1.Cluster) template.FuncMap {
+func makeFuncMap(d clusterData) template.FuncMap {
 	return template.FuncMap{
-		"annotation": lookup(cl.ObjectMeta.GetAnnotations()),
-		"label":      lookup(cl.ObjectMeta.GetLabels()),
+		"annotation": lookup(d.ClusterAnnotations),
+		"label":      lookup(d.ClusterLabels),
 	}
 }
 
@@ -45,13 +45,14 @@ func renderTemplates(cl *clusterv1.Cluster, obj *unstructured.Unstructured) (*un
 		return nil, fmt.Errorf("failed to parse object as YAML: %w", err)
 	}
 
-	tmpl, err := template.New("job").Funcs(makeFuncMap(cl)).Parse(string(raw))
+	data := clusterToData(cl)
+	tmpl, err := template.New("job").Funcs(makeFuncMap(data)).Parse(string(raw))
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse template: %w", err)
 	}
 
 	buf := bytes.Buffer{}
-	err = tmpl.Execute(&buf, cl)
+	err = tmpl.Execute(&buf, data)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute template: %w", err)
 	}
@@ -61,4 +62,18 @@ func renderTemplates(cl *clusterv1.Cluster, obj *unstructured.Unstructured) (*un
 		return nil, fmt.Errorf("failed to marshal obj: %w", err)
 	}
 	return &updated, nil
+}
+
+type clusterData struct {
+	ClusterName        string
+	ClusterAnnotations map[string]string
+	ClusterLabels      map[string]string
+}
+
+func clusterToData(cl *clusterv1.Cluster) clusterData {
+	return clusterData{
+		ClusterName:        cl.GetName(),
+		ClusterAnnotations: cl.GetAnnotations(),
+		ClusterLabels:      cl.GetLabels(),
+	}
 }

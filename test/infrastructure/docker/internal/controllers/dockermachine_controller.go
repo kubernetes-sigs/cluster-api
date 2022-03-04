@@ -143,7 +143,7 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Create a helper for managing the docker container hosting the machine.
-	externalMachine, err := docker.NewMachine(ctx, cluster, machine.Name, dockerMachine.Spec.CustomImage, nil)
+	externalMachine, err := docker.NewMachine(ctx, cluster, machine.Name, nil)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine")
 	}
@@ -231,7 +231,9 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 
 	// Create the machine if not existing yet
 	if !externalMachine.Exists() {
-		if err := externalMachine.Create(ctx, role, machine.Spec.Version, dockerMachine.Spec.ExtraMounts); err != nil {
+		// NOTE: FailureDomains don't mean much in CAPD since it's all local, but we are setting a label on
+		// each container, so we can check placement.
+		if err := externalMachine.Create(ctx, dockerMachine.Spec.CustomImage, role, machine.Spec.Version, docker.FailureDomainLabel(machine.Spec.FailureDomain), dockerMachine.Spec.ExtraMounts); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
 		}
 	}

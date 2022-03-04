@@ -231,7 +231,7 @@ intervals:
   default/wait-cluster: ["5m", "10s"]
   default/wait-control-plane: ["10m", "10s"]
   default/wait-worker-nodes: ["5m", "10s"]
-  default/wait-machine-pool-nodes: ["5m", "10s"]
+  default/wait-machine-pool-nodes: ["20m", "10s"]
   default/wait-delete-cluster: ["3m", "10s"]
   default/wait-machine-upgrade: ["20m", "10s"]
   default/wait-machine-pool-upgrade: ["5m", "10s"]

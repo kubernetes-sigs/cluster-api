@@ -112,7 +112,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should create and upgrade a workload cluster and run kubetest", func() {
+	It("Should create and upgrade a workload cluster and eventually run kubetest", func() {
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{

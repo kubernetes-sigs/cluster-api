@@ -82,7 +82,7 @@ func init() {
 		"Bootstrap provider and version (e.g. kubeadm:v0.3.0)")
 	generateProviderCmd.Flags().StringVarP(&gpo.controlPlaneProvider, "control-plane", "c", "",
 		"ControlPlane provider and version (e.g. kubeadm:v0.3.0)")
-	generateProviderCmd.Flags().StringVar(&gpo.targetNamespace, "target-namespace", "",
+	generateProviderCmd.Flags().StringVarP(&gpo.targetNamespace, "target-namespace", "n", "",
 		"The target namespace where the provider should be deployed. If unspecified, the components default namespace is used.")
 	generateProviderCmd.Flags().BoolVar(&gpo.textOutput, "describe", false,
 		"Generate configuration without variable substitution.")

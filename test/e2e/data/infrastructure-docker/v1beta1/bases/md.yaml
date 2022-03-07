@@ -52,3 +52,4 @@ spec:
         name: "${CLUSTER_NAME}-md-0"
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: DockerMachineTemplate
+      failureDomain: fd4

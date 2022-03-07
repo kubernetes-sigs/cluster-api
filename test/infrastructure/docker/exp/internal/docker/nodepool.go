@@ -21,6 +21,8 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"math/rand"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
@@ -43,7 +45,7 @@ const (
 )
 
 // NodePool is a wrapper around a collection of like machines which are owned by a DockerMachinePool. A node pool
-// provides a friendly way of managing (adding, deleting, reimaging) a set of docker machines. The node pool will also
+// provides a friendly way of managing (adding, deleting, updating) a set of docker machines. The node pool will also
 // sync the docker machine pool status Instances field with the state of the docker machines.
 type NodePool struct {
 	client            client.Client
@@ -86,7 +88,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 	for _, machine := range np.machines {
 		totalNumberOfMachines++
 		if totalNumberOfMachines > desiredReplicas || !np.isMachineMatchingInfrastructureSpec(machine) {
-			externalMachine, err := docker.NewMachine(ctx, np.cluster, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
+			externalMachine, err := docker.NewMachine(ctx, np.cluster, machine.Name(), np.labelFilters)
 			if err != nil {
 				return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
 			}
@@ -151,7 +153,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 // Delete will delete all of the machines in the node pool.
 func (np *NodePool) Delete(ctx context.Context) error {
 	for _, machine := range np.machines {
-		externalMachine, err := docker.NewMachine(ctx, np.cluster, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
+		externalMachine, err := docker.NewMachine(ctx, np.cluster, machine.Name(), np.labelFilters)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
 		}
@@ -165,7 +167,15 @@ func (np *NodePool) Delete(ctx context.Context) error {
 }
 
 func (np *NodePool) isMachineMatchingInfrastructureSpec(machine *docker.Machine) bool {
-	return machine.ImageVersion() == container.SemverToOCIImageTag(*np.machinePool.Spec.Template.Spec.Version)
+	return imageVersion(machine) == container.SemverToOCIImageTag(*np.machinePool.Spec.Template.Spec.Version)
+}
+
+// ImageVersion returns the version of the image used or nil if not specified
+// NOTE: Image version might be different from the Kubernetes version, because some characters
+// allowed by semver (e.g. +) can't be used for image tags, so they are replaced with "_".
+func imageVersion(m *docker.Machine) string {
+	containerImage := m.ContainerImage()
+	return containerImage[strings.LastIndex(containerImage, ":")+1:]
 }
 
 // machinesMatchingInfrastructureSpec returns all of the docker.Machines which match the machine pool / docker machine pool spec.
@@ -183,12 +193,28 @@ func (np *NodePool) machinesMatchingInfrastructureSpec() []*docker.Machine {
 // addMachine will add a new machine to the node pool and update the docker machine pool status.
 func (np *NodePool) addMachine(ctx context.Context) error {
 	instanceName := fmt.Sprintf("worker-%s", util.RandomString(6))
-	externalMachine, err := docker.NewMachine(ctx, np.cluster, instanceName, np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
+	externalMachine, err := docker.NewMachine(ctx, np.cluster, instanceName, np.labelFilters)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", instanceName)
 	}
 
-	if err := externalMachine.Create(ctx, constants.WorkerNodeRoleValue, np.machinePool.Spec.Template.Spec.Version, np.dockerMachinePool.Spec.Template.ExtraMounts); err != nil {
+	// NOTE: FailureDomains don't mean much in CAPD since it's all local, but we are setting a label on
+	// each container, so we can check placement.
+	labels := map[string]string{}
+	for k, v := range np.labelFilters {
+		labels[k] = v
+	}
+
+	if len(np.machinePool.Spec.FailureDomains) > 0 {
+		// For MachinePools placement is expected to be managed by the underlying infrastructure primitive, but
+		// given that there is no such an thing in CAPD, we are picking a random failure domain.
+		randomIndex := rand.Intn(len(np.machinePool.Spec.FailureDomains)) //nolint:gosec
+		for k, v := range docker.FailureDomainLabel(&np.machinePool.Spec.FailureDomains[randomIndex]) {
+			labels[k] = v
+		}
+	}
+
+	if err := externalMachine.Create(ctx, np.dockerMachinePool.Spec.Template.CustomImage, constants.WorkerNodeRoleValue, np.machinePool.Spec.Template.Spec.Version, labels, np.dockerMachinePool.Spec.Template.ExtraMounts); err != nil {
 		return errors.Wrapf(err, "failed to create docker machine with instance name %s", instanceName)
 	}
 	return nil
@@ -244,7 +270,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		}
 	}()
 
-	externalMachine, err := docker.NewMachine(ctx, np.cluster, machine.Name(), np.dockerMachinePool.Spec.Template.CustomImage, np.labelFilters)
+	externalMachine, err := docker.NewMachine(ctx, np.cluster, machine.Name(), np.labelFilters)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create helper for managing the externalMachine named %s", machine.Name())
 	}

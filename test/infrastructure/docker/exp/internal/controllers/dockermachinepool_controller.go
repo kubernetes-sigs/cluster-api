@@ -20,6 +20,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -185,7 +186,8 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	}
 
 	// Reconcile machines and updates Status.Instances
-	if res, err := pool.ReconcileMachines(ctx); err != nil || !res.IsZero() {
+	res, err := pool.ReconcileMachines(ctx)
+	if err != nil {
 		return res, err
 	}
 
@@ -207,7 +209,12 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	}
 
 	dockerMachinePool.Status.Ready = len(dockerMachinePool.Spec.ProviderIDList) == int(*machinePool.Spec.Replicas)
-	return ctrl.Result{}, nil
+
+	// if some machine is still provisioning, force reconcile in few seconds to check again infrastructure.
+	if !dockerMachinePool.Status.Ready && res.IsZero() {
+		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+	}
+	return res, nil
 }
 
 func getDockerMachinePoolProviderID(clusterName, dockerMachinePoolName string) string {

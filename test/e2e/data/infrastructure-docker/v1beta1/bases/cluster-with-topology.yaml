@@ -23,6 +23,7 @@ spec:
       - class: "default-worker"
         name: "md-0"
         replicas: ${WORKER_MACHINE_COUNT}
+        failureDomain: fd4
     variables:
     # The imageRepository variable is defaulted by the Cluster webhook.
     #- name: imageRepository

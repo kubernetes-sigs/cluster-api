@@ -134,7 +134,24 @@ metadata:
   name: quick-start-my-cluster
 spec:
   template:
-    spec: {}
+    spec:
+      failureDomains:
+        fd1:
+          controlPlane: true
+        fd2:
+          controlPlane: true
+        fd3:
+          controlPlane: true
+        fd4:
+          controlPlane: false
+        fd5:
+          controlPlane: false
+        fd6:
+          controlPlane: false
+        fd7:
+          controlPlane: false
+        fd8:
+          controlPlane: false
 ---
 kind: KubeadmControlPlaneTemplate
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1

@@ -20,6 +20,12 @@ spec:
         kind: DockerMachinePool
         name: "${CLUSTER_NAME}-dmp-0"
       version: "${KUBERNETES_VERSION}"
+  failureDomains:
+    - fd4
+    - fd5
+    - fd6
+    - fd7
+    - fd8
 ---
 # DockerMachinePool using default values referenced by the MachinePool
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1

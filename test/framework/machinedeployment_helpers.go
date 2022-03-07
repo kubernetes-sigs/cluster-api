@@ -121,6 +121,48 @@ func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMach
 	}, intervals...).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)))
 }
 
+// AssertMachineDeploymentFailureDomainsInput is the input for AssertMachineDeploymentFailureDomains.
+type AssertMachineDeploymentFailureDomainsInput struct {
+	Lister            Lister
+	Cluster           *clusterv1.Cluster
+	MachineDeployment *clusterv1.MachineDeployment
+}
+
+// AssertMachineDeploymentFailureDomains will look at all MachineDeployment machines and see what failure domains they were
+// placed in. If machines were placed in unexpected or wrong failure domains the expectation will fail.
+func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMachineDeploymentFailureDomainsInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for AssertMachineDeploymentFailureDomains")
+	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling AssertMachineDeploymentFailureDomains")
+	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling AssertMachineDeploymentFailureDomains")
+
+	machineDeploymentFD := pointer.StringDeref(input.MachineDeployment.Spec.Template.Spec.FailureDomain, "<None>")
+
+	By(fmt.Sprintf("Checking all the machines controlled by %s are in the %q failure domain", input.MachineDeployment.Name, machineDeploymentFD))
+	selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
+	Expect(err).NotTo(HaveOccurred())
+
+	ms := &clusterv1.MachineSetList{}
+	err = input.Lister.List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap))
+	Expect(err).NotTo(HaveOccurred())
+
+	for _, machineSet := range ms.Items {
+		machineSetFD := pointer.StringDeref(machineSet.Spec.Template.Spec.FailureDomain, "<None>")
+		Expect(machineSetFD).To(Equal(machineDeploymentFD), "MachineSet %s is in the %q failure domain, expecting %q", machineSet.Name, machineSetFD, machineDeploymentFD)
+
+		selectorMap, err = metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
+		Expect(err).NotTo(HaveOccurred())
+
+		machines := &clusterv1.MachineList{}
+		err = input.Lister.List(ctx, machines, client.InNamespace(machineSet.Namespace), client.MatchingLabels(selectorMap))
+		Expect(err).NotTo(HaveOccurred())
+
+		for _, machine := range machines.Items {
+			machineFD := pointer.StringDeref(machine.Spec.FailureDomain, "<None>")
+			Expect(machineFD).To(Equal(machineDeploymentFD), "Machine %s is in the %q failure domain, expecting %q", machine.Name, machineFD, machineDeploymentFD)
+		}
+	}
+}
+
 // DiscoveryAndWaitForMachineDeploymentsInput is the input type for DiscoveryAndWaitForMachineDeployments.
 type DiscoveryAndWaitForMachineDeploymentsInput struct {
 	Lister  Lister
@@ -144,6 +186,12 @@ func DiscoveryAndWaitForMachineDeployments(ctx context.Context, input DiscoveryA
 			Cluster:           input.Cluster,
 			MachineDeployment: deployment,
 		}, intervals...)
+
+		AssertMachineDeploymentFailureDomains(ctx, AssertMachineDeploymentFailureDomainsInput{
+			Lister:            input.Lister,
+			Cluster:           input.Cluster,
+			MachineDeployment: deployment,
+		})
 	}
 	return machineDeployments
 }

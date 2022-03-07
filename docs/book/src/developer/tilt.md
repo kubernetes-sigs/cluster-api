@@ -70,7 +70,7 @@ documentation](https://docs.tilt.dev/api.html#api.default_registry) for more det
 for more details.
 
 **kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
-provider's yaml. **Note**: It's recommended to enable the following feature flags for local dev environment to ensure e2e tests run through:
+provider's yaml. **Note**: When running E2E tests locally using an existing cluster managed by Tilt, the following substitutions are required for successful tests:
 ```yaml
 kustomize_substitutions:
   CLUSTER_TOPOLOGY: "true"
@@ -79,73 +79,6 @@ kustomize_substitutions:
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
 ```
 
-**deploy_observability** ([string], default=[]): If set, installs on the dev cluster one of more observability
-tools. Supported values are `grafana`, `loki`, `promtail` and/or `prometheus` (Note: the UI for `grafana` and `prometheus` will be accessible via a link in the tilt console).
-Important! This feature requires the `helm` command to be available in the user's path.
-
-**debug** (Map{string: Map} default{}): A map of named configurations for the provider. The key is the name of the provider.
-
-Supported settings:
-
-  * **port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will run the provider with delve
-  and port forward the delve server to localhost on the specified debug port. This can then be used with IDEs such as
-  Visual Studio Code, Goland and IntelliJ.
-
-  * **continue** (bool, default=true): By default, Tilt will run delve with `--continue`, such that any provider with
-    debugging turned on will run normally unless specifically having a breakpoint entered. Change to false if you
-    do not want the controller to start at all by default.
-
-  * **profiler_port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will enable the profiler with
-  `--profiler-address` and set up a port forward. A "profiler" link will be visible in the Tilt Web UI for the controller.
-
-  * **metrics_port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will port forward to the
-    default metrics port. A "metrics" link will be visible in the Tilt Web UI for the controller.
-
-  * **race_detector** (bool, default=false) (Linux amd64 only): If enabled, Tilt will compile the specified controller with
-    cgo and statically compile in the system glibc and enable the race detector. Currently, this is only supported when
-    building on Linux amd64 systems. You must install glibc-static or have libc.a available for this to work.
-
-    Example: Using the configuration below:
-
-    ```yaml
-      debug:
-        core:
-          continue: false
-          port: 30000
-          profiler_port: 40000
-          metrics_port: 40001
-    ```
-
-    ##### Wiring up debuggers
-    ###### Visual Studio
-    When using the example above, the core CAPI controller can be debugged in Visual Studio Code using the following launch configuration:
-
-    ```json
-    {
-      "version": "0.2.0",
-      "configurations": [
-        {
-          "name": "Core CAPI Controller",
-          "type": "go",
-          "request": "attach",
-          "mode": "remote",
-          "remotePath": "",
-          "port": 30000,
-          "host": "127.0.0.1",
-          "showLog": true,
-          "trace": "log",
-          "logOutput": "rpc"
-        }
-      ]
-    }
-    ```
-
-    ###### Goland / Intellij
-    With the above example, you can configure [a Go Remote run/debug
-    configuration](https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-3-create-the-remote-run-debug-configuration-on-the-client-computer)
-    pointing at port 30000.
-
-<br/>
 {{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,Azure,DigitalOcean,GCP"}}
 {{#tab AWS}}
 
@@ -218,6 +151,74 @@ kustomize_substitutions:
 {{#/tab }}
 {{#/tabs }}
 
+**deploy_observability** ([string], default=[]): If set, installs on the dev cluster one of more observability
+tools. Supported values are `grafana`, `loki`, `promtail` and/or `prometheus` (Note: the UI for `grafana` and `prometheus` will be accessible via a link in the tilt console).
+Important! This feature requires the `helm` command to be available in the user's path.
+
+**debug** (Map{string: Map} default{}): A map of named configurations for the provider. The key is the name of the provider.
+
+Supported settings:
+
+  * **port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will run the provider with delve
+  and port forward the delve server to localhost on the specified debug port. This can then be used with IDEs such as
+  Visual Studio Code, Goland and IntelliJ.
+
+  * **continue** (bool, default=true): By default, Tilt will run delve with `--continue`, such that any provider with
+    debugging turned on will run normally unless specifically having a breakpoint entered. Change to false if you
+    do not want the controller to start at all by default.
+
+  * **profiler_port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will enable the profiler with
+  `--profiler-address` and set up a port forward. A "profiler" link will be visible in the Tilt Web UI for the controller.
+
+  * **metrics_port** (int, default=0 (disabled)): If set to anything other than 0, then Tilt will port forward to the
+    default metrics port. A "metrics" link will be visible in the Tilt Web UI for the controller.
+
+  * **race_detector** (bool, default=false) (Linux amd64 only): If enabled, Tilt will compile the specified controller with
+    cgo and statically compile in the system glibc and enable the race detector. Currently, this is only supported when
+    building on Linux amd64 systems. You must install glibc-static or have libc.a available for this to work.
+
+    Example: Using the configuration below:
+
+    ```yaml
+      debug:
+        core:
+          continue: false
+          port: 30000
+          profiler_port: 40000
+          metrics_port: 40001
+    ```
+
+    ##### Wiring up debuggers
+    ###### Visual Studio
+    When using the example above, the core CAPI controller can be debugged in Visual Studio Code using the following launch configuration:
+
+    ```json
+    {
+      "version": "0.2.0",
+      "configurations": [
+        {
+          "name": "Core CAPI Controller",
+          "type": "go",
+          "request": "attach",
+          "mode": "remote",
+          "remotePath": "",
+          "port": 30000,
+          "host": "127.0.0.1",
+          "showLog": true,
+          "trace": "log",
+          "logOutput": "rpc"
+        }
+      ]
+    }
+    ```
+
+    ###### Goland / Intellij
+    With the above example, you can configure [a Go Remote run/debug
+    configuration](https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-3-create-the-remote-run-debug-configuration-on-the-client-computer)
+    pointing at port 30000.
+
+<br/>
+
 **deploy_cert_manager** (Boolean, default=`true`): Deploys cert-manager into the cluster for use for webhook registration.
 
 **trigger_mode** (String, default=`auto`): Optional setting to configure if tilt should automatically rebuild on changes.
@@ -230,15 +231,14 @@ Example:
 
 ```yaml
 extra_args:
-  core: ["--feature-gates=MachinePool=true"]
-  kubeadm-bootstrap: ["--feature-gates=MachinePool=true"]
-  azure: ["--feature-gates=MachinePool=true"]
+  kubeadm-bootstrap:
+  - --logging-format=json
 ```
 
 With this config, the respective managers will be invoked with:
 
 ```bash
-manager --feature-gates=MachinePool=true
+manager --logging-format=json
 ```
 
 ### Run Tilt!

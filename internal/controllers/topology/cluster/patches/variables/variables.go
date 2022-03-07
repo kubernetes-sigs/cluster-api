@@ -26,6 +26,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/contract"
 )
 
@@ -166,18 +167,22 @@ type MachineDeploymentInfrastructureRefBuiltins struct {
 	Name string `json:"name,omitempty"`
 }
 
-// VariableMap is a name/value map of variables.
-// Values are marshalled as JSON.
-type VariableMap map[string]apiextensionsv1.JSON
-
 // Global returns variables that apply to all the templates, including user provided variables
 // and builtin variables for the Cluster object.
-func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster) (VariableMap, error) {
-	variables := VariableMap{}
+func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster) ([]runtimehooksv1.Variable, error) {
+	variables := []runtimehooksv1.Variable{}
 
 	// Add user defined variables from Cluster.spec.topology.variables.
 	for _, variable := range clusterTopology.Variables {
-		variables[variable.Name] = variable.Value
+		// Don't add user-defined "builtin" variable.
+		if variable.Name == BuiltinsName {
+			continue
+		}
+
+		variables = append(variables, runtimehooksv1.Variable{
+			Name:  variable.Name,
+			Value: variable.Value,
+		})
 	}
 
 	// Construct builtin variable.
@@ -211,16 +216,18 @@ func Global(clusterTopology *clusterv1.Topology, cluster *clusterv1.Cluster) (Va
 	}
 
 	// Add builtin variables derived from the cluster object.
-	if err := setVariable(variables, BuiltinsName, builtin); err != nil {
+	variable, err := toVariable(BuiltinsName, builtin)
+	if err != nil {
 		return nil, err
 	}
+	variables = append(variables, *variable)
 
 	return variables, nil
 }
 
 // ControlPlane returns variables that apply to templates belonging to the ControlPlane.
-func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructureMachineTemplate *unstructured.Unstructured) (VariableMap, error) {
-	variables := VariableMap{}
+func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructureMachineTemplate *unstructured.Unstructured) ([]runtimehooksv1.Variable, error) {
+	variables := []runtimehooksv1.Variable{}
 
 	// Construct builtin variable.
 	builtin := Builtins{
@@ -255,21 +262,26 @@ func ControlPlane(cpTopology *clusterv1.ControlPlaneTopology, cp, cpInfrastructu
 		}
 	}
 
-	if err := setVariable(variables, BuiltinsName, builtin); err != nil {
+	variable, err := toVariable(BuiltinsName, builtin)
+	if err != nil {
 		return nil, err
 	}
+	variables = append(variables, *variable)
 
 	return variables, nil
 }
 
 // MachineDeployment returns variables that apply to templates belonging to a MachineDeployment.
-func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clusterv1.MachineDeployment, mdBootstrapTemplate, mdInfrastructureMachineTemplate *unstructured.Unstructured) (VariableMap, error) {
-	variables := VariableMap{}
+func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clusterv1.MachineDeployment, mdBootstrapTemplate, mdInfrastructureMachineTemplate *unstructured.Unstructured) ([]runtimehooksv1.Variable, error) {
+	variables := []runtimehooksv1.Variable{}
 
 	// Add variables overrides for the MachineDeployment.
 	if mdTopology.Variables != nil {
 		for _, variable := range mdTopology.Variables.Overrides {
-			variables[variable.Name] = variable.Value
+			variables = append(variables, runtimehooksv1.Variable{
+				Name:  variable.Name,
+				Value: variable.Value,
+			})
 		}
 	}
 
@@ -300,22 +312,26 @@ func MachineDeployment(mdTopology *clusterv1.MachineDeploymentTopology, md *clus
 		}
 	}
 
-	if err := setVariable(variables, BuiltinsName, builtin); err != nil {
+	variable, err := toVariable(BuiltinsName, builtin)
+	if err != nil {
 		return nil, err
 	}
+	variables = append(variables, *variable)
 
 	return variables, nil
 }
 
-// setVariable converts value to JSON and adds the variable to the variables map.
-func setVariable(variables VariableMap, name string, value interface{}) error {
+// toVariable converts name and value to a variable.
+func toVariable(name string, value interface{}) (*runtimehooksv1.Variable, error) {
 	marshalledValue, err := json.Marshal(value)
 	if err != nil {
-		return errors.Wrapf(err, "failed to set variable %q: error marshalling", name)
+		return nil, errors.Wrapf(err, "failed to set variable %q: error marshalling", name)
 	}
 
-	variables[name] = apiextensionsv1.JSON{Raw: marshalledValue}
-	return nil
+	return &runtimehooksv1.Variable{
+		Name:  name,
+		Value: apiextensionsv1.JSON{Raw: marshalledValue},
+	}, nil
 }
 
 func ipFamilyToString(ipFamily clusterv1.ClusterIPFamily) string {

@@ -24,8 +24,8 @@ import (
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/cluster-api/internal/contract"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
@@ -135,7 +135,7 @@ func calculateDiff(original, patched *unstructured.Unstructured) ([]byte, error)
 }
 
 // patchTemplateSpec overwrites spec in templateJSON with spec of patchedTemplateBytes.
-func patchTemplateSpec(templateJSON *apiextensionsv1.JSON, patchedTemplateBytes []byte) error {
+func patchTemplateSpec(templateJSON *runtime.RawExtension, patchedTemplateBytes []byte) error {
 	// Convert templates to Unstructured.
 	template, err := bytesToUnstructured(templateJSON.Raw)
 	if err != nil {
@@ -161,6 +161,7 @@ func patchTemplateSpec(templateJSON *apiextensionsv1.JSON, patchedTemplateBytes 
 	if err != nil {
 		return errors.Wrapf(err, "failed to marshal patched template")
 	}
+	templateJSON.Object = template
 	templateJSON.Raw = templateBytes
 	return nil
 }

@@ -28,6 +28,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
@@ -36,7 +37,7 @@ func TestGlobal(t *testing.T) {
 		name            string
 		clusterTopology *clusterv1.Topology
 		cluster         *clusterv1.Cluster
-		want            VariableMap
+		want            []runtimehooksv1.Variable
 	}{
 		{
 			name: "Should calculate global variables",
@@ -79,10 +80,18 @@ func TestGlobal(t *testing.T) {
 					},
 				},
 			},
-			want: VariableMap{
-				"location": toJSON("\"us-central\""),
-				"cpu":      toJSON("8"),
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"cluster":{
 						"name": "cluster1",
   						"namespace": "default",
@@ -95,8 +104,9 @@ func TestGlobal(t *testing.T) {
   						 	"services":["10.10.10.1/24"],
    							"pods":["11.10.10.1/24"],
     						"ipFamily": "IPv4"
-						}}}`,
-				),
+						}
+					}}`),
+				},
 			},
 		},
 		{
@@ -139,10 +149,18 @@ func TestGlobal(t *testing.T) {
 					},
 				},
 			},
-			want: VariableMap{
-				"location": toJSON("\"us-central\""),
-				"cpu":      toJSON("8"),
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"cluster":{
 						"name": "cluster1",
   						"namespace": "default",
@@ -154,8 +172,9 @@ func TestGlobal(t *testing.T) {
   						 	"services":["10.10.10.1/24"],
    							"pods":["11.10.10.1/24"],
     						"ipFamily": "IPv4"
-						}}}`,
-				),
+						}
+					}}`),
+				},
 			},
 		},
 		{
@@ -195,10 +214,18 @@ func TestGlobal(t *testing.T) {
 					},
 				},
 			},
-			want: VariableMap{
-				"location": toJSON("\"us-central\""),
-				"cpu":      toJSON("8"),
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"cluster":{
   						"name": "cluster1",
   						"namespace": "default",
@@ -209,7 +236,9 @@ func TestGlobal(t *testing.T) {
   						"network":{
     						"serviceDomain":"cluster.local",
     						"ipFamily": "IPv4"
-						}}}`),
+						}
+					}}`),
+				},
 			},
 		},
 		{
@@ -245,18 +274,27 @@ func TestGlobal(t *testing.T) {
 					ClusterNetwork: nil,
 				},
 			},
-			want: VariableMap{
-				"location": toJSON("\"us-central\""),
-				"cpu":      toJSON("8"),
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"cluster":{
   						"name": "cluster1",
   						"namespace": "default",
   						"topology":{
-						"version": "v1.21.1",
-   						 "class": "clusterClass1"
-					}
+							"version": "v1.21.1",
+   						 	"class": "clusterClass1"
+						}
 					}}`),
+				},
 			},
 		},
 	}
@@ -277,7 +315,7 @@ func TestControlPlane(t *testing.T) {
 		controlPlaneTopology                      *clusterv1.ControlPlaneTopology
 		controlPlane                              *unstructured.Unstructured
 		controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
-		want                                      VariableMap
+		want                                      []runtimehooksv1.Variable
 	}{
 		{
 			name: "Should calculate ControlPlane variables",
@@ -288,13 +326,16 @@ func TestControlPlane(t *testing.T) {
 				WithReplicas(3).
 				WithVersion("v1.21.1").
 				Build(),
-			want: VariableMap{
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"controlPlane":{
 						"version": "v1.21.1",
 						"name":"controlPlane1",
 						"replicas":3
 					}}`),
+				},
 			},
 		},
 		{
@@ -303,12 +344,15 @@ func TestControlPlane(t *testing.T) {
 			controlPlane: builder.ControlPlane(metav1.NamespaceDefault, "controlPlane1").
 				WithVersion("v1.21.1").
 				Build(),
-			want: VariableMap{
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"controlPlane":{
 						"version": "v1.21.1",
 						"name":"controlPlane1"
 					}}`),
+				},
 			},
 		},
 		{
@@ -322,8 +366,10 @@ func TestControlPlane(t *testing.T) {
 				Build(),
 			controlPlaneInfrastructureMachineTemplate: builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "controlPlaneInfrastructureMachineTemplate1").
 				Build(),
-			want: VariableMap{
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"controlPlane":{
 						"version": "v1.21.1",
 						"name":"controlPlane1",
@@ -334,6 +380,7 @@ func TestControlPlane(t *testing.T) {
 							}
 						}
 					}}`),
+				},
 			},
 		},
 	}
@@ -355,7 +402,7 @@ func TestMachineDeployment(t *testing.T) {
 		md                              *clusterv1.MachineDeployment
 		mdBootstrapTemplate             *unstructured.Unstructured
 		mdInfrastructureMachineTemplate *unstructured.Unstructured
-		want                            VariableMap
+		want                            []runtimehooksv1.Variable
 	}{
 		{
 			name: "Should calculate MachineDeployment variables",
@@ -380,10 +427,18 @@ func TestMachineDeployment(t *testing.T) {
 				WithReplicas(3).
 				WithVersion("v1.21.1").
 				Build(),
-			want: VariableMap{
-				"location": toJSON("\"us-central\""),
-				"cpu":      toJSON("8"),
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
 						"class": "md-class",
@@ -391,6 +446,7 @@ func TestMachineDeployment(t *testing.T) {
 						"topologyName": "md-topology",
 						"replicas":3
 					}}`),
+				},
 			},
 		},
 		{
@@ -404,8 +460,10 @@ func TestMachineDeployment(t *testing.T) {
 				WithReplicas(3).
 				WithVersion("v1.21.1").
 				Build(),
-			want: VariableMap{
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
 						"class": "md-class",
@@ -413,6 +471,7 @@ func TestMachineDeployment(t *testing.T) {
 						"topologyName": "md-topology",
 						"replicas":3
 					}}`),
+				},
 			},
 		},
 		{
@@ -436,16 +495,25 @@ func TestMachineDeployment(t *testing.T) {
 			md: builder.MachineDeployment(metav1.NamespaceDefault, "md1").
 				WithVersion("v1.21.1").
 				Build(),
-			want: VariableMap{
-				"location": toJSON("\"us-central\""),
-				"cpu":      toJSON("8"),
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
 						"class": "md-class",
 						"name": "md1",
 						"topologyName": "md-topology"
 					}}`),
+				},
 			},
 		},
 		{
@@ -472,10 +540,18 @@ func TestMachineDeployment(t *testing.T) {
 				WithVersion("v1.21.1").
 				Build(),
 			mdBootstrapTemplate: builder.BootstrapTemplate(metav1.NamespaceDefault, "mdBT1").Build(),
-			want: VariableMap{
-				"location": toJSON("\"us-central\""),
-				"cpu":      toJSON("8"),
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
 						"class": "md-class",
@@ -488,6 +564,7 @@ func TestMachineDeployment(t *testing.T) {
 							}
 						}
 					}}`),
+				},
 			},
 		},
 		{
@@ -514,10 +591,18 @@ func TestMachineDeployment(t *testing.T) {
 				WithVersion("v1.21.1").
 				Build(),
 			mdInfrastructureMachineTemplate: builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "mdIMT1").Build(),
-			want: VariableMap{
-				"location": toJSON("\"us-central\""),
-				"cpu":      toJSON("8"),
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
 						"class": "md-class",
@@ -528,6 +613,7 @@ func TestMachineDeployment(t *testing.T) {
 							"name": "mdIMT1"
 						}
 					}}`),
+				},
 			},
 		},
 		{
@@ -555,10 +641,18 @@ func TestMachineDeployment(t *testing.T) {
 				Build(),
 			mdBootstrapTemplate:             builder.BootstrapTemplate(metav1.NamespaceDefault, "mdBT1").Build(),
 			mdInfrastructureMachineTemplate: builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "mdIMT1").Build(),
-			want: VariableMap{
-				"location": toJSON("\"us-central\""),
-				"cpu":      toJSON("8"),
-				BuiltinsName: toJSONCompact(`{
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
 					"machineDeployment":{
 						"version": "v1.21.1",
 						"class": "md-class",
@@ -574,6 +668,7 @@ func TestMachineDeployment(t *testing.T) {
 							"name": "mdIMT1"
 						}
 					}}`),
+				},
 			},
 		},
 	}

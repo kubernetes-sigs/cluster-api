@@ -27,18 +27,18 @@ import (
 
 	sprig "github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
-	"github.com/valyala/fastjson"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/utils/pointer"
 	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/api"
 	patchvariables "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 )
 
-// jsonPatchGenerator generates JSON patches for a GenerateRequest based on a ClusterClassPatch.
+// jsonPatchGenerator generates JSON patches for a GeneratePatchesRequest based on a ClusterClassPatch.
 type jsonPatchGenerator struct {
 	patch *clusterv1.ClusterClassPatch
 }
@@ -50,18 +50,24 @@ func New(patch *clusterv1.ClusterClassPatch) api.Generator {
 	}
 }
 
-// Generate generates JSON patches for the given GenerateRequest based on a ClusterClassPatch.
-func (j *jsonPatchGenerator) Generate(_ context.Context, req *api.GenerateRequest) (*api.GenerateResponse, error) {
-	resp := &api.GenerateResponse{}
+// Generate generates JSON patches for the given GeneratePatchesRequest based on a ClusterClassPatch.
+func (j *jsonPatchGenerator) Generate(_ context.Context, req *runtimehooksv1.GeneratePatchesRequest) *runtimehooksv1.GeneratePatchesResponse {
+	resp := &runtimehooksv1.GeneratePatchesResponse{}
+
+	globalVariables := toMap(req.Variables)
 
 	// Loop over all templates.
 	errs := []error{}
-	for _, template := range req.Items {
+	for i := range req.Items {
+		item := &req.Items[i]
+
+		templateVariables := toMap(item.Variables)
+
 		// Calculate the list of patches which match the current template.
 		matchingPatches := []clusterv1.PatchDefinition{}
 		for _, patch := range j.patch.Definitions {
 			// Add the patch to the list, if it matches the template.
-			if templateMatchesSelector(&template.TemplateRef, patch.Selector) {
+			if matchesSelector(item, templateVariables, patch.Selector) {
 				matchingPatches = append(matchingPatches, patch)
 			}
 		}
@@ -72,15 +78,15 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, req *api.GenerateReques
 		}
 
 		// Merge template-specific and global variables.
-		variables, err := mergeVariableMaps(req.Variables, template.Variables)
+		variables, err := mergeVariableMaps(globalVariables, templateVariables)
 		if err != nil {
-			errs = append(errs, errors.Wrapf(err, "failed to merge global and template-specific variables for template %s", template.TemplateRef))
+			errs = append(errs, errors.Wrapf(err, "failed to merge global and template-specific variables for item with uid %q", item.UID))
 			continue
 		}
 
 		enabled, err := patchIsEnabled(j.patch.EnabledIf, variables)
 		if err != nil {
-			errs = append(errs, errors.Wrapf(err, "failed to calculate if patch %s is enabled for template %s", j.patch.Name, template.TemplateRef))
+			errs = append(errs, errors.Wrapf(err, "failed to calculate if patch %s is enabled for item with uid %q", j.patch.Name, item.UID))
 			continue
 		}
 		if !enabled {
@@ -93,56 +99,99 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, req *api.GenerateReques
 			// Generate JSON patches.
 			jsonPatches, err := generateJSONPatches(patch.JSONPatches, variables)
 			if err != nil {
-				errs = append(errs, errors.Wrapf(err, "failed to generate JSON patches for template %s", template.TemplateRef))
+				errs = append(errs, errors.Wrapf(err, "failed to generate JSON patches for item with uid %q", item.UID))
 				continue
 			}
 
 			// Add jsonPatches to the response.
-			resp.Items = append(resp.Items, api.GenerateResponsePatch{
-				TemplateRef: template.TemplateRef,
-				Patch:       *jsonPatches,
-				PatchType:   api.JSONPatchType,
+			resp.Items = append(resp.Items, runtimehooksv1.GeneratePatchesResponseItem{
+				UID:       item.UID,
+				Patch:     jsonPatches,
+				PatchType: runtimehooksv1.JSONPatchType,
 			})
 		}
 	}
 
-	return resp, kerrors.NewAggregate(errs)
+	if err := kerrors.NewAggregate(errs); err != nil {
+		return &runtimehooksv1.GeneratePatchesResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status:  runtimehooksv1.ResponseStatusFailure,
+				Message: err.Error(),
+			},
+		}
+	}
+
+	return resp
 }
 
-// templateMatchesSelector returns true if the template matches the selector.
-func templateMatchesSelector(templateRef *api.TemplateRef, selector clusterv1.PatchSelector) bool {
+// toMap converts a list of Variables to a map of JSON (name is the map key).
+func toMap(variables []runtimehooksv1.Variable) map[string]apiextensionsv1.JSON {
+	variablesMap := map[string]apiextensionsv1.JSON{}
+	for i := range variables {
+		variablesMap[variables[i].Name] = variables[i].Value
+	}
+	return variablesMap
+}
+
+// matchesSelector returns true if the GeneratePatchesRequestItem matches the selector.
+func matchesSelector(req *runtimehooksv1.GeneratePatchesRequestItem, templateVariables map[string]apiextensionsv1.JSON, selector clusterv1.PatchSelector) bool {
+	gvk := req.Object.Object.GetObjectKind().GroupVersionKind()
+
 	// Check if the apiVersion and kind are matching.
-	if templateRef.APIVersion != selector.APIVersion {
+	if gvk.GroupVersion().String() != selector.APIVersion {
 		return false
 	}
-	if templateRef.Kind != selector.Kind {
+	if gvk.Kind != selector.Kind {
 		return false
 	}
 
-	// Check if target matches.
-	switch templateRef.TemplateType {
-	case api.InfrastructureClusterTemplateType:
-		// Check if matchSelector.infrastructureCluster is true.
-		return selector.MatchResources.InfrastructureCluster
-	case api.ControlPlaneTemplateType, api.ControlPlaneInfrastructureMachineTemplateType:
-		// Check if matchSelector.controlPlane is true.
-		return selector.MatchResources.ControlPlane
-	case api.MachineDeploymentBootstrapConfigTemplateType, api.MachineDeploymentInfrastructureMachineTemplateType:
-		if selector.MatchResources.MachineDeploymentClass == nil {
-			return false
+	// Check if the request is for an InfrastructureCluster.
+	if selector.MatchResources.InfrastructureCluster {
+		// Cluster.spec.infrastructureRef holds the InfrastructureCluster.
+		if req.HolderReference.Kind == "Cluster" && req.HolderReference.FieldPath == "spec.infrastructureRef" {
+			return true
 		}
-		// Check if matchSelector.machineDeploymentClass.names contains the
-		// MachineDeployment.Class of the template.
-		for _, name := range selector.MatchResources.MachineDeploymentClass.Names {
-			if name == templateRef.MachineDeploymentRef.Class {
-				return true
+	}
+
+	// Check if the request is for a ControlPlane or the InfrastructureMachineTemplate of a ControlPlane.
+	if selector.MatchResources.ControlPlane {
+		// Cluster.spec.controlPlaneRef holds the ControlPlane.
+		if req.HolderReference.Kind == "Cluster" && req.HolderReference.FieldPath == "spec.controlPlaneRef" {
+			return true
+		}
+		// *.spec.machineTemplate.infrastructureRef holds the InfrastructureMachineTemplate of a ControlPlane.
+		// Note: this field path is only used in this context.
+		if req.HolderReference.FieldPath == strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(), ".") {
+			return true
+		}
+	}
+
+	// Check if the request is for a BootstrapConfigTemplate or an InfrastructureMachineTemplate
+	// of one of the configured MachineDeploymentClasses.
+	if selector.MatchResources.MachineDeploymentClass != nil {
+		// MachineDeployment.spec.template.spec.bootstrap.configRef or
+		// MachineDeployment.spec.template.spec.infrastructureRef holds the BootstrapConfigTemplate or
+		// InfrastructureMachineTemplate.
+		if req.HolderReference.Kind == "MachineDeployment" &&
+			(req.HolderReference.FieldPath == "spec.template.spec.bootstrap.configRef" ||
+				req.HolderReference.FieldPath == "spec.template.spec.infrastructureRef") {
+			// Read the builtin.machineDeployment.class variable.
+			templateMDClassJSON, err := patchvariables.GetVariableValue(templateVariables, "builtin.machineDeployment.class")
+
+			// If the builtin variable could be read.
+			if err == nil {
+				// If templateMDClass matches one of the configured MachineDeploymentClasses.
+				for _, mdClass := range selector.MatchResources.MachineDeploymentClass.Names {
+					// We have to quote mdClass as templateMDClassJSON is a JSON string (e.g. "default-worker").
+					if string(templateMDClassJSON.Raw) == strconv.Quote(mdClass) {
+						return true
+					}
+				}
 			}
 		}
-		return false
-	default:
-		// Return false if the TargetType is unknown.
-		return false
 	}
+
+	return false
 }
 
 func patchIsEnabled(enabledIf *string, variables map[string]apiextensionsv1.JSON) (bool, error) {
@@ -169,7 +218,7 @@ type jsonPatchRFC6902 struct {
 }
 
 // generateJSONPatches generates JSON patches based on the given JSONPatches and variables.
-func generateJSONPatches(jsonPatches []clusterv1.JSONPatch, variables map[string]apiextensionsv1.JSON) (*apiextensionsv1.JSON, error) {
+func generateJSONPatches(jsonPatches []clusterv1.JSONPatch, variables map[string]apiextensionsv1.JSON) ([]byte, error) {
 	res := []jsonPatchRFC6902{}
 
 	for _, jsonPatch := range jsonPatches {
@@ -195,7 +244,7 @@ func generateJSONPatches(jsonPatches []clusterv1.JSONPatch, variables map[string
 		return nil, errors.Wrapf(err, "failed to marshal JSON Patch %v", jsonPatches)
 	}
 
-	return &apiextensionsv1.JSON{Raw: resJSON}, nil
+	return resJSON, nil
 }
 
 // calculateValue calculates a value for a JSON patch.
@@ -221,7 +270,7 @@ func calculateValue(patch clusterv1.JSONPatch, variables map[string]apiextension
 
 	// Return variable.
 	if patch.ValueFrom.Variable != nil {
-		value, err := getVariableValue(variables, *patch.ValueFrom.Variable)
+		value, err := patchvariables.GetVariableValue(variables, *patch.ValueFrom.Variable)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to calculate value")
 		}
@@ -234,142 +283,6 @@ func calculateValue(patch clusterv1.JSONPatch, variables map[string]apiextension
 		return nil, errors.Wrapf(err, "failed to calculate value for template")
 	}
 	return value, nil
-}
-
-const (
-	leftArrayDelim  = "["
-	rightArrayDelim = "]"
-)
-
-// getVariableValue returns a variable from the variables map.
-func getVariableValue(variables map[string]apiextensionsv1.JSON, variablePath string) (*apiextensionsv1.JSON, error) {
-	// Split the variablePath (format: "<variableName>.<relativePath>").
-	variableSplit := strings.Split(variablePath, ".")
-	variableName, relativePath := variableSplit[0], variableSplit[1:]
-
-	// Parse the path segment.
-	variableNameSegment, err := parsePathSegment(variableName)
-	if err != nil {
-		return nil, errors.Wrapf(err, "variable %q is invalid", variablePath)
-	}
-
-	// Get the variable.
-	value, ok := variables[variableNameSegment.path]
-	if !ok {
-		return nil, errors.Errorf("variable %q does not exist", variableName)
-	}
-
-	// Return the value, if variablePath points to a top-level variable, i.e. hos no relativePath and no
-	// array index (i.e. "<variableName>").
-	if len(relativePath) == 0 && !variableNameSegment.HasIndex() {
-		return &value, nil
-	}
-
-	// Parse the variable object.
-	variable, err := fastjson.ParseBytes(value.Raw)
-	if err != nil {
-		return nil, errors.Wrapf(err, "cannot parse variable %q: %s", variableName, string(value.Raw))
-	}
-
-	// If variableName contains an array index, get the array element (i.e. starts with "<variableName>[i]").
-	// Then return it, if there is no relative path (i.e. "<variableName>[i]")
-	if variableNameSegment.HasIndex() {
-		variable, err = getVariableArrayElement(variable, variableNameSegment, variablePath)
-		if err != nil {
-			return nil, err
-		}
-
-		if len(relativePath) == 0 {
-			return &apiextensionsv1.JSON{
-				Raw: variable.MarshalTo([]byte{}),
-			}, nil
-		}
-	}
-
-	// If the variablePath points to a nested variable, i.e. has a relativePath, inspect the variable object.
-
-	// Retrieve each segment of the relativePath incrementally, taking care of resolving array indexes.
-	for _, p := range relativePath {
-		// Parse the path segment.
-		pathSegment, err := parsePathSegment(p)
-		if err != nil {
-			return nil, errors.Wrapf(err, "variable %q has invalid syntax", variablePath)
-		}
-
-		// Return if the variable does not exist.
-		if !variable.Exists(pathSegment.path) {
-			return nil, errors.Errorf("variable %q does not exist: failed to lookup segment %q", variablePath, pathSegment.path)
-		}
-
-		// Get the variable from the variable object.
-		variable = variable.Get(pathSegment.path)
-
-		// Continue if the path doesn't contain an index.
-		if !pathSegment.HasIndex() {
-			continue
-		}
-
-		variable, err = getVariableArrayElement(variable, pathSegment, variablePath)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Return the marshalled value of the variable.
-	return &apiextensionsv1.JSON{
-		Raw: variable.MarshalTo([]byte{}),
-	}, nil
-}
-
-type pathSegment struct {
-	path  string
-	index *int
-}
-
-func (p pathSegment) HasIndex() bool {
-	return p.index != nil
-}
-
-func parsePathSegment(segment string) (*pathSegment, error) {
-	if (strings.Contains(segment, leftArrayDelim) && !strings.Contains(segment, rightArrayDelim)) ||
-		(!strings.Contains(segment, leftArrayDelim) && strings.Contains(segment, rightArrayDelim)) {
-		return nil, errors.Errorf("failed to parse path segment %q", segment)
-	}
-
-	if !strings.Contains(segment, leftArrayDelim) && !strings.Contains(segment, rightArrayDelim) {
-		return &pathSegment{
-			path: segment,
-		}, nil
-	}
-
-	arrayIndexStr := segment[strings.Index(segment, leftArrayDelim)+1 : strings.Index(segment, rightArrayDelim)]
-	index, err := strconv.Atoi(arrayIndexStr)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to parse array index in path segment %q", segment)
-	}
-	if index < 0 {
-		return nil, errors.Errorf("invalid array index %d in path segment %q", index, segment)
-	}
-
-	return &pathSegment{
-		path:  segment[:strings.Index(segment, leftArrayDelim)], //nolint:gocritic // We already check above that segment contains leftArrayDelim,
-		index: pointer.Int(index),
-	}, nil
-}
-
-// getVariableArrayElement gets the array element of a given array.
-func getVariableArrayElement(array *fastjson.Value, arrayPathSegment *pathSegment, fullVariablePath string) (*fastjson.Value, error) {
-	// Retrieve the array element, handling index out of range.
-	arr, err := array.Array()
-	if err != nil {
-		return nil, errors.Wrapf(err, "variable %q is invalid: failed to get array %q", fullVariablePath, arrayPathSegment.path)
-	}
-
-	if len(arr) < *arrayPathSegment.index+1 {
-		return nil, errors.Errorf("variable %q is invalid: array does not have index %d", fullVariablePath, arrayPathSegment.index)
-	}
-
-	return arr[*arrayPathSegment.index], nil
 }
 
 // renderValueTemplate renders a template with the given variables as data.

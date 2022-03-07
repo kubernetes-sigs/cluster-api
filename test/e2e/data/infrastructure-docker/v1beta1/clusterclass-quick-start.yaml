@@ -33,6 +33,12 @@ spec:
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
   variables:
+  - name: lbImageRepository
+    required: true
+    schema:
+      openAPIV3Schema:
+        type: string
+        default: kindest
   - name: imageRepository
     required: true
     schema:
@@ -66,6 +72,19 @@ spec:
         example: "0"
         description: "kubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines."
   patches:
+  - name: lbImageRepository
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/loadBalancer"
+        valueFrom:
+          template: |
+            imageRepository: {{ .lbImageRepository }}
   - name: imageRepository
     description: "Sets the imageRepository used for the KubeadmControlPlane."
     definitions:

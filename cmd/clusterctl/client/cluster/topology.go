@@ -280,8 +280,10 @@ func (t *topologyClient) setMissingNamespaces(currentNamespace string, objs []*u
 		}
 	}
 	// Set namespace on objects that do not have namespace value.
+	// Skip Namespace objects, as they are non-namespaced.
 	for i := range objs {
-		if objs[i].GetNamespace() == "" {
+		isNamespace := objs[i].GroupVersionKind().Kind == namespaceKind
+		if objs[i].GetNamespace() == "" && !isNamespace {
 			objs[i].SetNamespace(currentNamespace)
 		}
 	}
@@ -681,6 +683,14 @@ func clusterClassUsesTemplate(cc *clusterv1.ClusterClass, templateRef *corev1.Ob
 func uniqueNamespaces(objs []*unstructured.Unstructured) []string {
 	ns := sets.NewString()
 	for _, obj := range objs {
+		// Namespace objects do not have metadata.namespace set, but we can add the
+		// name of the obj to the namespace list, as it is another unique namespace.
+		isNamespace := obj.GroupVersionKind().Kind == namespaceKind
+		if isNamespace {
+			ns.Insert(obj.GetName())
+			continue
+		}
+
 		// Note: treat empty namespace (namespace not set) as a unique namespace.
 		// If some have a namespace set and some do not. It is safer to consider them as
 		// objects from different namespaces.

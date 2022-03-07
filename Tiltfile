@@ -8,6 +8,7 @@ version_settings(True, ">=0.22.2")
 settings = {
     "deploy_cert_manager": True,
     "enable_providers": ["docker"],
+    "kind_cluster_name": os.getenv("CAPI_KIND_CLUSTER_NAME", "capi-test"),
     "debug": {},
 }
 
@@ -17,6 +18,8 @@ settings.update(read_yaml(
     tilt_file,
     default = {},
 ))
+
+os.putenv("CAPI_KIND_CLUSTER_NAME", settings.get("kind_cluster_name"))
 
 allow_k8s_contexts(settings.get("allowed_contexts"))
 

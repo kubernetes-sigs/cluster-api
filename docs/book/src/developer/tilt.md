@@ -63,6 +63,8 @@ If you prefer JSON, you can create a `tilt-settings.json` file instead. YAML wil
 **default_registry** (String, default=""): The image registry to use if you need to push images. See the [Tilt
 documentation](https://docs.tilt.dev/api.html#api.default_registry) for more details.
 
+**kind_cluster_name** (String, default="capi-test"): The name of the kind cluster to use when preloading images.
+
 **provider_repos** (Array[]String, default=[]): A list of paths to all the providers you want to use. Each provider must have a
 `tilt-provider.yaml` or `tilt-provider.json` file describing how to build the provider.
 

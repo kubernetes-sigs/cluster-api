@@ -336,6 +336,13 @@ var builtinVariables = sets.NewString(
 	"builtin.cluster.topology.class",
 	"builtin.cluster.topology.version",
 
+	// ClusterNetwork builtins
+	"builtin.cluster.network",
+	"builtin.cluster.network.serviceDomain",
+	"builtin.cluster.network.services",
+	"builtin.cluster.network.pods",
+	"builtin.cluster.network.ipFamily",
+
 	// ControlPlane builtins.
 	"builtin.controlPlane",
 	"builtin.controlPlane.name",

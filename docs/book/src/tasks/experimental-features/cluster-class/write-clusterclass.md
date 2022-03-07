@@ -382,6 +382,7 @@ In addition to variables specified in the ClusterClass, the following builtin va
 referenced in patches:
 - `builtin.cluster.{name,namespace}`
 - `builtin.cluster.topology.{version,class}`
+- `builtin.cluster.network.{serviceDomain,services,pods,ipFamily}`
 - `builtin.controlPlane.{replicas,version,name}`
     - Please note, these variables are only available when patching control plane or control plane 
       machine templates.

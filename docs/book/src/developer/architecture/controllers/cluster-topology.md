@@ -16,4 +16,4 @@ The high level workflow of ClusterTopology reconciliation is shown below.
 
 ### Additional information
 
-* See ClusterClass [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/202105256-cluster-class-and-managed-topologies.md#basic-behaviors)
+* See ClusterClass [proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210526-cluster-class-and-managed-topologies.md#basic-behaviors)

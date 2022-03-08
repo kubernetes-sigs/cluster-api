@@ -111,11 +111,12 @@ this should generally not be the case.
 
 Cluster API maintains the most recent release branch for all supported API and contract versions. Support for this section refers to the ability to backport and release patch versions.
 
-| API Version   | Branch | Supported Until |
-| ------------- | ----------- | ---------- |
-| **v1beta1**   | release-1.0 | current stable |
-| **v1alpha4**  | release-0.4 | 2022-04-06 |
-| **v1alpha3**  | release-0.3 | 2022-02-23 |
+| API Version   | Branch      | Supported Until |
+| ------------- |-------------|-----------------|
+| **v1beta1**   | release-1.1 | current stable  |
+| **v1beta1**   | release-1.0 | 2022-02-02      |
+| **v1alpha4**  | release-0.4 | 2022-04-06      |
+| **v1alpha3**  | release-0.3 | 2022-02-23      |
 
 - The API version is determined from the GroupVersion defined in the top-level `api/` package.
 - The EOL date is determined from the last release available once a new API version is published.

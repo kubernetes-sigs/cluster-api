@@ -62,7 +62,7 @@ func NewCmdRolloutPause(cfgFile string) *cobra.Command {
 		"Path to the kubeconfig file to use for accessing the management cluster. If unspecified, default discovery rules apply.")
 	cmd.Flags().StringVar(&pauseOpt.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
-	cmd.Flags().StringVar(&pauseOpt.namespace, "namespace", "", "Namespace where the resource(s) reside. If unspecified, the defult namespace will be used.")
+	cmd.Flags().StringVarP(&pauseOpt.namespace, "namespace", "n", "", "Namespace where the resource(s) reside. If unspecified, the defult namespace will be used.")
 
 	return cmd
 }

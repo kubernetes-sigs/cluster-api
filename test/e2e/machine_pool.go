@@ -113,6 +113,15 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolInput) {
 			WaitForMachinePoolToScale: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		})
 
+		By("Scaling the machine pool to zero")
+		framework.ScaleMachinePoolAndWait(ctx, framework.ScaleMachinePoolAndWaitInput{
+			ClusterProxy:              input.BootstrapClusterProxy,
+			Cluster:                   clusterResources.Cluster,
+			Replicas:                  0,
+			MachinePools:              clusterResources.MachinePools,
+			WaitForMachinePoolToScale: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+		})
+
 		By("PASSED!")
 	})
 

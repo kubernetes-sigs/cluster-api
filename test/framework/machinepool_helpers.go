@@ -69,7 +69,7 @@ func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoo
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachinePoolNodesToExist")
 	Expect(input.MachinePool).ToNot(BeNil(), "Invalid argument. input.MachinePool can't be nil when calling WaitForMachinePoolNodesToExist")
 
-	By("Waiting for the machine pool workload nodes to exist")
+	By("Waiting for the machine pool workload nodes")
 	Eventually(func() (int, error) {
 		nn := client.ObjectKey{
 			Namespace: input.MachinePool.Namespace,

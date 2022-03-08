@@ -270,6 +270,11 @@ func (in *ClusterNetwork) DeepCopyInto(out *ClusterNetwork) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.LocalAPIServerPort != nil {
+		in, out := &in.LocalAPIServerPort, &out.LocalAPIServerPort
+		*out = new(int32)
+		**out = **in
+	}
 	if in.Services != nil {
 		in, out := &in.Services, &out.Services
 		*out = new(NetworkRanges)

@@ -192,6 +192,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-ignition.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/clusterclass-quick-start.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-apiserverport.yaml"
     - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
 variables:

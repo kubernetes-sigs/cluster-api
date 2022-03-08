@@ -53,6 +53,13 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	if restored.Spec.ClusterNetwork != nil && restored.Spec.ClusterNetwork.LocalAPIServerPort != nil {
+		if dst.Spec.ClusterNetwork == nil {
+			dst.Spec.ClusterNetwork = &clusterv1.ClusterNetwork{}
+		}
+		dst.Spec.ClusterNetwork.LocalAPIServerPort = restored.Spec.ClusterNetwork.LocalAPIServerPort
+	}
+
 	return nil
 }
 
@@ -316,4 +323,9 @@ func Convert_v1beta1_MachineDeploymentClass_To_v1alpha4_MachineDeploymentClass(i
 func Convert_v1beta1_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in *clusterv1.ControlPlaneClass, out *ControlPlaneClass, s apiconversion.Scope) error {
 	// controlPlaneClass.machineHealthCheck has been added with v1beta1.
 	return autoConvert_v1beta1_ControlPlaneClass_To_v1alpha4_ControlPlaneClass(in, out, s)
+}
+
+func Convert_v1beta1_ClusterNetwork_To_v1alpha4_ClusterNetwork(in *clusterv1.ClusterNetwork, out *ClusterNetwork, s apiconversion.Scope) error {
+	// spec.ClusterNetwork.LocalAPIServerPort has been added with v1beta1
+	return autoConvert_v1beta1_ClusterNetwork_To_v1alpha4_ClusterNetwork(in, out, s)
 }

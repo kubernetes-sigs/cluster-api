@@ -399,6 +399,10 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 			},
 		}
 	}
+
+	// injects into Init/Join configuration values from top level object
+	r.reconcileTopLevelMachineSettings(ctx, scope.Cluster, scope.Config)
+
 	initdata, err := kubeadmtypes.MarshalInitConfigurationForVersion(scope.Config.Spec.InitConfiguration, parsedVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal init configuration")
@@ -615,6 +619,9 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
 	}
+
+	// injects into Init/Join configuration values from top level object
+	r.reconcileTopLevelMachineSettings(ctx, scope.Cluster, scope.Config)
 
 	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(scope.Config.Spec.JoinConfiguration, parsedVersion)
 	if err != nil {
@@ -902,6 +909,26 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(ctx context.Co
 	if config.Spec.ClusterConfiguration.KubernetesVersion == "" && machine.Spec.Version != nil {
 		config.Spec.ClusterConfiguration.KubernetesVersion = *machine.Spec.Version
 		log.Info("Altering ClusterConfiguration", "KubernetesVersion", config.Spec.ClusterConfiguration.KubernetesVersion)
+	}
+}
+
+func (r *KubeadmConfigReconciler) reconcileTopLevelMachineSettings(ctx context.Context, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig) {
+	log := ctrl.LoggerFrom(ctx)
+	clusterNetwork := cluster.Spec.ClusterNetwork
+	// only set the bindPort If the clusterNetwork has LocalAPIServerPort set
+	if clusterNetwork != nil && clusterNetwork.LocalAPIServerPort != nil {
+		if config.Spec.InitConfiguration != nil {
+			config.Spec.InitConfiguration.LocalAPIEndpoint.BindPort = *clusterNetwork.LocalAPIServerPort
+			log.Info("Altering InitConfiguration", "BindPort", config.Spec.InitConfiguration.LocalAPIEndpoint.BindPort)
+		}
+
+		if config.Spec.JoinConfiguration != nil {
+			if config.Spec.JoinConfiguration.ControlPlane == nil {
+				config.Spec.JoinConfiguration.ControlPlane = &bootstrapv1.JoinControlPlane{}
+			}
+			config.Spec.JoinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort = *clusterNetwork.LocalAPIServerPort
+			log.Info("Altering JoinConfiguration", "BindPort", config.Spec.JoinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort)
+		}
 	}
 }
 

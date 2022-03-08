@@ -193,8 +193,14 @@ type MachineDeploymentVariables struct {
 type ClusterNetwork struct {
 	// APIServerPort specifies the port the API Server should bind to.
 	// Defaults to 6443.
+	// Deprecated: use LocalAPIServerPort instead
 	// +optional
 	APIServerPort *int32 `json:"apiServerPort,omitempty"`
+
+	// LocalAPIServerPort specifies the port the local API Server should bind to.
+	// Defaults to 6443. This shouldn't be used to set the port of the control plane endpoint
+	// +optional
+	LocalAPIServerPort *int32 `json:"localApiServerPort,omitempty"`
 
 	// The network ranges from which service VIPs are allocated.
 	// +optional

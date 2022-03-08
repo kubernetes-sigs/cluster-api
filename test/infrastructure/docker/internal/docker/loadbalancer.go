@@ -38,7 +38,7 @@ type lbCreator interface {
 
 // LoadBalancer manages the load balancer for a specific docker cluster.
 type LoadBalancer struct {
-	name      string
+	cluster   *clusterv1.Cluster
 	image     string
 	container *types.Node
 	ipFamily  clusterv1.ClusterIPFamily
@@ -71,7 +71,7 @@ func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, dockerClus
 	image := getLoadBalancerImage(dockerCluster)
 
 	return &LoadBalancer{
-		name:      cluster.Name,
+		cluster:   cluster,
 		image:     image,
 		container: container,
 		ipFamily:  ipFamily,
@@ -101,13 +101,13 @@ func getLoadBalancerImage(dockerCluster *infrav1.DockerCluster) string {
 
 // ContainerName is the name of the docker container with the load balancer.
 func (s *LoadBalancer) containerName() string {
-	return fmt.Sprintf("%s-lb", s.name)
+	return fmt.Sprintf("%s-lb", s.cluster.Name)
 }
 
 // Create creates a docker container hosting a load balancer for the cluster.
 func (s *LoadBalancer) Create(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
-	log = log.WithValues("cluster", s.name, "ipFamily", s.ipFamily)
+	log = log.WithValues("cluster", s.cluster.Name, "ipFamily", s.ipFamily)
 
 	listenAddr := "0.0.0.0"
 	if s.ipFamily == clusterv1.IPv6IPFamily {
@@ -121,7 +121,7 @@ func (s *LoadBalancer) Create(ctx context.Context) error {
 			ctx,
 			s.containerName(),
 			s.image,
-			s.name,
+			s.cluster.Name,
 			listenAddr,
 			0,
 			s.ipFamily,
@@ -144,14 +144,17 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 
 	// collect info about the existing controlplane nodes
 	filters := container.FilterBuilder{}
-	filters.AddKeyNameValue(filterLabel, clusterLabelKey, s.name)
+	filters.AddKeyNameValue(filterLabel, clusterLabelKey, s.cluster.Name)
 	filters.AddKeyNameValue(filterLabel, nodeRoleLabelKey, constants.ControlPlaneNodeRoleValue)
 
 	controlPlaneNodes, err := listContainers(ctx, filters)
 	if err != nil {
 		return errors.WithStack(err)
 	}
-
+	apiServerPort := "6443"
+	if s.cluster.Spec.ClusterNetwork != nil && s.cluster.Spec.ClusterNetwork.LocalAPIServerPort != nil {
+		apiServerPort = string(*s.cluster.Spec.ClusterNetwork.LocalAPIServerPort)
+	}
 	var backendServers = map[string]string{}
 	for _, n := range controlPlaneNodes {
 		controlPlaneIPv4, controlPlaneIPv6, err := n.IP(ctx)
@@ -159,9 +162,9 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 			return errors.Wrapf(err, "failed to get IP for container %s", n.String())
 		}
 		if s.ipFamily == clusterv1.IPv6IPFamily {
-			backendServers[n.String()] = net.JoinHostPort(controlPlaneIPv6, "6443")
+			backendServers[n.String()] = net.JoinHostPort(controlPlaneIPv6, apiServerPort)
 		} else {
-			backendServers[n.String()] = net.JoinHostPort(controlPlaneIPv4, "6443")
+			backendServers[n.String()] = net.JoinHostPort(controlPlaneIPv4, apiServerPort)
 		}
 	}
 

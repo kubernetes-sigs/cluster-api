@@ -1861,6 +1861,185 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 	}
 }
 
+func TestKubeadmControlPlaneReconciler_reconcileTopLevelMachineSettings(t *testing.T) {
+	k := &KubeadmConfigReconciler{}
+	localAPIServerPort := int32(443)
+	testcases := []struct {
+		name    string
+		cluster *clusterv1.Cluster
+		config  *bootstrapv1.KubeadmConfig
+	}{
+		{
+			name: "initConfig",
+			config: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: &bootstrapv1.InitConfiguration{},
+				},
+			},
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "OtherName",
+				},
+				Spec: clusterv1.ClusterSpec{
+					ClusterNetwork: &clusterv1.ClusterNetwork{
+						Services:           &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherServicesCidr"}},
+						Pods:               &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherPodsCidr"}},
+						ServiceDomain:      "otherServiceDomain",
+						LocalAPIServerPort: &localAPIServerPort,
+					},
+					ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "otherVersion", Port: 0},
+				},
+			},
+		},
+		{
+			name: "joinConfig",
+			config: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{},
+				},
+			},
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mycluster",
+				},
+				Spec: clusterv1.ClusterSpec{
+					ClusterNetwork: &clusterv1.ClusterNetwork{
+						Services:           &clusterv1.NetworkRanges{CIDRBlocks: []string{"myServiceSubnet"}},
+						Pods:               &clusterv1.NetworkRanges{CIDRBlocks: []string{"myPodSubnet"}},
+						ServiceDomain:      "myDNSDomain",
+						LocalAPIServerPort: &localAPIServerPort,
+					},
+					ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "myControlPlaneEndpoint", Port: 6443},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			k.reconcileTopLevelMachineSettings(ctx, tc.cluster, tc.config)
+
+			if tc.config.Spec.InitConfiguration != nil {
+				g.Expect(tc.config.Spec.InitConfiguration.LocalAPIEndpoint.BindPort).To(Equal(localAPIServerPort))
+			} else if tc.config.Spec.JoinConfiguration != nil {
+				g.Expect(tc.config.Spec.JoinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort).To(Equal(localAPIServerPort))
+			}
+		})
+	}
+}
+
+func TestKubeadmControlPlaneReconciler_reconcileTopLevelMachineSettingsPreserveOtherConfig(t *testing.T) {
+	k := &KubeadmConfigReconciler{}
+	localAPIServerPort := int32(443)
+	nodeRegistration := bootstrapv1.NodeRegistrationOptions{
+		Name:      "foo",
+		CRISocket: "/var/run/containerd/containerd.sock",
+	}
+
+	testcases := []struct {
+		name    string
+		cluster *clusterv1.Cluster
+		config  *bootstrapv1.KubeadmConfig
+	}{
+		{
+			name: "initConfig",
+			config: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					InitConfiguration: &bootstrapv1.InitConfiguration{
+						NodeRegistration: nodeRegistration,
+					},
+				},
+			},
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "OtherName",
+				},
+				Spec: clusterv1.ClusterSpec{
+					ClusterNetwork: &clusterv1.ClusterNetwork{
+						Services:           &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherServicesCidr"}},
+						Pods:               &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherPodsCidr"}},
+						ServiceDomain:      "otherServiceDomain",
+						LocalAPIServerPort: &localAPIServerPort,
+					},
+					ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "otherVersion", Port: 0},
+				},
+			},
+		},
+		{
+			name: "joinConfig",
+			config: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+						NodeRegistration: nodeRegistration,
+					},
+				},
+			},
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "mycluster",
+				},
+				Spec: clusterv1.ClusterSpec{
+					ClusterNetwork: &clusterv1.ClusterNetwork{
+						Services:           &clusterv1.NetworkRanges{CIDRBlocks: []string{"myServiceSubnet"}},
+						Pods:               &clusterv1.NetworkRanges{CIDRBlocks: []string{"myPodSubnet"}},
+						ServiceDomain:      "myDNSDomain",
+						LocalAPIServerPort: &localAPIServerPort,
+					},
+					ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "myControlPlaneEndpoint", Port: 6443},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			k.reconcileTopLevelMachineSettings(ctx, tc.cluster, tc.config)
+
+			if tc.config.Spec.InitConfiguration != nil {
+				g.Expect(tc.config.Spec.InitConfiguration.LocalAPIEndpoint.BindPort).To(Equal(localAPIServerPort))
+				g.Expect(tc.config.Spec.InitConfiguration.NodeRegistration).To(Equal(nodeRegistration))
+			} else if tc.config.Spec.JoinConfiguration != nil {
+				g.Expect(tc.config.Spec.JoinConfiguration.ControlPlane.LocalAPIEndpoint.BindPort).To(Equal(localAPIServerPort))
+				g.Expect(tc.config.Spec.JoinConfiguration.NodeRegistration).To(Equal(nodeRegistration))
+			}
+		})
+	}
+}
+
+func TestKubeadmControlPlaneReconciler_reconcileTopLevelMachineSettingsUnsetPort(t *testing.T) {
+	k := &KubeadmConfigReconciler{}
+	config := &bootstrapv1.KubeadmConfig{
+		Spec: bootstrapv1.KubeadmConfigSpec{},
+	}
+
+	cluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "OtherName",
+		},
+		Spec: clusterv1.ClusterSpec{
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				Services:      &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherServicesCidr"}},
+				Pods:          &clusterv1.NetworkRanges{CIDRBlocks: []string{"otherPodsCidr"}},
+				ServiceDomain: "otherServiceDomain",
+			},
+			ControlPlaneEndpoint: clusterv1.APIEndpoint{Host: "otherVersion", Port: 0},
+		},
+	}
+
+	t.Run("reconcileTopLevelMachineSettingsUnsetPort", func(t *testing.T) {
+		g := NewWithT(t)
+
+		k.reconcileTopLevelMachineSettings(ctx, cluster, config)
+
+		g.Expect(config.Spec.InitConfiguration).To(BeNil())
+		g.Expect(config.Spec.JoinConfiguration).To(BeNil())
+	})
+}
+
 // test utils.
 
 // newWorkerMachineForCluster returns a Machine with the passed Cluster's information and a pre-configured name.

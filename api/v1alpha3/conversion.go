@@ -49,6 +49,13 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Topology = restored.Spec.Topology
 	}
 
+	if restored.Spec.ClusterNetwork != nil && restored.Spec.ClusterNetwork.LocalAPIServerPort != nil {
+		if dst.Spec.ClusterNetwork == nil {
+			dst.Spec.ClusterNetwork = &clusterv1.ClusterNetwork{}
+		}
+		dst.Spec.ClusterNetwork.LocalAPIServerPort = restored.Spec.ClusterNetwork.LocalAPIServerPort
+	}
+
 	return nil
 }
 
@@ -320,4 +327,8 @@ func Convert_v1beta1_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus
 func Convert_v1alpha3_MachineStatus_To_v1beta1_MachineStatus(in *MachineStatus, out *clusterv1.MachineStatus, s apiconversion.Scope) error {
 	// Status.version has been removed in v1beta1, thus requiring custom conversion function. the information will be dropped.
 	return autoConvert_v1alpha3_MachineStatus_To_v1beta1_MachineStatus(in, out, s)
+}
+
+func Convert_v1beta1_ClusterNetwork_To_v1alpha3_ClusterNetwork(in *clusterv1.ClusterNetwork, out *ClusterNetwork, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_ClusterNetwork_To_v1alpha3_ClusterNetwork(in, out, s)
 }

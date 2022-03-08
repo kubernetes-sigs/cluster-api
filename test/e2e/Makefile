@@ -98,6 +98,7 @@ cluster-templates-v1beta1: $(KUSTOMIZE) ## Generate cluster templates for v1beta
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-ipv6 --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1beta1/cluster-template-ipv6.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1beta1/cluster-template-topology.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-ignition --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1beta1/cluster-template-ignition.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/cluster-template-apiserverport --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1beta1/cluster-template-apiserverport.yaml
 
 ## --------------------------------------
 ## Testing

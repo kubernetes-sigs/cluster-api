@@ -212,12 +212,18 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 
 		// Otherwise delete the object
 		log.V(5).Info("Deleting", logf.UnstructuredToValues(obj)...)
-		if err := cs.Delete(ctx, &obj); err != nil {
-			if apierrors.IsNotFound(err) {
-				// Tolerate IsNotFound error that might happen because we are not enforcing a deletion order
-				// that considers relation across objects (e.g. Deployments -> ReplicaSets -> Pods)
-				continue
+		deleteBackoff := newWriteBackoff()
+		if err := retryWithExponentialBackoff(deleteBackoff, func() error {
+			if err := cs.Delete(ctx, &obj); err != nil {
+				if apierrors.IsNotFound(err) {
+					// Tolerate IsNotFound error that might happen because we are not enforcing a deletion order
+					// that considers relation across objects (e.g. Deployments -> ReplicaSets -> Pods)
+					return nil
+				}
+				return err
 			}
+			return nil
+		}); err != nil {
 			errList = append(errList, errors.Wrapf(err, "Error deleting object %s, %s/%s", obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName()))
 		}
 	}

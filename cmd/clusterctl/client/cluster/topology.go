@@ -222,6 +222,12 @@ func (t *topologyClient) Plan(in *TopologyPlanInput) (*TopologyPlanOutput, error
 // - no more than 1 cluster in the input.
 // - no more than 1 clusterclass in the input.
 func (t *topologyClient) validateInput(in *TopologyPlanInput) error {
+	// Check if objects of the same Group.Kind are using the same version.
+	// Note: This is because the dryrun client does not guarantee any coversions.
+	if !hasUniqueVersionPerGroupKind(in.Objs) {
+		return fmt.Errorf("objects of the same Group.Kind should use the same apiVersion")
+	}
+
 	// Check all the objects in the input belong to the same namespace.
 	// Note: It is okay if all the objects in the input do not have any namespace.
 	// In such case, the list of unique namespaces will be [""].
@@ -499,6 +505,7 @@ func (t *topologyClient) generateCRDs(objs []*unstructured.Unstructured) []*apie
 	crds := []*apiextensionsv1.CustomResourceDefinition{}
 	crdMap := map[string]bool{}
 	var gvk schema.GroupVersionKind
+
 	for _, obj := range objs {
 		gvk = obj.GroupVersionKind()
 		if strings.HasSuffix(gvk.Group, ".cluster.x-k8s.io") && !crdMap[gvk.String()] {
@@ -510,7 +517,8 @@ func (t *topologyClient) generateCRDs(objs []*unstructured.Unstructured) []*apie
 				ObjectMeta: metav1.ObjectMeta{
 					Name: fmt.Sprintf("%s.%s", flect.Pluralize(strings.ToLower(gvk.Kind)), gvk.Group),
 					Labels: map[string]string{
-						clusterv1.GroupVersion.String(): clusterv1.GroupVersion.Version,
+						// Here we assume that all the versions are compatible with the Cluster API contract version.
+						clusterv1.GroupVersion.String(): gvk.Version,
 					},
 				},
 			}
@@ -518,6 +526,7 @@ func (t *topologyClient) generateCRDs(objs []*unstructured.Unstructured) []*apie
 			crdMap[gvk.String()] = true
 		}
 	}
+
 	return crds
 }
 
@@ -687,4 +696,17 @@ func uniqueNamespaces(objs []*unstructured.Unstructured) []string {
 		ns.Insert(obj.GetNamespace())
 	}
 	return ns.List()
+}
+
+func hasUniqueVersionPerGroupKind(objs []*unstructured.Unstructured) bool {
+	versionMap := map[string]string{}
+	for _, obj := range objs {
+		gvk := obj.GroupVersionKind()
+		gk := gvk.GroupKind().String()
+		if ver, ok := versionMap[gk]; ok && ver != gvk.Version {
+			return false
+		}
+		versionMap[gk] = gvk.Version
+	}
+	return true
 }

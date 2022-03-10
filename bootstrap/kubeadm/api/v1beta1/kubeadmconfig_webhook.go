@@ -79,7 +79,7 @@ func (c *KubeadmConfig) ValidateDelete() error {
 }
 
 func (c *KubeadmConfigSpec) validate(name string) error {
-	allErrs := c.Validate()
+	allErrs := c.Validate(field.NewPath("spec"))
 
 	if len(allErrs) == 0 {
 		return nil
@@ -89,16 +89,16 @@ func (c *KubeadmConfigSpec) validate(name string) error {
 }
 
 // Validate ensures the KubeadmConfigSpec is valid.
-func (c *KubeadmConfigSpec) Validate() field.ErrorList {
+func (c *KubeadmConfigSpec) Validate(pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, c.validateFiles()...)
-	allErrs = append(allErrs, c.validateIgnition()...)
+	allErrs = append(allErrs, c.validateFiles(pathPrefix)...)
+	allErrs = append(allErrs, c.validateIgnition(pathPrefix)...)
 
 	return allErrs
 }
 
-func (c *KubeadmConfigSpec) validateFiles() field.ErrorList {
+func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	knownPaths := map[string]struct{}{}
@@ -109,7 +109,7 @@ func (c *KubeadmConfigSpec) validateFiles() field.ErrorList {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
-					field.NewPath("spec", "files").Index(i),
+					pathPrefix.Child("files").Index(i),
 					file,
 					conflictingFileSourceMsg,
 				),
@@ -122,9 +122,8 @@ func (c *KubeadmConfigSpec) validateFiles() field.ErrorList {
 			if file.ContentFrom.Secret.Name == "" {
 				allErrs = append(
 					allErrs,
-					field.Invalid(
-						field.NewPath("spec", "files").Index(i).Child("contentFrom", "secret", "name"),
-						file,
+					field.Required(
+						pathPrefix.Child("files").Index(i).Child("contentFrom", "secret", "name"),
 						missingSecretNameMsg,
 					),
 				)
@@ -132,9 +131,8 @@ func (c *KubeadmConfigSpec) validateFiles() field.ErrorList {
 			if file.ContentFrom.Secret.Key == "" {
 				allErrs = append(
 					allErrs,
-					field.Invalid(
-						field.NewPath("spec", "files").Index(i).Child("contentFrom", "secret", "key"),
-						file,
+					field.Required(
+						pathPrefix.Child("files").Index(i).Child("contentFrom", "secret", "key"),
 						missingSecretKeyMsg,
 					),
 				)
@@ -145,7 +143,7 @@ func (c *KubeadmConfigSpec) validateFiles() field.ErrorList {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
-					field.NewPath("spec", "files").Index(i).Child("path"),
+					pathPrefix.Child("files").Index(i).Child("path"),
 					file,
 					pathConflictMsg,
 				),
@@ -157,18 +155,18 @@ func (c *KubeadmConfigSpec) validateFiles() field.ErrorList {
 	return allErrs
 }
 
-func (c *KubeadmConfigSpec) validateIgnition() field.ErrorList {
+func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	if !feature.Gates.Enabled(feature.KubeadmBootstrapFormatIgnition) {
 		if c.Format == Ignition {
 			allErrs = append(allErrs, field.Forbidden(
-				field.NewPath("spec", "format"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))
+				pathPrefix.Child("format"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))
 		}
 
 		if c.Ignition != nil {
 			allErrs = append(allErrs, field.Forbidden(
-				field.NewPath("spec", "ignition"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))
+				pathPrefix.Child("ignition"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))
 		}
 
 		return allErrs
@@ -179,7 +177,7 @@ func (c *KubeadmConfigSpec) validateIgnition() field.ErrorList {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
-					field.NewPath("spec", "format"),
+					pathPrefix.Child("format"),
 					c.Format,
 					fmt.Sprintf("must be set to %q if spec.ignition is set", Ignition),
 				),
@@ -194,7 +192,7 @@ func (c *KubeadmConfigSpec) validateIgnition() field.ErrorList {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
-					field.NewPath("spec", "users").Index(i).Child("inactive"),
+					pathPrefix.Child("users").Index(i).Child("inactive"),
 					cannotUseWithIgnition,
 				),
 			)
@@ -205,7 +203,7 @@ func (c *KubeadmConfigSpec) validateIgnition() field.ErrorList {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
-				field.NewPath("spec", "useExperimentalRetryJoin"),
+				pathPrefix.Child("useExperimentalRetryJoin"),
 				cannotUseWithIgnition,
 			),
 		)
@@ -220,7 +218,7 @@ func (c *KubeadmConfigSpec) validateIgnition() field.ErrorList {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
-					field.NewPath("spec", "diskSetup", "partitions").Index(i).Child("tableType"),
+					pathPrefix.Child("diskSetup", "partitions").Index(i).Child("tableType"),
 					*partition.TableType,
 					fmt.Sprintf(
 						"only partition type %q is supported when spec.format is set to %q",
@@ -237,7 +235,7 @@ func (c *KubeadmConfigSpec) validateIgnition() field.ErrorList {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
-					field.NewPath("spec", "diskSetup", "filesystems").Index(i).Child("replaceFS"),
+					pathPrefix.Child("diskSetup", "filesystems").Index(i).Child("replaceFS"),
 					cannotUseWithIgnition,
 				),
 			)
@@ -247,7 +245,7 @@ func (c *KubeadmConfigSpec) validateIgnition() field.ErrorList {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
-					field.NewPath("spec", "diskSetup", "filesystems").Index(i).Child("partition"),
+					pathPrefix.Child("diskSetup", "filesystems").Index(i).Child("partition"),
 					cannotUseWithIgnition,
 				),
 			)

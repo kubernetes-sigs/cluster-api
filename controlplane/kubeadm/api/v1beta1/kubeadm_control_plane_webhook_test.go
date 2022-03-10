@@ -84,6 +84,9 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 					Name:       "infraTemplate",
 				},
 			},
+			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{},
+			},
 			Replicas: pointer.Int32Ptr(1),
 			Version:  "v1.19.0",
 			RolloutStrategy: &RolloutStrategy{
@@ -129,6 +132,9 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 
 	invalidVersion2 := valid.DeepCopy()
 	invalidVersion2.Spec.Version = "1.16.6"
+
+	invalidCoreDNSVersion := valid.DeepCopy()
+	invalidCoreDNSVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag = "v1.7" // not a valid semantic version
 
 	invalidIgnitionConfiguration := valid.DeepCopy()
 	invalidIgnitionConfiguration.Spec.KubeadmConfigSpec.Ignition = &bootstrapv1.IgnitionSpec{}
@@ -187,6 +193,11 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			name:      "should return error when given an invalid semantic version",
 			expectErr: true,
 			kcp:       invalidVersion1,
+		},
+		{
+			name:      "should return error when given an invalid semantic CoreDNS version",
+			expectErr: true,
+			kcp:       invalidCoreDNSVersion,
 		},
 		{
 			name:      "should return error when maxSurge is not 1",

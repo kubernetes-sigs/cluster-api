@@ -45,6 +45,7 @@ const (
 	IBMCloudProviderName  = "ibmcloud"
 	Metal3ProviderName    = "metal3"
 	NestedProviderName    = "nested"
+	OCIProviderName       = "oci"
 	OpenStackProviderName = "openstack"
 	PacketProviderName    = "packet"
 	SideroProviderName    = "sidero"
@@ -153,6 +154,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         NestedProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         OCIProviderName,
+			url:          "https://github.com/oracle/cluster-api-provider-oci/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

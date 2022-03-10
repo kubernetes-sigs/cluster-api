@@ -25,6 +25,7 @@ import (
 	"strings"
 	"text/template"
 
+	sprig "github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
 	"github.com/valyala/fastjson"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -374,7 +375,7 @@ func getVariableArrayElement(array *fastjson.Value, arrayPathSegment *pathSegmen
 // renderValueTemplate renders a template with the given variables as data.
 func renderValueTemplate(valueTemplate string, variables map[string]apiextensionsv1.JSON) (*apiextensionsv1.JSON, error) {
 	// Parse the template.
-	tpl, err := template.New("tpl").Parse(valueTemplate)
+	tpl, err := template.New("tpl").Funcs(sprig.HermeticTxtFuncMap()).Parse(valueTemplate)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse template: %q", valueTemplate)
 	}

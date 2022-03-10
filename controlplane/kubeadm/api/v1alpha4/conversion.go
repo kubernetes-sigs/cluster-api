@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	bootstrapv1alpha4 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1alpha4"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
@@ -40,11 +41,21 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.KubeadmConfigSpec.Ignition = restored.Spec.KubeadmConfigSpec.Ignition
 	if restored.Spec.KubeadmConfigSpec.InitConfiguration != nil {
+		if dst.Spec.KubeadmConfigSpec.InitConfiguration == nil {
+			dst.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}
+		}
 		dst.Spec.KubeadmConfigSpec.InitConfiguration.Patches = restored.Spec.KubeadmConfigSpec.InitConfiguration.Patches
+		dst.Spec.KubeadmConfigSpec.InitConfiguration.SkipPhases = restored.Spec.KubeadmConfigSpec.InitConfiguration.SkipPhases
 	}
 	if restored.Spec.KubeadmConfigSpec.JoinConfiguration != nil {
+		if dst.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
+			dst.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
 		dst.Spec.KubeadmConfigSpec.JoinConfiguration.Patches = restored.Spec.KubeadmConfigSpec.JoinConfiguration.Patches
+		dst.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases = restored.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases
 	}
+
+	dst.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.MachineTemplate.NodeDeletionTimeout
 
 	return nil
 }
@@ -88,10 +99,23 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Template.Spec.KubeadmConfigSpec.Ignition = restored.Spec.Template.Spec.KubeadmConfigSpec.Ignition
 	dst.Spec.Template.Spec.MachineTemplate = restored.Spec.Template.Spec.MachineTemplate
 	if restored.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration != nil {
+		if dst.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration == nil {
+			dst.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}
+		}
 		dst.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.Patches = restored.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.Patches
+		dst.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.SkipPhases = restored.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.SkipPhases
 	}
 	if restored.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration != nil {
+		if dst.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
+			dst.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
 		dst.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.Patches = restored.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.Patches
+		dst.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases = restored.Spec.Template.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases
+	}
+	if dst.Spec.Template.Spec.MachineTemplate == nil {
+		dst.Spec.Template.Spec.MachineTemplate = restored.Spec.Template.Spec.MachineTemplate
+	} else if restored.Spec.Template.Spec.MachineTemplate != nil {
+		dst.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeout
 	}
 
 	return nil
@@ -174,4 +198,9 @@ func Convert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1alpha4_Kubeadm
 	}
 
 	return nil
+}
+
+func Convert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmControlPlaneMachineTemplate(in *controlplanev1.KubeadmControlPlaneMachineTemplate, out *KubeadmControlPlaneMachineTemplate, s apiconversion.Scope) error {
+	// .NodeDrainTimeout was added in v1beta1.
+	return autoConvert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmControlPlaneMachineTemplate(in, out, s)
 }

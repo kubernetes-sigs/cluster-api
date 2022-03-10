@@ -53,6 +53,11 @@ func TestMain(m *testing.M) {
 		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
 			panic(fmt.Sprintf("unable to setup index: %v", err))
 		}
+		// Set up the ClusterClassName index explicitly here. This index is ordinarily created in
+		// index.AddDefaultIndexes. That doesn't happen here because the ClusterClass feature flag is not set.
+		if err := index.ByClusterClassName(ctx, mgr); err != nil {
+			panic(fmt.Sprintf("unable to setup index: %v", err))
+		}
 	}
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
 		unstructuredCachingClient, err := client.NewDelegatingClient(

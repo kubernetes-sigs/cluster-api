@@ -137,7 +137,7 @@ the following requirements for integration will work for each of AWS, Azure and 
 
 #### Story 1
 
-As an operator of a Management Cluster, I want to reduce costs were possible by leveraging cheaper nodes for interruptible workloads on my Workload Clusters.
+As an operator of a Management Cluster, I want to reduce costs where possible by leveraging cheaper nodes for interruptible workloads on my Workload Clusters.
 
 #### Story 2
 

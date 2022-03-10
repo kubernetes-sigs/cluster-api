@@ -212,6 +212,7 @@ func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 	var clusterProvider bootstrap.ClusterProvider
 	kubeconfigPath := ""
 	if !useExistingCluster {
+		By("Creating the bootstrap cluster")
 		clusterProvider = bootstrap.CreateKindBootstrapClusterAndLoadImages(ctx, bootstrap.CreateKindBootstrapClusterAndLoadImagesInput{
 			Name:               config.ManagementClusterName,
 			KubernetesVersion:  config.GetVariable(KubernetesVersionManagement),
@@ -224,6 +225,8 @@ func setupBootstrapCluster(config *clusterctl.E2EConfig, scheme *runtime.Scheme,
 
 		kubeconfigPath = clusterProvider.GetKubeconfigPath()
 		Expect(kubeconfigPath).To(BeAnExistingFile(), "Failed to get the kubeconfig file for the bootstrap cluster")
+	} else {
+		By("Using an existing bootstrap cluster")
 	}
 
 	clusterProxy := framework.NewClusterProxy("bootstrap", kubeconfigPath, scheme)

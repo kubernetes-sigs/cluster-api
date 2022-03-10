@@ -69,7 +69,7 @@ func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoo
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachinePoolNodesToExist")
 	Expect(input.MachinePool).ToNot(BeNil(), "Invalid argument. input.MachinePool can't be nil when calling WaitForMachinePoolNodesToExist")
 
-	By("Waiting for the machine pool workload nodes to exist")
+	By("Waiting for the machine pool workload nodes")
 	Eventually(func() (int, error) {
 		nn := client.ObjectKey{
 			Namespace: input.MachinePool.Namespace,
@@ -107,6 +107,9 @@ func DiscoveryAndWaitForMachinePools(ctx context.Context, input DiscoveryAndWait
 			Getter:      input.Getter,
 			MachinePool: machinepool,
 		}, intervals...)
+
+		// TODO: check for failure domains; currently MP doesn't provide a way to check where Machine are placed
+		//  (checking infrastructure is the only alternative, but this makes test not portable)
 	}
 	return machinePools
 }

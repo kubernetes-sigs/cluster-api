@@ -38,18 +38,10 @@ MDBOOK := $(TOOLS_BIN_DIR)/mdbook
 $(MDBOOK):
 	$(CRATE_INSTALL) --git rust-lang/mdBook --tag v0.4.11 --to $(TOOLS_BIN_DIR) --force
 
-MDBOOK_LINKCHECK := $(TOOLS_BIN_DIR)/mdbook-linkcheck
-$(MDBOOK_LINKCHECK):
-	$(CRATE_INSTALL) --git Michael-F-Bryan/mdbook-linkcheck --tag v0.7.0 --to $(TOOLS_BIN_DIR) --force
-
 .PHONY: serve
-serve: $(MDBOOK) $(TABULATE) $(EMBED) $(RELEASELINK) $(MDBOOK_LINKCHECK)
+serve: $(MDBOOK) $(TABULATE) $(EMBED) $(RELEASELINK)
 	$(MDBOOK) serve
 
 .PHONY: build
-build: $(MDBOOK) $(TABULATE) $(EMBED) $(RELEASELINK) $(MDBOOK_LINKCHECK)
-	$(MDBOOK) build
-
-.PHONY: verify
-verify: $(MDBOOK) $(TABULATE) $(EMBED) $(RELEASELINK) $(MDBOOK_LINKCHECK)
+build: $(MDBOOK) $(TABULATE) $(EMBED) $(RELEASELINK)
 	$(MDBOOK) build

@@ -173,22 +173,6 @@ func (v buildIdentifier) compare(o buildIdentifier) int {
 	}
 }
 
-// CompareWithBuildIdentifiers compares two versions a and b.
-// Perfoms a standard version compare between a and b. If the versions
-// are equal, build identifiers will be used to compare further.
-//   -1 == a is less than b.
-//   0 == a is equal to b.
-//   1 == a is greater than b.
-// Deprecated: Use Compare(a, b, WithBuildTags()) instead.
-func CompareWithBuildIdentifiers(a semver.Version, b semver.Version) int {
-	if comp := a.Compare(b); comp != 0 {
-		return comp
-	}
-	biA := newBuildIdentifiers(a.Build)
-	biB := newBuildIdentifiers(b.Build)
-	return biA.compare(biB)
-}
-
 type comparer struct {
 	buildTags bool
 }
@@ -229,7 +213,12 @@ func Compare(a, b semver.Version, options ...CompareOption) int {
 	}
 
 	if c.buildTags {
-		return CompareWithBuildIdentifiers(a, b)
+		if comp := a.Compare(b); comp != 0 {
+			return comp
+		}
+		biA := newBuildIdentifiers(a.Build)
+		biB := newBuildIdentifiers(b.Build)
+		return biA.compare(biB)
 	}
 	return a.Compare(b)
 }

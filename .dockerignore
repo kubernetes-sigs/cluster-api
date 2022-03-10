@@ -9,6 +9,7 @@ logos/
 scripts/
 **/*.md
 tilt-settings.json
+tilt-settings.yaml
 tilt.d/
 Tiltfile
 **/.tiltbuild

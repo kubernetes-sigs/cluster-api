@@ -33,7 +33,6 @@ import (
 	"github.com/blang/semver"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -55,6 +54,18 @@ func (v machinesByVersion) Less(i, j int) bool {
 		return v[i].Name < v[j].Name
 	}
 	return comp == -1
+}
+
+// machinesByCreationTimestamp sorts a list of Machine by creation timestamp, using their names as a tie breaker.
+type machinesByCreationTimestamp []*clusterv1.Machine
+
+func (o machinesByCreationTimestamp) Len() int      { return len(o) }
+func (o machinesByCreationTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
+func (o machinesByCreationTimestamp) Less(i, j int) bool {
+	if o[i].CreationTimestamp.Equal(&o[j].CreationTimestamp) {
+		return o[i].Name < o[j].Name
+	}
+	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
 }
 
 // New creates an empty Machines.
@@ -107,7 +118,7 @@ func (s Machines) Difference(machines Machines) Machines {
 
 // SortedByCreationTimestamp returns the machines sorted by creation timestamp.
 func (s Machines) SortedByCreationTimestamp() []*clusterv1.Machine {
-	res := make(util.MachinesByCreationTimestamp, 0, len(s))
+	res := make(machinesByCreationTimestamp, 0, len(s))
 	for _, value := range s {
 		res = append(res, value)
 	}

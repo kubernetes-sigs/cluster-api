@@ -55,15 +55,10 @@ EXP_DIR := exp
 BIN_DIR := bin
 TEST_DIR := test
 TOOLS_DIR := hack/tools
-TOOLS_BIN_DIR := $(TOOLS_DIR)/$(BIN_DIR)
+TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
 E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
 CAPD_DIR := $(TEST_DIR)/infrastructure/docker
-GO_APIDIFF_BIN := $(BIN_DIR)/go-apidiff
-GO_APIDIFF := $(TOOLS_DIR)/$(GO_APIDIFF_BIN)
-KPROMO_BIN := $(BIN_DIR)/kpromo
-KPROMO :=  $(TOOLS_DIR)/$(KPROMO_BIN)
-ENVSUBST_BIN := $(BIN_DIR)/envsubst
-ENVSUBST := $(TOOLS_DIR)/$(ENVSUBST_BIN)
+GO_INSTALL := ./scripts/go_install.sh
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
@@ -78,15 +73,56 @@ endif
 # Binaries.
 #
 # Note: Need to use abspath so we can invoke these from subdirectories
-KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/kustomize)
-SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/setup-envtest)
-CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/controller-gen)
-GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/gotestsum)
-GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/golangci-lint)
-CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/conversion-gen)
-CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/conversion-verifier)
-TILT_PREPARE := $(abspath $(TOOLS_BIN_DIR)/tilt-prepare)
-ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/envsubst)
+KUSTOMIZE_VER := v4.5.2
+KUSTOMIZE_BIN := kustomize
+KUSTOMIZE := $(abspath $(TOOLS_BIN_DIR)/$(KUSTOMIZE_BIN)-$(KUSTOMIZE_VER))
+KUSTOMIZE_PKG := sigs.k8s.io/kustomize/kustomize/v4
+
+SETUP_ENVTEST_VER := v0.0.0-20211110210527-619e6b92dab9
+SETUP_ENVTEST_BIN := setup-envtest
+SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
+SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
+
+CONTROLLER_GEN_VER := v0.8.0
+CONTROLLER_GEN_BIN := controller-gen
+CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
+CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
+
+GOTESTSUM_VER := v1.6.4
+GOTESTSUM_BIN := gotestsum
+GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/$(GOTESTSUM_BIN)-$(GOTESTSUM_VER))
+GOTESTSUM_PKG := gotest.tools/gotestsum
+
+CONVERSION_GEN_VER := v0.23.1
+CONVERSION_GEN_BIN := conversion-gen
+# We are intentionally using the binary without version suffix, to avoid the version
+# in generated files.
+CONVERSION_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_GEN_BIN))
+CONVERSION_GEN_PKG := k8s.io/code-generator/cmd/conversion-gen
+
+ENVSUBST_VER := v2.0.0-20210730161058-179042472c46
+ENVSUBST_BIN := envsubst
+ENVSUBST := $(abspath $(TOOLS_BIN_DIR)/$(ENVSUBST_BIN)-$(ENVSUBST_VER))
+ENVSUBST_PKG := github.com/drone/envsubst/v2/cmd/envsubst
+
+GO_APIDIFF_VER := v0.1.0
+GO_APIDIFF_BIN := go-apidiff
+GO_APIDIFF := $(abspath $(TOOLS_BIN_DIR)/$(GO_APIDIFF_BIN)-$(GO_APIDIFF_VER))
+GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
+
+KPROMO_VER := v3.3.0-beta.3
+KPROMO_BIN := kpromo
+KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
+KPROMO_PKG := sigs.k8s.io/promo-tools/v3/cmd/kpromo
+
+CONVERSION_VERIFIER_BIN := conversion-verifier
+CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN))
+
+TILT_PREPARE_BIN := tilt-prepare
+TILT_PREPARE := $(abspath $(TOOLS_BIN_DIR)/$(TILT_PREPARE_BIN))
+
+GOLANGCI_LINT_BIN := golangci-lint
+GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN))
 
 # clusterctl.
 CLUSTERCTL_MANIFEST_DIR := cmd/clusterctl/config
@@ -111,6 +147,7 @@ KUBEADM_CONTROL_PLANE_IMAGE_NAME ?= kubeadm-control-plane-controller
 KUBEADM_CONTROL_PLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAGE_NAME)
 
 # It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
+
 TAG ?= dev
 ARCH ?= $(shell go env GOARCH)
 ALL_ARCH = amd64 arm arm64 ppc64le s390x
@@ -143,7 +180,7 @@ ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-* and generate-go-conversions-* targets
-	$(MAKE) generate-manifests generate-go-deepcopy generate-go-conversions
+	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions
 	$(MAKE) -C $(CAPD_DIR) generate
 
 .PHONY: generate-manifests
@@ -280,8 +317,14 @@ generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate con
 		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
-.PHONY: diagrams
-diagrams: ## Generate diagrams for *.plantuml files
+.PHONY: generate-modules
+generate-modules: ## Run go mod tidy to ensure modules are up to date
+	go mod tidy
+	cd $(TOOLS_DIR); go mod tidy
+	cd $(TEST_DIR); go mod tidy
+
+.PHONY: generate-diagrams
+generate-diagrams: ## Generate diagrams for *.plantuml files
 	$(MAKE) -C docs diagrams
 
 ## --------------------------------------
@@ -289,12 +332,6 @@ diagrams: ## Generate diagrams for *.plantuml files
 ## --------------------------------------
 
 ##@ lint and verify:
-
-.PHONY: modules
-modules: ## Run go mod tidy to ensure modules are up to date
-	go mod tidy
-	cd $(TOOLS_DIR); go mod tidy
-	cd $(TEST_DIR); go mod tidy
 
 .PHONY: lint
 lint: $(GOLANGCI_LINT) ## Lint the codebase
@@ -306,21 +343,23 @@ lint: $(GOLANGCI_LINT) ## Lint the codebase
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
 	GOLANGCI_LINT_EXTRA_ARGS=--fix $(MAKE) lint
 
-.PHONY: apidiff
-apidiff: $(GO_APIDIFF) ## Check for API differences
-	$(GO_APIDIFF) $(shell git rev-parse origin/main) --print-compatible
-
-.PHONY: format-tiltfile
-format-tiltfile: ## Format the Tiltfile
+.PHONY: tiltfile-fix
+tiltfile-fix: ## Format the Tiltfile
 	./hack/verify-starlark.sh fix
 
-ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions docker-provider book-links
+APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
+
+.PHONY: apidiff
+apidiff: $(GO_APIDIFF) ## Check for API differences
+	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
+
+ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions docker-provider
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
 
 .PHONY: verify-modules
-verify-modules: modules  ## Verify go modules are up to date
+verify-modules: generate-modules  ## Verify go modules are up to date
 	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
@@ -362,10 +401,6 @@ verify-docker-provider:
 	@echo "Verifying CAPD"
 	cd $(CAPD_DIR); $(MAKE) verify
 
-.PHONY: verify-book-links
-verify-book-links: ## Verify book links
-	$(MAKE) -C docs/book verify
-
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------
@@ -399,11 +434,17 @@ docker-pull-prerequisites:
 	docker pull $(GO_CONTAINER_IMAGE)
 	docker pull gcr.io/distroless/static:latest
 
+.PHONY: docker-build-all
+docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build docker images for all architectures
+
+docker-build-%:
+	$(MAKE) ARCH=$* docker-build
+
 ALL_DOCKER_BUILD = core kubeadm-bootstrap kubeadm-control-plane
 
 .PHONY: docker-build
-docker-build: docker-pull-prerequisites ## Run all docker-build-* targets
-	$(MAKE) ARCH=$(ARCH) $(addprefix docker-build-,$(ALL_DOCKER_BUILD)) 
+docker-build: docker-pull-prerequisites ## Run docker-build-* targets for all providers
+	$(MAKE) ARCH=$(ARCH) $(addprefix docker-build-,$(ALL_DOCKER_BUILD))
 
 .PHONY: docker-build-core
 docker-build-core: ## Build the docker image for core controller manager
@@ -427,6 +468,14 @@ docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm contro
 e2e-framework: ## Builds the CAPI e2e framework
 	cd $(E2E_FRAMEWORK_DIR); go build ./...
 
+.PHONY: build-book
+build-book: ## Build the book
+	$(MAKE) -C docs/book build
+
+.PHONY: serve-book
+serve-book: ## Build and serve the book (with live-reload)
+	$(MAKE) -C docs/book serve
+
 ## --------------------------------------
 ## Testing
 ## --------------------------------------
@@ -435,38 +484,38 @@ e2e-framework: ## Builds the CAPI e2e framework
 
 ARTIFACTS ?= ${ROOT_DIR}/_artifacts
 
-KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+ifeq ($(shell go env GOOS),darwin) # Use the darwin/amd64 binary until an arm64 version is available
+	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path --arch amd64 $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+else
+	KUBEBUILDER_ASSETS ?= $(shell $(SETUP_ENVTEST) use --use-env -p path $(KUBEBUILDER_ENVTEST_KUBERNETES_VERSION))
+endif
 
 .PHONY: test
 test: $(SETUP_ENVTEST) ## Run unit and integration tests
 	KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 
-.PHONY: test-e2e
-test-e2e: ## Run the e2e tests
-	$(MAKE) -C $(TEST_DIR)/e2e run
+.PHONY: test-verbose
+test-verbose: ## Run unit and integration tests with verbose flag
+	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"
 
 .PHONY: test-junit
-test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run tests with verbose setting and generate a junit report
+test-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report
 	set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.exitcode) | tee $(ARTIFACTS)/junit.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.xml --raw-command cat $(ARTIFACTS)/junit.stdout
 	exit $$(cat $(ARTIFACTS)/junit.exitcode)
 
 .PHONY: test-cover
-test-cover: ## Run tests with code coverage and code generate reports
+test-cover: ## Run unit and integration tests and generate a coverage report
 	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -coverprofile=out/coverage.out"
 	go tool cover -func=out/coverage.out -o out/coverage.txt
 	go tool cover -html=out/coverage.out -o out/coverage.html
 
-.PHONY: test-verbose
-test-verbose: ## Run tests with verbose settings
-	$(MAKE) test TEST_ARGS="$(TEST_ARGS) -v"
-
-.PHONY: serve-book
-serve-book: ## Build and serve the book with live-reloading enabled
-	$(MAKE) -C docs/book serve
+.PHONY: test-e2e
+test-e2e: ## Run e2e tests
+	$(MAKE) -C $(TEST_DIR)/e2e run
 
 .PHONY: kind-cluster
-kind-cluster: ## Create a new kind cluster designed for testing with Tilt
+kind-cluster: ## Create a new kind cluster designed for development with Tilt
 	hack/kind-install-for-capd.sh
 
 .PHONY: docker-build-e2e
@@ -604,12 +653,6 @@ release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 	go run ./hack/tools/release/notes.go --from=$(PREVIOUS_TAG) > $(RELEASE_NOTES_DIR)/$(RELEASE_TAG).md; \
 	fi
 
-.PHONY: docker-build-all
-docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build all the architecture docker images
-
-docker-build-%:
-	$(MAKE) ARCH=$* docker-build
-
 .PHONY: promote-images
 promote-images: $(KPROMO)
 	$(KPROMO) pr --project cluster-api --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK)
@@ -713,49 +756,73 @@ clean-generated-conversions: ## Remove files generated by conversion-gen from th
 
 ##@ hack/tools:
 
-controller-gen: $(CONTROLLER_GEN) ## Build a local copy of controller-gen
-conversion-gen: $(CONVERSION_GEN) ## Build a local copy of conversion-gen
-conversion-verifier: $(CONVERSION_VERIFIER) ## Build a local copy of conversion-verifier
-gotestsum: $(GOTESTSUM) ## Build a local copy of gotestsum
-go-apidiff: $(GO_APIDIFF) ## Build a local copy of apidiff
-golangci-lint: $(GOLANGCI_LINT) ## Build a local copy of golangci-lint
-envsubst: $(ENVSUBST) ## Build a local copy of envsubst
-kustomize: $(KUSTOMIZE) ## Build a local copy of kustomize
-setup-envtest: $(SETUP_ENVTEST) ## Build a local copy of setup-envtest
-tilt-prepare: $(TILT_PREPARE) ## Build a local copy of tilt-prepare
-kpromo: $(KPROMO)  ## Build a local copy of kpromo
+.PHONY: $(CONTROLLER_GEN_BIN)
+$(CONTROLLER_GEN_BIN): $(CONTROLLER_GEN) ## Build a local copy of controller-gen.
 
-$(SETUP_ENVTEST): $(TOOLS_DIR)/go.mod # Build setup-envtest from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/setup-envtest sigs.k8s.io/controller-runtime/tools/setup-envtest
+.PHONY: $(CONVERSION_GEN_BIN)
+$(CONVERSION_GEN_BIN): $(CONVERSION_GEN) ## Build a local copy of conversion-gen.
 
-$(CONTROLLER_GEN): $(TOOLS_DIR)/go.mod # Build controller-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/controller-gen sigs.k8s.io/controller-tools/cmd/controller-gen
+.PHONY: $(CONVERSION_VERIFIER_BIN)
+$(CONVERSION_VERIFIER_BIN): $(CONVERSION_VERIFIER) ## Build a local copy of conversion-verifier.
 
-$(GOTESTSUM): $(TOOLS_DIR)/go.mod # Build gotestsum from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/gotestsum gotest.tools/gotestsum
+.PHONY: $(GOTESTSUM_BIN)
+$(GOTESTSUM_BIN): $(GOTESTSUM) ## Build a local copy of gotestsum.
 
-$(CONVERSION_GEN): $(TOOLS_DIR)/go.mod # Build conversion-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-gen k8s.io/code-generator/cmd/conversion-gen
+.PHONY: $(GO_APIDIFF_BIN)
+$(GO_APIDIFF_BIN): $(GO_APIDIFF) ## Build a local copy of go-apidiff
+
+.PHONY: $(ENVSUBST_BIN)
+$(ENVSUBST_BIN): $(ENVSUBST) ## Build a local copy of envsubst.
+
+.PHONY: $(KUSTOMIZE_BIN)
+$(KUSTOMIZE_BIN): $(KUSTOMIZE) ## Build a local copy of kustomize.
+
+.PHONY: $(SETUP_ENVTEST_BIN)
+$(SETUP_ENVTEST_BIN): $(SETUP_ENVTEST) ## Build a local copy of setup-envtest.
+
+.PHONY: $(KPROMO_BIN)
+$(KPROMO_BIN): $(KPROMO) ## Build a local copy of kpromo
+
+.PHONY: $(TILT_PREPARE_BIN)
+$(TILT_PREPARE_BIN): $(TILT_PREPARE) ## Build a local copy of tilt-prepare.
+
+.PHONY: $(GOLANGCI_LINT_BIN)
+$(GOLANGCI_LINT_BIN): $(GOLANGCI_LINT) ## Build a local copy of golangci-lint
+
+$(CONTROLLER_GEN): # Build controller-gen from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONTROLLER_GEN_PKG) $(CONTROLLER_GEN_BIN) $(CONTROLLER_GEN_VER)
+
+## We are forcing a rebuilt of conversion-gen via PHONY so that we're always using an up-to-date version.
+## We can't use a versioned name for the binary, because that would be reflected in generated files.
+.PHONY: $(CONVERSION_GEN)
+$(CONVERSION_GEN): # Build conversion-gen from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(CONVERSION_GEN_PKG) $(CONVERSION_GEN_BIN) $(CONVERSION_GEN_VER)
 
 $(CONVERSION_VERIFIER): $(TOOLS_DIR)/go.mod # Build conversion-verifier from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/conversion-verifier sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
 
+$(GOTESTSUM): # Build gotestsum from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER)
+
+$(GO_APIDIFF): # Build go-apidiff from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GO_APIDIFF_PKG) $(GO_APIDIFF_BIN) $(GO_APIDIFF_VER)
+
+$(ENVSUBST): # Build gotestsum from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(ENVSUBST_PKG) $(ENVSUBST_BIN) $(ENVSUBST_VER)
+
+$(KUSTOMIZE): # Build kustomize from tools folder.
+	CGO_ENABLED=0 GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KUSTOMIZE_PKG) $(KUSTOMIZE_BIN) $(KUSTOMIZE_VER)
+
+$(SETUP_ENVTEST): # Build setup-envtest from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(SETUP_ENVTEST_PKG) $(SETUP_ENVTEST_BIN) $(SETUP_ENVTEST_VER)
+
 $(TILT_PREPARE): $(TOOLS_DIR)/go.mod # Build tilt-prepare from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/tilt-prepare sigs.k8s.io/cluster-api/hack/tools/tilt-prepare
 
-$(GO_APIDIFF): $(TOOLS_DIR)/go.mod # Build go-apidiff from tools folder.
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(GO_APIDIFF_BIN) github.com/joelanford/go-apidiff
+$(KPROMO):
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KPROMO_PKG) $(KPROMO_BIN) ${KPROMO_VER}
 
-$(ENVSUBST): $(TOOLS_DIR)/go.mod # Build envsubst from tools folder.
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(ENVSUBST_BIN) github.com/drone/envsubst/v2/cmd/envsubst
-
-$(KPROMO): $(TOOLS_DIR)/go.mod # Build kpromo from tools folder.
-	cd $(TOOLS_DIR) && go build -tags=tools -o $(KPROMO_BIN) sigs.k8s.io/promo-tools/v3/cmd/kpromo
-
-$(KUSTOMIZE): # Download kustomize using hack script into tools folder.
-	hack/ensure-kustomize.sh
-
-$(GOLANGCI_LINT): .github/workflows/golangci-lint.yml # Download golanci-lint using hack script into tools folder.
+$(GOLANGCI_LINT): .github/workflows/golangci-lint.yml # Download golangci-lint using hack script into tools folder.
 	hack/ensure-golangci-lint.sh \
-		-b $(TOOLS_DIR)/$(BIN_DIR) \
+		-b $(TOOLS_BIN_DIR) \
 		$(shell cat .github/workflows/golangci-lint.yml | grep version | sed 's/.*version: //')

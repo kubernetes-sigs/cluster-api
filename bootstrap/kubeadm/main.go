@@ -33,6 +33,8 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -82,10 +84,14 @@ var (
 	webhookCertDir              string
 	healthAddr                  string
 	tokenTTL                    time.Duration
+	logOptions                  = logs.NewOptions()
 )
 
 // InitFlags initializes this manager's flags.
 func InitFlags(fs *pflag.FlagSet) {
+	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
+	logOptions.AddFlags(fs)
+
 	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", "localhost:8080",
 		"The address the metric endpoint binds to.")
 
@@ -139,7 +145,16 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
-	ctrl.SetLogger(klogr.New())
+	if err := logOptions.ValidateAndApply(); err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
+	// Set the Klog format, as the Serialize format shouldn't be used anymore.
+	// This makes sure that the logs are formatted correctly, i.e.:
+	// * JSON logging format: msg isn't serialized twice
+	// * text logging format: values are formatted with their .String() func.
+	ctrl.SetLogger(klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog)))
 
 	if profilerAddress != "" {
 		klog.Infof("Profiler listening for requests at %s", profilerAddress)

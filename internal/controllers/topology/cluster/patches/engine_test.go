@@ -476,6 +476,19 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 			Namespace: metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.ClusterSpec{
+			Paused: false,
+			ClusterNetwork: &clusterv1.ClusterNetwork{
+				APIServerPort: pointer.Int32(8),
+				Services: &clusterv1.NetworkRanges{
+					CIDRBlocks: []string{"10.10.10.1/24"},
+				},
+				Pods: &clusterv1.NetworkRanges{
+					CIDRBlocks: []string{"11.10.10.1/24"},
+				},
+				ServiceDomain: "lark",
+			},
+			ControlPlaneRef:   nil,
+			InfrastructureRef: nil,
 			Topology: &clusterv1.Topology{
 				Version: "v1.21.2",
 				Class:   clusterClass.Name,

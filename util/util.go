@@ -486,6 +486,7 @@ func (k KubeAwareAPIVersions) Less(i, j int) bool {
 }
 
 // MachinesByCreationTimestamp sorts a list of Machine by creation timestamp, using their names as a tie breaker.
+// Deprecated: This struct will be removed in a future release.
 type MachinesByCreationTimestamp []*clusterv1.Machine
 
 func (o MachinesByCreationTimestamp) Len() int      { return len(o) }

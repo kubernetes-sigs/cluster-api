@@ -8,7 +8,7 @@ ClusterClass is a powerful abstraction implemented on top of existing interfaces
 **Variable name to enable/disable the feature gate**: `CLUSTER_TOPOLOGY`
 
 Additional documentation:
-* Background information:  [ClusterClass and Managed Topologies CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/202105256-cluster-class-and-managed-topologies.md)
+* Background information:  [ClusterClass and Managed Topologies CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20210526-cluster-class-and-managed-topologies.md)
 * For ClusterClass authors:
     * [Writing a ClusterClass](./write-clusterclass.md)
     * [Changing a ClusterClass](./change-clusterclass.md)

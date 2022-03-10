@@ -23,7 +23,6 @@ import (
 
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -359,11 +358,13 @@ func listObjByGVK(c client.Client, groupVersion, kind string, options []client.L
 	objList.SetAPIVersion(groupVersion)
 	objList.SetKind(kind)
 
-	if err := c.List(ctx, objList, options...); err != nil {
-		if !apierrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", objList.GroupVersionKind())
-		}
+	resourceListBackoff := newReadBackoff()
+	if err := retryWithExponentialBackoff(resourceListBackoff, func() error {
+		return c.List(ctx, objList, options...)
+	}); err != nil {
+		return nil, errors.Wrapf(err, "failed to list objects for the %q GroupVersionKind", objList.GroupVersionKind())
 	}
+
 	return objList, nil
 }
 

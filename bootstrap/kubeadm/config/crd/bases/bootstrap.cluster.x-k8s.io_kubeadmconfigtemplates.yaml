@@ -2478,7 +2478,6 @@ spec:
                           type: object
                         type: array
                       format:
-                        default: cloud-config
                         description: Format specifies the output format of the bootstrap
                           data
                         enum:
@@ -2698,6 +2697,14 @@ spec:
                                   content inline or by referencing a secret.
                                 type: string
                             type: object
+                          skipPhases:
+                            description: SkipPhases is a list of phases to skip during
+                              command execution. The list of phases can be obtained
+                              with the "kubeadm init --help" command. This option
+                              takes effect only on Kubernetes >=1.22.0.
+                            items:
+                              type: string
+                            type: array
                         type: object
                       joinConfiguration:
                         description: JoinConfiguration is the kubeadm configuration
@@ -2916,6 +2923,14 @@ spec:
                                   content inline or by referencing a secret.
                                 type: string
                             type: object
+                          skipPhases:
+                            description: SkipPhases is a list of phases to skip during
+                              command execution. The list of phases can be obtained
+                              with the "kubeadm init --help" command. This option
+                              takes effect only on Kubernetes >=1.22.0.
+                            items:
+                              type: string
+                            type: array
                         type: object
                       mounts:
                         description: Mounts specifies a list of mount points to be

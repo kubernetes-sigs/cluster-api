@@ -30,12 +30,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/component-base/featuregate"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 )
 
@@ -51,6 +53,9 @@ func init() {
 	_ = apiextensionsv1.AddToScheme(fakeScheme)
 }
 func TestMain(m *testing.M) {
+	if err := feature.Gates.(featuregate.MutableFeatureGate).Set(fmt.Sprintf("%s=%v", feature.ClusterTopology, true)); err != nil {
+		panic(fmt.Sprintf("unable to set ClusterTopology feature gate: %v", err))
+	}
 	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
 		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {
 			panic(fmt.Sprintf("unable to setup index: %v", err))

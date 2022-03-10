@@ -1707,7 +1707,6 @@ spec:
                               type: object
                             type: array
                           format:
-                            default: cloud-config
                             description: Format specifies the output format of the
                               bootstrap data
                             enum:
@@ -1936,6 +1935,14 @@ spec:
                                       by referencing a secret.
                                     type: string
                                 type: object
+                              skipPhases:
+                                description: SkipPhases is a list of phases to skip
+                                  during command execution. The list of phases can
+                                  be obtained with the "kubeadm init --help" command.
+                                  This option takes effect only on Kubernetes >=1.22.0.
+                                items:
+                                  type: string
+                                type: array
                             type: object
                           joinConfiguration:
                             description: JoinConfiguration is the kubeadm configuration
@@ -2164,6 +2171,14 @@ spec:
                                       by referencing a secret.
                                     type: string
                                 type: object
+                              skipPhases:
+                                description: SkipPhases is a list of phases to skip
+                                  during command execution. The list of phases can
+                                  be obtained with the "kubeadm init --help" command.
+                                  This option takes effect only on Kubernetes >=1.22.0.
+                                items:
+                                  type: string
+                                type: array
                             type: object
                           mounts:
                             description: Mounts specifies a list of mount points to
@@ -2277,6 +2292,14 @@ spec:
                           machines should be shaped when creating or updating a control
                           plane.
                         properties:
+                          nodeDeletionTimeout:
+                            description: NodeDeletionTimeout defines how long the
+                              machine controller will attempt to delete the Node that
+                              the Machine hosts after the Machine is marked for deletion.
+                              A duration of 0 will retry deletion indefinitely. If
+                              no value is provided, the default value for this property
+                              of the Machine resource will be used.
+                            type: string
                           nodeDrainTimeout:
                             description: 'NodeDrainTimeout is the total amount of
                               time that the controller will spend on draining a controlplane

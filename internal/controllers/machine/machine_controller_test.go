@@ -17,6 +17,8 @@ limitations under the License.
 package machine
 
 import (
+	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -27,9 +29,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -1853,6 +1857,193 @@ func TestNodeToMachine(t *testing.T) {
 				NamespacedName: client.ObjectKeyFromObject(expectedMachine),
 			},
 		}))
+	}
+}
+
+type fakeClientWithNodeDeletionErr struct {
+	client.Client
+}
+
+func (fc fakeClientWithNodeDeletionErr) Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error {
+	gvk, err := apiutil.GVKForObject(obj, fakeScheme)
+	if err == nil && gvk.Kind == "Node" {
+		return fmt.Errorf("fake error")
+	}
+	return fc.Client.Delete(ctx, obj, opts...)
+}
+
+func TestNodeDeletion(t *testing.T) {
+	g := NewWithT(t)
+
+	deletionTime := metav1.Now().Add(-1 * time.Second)
+
+	testCluster := clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test",
+		},
+		Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
+	}
+
+	testMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabelName: "",
+			},
+			Annotations: map[string]string{
+				"machine.cluster.x-k8s.io/exclude-node-draining": "",
+			},
+			Finalizers:        []string{clusterv1.MachineFinalizer},
+			DeletionTimestamp: &metav1.Time{Time: deletionTime},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: "test-cluster",
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "GenericInfrastructureMachine",
+				Name:       "infra-config1",
+			},
+			Bootstrap: clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: "test",
+			},
+		},
+	}
+
+	cpmachine1 := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cp1",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterLabelName:             "test-cluster",
+				clusterv1.MachineControlPlaneLabelName: "",
+			},
+			Finalizers: []string{clusterv1.MachineFinalizer},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName:       "test-cluster",
+			InfrastructureRef: corev1.ObjectReference{},
+			Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: "cp1",
+			},
+		},
+	}
+
+	testCases := []struct {
+		name               string
+		deletionTimeout    *metav1.Duration
+		resultErr          bool
+		clusterDeleted     bool
+		expectNodeDeletion bool
+		createFakeClient   func(...client.Object) client.Client
+	}{
+		{
+			name:               "should return no error when deletion is successful",
+			deletionTimeout:    &metav1.Duration{Duration: time.Second},
+			resultErr:          false,
+			expectNodeDeletion: true,
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				return fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					Build()
+			},
+		},
+		{
+			name:               "should return an error when timeout is not expired and node deletion fails",
+			deletionTimeout:    &metav1.Duration{Duration: time.Hour},
+			resultErr:          true,
+			expectNodeDeletion: false,
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				fc := fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					Build()
+				return fakeClientWithNodeDeletionErr{fc}
+			},
+		},
+		{
+			name:               "should return an error when timeout is infinite and node deletion fails",
+			deletionTimeout:    &metav1.Duration{Duration: 0}, // should lead to infinite timeout
+			resultErr:          true,
+			expectNodeDeletion: false,
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				fc := fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					Build()
+				return fakeClientWithNodeDeletionErr{fc}
+			},
+		},
+		{
+			name:               "should not return an error when timeout is expired and node deletion fails",
+			deletionTimeout:    &metav1.Duration{Duration: time.Millisecond},
+			resultErr:          false,
+			expectNodeDeletion: false,
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				fc := fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					Build()
+				return fakeClientWithNodeDeletionErr{fc}
+			},
+		},
+		{
+			name:               "should not delete the node or return an error when the cluster is marked for deletion",
+			deletionTimeout:    nil, // should lead to infinite timeout
+			resultErr:          false,
+			clusterDeleted:     true,
+			expectNodeDeletion: false,
+			createFakeClient: func(initObjs ...client.Object) client.Client {
+				fc := fake.NewClientBuilder().
+					WithObjects(initObjs...).
+					Build()
+				return fakeClientWithNodeDeletionErr{fc}
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			m := testMachine.DeepCopy()
+			m.Spec.NodeDeletionTimeout = tc.deletionTimeout
+
+			fakeClient := tc.createFakeClient(node, m, cpmachine1)
+			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, fakeClient, fakeScheme, client.ObjectKeyFromObject(&testCluster))
+
+			r := &Reconciler{
+				Client:                   fakeClient,
+				Tracker:                  tracker,
+				recorder:                 record.NewFakeRecorder(10),
+				nodeDeletionRetryTimeout: 10 * time.Millisecond,
+			}
+
+			cluster := testCluster.DeepCopy()
+			if tc.clusterDeleted {
+				cluster.DeletionTimestamp = &metav1.Time{Time: deletionTime.Add(time.Hour)}
+			}
+
+			_, err := r.reconcileDelete(context.Background(), cluster, m)
+
+			if tc.resultErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+				if tc.expectNodeDeletion {
+					n := &corev1.Node{}
+					g.Expect(fakeClient.Get(context.Background(), client.ObjectKeyFromObject(node), n)).NotTo(Succeed())
+				}
+			}
+		})
 	}
 }
 

@@ -45,7 +45,7 @@ cleanup() {
     echo "Found errors:"
     cat "${OUT}"
     echo ""
-    echo "run make format-tiltfile to fix the errors"
+    echo "run make tiltfile-fix to fix the errors"
     ret=1
   fi
   echo "Cleaning up..."

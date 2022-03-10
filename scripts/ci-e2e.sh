@@ -27,8 +27,6 @@ source "${REPO_ROOT}/scripts/ci-e2e-lib.sh"
 source "${REPO_ROOT}/hack/ensure-go.sh"
 # shellcheck source=./hack/ensure-kubectl.sh
 source "${REPO_ROOT}/hack/ensure-kubectl.sh"
-# shellcheck source=./hack/ensure-kustomize.sh
-source "${REPO_ROOT}/hack/ensure-kustomize.sh"
 # shellcheck source=./hack/ensure-kind.sh
 source "${REPO_ROOT}/hack/ensure-kind.sh"
 

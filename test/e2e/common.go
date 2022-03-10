@@ -33,16 +33,17 @@ import (
 
 // Test suite constants for e2e config variables.
 const (
-	KubernetesVersionManagement  = "KUBERNETES_VERSION_MANAGEMENT"
-	KubernetesVersion            = "KUBERNETES_VERSION"
-	CNIPath                      = "CNI"
-	CNIResources                 = "CNI_RESOURCES"
-	KubernetesVersionUpgradeFrom = "KUBERNETES_VERSION_UPGRADE_FROM"
-	KubernetesVersionUpgradeTo   = "KUBERNETES_VERSION_UPGRADE_TO"
-	MachineTemplateUpgradeTo     = "MACHINE_TEMPLATE_UPGRADE_TO"
-	EtcdVersionUpgradeTo         = "ETCD_VERSION_UPGRADE_TO"
-	CoreDNSVersionUpgradeTo      = "COREDNS_VERSION_UPGRADE_TO"
-	IPFamily                     = "IP_FAMILY"
+	KubernetesVersionManagement     = "KUBERNETES_VERSION_MANAGEMENT"
+	KubernetesVersion               = "KUBERNETES_VERSION"
+	CNIPath                         = "CNI"
+	CNIResources                    = "CNI_RESOURCES"
+	KubernetesVersionUpgradeFrom    = "KUBERNETES_VERSION_UPGRADE_FROM"
+	KubernetesVersionUpgradeTo      = "KUBERNETES_VERSION_UPGRADE_TO"
+	CPMachineTemplateUpgradeTo      = "CONTROL_PLANE_MACHINE_TEMPLATE_UPGRADE_TO"
+	WorkersMachineTemplateUpgradeTo = "WORKERS_MACHINE_TEMPLATE_UPGRADE_TO"
+	EtcdVersionUpgradeTo            = "ETCD_VERSION_UPGRADE_TO"
+	CoreDNSVersionUpgradeTo         = "COREDNS_VERSION_UPGRADE_TO"
+	IPFamily                        = "IP_FAMILY"
 )
 
 func Byf(format string, a ...interface{}) {

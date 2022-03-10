@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2"
 	kubedrain "k8s.io/kubectl/pkg/drain"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -86,12 +85,20 @@ type Reconciler struct {
 	controller      controller.Controller
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
+
+	// nodeDeletionRetryTimeout determines how long the controller will retry deleting a node
+	// during a single reconciliation.
+	nodeDeletionRetryTimeout time.Duration
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	clusterToMachines, err := util.ClusterToObjectsMapper(mgr.GetClient(), &clusterv1.MachineList{}, mgr.GetScheme())
 	if err != nil {
 		return err
+	}
+
+	if r.nodeDeletionRetryTimeout.Nanoseconds() == 0 {
+		r.nodeDeletionRetryTimeout = 10 * time.Second
 	}
 
 	controller, err := ctrl.NewControllerManagedBy(mgr).
@@ -380,16 +387,22 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		log.Info("Deleting node", "node", m.Status.NodeRef.Name)
 
 		var deleteNodeErr error
-		waitErr := wait.PollImmediate(2*time.Second, 10*time.Second, func() (bool, error) {
+		waitErr := wait.PollImmediate(2*time.Second, r.nodeDeletionRetryTimeout, func() (bool, error) {
 			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr != nil && !apierrors.IsNotFound(errors.Cause(deleteNodeErr)) {
 				return false, nil
 			}
 			return true, nil
 		})
 		if waitErr != nil {
-			log.Error(deleteNodeErr, "Timed out deleting node, moving on", "node", m.Status.NodeRef.Name)
+			log.Error(deleteNodeErr, "Timed out deleting node", "node", m.Status.NodeRef.Name)
 			conditions.MarkFalse(m, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, "")
 			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's node: %v", deleteNodeErr)
+
+			// If the node deletion timeout is not expired yet, requeue the Machine for reconciliation.
+			if m.Spec.NodeDeletionTimeout == nil || m.Spec.NodeDeletionTimeout.Nanoseconds() == 0 || m.DeletionTimestamp.Add(m.Spec.NodeDeletionTimeout.Duration).After(time.Now()) {
+				return ctrl.Result{}, deleteNodeErr
+			}
+			log.Info("Node deletion timeout expired, continuing without Node deletion.")
 		}
 	}
 
@@ -530,8 +543,10 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 			log.Info(fmt.Sprintf("%s pod from Node", verbStr),
 				"pod", fmt.Sprintf("%s/%s", pod.Name, pod.Namespace))
 		},
-		Out:    writer{klog.Info},
-		ErrOut: writer{klog.Error},
+		Out: writer{log.Info},
+		ErrOut: writer{func(msg string, keysAndValues ...interface{}) {
+			log.Error(nil, msg, keysAndValues...)
+		}},
 	}
 
 	if noderefutil.IsNodeUnreachable(node) {
@@ -743,7 +758,7 @@ func (r *Reconciler) nodeToMachine(o client.Object) []reconcile.Request {
 
 // writer implements io.Writer interface as a pass-through for klog.
 type writer struct {
-	logFunc func(args ...interface{})
+	logFunc func(msg string, keysAndValues ...interface{})
 }
 
 // Write passes string(p) into writer's logFunc and always returns len(p).

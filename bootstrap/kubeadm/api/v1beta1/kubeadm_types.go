@@ -54,6 +54,12 @@ type InitConfiguration struct {
 	// +optional
 	LocalAPIEndpoint APIEndpoint `json:"localAPIEndpoint,omitempty"`
 
+	// SkipPhases is a list of phases to skip during command execution.
+	// The list of phases can be obtained with the "kubeadm init --help" command.
+	// This option takes effect only on Kubernetes >=1.22.0.
+	// +optional
+	SkipPhases []string `json:"skipPhases,omitempty"`
+
 	// Patches contains options related to applying patches to components deployed by kubeadm during
 	// "kubeadm init". The minimum kubernetes version needed to support Patches is v1.22
 	// +optional
@@ -365,6 +371,12 @@ type JoinConfiguration struct {
 	// If nil, no additional control plane instance will be deployed.
 	// +optional
 	ControlPlane *JoinControlPlane `json:"controlPlane,omitempty"`
+
+	// SkipPhases is a list of phases to skip during command execution.
+	// The list of phases can be obtained with the "kubeadm init --help" command.
+	// This option takes effect only on Kubernetes >=1.22.0.
+	// +optional
+	SkipPhases []string `json:"skipPhases,omitempty"`
 
 	// Patches contains options related to applying patches to components deployed by kubeadm during
 	// "kubeadm join". The minimum kubernetes version needed to support Patches is v1.22

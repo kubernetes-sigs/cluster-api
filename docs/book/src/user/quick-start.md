@@ -101,7 +101,7 @@ The clusterctl CLI tool handles the lifecycle of a Cluster API management cluste
 #### Install clusterctl binary with curl on linux
 Download the latest release; on linux, type:
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.0.x"}} -o clusterctl
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.1.x"}} -o clusterctl
 ```
 Make the clusterctl binary executable.
 ```
@@ -122,12 +122,12 @@ clusterctl version
 #### Install clusterctl binary with curl on macOS
 Download the latest release; on macOS, type:
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.0.x"}} -o clusterctl
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.1.x"}} -o clusterctl
 ```
 
 Or if your Mac has an M1 CPU ("Apple Silicon"):
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.0.x"}} -o clusterctl
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.1.x"}} -o clusterctl
 ```
 
 Make the clusterctl binary executable.
@@ -515,7 +515,9 @@ export WORKER_NODE_TYPE="t1.small"
 export GCP_REGION="<GCP_REGION>"
 export GCP_PROJECT="<GCP_PROJECT>"
 # Make sure to use same kubernetes version here as building the GCE image
-export KUBERNETES_VERSION=1.20.9
+export KUBERNETES_VERSION=1.23.3
+# This is the image you built. See https://github.com/kubernetes-sigs/image-builder
+export IMAGE_ID=projects/$GCP_PROJECT/global/images/<built image>
 export GCP_CONTROL_PLANE_MACHINE_TYPE=n1-standard-2
 export GCP_NODE_MACHINE_TYPE=n1-standard-2
 export GCP_NETWORK_NAME=<GCP_NETWORK_NAME or default>

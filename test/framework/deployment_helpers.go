@@ -19,6 +19,7 @@ package framework
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -98,6 +99,18 @@ type WatchDeploymentLogsInput struct {
 	LogPath    string
 }
 
+// logMetadata contains metadata about the logs.
+// The format is very similar to the one used by promtail.
+type logMetadata struct {
+	Job       string `json:"job"`
+	Namespace string `json:"namespace"`
+	App       string `json:"app"`
+	Pod       string `json:"pod"`
+	Container string `json:"container"`
+	NodeName  string `json:"node_name"`
+	Stream    string `json:"stream"`
+}
+
 // WatchDeploymentLogs streams logs for all containers for all pods belonging to a deployment. Each container's logs are streamed
 // in a separate goroutine so they can all be streamed concurrently. This only causes a test failure if there are errors
 // retrieving the deployment, its pods, or setting up a log file. If there is an error with the log streaming itself,
@@ -120,6 +133,23 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 	for _, pod := range pods.Items {
 		for _, container := range deployment.Spec.Template.Spec.Containers {
 			log.Logf("Creating log watcher for controller %s/%s, pod %s, container %s", input.Deployment.Namespace, input.Deployment.Name, pod.Name, container.Name)
+
+			// Create log metadata file.
+			logMetadataFile := filepath.Clean(path.Join(input.LogPath, input.Deployment.Name, pod.Name, container.Name+"-log-metadata.json"))
+			Expect(os.MkdirAll(filepath.Dir(logMetadataFile), 0750)).To(Succeed())
+
+			metadata := logMetadata{
+				Job:       input.Deployment.Namespace + "/" + input.Deployment.Name,
+				Namespace: input.Deployment.Namespace,
+				App:       input.Deployment.Name,
+				Pod:       pod.Name,
+				Container: container.Name,
+				NodeName:  pod.Spec.NodeName,
+				Stream:    "stderr",
+			}
+			metadataBytes, err := json.Marshal(&metadata)
+			Expect(err).To(BeNil())
+			Expect(os.WriteFile(logMetadataFile, metadataBytes, 0600)).To(Succeed())
 
 			// Watch each container's logs in a goroutine so we can stream them all concurrently.
 			go func(pod corev1.Pod, container corev1.Container) {

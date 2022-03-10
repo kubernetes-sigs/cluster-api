@@ -99,7 +99,7 @@ write_files:
         \ v1.13.6\nnetworking:\n  dnsDomain: cluster.local\n  podSubnet: 192.168.0.0/16\n\
         \  serviceSubnet: 10.96.0.0/12\nscheduler: {}\n\n---\napiVersion: kubeadm.k8s.io/v1beta1\n\
         kind: InitConfiguration\nlocalAPIEndpoint:\n  advertiseAddress: \"\"\n  bindPort:\
-        \ 0\nnodeRegistration:\n  criSocket: /var/run/containerd/containerd.sock\n\
+        \ 0\nnodeRegistration:\n  criSocket: unix:///var/run/containerd/containerd.sock\n\
         \  kubeletExtraArgs:\n    cloud-provider: aws\n  name: 'ip-10-0-0-223.us-west-2.compute.internal'\n"
     owner: root:root
     path: /run/kubeadm/kubeadm.yaml

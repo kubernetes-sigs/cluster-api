@@ -149,8 +149,13 @@ func YAMLForComponentSource(ctx context.Context, source ProviderVersionSource) (
 		}
 		data = buf
 	case KustomizeSource:
+		// Set Path of kustomize binary using CAPI_KUSTOMIZE_PATH env
+		kustomizePath, ok := os.LookupEnv("CAPI_KUSTOMIZE_PATH")
+		if !ok {
+			kustomizePath = "kustomize"
+		}
 		kustomize := exec.NewCommand(
-			exec.WithCommand("kustomize"),
+			exec.WithCommand(kustomizePath),
 			exec.WithArgs("build", source.Value))
 		stdout, stderr, err := kustomize.Run(ctx)
 		if err != nil {

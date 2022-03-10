@@ -30,6 +30,15 @@ func (r *KubeadmConfigTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error 
 		Complete()
 }
 
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-bootstrap-cluster-x-k8s-io-v1beta1-kubeadmconfigtemplate,mutating=true,failurePolicy=fail,groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigtemplates,versions=v1beta1,name=default.kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+
+var _ webhook.Defaulter = &KubeadmConfigTemplate{}
+
+// Default implements webhook.Defaulter so a webhook will be registered for the type.
+func (r *KubeadmConfigTemplate) Default() {
+	DefaultKubeadmConfigSpec(&r.Spec.Template.Spec)
+}
+
 // +kubebuilder:webhook:verbs=create;update,path=/validate-bootstrap-cluster-x-k8s-io-v1beta1-kubeadmconfigtemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigtemplates,versions=v1beta1,name=validation.kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 var _ webhook.Validator = &KubeadmConfigTemplate{}

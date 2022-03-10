@@ -39,6 +39,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.MachineTemplate.ObjectMeta = restored.Spec.MachineTemplate.ObjectMeta
+	dst.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.MachineTemplate.NodeDeletionTimeout
 	dst.Status.Version = restored.Status.Version
 
 	if restored.Spec.KubeadmConfigSpec.JoinConfiguration != nil && restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
@@ -57,10 +58,18 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.KubeadmConfigSpec.Ignition = restored.Spec.KubeadmConfigSpec.Ignition
 	if restored.Spec.KubeadmConfigSpec.InitConfiguration != nil {
+		if dst.Spec.KubeadmConfigSpec.InitConfiguration == nil {
+			dst.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}
+		}
 		dst.Spec.KubeadmConfigSpec.InitConfiguration.Patches = restored.Spec.KubeadmConfigSpec.InitConfiguration.Patches
+		dst.Spec.KubeadmConfigSpec.InitConfiguration.SkipPhases = restored.Spec.KubeadmConfigSpec.InitConfiguration.SkipPhases
 	}
 	if restored.Spec.KubeadmConfigSpec.JoinConfiguration != nil {
+		if dst.Spec.KubeadmConfigSpec.JoinConfiguration == nil {
+			dst.Spec.KubeadmConfigSpec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
 		dst.Spec.KubeadmConfigSpec.JoinConfiguration.Patches = restored.Spec.KubeadmConfigSpec.JoinConfiguration.Patches
+		dst.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases = restored.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases
 	}
 
 	return nil

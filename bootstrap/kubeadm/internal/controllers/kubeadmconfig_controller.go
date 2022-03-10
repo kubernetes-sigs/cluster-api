@@ -713,7 +713,7 @@ func (r *KubeadmConfigReconciler) resolveSecretFileContent(ctx context.Context, 
 	return data, nil
 }
 
-// ClusterToKubeadmConfigs is a handler.ToRequestsFunc to be used to enqeue
+// ClusterToKubeadmConfigs is a handler.ToRequestsFunc to be used to enqueue
 // requests for reconciliation of KubeadmConfigs.
 func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
@@ -761,7 +761,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o client.Object) []ctr
 	return result
 }
 
-// MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqeue
+// MachineToBootstrapMapFunc is a handler.ToRequestsFunc to be used to enqueue
 // request for reconciliation of KubeadmConfig.
 func (r *KubeadmConfigReconciler) MachineToBootstrapMapFunc(o client.Object) []ctrl.Request {
 	m, ok := o.(*clusterv1.Machine)

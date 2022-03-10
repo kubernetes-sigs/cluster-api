@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
@@ -440,22 +441,14 @@ func (webhook *ClusterClass) classNamesFromWorkerClass(w clusterv1.WorkersClass)
 
 func (webhook *ClusterClass) getClustersUsingClusterClass(ctx context.Context, clusterClass *clusterv1.ClusterClass) ([]clusterv1.Cluster, error) {
 	clusters := &clusterv1.ClusterList{}
-	clustersUsingClusterClass := []clusterv1.Cluster{}
 	err := webhook.Client.List(ctx, clusters,
-		client.MatchingLabels{
-			clusterv1.ClusterTopologyOwnedLabel: "",
-		},
+		client.MatchingFields{index.ClusterClassNameField: clusterClass.Name},
 		client.InNamespace(clusterClass.Namespace),
 	)
 	if err != nil {
 		return nil, err
 	}
-	for _, c := range clusters.Items {
-		if c.Spec.Topology.Class == clusterClass.Name {
-			clustersUsingClusterClass = append(clustersUsingClusterClass, c)
-		}
-	}
-	return clustersUsingClusterClass, nil
+	return clusters.Items, nil
 }
 
 func getClusterClassVariablesMapWithReverseIndex(clusterClassVariables []clusterv1.ClusterClassVariable) (map[string]*clusterv1.ClusterClassVariable, map[string]int) {

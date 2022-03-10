@@ -39,7 +39,6 @@ Prow Postsubmits:
 ### Periodics
 
 Prow Periodics:
-* [periodic-cluster-api-verify-book-links-main] `make verify-book-links`
 * [periodic-cluster-api-test-main] `./scripts/ci-test.sh`
 * [periodic-cluster-api-e2e-main] `./scripts/ci-e2e.sh`
   * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]`
@@ -78,7 +77,6 @@ GitHub (On Release) Workflows:
 [pull-cluster-api-e2e-ipv6-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main-ipv6
 [pull-cluster-api-e2e-full-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-full-main
 [pull-cluster-api-e2e-workload-upgrade-1-23-latest-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main-1-23-latest
-[periodic-cluster-api-verify-book-links-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-verify-book-links-main
 [periodic-cluster-api-test-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-test-main
 [periodic-cluster-api-e2e-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main
 [periodic-cluster-api-e2e-upgrade-v0-3-to-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-upgrade-v0-3-to-main

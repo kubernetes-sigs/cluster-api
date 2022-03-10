@@ -68,6 +68,8 @@ func defaultKubeadmControlPlaneSpec(s *KubeadmControlPlaneSpec, namespace string
 		s.Version = "v" + s.Version
 	}
 
+	bootstrapv1.DefaultKubeadmConfigSpec(&s.KubeadmConfigSpec)
+
 	s.RolloutStrategy = defaultRolloutStrategy(s.RolloutStrategy)
 }
 
@@ -152,6 +154,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, "machineTemplate", "infrastructureRef", "apiVersion"},
 		{spec, "machineTemplate", "infrastructureRef", "name"},
 		{spec, "machineTemplate", "nodeDrainTimeout"},
+		{spec, "machineTemplate", "nodeDeletionTimeout"},
 		{spec, "replicas"},
 		{spec, "version"},
 		{spec, "rolloutAfter"},

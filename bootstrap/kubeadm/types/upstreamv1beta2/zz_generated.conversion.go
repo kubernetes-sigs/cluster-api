@@ -667,6 +667,7 @@ func autoConvert_v1beta1_InitConfiguration_To_upstreamv1beta2_InitConfiguration(
 	if err := Convert_v1beta1_APIEndpoint_To_upstreamv1beta2_APIEndpoint(&in.LocalAPIEndpoint, &out.LocalAPIEndpoint, s); err != nil {
 		return err
 	}
+	// WARNING: in.SkipPhases requires manual conversion: does not exist in peer-type
 	// WARNING: in.Patches requires manual conversion: does not exist in peer-type
 	return nil
 }
@@ -713,6 +714,7 @@ func autoConvert_v1beta1_JoinConfiguration_To_upstreamv1beta2_JoinConfiguration(
 	} else {
 		out.ControlPlane = nil
 	}
+	// WARNING: in.SkipPhases requires manual conversion: does not exist in peer-type
 	// WARNING: in.Patches requires manual conversion: does not exist in peer-type
 	return nil
 }

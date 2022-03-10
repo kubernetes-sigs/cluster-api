@@ -274,11 +274,8 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 
 	var providerIDList []string
 	// Get Spec.ProviderIDList from the infrastructure provider.
-	if err := util.UnstructuredUnmarshalField(infraConfig, &providerIDList, "spec", "providerIDList"); err != nil {
+	if err := util.UnstructuredUnmarshalField(infraConfig, &providerIDList, "spec", "providerIDList"); err != nil && !errors.Is(err, util.ErrUnstructuredFieldNotFound) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve data from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
-	} else if len(providerIDList) == 0 {
-		log.Info("Retrieved empty Spec.ProviderIDList from infrastructure provider")
-		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
 	// Get and set Status.Replicas from the infrastructure provider.
@@ -287,8 +284,10 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 		if err != util.ErrUnstructuredFieldNotFound {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve replicas from infrastructure provider for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
 		}
-	} else if mp.Status.Replicas == 0 {
-		log.Info("Retrieved unset Status.Replicas from infrastructure provider")
+	}
+
+	if len(providerIDList) == 0 && mp.Status.Replicas != 0 {
+		log.Info("Retrieved empty Spec.ProviderIDList from infrastructure provider but Status.Replicas is not zero.", "replicas", mp.Status.Replicas)
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 

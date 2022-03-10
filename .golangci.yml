@@ -12,7 +12,6 @@ linters:
   - gci
   - goconst
   - gocritic
-  - gocyclo
   - godot
   - gofmt
   - goimports

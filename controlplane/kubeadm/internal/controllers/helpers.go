@@ -289,6 +289,9 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 			NodeDrainTimeout: kcp.Spec.MachineTemplate.NodeDrainTimeout,
 		},
 	}
+	if kcp.Spec.MachineTemplate.NodeDeletionTimeout != nil {
+		machine.Spec.NodeDeletionTimeout = kcp.Spec.MachineTemplate.NodeDeletionTimeout
+	}
 
 	// Machine's bootstrap config may be missing ClusterConfiguration if it is not the first machine in the control plane.
 	// We store ClusterConfiguration as annotation here to detect any changes in KCP ClusterConfiguration and rollout the machine if any.

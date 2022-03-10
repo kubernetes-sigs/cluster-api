@@ -23,6 +23,7 @@ import (
 	"strings"
 	"text/template"
 
+	sprig "github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -99,7 +100,7 @@ func validateEnabledIf(enabledIf *string, path *field.Path) field.ErrorList {
 
 	if enabledIf != nil {
 		// Error if template can not be parsed.
-		_, err := template.New("enabledIf").Parse(*enabledIf)
+		_, err := template.New("enabledIf").Funcs(sprig.HermeticTxtFuncMap()).Parse(*enabledIf)
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
@@ -272,7 +273,7 @@ func validateJSONPatchValues(jsonPatch clusterv1.JSONPatch, variableSet map[stri
 
 	if jsonPatch.ValueFrom != nil && jsonPatch.ValueFrom.Template != nil {
 		// Error if template can not be parsed.
-		_, err := template.New("valueFrom.template").Parse(*jsonPatch.ValueFrom.Template)
+		_, err := template.New("valueFrom.template").Funcs(sprig.HermeticTxtFuncMap()).Parse(*jsonPatch.ValueFrom.Template)
 		if err != nil {
 			allErrs = append(allErrs,
 				field.Invalid(
@@ -332,21 +333,34 @@ var builtinVariables = sets.NewString(
 
 	// ClusterTopology builtins.
 	"builtin.cluster.topology",
-	"builtin.cluster.topology.version",
 	"builtin.cluster.topology.class",
+	"builtin.cluster.topology.version",
+
+	// ClusterNetwork builtins
+	"builtin.cluster.network",
+	"builtin.cluster.network.serviceDomain",
+	"builtin.cluster.network.services",
+	"builtin.cluster.network.pods",
+	"builtin.cluster.network.ipFamily",
 
 	// ControlPlane builtins.
 	"builtin.controlPlane",
-	"builtin.controlPlane.version",
+	"builtin.controlPlane.name",
 	"builtin.controlPlane.replicas",
+	"builtin.controlPlane.version",
+	// ControlPlane ref builtins.
+	"builtin.controlPlane.machineTemplate.infrastructureRef.name",
 
 	// MachineDeployment builtins.
 	"builtin.machineDeployment",
-	"builtin.machineDeployment.version",
 	"builtin.machineDeployment.class",
 	"builtin.machineDeployment.name",
-	"builtin.machineDeployment.topologyName",
 	"builtin.machineDeployment.replicas",
+	"builtin.machineDeployment.topologyName",
+	"builtin.machineDeployment.version",
+	// MachineDeployment ref builtins.
+	"builtin.machineDeployment.bootstrap.configRef.name",
+	"builtin.machineDeployment.infrastructureRef.name",
 )
 
 // validateIndexAccess checks to see if the jsonPath is attempting to add an element in the array i.e. access by number

@@ -1,4 +1,4 @@
-# Configuration for grafana chart, see https://github.com/grafana/helm-charts/tree/main/charts/grafana
+# Configuration for promtail chart, see https://github.com/grafana/helm-charts/tree/main/charts/promtail
 
 config:
   # publish data to loki

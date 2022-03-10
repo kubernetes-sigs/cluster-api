@@ -1,5 +1,9 @@
 # Configuration for grafana chart, see https://github.com/grafana/helm-charts/tree/main/charts/grafana
 
+# Set a password explicitly to avoid infinite tilt reloads because
+# of a random password.
+adminPassword: admin
+
 grafana.ini:
   # Disable the grafana login form.
   auth:
@@ -18,6 +22,9 @@ datasources:
     - name: Loki
       type: loki
       url: http://loki:3100
+    - name: Prometheus
+      type: prometheus
+      url: http://prometheus-server
 
 # Disable grafana test framework
 testFramework:

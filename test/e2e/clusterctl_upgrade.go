@@ -292,6 +292,17 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			input.PreUpgrade(managementClusterProxy)
 		}
 
+		// Get the workloadCluster before the management cluster is upgraded to make sure that the upgrade did not trigger
+		// any unexpected rollouts.
+		preUpgradeMachineList := &clusterv1alpha3.MachineList{}
+		err = managementClusterProxy.GetClient().List(
+			ctx,
+			preUpgradeMachineList,
+			client.InNamespace(testNamespace.Name),
+			client.MatchingLabels{clusterv1.ClusterLabelName: workLoadClusterName},
+		)
+		Expect(err).NotTo(HaveOccurred())
+
 		By("Upgrading providers to the latest version available")
 		clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
@@ -306,6 +317,19 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			By("Running Post-upgrade steps against the management cluster")
 			input.PostUpgrade(managementClusterProxy)
 		}
+
+		// After the upgrade check that there were no unexpected rollouts.
+		Consistently(func() bool {
+			postUpgradeMachineList := &clusterv1.MachineList{}
+			err = managementClusterProxy.GetClient().List(
+				ctx,
+				postUpgradeMachineList,
+				client.InNamespace(testNamespace.Name),
+				client.MatchingLabels{clusterv1.ClusterLabelName: workLoadClusterName},
+			)
+			Expect(err).NotTo(HaveOccurred())
+			return machinesMatch(preUpgradeMachineList, postUpgradeMachineList)
+		}, "3m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
 
 		// After upgrading we are sure the version is the latest version of the API,
 		// so it is possible to use the standard helpers
@@ -549,4 +573,25 @@ func waitForClusterDeletedV1alpha4(ctx context.Context, input waitForClusterDele
 		}
 		return apierrors.IsNotFound(input.Getter.Get(ctx, key, cluster))
 	}, intervals...).Should(BeTrue())
+}
+
+func machinesMatch(oldMachineList *clusterv1alpha3.MachineList, newMachineList *clusterv1.MachineList) bool {
+	if len(oldMachineList.Items) != len(newMachineList.Items) {
+		return false
+	}
+
+	// Every machine from the old list should be present in the new list
+	for _, oldMachine := range oldMachineList.Items {
+		found := false
+		for _, newMachine := range newMachineList.Items {
+			if oldMachine.Name == newMachine.Name && oldMachine.Namespace == newMachine.Namespace {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
 }

@@ -1,20 +1,25 @@
 # -*- mode: Python -*-
+
+load("ext://uibutton", "cmd_button", "text_input")
+
 # set defaults
 version_settings(True, ">=0.22.2")
 
 settings = {
     "deploy_cert_manager": True,
-    "preload_images_for_kind": True,
     "enable_providers": ["docker"],
-    "kind_cluster_name": "kind",
+    "kind_cluster_name": os.getenv("CAPI_KIND_CLUSTER_NAME", "capi-test"),
     "debug": {},
 }
 
 # global settings
-settings.update(read_json(
-    "tilt-settings.json",
+tilt_file = "./tilt-settings.yaml" if os.path.exists("./tilt-settings.yaml") else "./tilt-settings.json"
+settings.update(read_yaml(
+    tilt_file,
     default = {},
 ))
+
+os.putenv("CAPI_KIND_CLUSTER_NAME", settings.get("kind_cluster_name"))
 
 allow_k8s_contexts(settings.get("allowed_contexts"))
 
@@ -27,7 +32,6 @@ if settings.get("trigger_mode") == "manual":
 default_registry(settings.get("default_registry"))
 
 always_enable_providers = ["core"]
-extra_args = settings.get("extra_args", {})
 
 providers = {
     "core": {
@@ -93,11 +97,11 @@ providers = {
             "internal",
             "third_party",
         ],
-        "additional_docker_helper_commands": "RUN wget -qO- https://dl.k8s.io/v1.21.2/kubernetes-client-linux-{arch}.tar.gz | tar xvz".format(
-            arch = os_arch,
+        "additional_docker_helper_commands": "RUN curl -LO https://dl.k8s.io/release/v1.23.3/bin/linux/{ARCH}/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/bin/kubectl".format(
+            ARCH = os_arch,
         ),
         "additional_docker_build_commands": """
-COPY --from=tilt-helper /go/kubernetes/client/bin/kubectl /usr/bin/kubectl
+COPY --from=tilt-helper /usr/bin/kubectl /usr/bin/kubectl
 """,
         "label": "CAPD",
     },
@@ -119,8 +123,10 @@ def load_provider_tiltfiles():
     provider_repos = settings.get("provider_repos", [])
 
     for repo in provider_repos:
-        file = repo + "/tilt-provider.json"
-        provider_details = read_json(file, default = {})
+        file = repo + "/tilt-provider.yaml" if os.path.exists(repo + "/tilt-provider.yaml") else repo + "/tilt-provider.json"
+        if not os.path.exists(file):
+            fail("Failed to load provider. No tilt-provider.{yaml|json} file found in " + repo)
+        provider_details = read_yaml(file, default = {})
         if type(provider_details) != type([]):
             provider_details = [provider_details]
         for item in provider_details:
@@ -232,13 +238,7 @@ def enable_provider(name, debug):
     links = []
 
     if debug_port != 0:
-        # Add delve when debugging. Delve will always listen on the pod side on port 30000.
-        entrypoint = ["sh", "/start.sh", "/dlv", "--listen=:" + str(30000), "--accept-multiclient", "--api-version=2", "--headless=true", "exec", "--", "/manager"]
         port_forwards.append(port_forward(debug_port, 30000))
-        if debug.get("continue", True):
-            entrypoint.insert(8, "--continue")
-    else:
-        entrypoint = ["sh", "/start.sh", "/manager"]
 
     metrics_port = int(debug.get("metrics_port", 0))
     profiler_port = int(debug.get("profiler_port", 0))
@@ -248,21 +248,15 @@ def enable_provider(name, debug):
 
     if profiler_port != 0:
         port_forwards.append(port_forward(profiler_port, 6060))
-        entrypoint.extend(["--profiler-address", ":6060"])
         links.append(link("http://localhost:" + str(profiler_port) + "/debug/pprof", "profiler"))
 
     # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
     # build into the container.
-    provider_args = extra_args.get(name)
-    if provider_args:
-        entrypoint.extend(provider_args)
-
     docker_build(
         ref = p.get("image"),
         context = context + "/.tiltbuild/bin/",
         dockerfile_contents = dockerfile_contents,
         target = "tilt",
-        entrypoint = entrypoint,
         only = "manager",
         live_update = [
             sync(context + "/.tiltbuild/bin/manager", "/manager"),
@@ -322,11 +316,32 @@ def deploy_provider_crds():
     )
 
 def deploy_observability():
-    k8s_yaml(read_file("./.tiltbuild/yaml/observability.tools.yaml"))
+    if "promtail" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/promtail.observability.yaml"), allow_duplicates = True)
+        k8s_resource(workload = "promtail", extra_pod_selectors = [{"app": "promtail"}], labels = ["observability"], resource_deps = ["loki"])
 
-    k8s_resource(workload = "promtail", extra_pod_selectors = [{"app": "promtail"}], labels = ["observability"])
-    k8s_resource(workload = "loki", extra_pod_selectors = [{"app": "loki"}], labels = ["observability"])
-    k8s_resource(workload = "grafana", port_forwards = "3000", extra_pod_selectors = [{"app": "grafana"}], labels = ["observability"])
+    if "loki" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/loki.observability.yaml"), allow_duplicates = True)
+        k8s_resource(workload = "loki", port_forwards = "3100", extra_pod_selectors = [{"app": "loki"}], labels = ["observability"])
+
+        cmd_button(
+            "loki:import logs",
+            argv = ["sh", "-c", "cd ./hack/tools/log-push && go run ./main.go --log-path=$LOG_PATH"],
+            resource = "loki",
+            icon_name = "import_export",
+            text = "Import logs",
+            inputs = [
+                text_input("LOG_PATH", label = "Log path, one of: GCS path, ProwJob URL or local folder"),
+            ],
+        )
+
+    if "grafana" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/grafana.observability.yaml"), allow_duplicates = True)
+        k8s_resource(workload = "grafana", port_forwards = "3001:3000", extra_pod_selectors = [{"app": "grafana"}], labels = ["observability"])
+
+    if "prometheus" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/prometheus.observability.yaml"), allow_duplicates = True)
+        k8s_resource(workload = "prometheus-server", new_name = "prometheus", port_forwards = "9090", extra_pod_selectors = [{"app": "prometheus"}], labels = ["observability"])
 
 def prepare_all():
     allow_k8s_arg = ""
@@ -345,28 +360,30 @@ def prepare_all():
     # Note: we are creating clusterctl CRDs using kustomize (vs using clusterctl) because we want to create
     # a dependency between these resources and provider resources.
     kustomize_build_arg = "--kustomize-builds clusterctl.crd:./cmd/clusterctl/config/crd/ "
-    if settings.get("deploy_observability"):
-        kustomize_build_arg = kustomize_build_arg + "--kustomize-builds observability.tools:./hack/observability/ "
+    for tool in settings.get("deploy_observability", []):
+        kustomize_build_arg = kustomize_build_arg + "--kustomize-builds {tool}.observability:./hack/observability/{tool}/ ".format(tool = tool)
     providers_arg = ""
     for name in get_providers():
         p = providers.get(name)
+        if p == None:
+            fail("Provider with name " + name + " not found")
         if p.get("kustomize_config", True):
             context = p.get("context")
             debug = ""
-            if name in settings.get("debug"):
-                debug = ":debug"
-            providers_arg = providers_arg + "--providers {name}:{context}{debug} ".format(
+            providers_arg = providers_arg + "--providers {name}:{context} ".format(
                 name = name,
                 context = context,
-                debug = debug,
             )
 
-    cmd = "make -B tilt-prepare && ./hack/tools/bin/tilt-prepare {allow_k8s_arg}{tools_arg}{cert_manager_arg}{kustomize_build_arg}{providers_arg}".format(
+    tilt_settings_file_arg = "--tilt-settings-file " + tilt_file
+
+    cmd = "make -B tilt-prepare && ./hack/tools/bin/tilt-prepare {allow_k8s_arg}{tools_arg}{cert_manager_arg}{kustomize_build_arg}{providers_arg}{tilt_settings_file_arg}".format(
         allow_k8s_arg = allow_k8s_arg,
         tools_arg = tools_arg,
         cert_manager_arg = cert_manager_arg,
         kustomize_build_arg = kustomize_build_arg,
         providers_arg = providers_arg,
+        tilt_settings_file_arg = tilt_settings_file_arg,
     )
     local(cmd, env = settings.get("kustomize_substitutions", {}))
 
@@ -382,7 +399,6 @@ prepare_all()
 
 deploy_provider_crds()
 
-if settings.get("deploy_observability"):
-    deploy_observability()
+deploy_observability()
 
 enable_providers()

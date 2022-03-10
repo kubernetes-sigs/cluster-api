@@ -38,6 +38,13 @@ func (in *ClusterBuilder) DeepCopyInto(out *ClusterBuilder) {
 			(*out)[key] = val
 		}
 	}
+	if in.annotations != nil {
+		in, out := &in.annotations, &out.annotations
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
+		}
+	}
 	if in.topology != nil {
 		in, out := &in.topology, &out.topology
 		*out = new(v1beta1.Topology)

@@ -59,6 +59,9 @@ Cluster API Provider Nested
 ### CAPO
 Cluster API Provider OpenStack
 
+### CAPOCI
+Cluster API Provider Oracle Cloud Infrastructure (OCI)
+
 ### CAPV
 Cluster API Provider vSphere
 

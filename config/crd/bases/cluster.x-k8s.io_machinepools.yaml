@@ -973,6 +973,11 @@ spec:
       jsonPath: .status.replicas
       name: Replicas
       type: string
+    - description: Total number of machines desired by this MachinePool
+      jsonPath: .spec.replicas
+      name: Desired
+      priority: 10
+      type: integer
     - description: MachinePool status such as Terminating/Pending/Provisioning/Running/Failed
         etc
       jsonPath: .status.phase

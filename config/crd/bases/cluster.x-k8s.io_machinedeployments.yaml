@@ -966,6 +966,11 @@ spec:
       jsonPath: .spec.clusterName
       name: Cluster
       type: string
+    - description: Total number of machines desired by this MachineDeployment
+      jsonPath: .spec.replicas
+      name: Desired
+      priority: 10
+      type: integer
     - description: Total number of non-terminated machines targeted by this MachineDeployment
       jsonPath: .status.replicas
       name: Replicas

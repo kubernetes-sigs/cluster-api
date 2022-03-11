@@ -2415,6 +2415,11 @@ spec:
       jsonPath: .status.ready
       name: API Server Available
       type: boolean
+    - description: Total number of machines desired by this control plane
+      jsonPath: .spec.replicas
+      name: Desired
+      priority: 10
+      type: integer
     - description: Total number of non-terminated machines targeted by this control
         plane
       jsonPath: .status.replicas

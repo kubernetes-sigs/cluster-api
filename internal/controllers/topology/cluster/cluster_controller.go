@@ -127,6 +127,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
+	cluster.APIVersion = clusterv1.GroupVersion.String()
 	cluster.Kind = "Cluster"
 
 	// Return early, if the Cluster does not use a managed topology.

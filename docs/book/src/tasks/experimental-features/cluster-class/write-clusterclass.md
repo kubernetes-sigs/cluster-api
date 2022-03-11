@@ -651,6 +651,16 @@ With `semverCompare` and `coalesce` a feature can be enabled in newer versions o
     enabledIf: '{{ semverCompare "^1.22.0" (coalesce .builtin.controlPlane.version .builtin.machineDeployment.version )}}'
 ```
 
+<aside class="note">
+
+<h1>Builtin Variables</h1>
+
+Please be aware that while you can use builtin variables, if you use for example a MachineDeployment-specific variable this
+can mean that patches are only applied to some MachineDeployments. `enabledIf` is evaluated for each template that should be patched
+individually.
+
+</aside>
+
 <!-- links -->
 [Changing a ClusterClass]: ./change-clusterclass.md
 [clusterctl alpha topology plan]: ../../../clusterctl/commands/alpha-topology-plan.md

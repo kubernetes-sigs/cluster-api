@@ -846,14 +846,14 @@ spec:
       jsonPath: .spec.clusterName
       name: Cluster
       type: string
-    - description: Total number of non-terminated machines targeted by this machineset
-      jsonPath: .status.replicas
-      name: Replicas
-      type: integer
     - description: Total number of machines desired by this machineset
       jsonPath: .spec.replicas
       name: Desired
       priority: 10
+      type: integer
+    - description: Total number of non-terminated machines targeted by this machineset
+      jsonPath: .status.replicas
+      name: Replicas
       type: integer
     - description: Total number of ready machines targeted by this machineset.
       jsonPath: .status.readyReplicas

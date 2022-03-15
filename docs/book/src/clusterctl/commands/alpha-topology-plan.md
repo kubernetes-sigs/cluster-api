@@ -424,6 +424,17 @@ or validation on these objects. Defaulting and validation is only run on Cluster
 
 </aside>
 
+<aside class="note warning">
+
+<h1>API Versions and Contract compatibility</h1>
+
+All the objects in the input of the same `Group.Kind` should have the same `apiVersion`. 
+Example: Two `InfraMachineTemplate`s with `apiVersion`s `infrastructure.cluster.x-k8s.io/v1beta1` and `infrastructure.cluster.x-k8s.io/v1alpha4` are not allowed.
+
+The API version of resource in the input should be compatible with the current version of Cluster API contract.
+
+</aside>
+
 ### `--output-directory`, `-o` (REQUIRED)
 
 Information about the objects that are created and updated is written to this directory.

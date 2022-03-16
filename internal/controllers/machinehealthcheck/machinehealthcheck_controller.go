@@ -340,7 +340,7 @@ func (r *Reconciler) patchHealthyTargets(ctx context.Context, logger logr.Logger
 			obj, err := r.getExternalRemediationRequest(ctx, m, t.Machine.Name)
 			if err != nil {
 				if !apierrors.IsNotFound(errors.Cause(err)) {
-					wrappedErr := errors.Wrapf(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.ClusterName)
+					wrappedErr := errors.Wrapf(err, "failed to fetch remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.Spec.ClusterName)
 					errList = append(errList, wrappedErr)
 				}
 				continue
@@ -398,7 +398,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 					Template:    from,
 					TemplateRef: m.Spec.RemediationTemplate,
 					Namespace:   t.Machine.Namespace,
-					ClusterName: t.Machine.ClusterName,
+					ClusterName: t.Machine.Spec.ClusterName,
 					OwnerRef:    cloneOwnerRef,
 				}
 				to, err := external.GenerateTemplate(generateTemplateInput)
@@ -419,7 +419,7 @@ func (r *Reconciler) patchUnhealthyTargets(ctx context.Context, logger logr.Logg
 				// Create the external clone.
 				if err := r.Client.Create(ctx, to); err != nil {
 					conditions.MarkFalse(m, clusterv1.ExternalRemediationRequestAvailable, clusterv1.ExternalRemediationRequestCreationFailed, clusterv1.ConditionSeverityError, err.Error())
-					errList = append(errList, errors.Wrapf(err, "error creating remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.ClusterName))
+					errList = append(errList, errors.Wrapf(err, "error creating remediation request for machine %q in namespace %q within cluster %q", t.Machine.Name, t.Machine.Namespace, t.Machine.Spec.ClusterName))
 					return errList
 				}
 			} else {

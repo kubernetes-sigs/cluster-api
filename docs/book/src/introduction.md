@@ -1,4 +1,4 @@
-# Kubernetes Cluster API<div style="float: right; position: relative; display: inline;"><img src="images/introduction.png" width="160px" /></div>
+# Kubernetes Cluster API<div style="float: right; position: relative; display: inline;"><img src="images/introduction.svg" width="160px" /></div>
 
 Cluster API is a Kubernetes sub-project focused on providing declarative APIs and tooling to simplify provisioning, upgrading, and operating multiple Kubernetes clusters.
 

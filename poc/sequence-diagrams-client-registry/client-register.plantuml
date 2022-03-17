@@ -1,0 +1,69 @@
+@startuml
+title Figure 1. Client
+
+' -- GROUPS START ---
+
+box #LightGreen
+participant "APIServer"
+end box
+
+box #LightGreen
+participant "Extension Controller"
+end box
+
+box #LightGreen
+participant "Client"
+end box
+
+box #LightGreen
+participant "Registry"
+end box
+
+box #LightGreen
+participant "Runtime Extension"
+end box
+
+' -- GROUPS END ---
+
+' -- Register Extension ---
+
+"APIServer" -> "Extension Controller": Extension reconcile event
+activate "Extension Controller"
+
+"Extension Controller" -> "Client": Extension(ext).Discover()
+activate "Client"
+
+loop Versions of Discovery API
+  "Client" -> "Runtime Extension": http.Post(DiscoveryRequest)
+  activate "Runtime Extension"
+  "Runtime Extension" -> "Client": DiscoveryResponse
+  deactivate "Runtime Extension"
+end
+
+"Client" -> "Registry": RegisterRuntimeExtension
+
+"Client" -> "Extension Controller": Return results
+deactivate "Client"
+
+"Extension Controller" -> "APIServer": Update Extension status
+deactivate "Extension Controller"
+
+' -- Unregister Extension ---
+
+"APIServer" -> "Extension Controller": Extension delete event
+activate "Extension Controller"
+
+"Extension Controller" -> "Client": Extension(ext).Unregister()
+activate "Client"
+
+"Client" -> "Registry": UnregisterRuntimeExtension
+
+"Client" -> "Extension Controller":
+deactivate "Client"
+
+"Extension Controller" -> "APIServer":
+deactivate "Extension Controller"
+
+hide footbox
+@enduml
+

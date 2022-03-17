@@ -1,0 +1,70 @@
+@startuml
+title Figure 1. Registry
+
+' -- GROUPS START ---
+
+box #LightGreen
+participant "APIServer"
+end box
+
+box #LightGreen
+participant "Extension Controller"
+end box
+
+box #LightGreen
+participant "Registry"
+end box
+
+box #LightGreen
+participant "Client"
+end box
+
+box #LightGreen
+participant "Runtime Extension"
+end box
+
+' -- GROUPS END ---
+
+' -- Register Extension ---
+
+"APIServer" -> "Extension Controller": Extension reconcile event
+activate "Extension Controller"
+
+"Extension Controller" -> "Registry": Discover(ext)
+
+activate "Registry"
+
+loop Versions of Discovery API
+  "Registry" -> "Client": Discover
+  activate "Client"
+
+  "Client" -> "Runtime Extension": http.Post(DiscoveryRequest)
+  activate "Runtime Extension"
+  "Runtime Extension" -> "Client": DiscoveryResponse
+  deactivate "Runtime Extension"
+
+  "Client" -> "Registry": Return results
+  deactivate "Client"
+end
+
+"Registry" -> "Registry": RegisterRuntimeExtension
+
+"Registry" -> "Extension Controller": Return results
+deactivate "Registry"
+
+"Extension Controller" -> "APIServer": Update Extension status
+deactivate "Extension Controller"
+
+' -- Unregister Extension ---
+
+"APIServer" -> "Extension Controller": Extension delete event
+activate "Extension Controller"
+
+"Extension Controller" -> "Registry": Unregister(ext)
+
+"Extension Controller" -> "APIServer":
+deactivate "Extension Controller"
+
+hide footbox
+@enduml
+

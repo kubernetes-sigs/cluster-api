@@ -1,0 +1,105 @@
+@startuml
+title Figure 1. Registry
+
+' -- GROUPS START ---
+
+box #LightGreen
+participant "APIServer"
+end box
+
+box #LightGreen
+participant "Cluster Controller"
+end box
+
+box #LightGreen
+participant "Registry"
+end box
+
+box #LightGreen
+participant "Client"
+end box
+
+box #LightGreen
+participant "Catalog"
+end box
+
+box #LightGreen
+participant "Runtime Extensions"
+end box
+
+' -- GROUPS END ---
+
+' -- CallExtensions ---
+
+"APIServer" -> "Cluster Controller": Cluster reconcile event
+activate "Cluster Controller"
+
+"Cluster Controller" -> "Registry": Hook(hook).CallExtensions(req, resp)
+activate "Registry"
+
+
+"Registry" -> "Catalog": HookKind(hook)
+activate "Catalog"
+"Catalog" -> "Registry": Return gvh
+deactivate "Catalog"
+
+"Registry" -> "Registry": GetRuntimeExtensions(gvh)
+
+loop RuntimeExtensions
+  "Registry" -> "Client": Create client
+
+  "Registry" -> "Client": Call Hook
+
+  "Client" -> "Catalog": Get req/resp types
+  "Client" -> "Catalog": [opt] convert req
+
+  "Client" -> "Runtime Extensions": http.Post(req)
+  activate "Runtime Extensions"
+  "Runtime Extensions" -> "Client": resp
+  deactivate "Runtime Extensions"
+
+  "Client" -> "Catalog": [opt] convert resp
+end
+
+"Registry" -> "Cluster Controller": Return results
+deactivate "Registry"
+
+deactivate "Cluster Controller"
+
+' -- CallExtension ---
+
+"APIServer" -> "Cluster Controller": Cluster reconcile event
+activate "Cluster Controller"
+
+"Cluster Controller" -> "Registry": Hook(hook).CallExtension(name, req, resp)
+activate "Registry"
+
+
+"Registry" -> "Catalog": HookKind(hook)
+activate "Catalog"
+"Catalog" -> "Registry": Return gvh
+deactivate "Catalog"
+
+"Registry" -> "Registry": GetRuntimeExtension(gvh, name)
+
+"Registry" -> "Client": Create client
+"Registry" -> "Client": Call Hook
+
+"Client" -> "Catalog": Get req/resp types
+"Client" -> "Catalog": [opt] convert req
+
+"Client" -> "Runtime Extensions": http.Post(req)
+activate "Runtime Extensions"
+"Runtime Extensions" -> "Client": resp
+deactivate "Runtime Extensions"
+
+"Client" -> "Catalog": [opt] convert resp
+
+"Registry" -> "Cluster Controller": Return results
+deactivate "Registry"
+
+deactivate "Cluster Controller"
+
+hide footbox
+@enduml
+

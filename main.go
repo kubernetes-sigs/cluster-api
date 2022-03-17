@@ -56,7 +56,13 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	runtimev1controllers "sigs.k8s.io/cluster-api/exp/runtime/controllers"
+	runtimehooksv1alpha1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	runtimehooksv1alpha2 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha2"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/feature"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimev1webhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
@@ -64,6 +70,7 @@ import (
 
 var (
 	scheme   = runtime.NewScheme()
+	catalog  = runtimecatalog.New()
 	setupLog = ctrl.Log.WithName("setup")
 
 	// flags.
@@ -78,6 +85,7 @@ var (
 	clusterTopologyConcurrency    int
 	clusterClassConcurrency       int
 	clusterConcurrency            int
+	extensionConfigConcurrency    int
 	machineConcurrency            int
 	machineSetConcurrency         int
 	machineDeploymentConcurrency  int
@@ -110,6 +118,10 @@ func init() {
 	_ = runtimev1.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
+
+	_ = runtimehooksv1alpha1.AddToCatalog(catalog)
+	_ = runtimehooksv1alpha2.AddToCatalog(catalog)
+	_ = runtimehooksv1.AddToCatalog(catalog)
 }
 
 // InitFlags initializes the flags.
@@ -149,6 +161,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
 		"Number of clusters to process simultaneously")
+
+	fs.IntVar(&extensionConfigConcurrency, "extensionconfig-concurrency", 10,
+		"Number of extension configs to process simultaneously")
 
 	fs.IntVar(&machineConcurrency, "machine-concurrency", 10,
 		"Number of machines to process simultaneously")
@@ -294,6 +309,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	var runtimeClient runtimeclient.Client
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		runtimeClient = runtimeclient.New(runtimeclient.Options{
+			Catalog: catalog,
+		})
+	}
+
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		unstructuredCachingClient, err := client.NewDelegatingClient(
 			client.NewDelegatingClientInput{
@@ -323,6 +345,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		if err := (&controllers.ClusterTopologyReconciler{
 			Client:                    mgr.GetClient(),
 			APIReader:                 mgr.GetAPIReader(),
+			RuntimeClient:             runtimeClient,
 			UnstructuredCachingClient: unstructuredCachingClient,
 			WatchFilterValue:          watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
@@ -348,6 +371,19 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			os.Exit(1)
 		}
 	}
+
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		if err = (&runtimev1controllers.ExtensionConfigReconciler{
+			Client:           mgr.GetClient(),
+			APIReader:        mgr.GetAPIReader(),
+			RuntimeClient:    runtimeClient,
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, concurrency(extensionConfigConcurrency)); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ExtensionConfig")
+			os.Exit(1)
+		}
+	}
+
 	if err := (&controllers.ClusterReconciler{
 		Client:           mgr.GetClient(),
 		APIReader:        mgr.GetAPIReader(),

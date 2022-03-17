@@ -334,3 +334,15 @@ func (gvh GroupVersionHook) String() string {
 var emptyGroupVersionHook = GroupVersionHook{}
 
 var emptyGroupVersionKind = schema.GroupVersionKind{}
+
+// GVHToPath calculates the path for a given GroupVersionHook.
+// This func is aligned with Kubernetes paths for cluster-wide resources, e.g.:
+// /apis/storage.k8s.io/v1/storageclasses/standard.
+// Note: name is only appended if set, e.g. the Discovery Hook does not have a name.
+// TODO: discuss eventually in which package this should be placed.
+func GVHToPath(gvh GroupVersionHook, name string) string {
+	if name == "" {
+		return fmt.Sprintf("/%s/%s/%s", gvh.Group, gvh.Version, strings.ToLower(gvh.Hook))
+	}
+	return fmt.Sprintf("/%s/%s/%s/%s", gvh.Group, gvh.Version, strings.ToLower(gvh.Hook), strings.ToLower(name))
+}

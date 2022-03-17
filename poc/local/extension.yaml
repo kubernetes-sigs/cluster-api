@@ -1,0 +1,9 @@
+apiVersion: runtime.cluster.x-k8s.io/v1beta1
+kind: Extension
+metadata:
+  name: "my-local-extensions"
+spec:
+  clientConfig:
+    # TODO: test docker.for.mac.localhost / linux: some ip.
+    url: "http://localhost:8082"
+  namespaceSelector: {}

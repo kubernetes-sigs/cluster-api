@@ -32,6 +32,7 @@ import (
 	clustertopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster"
 	machinedeploymenttopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/machinedeployment"
 	machinesettopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/machineset"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 )
 
 // Following types provides access to reconcilers implemented in internal/controllers, thus
@@ -139,6 +140,8 @@ type ClusterTopologyReconciler struct {
 	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
 	// thus allowing to optimize reads for templates or provider specific objects in a managed topology.
 	UnstructuredCachingClient client.Client
+
+	RuntimeClient runtimeclient.Client
 }
 
 func (r *ClusterTopologyReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -146,6 +149,7 @@ func (r *ClusterTopologyReconciler) SetupWithManager(ctx context.Context, mgr ct
 		Client:                    r.Client,
 		APIReader:                 r.APIReader,
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
+		RuntimeClient:             r.RuntimeClient,
 		WatchFilterValue:          r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

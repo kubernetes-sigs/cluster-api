@@ -49,7 +49,7 @@ import (
 var (
 	logPath                 = flag.String("log-path", "", "Can be either a GCS path, a ProwJob URL or a local directory")
 	logFileRegex            = flag.String("log-file-regex", "manager\\.log", "Regex used to find log files")
-	logJSONAdditionalLabels = flag.String("log-json-additional-labels", "cluster,machine", "Comma-separated list of additional labels to parse from JSON logs")
+	logJSONAdditionalLabels = flag.String("log-json-additional-labels", "controller,cluster,machine", "Comma-separated list of additional labels to parse from JSON logs")
 	lokiURL                 = flag.String("loki-url", "http://localhost:3100/loki/api/v1/push", "Loki URL to push the logs to")
 )
 
@@ -320,15 +320,23 @@ func prepareLogsForLoki(ld LogData, logJSONAdditionalLabels []string) ([]LokiStr
 			logLineMetadata[k] = v
 		}
 
-		lokiStream := LokiStream{
-			Stream: logLineMetadata,
-			Values: [][]string{{tsNano, logLine}},
-		}
-
 		parsedLogLine, err := fastjson.Parse(logLine)
 		// We intentionally silently ignore the error, otherwise we
 		// would get too many errors with logs in text format.
 		if err == nil {
+			// Store the ts in original_ts so that it's shown as a separate k/v in Loki.
+			if parsedLogLine.Exists("ts") {
+				originalTimestampMillis := parsedLogLine.Get("ts")
+				parsedLogLine.Set("original_tsMs", originalTimestampMillis)
+
+				t := time.UnixMilli(int64(originalTimestampMillis.GetFloat64()))
+				originalTimestamp := strconv.Quote(t.Format(time.RFC3339Nano))
+				parsedLogLine.Set("original_ts", fastjson.MustParse(originalTimestamp))
+
+				// Overwrite the original log line with the one with the additional original timestamp.
+				logLine = parsedLogLine.String()
+			}
+
 			// Add cluster and machine labels to logLineMetadata
 			// if they exist in the current log line.
 			for _, label := range logJSONAdditionalLabels {
@@ -344,11 +352,14 @@ func prepareLogsForLoki(ld LogData, logJSONAdditionalLabels []string) ([]LokiStr
 				if err != nil {
 					return nil, errors.Wrapf(err, "failed to unquote label %q: %q", label, labelValue)
 				}
-				lokiStream.Stream[label] = labelValue
+				logLineMetadata[label] = labelValue
 			}
 		}
 
-		allStreams = append(allStreams, lokiStream)
+		allStreams = append(allStreams, LokiStream{
+			Stream: logLineMetadata,
+			Values: [][]string{{tsNano, logLine}},
+		})
 	}
 
 	// We have to batch the streams, because we can only push

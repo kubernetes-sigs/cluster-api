@@ -55,13 +55,21 @@ import (
 	expv1alpha4 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
+	runtimecontrollers "sigs.k8s.io/cluster-api/exp/runtime/controllers"
+	hooksv1alpha1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	hooksv1alpha2 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha2"
+	hooksv1alpha3 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/feature"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
+	"sigs.k8s.io/cluster-api/internal/runtime/registry"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
 
 var (
 	scheme   = runtime.NewScheme()
+	catalog  = runtimecatalog.New()
 	setupLog = ctrl.Log.WithName("setup")
 
 	// flags.
@@ -106,6 +114,10 @@ func init() {
 	_ = addonsv1.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
+
+	hooksv1alpha1.AddToCatalog(catalog)
+	hooksv1alpha2.AddToCatalog(catalog)
+	hooksv1alpha3.AddToCatalog(catalog)
 }
 
 // InitFlags initializes the flags.
@@ -291,6 +303,22 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	registry := registry.New()
+
+	runtimeClient := runtimeclient.New(runtimeclient.Options{
+		Catalog:  catalog,
+		Registry: registry,
+	})
+
+	if err := (&runtimecontrollers.ExtensionReconciler{
+		Client:        mgr.GetClient(),
+		RuntimeClient: runtimeClient,
+		Registry:      registry,
+	}).SetupWithManager(ctx, mgr, concurrency(1)); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "Extension")
+		os.Exit(1)
+	}
+
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		unstructuredCachingClient, err := client.NewDelegatingClient(
 			client.NewDelegatingClientInput{
@@ -320,6 +348,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		if err := (&controllers.ClusterTopologyReconciler{
 			Client:                    mgr.GetClient(),
 			APIReader:                 mgr.GetAPIReader(),
+			RuntimeClient:             runtimeClient,
 			UnstructuredCachingClient: unstructuredCachingClient,
 			WatchFilterValue:          watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {

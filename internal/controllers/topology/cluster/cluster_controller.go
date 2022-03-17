@@ -37,6 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -64,6 +65,8 @@ type Reconciler struct {
 	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
 	// thus allowing to optimize reads for templates or provider specific objects in a managed topology.
 	UnstructuredCachingClient client.Client
+
+	RuntimeClient runtimeclient.Client
 
 	externalTracker external.ObjectTracker
 	recorder        record.EventRecorder

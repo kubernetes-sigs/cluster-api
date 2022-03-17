@@ -263,6 +263,7 @@ run:
   - e2e
   skip-files:
   - "zz_generated.*\\.go$"
+  - "vendored_openapi\\.go$"
   skip-dirs:
   - third_party
   allow-parallel-runners: true

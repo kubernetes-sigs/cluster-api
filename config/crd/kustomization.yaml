@@ -12,6 +12,8 @@ resources:
 - bases/addons.cluster.x-k8s.io_clusterresourcesetbindings.yaml
 - bases/cluster.x-k8s.io_machinehealthchecks.yaml
 - bases/runtime.cluster.x-k8s.io_extensionconfigs.yaml
+- bases/ipam.cluster.x-k8s.io_ipaddresses.yaml
+- bases/ipam.cluster.x-k8s.io_ipaddressclaims.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

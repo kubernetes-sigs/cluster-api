@@ -50,6 +50,8 @@ func ManifestLabel(name string, providerType ProviderType) string {
 		return fmt.Sprintf("control-plane-%s", name)
 	case InfrastructureProviderType:
 		return fmt.Sprintf("infrastructure-%s", name)
+	case OtherProviderType:
+		return fmt.Sprintf("other-%s", name)
 	default:
 		return name
 	}

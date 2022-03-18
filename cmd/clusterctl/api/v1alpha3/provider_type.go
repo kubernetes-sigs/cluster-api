@@ -92,7 +92,8 @@ func (p *Provider) GetProviderType() ProviderType {
 		CoreProviderType,
 		BootstrapProviderType,
 		InfrastructureProviderType,
-		ControlPlaneProviderType:
+		ControlPlaneProviderType,
+		OtherProviderType:
 		return t
 	default:
 		return ProviderTypeUnknown
@@ -118,6 +119,10 @@ const (
 	// control-plane capabilities.
 	ControlPlaneProviderType = ProviderType("ControlPlaneProvider")
 
+	// OtherProviderType is the type associated with other codebases that provide
+	// generic capabilities that do not require any special handling.
+	OtherProviderType = ProviderType("OtherProvider")
+
 	// ProviderTypeUnknown is used when the type is unknown.
 	ProviderTypeUnknown = ProviderType("")
 )
@@ -133,8 +138,10 @@ func (p ProviderType) Order() int {
 		return 2
 	case InfrastructureProviderType:
 		return 3
-	default:
+	case OtherProviderType:
 		return 4
+	default:
+		return 5
 	}
 }
 

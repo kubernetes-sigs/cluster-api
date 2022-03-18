@@ -655,6 +655,14 @@ func getProviderObj(prefix string, objs []unstructured.Unstructured) (*unstructu
 		providerType = "ControlPlaneProvider"
 		providerName = manifestLabel[len("control-plane-"):]
 	}
+	if strings.HasPrefix(manifestLabel, "ipam-") {
+		providerType = "UnknownProvider"
+		providerName = manifestLabel[len("ipam-"):]
+	}
+	if strings.HasPrefix(manifestLabel, "other-") {
+		providerType = "UnknownProvider"
+		providerName = manifestLabel[len("other-"):]
+	}
 
 	provider := &clusterctlv1.Provider{
 		TypeMeta: metav1.TypeMeta{

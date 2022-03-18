@@ -221,7 +221,7 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 		}
 	}
 
-	if len(nodeRefs) == 0 {
+	if len(nodeRefs) == 0 && len(providerIDList) != 0 {
 		return getNodeReferencesResult{}, errNoAvailableNodes
 	}
 	return getNodeReferencesResult{nodeRefs, available, ready}, nil

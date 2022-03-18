@@ -198,6 +198,7 @@ providers.
 |CAPN          | cluster.x-k8s.io/provider=infrastructure-nested        |
 |CAPP          | cluster.x-k8s.io/provider=infrastructure-packet        |
 |CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure         |
+|CAPOCI        | cluster.x-k8s.io/provider=infrastructure-oci           |
 |CAPO          | cluster.x-k8s.io/provider=infrastructure-openstack     |
 |CAPDO         | cluster.x-k8s.io/provider=infrastructure-digitalocean  |
 |CAPG          | cluster.x-k8s.io/provider=infrastructure-gcp           |

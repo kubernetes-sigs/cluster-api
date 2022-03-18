@@ -291,6 +291,14 @@ rules:
   - patch
   - watch
 - apiGroups:
+  - ipam.cluster.x-k8s.io
+  resources:
+  - ipaddressclaims
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - runtime.cluster.x-k8s.io
   resources:
   - extensionconfigs

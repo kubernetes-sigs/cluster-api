@@ -147,7 +147,7 @@ func TestReconcileReturnErrorWhenOwnerClusterIsMissing(t *testing.T) {
 	g.Expect(result).To(Equal(ctrl.Result{}))
 
 	// calling reconcile should return error
-	g.Expect(env.Delete(ctx, cluster)).To(Succeed())
+	g.Expect(env.CleanupAndWait(ctx, cluster)).To(Succeed())
 
 	g.Eventually(func() error {
 		_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -461,6 +461,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 		cluster.Spec.ControlPlaneEndpoint.Host = "bar"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
+		cluster.Status.InfrastructureReady = true
 		kcp.Spec.Version = version
 
 		fmc := &fakeManagementCluster{
@@ -525,6 +526,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 		cluster.Spec.ControlPlaneEndpoint.Host = "bar"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
+		cluster.Status.InfrastructureReady = true
 		kcp.Spec.Version = version
 
 		fmc := &fakeManagementCluster{
@@ -631,6 +633,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com1"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
+		cluster.Status.InfrastructureReady = true
 		kcp.Spec.Version = version
 
 		now := metav1.Now()
@@ -697,6 +700,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
 		cluster.Spec.ControlPlaneEndpoint.Host = "nodomain.example.com2"
 		cluster.Spec.ControlPlaneEndpoint.Port = 6443
+		cluster.Status.InfrastructureReady = true
 		kcp.Spec.Version = "v1.17.0"
 
 		fmc := &fakeManagementCluster{

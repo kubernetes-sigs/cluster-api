@@ -19,9 +19,11 @@ package machine
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/pkg/errors"
+	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -247,6 +249,11 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 			log.Error(err, "error watching nodes on target cluster")
 			return ctrl.Result{}, err
 		}
+		if err := r.watchClusterCertificateSigningRequests(ctx, cluster); err != nil {
+			log.Error(err, "error watching certificatesigningrequests on target cluster")
+			return ctrl.Result{}, err
+		}
+
 	}
 
 	// If the Machine belongs to a cluster, add an owner reference.
@@ -264,6 +271,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		r.reconcileInfrastructure,
 		r.reconcileNode,
 		r.reconcileInterruptibleNodeLabel,
+		r.reconcileKubletServingCertificateSigningRequest,
 	}
 
 	res := ctrl.Result{}
@@ -686,6 +694,22 @@ func (r *Reconciler) shouldAdopt(m *clusterv1.Machine) bool {
 	return metav1.GetControllerOf(m) == nil && !util.HasOwner(m.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"})
 }
 
+func (r *Reconciler) watchClusterCertificateSigningRequests(ctx context.Context, cluster *clusterv1.Cluster) error {
+	// If there is no tracker, don't watch remote CertificateSigningRequests
+	if r.Tracker == nil {
+		return nil
+	}
+
+	return r.Tracker.Watch(ctx, remote.WatchInput{
+		Name:         "machine-watchCSRs",
+		Cluster:      util.ObjectKey(cluster),
+		Watcher:      r.controller,
+		Kind:         &certificatesv1.CertificateSigningRequest{},
+		EventHandler: handler.EnqueueRequestsFromMapFunc(r.certificateSigningRequestToMachine(cluster)),
+	})
+
+}
+
 func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
 	// If there is no tracker, don't watch remote nodes
 	if r.Tracker == nil {
@@ -699,6 +723,26 @@ func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.C
 		Kind:         &corev1.Node{},
 		EventHandler: handler.EnqueueRequestsFromMapFunc(r.nodeToMachine),
 	})
+}
+
+func (r *Reconciler) certificateSigningRequestToMachine(cluster *clusterv1.Cluster) func(o client.Object) []reconcile.Request {
+	return func(o client.Object) []reconcile.Request {
+		csr, ok := o.(*certificatesv1.CertificateSigningRequest)
+		if !ok {
+			panic(fmt.Sprintf("Expected a CertificateSigningRequest but got a %T", o))
+		}
+		nodeName := strings.TrimPrefix(csr.Spec.Username, "system:node:")
+		remoteClient, err := r.Tracker.GetClient(context.TODO(), util.ObjectKey(cluster))
+		if err != nil {
+			return nil
+		}
+		node := corev1.Node{}
+		if err := remoteClient.Get(context.TODO(), client.ObjectKey{Name: nodeName}, &node); err != nil {
+			return nil
+		}
+		return r.nodeToMachine(&node)
+	}
+
 }
 
 func (r *Reconciler) nodeToMachine(o client.Object) []reconcile.Request {

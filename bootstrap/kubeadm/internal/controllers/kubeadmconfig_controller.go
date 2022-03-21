@@ -898,6 +898,19 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(ctx context.Co
 		}
 	}
 
+	// TODO: We should add a Spec.Security.KubeletAuthentication field to Cluster and conditionally set this
+	// Make sure that kubelet requests a kubernetes.io/kubelet-serving CSR on startup
+	if config.Spec.InitConfiguration.NodeRegistration.KubeletExtraArgs["rotate-server-certificates"] == "" {
+		config.Spec.InitConfiguration.NodeRegistration.KubeletExtraArgs["rotate-server-certificates"] = "true"
+	}
+
+	// TODO: We should add a Spec.Security.KubeletAuthentication field to Cluster and conditionally set this
+	// Make sure that we verify kubelet serving certificates instead of blindly trusting them.
+	if config.Spec.ClusterConfiguration.APIServer.ExtraArgs["kubelet-certificate-authority"] == "" {
+		config.Spec.InitConfiguration.NodeRegistration.KubeletExtraArgs["rotate-server-certificates"] = "true"
+		config.Spec.ClusterConfiguration.APIServer.ExtraArgs["kubelet-certificate-authority"] = "/etc/kubernetes/pki/ca.rt"
+	}
+
 	// If there are no KubernetesVersion settings defined in ClusterConfiguration, use Version from machine, if defined
 	if config.Spec.ClusterConfiguration.KubernetesVersion == "" && machine.Spec.Version != nil {
 		config.Spec.ClusterConfiguration.KubernetesVersion = *machine.Spec.Version

@@ -128,6 +128,15 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			expected:       nil,
 			err:            errNoAvailableNodes,
 		},
+		{
+			name:           "no provider id, no node found",
+			providerIDList: []string{},
+			expected: &getNodeReferencesResult{
+				references: []corev1.ObjectReference{},
+				available:  0,
+				ready:      0,
+			},
+		},
 	}
 
 	for _, test := range testCases {

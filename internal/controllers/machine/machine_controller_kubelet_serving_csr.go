@@ -21,9 +21,6 @@ import (
 )
 
 const (
-	// KubeletServingSignerName defines the name for the kubelet serving certificate signer
-	KubeletServingSignerName = "kubernetes.io/kubelet-serving"
-
 	// NodesPrefix defines the prefix name for a node.
 	NodesPrefix = "system:node:"
 
@@ -59,7 +56,7 @@ func (r *Reconciler) reconcileKubletServingCertificateSigningRequest(ctx context
 	if err := remoteClient.List(ctx, &csrList, &client.ListOptions{
 		FieldSelector: fields.AndSelectors(
 			fields.OneTermEqualSelector("spec.username", NodesPrefix+node.Name),
-			fields.OneTermEqualSelector("spec.signer", KubeletServingSignerName),
+			fields.OneTermEqualSelector("spec.signer", certificatesv1.KubeletServingSignerName),
 		),
 	}); err != nil {
 		return ctrl.Result{}, err

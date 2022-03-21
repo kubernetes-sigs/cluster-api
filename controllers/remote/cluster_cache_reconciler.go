@@ -34,6 +34,7 @@ import (
 // ClusterCacheReconciler is responsible for stopping remote cluster caches when
 // the cluster for the remote cache is being deleted.
 type ClusterCacheReconciler struct {
+	// Deprecated: this field is unused and will be dropped in an upcoming release.
 	Log     logr.Logger
 	Client  client.Client
 	Tracker *ClusterCacheTracker
@@ -44,6 +45,7 @@ type ClusterCacheReconciler struct {
 
 func (r *ClusterCacheReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	err := ctrl.NewControllerManagedBy(mgr).
+		Named("remote/clustercache").
 		For(&clusterv1.Cluster{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).

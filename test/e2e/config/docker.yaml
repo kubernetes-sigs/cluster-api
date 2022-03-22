@@ -199,10 +199,10 @@ variables:
   # allowing the same e2e config file to be re-used in different Prow jobs e.g. each one with a K8s version permutation.
   # The following Kubernetes versions should be the latest versions with already published kindest/node images.
   # This avoids building node images in the default case which improves the test duration significantly.
-  KUBERNETES_VERSION_MANAGEMENT: "v1.23.3"
-  KUBERNETES_VERSION: "v1.23.3"
-  KUBERNETES_VERSION_UPGRADE_FROM: "v1.22.4"
-  KUBERNETES_VERSION_UPGRADE_TO: "v1.23.3"
+  KUBERNETES_VERSION_MANAGEMENT: "v1.23.4"
+  KUBERNETES_VERSION: "v1.23.4"
+  KUBERNETES_VERSION_UPGRADE_FROM: "v1.22.7"
+  KUBERNETES_VERSION_UPGRADE_TO: "v1.23.4"
   ETCD_VERSION_UPGRADE_TO: "3.5.1-0"
   COREDNS_VERSION_UPGRADE_TO: "1.8.4"
   DOCKER_SERVICE_DOMAIN: "cluster.local"
@@ -224,7 +224,7 @@ variables:
   # NOTE: We test the latest release with a previous contract.
   INIT_WITH_BINARY: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.7/clusterctl-{OS}-{ARCH}"
   INIT_WITH_PROVIDERS_CONTRACT: "v1alpha4"
-  INIT_WITH_KUBERNETES_VERSION: "v1.23.3"
+  INIT_WITH_KUBERNETES_VERSION: "v1.23.4"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]

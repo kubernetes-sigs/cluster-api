@@ -53,10 +53,21 @@ provisioning might be stuck:
     * Run [docker system prune --volumes](https://docs.docker.com/engine/reference/commandline/system_prune/) to prune dangling images, containers, volumes and networks.
 
 
-## Cluster API with Docker Desktop - "too many open files"
-When using Cluster API and the Docker infrastructure provider on MacOS with Docker Desktop an error of "too many open files" has been observed.
+## Cluster API with Docker  - "too many open files"
+When creating many nodes using Cluster API and Docker infrastructure, either by creating large Clusters or a number of small Clusters, the OS may run into inotify limits which prevent new nodes from being provisioned.
+If the error  `Failed to create inotify object: Too many open files` is present in the logs of the Docker Infrastructure provider this limit is being hit.
 
-Note: This error was observed in Docker 4.3 and 4.4. It can be resolved by updating to Docker Desktop for Mac 4.5 or using a version lower than 4.3.
+On Linux this issue can be resolved by increasing the inotify watch limits with:
+
+```
+sysctl fs.inotify.max_user_watches=1048576
+sysctl fs.inotify.max_user_instances=8192
+```
+
+Newly created clusters should be able to take advantage of the increased limits.
+
+### MacOS and Docker Desktop -  "too many open files" 
+This error was also observed in Docker Desktop 4.3 and 4.4 on MacOS. It can be resolved by updating to Docker Desktop for Mac 4.5 or using a version lower than 4.3.
 
 [The upstream issue for this error is closed as of the release of Docker 4.5.0](https://github.com/docker/for-mac/issues/6071)
 

@@ -18,14 +18,13 @@ package openapi
 
 import (
 	"fmt"
+	"net/http"
 	"reflect"
 	"strings"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/kube-openapi/pkg/spec3"
 	validation "k8s.io/kube-openapi/pkg/validation/spec"
-
-	http2 "sigs.k8s.io/cluster-api/runtime/server"
 
 	"sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	"sigs.k8s.io/cluster-api/internal/runtime/server"
@@ -117,7 +116,7 @@ func (s *spec) OpenAPI() (*spec3.OpenAPI, error) {
 			panic("implement me!") // TODO: handle error
 		}
 
-		op.Responses.StatusCodeResponses[http2.StatusOK] = &spec3.Response{
+		op.Responses.StatusCodeResponses[http.StatusOK] = &spec3.Response{
 			ResponseProps: spec3.ResponseProps{
 				Description: "OK",
 				// TODO: this seems repeated (same thing in requestBody)

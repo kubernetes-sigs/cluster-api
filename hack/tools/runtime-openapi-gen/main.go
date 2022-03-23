@@ -3,7 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 
 	"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha2"
@@ -12,8 +12,8 @@ import (
 	"sigs.k8s.io/cluster-api/internal/runtime/catalog/openapi"
 )
 
-// TODO: move to tools
-// TODO: use klogs
+// TODO: move to tools.
+// TODO: use klogs.
 
 var c = catalog.New()
 
@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// TODO: make the output path a flag
-	err = ioutil.WriteFile("openapi.json", openAPIBytes, 0644)
+	err = os.WriteFile("openapi.json", openAPIBytes, 0600)
 	if err != nil {
 		panic(fmt.Sprintf("WriteFile error: %v", err))
 	}

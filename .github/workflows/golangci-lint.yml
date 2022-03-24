@@ -19,3 +19,4 @@ jobs:
         with:
           version: v1.44.0
           working-directory: ${{matrix.working-directory}}
+          args: -v

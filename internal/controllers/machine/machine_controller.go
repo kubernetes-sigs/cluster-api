@@ -242,11 +242,9 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
-		if err := r.watchClusterNodes(ctx, cluster); err != nil {
-			log.Error(err, "error watching nodes on target cluster")
-			return ctrl.Result{}, err
-		}
+	if err := r.watchClusterNodes(ctx, cluster); err != nil {
+		log.Error(err, "error watching nodes on target cluster")
+		return ctrl.Result{}, err
 	}
 
 	// If the Machine belongs to a cluster, add an owner reference.
@@ -687,6 +685,13 @@ func (r *Reconciler) shouldAdopt(m *clusterv1.Machine) bool {
 }
 
 func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		log.V(5).Info("Skipping node watching setup because control plane is not initialized")
+		return nil
+	}
+
 	// If there is no tracker, don't watch remote nodes
 	if r.Tracker == nil {
 		return nil

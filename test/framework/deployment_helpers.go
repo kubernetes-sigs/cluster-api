@@ -260,7 +260,8 @@ type WaitForDNSUpgradeInput struct {
 	DNSVersion string
 }
 
-// WaitForDNSUpgrade waits until CoreDNS version matches with the CoreDNS upgrade version. This is called during KCP upgrade.
+// WaitForDNSUpgrade waits until CoreDNS version matches with the CoreDNS upgrade version and all its replicas
+// are ready for use with the upgraded version. This is called during KCP upgrade.
 func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, intervals ...interface{}) {
 	By("Ensuring CoreDNS has the correct image")
 
@@ -272,10 +273,18 @@ func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, interv
 		}
 
 		// NOTE: coredns image name has changed over time (k8s.gcr.io/coredns,
-		// k8s.gcr.io/coredns/coredns), so we are checking only if the version actually changed.
+		// k8s.gcr.io/coredns/coredns), so we are checking if the version actually changed.
 		if strings.HasSuffix(d.Spec.Template.Spec.Containers[0].Image, fmt.Sprintf(":%s", input.DNSVersion)) {
 			return true, nil
 		}
+
+		// check whether the upgraded CoreDNS replicas are available and ready for use.
+		if d.Status.ObservedGeneration >= d.Generation {
+			if d.Spec.Replicas != nil && d.Status.UpdatedReplicas == *d.Spec.Replicas && d.Status.AvailableReplicas == *d.Spec.Replicas {
+				return true, nil
+			}
+		}
+
 		return false, nil
 	}, intervals...).Should(BeTrue())
 }

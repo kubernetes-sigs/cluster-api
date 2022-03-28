@@ -28,7 +28,7 @@ jobs:
         run: |
           make release-notes
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@4716bde57e0fcda6ce83002e2469b8a90e560573 # v1 https://api.github.com/repos/softprops/action-gh-release/git/tags/4716bde57e0fcda6ce83002e2469b8a90e560573
         with:
           draft: true
           files: out/*

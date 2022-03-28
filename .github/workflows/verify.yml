@@ -9,6 +9,6 @@ jobs:
     steps:
     - name: Verifier action
       id: verifier
-      uses: kubernetes-sigs/kubebuilder-release-tools@v0.1
+      uses: kubernetes-sigs/kubebuilder-release-tools@4777888c377a26956f1831d5b9207eea1fa3bf29 # v0.1 https://api.github.com/repos/kubernetes-sigs/kubebuilder-release-tools/git/commits/4777888c377a26956f1831d5b9207eea1fa3bf29
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}

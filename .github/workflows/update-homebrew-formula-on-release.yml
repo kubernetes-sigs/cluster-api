@@ -9,7 +9,7 @@ jobs:
     runs-on: macos-latest
     steps:
       - name: Update Homebrew formula
-        uses: dawidd6/action-homebrew-bump-formula@v3
+        uses: dawidd6/action-homebrew-bump-formula@dd221ff435f42fa8102b5871bb1929af9d76476c # v3 https://api.github.com/repos/dawidd6/action-homebrew-bump-formula/git/commits/dd221ff435f42fa8102b5871bb1929af9d76476c
         with:
           token: ${{secrets.HOMEBREW_UPDATE_TOKEN}}
           formula: clusterctl

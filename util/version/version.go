@@ -174,7 +174,8 @@ func (v buildIdentifier) compare(o buildIdentifier) int {
 }
 
 type comparer struct {
-	buildTags bool
+	buildTags          bool
+	withoutPreReleases bool
 }
 
 // CompareOption is a configuration option for Compare.
@@ -201,6 +202,14 @@ func WithBuildTags() CompareOption {
 	}
 }
 
+// WithoutPreReleases modifies the version comparison to not consider pre-releases
+// when comparing versions.
+func WithoutPreReleases() CompareOption {
+	return func(c *comparer) {
+		c.withoutPreReleases = true
+	}
+}
+
 // Compare 2 semver versions.
 // Defaults to doing the standard semver comparison when no options are specified.
 // The comparison logic can be modified by passing additional compare options.
@@ -210,6 +219,11 @@ func Compare(a, b semver.Version, options ...CompareOption) int {
 	c := &comparer{}
 	for _, o := range options {
 		o(c)
+	}
+
+	if c.withoutPreReleases {
+		a.Pre = nil
+		b.Pre = nil
 	}
 
 	if c.buildTags {

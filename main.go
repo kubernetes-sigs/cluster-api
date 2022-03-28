@@ -283,7 +283,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 	if err := (&remote.ClusterCacheReconciler{
 		Client:           mgr.GetClient(),
-		Log:              ctrl.Log.WithName("remote").WithName("ClusterCacheReconciler"),
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {

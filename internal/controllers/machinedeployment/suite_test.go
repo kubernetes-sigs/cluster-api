@@ -84,7 +84,6 @@ func TestMain(m *testing.M) {
 		}
 		if err := (&remote.ClusterCacheReconciler{
 			Client:  mgr.GetClient(),
-			Log:     ctrl.Log.WithName("remote").WithName("ClusterCacheReconciler"),
 			Tracker: tracker,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))

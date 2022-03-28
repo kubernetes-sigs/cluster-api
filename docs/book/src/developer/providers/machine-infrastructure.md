@@ -38,6 +38,8 @@ A machine infrastructure provider must define an API type for "infrastructure ma
             defined as:
                 - `type` (string): one of `Hostname`, `ExternalIP`, `InternalIP`, `ExternalDNS`, `InternalDNS`
                 - `address` (string)
+7. Should have a conditions field with the following:
+   1. A Ready condition to represent the overall operational state of the component. It can be based on the summary of more detailed conditions existing on the same object, e.g. instanceReady, SecurityGroupsReady conditions.
 
 
 ### InfraMachineTemplate Resources

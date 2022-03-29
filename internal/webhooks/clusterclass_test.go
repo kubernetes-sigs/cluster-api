@@ -76,10 +76,7 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 
 	// Create the webhook and add the fakeClient as its client.
 	webhook := &ClusterClass{Client: fakeClient}
-	// TODO(sbueringer) We are storing the func in testFunc temporarily to work around
-	// an issue in thelper: https://github.com/kulti/thelper/issues/31
-	testFunc := customDefaultValidateTest(ctx, in, webhook)
-	t.Run("for ClusterClass", testFunc)
+	t.Run("for ClusterClass", customDefaultValidateTest(ctx, in, webhook))
 
 	g := NewWithT(t)
 	g.Expect(webhook.Default(ctx, in)).To(Succeed())

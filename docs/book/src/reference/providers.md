@@ -26,6 +26,7 @@ updated info about which API version they are supporting.
 - [KubeVirt](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt)
 - [MAAS](https://github.com/spectrocloud/cluster-api-provider-maas)
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
+- [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix)
 - [OCI](https://github.com/oracle/cluster-api-provider-oci)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
 - [Equinix Metal (formerly Packet)](https://github.com/kubernetes-sigs/cluster-api-provider-packet)

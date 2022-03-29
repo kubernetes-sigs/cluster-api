@@ -119,6 +119,7 @@ maas                InfrastructureProvider   https://github.com/spectrocloud/clu
 metal3              InfrastructureProvider   https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/                 infrastructure-components.yaml
 my-infra-provider   InfrastructureProvider   /home/.cluster-api/overrides/infrastructure-docker/latest/                                infrastructure-components.yaml
 nested              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/           infrastructure-components.yaml
+nutanix             InfrastructureProvider   https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/releases/latest/     infrastructure-components.yaml
 oci                 InfrastructureProvider   https://github.com/oracle/cluster-api-provider-oci/releases/latest/                       infrastructure-components.yaml
 openstack           InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/        infrastructure-components.yaml
 packet              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-packet/releases/latest/           infrastructure-components.yaml
@@ -202,6 +203,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: nested
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/
+- File: infrastructure-components.yaml
+  Name: nutanix
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/releases/latest/
 - File: infrastructure-components.yaml
   Name: oci
   ProviderType: InfrastructureProvider

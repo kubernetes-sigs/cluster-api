@@ -56,6 +56,9 @@ Cluster API Provider IBM Cloud
 ### CAPN
 Cluster API Provider Nested
 
+### CAPX
+Cluster API Provider Nutanix
+
 ### CAPO
 Cluster API Provider OpenStack
 

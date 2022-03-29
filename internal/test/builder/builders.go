@@ -35,6 +35,7 @@ type ClusterBuilder struct {
 	namespace             string
 	name                  string
 	labels                map[string]string
+	annotations           map[string]string
 	topology              *clusterv1.Topology
 	infrastructureCluster *unstructured.Unstructured
 	controlPlane          *unstructured.Unstructured
@@ -51,6 +52,12 @@ func Cluster(namespace, name string) *ClusterBuilder {
 // WithLabels sets the labels for the ClusterBuilder.
 func (c *ClusterBuilder) WithLabels(labels map[string]string) *ClusterBuilder {
 	c.labels = labels
+	return c
+}
+
+// WithAnnotations sets the annotations for the ClusterBuilder.
+func (c *ClusterBuilder) WithAnnotations(annotations map[string]string) *ClusterBuilder {
+	c.annotations = annotations
 	return c
 }
 
@@ -80,9 +87,10 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      c.name,
-			Namespace: c.namespace,
-			Labels:    c.labels,
+			Name:        c.name,
+			Namespace:   c.namespace,
+			Labels:      c.labels,
+			Annotations: c.annotations,
 		},
 		Spec: clusterv1.ClusterSpec{
 			Topology: c.topology,

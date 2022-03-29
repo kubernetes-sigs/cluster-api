@@ -1326,6 +1326,24 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "Allow cluster moving from Unmanaged to Managed i.e. adding the spec.topology.class field on update " +
+				"if and only if ClusterTopologyUnsafeUpdateClassNameAnnotation is set",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithAnnotations(map[string]string{clusterv1.ClusterTopologyUnsafeUpdateClassNameAnnotation: ""}).
+				Build(),
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			updatedTopology: builder.ClusterTopology().
+				WithClass("class1").
+				WithVersion("v1.22.2").
+				WithControlPlaneReplicas(3).
+				Build(),
+			wantErr: false,
+		},
+		{
 			name: "Reject cluster moving from Managed to Unmanaged i.e. removing the spec.topology.class field on update",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(builder.ClusterTopology().

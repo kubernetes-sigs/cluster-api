@@ -56,10 +56,8 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 			// note: these will be sorted by name by the Providers() call, so be sure they are in alphabetical order here too
 			wantProviders: []string{
 				config.ClusterAPIProviderName,
-				config.AWSEKSBootstrapProviderName,
 				config.KubeadmBootstrapProviderName,
 				config.TalosBootstrapProviderName,
-				config.AWSEKSControlPlaneProviderName,
 				config.KubeadmControlPlaneProviderName,
 				config.NestedControlPlaneProviderName,
 				config.TalosControlPlaneProviderName,
@@ -90,11 +88,9 @@ func Test_clusterctlClient_GetProvidersConfig(t *testing.T) {
 			// note: these will be sorted by name by the Providers() call, so be sure they are in alphabetical order here too
 			wantProviders: []string{
 				config.ClusterAPIProviderName,
-				config.AWSEKSBootstrapProviderName,
 				customProviderConfig.Name(),
 				config.KubeadmBootstrapProviderName,
 				config.TalosBootstrapProviderName,
-				config.AWSEKSControlPlaneProviderName,
 				config.KubeadmControlPlaneProviderName,
 				config.NestedControlPlaneProviderName,
 				config.TalosControlPlaneProviderName,

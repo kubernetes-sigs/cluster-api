@@ -57,14 +57,12 @@ const (
 const (
 	KubeadmBootstrapProviderName = "kubeadm"
 	TalosBootstrapProviderName   = "talos"
-	AWSEKSBootstrapProviderName  = "aws-eks"
 )
 
 // ControlPlane providers.
 const (
 	KubeadmControlPlaneProviderName = "kubeadm"
 	TalosControlPlaneProviderName   = "talos"
-	AWSEKSControlPlaneProviderName  = "aws-eks"
 	NestedControlPlaneProviderName  = "nested"
 )
 
@@ -208,11 +206,6 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/siderolabs/cluster-api-bootstrap-provider-talos/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
-		&provider{
-			name:         AWSEKSBootstrapProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/eks-bootstrap-components.yaml",
-			providerType: clusterctlv1.BootstrapProviderType,
-		},
 		// ControlPlane providers
 		&provider{
 			name:         KubeadmControlPlaneProviderName,
@@ -222,11 +215,6 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         TalosControlPlaneProviderName,
 			url:          "https://github.com/siderolabs/cluster-api-control-plane-provider-talos/releases/latest/control-plane-components.yaml",
-			providerType: clusterctlv1.ControlPlaneProviderType,
-		},
-		&provider{
-			name:         AWSEKSControlPlaneProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/eks-controlplane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{

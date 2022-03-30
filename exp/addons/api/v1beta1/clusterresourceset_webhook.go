@@ -26,6 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	"sigs.k8s.io/cluster-api/feature"
 )
 
 func (m *ClusterResourceSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -68,8 +70,15 @@ func (m *ClusterResourceSet) ValidateDelete() error {
 }
 
 func (m *ClusterResourceSet) validate(old *ClusterResourceSet) error {
+	// NOTE: ClusterResourceSet is behind ClusterResourceSet feature gate flag; the web hook
+	// must prevent creating new objects new case the feature flag is disabled.
+	if !feature.Gates.Enabled(feature.ClusterResourceSet) {
+		return field.Forbidden(
+			field.NewPath("spec"),
+			"can be set only if the ClusterResourceSet feature flag is enabled",
+		)
+	}
 	var allErrs field.ErrorList
-
 	// Validate selector parses as Selector
 	selector, err := metav1.LabelSelectorAsSelector(&m.Spec.ClusterSelector)
 	if err != nil {

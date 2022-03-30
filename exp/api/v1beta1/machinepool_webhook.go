@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -93,6 +94,14 @@ func (m *MachinePool) ValidateDelete() error {
 }
 
 func (m *MachinePool) validate(old *MachinePool) error {
+	// NOTE: MachinePool is behind MachinePool feature gate flag; the web hook
+	// must prevent creating new objects new case the feature flag is disabled.
+	if !feature.Gates.Enabled(feature.MachinePool) {
+		return field.Forbidden(
+			field.NewPath("spec"),
+			"can be set only if the MachinePool feature flag is enabled",
+		)
+	}
 	var allErrs field.ErrorList
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef == nil && m.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
 		allErrs = append(

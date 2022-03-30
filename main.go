@@ -454,6 +454,8 @@ func setupWebhooks(mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	// NOTE: ClusterResourceSet is behind ClusterResourceSet feature gate flag; the webhook
+	// is going to prevent creating or updating new objects in case the feature flag is disabled
 	if err := (&addonsv1.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterResourceSet")
 		os.Exit(1)

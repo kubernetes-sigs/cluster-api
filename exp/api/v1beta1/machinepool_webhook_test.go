@@ -19,6 +19,7 @@ package v1beta1
 import (
 	"testing"
 
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -27,8 +28,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
-
-	. "github.com/onsi/gomega"
 )
 
 func TestMachinePoolDefault(t *testing.T) {

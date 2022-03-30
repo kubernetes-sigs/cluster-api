@@ -120,9 +120,8 @@ func (m *MachineSet) validate(old *MachineSet) error {
 	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
 		allErrs = append(
 			allErrs,
-			field.Invalid(
+			field.Forbidden(
 				specPath.Child("clusterName"),
-				m.Spec.ClusterName,
 				"field is immutable",
 			),
 		)

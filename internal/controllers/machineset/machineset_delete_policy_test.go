@@ -17,11 +17,13 @@ limitations under the License.
 package machineset
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	capierrors "sigs.k8s.io/cluster-api/errors"
@@ -519,6 +521,98 @@ func TestMachineOldestDelete(t *testing.T) {
 
 			result := getMachinesToDeletePrioritized(test.machines, test.diff, oldestDeletePriority)
 			g.Expect(result).To(Equal(test.expect))
+		})
+	}
+}
+
+func TestMachineDeleteMultipleSamePriority(t *testing.T) {
+	machines := make([]*clusterv1.Machine, 0, 10)
+	// All of these machines will have the same delete priority because they all have the "must delete" annotation.
+	for i := 0; i < 10; i++ {
+		machines = append(machines, &clusterv1.Machine{
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("machine-%d", i), Annotations: map[string]string{clusterv1.DeleteMachineAnnotation: "true"}},
+		})
+	}
+
+	tests := []struct {
+		desc           string
+		diff           int
+		deletePriority deletePriorityFunc
+	}{
+		{
+			desc:           "multiple with same priority, func=oldestDeletePriority, diff=1",
+			diff:           1,
+			deletePriority: oldestDeletePriority,
+		},
+		{
+			desc:           "multiple with same priority, func=oldestDeletePriority, diff=5",
+			diff:           5,
+			deletePriority: oldestDeletePriority,
+		},
+		{
+			desc:           "multiple with same priority, func=oldestDeletePriority, diff=rand",
+			diff:           rand.Intn(len(machines)),
+			deletePriority: oldestDeletePriority,
+		},
+		{
+			desc:           "multiple with same priority, func=randomDeletePolicy, diff=1",
+			diff:           1,
+			deletePriority: randomDeletePolicy,
+		},
+		{
+			desc:           "multiple with same priority, func=randomDeletePolicy, diff=5",
+			diff:           5,
+			deletePriority: randomDeletePolicy,
+		},
+		{
+			desc:           "multiple with same priority, func=randomDeletePolicy, diff=rand",
+			diff:           rand.Intn(len(machines)),
+			deletePriority: randomDeletePolicy,
+		},
+		{
+			desc:           "multiple with same priority, func=newestDeletePriority, diff=1",
+			diff:           1,
+			deletePriority: newestDeletePriority,
+		},
+		{
+			desc:           "multiple with same priority, func=newestDeletePriority, diff=5",
+			diff:           5,
+			deletePriority: newestDeletePriority,
+		},
+		{
+			desc:           "multiple with same priority, func=newestDeletePriority, diff=rand",
+			diff:           rand.Intn(len(machines)),
+			deletePriority: newestDeletePriority,
+		},
+		{
+			desc:           "multiple with same priority, func=randomDeletePolicy, diff=1",
+			diff:           1,
+			deletePriority: randomDeletePolicy,
+		},
+		{
+			desc:           "multiple with same priority, func=randomDeletePolicy, diff=5",
+			diff:           5,
+			deletePriority: randomDeletePolicy,
+		},
+		{
+			desc:           "multiple with same priority, func=randomDeletePolicy, diff=rand",
+			diff:           rand.Intn(len(machines)),
+			deletePriority: randomDeletePolicy,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			g := NewWithT(t)
+
+			order := rand.Perm(len(machines))
+			shuffledMachines := make([]*clusterv1.Machine, len(machines))
+			for i, j := range order {
+				shuffledMachines[i] = machines[j]
+			}
+
+			result := getMachinesToDeletePrioritized(shuffledMachines, test.diff, test.deletePriority)
+			g.Expect(result).To(Equal(machines[:test.diff]))
 		})
 	}
 }

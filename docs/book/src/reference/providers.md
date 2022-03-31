@@ -7,7 +7,7 @@ updated info about which API version they are supporting.
 
 ## Bootstrap
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm)
-- [Talos](https://github.com/talos-systems/cluster-api-bootstrap-provider-talos)
+- [Talos](https://github.com/siderolabs/cluster-api-bootstrap-provider-talos)
 - [EKS](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/bootstrap/eks)
 
 ## Infrastructure
@@ -28,7 +28,7 @@ updated info about which API version they are supporting.
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
 - [Equinix Metal (formerly Packet)](https://github.com/kubernetes-sigs/cluster-api-provider-packet)
-- [Sidero](https://github.com/talos-systems/sidero)
+- [Sidero](https://github.com/siderolabs/sidero)
 - [Tencent Cloud](https://github.com/TencentCloud/cluster-api-provider-tencent)
 - [vSphere](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
 

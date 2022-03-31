@@ -31,7 +31,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: Update all modules
-      run: make modules
+      run: make generate-modules
     - name: Update generated code
       run: make generate
     - uses: EndBug/add-and-commit@v7

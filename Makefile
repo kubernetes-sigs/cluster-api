@@ -180,7 +180,7 @@ ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-* and generate-go-conversions-* targets
-	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions
+	$(MAKE) generate-modules-breaking-change generate-manifests generate-go-deepcopy generate-go-conversions
 	$(MAKE) -C $(CAPD_DIR) generate
 
 .PHONY: generate-manifests
@@ -317,8 +317,8 @@ generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate con
 		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
-.PHONY: generate-modules
-generate-modules: ## Run go mod tidy to ensure modules are up to date
+.PHONY: generate-modules-breaking-change
+generate-modules-breaking-change: ## Run go mod tidy to ensure modules are up to date
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
 	cd $(TEST_DIR); go mod tidy
@@ -359,7 +359,7 @@ ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversio
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
 
 .PHONY: verify-modules
-verify-modules: generate-modules  ## Verify go modules are up to date
+verify-modules: generate-modules-breaking-change  ## Verify go modules are up to date
 	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \

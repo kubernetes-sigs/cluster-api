@@ -95,17 +95,22 @@ func (m *MachineSet) ValidateDelete() error {
 
 func (m *MachineSet) validate(old *MachineSet) error {
 	var allErrs field.ErrorList
+	specPath := field.NewPath("spec")
 	selector, err := metav1.LabelSelectorAsSelector(&m.Spec.Selector)
 	if err != nil {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "selector"), m.Spec.Selector, err.Error()),
+			field.Invalid(
+				specPath.Child("selector"),
+				m.Spec.Selector,
+				err.Error(),
+			),
 		)
 	} else if !selector.Matches(labels.Set(m.Spec.Template.Labels)) {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
-				field.NewPath("spec", "template", "metadata", "labels"),
+				specPath.Child("template", "metadata", "labels"),
 				m.Spec.Template.ObjectMeta.Labels,
 				fmt.Sprintf("must match spec.selector %q", selector.String()),
 			),
@@ -115,13 +120,23 @@ func (m *MachineSet) validate(old *MachineSet) error {
 	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "clusterName"), m.Spec.ClusterName, "field is immutable"),
+			field.Forbidden(
+				specPath.Child("clusterName"),
+				"field is immutable",
+			),
 		)
 	}
 
 	if m.Spec.Template.Spec.Version != nil {
 		if !version.KubeSemver.MatchString(*m.Spec.Template.Spec.Version) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "version"), *m.Spec.Template.Spec.Version, "must be a valid semantic version"))
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					specPath.Child("template", "spec", "version"),
+					*m.Spec.Template.Spec.Version,
+					"must be a valid semantic version",
+				),
+			)
 		}
 	}
 

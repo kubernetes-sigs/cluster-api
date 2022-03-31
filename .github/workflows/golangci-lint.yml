@@ -13,7 +13,7 @@ jobs:
           - test
           - hack/tools
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:

@@ -249,4 +249,4 @@ Consider the following in developing a version skew strategy for this enhancemen
 - [ ] MM/DD/YYYY: Open proposal PR
 
 <!-- Links -->
-[community meeting]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY
+[community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI/edit#heading=h.pxsq37pzkbdq

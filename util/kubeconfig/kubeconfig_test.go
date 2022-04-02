@@ -17,6 +17,7 @@ limitations under the License.
 package kubeconfig
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -75,22 +76,98 @@ users:
 		},
 		Type: clusterv1.ClusterSecretType,
 	}
+	validUserKubeconfig = `
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUN5RENDQWJDZ0F3SUJBZ0lCQURBTkJna3Foa2lHOXcwQkFRc0ZBREFWTVJNd0VRWURWUVFERXdwcmRXSmwKY201bGRHVnpNQjRYRFRFNU1ERXhNREU0TURBME1Gb1hEVEk1TURFd056RTRNREEwTUZvd0ZURVRNQkVHQTFVRQpBeE1LYTNWaVpYSnVaWFJsY3pDQ0FTSXdEUVlKS29aSWh2Y05BUUVCQlFBRGdnRVBBRENDQVFvQ2dnRUJBT1EvCmVndmViNk1qMHkzM3hSbGFjczd6OXE4QTNDajcrdnRrZ0pUSjRUSVB4TldRTEd0Q0dmL0xadzlHMW9zNmRKUHgKZFhDNmkwaHA5czJuT0Y2VjQvREUrYUNTTU45VDYzckdWb2s0TkcwSlJPYmlRWEtNY1VQakpiYm9PTXF2R2lLaAoyMGlFY0h5K3B4WkZOb3FzdnlaRGM5L2dRSHJVR1FPNXp6TDNHZGhFL0k1Nkczek9JaWhhbFRHSTNaakRRS05CCmVFV3FONTVDcHZzT3I1b0ZnTmZZTXk2YzZ4WXlUTlhWSUkwNFN0Z2xBbUk4bzZWaTNUVEJhZ1BWaldIVnRha1EKU2w3VGZtVUlIdndKZUo3b2hxbXArVThvaGVTQUIraHZSbDIrVHE5NURTemtKcmRjNmphcyswd2FWaEJydEh1agpWMU15NlNvV2VVUlkrdW5VVFgwQ0F3RUFBYU1qTUNFd0RnWURWUjBQQVFIL0JBUURBZ0trTUE4R0ExVWRFd0VCCi93UUZNQU1CQWY4d0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFIT2thSXNsd0pCOE5PaENUZkF4UWlnaUc1bEMKQlo0LytGeHZ3Y1pnWGhlL0IyUWo1UURMNWlRUU1VL2NqQ0tyYUxkTFFqM1o1aHA1dzY0K2NWRUg3Vm9PSTFCaQowMm13YTc4eWo4aDNzQ2lLQXJiU21kKzNld1QrdlNpWFMzWk9EYWRHVVRRa1BnUHB0THlaMlRGakF0SW43WjcyCmpnYlVnT2FXaklKbnlwRVJ5UmlSKzBvWlk4SUlmWWFsTHUwVXlXcmkwaVhNRmZqQUQ1UVNURy8zRGN5djhEN1UKZHBxU2l5ekJkZVRjSExyenpEbktBeXhQWWgvcWpKZ0tRdEdIakhjY0FCSE1URlFtRy9Ea1pNTnZWL2FZSnMrKwp0aVJCbHExSFhlQ0d4aExFcGdQcGxVb3IrWmVYTGF2WUo0Z2dMVmIweGl2QTF2RUtyaUUwak1Wd2lQaz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
+    server: https://test-cluster-api.us-east-1.eks.amazonaws.com
+  name: test1
+contexts:
+- context:
+    cluster: test1
+    user: test1-admin-user
+  name: test1-admin@test1
+current-context: test1-admin@test1
+kind: Config
+preferences: {}
+- name: test1-admin-user
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1alpha1
+      args:
+      - token
+      - -i
+      - test1-admin-user
+      command: aws-iam-authenticator
+      env: null
+      provideClusterInfo: false
+`
+	validUserSecret = &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test1-user-kubeconfig",
+			Namespace: "test",
+			Labels:    map[string]string{clusterv1.ClusterLabelName: "test1-user"},
+		},
+		Data: map[string][]byte{
+			secret.KubeconfigDataName: []byte(validUserKubeconfig),
+		},
+		Type: clusterv1.ClusterSecretType,
+	}
 )
 
 func TestGetKubeConfigSecret(t *testing.T) {
 	g := NewWithT(t)
 
-	clusterKey := client.ObjectKey{
-		Name:      "test1",
-		Namespace: "test",
+	type args struct {
+		ctx            context.Context //nolint:containedctx
+		c              client.Reader
+		cluster        client.ObjectKey
+		userKubeconfig bool
 	}
-	// creating a local copy to ensure validSecret.ObjectMeta.ResourceVersion does not get set by fakeClient
-	validSec := validSecret.DeepCopy()
-	client := fake.NewClientBuilder().WithObjects(validSec).Build()
-
-	found, err := FromSecret(ctx, client, clusterKey, false)
-	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(found).To(Equal(validSecret.Data[secret.KubeconfigDataName]))
+	tests := []struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "get secret for kubeconfig",
+			args: args{
+				ctx: ctx,
+				c:   fake.NewClientBuilder().WithObjects(validSecret.DeepCopy()).Build(),
+				cluster: client.ObjectKey{
+					Name:      "test1",
+					Namespace: "test",
+				},
+				userKubeconfig: false,
+			},
+			want:    validSecret.Data[secret.KubeconfigDataName],
+			wantErr: false,
+		},
+		{
+			name: "get secret for user-kubeconfig",
+			args: args{
+				ctx: ctx,
+				c:   fake.NewClientBuilder().WithObjects(validUserSecret.DeepCopy()).Build(),
+				cluster: client.ObjectKey{
+					Name:      "test1",
+					Namespace: "test",
+				},
+				userKubeconfig: true,
+			},
+			want:    validUserSecret.Data[secret.KubeconfigDataName],
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := FromSecret(tt.args.ctx, tt.args.c, tt.args.cluster, tt.args.userKubeconfig)
+			if !tt.wantErr {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
 }
 
 func getTestCACert(key *rsa.PrivateKey) (*x509.Certificate, error) {

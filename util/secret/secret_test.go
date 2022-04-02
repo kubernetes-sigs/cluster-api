@@ -34,6 +34,15 @@ func TestParseSecretName(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name: "A secret for the test cluster with -user",
+			args: args{
+				name: "test-user-kubeconfig",
+			},
+			want:    "test",
+			want1:   UserKubeconfig,
+			wantErr: false,
+		},
+		{
 			name: "A secret for the test cluster",
 			args: args{
 				name: "test-kubeconfig",

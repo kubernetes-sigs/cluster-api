@@ -74,7 +74,7 @@ users:
 			proxy:     test.NewFakeProxy().WithObjs(validSecret),
 		},
 		{
-			name:      "return error if cannot find secert",
+			name:      "return error if cannot find secret",
 			expectErr: true,
 			proxy:     test.NewFakeProxy(),
 		},

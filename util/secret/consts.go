@@ -32,6 +32,9 @@ const (
 	// Kubeconfig is the secret name suffix storing the Cluster Kubeconfig.
 	Kubeconfig = Purpose("kubeconfig")
 
+	// UserKubeconfig is the secret name suffix storing the Cluster Kubeconfig.
+	UserKubeconfig = Purpose("user-kubeconfig")
+
 	// ClusterCA is the secret name suffix for APIServer CA.
 	ClusterCA = Purpose("ca")
 
@@ -50,5 +53,5 @@ const (
 
 var (
 	// allSecretPurposes defines a lists with all the secret suffix used by Cluster API.
-	allSecretPurposes = []Purpose{Kubeconfig, ClusterCA, EtcdCA, ServiceAccount, FrontProxyCA, APIServerEtcdClient}
+	allSecretPurposes = []Purpose{Kubeconfig, UserKubeconfig, ClusterCA, EtcdCA, ServiceAccount, FrontProxyCA, APIServerEtcdClient}
 )

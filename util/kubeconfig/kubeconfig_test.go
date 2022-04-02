@@ -88,7 +88,7 @@ func TestGetKubeConfigSecret(t *testing.T) {
 	validSec := validSecret.DeepCopy()
 	client := fake.NewClientBuilder().WithObjects(validSec).Build()
 
-	found, err := FromSecret(ctx, client, clusterKey)
+	found, err := FromSecret(ctx, client, clusterKey, false)
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(found).To(Equal(validSecret.Data[secret.KubeconfigDataName]))
 }

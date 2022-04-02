@@ -21,12 +21,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	utilkubeconfig "sigs.k8s.io/cluster-api/util/kubeconfig"
+	utilsecret "sigs.k8s.io/cluster-api/util/secret"
 )
 
 // WorkloadCluster has methods for fetching kubeconfig of workload cluster from management cluster.
 type WorkloadCluster interface {
 	// GetKubeconfig returns the kubeconfig of the workload cluster.
-	GetKubeconfig(workloadClusterName string, namespace string) (string, error)
+	GetKubeconfig(workloadClusterName string, namespace string, userKubeconfig bool) (string, error)
 }
 
 // workloadCluster implements WorkloadCluster.
@@ -41,7 +42,7 @@ func newWorkloadCluster(proxy Proxy) *workloadCluster {
 	}
 }
 
-func (p *workloadCluster) GetKubeconfig(workloadClusterName string, namespace string) (string, error) {
+func (p *workloadCluster) GetKubeconfig(workloadClusterName string, namespace string, userKubeconfig bool) (string, error) {
 	cs, err := p.proxy.NewClient()
 	if err != nil {
 		return "", err
@@ -51,9 +52,13 @@ func (p *workloadCluster) GetKubeconfig(workloadClusterName string, namespace st
 		Namespace: namespace,
 		Name:      workloadClusterName,
 	}
-	dataBytes, err := utilkubeconfig.FromSecret(ctx, cs, obj)
+	dataBytes, err := utilkubeconfig.FromSecret(ctx, cs, obj, userKubeconfig)
 	if err != nil {
-		return "", errors.Wrapf(err, "\"%s-kubeconfig\" not found in namespace %q", workloadClusterName, namespace)
+		var purpose = utilsecret.UserKubeconfig
+		if !userKubeconfig {
+			purpose = utilsecret.Kubeconfig
+		}
+		return "", errors.Wrapf(err, "%q not found in namespace %q", utilsecret.Name(workloadClusterName, purpose), namespace)
 	}
 	return string(dataBytes), nil
 }

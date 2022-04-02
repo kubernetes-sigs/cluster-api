@@ -29,6 +29,7 @@ type getKubeconfigOptions struct {
 	kubeconfig        string
 	kubeconfigContext string
 	namespace         string
+	userKubeconfig    bool
 }
 
 var gk = &getKubeconfigOptions{}
@@ -44,7 +45,10 @@ var getKubeconfigCmd = &cobra.Command{
 		clusterctl get kubeconfig <name of workload cluster>
 
 		# Get the workload cluster's kubeconfig in a particular namespace.
-		clusterctl get kubeconfig <name of workload cluster> --namespace foo`),
+		clusterctl get kubeconfig <name of workload cluster> --namespace foo
+
+		# Get the system's kubeconfig
+		clusterctl get kubeconfig <name> --user=false`),
 
 	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -59,6 +63,8 @@ func init() {
 		"Path to the kubeconfig file to use for accessing the management cluster. If unspecified, default discovery rules apply.")
 	getKubeconfigCmd.Flags().StringVar(&gk.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
+	getKubeconfigCmd.Flags().BoolVar(&gk.userKubeconfig, "system", true,
+		"If set to false, returns the kubeconfig of the system, else returns the user specific kubeconfig.")
 
 	// completions
 	getKubeconfigCmd.ValidArgsFunction = resourceNameCompletionFunc(
@@ -82,6 +88,7 @@ func runGetKubeconfig(workloadClusterName string) error {
 		Kubeconfig:          client.Kubeconfig{Path: gk.kubeconfig, Context: gk.kubeconfigContext},
 		WorkloadClusterName: workloadClusterName,
 		Namespace:           gk.namespace,
+		UserKubeconfig:      gk.userKubeconfig,
 	}
 
 	out, err := c.GetKubeconfig(options)

@@ -96,9 +96,10 @@ func (m *MachinePool) ValidateDelete() error {
 func (m *MachinePool) validate(old *MachinePool) error {
 	// NOTE: MachinePool is behind MachinePool feature gate flag; the web hook
 	// must prevent creating new objects new case the feature flag is disabled.
+	specPath := field.NewPath("spec")
 	if !feature.Gates.Enabled(feature.MachinePool) {
 		return field.Forbidden(
-			field.NewPath("spec"),
+			specPath,
 			"can be set only if the MachinePool feature flag is enabled",
 		)
 	}
@@ -107,7 +108,7 @@ func (m *MachinePool) validate(old *MachinePool) error {
 		allErrs = append(
 			allErrs,
 			field.Required(
-				field.NewPath("spec", "template", "spec", "bootstrap", "data"),
+				specPath.Child("template", "spec", "bootstrap", "data"),
 				"expected either spec.bootstrap.dataSecretName or spec.bootstrap.configRef to be populated",
 			),
 		)
@@ -117,7 +118,7 @@ func (m *MachinePool) validate(old *MachinePool) error {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
-				field.NewPath("spec", "template", "spec", "bootstrap", "configRef", "namespace"),
+				specPath.Child("template", "spec", "bootstrap", "configRef", "namespace"),
 				m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace,
 				"must match metadata.namespace",
 			),
@@ -128,7 +129,7 @@ func (m *MachinePool) validate(old *MachinePool) error {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
-				field.NewPath("spec", "infrastructureRef", "namespace"),
+				specPath.Child("infrastructureRef", "namespace"),
 				m.Spec.Template.Spec.InfrastructureRef.Namespace,
 				"must match metadata.namespace",
 			),
@@ -138,13 +139,13 @@ func (m *MachinePool) validate(old *MachinePool) error {
 	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "clusterName"), m.Spec.ClusterName, "field is immutable"),
+			field.Invalid(specPath.Child("clusterName"), m.Spec.ClusterName, "field is immutable"),
 		)
 	}
 
 	if m.Spec.Template.Spec.Version != nil {
 		if !version.KubeSemver.MatchString(*m.Spec.Template.Spec.Version) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec", "version"), *m.Spec.Template.Spec.Version, "must be a valid semantic version"))
+			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), *m.Spec.Template.Spec.Version, "must be a valid semantic version"))
 		}
 	}
 

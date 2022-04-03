@@ -13,9 +13,9 @@ jobs:
           - test
           - hack/tools
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: golangci-lint
         uses: golangci/golangci-lint-action@5c56cd6c9dc07901af25baab6f2b0d9f3b7c3018 # v2 https://api.github.com/repos/golangci/golangci-lint-action/git/commits/5c56cd6c9dc07901af25baab6f2b0d9f3b7c3018
         with:
-          version: v1.44.0
+          version: v1.45.2
           working-directory: ${{matrix.working-directory}}

@@ -265,8 +265,12 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	}
 
 	if oldCluster != nil { // On update
-		// Topology or Class can not be added on update.
+		// Topology or Class can not be added on update unless unsafe cluster topology update annotation is set
 		if oldCluster.Spec.Topology == nil || oldCluster.Spec.Topology.Class == "" {
+			if _, ok := newCluster.Annotations[clusterv1.ClusterTopologyUnsafeUpdateClassNameAnnotation]; ok {
+				return allErrs
+			}
+
 			allErrs = append(
 				allErrs,
 				field.Forbidden(

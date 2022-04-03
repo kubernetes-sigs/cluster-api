@@ -21,14 +21,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -93,7 +91,6 @@ func TestClusterCacheReconciler(t *testing.T) {
 
 			t.Log("Creating the ClusterCacheReconciler")
 			r := &ClusterCacheReconciler{
-				Log:     logr.New(log.NullLogSink{}),
 				Client:  mgr.GetClient(),
 				Tracker: cct,
 			}

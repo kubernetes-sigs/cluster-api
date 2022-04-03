@@ -57,14 +57,12 @@ const (
 const (
 	KubeadmBootstrapProviderName = "kubeadm"
 	TalosBootstrapProviderName   = "talos"
-	AWSEKSBootstrapProviderName  = "aws-eks"
 )
 
 // ControlPlane providers.
 const (
 	KubeadmControlPlaneProviderName = "kubeadm"
 	TalosControlPlaneProviderName   = "talos"
-	AWSEKSControlPlaneProviderName  = "aws-eks"
 	NestedControlPlaneProviderName  = "nested"
 )
 
@@ -168,7 +166,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         SideroProviderName,
-			url:          "https://github.com/talos-systems/sidero/releases/latest/infrastructure-components.yaml",
+			url:          "https://github.com/siderolabs/sidero/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{
@@ -205,12 +203,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         TalosBootstrapProviderName,
-			url:          "https://github.com/talos-systems/cluster-api-bootstrap-provider-talos/releases/latest/bootstrap-components.yaml",
-			providerType: clusterctlv1.BootstrapProviderType,
-		},
-		&provider{
-			name:         AWSEKSBootstrapProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/eks-bootstrap-components.yaml",
+			url:          "https://github.com/siderolabs/cluster-api-bootstrap-provider-talos/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
 		// ControlPlane providers
@@ -221,12 +214,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         TalosControlPlaneProviderName,
-			url:          "https://github.com/talos-systems/cluster-api-control-plane-provider-talos/releases/latest/control-plane-components.yaml",
-			providerType: clusterctlv1.ControlPlaneProviderType,
-		},
-		&provider{
-			name:         AWSEKSControlPlaneProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases/latest/eks-controlplane-components.yaml",
+			url:          "https://github.com/siderolabs/cluster-api-control-plane-provider-talos/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{

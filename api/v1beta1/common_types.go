@@ -46,6 +46,10 @@ const (
 	// to track the name of the MachineDeployment topology it represents.
 	ClusterTopologyMachineDeploymentLabelName = "topology.cluster.x-k8s.io/deployment-name"
 
+	// ClusterTopologyUnsafeUpdateClassNameAnnotation can be used to disable the webhook check on
+	// update that disallows a pre-existing Cluster to be populated with Topology information and Class.
+	ClusterTopologyUnsafeUpdateClassNameAnnotation = "unsafe.topology.cluster.x-k8s.io/disable-update-class-name-check"
+
 	// ProviderLabelName is the label set on components in the provider manifest.
 	// This label allows to easily identify all the components belonging to a provider; the clusterctl
 	// tool uses this label for implementing provider's lifecycle operations.

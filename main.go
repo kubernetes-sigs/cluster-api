@@ -283,7 +283,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 	if err := (&remote.ClusterCacheReconciler{
 		Client:           mgr.GetClient(),
-		Log:              ctrl.Log.WithName("remote").WithName("ClusterCacheReconciler"),
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
@@ -448,18 +447,18 @@ func setupWebhooks(mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if feature.Gates.Enabled(feature.MachinePool) {
-		if err := (&expv1.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
-			os.Exit(1)
-		}
+	// NOTE: MachinePool is behind MachinePool feature gate flag; the webhook
+	// is going to prevent creating or updating new objects in case the feature flag is disabled
+	if err := (&expv1.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "MachinePool")
+		os.Exit(1)
 	}
 
-	if feature.Gates.Enabled(feature.ClusterResourceSet) {
-		if err := (&addonsv1.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create webhook", "webhook", "ClusterResourceSet")
-			os.Exit(1)
-		}
+	// NOTE: ClusterResourceSet is behind ClusterResourceSet feature gate flag; the webhook
+	// is going to prevent creating or updating new objects in case the feature flag is disabled
+	if err := (&addonsv1.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "ClusterResourceSet")
+		os.Exit(1)
 	}
 
 	if err := (&clusterv1.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {

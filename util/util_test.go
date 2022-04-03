@@ -881,3 +881,28 @@ func TestRemoveOwnerRef(t *testing.T) {
 		})
 	}
 }
+
+func TestUnstructuredUnmarshalField(t *testing.T) {
+	tests := []struct {
+		name    string
+		obj     *unstructured.Unstructured
+		v       interface{}
+		fields  []string
+		wantErr bool
+	}{
+		{
+			"return error if object is nil",
+			nil,
+			nil,
+			nil,
+			true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := UnstructuredUnmarshalField(tt.obj, tt.v, tt.fields...); (err != nil) != tt.wantErr {
+				t.Errorf("UnstructuredUnmarshalField() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

@@ -20,8 +20,8 @@ jobs:
         go-version: '1.17'
       id: go
     - name: Check out code into the Go module directory
-      uses: actions/checkout@v2
-    - uses: actions/cache@v2
+      uses: actions/checkout@v3
+    - uses: actions/cache@v3.0.1
       name: Restore go cache
       with:
         path: |
@@ -31,7 +31,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-
     - name: Update all modules
-      run: make modules
+      run: make generate-modules
     - name: Update generated code
       run: make generate
     - uses: EndBug/add-and-commit@8c12ff729a98cfbcd3fe38b49f55eceb98a5ec02 # v7 https://api.github.com/repos/EndBug/add-and-commit/git/commits/8c12ff729a98cfbcd3fe38b49f55eceb98a5ec02

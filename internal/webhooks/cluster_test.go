@@ -46,10 +46,7 @@ func TestClusterDefaultNamespaces(t *testing.T) {
 		},
 	}
 	webhook := &Cluster{}
-	// TODO(sbueringer) We are storing the func in testFunc temporarily to work around
-	// an issue in thelper: https://github.com/kulti/thelper/issues/31
-	testFunc := customDefaultValidateTest(ctx, c, webhook)
-	t.Run("for Cluster", testFunc)
+	t.Run("for Cluster", customDefaultValidateTest(ctx, c, webhook))
 	g.Expect(webhook.Default(ctx, c)).To(Succeed())
 
 	g.Expect(c.Spec.InfrastructureRef.Namespace).To(Equal(c.Namespace))
@@ -351,10 +348,7 @@ func TestClusterDefaultTopologyVersion(t *testing.T) {
 
 	// Create the webhook and add the fakeClient as its client.
 	webhook := &Cluster{Client: fakeClient}
-	// TODO(sbueringer) We are storing the func in testFunc temporarily to work around
-	// an issue in thelper: https://github.com/kulti/thelper/issues/31
-	testFunc := customDefaultValidateTest(ctx, c, webhook)
-	t.Run("for Cluster", testFunc)
+	t.Run("for Cluster", customDefaultValidateTest(ctx, c, webhook))
 	g.Expect(webhook.Default(ctx, c)).To(Succeed())
 
 	g.Expect(c.Spec.Topology.Version).To(HavePrefix("v"))
@@ -1330,6 +1324,24 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 				WithControlPlaneReplicas(3).
 				Build(),
 			wantErr: true,
+		},
+		{
+			name: "Allow cluster moving from Unmanaged to Managed i.e. adding the spec.topology.class field on update " +
+				"if and only if ClusterTopologyUnsafeUpdateClassNameAnnotation is set",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithAnnotations(map[string]string{clusterv1.ClusterTopologyUnsafeUpdateClassNameAnnotation: ""}).
+				Build(),
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			updatedTopology: builder.ClusterTopology().
+				WithClass("class1").
+				WithVersion("v1.22.2").
+				WithControlPlaneReplicas(3).
+				Build(),
+			wantErr: false,
 		},
 		{
 			name: "Reject cluster moving from Managed to Unmanaged i.e. removing the spec.topology.class field on update",

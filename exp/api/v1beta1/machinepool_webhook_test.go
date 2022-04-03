@@ -22,13 +22,19 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/feature"
 	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
 )
 
 func TestMachinePoolDefault(t *testing.T) {
+	// NOTE: MachinePool feature flag is disabled by default, thus preventing to create or update MachinePool.
+	// Enabling the feature flag temporarily for this test.
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
+
 	g := NewWithT(t)
 
 	m := &MachinePool{
@@ -39,6 +45,7 @@ func TestMachinePoolDefault(t *testing.T) {
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+					Version:   pointer.StringPtr("1.20.0"),
 				},
 			},
 		},
@@ -51,9 +58,13 @@ func TestMachinePoolDefault(t *testing.T) {
 	g.Expect(m.Spec.MinReadySeconds).To(Equal(pointer.Int32Ptr(0)))
 	g.Expect(m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(m.Namespace))
 	g.Expect(m.Spec.Template.Spec.InfrastructureRef.Namespace).To(Equal(m.Namespace))
+	g.Expect(m.Spec.Template.Spec.Version).To(Equal(pointer.StringPtr("v1.20.0")))
 }
 
 func TestMachinePoolBootstrapValidation(t *testing.T) {
+	// NOTE: MachinePool feature flag is disabled by default, thus preventing to create or update MachinePool.
+	// Enabling the feature flag temporarily for this test.
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
 	tests := []struct {
 		name      string
 		bootstrap clusterv1.Bootstrap
@@ -100,6 +111,9 @@ func TestMachinePoolBootstrapValidation(t *testing.T) {
 }
 
 func TestMachinePoolNamespaceValidation(t *testing.T) {
+	// NOTE: MachinePool feature flag is disabled by default, thus preventing to create or update MachinePool.
+	// Enabling the feature flag temporarily for this test.
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
 	tests := []struct {
 		name      string
 		expectErr bool
@@ -165,6 +179,9 @@ func TestMachinePoolNamespaceValidation(t *testing.T) {
 }
 
 func TestMachinePoolClusterNameImmutable(t *testing.T) {
+	// NOTE: MachinePool feature flag is disabled by default, thus preventing to create or update MachinePool.
+	// Enabling the feature flag temporarily for this test.
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
 	tests := []struct {
 		name           string
 		oldClusterName string
@@ -215,6 +232,63 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 				g.Expect(newMP.ValidateUpdate(oldMP)).NotTo(Succeed())
 			} else {
 				g.Expect(newMP.ValidateUpdate(oldMP)).To(Succeed())
+			}
+		})
+	}
+}
+
+func TestMachinePoolVersionValidation(t *testing.T) {
+	// NOTE: MachinePool feature flag is disabled by default, thus preventing to create or update MachinePool.
+	// Enabling the feature flag temporarily for this test.
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.MachinePool, true)()
+	tests := []struct {
+		name      string
+		expectErr bool
+		version   string
+	}{
+		{
+			name:      "should succeed version is a valid kube semver",
+			expectErr: false,
+			version:   "v1.23.3",
+		},
+		{
+			name:      "should succeed version is a valid pre-release",
+			expectErr: false,
+			version:   "v1.19.0-alpha.1",
+		},
+		{
+			name:      "should fail if version is not a valid semver",
+			expectErr: true,
+			version:   "v1.1",
+		},
+		{
+			name:      "should fail if version is missing a v prefix",
+			expectErr: true,
+			version:   "1.20.0",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			m := &MachinePool{
+				Spec: MachinePoolSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{ConfigRef: &corev1.ObjectReference{}},
+							Version:   &tt.version,
+						},
+					},
+				},
+			}
+
+			if tt.expectErr {
+				g.Expect(m.ValidateCreate()).NotTo(Succeed())
+				g.Expect(m.ValidateUpdate(m)).NotTo(Succeed())
+			} else {
+				g.Expect(m.ValidateCreate()).To(Succeed())
+				g.Expect(m.ValidateUpdate(m)).To(Succeed())
 			}
 		})
 	}

@@ -389,6 +389,10 @@ func refersTo(ref *metav1.OwnerReference, obj client.Object) bool {
 // UnstructuredUnmarshalField is a wrapper around json and unstructured objects to decode and copy a specific field
 // value into an object.
 func UnstructuredUnmarshalField(obj *unstructured.Unstructured, v interface{}, fields ...string) error {
+	if obj == nil || obj.Object == nil {
+		return errors.Errorf("failed to unmarshal unstructured object: object is nil")
+	}
+
 	value, found, err := unstructured.NestedFieldNoCopy(obj.Object, fields...)
 	if err != nil {
 		return errors.Wrapf(err, "failed to retrieve field %q from %q", strings.Join(fields, "."), obj.GroupVersionKind())

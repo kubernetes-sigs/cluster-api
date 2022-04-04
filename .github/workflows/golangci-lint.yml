@@ -14,8 +14,11 @@ jobs:
           - hack/tools
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: 1.17
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3.1.0
         with:
           version: v1.45.2
           working-directory: ${{matrix.working-directory}}

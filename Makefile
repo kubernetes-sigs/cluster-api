@@ -234,7 +234,7 @@ $(KUSTOMIZE): # Download kustomize using hack script into tools folder.
 $(GOLANGCI_LINT): .github/workflows/golangci-lint.yml # Download golanci-lint using hack script into tools folder.
 	hack/ensure-golangci-lint.sh \
 		-b $(TOOLS_DIR)/$(BIN_DIR) \
-		$(shell cat .github/workflows/golangci-lint.yml | grep version | sed 's/.*version: //')
+		$(shell cat .github/workflows/golangci-lint.yml | grep [[:space:]]version | sed 's/.*version: //')
 
 envsubst: $(ENVSUBST) ## Build a local copy of envsubst.
 kustomize: $(KUSTOMIZE) ## Build a local copy of kustomize.

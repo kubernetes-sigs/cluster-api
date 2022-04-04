@@ -104,13 +104,14 @@ func (m *MachineHealthCheck) ValidateDelete() error {
 
 func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 	var allErrs field.ErrorList
+	specPath := field.NewPath("spec")
 
 	// Validate selector parses as Selector
 	selector, err := metav1.LabelSelectorAsSelector(&m.Spec.Selector)
 	if err != nil {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "selector"), m.Spec.Selector, err.Error()),
+			field.Invalid(specPath.Child("selector"), m.Spec.Selector, err.Error()),
 		)
 	}
 
@@ -118,20 +119,20 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 	if selector != nil && selector.Empty() {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "selector"), m.Spec.Selector, "selector must not be empty"),
+			field.Required(specPath.Child("selector"), "selector must not be empty"),
 		)
 	}
 
 	if clusterName, ok := m.Spec.Selector.MatchLabels[ClusterLabelName]; ok && clusterName != m.Spec.ClusterName {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "selector"), m.Spec.Selector, "cannot specify a cluster selector other than the one specified by ClusterName"))
+			field.Invalid(specPath.Child("selector"), m.Spec.Selector, "cannot specify a cluster selector other than the one specified by ClusterName"))
 	}
 
 	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "clusterName"), m.Spec.ClusterName, "field is immutable"),
+			field.Forbidden(specPath.Child("clusterName"), "field is immutable"),
 		)
 	}
 
@@ -140,7 +141,7 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 		m.Spec.NodeStartupTimeout.Seconds() < minNodeStartupTimeout.Seconds() {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "nodeStartupTimeout"), m.Spec.NodeStartupTimeout.Seconds(), "must be at least 30s"),
+			field.Invalid(specPath.Child("nodeStartupTimeout"), m.Spec.NodeStartupTimeout.Seconds(), "must be at least 30s"),
 		)
 	}
 
@@ -148,7 +149,7 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 		if _, err := intstr.GetScaledValueFromIntOrPercent(m.Spec.MaxUnhealthy, 0, false); err != nil {
 			allErrs = append(
 				allErrs,
-				field.Invalid(field.NewPath("spec", "maxUnhealthy"), m.Spec.MaxUnhealthy, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
+				field.Invalid(specPath.Child("maxUnhealthy"), m.Spec.MaxUnhealthy, fmt.Sprintf("must be either an int or a percentage: %v", err.Error())),
 			)
 		}
 	}
@@ -157,7 +158,7 @@ func (m *MachineHealthCheck) validate(old *MachineHealthCheck) error {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
-				field.NewPath("spec", "remediationTemplate", "namespace"),
+				specPath.Child("remediationTemplate", "namespace"),
 				m.Spec.RemediationTemplate.Namespace,
 				"must match metadata.namespace",
 			),

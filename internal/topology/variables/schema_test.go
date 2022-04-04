@@ -126,6 +126,44 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 			},
 		},
 		{
+			name: "pass for schema validation with map",
+			schema: &clusterv1.JSONSchemaProps{
+				AdditionalProperties: &clusterv1.JSONSchemaProps{
+					Properties: map[string]clusterv1.JSONSchemaProps{
+						"property1": {
+							Type:    "integer",
+							Minimum: pointer.Int64(1),
+						},
+						"property2": {
+							Type:      "string",
+							Format:    "uri",
+							MinLength: pointer.Int64(2),
+							MaxLength: pointer.Int64(4),
+						},
+					},
+				},
+			},
+			want: &apiextensions.JSONSchemaProps{
+				AdditionalProperties: &apiextensions.JSONSchemaPropsOrBool{
+					Allows: true,
+					Schema: &apiextensions.JSONSchemaProps{
+						Properties: map[string]apiextensions.JSONSchemaProps{
+							"property1": {
+								Type:    "integer",
+								Minimum: pointer.Float64(1),
+							},
+							"property2": {
+								Type:      "string",
+								Format:    "uri",
+								MinLength: pointer.Int64(2),
+								MaxLength: pointer.Int64(4),
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "pass for schema validation with array",
 			schema: &clusterv1.JSONSchemaProps{
 				Items: &clusterv1.JSONSchemaProps{

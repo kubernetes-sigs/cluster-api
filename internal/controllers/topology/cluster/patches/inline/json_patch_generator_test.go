@@ -1488,7 +1488,7 @@ owner: root:root
 		},
 		// Pick up config for a specific MD Class
 		{
-			name:     "Should render a object property with a lookup based on a builtin variable",
+			name:     "Should render a object property with a lookup based on a builtin variable (class)",
 			template: `{{ (index .mdConfig .builtin.machineDeployment.class).config }}`,
 			variables: map[string]apiextensionsv1.JSON{
 				"mdConfig": {Raw: []byte(`{
@@ -1496,6 +1496,24 @@ owner: root:root
 	"config":"configValue1"
 },
 "mdClass2":{
+	"config":"configValue2"
+}
+}`)},
+				// Schema must either support complex objects with predefined keys/mdClasses or maps with additionalProperties.
+				patchvariables.BuiltinsName: {Raw: []byte(`{"machineDeployment":{"version":"v1.21.1","class":"mdClass2","name":"md1","topologyName":"md-topology","replicas":3}}`)},
+			},
+			want: &apiextensionsv1.JSON{Raw: []byte(`"configValue2"`)},
+		},
+		// Pick up config for a specific version
+		{
+			name:     "Should render a object property with a lookup based on a builtin variable (version)",
+			template: `{{ (index .mdConfig .builtin.machineDeployment.version).config }}`,
+			variables: map[string]apiextensionsv1.JSON{
+				"mdConfig": {Raw: []byte(`{
+"v1.21.0":{
+	"config":"configValue1"
+},
+"v1.21.1":{
 	"config":"configValue2"
 }
 }`)},

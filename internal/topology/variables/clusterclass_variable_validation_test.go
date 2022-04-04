@@ -378,6 +378,89 @@ func Test_ValidateClusterClassVariable(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "Valid map schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AdditionalProperties: &clusterv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]clusterv1.JSONSchemaProps{
+								"enabled": {
+									Type:    "boolean",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+								},
+								"url": {
+									Type: "string",
+								},
+								"noProxy": {
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "fail on invalid map schema",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AdditionalProperties: &clusterv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]clusterv1.JSONSchemaProps{
+								"enabled": {
+									Type:    "boolean",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+								},
+								"url": {
+									Type: "string",
+								},
+								"noProxy": {
+									Type: "invalidType", // invalid type.
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "fail on object (properties) and map (additionalProperties) both set",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AdditionalProperties: &clusterv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]clusterv1.JSONSchemaProps{
+								"enabled": {
+									Type:    "boolean",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+								},
+							},
+						},
+						Properties: map[string]clusterv1.JSONSchemaProps{
+							"enabled": {
+								Type:    "boolean",
+								Default: &apiextensionsv1.JSON{Raw: []byte(`false`)},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "Valid array schema",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "arrayVariable",

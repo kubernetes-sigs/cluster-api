@@ -826,6 +826,14 @@ spec:
                             via OpenAPI v3 schema. The schema is a subset of the schema
                             used in Kubernetes CRDs.
                           properties:
+                            additionalProperties:
+                              description: 'AdditionalProperties specifies the schema
+                                of values in a map (keys are always strings). NOTE:
+                                Can only be set if type is object. NOTE: AdditionalProperties
+                                is mutually exclusive with Properties. NOTE: This
+                                field uses PreserveUnknownFields and Schemaless, because
+                                recursive validation is not possible.'
+                              x-kubernetes-preserve-unknown-fields: true
                             default:
                               description: 'Default is the default value of the variable.
                                 NOTE: Can be set for all types.'
@@ -912,9 +920,10 @@ spec:
                               type: string
                             properties:
                               description: 'Properties specifies fields of an object.
-                                NOTE: Can only be set if type is object. NOTE: This
-                                field uses PreserveUnknownFields and Schemaless, because
-                                recursive validation is not possible.'
+                                NOTE: Can only be set if type is object. NOTE: Properties
+                                is mutually exclusive with AdditionalProperties. NOTE:
+                                This field uses PreserveUnknownFields and Schemaless,
+                                because recursive validation is not possible.'
                               x-kubernetes-preserve-unknown-fields: true
                             required:
                               description: 'Required specifies which fields of an

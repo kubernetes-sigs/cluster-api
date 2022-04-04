@@ -585,6 +585,81 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			},
 		},
 		{
+			name: "Default new map variable",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type:    "object",
+						Default: &apiextensionsv1.JSON{Raw: []byte(`{"proxy":{"enabled":false}}`)},
+						AdditionalProperties: &clusterv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]clusterv1.JSONSchemaProps{
+								"enabled": {
+									Type: "boolean",
+								},
+								"url": {
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"https://example.com"`)},
+								},
+								"noProxy": {
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+			createVariable: true,
+			want: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"proxy":{"enabled":false,"url":"https://example.com"}}`),
+				},
+			},
+		},
+		{
+			name: "Default nested fields of existing map variable",
+			clusterClassVariable: &clusterv1.ClusterClassVariable{
+				Name:     "httpProxy",
+				Required: true,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+						Type: "object",
+						AdditionalProperties: &clusterv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]clusterv1.JSONSchemaProps{
+								"enabled": {
+									Type: "boolean",
+								},
+								"url": {
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"https://example.com"`)},
+								},
+								"noProxy": {
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+			clusterVariable: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"proxy1":{"enabled":false},"proxy2":{"enabled":false}}`),
+				},
+			},
+			createVariable: true,
+			want: &clusterv1.ClusterVariable{
+				Name: "httpProxy",
+				Value: apiextensionsv1.JSON{
+					Raw: []byte(`{"proxy1":{"enabled":false,"url":"https://example.com"},"proxy2":{"enabled":false,"url":"https://example.com"}}`),
+				},
+			},
+		},
+		{
 			name: "Default new array variable",
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testVariable",

@@ -188,6 +188,13 @@ func validateSchema(schema *apiextensions.JSONSchemaProps, fldPath *field.Path) 
 		}
 	}
 
+	if schema.AdditionalProperties != nil {
+		if len(schema.Properties) > 0 {
+			allErrs = append(allErrs, field.Forbidden(fldPath.Child("additionalProperties"), "additionalProperties and properties are mutual exclusive"))
+		}
+		allErrs = append(allErrs, validateSchema(schema.AdditionalProperties.Schema, fldPath.Child("additionalProperties"))...)
+	}
+
 	for propertyName, propertySchema := range schema.Properties {
 		p := propertySchema
 		allErrs = append(allErrs, validateSchema(&p, fldPath.Child("properties").Key(propertyName))...)

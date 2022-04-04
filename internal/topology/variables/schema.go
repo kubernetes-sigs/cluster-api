@@ -114,6 +114,21 @@ func convertToAPIExtensionsJSONSchemaProps(schema *clusterv1.JSONSchemaProps, fl
 		props.Minimum = &f
 	}
 
+	if schema.AdditionalProperties != nil {
+		apiExtensionsSchema, err := convertToAPIExtensionsJSONSchemaProps(schema.AdditionalProperties, fldPath.Child("additionalProperties"))
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("additionalProperties"), "",
+				fmt.Sprintf("failed to convert schema: %v", err)))
+		} else {
+			props.AdditionalProperties = &apiextensions.JSONSchemaPropsOrBool{
+				// Allows must be true to allow "additional properties".
+				// Otherwise only the ones from .Properties are allowed.
+				Allows: true,
+				Schema: apiExtensionsSchema,
+			}
+		}
+	}
+
 	if len(schema.Properties) > 0 {
 		props.Properties = map[string]apiextensions.JSONSchemaProps{}
 		for propertyName, propertySchema := range schema.Properties {

@@ -376,7 +376,7 @@ To keep the implementation as easy and user-friendly as possible we will only im
 for now (until further use cases emerge):
 - Basic types: boolean, integer, number, string
 - Basic validation, e.g. format, minimum, maximum, pattern, required, ...
-- Complex types: objects, arrays
+- Complex types: objects, maps and arrays
 - Defaulting
     - Defaulting will be implemented based on the CRD structural schema library and thus will have the same feature set 
       as CRD defaulting. I.e., it will only be possible to use constant values as defaults.

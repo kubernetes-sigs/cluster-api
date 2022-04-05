@@ -2956,6 +2956,29 @@ spec:
                     passwd:
                       description: Passwd specifies a hashed password for the user
                       type: string
+                    passwdFrom:
+                      description: PasswdFrom is a referenced source of passwd to
+                        populate the passwd.
+                      properties:
+                        secret:
+                          description: Secret represents a secret that should populate
+                            this password.
+                          properties:
+                            key:
+                              description: Key is the key in the secret's data map
+                                for this value.
+                              type: string
+                            name:
+                              description: Name of the secret in the KubeadmBootstrapConfig's
+                                namespace to use.
+                              type: string
+                          required:
+                          - key
+                          - name
+                          type: object
+                      required:
+                      - secret
+                      type: object
                     primaryGroup:
                       description: PrimaryGroup specifies the primary group for the
                         user

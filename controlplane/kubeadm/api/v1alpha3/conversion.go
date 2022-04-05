@@ -40,7 +40,16 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.MachineTemplate.ObjectMeta = restored.Spec.MachineTemplate.ObjectMeta
 	dst.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.MachineTemplate.NodeDeletionTimeout
+	dst.Spec.KubeadmConfigSpec.Users = restored.Spec.KubeadmConfigSpec.Users
 	dst.Status.Version = restored.Status.Version
+
+	if restored.Spec.KubeadmConfigSpec.Users != nil {
+		for i := range restored.Spec.KubeadmConfigSpec.Users {
+			if restored.Spec.KubeadmConfigSpec.Users[i].PasswdFrom != nil {
+				dst.Spec.KubeadmConfigSpec.Users[i].PasswdFrom = restored.Spec.KubeadmConfigSpec.Users[i].PasswdFrom
+			}
+		}
+	}
 
 	if restored.Spec.KubeadmConfigSpec.JoinConfiguration != nil && restored.Spec.KubeadmConfigSpec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
 		if dst.Spec.KubeadmConfigSpec.JoinConfiguration == nil {

@@ -1861,6 +1861,132 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 	}
 }
 
+func TestKubeadmConfigReconciler_ResolveUsers(t *testing.T) {
+	fakePasswd := "bar"
+	testSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "source",
+		},
+		Data: map[string][]byte{
+			"key": []byte(fakePasswd),
+		},
+	}
+
+	cases := map[string]struct {
+		cfg     *bootstrapv1.KubeadmConfig
+		objects []client.Object
+		expect  []bootstrapv1.User
+	}{
+		"password should pass through": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Users: []bootstrapv1.User{
+						{
+							Name:   "foo",
+							Passwd: &fakePasswd,
+						},
+					},
+				},
+			},
+			expect: []bootstrapv1.User{
+				{
+					Name:   "foo",
+					Passwd: &fakePasswd,
+				},
+			},
+		},
+		"passwdFrom should convert correctly": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Users: []bootstrapv1.User{
+						{
+							Name: "foo",
+							PasswdFrom: &bootstrapv1.PasswdSource{
+								Secret: bootstrapv1.SecretPasswdSource{
+									Name: "source",
+									Key:  "key",
+								},
+							},
+						},
+					},
+				},
+			},
+			expect: []bootstrapv1.User{
+				{
+					Name:   "foo",
+					Passwd: &fakePasswd,
+				},
+			},
+			objects: []client.Object{testSecret},
+		},
+		"multiple users should work correctly": {
+			cfg: &bootstrapv1.KubeadmConfig{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					Users: []bootstrapv1.User{
+						{
+							Name:   "foo",
+							Passwd: &fakePasswd,
+						},
+						{
+							Name: "bar",
+							PasswdFrom: &bootstrapv1.PasswdSource{
+								Secret: bootstrapv1.SecretPasswdSource{
+									Name: "source",
+									Key:  "key",
+								},
+							},
+						},
+					},
+				},
+			},
+			expect: []bootstrapv1.User{
+				{
+					Name:   "foo",
+					Passwd: &fakePasswd,
+				},
+				{
+					Name:   "bar",
+					Passwd: &fakePasswd,
+				},
+			},
+			objects: []client.Object{testSecret},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			myclient := fake.NewClientBuilder().WithObjects(tc.objects...).Build()
+			k := &KubeadmConfigReconciler{
+				Client:          myclient,
+				KubeadmInitLock: &myInitLocker{},
+			}
+
+			// make a list of password we expect to be sourced from secrets
+			// after we resolve users, assert that the original spec has
+			// not been mutated and all password we expected to be sourced
+			// from secret still are.
+			passwdFrom := map[string]bool{}
+			for _, user := range tc.cfg.Spec.Users {
+				if user.PasswdFrom != nil {
+					passwdFrom[user.Name] = true
+				}
+			}
+
+			users, err := k.resolveUsers(ctx, tc.cfg)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(users).To(Equal(tc.expect))
+			for _, user := range tc.cfg.Spec.Users {
+				if passwdFrom[user.Name] {
+					g.Expect(user.PasswdFrom).NotTo(BeNil())
+					g.Expect(user.Passwd).To(BeNil())
+				}
+			}
+		})
+	}
+}
+
 // test utils.
 
 // newWorkerMachineForCluster returns a Machine with the passed Cluster's information and a pre-configured name.

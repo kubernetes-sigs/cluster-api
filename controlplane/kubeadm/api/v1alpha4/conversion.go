@@ -39,6 +39,15 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.KubeadmConfigSpec.Users = restored.Spec.KubeadmConfigSpec.Users
+	if restored.Spec.KubeadmConfigSpec.Users != nil {
+		for i := range restored.Spec.KubeadmConfigSpec.Users {
+			if restored.Spec.KubeadmConfigSpec.Users[i].PasswdFrom != nil {
+				dst.Spec.KubeadmConfigSpec.Users[i].PasswdFrom = restored.Spec.KubeadmConfigSpec.Users[i].PasswdFrom
+			}
+		}
+	}
+
 	dst.Spec.KubeadmConfigSpec.Ignition = restored.Spec.KubeadmConfigSpec.Ignition
 	if restored.Spec.KubeadmConfigSpec.InitConfiguration != nil {
 		if dst.Spec.KubeadmConfigSpec.InitConfiguration == nil {
@@ -96,8 +105,18 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.Template.Spec.KubeadmConfigSpec.Users = restored.Spec.Template.Spec.KubeadmConfigSpec.Users
 	dst.Spec.Template.Spec.KubeadmConfigSpec.Ignition = restored.Spec.Template.Spec.KubeadmConfigSpec.Ignition
 	dst.Spec.Template.Spec.MachineTemplate = restored.Spec.Template.Spec.MachineTemplate
+
+	if restored.Spec.Template.Spec.KubeadmConfigSpec.Users != nil {
+		for i := range restored.Spec.Template.Spec.KubeadmConfigSpec.Users {
+			if restored.Spec.Template.Spec.KubeadmConfigSpec.Users[i].PasswdFrom != nil {
+				dst.Spec.Template.Spec.KubeadmConfigSpec.Users[i].PasswdFrom = restored.Spec.Template.Spec.KubeadmConfigSpec.Users[i].PasswdFrom
+			}
+		}
+	}
+
 	if restored.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration != nil {
 		if dst.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration == nil {
 			dst.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}

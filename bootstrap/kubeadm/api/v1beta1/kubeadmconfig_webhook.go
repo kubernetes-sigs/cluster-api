@@ -31,6 +31,7 @@ import (
 var (
 	cannotUseWithIgnition                            = fmt.Sprintf("not supported when spec.format is set to %q", Ignition)
 	conflictingFileSourceMsg                         = "only one of content or contentFrom may be specified for a single file"
+	conflictingUserSourceMsg                         = "only one of passwd or passwdFrom may be specified for a single user"
 	kubeadmBootstrapFormatIgnitionFeatureDisabledMsg = "can be set only if the KubeadmBootstrapFormatIgnition feature gate is enabled"
 	missingSecretNameMsg                             = "secret file source must specify non-empty secret name"
 	missingSecretKeyMsg                              = "secret file source must specify non-empty secret key"
@@ -93,6 +94,7 @@ func (c *KubeadmConfigSpec) Validate(pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, c.validateFiles(pathPrefix)...)
+	allErrs = append(allErrs, c.validateUsers(pathPrefix)...)
 	allErrs = append(allErrs, c.validateIgnition(pathPrefix)...)
 
 	return allErrs
@@ -150,6 +152,49 @@ func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorLis
 			)
 		}
 		knownPaths[file.Path] = struct{}{}
+	}
+
+	return allErrs
+}
+
+func (c *KubeadmConfigSpec) validateUsers(pathPrefix *field.Path) field.ErrorList {
+	var allErrs field.ErrorList
+
+	for i := range c.Users {
+		user := c.Users[i]
+		if user.Passwd != nil && user.PasswdFrom != nil {
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					pathPrefix.Child("users").Index(i),
+					user,
+					conflictingUserSourceMsg,
+				),
+			)
+		}
+		// n.b.: if we ever add types besides Secret as a PasswdFrom
+		// Source, we must add webhook validation here for one of the
+		// sources being non-nil.
+		if user.PasswdFrom != nil {
+			if user.PasswdFrom.Secret.Name == "" {
+				allErrs = append(
+					allErrs,
+					field.Required(
+						pathPrefix.Child("users").Index(i).Child("passwdFrom", "secret", "name"),
+						missingSecretNameMsg,
+					),
+				)
+			}
+			if user.PasswdFrom.Secret.Key == "" {
+				allErrs = append(
+					allErrs,
+					field.Required(
+						pathPrefix.Child("users").Index(i).Child("passwdFrom", "secret", "key"),
+						missingSecretKeyMsg,
+					),
+				)
+			}
+		}
 	}
 
 	return allErrs

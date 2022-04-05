@@ -178,6 +178,100 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		"valid passwd": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: KubeadmConfigSpec{
+					Users: []User{
+						{
+							Passwd: pointer.StringPtr("foo"),
+						},
+					},
+				},
+			},
+		},
+		"valid passwdFrom": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: KubeadmConfigSpec{
+					Users: []User{
+						{
+							PasswdFrom: &PasswdSource{
+								Secret: SecretPasswdSource{
+									Name: "foo",
+									Key:  "bar",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"invalid passwd and passwdFrom": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: KubeadmConfigSpec{
+					Users: []User{
+						{
+							PasswdFrom: &PasswdSource{},
+							Passwd:     pointer.StringPtr("foo"),
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"invalid passwdFrom without name": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: KubeadmConfigSpec{
+					Users: []User{
+						{
+							PasswdFrom: &PasswdSource{
+								Secret: SecretPasswdSource{
+									Key: "bar",
+								},
+							},
+							Passwd: pointer.StringPtr("foo"),
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"invalid passwdFrom without key": {
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: KubeadmConfigSpec{
+					Users: []User{
+						{
+							PasswdFrom: &PasswdSource{
+								Secret: SecretPasswdSource{
+									Name: "foo",
+								},
+							},
+							Passwd: pointer.StringPtr("foo"),
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
 		"Ignition field is set, format is not Ignition": {
 			enableIgnitionFeature: true,
 			in: &KubeadmConfig{

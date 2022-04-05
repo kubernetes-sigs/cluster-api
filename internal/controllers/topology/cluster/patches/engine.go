@@ -326,6 +326,7 @@ func updateDesiredState(ctx context.Context, req *api.GenerateRequest, blueprint
 	if err := patchObject(ctx, desired.ControlPlane.Object, controlPlaneTemplate, PreserveFields{
 		contract.ControlPlane().MachineTemplate().Metadata().Path(),
 		contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(),
+		contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path(),
 		contract.ControlPlane().Replicas().Path(),
 		contract.ControlPlane().Version().Path(),
 	}); err != nil {

@@ -212,6 +212,13 @@ func computeControlPlane(_ context.Context, s *scope.Scope, infrastructureMachin
 		}
 	}
 
+	// If it is required to manage the NodeDrainTimeout for the control plane, set the corresponding field.
+	if s.Blueprint.Topology.ControlPlane.NodeDrainTimeout != nil {
+		if err := contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Set(controlPlane, *s.Blueprint.Topology.ControlPlane.NodeDrainTimeout); err != nil {
+			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.nodeDrainTimeout in the ControlPlane object")
+		}
+	}
+
 	// Sets the desired Kubernetes version for the control plane.
 	version, err := computeControlPlaneVersion(s)
 	if err != nil {
@@ -446,6 +453,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 					Bootstrap:         clusterv1.Bootstrap{ConfigRef: contract.ObjToRef(desiredMachineDeployment.BootstrapTemplate)},
 					InfrastructureRef: *contract.ObjToRef(desiredMachineDeployment.InfrastructureMachineTemplate),
 					FailureDomain:     machineDeploymentTopology.FailureDomain,
+					NodeDrainTimeout:  machineDeploymentTopology.NodeDrainTimeout,
 				},
 			},
 		},

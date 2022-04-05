@@ -857,6 +857,13 @@ spec:
                               More info: http://kubernetes.io/docs/user-guide/labels'
                             type: object
                         type: object
+                      nodeDrainTimeout:
+                        description: 'NodeDrainTimeout is the total amount of time
+                          that the controller will spend on draining a node. The default
+                          value is 0, meaning that the node can be drained without
+                          any time limitations. NOTE: NodeDrainTimeout is different
+                          from `kubectl drain --timeout`'
+                        type: string
                       replicas:
                         description: Replicas is the number of control plane nodes.
                           If the value is nil, the ControlPlane object is created
@@ -958,6 +965,14 @@ spec:
                                 Name (e.g. cluster's name, etc). In case the name
                                 is greater than the allowed maximum length, the values
                                 are hashed together.
+                              type: string
+                            nodeDrainTimeout:
+                              description: 'NodeDrainTimeout is the total amount of
+                                time that the controller will spend on draining a
+                                node. The default value is 0, meaning that the node
+                                can be drained without any time limitations. NOTE:
+                                NodeDrainTimeout is different from `kubectl drain
+                                --timeout`'
                               type: string
                             replicas:
                               description: Replicas is the number of worker nodes

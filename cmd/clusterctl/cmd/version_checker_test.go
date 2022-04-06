@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"testing"
 	"time"
@@ -372,6 +373,32 @@ func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(release.Version).To(Equal("v0.3.10"))
 	g.Expect(release.URL).To(Equal("https://github.com/foo/bar/releases/v0.3.10"))
+}
+
+func TestVersionChecker_ReadFromStateFileSymlinkedToNull(t *testing.T) {
+	g := NewWithT(t)
+
+	tmpVersionFile, cleanDir := generateTempVersionFilePath(g)
+	defer cleanDir()
+
+	g.Expect(os.Mkdir(path.Dir(tmpVersionFile), 0755)).To(Succeed())
+	g.Expect(os.Symlink("/dev/null", tmpVersionFile)).To(Succeed())
+
+	fakeGithubClient1, mux1, cleanup1 := test.NewFakeGitHub()
+	mux1.HandleFunc(
+		"/",
+		func(w http.ResponseWriter, r *http.Request) {
+			g.Expect(r).To(Equal(nil))
+		},
+	)
+	defer cleanup1()
+	versionChecker := newVersionChecker(test.NewFakeVariableClient())
+	versionChecker.versionFilePath = tmpVersionFile
+	versionChecker.githubClient = fakeGithubClient1
+
+	message, err := versionChecker.Check()
+	g.Expect(message).To(Equal(""))
+	g.Expect(err).ToNot(HaveOccurred())
 }
 
 func generateTempVersionFilePath(g *WithT) (string, func()) {

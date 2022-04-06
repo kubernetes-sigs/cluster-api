@@ -91,6 +91,13 @@ type VersionState struct {
 // version is the same or greater it returns nothing.
 func (v *versionChecker) Check() (string, error) {
 	log := logf.Log
+
+	if versionFileLink, _ := os.Readlink(v.versionFilePath); versionFileLink == "/dev/null" {
+		// If ~/.cluster-api/version.yaml is a symlink to /dev/null,
+		// skip version check
+		return "", nil
+	}
+
 	cliVer, err := semver.ParseTolerant(v.cliVersion().GitVersion)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to semver parse clusterctl GitVersion")

@@ -136,6 +136,10 @@ func JSONSchemaPropsFuzzer(in *clusterv1.JSONSchemaProps, c fuzz.Continue) {
 
 	// We're using a copy of the current JSONSchemaProps,
 	// because we cannot recursively fuzz new schemas.
+	in.AdditionalProperties = in.DeepCopy()
+
+	// We're using a copy of the current JSONSchemaProps,
+	// because we cannot recursively fuzz new schemas.
 	in.Properties = map[string]clusterv1.JSONSchemaProps{}
 	for i := 0; i < c.Intn(10); i++ {
 		in.Properties[c.RandString()] = *in.DeepCopy()

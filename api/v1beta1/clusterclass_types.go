@@ -216,12 +216,23 @@ type JSONSchemaProps struct {
 
 	// Properties specifies fields of an object.
 	// NOTE: Can only be set if type is object.
+	// NOTE: Properties is mutually exclusive with AdditionalProperties.
 	// NOTE: This field uses PreserveUnknownFields and Schemaless,
 	// because recursive validation is not possible.
 	// +optional
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Schemaless
 	Properties map[string]JSONSchemaProps `json:"properties,omitempty"`
+
+	// AdditionalProperties specifies the schema of values in a map (keys are always strings).
+	// NOTE: Can only be set if type is object.
+	// NOTE: AdditionalProperties is mutually exclusive with Properties.
+	// NOTE: This field uses PreserveUnknownFields and Schemaless,
+	// because recursive validation is not possible.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Schemaless
+	AdditionalProperties *JSONSchemaProps `json:"additionalProperties,omitempty"`
 
 	// Required specifies which fields of an object are required.
 	// NOTE: Can only be set if type is object.

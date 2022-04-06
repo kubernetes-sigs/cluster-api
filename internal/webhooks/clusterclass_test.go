@@ -1887,6 +1887,111 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 			expectErr: true,
 		},
 		{
+			name: "Pass if Type ClusterClassVariable is changed (Object -> Map) not invalidating an existing ClusterVariable",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "config",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`{"stringField":"value1"}`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "config",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"stringField": {
+										Type: "string",
+									},
+								},
+							},
+						},
+					},
+				).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "config",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								// Type changed to a map which allows the same format (map[string]string).
+								Type: "object",
+								AdditionalProperties: &clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+					}).
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "Error if Type ClusterClassVariable is changed (Object -> Map) invalidating an existing ClusterVariable",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
+					WithTopology(
+						builder.ClusterTopology().
+							WithClass("class1").
+							WithVariables(
+								clusterv1.ClusterVariable{
+									Name: "config",
+									Value: apiextensionsv1.JSON{
+										Raw: []byte(`{"stringField":"value1","numberField":1}`),
+									},
+								}).
+							Build()).
+					Build(),
+			},
+			oldClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "config",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "object",
+								Properties: map[string]clusterv1.JSONSchemaProps{
+									"stringField": {
+										Type: "string",
+									},
+									"numberField": {
+										Type: "number",
+									},
+								},
+							},
+						},
+					}).
+				Build(),
+			newClusterClass: clusterClassBuilder.
+				WithVariables(
+					clusterv1.ClusterClassVariable{
+						Name: "config",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "object",
+								AdditionalProperties: &clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+					}).
+				Build(),
+			expectErr: true,
+		},
+		{
 			name: "Error if clusterClass update removes variable which is referenced in an existing cluster",
 			clusters: []client.Object{
 				builder.Cluster(metav1.NamespaceDefault, "cluster1").

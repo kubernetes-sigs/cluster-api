@@ -576,6 +576,11 @@ func (in *JSONSchemaProps) DeepCopyInto(out *JSONSchemaProps) {
 			(*out)[key] = *val.DeepCopy()
 		}
 	}
+	if in.AdditionalProperties != nil {
+		in, out := &in.AdditionalProperties, &out.AdditionalProperties
+		*out = new(JSONSchemaProps)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Required != nil {
 		in, out := &in.Required, &out.Required
 		*out = make([]string, len(*in))

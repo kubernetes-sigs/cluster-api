@@ -450,9 +450,9 @@ spec:
 
 ### Complex variable types
 
-Variables can also be objects and arrays. An object is specified with the type `object` and
-by the schemas of the fields of the object. An array is specified via the type `array` and
-the schema of the array items.
+Variables can also be objects, maps and arrays. An object is specified with the type `object` and
+by the schemas of the fields of the object. A map is specified with the type `object` and the schema 
+of the map values. An array is specified via the type `array` and the schema of the array items.
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -473,6 +473,16 @@ spec:
           # Schema of the noProxy field.
           noProxy:
             type: string
+  - name: mdConfig
+    schema:
+      openAPIV3Schema:
+        type: object
+        additionalProperties:
+          # Schema of the map values.
+          type: object
+          properties:
+            osImage:
+              type: string
   - name: dnsServers
     schema:
       openAPIV3Schema:
@@ -482,7 +492,7 @@ spec:
           type: string
 ```
 
-Objects and arrays can be used in patches either directly by referencing the variable name,
+Objects, maps and arrays can be used in patches either directly by referencing the variable name,
 or by accessing individual fields. For example:
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -497,6 +507,11 @@ spec:
     valueFrom:
       # Use the url field of the httpProxy variable.
       variable: httpProxy.url
+  - op: add
+    path: /spec/template/spec/customImage
+    valueFrom:
+      # Use the osImage field of the mdConfig variable for the current MD class.
+      template: "{{ (index .mdConfig .builtin.machineDeployment.class).osImage }}"
   - op: add
     path: /spec/template/spec/dnsServers
     valueFrom:

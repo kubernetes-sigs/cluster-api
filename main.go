@@ -56,6 +56,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	runtimev1controllers "sigs.k8s.io/cluster-api/exp/runtime/controllers"
 	"sigs.k8s.io/cluster-api/feature"
 	runtimev1webhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 	"sigs.k8s.io/cluster-api/version"
@@ -78,6 +79,7 @@ var (
 	clusterTopologyConcurrency    int
 	clusterClassConcurrency       int
 	clusterConcurrency            int
+	extensionConfigConcurrency    int
 	machineConcurrency            int
 	machineSetConcurrency         int
 	machineDeploymentConcurrency  int
@@ -149,6 +151,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
 		"Number of clusters to process simultaneously")
+
+	fs.IntVar(&extensionConfigConcurrency, "extensionconfig-concurrency", 10,
+		"Number of extension configs to process simultaneously")
 
 	fs.IntVar(&machineConcurrency, "machine-concurrency", 10,
 		"Number of machines to process simultaneously")
@@ -348,6 +353,18 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			os.Exit(1)
 		}
 	}
+
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		if err = (&runtimev1controllers.ExtensionConfigReconciler{
+			Client:           mgr.GetClient(),
+			APIReader:        mgr.GetAPIReader(),
+			WatchFilterValue: watchFilterValue,
+		}).SetupWithManager(ctx, mgr, concurrency(extensionConfigConcurrency)); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ExtensionConfig")
+			os.Exit(1)
+		}
+	}
+
 	if err := (&controllers.ClusterReconciler{
 		Client:           mgr.GetClient(),
 		APIReader:        mgr.GetAPIReader(),

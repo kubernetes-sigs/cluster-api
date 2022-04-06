@@ -85,7 +85,7 @@ users:
 			g := NewWithT(t)
 
 			wc := newWorkloadCluster(tt.proxy)
-			data, err := wc.GetKubeconfig("test1", "test", false)
+			data, err := wc.GetKubeconfig("test1", "test", true)
 
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())

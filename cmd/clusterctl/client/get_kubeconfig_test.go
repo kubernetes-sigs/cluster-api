@@ -48,7 +48,7 @@ func Test_clusterctlClient_GetKubeconfig(t *testing.T) {
 		{
 			name:      "returns error if unable namespace is empty",
 			client:    badClient,
-			options:   GetKubeconfigOptions{Kubeconfig: Kubeconfig(kubeconfig)},
+			options:   GetKubeconfigOptions{Kubeconfig: Kubeconfig(kubeconfig), UserKubeconfig: true},
 			expectErr: true,
 		},
 	}

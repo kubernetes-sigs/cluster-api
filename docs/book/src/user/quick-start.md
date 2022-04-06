@@ -185,7 +185,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Metal3,OCI,OpenStack,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Metal3,Nutanix,OCI,OpenStack,vSphere"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
@@ -313,6 +313,11 @@ Please visit the [Hetzner project][Hetzner provider].
 Please visit the [Metal3 project][Metal3 provider].
 
 {{#/tab }}
+{{#tab Nutanix}}
+
+Please follow the Cluster API Provider for [Nutanix Getting Started Guide](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/blob/main/docs/getting_started.md)
+
+{{#/tab }}
 {{#tab OCI}}
 
 Please follow the Cluster API Provider for [Oracle Cloud Infrastructure (OCI) Getting Started Guide][oci-provider]
@@ -412,7 +417,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Metal3,OpenStack,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Metal3,Nutanix,OpenStack,vSphere"}}
 {{#tab AWS}}
 
 ```bash
@@ -559,6 +564,18 @@ export IRONIC_INSPECTOR_NO_BASIC_AUTH=true
 Please visit the [Metal3 getting started guide] for more details.
 
 {{#/tab }}
+{{#tab Nutanix}}
+
+A ClusterAPI compatible image must be available in your Nutanix image library. For instructions on how to build a compatible image
+see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html).
+
+To see all required Nutanix environment variables execute:
+```bash
+clusterctl generate cluster --infrastructure nutanix --list-variables capi-quickstart
+```
+
+
+{{#/tab }}
 {{#tab OpenStack}}
 
 A ClusterAPI compatible image must be available in your OpenStack. For instructions on how to build a compatible image
@@ -638,7 +655,7 @@ For more information about prerequisites, credentials management, or permissions
 
 For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
-{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Azure|AWS|DigitalOcean|Equinix Metal|GCP|Metal3|OpenStack|vSphere,Docker"}}
+{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Azure|AWS|DigitalOcean|Equinix Metal|GCP|Metal3|Nutanix|OpenStack|vSphere,Docker"}}
 {{#tab Azure|AWS|DigitalOcean|Equinix Metal|GCP|Metal3|OpenStack|vSphere}}
 
 ```bash
@@ -763,7 +780,7 @@ See [Additional Notes for the Docker Provider](../clusterctl/developers.md#addit
 
 Calico is used here as an example.
 
-{{#tabs name:"tab-deploy-cni" tabs:"AWS|DigitalOcean|Docker|Equinix Metal|GCP|Metal3|OpenStack|vSphere,Azure"}}
+{{#tabs name:"tab-deploy-cni" tabs:"AWS|DigitalOcean|Docker|Equinix Metal|GCP|Metal3|Nutanix|OpenStack|vSphere,Azure"}}
 {{#tab AWS|DigitalOcean|Docker|Equinix Metal|GCP|Metal3|OpenStack|vSphere}}
 
 ```bash

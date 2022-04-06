@@ -45,6 +45,7 @@ const (
 	IBMCloudProviderName  = "ibmcloud"
 	Metal3ProviderName    = "metal3"
 	NestedProviderName    = "nested"
+	NutanixProviderName   = "nutanix"
 	OCIProviderName       = "oci"
 	OpenStackProviderName = "openstack"
 	PacketProviderName    = "packet"
@@ -194,6 +195,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         IBMCloudProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         NutanixProviderName,
+			url:          "https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

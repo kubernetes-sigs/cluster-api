@@ -91,11 +91,12 @@ func (m *Machine) ValidateDelete() error {
 
 func (m *Machine) validate(old *Machine) error {
 	var allErrs field.ErrorList
+	specPath := field.NewPath("spec")
 	if m.Spec.Bootstrap.ConfigRef == nil && m.Spec.Bootstrap.DataSecretName == nil {
 		allErrs = append(
 			allErrs,
 			field.Required(
-				field.NewPath("spec", "bootstrap", "data"),
+				specPath.Child("bootstrap", "data"),
 				"expected either spec.bootstrap.dataSecretName or spec.bootstrap.configRef to be populated",
 			),
 		)
@@ -105,7 +106,7 @@ func (m *Machine) validate(old *Machine) error {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
-				field.NewPath("spec", "bootstrap", "configRef", "namespace"),
+				specPath.Child("bootstrap", "configRef", "namespace"),
 				m.Spec.Bootstrap.ConfigRef.Namespace,
 				"must match metadata.namespace",
 			),
@@ -116,7 +117,7 @@ func (m *Machine) validate(old *Machine) error {
 		allErrs = append(
 			allErrs,
 			field.Invalid(
-				field.NewPath("spec", "infrastructureRef", "namespace"),
+				specPath.Child("infrastructureRef", "namespace"),
 				m.Spec.InfrastructureRef.Namespace,
 				"must match metadata.namespace",
 			),
@@ -126,13 +127,13 @@ func (m *Machine) validate(old *Machine) error {
 	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {
 		allErrs = append(
 			allErrs,
-			field.Invalid(field.NewPath("spec", "clusterName"), m.Spec.ClusterName, "field is immutable"),
+			field.Forbidden(specPath.Child("clusterName"), "field is immutable"),
 		)
 	}
 
 	if m.Spec.Version != nil {
 		if !version.KubeSemver.MatchString(*m.Spec.Version) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "version"), *m.Spec.Version, "must be a valid semantic version"))
+			allErrs = append(allErrs, field.Invalid(specPath.Child("version"), *m.Spec.Version, "must be a valid semantic version"))
 		}
 	}
 

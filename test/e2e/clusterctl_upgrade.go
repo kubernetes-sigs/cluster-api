@@ -64,6 +64,8 @@ type ClusterctlUpgradeSpecInput struct {
 	// InitWithProvidersContract can be used to override the INIT_WITH_PROVIDERS_CONTRACT e2e config variable with a specific
 	// provider contract to use to initialise the secondary management cluster, e.g. `v1alpha3`
 	InitWithProvidersContract string
+	// InitWithKubernetesVersion can be used to override the INIT_WITH_KUBERNETES_VERSION e2e config variable with a specific version of Kubernetes.
+	InitWithKubernetesVersion string
 	SkipCleanup               bool
 	PreInit                   func(managementClusterProxy framework.ClusterProxy)
 	PreUpgrade                func(managementClusterProxy framework.ClusterProxy)
@@ -132,6 +134,15 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			clusterctlBinaryURLTemplate = input.E2EConfig.GetVariable(initWithBinaryVariableName)
 		} else {
 			clusterctlBinaryURLTemplate = input.InitWithBinary
+		}
+
+		// create InitWithKubernetesVersion field to set the init kubernetes version via struct
+		if input.InitWithKubernetesVersion == "" {
+			Expect(input.E2EConfig.Variables).To(HaveKey(initWithKubernetesVersion), "Invalid argument. %s variable must be defined when calling %s spec", initWithKubernetesVersion, specName)
+			Expect(input.E2EConfig.Variables[initWithKubernetesVersion]).ToNot(BeEmpty(), "Invalid argument. %s variable can't be empty when calling %s spec", initWithKubernetesVersion, specName)
+			input.InitWithKubernetesVersion = input.E2EConfig.GetVariable(initWithKubernetesVersion)
+		} else {
+			input.InitWithKubernetesVersion = os.Getenv(initWithKubernetesVersion)
 		}
 		clusterctlBinaryURLReplacer := strings.NewReplacer("{OS}", runtime.GOOS, "{ARCH}", runtime.GOARCH)
 		clusterctlBinaryURL = clusterctlBinaryURLReplacer.Replace(clusterctlBinaryURLTemplate)

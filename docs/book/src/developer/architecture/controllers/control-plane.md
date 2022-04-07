@@ -224,19 +224,21 @@ The `status` object **may** define several fields:
 
 ## Example usage
 
-``` yaml
+```yaml
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
-apiVersion: cluster.x-k8s.io/v1alpha3
 metadata:
   name: kcp-1
   namespace: default
 spec:
-  infrastructureTemplate:
-    name: kcp-infra-template
-    namespace: default
-  kubeadmConfigSpec:
-    clusterConfiguration:
-  version: v1.16.2
+  machineTemplate:
+    infrastructureRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerMachineTemplate
+      name: docker-machine-template-1
+      namespace: default
+  replicas: 3
+  version: v1.21.2
 ```
 
 [scale]: https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#scale-subresource

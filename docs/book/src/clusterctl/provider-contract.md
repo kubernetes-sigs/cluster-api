@@ -369,6 +369,11 @@ are set only for objects that are not directly referenced by Cluster API core ob
 
 ## Additional notes
 
+### Secret naming convention
+Provider authors should be aware of the Kubeconfig secret naming conventions. If your provider generates a user specific Kubeconfig secret, the secret should have `<cluster-name>-user-kubeconfig` naming convention.
+
+`clusterctl get kubeconfig` will return this user specific Kubeconfig by default, and fallback to the CAPI generated Kubeconfig that follows a preset naming convention `<cluster-name>-kubeconfig`.
+
 ### Components YAML transformations
 
 Provider authors should be aware of the following transformations that `clusterctl` applies during component installation:
@@ -419,9 +424,9 @@ that are compliant with one of the following rules:
   * The object is directly or indirectly linked to another object with the `clusterctl.cluster.x-k8s.io/move-hierarchy`
     label, e.g. the infrastructure Provider ClusterIdentity objects (linked through the `OwnerReference` chain).
   * The object hase the `clusterctl.cluster.x-k8s.io/move` label or the `clusterctl.cluster.x-k8s.io/move-hierarchy` label,
-    e.g. the CPI config secret.
-
-Note. `clusterctl.cluster.x-k8s.io/move` and `clusterctl.cluster.x-k8s.io/move-hierarchy` labels could be applied
+    e.g. the CAPI config secret.
+    
+Note. `clusterctl.cluster.x-k8s.io/move` and `clusterctl.cluster.x-k8s.io/move-hierarchy` labels could be applied 
 to single objects or at the CRD level (the label applies to all the objects).
 
 Please note that during move:

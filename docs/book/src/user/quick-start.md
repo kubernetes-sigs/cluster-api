@@ -511,6 +511,11 @@ export POD_CIDR=["192.168.0.0/16"]
 export SERVICE_DOMAIN="k8s.test"
 ```
 
+It is also possible but **not recommended** to disable the per-default enabled [Pod Security Standard](../security/pod-security-standards.md):
+```bash
+export ENABLE_POD_SECURITY_STANDARD="false"
+```
+
 {{#/tab }}
 {{#tab Equinix Metal}}
 

@@ -57,6 +57,28 @@ spec:
         default: ""
         example: "v1.8.5"
         description: "coreDNSImageTag sets the tag for the coreDNS image."
+  - name: podSecurityStandard
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          enabled:
+            type: boolean
+            default: true
+            description: "enabled enables the patches to enable Pod Security Standard via AdmissionConfiguration."
+          enforce:
+            type: string
+            default: "baseline"
+            description: "enforce sets the level for the enforce PodSecurityConfiguration mode. One of privileged, baseline, restricted."
+          audit:
+            type: string
+            default: "restricted"
+            description: "audit sets the level for the audit PodSecurityConfiguration mode. One of privileged, baseline, restricted."
+          warn:
+            type: string
+            default: "restricted"
+            description: "warn sets the level for the warn PodSecurityConfiguration mode. One of privileged, baseline, restricted."
   patches:
   - name: imageRepository
     description: "Sets the imageRepository used for the KubeadmControlPlane."
@@ -127,6 +149,52 @@ spec:
         valueFrom:
           template: |
             kindest/node:{{ .builtin.controlPlane.version }}
+  - name: podSecurityStandard
+    description: "Adds an admission configuration for PodSecurity to the kube-apiserver."
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraArgs"
+        value:
+          admission-control-config-file: "/etc/kubernetes/kube-apiserver-admission-pss.yaml"
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/apiServer/extraVolumes"
+        value:
+        - name: admission-pss
+          hostPath: /etc/kubernetes/kube-apiserver-admission-pss.yaml
+          mountPath: /etc/kubernetes/kube-apiserver-admission-pss.yaml
+          readOnly: true
+          pathType: "File"
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/files"
+        valueFrom:
+          template: |
+            - content: |
+                apiVersion: apiserver.config.k8s.io/v1
+                kind: AdmissionConfiguration
+                plugins:
+                - name: PodSecurity
+                  configuration:
+                    apiVersion: pod-security.admission.config.k8s.io/v1beta1
+                    kind: PodSecurityConfiguration
+                    defaults:
+                      enforce: "{{ .podSecurityStandard.enforce }}"
+                      enforce-version: "latest"
+                      audit: "{{ .podSecurityStandard.audit }}"
+                      audit-version: "latest"
+                      warn: "{{ .podSecurityStandard.warn }}"
+                      warn-version: "latest"
+                    exemptions:
+                      usernames: []
+                      runtimeClasses: []
+                      namespaces: [kube-system]
+              path: /etc/kubernetes/kube-apiserver-admission-pss.yaml
+    enabledIf: "{{ .podSecurityStandard.enabled }}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate

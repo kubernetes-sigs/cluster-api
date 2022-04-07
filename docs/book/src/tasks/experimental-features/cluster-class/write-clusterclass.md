@@ -3,7 +3,7 @@
 
 A ClusterClass becomes more useful and valuable when it can be used to create many Cluster of a similar 
 shape. The goal of this document is to explain how ClusterClasses can be written in a way that they are 
-flexible enough to be used in as many Cluster as possible by supporting variants of the same base Cluster shape.
+flexible enough to be used in as many Clusters as possible by supporting variants of the same base Cluster shape.
 
 **Table of Contents**
 
@@ -16,6 +16,7 @@ flexible enough to be used in as many Cluster as possible by supporting variants
     * [Complex variable types](#complex-variable-types)
     * [Using variable values in JSON patches](#using-variable-values-in-json-patches)
     * [Optional patches](#optional-patches)
+* [JSON patches tips &amp; tricks](#json-patches-tips--tricks)
 
 ## Basic ClusterClass
 
@@ -676,6 +677,101 @@ individually.
 
 </aside>
 
+## JSON patches tips & tricks
+
+JSON patches specification [RFC6902] requires that the target of
+add operation must exist.
+
+As a consequence ClusterClass authors should pay special attention when the following
+conditions apply in order to prevent errors when a patch is applied:
+
+* the patch tries to `add` a value to an **array** (which is a **slice** in the corresponding go struct)
+* the slice was defined with `omitempty`
+* the slice currently does not exist
+
+A workaround in this particular case is to create the array in the patch instead of adding to the non-existing one.
+When creating the slice, existing values would be overwritten so this should only be used when it does not exist.
+
+The following example shows both cases to consider while writing a patch for adding a value to a slice.
+This patch targets to add a file to the `files` slice of a `KubeadmConfigTemplate` which has [omitempty](https://github.com/kubernetes-sigs/cluster-api/blob/main/bootstrap/kubeadm/api/v1beta1/kubeadmconfig_types.go#L54) set.
+
+{{#tabs name:"tab-configuration-patches" tabs:"Add to existing slice,Create slice"}}
+{{#tab Add to existing slice}}
+
+This patch **requires** the key `.spec.template.spec.files` to exist to succeed.
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: my-clusterclass
+spec:
+  ...
+  patches:
+  - name: add file
+    definitions:
+    - selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/files/-
+        value:
+          content: Some content.
+          path: /some/file
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: "quick-start-default-worker-bootstraptemplate"
+spec:
+  template:
+    spec:
+      ...
+      files:
+      - content: Some other content
+        path: /some/other/file
+```
+
+{{#/tab }}
+{{#tab Create slice}}
+
+This patch would **overwrite** an existing slice at `.spec.template.spec.files`.
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: my-clusterclass
+spec:
+  ...
+  patches:
+  - name: add file
+    definitions:
+    - selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+      jsonPatches:
+      - op: add
+        path: /spec/template/spec/files
+        value:
+        - content: Some content.
+          path: /some/file
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: "quick-start-default-worker-bootstraptemplate"
+spec:
+  template:
+    spec:
+      ...
+```
+
+{{#/tab }}
+{{#/tabs }}
+
 <!-- links -->
 [Changing a ClusterClass]: ./change-clusterclass.md
 [clusterctl alpha topology plan]: ../../../clusterctl/commands/alpha-topology-plan.md
+[RFC6902]: https://datatracker.ietf.org/doc/html/rfc6902#appendix-A.12

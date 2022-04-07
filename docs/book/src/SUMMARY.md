@@ -23,6 +23,8 @@
             - [Changing a ClusterClass](./tasks/experimental-features/cluster-class/change-clusterclass.md)
             - [Operating a managed Cluster](./tasks/experimental-features/cluster-class/operate-cluster.md)
         - [Ignition Bootstrap configuration](./tasks/experimental-features/ignition.md)
+- [Security Guidelines](./security/index.md)
+    - [Pod Security Standards](./security/pod-security-standards.md)
 - [clusterctl CLI](./clusterctl/overview.md)
     - [clusterctl Commands](clusterctl/commands/commands.md)
         - [init](clusterctl/commands/init.md)

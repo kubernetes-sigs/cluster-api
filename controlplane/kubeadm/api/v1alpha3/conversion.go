@@ -42,6 +42,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.MachineTemplate.NodeDeletionTimeout
 	dst.Spec.KubeadmConfigSpec.Files = restored.Spec.KubeadmConfigSpec.Files
 	dst.Spec.KubeadmConfigSpec.Users = restored.Spec.KubeadmConfigSpec.Users
+	dst.Spec.MachineTemplate.NodeVolumeDetachTimeout = restored.Spec.MachineTemplate.NodeVolumeDetachTimeout
 	dst.Status.Version = restored.Status.Version
 
 	if restored.Spec.KubeadmConfigSpec.Users != nil {

@@ -20,12 +20,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"reflect"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/onsi/gomega/format"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	"sigs.k8s.io/cluster-api/util"
 )
 
 // This code is adappted from the mergePatch code at controllers/topology/internal/mergepatch pkg.
@@ -82,13 +83,11 @@ func (m *Matcher) Match(actual interface{}) (success bool, err error) {
 	// Nil checks required first here for:
 	//     1) Nil equality which returns true
 	//     2) One object nil which returns an error
-	actualIsNil := reflect.ValueOf(actual).IsNil()
-	originalIsNil := reflect.ValueOf(m.original).IsNil()
 
-	if actualIsNil && originalIsNil {
+	if util.IsNil(actual) && util.IsNil(m.original) {
 		return true, nil
 	}
-	if actualIsNil || originalIsNil {
+	if util.IsNil(actual) || util.IsNil(m.original) {
 		return false, fmt.Errorf("can not compare an object with a nil. original %v , actual %v", m.original, actual)
 	}
 

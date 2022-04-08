@@ -287,6 +287,11 @@ func getterWithConditions(conditions ...*clusterv1.Condition) Getter {
 	return obj
 }
 
+func nilGetter() Getter {
+	var obj *clusterv1.Cluster
+	return obj
+}
+
 func conditionList(conditions ...*clusterv1.Condition) clusterv1.Conditions {
 	cs := clusterv1.Conditions{}
 	for _, x := range conditions {

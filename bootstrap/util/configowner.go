@@ -47,6 +47,32 @@ func (co ConfigOwner) IsInfrastructureReady() bool {
 	return infrastructureReady
 }
 
+// HasNodeRefs checks if the config owner has nodeRefs. For a Machine this means
+// that it has a nodeRef. For a MachinePool it means that it has as many nodeRefs
+// as there are replicas.
+func (co ConfigOwner) HasNodeRefs() bool {
+	if co.IsMachinePool() {
+		numExpectedNodes, found, err := unstructured.NestedInt64(co.Object, "spec", "replicas")
+		if err != nil {
+			return false
+		}
+		// replicas default to 1 so this is what we should use if nothing is specified
+		if !found {
+			numExpectedNodes = 1
+		}
+		nodeRefs, _, err := unstructured.NestedSlice(co.Object, "status", "nodeRefs")
+		if err != nil {
+			return false
+		}
+		return len(nodeRefs) == int(numExpectedNodes)
+	}
+	nodeRef, _, err := unstructured.NestedMap(co.Object, "status", "nodeRef")
+	if err != nil {
+		return false
+	}
+	return len(nodeRef) > 0
+}
+
 // ClusterName extracts spec.clusterName from the config owner.
 func (co ConfigOwner) ClusterName() string {
 	clusterName, _, err := unstructured.NestedString(co.Object, "spec", "clusterName")

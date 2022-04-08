@@ -944,7 +944,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
 	}
 
-	// ...until the infrastructure is marked "ready"
+	// ...the infrastructure is marked "ready", but token should still be refreshed...
 	patchHelper, err := patch.NewHelper(workerMachine, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	workerMachine.Status.InfrastructureReady = true
@@ -953,6 +953,56 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	patchHelper, err = patch.NewHelper(controlPlaneJoinMachine, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	controlPlaneJoinMachine.Status.InfrastructureReady = true
+	g.Expect(patchHelper.Patch(ctx, controlPlaneJoinMachine)).To(Succeed())
+
+	<-time.After(1 * time.Second)
+
+	for _, req := range []ctrl.Request{
+		{
+			NamespacedName: client.ObjectKey{
+				Namespace: metav1.NamespaceDefault,
+				Name:      "worker-join-cfg",
+			},
+		},
+		{
+			NamespacedName: client.ObjectKey{
+				Namespace: metav1.NamespaceDefault,
+				Name:      "control-plane-join-cfg",
+			},
+		},
+	} {
+		result, err := k.Reconcile(ctx, req)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", k.TokenTTL))
+	}
+
+	l = &corev1.SecretList{}
+	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(len(l.Items)).To(Equal(2))
+
+	for i, item := range l.Items {
+		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeFalse())
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
+
+	// ...until the Nodes have actually joined the cluster and we get a nodeRef
+	patchHelper, err = patch.NewHelper(workerMachine, myclient)
+	g.Expect(err).ShouldNot(HaveOccurred())
+	workerMachine.Status.NodeRef = &corev1.ObjectReference{
+		APIVersion: "v1",
+		Kind:       "Node",
+		Name:       "worker-node",
+	}
+	g.Expect(patchHelper.Patch(ctx, workerMachine)).To(Succeed())
+
+	patchHelper, err = patch.NewHelper(controlPlaneJoinMachine, myclient)
+	g.Expect(err).ShouldNot(HaveOccurred())
+	controlPlaneJoinMachine.Status.NodeRef = &corev1.ObjectReference{
+		APIVersion: "v1",
+		Kind:       "Node",
+		Name:       "control-plane-node",
+	}
 	g.Expect(patchHelper.Patch(ctx, controlPlaneJoinMachine)).To(Succeed())
 
 	<-time.After(1 * time.Second)
@@ -1068,10 +1118,42 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
 	}
 
-	// ...until the infrastructure is marked "ready"
+	// ...the infrastructure is marked "ready", but token should still be refreshed...
 	patchHelper, err := patch.NewHelper(workerMachinePool, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	workerMachinePool.Status.InfrastructureReady = true
+	g.Expect(patchHelper.Patch(ctx, workerMachinePool, patch.WithStatusObservedGeneration{})).To(Succeed())
+
+	<-time.After(1 * time.Second)
+
+	request = ctrl.Request{
+		NamespacedName: client.ObjectKey{
+			Namespace: metav1.NamespaceDefault,
+			Name:      "workerpool-join-cfg",
+		},
+	}
+	result, err = k.Reconcile(ctx, request)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(result.RequeueAfter).NotTo(BeNumerically(">=", k.TokenTTL))
+
+	l = &corev1.SecretList{}
+	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(len(l.Items)).To(Equal(1))
+
+	for i, item := range l.Items {
+		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeFalse())
+		tokenExpires[i] = item.Data[bootstrapapi.BootstrapTokenExpirationKey]
+	}
+
+	// ...until all nodes have joined
+	workerMachinePool.Status.NodeRefs = []corev1.ObjectReference{
+		{
+			Kind:      "Node",
+			Namespace: metav1.NamespaceDefault,
+			Name:      "node-0",
+		},
+	}
 	g.Expect(patchHelper.Patch(ctx, workerMachinePool, patch.WithStatusObservedGeneration{})).To(Succeed())
 
 	<-time.After(1 * time.Second)

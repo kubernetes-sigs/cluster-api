@@ -24,6 +24,9 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -161,5 +164,199 @@ func TestGetConfigOwner(t *testing.T) {
 		configOwner, err := GetConfigOwner(ctx, c, obj)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(configOwner).To(BeNil())
+	})
+}
+
+func TestHasNodeRefs(t *testing.T) {
+	t.Run("should return false if there is no nodeRef", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{
+			TypeMeta: metav1.TypeMeta{
+				Kind: "Machine",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "machine-name",
+				Namespace: metav1.NamespaceDefault,
+			},
+		}
+		content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&machine)
+		if err != nil {
+			g.Fail(err.Error())
+		}
+		unstructuredOwner := unstructured.Unstructured{}
+		unstructuredOwner.SetUnstructuredContent(content)
+		co := ConfigOwner{&unstructuredOwner}
+		result := co.HasNodeRefs()
+		g.Expect(result).To(Equal(false))
+	})
+	t.Run("should return true if there is a nodeRef for Machine", func(t *testing.T) {
+		g := NewWithT(t)
+		machine := &clusterv1.Machine{
+			TypeMeta: metav1.TypeMeta{
+				Kind: "Machine",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "machine-name",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Status: clusterv1.MachineStatus{
+				InfrastructureReady: true,
+				NodeRef: &corev1.ObjectReference{
+					Kind:      "Node",
+					Namespace: metav1.NamespaceDefault,
+					Name:      "node-0",
+				},
+			},
+		}
+		content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&machine)
+		if err != nil {
+			g.Fail(err.Error())
+		}
+		unstructuredOwner := unstructured.Unstructured{}
+		unstructuredOwner.SetUnstructuredContent(content)
+		co := ConfigOwner{&unstructuredOwner}
+
+		result := co.HasNodeRefs()
+		g.Expect(result).To(Equal(true))
+	})
+	t.Run("should return false if nodes are missing from MachinePool", func(t *testing.T) {
+		g := NewWithT(t)
+		machinePools := []expv1.MachinePool{
+			{
+				// No replicas specified (default is 1). No nodeRefs either.
+				TypeMeta: metav1.TypeMeta{
+					Kind: "MachinePool",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "machine-pool-name",
+				},
+			},
+			{
+				// 1 replica but no nodeRefs
+				TypeMeta: metav1.TypeMeta{
+					Kind: "MachinePool",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "machine-pool-name",
+				},
+				Spec: expv1.MachinePoolSpec{
+					Replicas: pointer.Int32(1),
+				},
+			},
+			{
+				// 2 replicas but only 1 nodeRef
+				TypeMeta: metav1.TypeMeta{
+					Kind: "MachinePool",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "machine-pool-name",
+				},
+				Spec: expv1.MachinePoolSpec{
+					Replicas: pointer.Int32(2),
+				},
+				Status: expv1.MachinePoolStatus{
+					NodeRefs: []corev1.ObjectReference{
+						{
+							Kind:      "Node",
+							Namespace: metav1.NamespaceDefault,
+							Name:      "node-0",
+						},
+					},
+				},
+			},
+		}
+
+		for _, mp := range machinePools {
+			content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&mp)
+			if err != nil {
+				g.Fail(err.Error())
+			}
+			unstructuredOwner := unstructured.Unstructured{}
+			unstructuredOwner.SetUnstructuredContent(content)
+			co := ConfigOwner{&unstructuredOwner}
+
+			result := co.HasNodeRefs()
+			g.Expect(result).To(Equal(false))
+		}
+	})
+	t.Run("should return true if MachinePool has nodeRefs for all replicas", func(t *testing.T) {
+		g := NewWithT(t)
+		machinePools := []expv1.MachinePool{
+			{
+				// 1 replica (default) and 1 nodeRef
+				TypeMeta: metav1.TypeMeta{
+					Kind: "MachinePool",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "machine-pool-name",
+				},
+				Status: expv1.MachinePoolStatus{
+					NodeRefs: []corev1.ObjectReference{
+						{
+							Kind:      "Node",
+							Namespace: metav1.NamespaceDefault,
+							Name:      "node-0",
+						},
+					},
+				},
+			},
+			{
+				// 2 replicas and nodeRefs
+				TypeMeta: metav1.TypeMeta{
+					Kind: "MachinePool",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "machine-pool-name",
+				},
+				Spec: expv1.MachinePoolSpec{
+					Replicas: pointer.Int32(2),
+				},
+				Status: expv1.MachinePoolStatus{
+					NodeRefs: []corev1.ObjectReference{
+						{
+							Kind:      "Node",
+							Namespace: metav1.NamespaceDefault,
+							Name:      "node-0",
+						},
+						{
+							Kind:      "Node",
+							Namespace: metav1.NamespaceDefault,
+							Name:      "node-1",
+						},
+					},
+				},
+			},
+			{
+				// 0 replicas and 0 nodeRef
+				TypeMeta: metav1.TypeMeta{
+					Kind: "MachinePool",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: metav1.NamespaceDefault,
+					Name:      "machine-pool-name",
+				},
+				Spec: expv1.MachinePoolSpec{
+					Replicas: pointer.Int32(0),
+				},
+			},
+		}
+
+		for _, mp := range machinePools {
+			content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&mp)
+			if err != nil {
+				g.Fail(err.Error())
+			}
+			unstructuredOwner := unstructured.Unstructured{}
+			unstructuredOwner.SetUnstructuredContent(content)
+			co := ConfigOwner{&unstructuredOwner}
+
+			result := co.HasNodeRefs()
+			g.Expect(result).To(Equal(true))
+		}
 	})
 }

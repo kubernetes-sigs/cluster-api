@@ -28,6 +28,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 // TopologyManagerName is the manager name in managed fields for the topology controller.
@@ -49,7 +50,7 @@ func NewServerSidePatchHelper(original, modified client.Object, c client.Client,
 	// not relevant for the topology controller.
 
 	var originalUnstructured *unstructured.Unstructured
-	if !isNil(original) {
+	if !util.IsNil(original) {
 		originalUnstructured = &unstructured.Unstructured{}
 		switch original.(type) {
 		case *unstructured.Unstructured:
@@ -93,7 +94,7 @@ func NewServerSidePatchHelper(original, modified client.Object, c client.Client,
 	// an actual change when running server side apply, and if this change might impact the object spec or not.
 	var hasChanges, hasSpecChanges bool
 	switch {
-	case isNil(original):
+	case util.IsNil(original):
 		hasChanges, hasSpecChanges = true, true
 	default:
 		hasChanges, hasSpecChanges = dryRunPatch(&dryRunInput{

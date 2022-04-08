@@ -32,17 +32,44 @@ func TestNewPatch(t *testing.T) {
 	fooFalse := FalseCondition("foo", "reason foo", clusterv1.ConditionSeverityInfo, "message foo")
 
 	tests := []struct {
-		name   string
-		before Getter
-		after  Getter
-		want   Patch
+		name    string
+		before  Getter
+		after   Getter
+		want    Patch
+		wantErr bool
 	}{
 		{
-			name:   "No changes return empty patch",
-			before: getterWithConditions(),
-			after:  getterWithConditions(),
-			want:   nil,
+			name:    "nil before return error",
+			before:  nil,
+			after:   getterWithConditions(),
+			wantErr: true,
 		},
+		{
+			name:    "nil after return error",
+			before:  getterWithConditions(),
+			after:   nil,
+			wantErr: true,
+		},
+		{
+			name:    "nil Interface before return error",
+			before:  nilGetter(),
+			after:   getterWithConditions(),
+			wantErr: true,
+		},
+		{
+			name:    "nil Interface after return error",
+			before:  getterWithConditions(),
+			after:   nilGetter(),
+			wantErr: true,
+		},
+		{
+			name:    "No changes return empty patch",
+			before:  getterWithConditions(),
+			after:   getterWithConditions(),
+			want:    nil,
+			wantErr: false,
+		},
+
 		{
 			name:   "No changes return empty patch",
 			before: getterWithConditions(fooTrue),
@@ -91,8 +118,12 @@ func TestNewPatch(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got := NewPatch(tt.before, tt.after)
-
+			got, err := NewPatch(tt.before, tt.after)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).To(Not(HaveOccurred()))
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -112,6 +143,22 @@ func TestApply(t *testing.T) {
 		want    clusterv1.Conditions
 		wantErr bool
 	}{
+		{
+			name:    "error with nil interface Setter",
+			before:  getterWithConditions(fooTrue),
+			after:   getterWithConditions(fooFalse),
+			latest:  nilSetter(),
+			want:    conditionList(fooTrue),
+			wantErr: true,
+		},
+		{
+			name:    "error with nil Setter",
+			before:  getterWithConditions(fooTrue),
+			after:   getterWithConditions(fooFalse),
+			latest:  nil,
+			want:    conditionList(fooTrue),
+			wantErr: true,
+		},
 		{
 			name:    "No patch return same list",
 			before:  getterWithConditions(fooTrue),
@@ -242,7 +289,8 @@ func TestApply(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			patch := NewPatch(tt.before, tt.after)
+			// Ignore the error here to allow testing of patch.Apply with a nil patch
+			patch, _ := NewPatch(tt.before, tt.after)
 
 			err := patch.Apply(tt.latest, tt.options...)
 			if tt.wantErr {
@@ -276,8 +324,9 @@ func TestApplyDoesNotAlterLastTransitionTime(t *testing.T) {
 	// latest has no conditions, so we are actually adding the condition but in this case we should not set the LastTransition Time
 	// but we should preserve the LastTransition set in after
 
-	diff := NewPatch(before, after)
-	err := diff.Apply(latest)
+	diff, err := NewPatch(before, after)
+	g.Expect(err).ToNot(HaveOccurred())
+	err = diff.Apply(latest)
 
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(latest.GetConditions()).To(Equal(after.GetConditions()))

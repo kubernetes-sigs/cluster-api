@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"reflect"
 	"strings"
 	"time"
 
@@ -590,4 +591,16 @@ func LowestNonZeroResult(i, j ctrl.Result) ctrl.Result {
 	default:
 		return j
 	}
+}
+
+// IsNil returns an error if the passed interface is equal to nil or if it has an interface value of nil.
+func IsNil(i interface{}) bool {
+	if i == nil {
+		return true
+	}
+	switch reflect.TypeOf(i).Kind() {
+	case reflect.Ptr, reflect.Map, reflect.Chan, reflect.Slice, reflect.Interface, reflect.UnsafePointer, reflect.Func:
+		return reflect.ValueOf(i).IsValid() && reflect.ValueOf(i).IsNil()
+	}
+	return false
 }

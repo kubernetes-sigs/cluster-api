@@ -261,6 +261,11 @@ func setterWithConditions(conditions ...*clusterv1.Condition) Setter {
 	return obj
 }
 
+func nilSetter() Setter {
+	var obj *clusterv1.Cluster
+	return obj
+}
+
 func haveSameConditionsOf(expected clusterv1.Conditions) types.GomegaMatcher {
 	return &ConditionsMatcher{
 		Expected: expected,

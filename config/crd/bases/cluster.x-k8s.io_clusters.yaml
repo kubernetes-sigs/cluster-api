@@ -706,8 +706,6 @@ spec:
                         items:
                           type: string
                         type: array
-                    required:
-                    - cidrBlocks
                     type: object
                   serviceDomain:
                     description: Domain name for services.
@@ -719,8 +717,6 @@ spec:
                         items:
                           type: string
                         type: array
-                    required:
-                    - cidrBlocks
                     type: object
                 type: object
               controlPlaneEndpoint:
@@ -734,9 +730,6 @@ spec:
                     description: The port on which the API server is serving.
                     format: int32
                     type: integer
-                required:
-                - host
-                - port
                 type: object
               controlPlaneRef:
                 description: ControlPlaneRef is an optional reference to a provider-specific
@@ -901,9 +894,6 @@ spec:
                             cannot be produced by another type via controller-tools,
                             i.e. it is not possible to have no type field. Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111'
                           x-kubernetes-preserve-unknown-fields: true
-                      required:
-                      - name
-                      - value
                       type: object
                     type: array
                   version:
@@ -1011,21 +1001,12 @@ spec:
                                           via controller-tools, i.e. it is not possible
                                           to have no type field. Ref: https://github.com/kubernetes-sigs/controller-tools/blob/d0e03a142d0ecdd5491593e941ee1d6b5d91dba6/pkg/crd/known_types.go#L106-L111'
                                         x-kubernetes-preserve-unknown-fields: true
-                                    required:
-                                    - name
-                                    - value
                                     type: object
                                   type: array
                               type: object
-                          required:
-                          - class
-                          - name
                           type: object
                         type: array
                     type: object
-                required:
-                - class
-                - version
                 type: object
             type: object
           status:
@@ -1070,10 +1051,6 @@ spec:
                         (see .node.status.conditions), the ability to deconflict is
                         important.
                       type: string
-                  required:
-                  - lastTransitionTime
-                  - status
-                  - type
                   type: object
                 type: array
               controlPlaneReady:

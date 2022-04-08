@@ -3638,10 +3638,6 @@ spec:
                         (see .node.status.conditions), the ability to deconflict is
                         important.
                       type: string
-                  required:
-                  - lastTransitionTime
-                  - status
-                  - type
                   type: object
                 type: array
               failureMessage:

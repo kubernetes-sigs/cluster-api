@@ -489,10 +489,6 @@ spec:
                             type:
                               minLength: 1
                               type: string
-                          required:
-                          - status
-                          - timeout
-                          - type
                           type: object
                         type: array
                       unhealthyRange:
@@ -548,8 +544,6 @@ spec:
                             description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                             type: string
                         type: object
-                    required:
-                    - ref
                     type: object
                   metadata:
                     description: "Metadata is the metadata applied to the machines
@@ -613,8 +607,6 @@ spec:
                         description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                         type: string
                     type: object
-                required:
-                - ref
                 type: object
               infrastructure:
                 description: Infrastructure is a reference to a provider-specific
@@ -660,8 +652,6 @@ spec:
                         description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                         type: string
                     type: object
-                required:
-                - ref
                 type: object
               patches:
                 description: 'Patches defines the patches which are applied to customize
@@ -730,9 +720,6 @@ spec:
                                         builtin variable.
                                       type: string
                                   type: object
-                              required:
-                              - op
-                              - path
                               type: object
                             type: array
                           selector:
@@ -772,14 +759,7 @@ spec:
                                         type: array
                                     type: object
                                 type: object
-                            required:
-                            - apiVersion
-                            - kind
-                            - matchResources
                             type: object
-                        required:
-                        - jsonPatches
-                        - selector
                         type: object
                       type: array
                     description:
@@ -797,9 +777,6 @@ spec:
                     name:
                       description: Name of the patch.
                       type: string
-                  required:
-                  - definitions
-                  - name
                   type: object
                 type: array
               variables:
@@ -941,16 +918,8 @@ spec:
                               description: 'UniqueItems specifies if items in an array
                                 must be unique. NOTE: Can only be set if type is array.'
                               type: boolean
-                          required:
-                          - type
                           type: object
-                      required:
-                      - openAPIV3Schema
                       type: object
-                  required:
-                  - name
-                  - required
-                  - schema
                   type: object
                 type: array
               workers:
@@ -1057,10 +1026,6 @@ spec:
                                   type:
                                     minLength: 1
                                     type: string
-                                required:
-                                - status
-                                - timeout
-                                - type
                                 type: object
                               type: array
                             unhealthyRange:
@@ -1128,8 +1093,6 @@ spec:
                                         https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                                       type: string
                                   type: object
-                              required:
-                              - ref
                               type: object
                             infrastructure:
                               description: Infrastructure contains the infrastructure
@@ -1182,8 +1145,6 @@ spec:
                                         https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                                       type: string
                                   type: object
-                              required:
-                              - ref
                               type: object
                             metadata:
                               description: Metadata is the metadata applied to the
@@ -1209,13 +1170,7 @@ spec:
                                     controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
                                   type: object
                               type: object
-                          required:
-                          - bootstrap
-                          - infrastructure
                           type: object
-                      required:
-                      - class
-                      - template
                       type: object
                     type: array
                 type: object

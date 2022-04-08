@@ -704,10 +704,6 @@ spec:
                     type:
                       minLength: 1
                       type: string
-                  required:
-                  - status
-                  - timeout
-                  - type
                   type: object
                 minItems: 1
                 type: array
@@ -720,10 +716,6 @@ spec:
                   at most 5 unhealthy machines'
                 pattern: ^\[[0-9]+-[0-9]+\]$
                 type: string
-            required:
-            - clusterName
-            - selector
-            - unhealthyConditions
             type: object
           status:
             description: Most recently observed status of MachineHealthCheck resource
@@ -767,10 +759,6 @@ spec:
                         (see .node.status.conditions), the ability to deconflict is
                         important.
                       type: string
-                  required:
-                  - lastTransitionTime
-                  - status
-                  - type
                   type: object
                 type: array
               currentHealthy:

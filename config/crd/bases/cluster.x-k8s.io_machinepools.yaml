@@ -1205,10 +1205,6 @@ spec:
                         description: Version defines the desired Kubernetes version.
                           This field is meant to be optionally used by bootstrap providers.
                         type: string
-                    required:
-                    - bootstrap
-                    - clusterName
-                    - infrastructureRef
                     type: object
                 type: object
             required:
@@ -1265,10 +1261,6 @@ spec:
                         (see .node.status.conditions), the ability to deconflict is
                         important.
                       type: string
-                  required:
-                  - lastTransitionTime
-                  - status
-                  - type
                   type: object
                 type: array
               failureMessage:

@@ -734,6 +734,18 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			for k, v := range tt.want.InfrastructureMachineTemplate.GetLabels() {
 				g.Expect(gotInfrastructureMachineTemplate.GetLabels()).To(HaveKeyWithValue(k, v))
 			}
+
+			// If the template was rotated during the reconcile we want to make sure the old template was deleted.
+			if tt.current.InfrastructureMachineTemplate != nil && tt.current.InfrastructureMachineTemplate.GetName() != tt.desired.InfrastructureMachineTemplate.GetName() {
+				obj := &unstructured.Unstructured{}
+				obj.SetAPIVersion(builder.InfrastructureGroupVersion.String())
+				obj.SetKind(builder.GenericInfrastructureMachineTemplateKind)
+				err := r.Client.Get(ctx, client.ObjectKey{
+					Namespace: tt.current.InfrastructureMachineTemplate.GetNamespace(),
+					Name:      tt.current.InfrastructureMachineTemplate.GetName(),
+				}, obj)
+				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+			}
 		})
 	}
 }

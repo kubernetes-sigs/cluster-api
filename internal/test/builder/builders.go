@@ -560,7 +560,7 @@ func (c *ControlPlaneTemplateBuilder) WithInfrastructureMachineTemplate(t *unstr
 
 // Build creates an Unstructured object from the variables passed to the ControlPlaneTemplateBuilder.
 func (c *ControlPlaneTemplateBuilder) Build() *unstructured.Unstructured {
-	if _, ok, _ := unstructured.NestedMap(c.obj.Object, "spec") !ok {
+	if _, ok, _ := unstructured.NestedMap(c.obj.Object, "spec"); !ok {
 		usntructured.SetNestedField(c.obj.Object, map[string]interface{}{}, "spec")
 	}
 	if _, ok, _ := unstructured.NestedMap(c.obj.Object, "spec"); !ok {

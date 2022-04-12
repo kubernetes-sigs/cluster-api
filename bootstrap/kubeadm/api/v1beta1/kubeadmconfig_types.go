@@ -252,6 +252,26 @@ type SecretFileSource struct {
 	Key string `json:"key"`
 }
 
+// PasswdSource is a union of all possible external source types for passwd data.
+// Only one field may be populated in any given instance. Developers adding new
+// sources of data for target systems should add them here.
+type PasswdSource struct {
+	// Secret represents a secret that should populate this password.
+	Secret SecretPasswdSource `json:"secret"`
+}
+
+// SecretPasswdSource adapts a Secret into a PasswdSource.
+//
+// The contents of the target Secret's Data field will be presented
+// as passwd using the keys in the Data field as the file names.
+type SecretPasswdSource struct {
+	// Name of the secret in the KubeadmBootstrapConfig's namespace to use.
+	Name string `json:"name"`
+
+	// Key is the key in the secret's data map for this value.
+	Key string `json:"key"`
+}
+
 // User defines the input for a generated user in cloud-init.
 type User struct {
 	// Name specifies the user name
@@ -280,6 +300,10 @@ type User struct {
 	// Passwd specifies a hashed password for the user
 	// +optional
 	Passwd *string `json:"passwd,omitempty"`
+
+	// PasswdFrom is a referenced source of passwd to populate the passwd.
+	// +optional
+	PasswdFrom *PasswdSource `json:"passwdFrom,omitempty"`
 
 	// PrimaryGroup specifies the primary group for the user
 	// +optional

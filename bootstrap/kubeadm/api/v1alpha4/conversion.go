@@ -37,6 +37,15 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.Users = restored.Spec.Users
+	if restored.Spec.Users != nil {
+		for i := range restored.Spec.Users {
+			if restored.Spec.Users[i].PasswdFrom != nil {
+				dst.Spec.Users[i].PasswdFrom = restored.Spec.Users[i].PasswdFrom
+			}
+		}
+	}
+
 	dst.Spec.Ignition = restored.Spec.Ignition
 	if restored.Spec.InitConfiguration != nil {
 		if dst.Spec.InitConfiguration == nil {
@@ -89,6 +98,15 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	restored := &bootstrapv1.KubeadmConfigTemplate{}
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
+	}
+
+	dst.Spec.Template.Spec.Users = restored.Spec.Template.Spec.Users
+	if restored.Spec.Template.Spec.Users != nil {
+		for i := range restored.Spec.Template.Spec.Users {
+			if restored.Spec.Template.Spec.Users[i].PasswdFrom != nil {
+				dst.Spec.Template.Spec.Users[i].PasswdFrom = restored.Spec.Template.Spec.Users[i].PasswdFrom
+			}
+		}
 	}
 
 	dst.Spec.Template.Spec.Ignition = restored.Spec.Template.Spec.Ignition
@@ -146,4 +164,9 @@ func Convert_v1beta1_InitConfiguration_To_v1alpha4_InitConfiguration(in *bootstr
 func Convert_v1beta1_JoinConfiguration_To_v1alpha4_JoinConfiguration(in *bootstrapv1.JoinConfiguration, out *JoinConfiguration, s apiconversion.Scope) error {
 	// InitConfiguration.Patches does not exist in kubeadm v1alpha4 API.
 	return autoConvert_v1beta1_JoinConfiguration_To_v1alpha4_JoinConfiguration(in, out, s)
+}
+
+func Convert_v1beta1_User_To_v1alpha4_User(in *bootstrapv1.User, out *User, s apiconversion.Scope) error {
+	// User.PasswdFrom does not exist in kubeadm v1alpha4 API.
+	return autoConvert_v1beta1_User_To_v1alpha4_User(in, out, s)
 }

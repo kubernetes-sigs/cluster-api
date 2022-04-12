@@ -23,7 +23,6 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -41,17 +40,8 @@ func GetFromNamespacedName(ctx context.Context, c client.Reader, clusterName cli
 		Namespace: clusterName.Namespace,
 		Name:      Name(clusterName.Name, purpose),
 	}
+
 	if err := c.Get(ctx, secretKey, secret); err != nil {
-		if purpose == UserKubeconfig {
-			// fallback to Kubeconfig if UserKubeconfig was not found
-			systemSecretName := Name(clusterName.Name, Kubeconfig)
-			klog.Warningf("Failed to fetch secret %q; fetching %q instead", secretKey.Name, systemSecretName)
-			secretKey.Name = systemSecretName
-			if err := c.Get(ctx, secretKey, secret); err != nil {
-				return nil, err
-			}
-			return secret, nil
-		}
 		return nil, err
 	}
 

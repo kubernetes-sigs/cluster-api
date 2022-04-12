@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	utilkubeconfig "sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -54,11 +55,18 @@ func (p *workloadCluster) GetKubeconfig(workloadClusterName string, namespace st
 	}
 	dataBytes, err := utilkubeconfig.FromSecret(ctx, cs, obj, userKubeconfig)
 	if err != nil {
-		var purpose = utilsecret.UserKubeconfig
-		if !userKubeconfig {
-			purpose = utilsecret.Kubeconfig
+		errSecretName := utilsecret.Name(workloadClusterName, utilsecret.Kubeconfig)
+		if userKubeconfig {
+			errUserSecretName := utilsecret.Name(workloadClusterName, utilsecret.UserKubeconfig)
+			// fallback to Kubeconfig if UserKubeconfig is not found
+			klog.Warningf("unable to find secret %q; finding %q instead", errUserSecretName, errSecretName)
+			dataBytes, err = utilkubeconfig.FromSecret(ctx, cs, obj, false)
+			if err != nil {
+				return "", errors.Wrapf(err, "%q not found in namespace %q", errUserSecretName, namespace)
+			}
+			return string(dataBytes), nil
 		}
-		return "", errors.Wrapf(err, "%q not found in namespace %q", utilsecret.Name(workloadClusterName, purpose), namespace)
+		return "", errors.Wrapf(err, "%q not found in namespace %q", errSecretName, namespace)
 	}
 	return string(dataBytes), nil
 }

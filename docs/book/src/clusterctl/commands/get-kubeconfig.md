@@ -2,7 +2,7 @@
 
 This command prints the kubeconfig of an existing workload cluster into stdout. This functionality is available in clusterctl v0.3.9 or newer.
 
-In a case where the provider generates a separate user specific Kubeconfig, clusterctl will return provider generated Kubeconfig by default.
+In a case where the provider generates a separate user specific Kubeconfig, clusterctl will return the provider generated user Kubeconfig by default.
 
 ## Examples
 

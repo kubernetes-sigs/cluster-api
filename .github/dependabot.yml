@@ -6,4 +6,11 @@ updates:
       interval: "weekly"
   commit-message:
       prefix: ":seedling:"
-
+- package-ecosystem: "gomod"
+  directory: "/"
+  schedule:
+    interval: "weekly"
+  allow:
+    - dependency-name: "github.com/coredns/corefile-migration"
+  commit-message:
+    prefix: ":seedling:"

@@ -341,11 +341,13 @@ func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []client.Object {
 			},
 		},
 		Spec: fakecontrolplane.GenericControlPlaneSpec{
-			InfrastructureTemplate: corev1.ObjectReference{
-				APIVersion: controlPlaneInfrastructure.APIVersion,
-				Kind:       controlPlaneInfrastructure.Kind,
-				Namespace:  controlPlaneInfrastructure.Namespace,
-				Name:       controlPlaneInfrastructure.Name,
+			MachineTemplate: fakecontrolplane.GenericMachineTemplate{
+				InfrastructureRef: corev1.ObjectReference{
+					APIVersion: controlPlaneInfrastructure.APIVersion,
+					Kind:       controlPlaneInfrastructure.Kind,
+					Namespace:  controlPlaneInfrastructure.Namespace,
+					Name:       controlPlaneInfrastructure.Name,
+				},
 			},
 		},
 	}

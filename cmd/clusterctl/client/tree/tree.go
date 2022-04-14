@@ -19,6 +19,7 @@ package tree
 import (
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -39,6 +40,15 @@ type ObjectTreeOptions struct {
 
 	// ShowMachineSets instructs the discovery process to include machine sets in the ObjectTree.
 	ShowMachineSets bool
+
+	// ShowClusterResourceSets instructs the discovery process to include cluster resource sets in the ObjectTree.
+	ShowClusterResourceSets bool
+
+	// ShowTemplates instructs the discovery process to include infrastructure and bootstrap config templates in the ObjectTree.
+	ShowTemplates bool
+
+	// AddTemplateVirtualNode instructs the discovery process to group template under a virtual node.
+	AddTemplateVirtualNode bool
 
 	// Echo displays objects if the object's ready condition has the
 	// same Status, Severity and Reason of the parent's object ready condition (it is an echo)
@@ -105,10 +115,19 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 		addAnnotation(obj, ObjectMetaNameAnnotation, addOpts.MetaName)
 	}
 
+	// Add the ObjectZOrderAnnotation to signal this to the presentation layer.
+	addAnnotation(obj, ObjectZOrderAnnotation, strconv.Itoa(addOpts.ZOrder))
+
 	// If it is requested that this object and its sibling should be grouped in case the ready condition
 	// has the same Status, Severity and Reason, process all the sibling nodes.
 	if IsGroupingObject(parent) {
 		siblings := od.GetObjectsByParent(parent.GetUID())
+
+		// The loop below will process the next node and decide if it belongs in a group. Since objects in the same group
+		// must have the same Kind, we sort by Kind so objects of the same Kind will be together in the list.
+		sort.Slice(siblings, func(i, j int) bool {
+			return siblings[i].GetObjectKind().GroupVersionKind().Kind < siblings[j].GetObjectKind().GroupVersionKind().Kind
+		})
 
 		for i := range siblings {
 			s := siblings[i]
@@ -120,16 +139,26 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 				continue
 			}
 
-			// If the sibling node is already a group object, upgrade it with the current object.
+			// If the sibling node is already a group object
 			if IsGroupObject(s) {
-				updateGroupNode(s, sReady, obj, objReady)
-				return true, false
+				// Check to see if the group object kind matches the object, i.e. group is MachineGroup and object is Machine.
+				// If so, upgrade it with the current object.
+				if s.GetObjectKind().GroupVersionKind().Kind == obj.GetObjectKind().GroupVersionKind().Kind+"Group" {
+					updateGroupNode(s, sReady, obj, objReady)
+					return true, false
+				}
+			} else if s.GetObjectKind().GroupVersionKind().Kind != obj.GetObjectKind().GroupVersionKind().Kind {
+				// If the sibling is not a group object, check if the sibling and the object are of the same kind. If not, move on.
+				continue
 			}
 
 			// Otherwise the object and the current sibling should be merged in a group.
 
 			// Create virtual object for the group and add it to the object tree.
 			groupNode := createGroupNode(s, sReady, obj, objReady)
+			// By default, grouping objects should be sorted last.
+			addAnnotation(groupNode, ObjectZOrderAnnotation, strconv.Itoa(GetZOrder(obj)))
+
 			od.addInner(parent, groupNode)
 
 			// Remove the current sibling (now merged in the group).

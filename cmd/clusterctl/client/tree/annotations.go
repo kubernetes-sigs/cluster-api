@@ -49,6 +49,11 @@ const (
 
 	// GroupItemsSeparator is the separator used in the GroupItemsAnnotation.
 	GroupItemsSeparator = ", "
+
+	// ObjectZOrderAnnotation contains an integer that defines the sorting of child objects when the object tree is printed.
+	// Objects are sorted by their z-order from highest to lowest, and then by their name in alphaebetical order if the
+	// z-order is the same. Objects with no z-order set are assumed to have a default z-order of 0.
+	ObjectZOrderAnnotation = "tree.cluster.x-k8s.io.io/z-order"
 )
 
 // GetMetaName returns the object meta name that should be used for the object in the presentation layer, if defined.
@@ -69,7 +74,7 @@ func IsGroupingObject(obj client.Object) bool {
 	return false
 }
 
-// IsGroupObject return true if the object is the result of a grouping operation, and
+// IsGroupObject returns true if the object is the result of a grouping operation, and
 // thus the object is representing group of sibling object, e.g. a group of machines.
 func IsGroupObject(obj client.Object) bool {
 	if val, ok := getBoolAnnotation(obj, GroupObjectAnnotation); ok {
@@ -78,7 +83,7 @@ func IsGroupObject(obj client.Object) bool {
 	return false
 }
 
-// GetGroupItems return the list of names for the objects included in a group object.
+// GetGroupItems returns the list of names for the objects included in a group object.
 func GetGroupItems(obj client.Object) string {
 	if val, ok := getAnnotation(obj, GroupItemsAnnotation); ok {
 		return val
@@ -86,7 +91,17 @@ func GetGroupItems(obj client.Object) string {
 	return ""
 }
 
-// IsVirtualObject return true if the object does not correspond to any real object, but instead it is
+// GetZOrder return the zOrder of the object. Objects with no zOrder have a default zOrder of 0.
+func GetZOrder(obj client.Object) int {
+	if val, ok := getAnnotation(obj, ObjectZOrderAnnotation); ok {
+		if zOrder, err := strconv.ParseInt(val, 10, 0); err == nil {
+			return int(zOrder)
+		}
+	}
+	return 0
+}
+
+// IsVirtualObject returns true if the object does not correspond to any real object, but instead it is
 // a virtual object introduced to provide a better representation of the cluster status.
 func IsVirtualObject(obj client.Object) bool {
 	if val, ok := getBoolAnnotation(obj, VirtualObjectAnnotation); ok {

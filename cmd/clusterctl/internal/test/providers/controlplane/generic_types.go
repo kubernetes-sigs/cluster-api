@@ -21,9 +21,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// GenericMachineTemplate contains a generic control plane spec.
+type GenericMachineTemplate struct {
+	InfrastructureRef corev1.ObjectReference `json:"infrastructureRef"`
+}
+
 // GenericControlPlaneSpec contains a generic control plane spec.
 type GenericControlPlaneSpec struct {
-	InfrastructureTemplate corev1.ObjectReference `json:"infrastructureTemplate"`
+	MachineTemplate GenericMachineTemplate `json:"machineTemplate"`
 }
 
 // +kubebuilder:object:root=true

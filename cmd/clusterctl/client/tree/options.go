@@ -25,6 +25,7 @@ type addObjectOptions struct {
 	MetaName       string
 	GroupingObject bool
 	NoEcho         bool
+	ZOrder         int
 }
 
 func (o *addObjectOptions) ApplyOptions(opts []AddObjectOption) *addObjectOptions {
@@ -59,4 +60,14 @@ type NoEcho bool
 // ApplyToAdd applies the given options.
 func (n NoEcho) ApplyToAdd(options *addObjectOptions) {
 	options.NoEcho = bool(n)
+}
+
+// The ZOrder options defines the sorting of child objects when the tree is printed. Objects are sorted by their z-order
+// from highest to lowest, and then by their name in alphaebetical order if the z-order is the same. Objects with no
+// z-order set are assumed to have a default z-order of 0.
+type ZOrder int
+
+// ApplyToAdd applies the given options.
+func (z ZOrder) ApplyToAdd(options *addObjectOptions) {
+	options.ZOrder = int(z)
 }

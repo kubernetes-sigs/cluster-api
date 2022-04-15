@@ -47,7 +47,7 @@ spec:
       openAPIV3Schema:
         type: string
         default: ""
-        example: "3.5.1-0"
+        example: "3.5.3-0"
         description: "etcdImageTag sets the tag for the etcd image."
   - name: coreDNSImageTag
     required: true

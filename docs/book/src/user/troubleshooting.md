@@ -85,7 +85,7 @@ When using older versions of Cluster API 0.4 and 1.0 releases - 0.4.6, 1.0.3 and
 $ cluster-api % clusterctl init --infrastructure docker
 
 Fetching providers
-Installing cert-manager Version="v1.5.3"
+Installing cert-manager Version="v1.7.2"
 Error: action failed after 10 attempts: failed to get cert-manager object /, Kind=, /: Object 'Kind' is missing in 'unstructured object has no kind'
 ```
 
@@ -97,7 +97,7 @@ cert-manager:
   url: "https://github.com/cert-manager/cert-manager/releases/latest/cert-manager.yaml"
 ```
 
-Alternatively a Cert Manager yaml file can be placed in the [clusterctl overrides layer](../clusterctl/configuration.md#overrides-layer) which is by default in `$HOME/.cluster-api/overrides`. A Cert Manager yaml file can be placed at `$(HOME)/.cluster-api/overrides/cert-manager/v1.5.3/cert-manager.yaml`
+Alternatively a Cert Manager yaml file can be placed in the [clusterctl overrides layer](../clusterctl/configuration.md#overrides-layer) which is by default in `$HOME/.cluster-api/overrides`. A Cert Manager yaml file can be placed at `$(HOME)/.cluster-api/overrides/cert-manager/v1.7.2/cert-manager.yaml`
 
 More information on the clusterctl config file can be found at [its page in the book](../clusterctl/configuration.md#clusterctl-configuration-file)
 

@@ -179,4 +179,4 @@ Before deploying a MachineHealthCheck, please familiarise yourself with the foll
 - If a Machine fails for any reason (if the FailureReason is set), the Machine will be remediated immediately
 
 <!-- links -->
-[management cluster]: ../reference/glossary.md#management-cluster
+[management cluster]: ../../reference/glossary.md#management-cluster

@@ -115,7 +115,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		handler.EnqueueRequestsFromMapFunc(clusterToMachines),
 		// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 		predicates.All(ctrl.LoggerFrom(ctx),
-			predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+			predicates.Any(ctrl.LoggerFrom(ctx),
+				predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
+				predicates.ClusterControlPlaneInitialized(ctrl.LoggerFrom(ctx)),
+			),
 			predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
 		),
 	)

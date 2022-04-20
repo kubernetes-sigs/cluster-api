@@ -185,7 +185,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,Metal3,Nutanix,OCI,OpenStack,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Metal3,Nutanix,OCI,OpenStack,vSphere"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
@@ -308,6 +308,20 @@ clusterctl init --infrastructure gcp
 Please visit the [Hetzner project][Hetzner provider].
 
 {{#/tab }}
+{{#tab IBM Cloud}}
+
+In order to initialize the IBM Cloud Provider you have to expose the environment
+variable `IBMCLOUD_API_KEY`. This variable is used to authorize the infrastructure
+provider manager against the IBM Cloud API. To create one from the UI, refer [here](https://cloud.ibm.com/docs/account?topic=account-userapikey&interface=ui#create_user_key).
+
+```bash
+export IBMCLOUD_API_KEY=<you_api_key>
+
+# Finally, initialize the management cluster
+clusterctl init --infrastructure ibmcloud
+```
+
+{{#/tab }}
 {{#tab Metal3}}
 
 Please visit the [Metal3 project][Metal3 provider].
@@ -417,7 +431,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Metal3,Nutanix,OpenStack,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,Metal3,Nutanix,OpenStack,vSphere"}}
 {{#tab AWS}}
 
 ```bash
@@ -533,6 +547,23 @@ export CLUSTER_NAME="<CLUSTER_NAME>"
 ```
 
 See the [GCP provider] for more information.
+
+{{#/tab }}
+{{#tab IBM Cloud}}
+
+```bash
+export IBMPOWERVS_SSHKEY_NAME=<your-ssh-key>
+# Internal and external IP of the network
+export IBMPOWERVS_VIP=<internal-ip>
+export IBMPOWERVS_VIP_EXTERNAL=<external-ip>
+export IBMPOWERVS_VIP_CIDR=29
+export IBMPOWERVS_IMAGE_NAME=<your-capi-image-name>
+# ID of the service instance in the cloud account
+export IBMPOWERVS_SERVICE_INSTANCE_ID=<service-instance-id>
+export IBMPOWERVS_NETWORK_NAME=<your-capi-network-name>
+```
+
+Please visit the [IBM Cloud provider] for more information.
 
 {{#/tab }}
 {{#tab Metal3}}
@@ -850,6 +881,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [Docker]: https://www.docker.com/
 [GCP provider]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp
 [Hetzner provider]: https://github.com/syself/cluster-api-provider-hetzner
+[IBM Cloud provider]: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider
 [kind]: https://kind.sigs.k8s.io/
 [KubeadmControlPlane]: ../developer/architecture/controllers/control-plane.md

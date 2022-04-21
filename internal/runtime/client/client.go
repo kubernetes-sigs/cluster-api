@@ -45,6 +45,7 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	runtimemetrics "sigs.k8s.io/cluster-api/internal/runtime/metrics"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -377,6 +378,11 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 		return errors.Wrap(err, "http call failed")
 	}
 
+	// Observe request duration metric.
+	start := time.Now()
+	defer func() {
+		runtimemetrics.RequestDuration.Observe(opts.hookGVH, *extensionURL, time.Since(start))
+	}()
 	requireConversion := opts.registrationGVH.Version != opts.hookGVH.Version
 
 	requestLocal := request
@@ -450,6 +456,8 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	})
 
 	resp, err := client.Do(httpRequest)
+	// Create http request metric.
+	runtimemetrics.RequestsTotal.Observe(httpRequest, resp, opts.hookGVH, err)
 	if err != nil {
 		return errCallingExtensionHandler(
 			errors.Wrapf(err, "http call failed"),

@@ -246,9 +246,10 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// Status is ready means a config has been generated.
 	case config.Status.Ready:
 		if config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil {
-			if !configOwner.IsInfrastructureReady() {
-				// If the BootstrapToken has been generated for a join and the infrastructure is not ready.
-				// This indicates the token in the join config has not been consumed and it may need a refresh.
+			if !configOwner.HasNodeRefs() {
+				// If the BootstrapToken has been generated for a join but the config owner has no nodeRefs,
+				// this indicates that the node has not yet joined and the token in the join config has not
+				// been consumed and it may need a refresh.
 				return r.refreshBootstrapToken(ctx, config, cluster)
 			}
 			if configOwner.IsMachinePool() {

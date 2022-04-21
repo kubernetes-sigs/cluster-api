@@ -24,10 +24,12 @@ import (
 	"os"
 	"path"
 	goruntime "runtime"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -39,6 +41,11 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/exec"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+)
+
+const (
+	retryableOperationInterval = 3 * time.Second
+	retryableOperationTimeout  = 1 * time.Minute
 )
 
 // ClusterProxy defines the behavior of a type that acts as an intermediary with an existing Kubernetes cluster.
@@ -168,7 +175,15 @@ func (p *clusterProxy) GetScheme() *runtime.Scheme {
 func (p *clusterProxy) GetClient() client.Client {
 	config := p.GetRESTConfig()
 
-	c, err := client.New(config, client.Options{Scheme: p.scheme})
+	var c client.Client
+	err := wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
+		var newClientErr error
+		c, newClientErr = client.New(config, client.Options{Scheme: p.scheme})
+		if newClientErr != nil {
+			return false, newClientErr
+		}
+		return true, nil
+	})
 	Expect(err).ToNot(HaveOccurred(), "Failed to get controller-runtime client")
 
 	return c

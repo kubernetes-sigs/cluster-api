@@ -396,7 +396,17 @@ cite.literate-source > a::before {
 .tabset > input:nth-child(13):checked ~ .tab-panels > .tab-panel:nth-child(7),
 .tabset > input:nth-child(15):checked ~ .tab-panels > .tab-panel:nth-child(8),
 .tabset > input:nth-child(17):checked ~ .tab-panels > .tab-panel:nth-child(9),
-.tabset > input:nth-child(19):checked ~ .tab-panels > .tab-panel:nth-child(10){
+.tabset > input:nth-child(19):checked ~ .tab-panels > .tab-panel:nth-child(10),
+.tabset > input:nth-child(21):checked ~ .tab-panels > .tab-panel:nth-child(11),
+.tabset > input:nth-child(23):checked ~ .tab-panels > .tab-panel:nth-child(12),
+.tabset > input:nth-child(25):checked ~ .tab-panels > .tab-panel:nth-child(13),
+.tabset > input:nth-child(27):checked ~ .tab-panels > .tab-panel:nth-child(14),
+.tabset > input:nth-child(29):checked ~ .tab-panels > .tab-panel:nth-child(15),
+.tabset > input:nth-child(31):checked ~ .tab-panels > .tab-panel:nth-child(16),
+.tabset > input:nth-child(33):checked ~ .tab-panels > .tab-panel:nth-child(17),
+.tabset > input:nth-child(35):checked ~ .tab-panels > .tab-panel:nth-child(18),
+.tabset > input:nth-child(37):checked ~ .tab-panels > .tab-panel:nth-child(19),
+.tabset > input:nth-child(39):checked ~ .tab-panels > .tab-panel:nth-child(20){
   display: block;
 }
 

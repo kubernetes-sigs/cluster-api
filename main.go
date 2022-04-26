@@ -55,7 +55,9 @@ import (
 	expv1alpha4 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
+	runtimev1webhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
@@ -104,6 +106,8 @@ func init() {
 	_ = addonsv1alpha3.AddToScheme(scheme)
 	_ = addonsv1alpha4.AddToScheme(scheme)
 	_ = addonsv1.AddToScheme(scheme)
+
+	_ = runtimev1.AddToScheme(scheme)
 
 	// +kubebuilder:scaffold:scheme
 }
@@ -463,6 +467,13 @@ func setupWebhooks(mgr ctrl.Manager) {
 
 	if err := (&clusterv1.MachineHealthCheck{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "MachineHealthCheck")
+		os.Exit(1)
+	}
+
+	// NOTE: ExtensionConfig is behind the RuntimeSDK feature gate flag. The webhook will prevent creating or updating
+	// new objects if the feature flag is disabled.
+	if err := (&runtimev1webhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "ExtensionConfig")
 		os.Exit(1)
 	}
 }

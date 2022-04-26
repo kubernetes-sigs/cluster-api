@@ -1,0 +1,248 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  creationTimestamp: null
+  name: extensionconfigs.runtime.cluster.x-k8s.io
+spec:
+  group: runtime.cluster.x-k8s.io
+  names:
+    categories:
+    - cluster-api
+    kind: ExtensionConfig
+    listKind: ExtensionConfigList
+    plural: extensionconfigs
+    shortNames:
+    - ext
+    singular: extensionconfig
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Time duration since creation of ExtensionConfig
+      jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: ExtensionConfig is the Schema for the ExtensionConfig API.
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ExtensionConfigSpec is the desired state of the ExtensionConfig
+            properties:
+              clientConfig:
+                description: ClientConfig defines how to communicate with ExtensionHandlers.
+                properties:
+                  caBundle:
+                    description: CABundle is a PEM encoded CA bundle which will be
+                      used to validate the ExtensionHandler's server certificate.
+                    format: byte
+                    type: string
+                  service:
+                    description: "Service is a reference to the Kubernetes service
+                      for the ExtensionHandler. Either `service` or `url` must be
+                      specified. \n If the ExtensionHandler is running within a cluster,
+                      then you should use `service`."
+                    properties:
+                      name:
+                        description: Name is the name of the service.
+                        type: string
+                      namespace:
+                        description: Namespace is the namespace of the service.
+                        type: string
+                      path:
+                        description: Path is an optional URL path which will be sent
+                          in any request to this service. If a path is set it will
+                          be used as prefix and the hook-specific path will be appended.
+                        type: string
+                      port:
+                        description: Port is the port on the service that hosting
+                          ExtensionHandler. Default to 8443. `port` should be a valid
+                          port number (1-65535, inclusive).
+                        format: int32
+                        type: integer
+                    required:
+                    - name
+                    - namespace
+                    type: object
+                  url:
+                    description: "URL gives the location of the ExtensionHandler,
+                      in standard URL form (`scheme://host:port/path`). Exactly one
+                      of `url` or `service` must be specified. \n The `host` should
+                      not refer to a service running in the cluster; use the `service`
+                      field instead. \n The scheme should be \"https\"; the URL should
+                      begin with \"https://\". \"http\" is supported for insecure
+                      development purposes only. \n A path is optional, and if present
+                      may be any string permissible in a URL. If a path is set it
+                      will be used as prefix and the hook-specific path will be appended.
+                      \n Attempting to use a user or basic auth e.g. \"user:password@\"
+                      is not allowed. Fragments (\"#...\") and query parameters (\"?...\")
+                      are not allowed either."
+                    type: string
+                type: object
+              namespaceSelector:
+                description: NamespaceSelector decides whether to run the webhook
+                  on an object based on whether the namespace for that object matches
+                  the selector. Default to the empty LabelSelector, which matches
+                  everything.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements.
+                      The requirements are ANDed.
+                    items:
+                      description: A label selector requirement is a selector that
+                        contains values, a key, and an operator that relates the key
+                        and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies
+                            to.
+                          type: string
+                        operator:
+                          description: operator represents a key's relationship to
+                            a set of values. Valid operators are In, NotIn, Exists
+                            and DoesNotExist.
+                          type: string
+                        values:
+                          description: values is an array of string values. If the
+                            operator is In or NotIn, the values array must be non-empty.
+                            If the operator is Exists or DoesNotExist, the values
+                            array must be empty. This array is replaced during a strategic
+                            merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: matchLabels is a map of {key,value} pairs. A single
+                      {key,value} in the matchLabels map is equivalent to an element
+                      of matchExpressions, whose key field is "key", the operator
+                      is "In", and the values array contains only "value". The requirements
+                      are ANDed.
+                    type: object
+                type: object
+            required:
+            - clientConfig
+            type: object
+          status:
+            description: ExtensionConfigStatus is the current state of the ExtensionConfig
+            properties:
+              conditions:
+                description: Conditions define the current service state of the ExtensionConfig.
+                items:
+                  description: Condition defines an observation of a Cluster API resource
+                    operational state.
+                  properties:
+                    lastTransitionTime:
+                      description: Last time the condition transitioned from one status
+                        to another. This should be when the underlying condition changed.
+                        If that is not known, then using the time when the API field
+                        changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A human readable message indicating details about
+                        the transition. This field may be empty.
+                      type: string
+                    reason:
+                      description: The reason for the condition's last transition
+                        in CamelCase. The specific API may choose whether or not this
+                        field is considered a guaranteed API. This field may not be
+                        empty.
+                      type: string
+                    severity:
+                      description: Severity provides an explicit classification of
+                        Reason code, so the users or machines can immediately understand
+                        the current situation and act accordingly. The Severity field
+                        MUST be set only when Status=False.
+                      type: string
+                    status:
+                      description: Status of the condition, one of True, False, Unknown.
+                      type: string
+                    type:
+                      description: Type of condition in CamelCase or in foo.example.com/CamelCase.
+                        Many .condition.type values are consistent across resources
+                        like Available, but because arbitrary conditions can be useful
+                        (see .node.status.conditions), the ability to deconflict is
+                        important.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - status
+                  - type
+                  type: object
+                type: array
+              handlers:
+                description: Handlers defines the current ExtensionHandlers supported
+                  by an Extension.
+                items:
+                  description: ExtensionHandler specifies the details of a handler
+                    for a particular runtime hook registered by an Extension server.
+                  properties:
+                    failurePolicy:
+                      description: FailurePolicy defines how failures in calls to
+                        the ExtensionHandler should be handled by a client. Defaults
+                        to Fail if not set.
+                      type: string
+                    name:
+                      description: Name is the unique name of the ExtensionHandler.
+                      type: string
+                    requestHook:
+                      description: RequestHook defines the versioned runtime hook
+                        which this ExtensionHandler serves.
+                      properties:
+                        apiVersion:
+                          description: APIVersion is the Version of the Hook.
+                          type: string
+                        hook:
+                          description: Hook is the name of the hook.
+                          type: string
+                      required:
+                      - apiVersion
+                      - hook
+                      type: object
+                    timeoutSeconds:
+                      description: TimeoutSeconds defines the timeout duration for
+                        client calls to the ExtensionHandler.
+                      format: int32
+                      type: integer
+                  required:
+                  - name
+                  - requestHook
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - name
+                x-kubernetes-list-type: map
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

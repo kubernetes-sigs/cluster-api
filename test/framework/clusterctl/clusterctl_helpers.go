@@ -314,7 +314,7 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		Getter:  input.ClusterProxy.GetClient(),
 		Lister:  input.ClusterProxy.GetClient(),
 		Cluster: result.Cluster,
-	}, input.WaitForMachineDeployments...)
+	}, input.WaitForMachinePools...)
 }
 
 // setDefaults sets the default values for ApplyClusterTemplateAndWaitInput if not set.

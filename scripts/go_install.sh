@@ -40,6 +40,6 @@ fi
 rm "${GOBIN}/${2}"* || true
 
 # install the golang module specified as the first argument
-go install -tags tools "${1}@${3}"
+go install "${1}@${3}"
 mv "${GOBIN}/${2}" "${GOBIN}/${2}-${3}"
 ln -sf "${GOBIN}/${2}-${3}" "${GOBIN}/${2}"

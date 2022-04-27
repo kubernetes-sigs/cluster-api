@@ -46,7 +46,7 @@ A GitHub release can be used as a provider repository if:
 * The release tag is a valid semantic version number
 * The components YAML, the metadata YAML and eventually the workload cluster templates are include into the release assets.
 
-See the [GitHub help](https://help.github.com/en/github/administering-a-repository/creating-releases) for more information
+See the [GitHub docs](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) for more information
 about how to create a release.
 
 #### Creating a local provider repository

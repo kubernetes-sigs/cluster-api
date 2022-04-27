@@ -334,3 +334,11 @@ func (gvh GroupVersionHook) String() string {
 var emptyGroupVersionHook = GroupVersionHook{}
 
 var emptyGroupVersionKind = schema.GroupVersionKind{}
+
+// GroupHook represents Group and Hook of a GroupVersionHook.
+// This can be used instead of GroupVersionHook when
+// Version should not be used.
+type GroupHook struct {
+	Group string
+	Hook  string
+}

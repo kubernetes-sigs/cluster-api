@@ -822,11 +822,17 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneTopology(ref common.Re
 							Format:      "int32",
 						},
 					},
+					"nodeDrainTimeout": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NodeDrainTimeout is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
 	}
 }
 
@@ -967,7 +973,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref common.Referen
 					},
 					"properties": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Properties specifies fields of an object. NOTE: Can only be set if type is object. NOTE: This field uses PreserveUnknownFields and Schemaless, because recursive validation is not possible.",
+							Description: "Properties specifies fields of an object. NOTE: Can only be set if type is object. NOTE: Properties is mutually exclusive with AdditionalProperties. NOTE: This field uses PreserveUnknownFields and Schemaless, because recursive validation is not possible.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -978,6 +984,12 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref common.Referen
 									},
 								},
 							},
+						},
+					},
+					"additionalProperties": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AdditionalProperties specifies the schema of values in a map (keys are always strings). NOTE: Can only be set if type is object. NOTE: AdditionalProperties is mutually exclusive with Properties. NOTE: This field uses PreserveUnknownFields and Schemaless, because recursive validation is not possible.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps"),
 						},
 					},
 					"required": {
@@ -1617,6 +1629,12 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentTopology(ref comm
 							Format:      "int32",
 						},
 					},
+					"nodeDrainTimeout": {
+						SchemaProps: spec.SchemaProps{
+							Description: "NodeDrainTimeout is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
 					"variables": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Variables can be used to customize the MachineDeployment through patches.",
@@ -1628,7 +1646,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentTopology(ref comm
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
 	}
 }
 

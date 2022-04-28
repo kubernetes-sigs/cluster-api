@@ -256,7 +256,12 @@ func (c *Catalog) NewRequest(hook GroupVersionHook) (runtime.Object, error) {
 	if !ok {
 		return nil, errors.Errorf("hook %T is not registered in catalog %q", hook, c.catalogName)
 	}
-	return c.scheme.New(descriptor.request)
+	obj, err := c.scheme.New(descriptor.request)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create request object")
+	}
+	obj.GetObjectKind().SetGroupVersionKind(descriptor.request)
+	return obj, nil
 }
 
 // NewResponse returns a response object for a GroupVersionHook.
@@ -265,7 +270,12 @@ func (c *Catalog) NewResponse(hook GroupVersionHook) (runtime.Object, error) {
 	if !ok {
 		return nil, errors.Errorf("hook %T is not registered in catalog %q", hook, c.catalogName)
 	}
-	return c.scheme.New(descriptor.response)
+	obj, err := c.scheme.New(descriptor.response)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create response object")
+	}
+	obj.GetObjectKind().SetGroupVersionKind(descriptor.response)
+	return obj, nil
 }
 
 // ValidateRequest validates a request object. Specifically it validates that
@@ -341,4 +351,15 @@ var emptyGroupVersionKind = schema.GroupVersionKind{}
 type GroupHook struct {
 	Group string
 	Hook  string
+}
+
+// GVHToPath calculates the path for a given GroupVersionHook.
+// This func is aligned with Kubernetes paths for cluster-wide resources, e.g.:
+// /apis/storage.k8s.io/v1/storageclasses/standard.
+// Note: name is only appended if set, e.g. the Discovery Hook does not have a name.
+func GVHToPath(gvh GroupVersionHook, name string) string {
+	if name == "" {
+		return fmt.Sprintf("/%s/%s/%s", gvh.Group, gvh.Version, strings.ToLower(gvh.Hook))
+	}
+	return fmt.Sprintf("/%s/%s/%s/%s", gvh.Group, gvh.Version, strings.ToLower(gvh.Hook), strings.ToLower(name))
 }

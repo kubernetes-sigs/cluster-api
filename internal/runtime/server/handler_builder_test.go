@@ -25,7 +25,7 @@ func f(a, b *Foo) {
 }
 
 func Test_validateF(t *testing.T) {
-	if err := validateF(f, &Foo{}, Foo{}); err != nil {
+	if err := validateF(f, &Foo{}, &Foo{}); err != nil {
 		t.Errorf("validateF() error = %v", err)
 	}
 }

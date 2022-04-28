@@ -57,9 +57,9 @@ import (
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimev1controllers "sigs.k8s.io/cluster-api/exp/runtime/controllers"
-	runtimehooksv1alpha1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimehooksv1alpha2 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha2"
-	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha3"
+	runtimehooksv1alpha3 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/feature"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
@@ -119,9 +119,9 @@ func init() {
 
 	// +kubebuilder:scaffold:scheme
 
-	_ = runtimehooksv1alpha1.AddToCatalog(catalog)
-	_ = runtimehooksv1alpha2.AddToCatalog(catalog)
 	_ = runtimehooksv1.AddToCatalog(catalog)
+	_ = runtimehooksv1alpha2.AddToCatalog(catalog)
+	_ = runtimehooksv1alpha3.AddToCatalog(catalog)
 }
 
 // InitFlags initializes the flags.

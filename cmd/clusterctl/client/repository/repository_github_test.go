@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/google/go-github/v33/github"
 	. "github.com/onsi/gomega"
@@ -31,6 +32,8 @@ import (
 )
 
 func Test_githubRepository_newGitHubRepository(t *testing.T) {
+	retryableOperationInterval = 200 * time.Millisecond
+	retryableOperationTimeout = 1 * time.Second
 	type field struct {
 		providerConfig config.Provider
 		variableClient config.VariablesClient
@@ -156,6 +159,8 @@ func Test_githubRepository_getComponentsPath(t *testing.T) {
 }
 
 func Test_githubRepository_getFile(t *testing.T) {
+	retryableOperationInterval = 200 * time.Millisecond
+	retryableOperationTimeout = 1 * time.Second
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
@@ -228,6 +233,8 @@ func Test_githubRepository_getFile(t *testing.T) {
 }
 
 func Test_gitHubRepository_getVersions(t *testing.T) {
+	retryableOperationInterval = 200 * time.Millisecond
+	retryableOperationTimeout = 1 * time.Second
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
@@ -284,6 +291,8 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 }
 
 func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
+	retryableOperationInterval = 200 * time.Millisecond
+	retryableOperationTimeout = 1 * time.Second
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
@@ -540,6 +549,8 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 }
 
 func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
+	retryableOperationInterval = 200 * time.Millisecond
+	retryableOperationTimeout = 1 * time.Second
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
@@ -605,6 +616,8 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 }
 
 func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
+	retryableOperationInterval = 200 * time.Millisecond
+	retryableOperationTimeout = 1 * time.Second
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 

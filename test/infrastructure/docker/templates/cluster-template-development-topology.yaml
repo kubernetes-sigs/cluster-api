@@ -22,6 +22,12 @@ spec:
       value: ""
     - name: coreDNSImageTag
       value: ""
+    - name: podSecurityStandard
+      value:
+        enabled: ${POD_SECURITY_STANDARD_ENABLED:=true}
+        enforce: "baseline"
+        audit: "restricted"
+        warn: "restricted"
     version: ${KUBERNETES_VERSION}
     workers:
       machineDeployments:

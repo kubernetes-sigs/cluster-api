@@ -11,6 +11,7 @@ resources:
 - bases/addons.cluster.x-k8s.io_clusterresourcesets.yaml
 - bases/addons.cluster.x-k8s.io_clusterresourcesetbindings.yaml
 - bases/cluster.x-k8s.io_machinehealthchecks.yaml
+- bases/runtime.cluster.x-k8s.io_extensionconfigs.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

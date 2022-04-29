@@ -118,8 +118,12 @@ KPROMO_PKG := sigs.k8s.io/promo-tools/v3/cmd/kpromo
 CONVERSION_VERIFIER_BIN := conversion-verifier
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN))
 
+OPENAPI_GEN_VER := v0.0.0-20211115234752-e816edb12b65
 OPENAPI_GEN_BIN := openapi-gen
+# We are intentionally using the binary without version suffix, to avoid the version
+# in generated files.
 OPENAPI_GEN := $(abspath $(TOOLS_BIN_DIR)/$(OPENAPI_GEN_BIN))
+OPENAPI_GEN_PKG := k8s.io/kube-openapi/cmd/openapi-gen
 
 RUNTIME_OPENAPI_GEN_BIN := runtime-openapi-gen
 RUNTIME_OPENAPI_GEN := $(abspath $(TOOLS_BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN))
@@ -183,6 +187,7 @@ help:  # Display this help
 ##@ generate:
 
 ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane
+ALL_GENERATE_OPENAPI = api/v1beta1 exp/runtime/hooks/api/v1alpha1 exp/runtime/hooks/api/v1alpha2 exp/runtime/hooks/api/v1alpha3
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-*, generate-go-conversions-* and generate-go-openapi targets
@@ -271,8 +276,7 @@ generate-go-deepcopy-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate deepco
 
 .PHONY: generate-go-conversions
 generate-go-conversions: ## Run all generate-go-conversions-* targets
-	$(MAKE) $(addprefix generate-go-conversions-,$(ALL_GENERATE_MODULES))
-	$(MAKE) generate-go-conversions-runtime
+	$(MAKE) $(addprefix generate-go-conversions-,$(ALL_GENERATE_MODULES) runtime)
 
 .PHONY: generate-go-conversions-core
 generate-go-conversions-core: $(CONVERSION_GEN) ## Generate conversions go code for core
@@ -329,7 +333,7 @@ generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate con
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-go-conversions-runtime
-generate-go-conversions-runtime: $(CONVERSION_GEN)
+generate-go-conversions-runtime: $(CONVERSION_GEN) ## Generate conversions go code for runtime SDK
 	$(MAKE) clean-generated-conversions SRC_DIRS="./exp/runtime/hooks/api/v1alpha1,./exp/runtime/hooks/api/v1alpha2,./exp/runtime/hooks/api/v1alpha3"
 	$(CONVERSION_GEN) \
 		--input-dirs=./exp/runtime/hooks/api/v1alpha1 \
@@ -347,15 +351,15 @@ generate-go-conversions-runtime: $(CONVERSION_GEN)
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
 .PHONY: generate-go-openapi
-generate-go-openapi: $(OPENAPI_GEN) $(CONTROLLER_GEN)
-	$(MAKE) clean-generated-openapi_definitions SRC_DIRS="./exp/runtime/hooks/api/v1alpha1,./exp/runtime/hooks/api/v1alpha2,./exp/runtime/hooks/api/v1alpha3"
-	$(OPENAPI_GEN) \
-		--input-dirs=./api/v1beta1 \
-		--input-dirs=./exp/runtime/hooks/api/v1alpha1 \
-		--input-dirs=./exp/runtime/hooks/api/v1alpha2 \
-		--input-dirs=./exp/runtime/hooks/api/v1alpha3 \
-		--output-file-base=zz_generated.openapi \
-		--header-file=./hack/boilerplate/boilerplate.generatego.txt
+generate-go-openapi: $(OPENAPI_GEN) $(CONTROLLER_GEN) ## Generate openapi go code for runtime SDK
+	@for pkg in $(ALL_GENERATE_OPENAPI); do \
+		echo "** Generating openapi schema for types in ./$${pkg} **"; \
+		$(OPENAPI_GEN) \
+			--input-dirs=./$${pkg} \
+			--output-file-base=zz_generated.openapi \
+			--output-package=sigs.k8s.io/cluster-api/$${pkg} \
+			--go-header-file=./hack/boilerplate/boilerplate.generatego.txt; \
+	done
 
 .PHONY: generate-modules
 generate-modules: ## Run go mod tidy to ensure modules are up to date
@@ -854,10 +858,9 @@ $(CONVERSION_GEN): # Build conversion-gen from tools folder.
 $(CONVERSION_VERIFIER): $(TOOLS_DIR)/go.mod # Build conversion-verifier from tools folder.
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/$(CONVERSION_VERIFIER_BIN) sigs.k8s.io/cluster-api/hack/tools/conversion-verifier
 
-## We are forcing a rebuilt of openapi-gen via PHONY so that we're always using an up-to-date version.
 .PHONY: $(OPENAPI_GEN)
-$(OPENAPI_GEN): $(TOOLS_DIR)/go.mod # Build openapi-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/$(OPENAPI_GEN_BIN) sigs.k8s.io/cluster-api/hack/tools/openapi-gen
+$(OPENAPI_GEN): # Build openapi-gen from tools folder.
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(OPENAPI_GEN_PKG) $(OPENAPI_GEN_BIN) $(OPENAPI_GEN_VER)
 
 ## We are forcing a rebuilt of runtime-openapi-gen via PHONY so that we're always using an up-to-date version.
 .PHONY: $(RUNTIME_OPENAPI_GEN)

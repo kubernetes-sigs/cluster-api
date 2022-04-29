@@ -22,7 +22,6 @@ import (
 	"path"
 
 	flag "github.com/spf13/pflag"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/yaml"
 
@@ -35,7 +34,6 @@ import (
 
 var (
 	version    = flag.String("version", "", "Version for the OpenAPI specification.")
-	inputDirs  = flag.StringSlice("input-dirs", nil, "Comma-separated list of import paths to get hook definitions from.")
 	outputFile = flag.String("output-file", "runtime-sdk-openapi.yaml", "Output file name.")
 )
 
@@ -45,10 +43,6 @@ func main() {
 	if *version == "" {
 		klog.Exit("--version must be specified")
 	}
-	// TODO(openapi): implement input dir to avoid having to hard-code packages.
-	//if len(*inputDirs) < 1 {
-	//	klog.Exit("--input-dirs must be specified")
-	//}
 	if *outputFile == "" {
 		klog.Exit("--output-file must be specified")
 	}
@@ -66,12 +60,12 @@ func main() {
 	// TODO(openapi): TBD if we want to support types from "external" packages which only have GetOpenAPIDefinitions.
 	// If yes, we should add an additional flag for those.
 	// Follow-up: If we don't want to support it drop openapi generation in api/v1beta1.
-	c.AddOpenAPIDefinitions(clusterv1.GroupVersion, clusterv1.GetOpenAPIDefinitions)
+	c.AddOpenAPIDefinitions(clusterv1.GetOpenAPIDefinitions)
 
 	// TODO(openapi): TBD if we want to support types from Kubernetes
 	// Note: We don't have to make this flexible via flag.
 	// We would just vendor the types into vendored_openapi.go that we want to support.
-	c.AddOpenAPIDefinitions(schema.GroupVersion{}, GetOpenAPIDefinitions)
+	c.AddOpenAPIDefinitions(GetOpenAPIDefinitions)
 
 	openAPI, err := c.OpenAPI(*version)
 	if err != nil {

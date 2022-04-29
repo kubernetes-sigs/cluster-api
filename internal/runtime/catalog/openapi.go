@@ -175,7 +175,7 @@ func addTypeToOpenAPI(openAPI *spec3.OpenAPI, c *Catalog, typeName string) error
 	// (which we couldn't do for external packages like clusterv1 because we cannot map typeName
 	// to a package without hard-coding the mapping).
 	var openAPIDefinition *common.OpenAPIDefinition
-	for _, openAPIDefinitionsGetter := range c.gvToOpenAPIDefinitions {
+	for _, openAPIDefinitionsGetter := range c.openAPIDefinitions {
 		openAPIDefinitions := openAPIDefinitionsGetter(func(refTypeName string) spec.Ref {
 			return componentRef(refTypeName)
 		})

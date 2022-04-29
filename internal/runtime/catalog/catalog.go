@@ -46,10 +46,10 @@ type Catalog struct {
 	// gvhToHookDescriptor maps a GroupVersionHook to the corresponding hook descriptor.
 	gvhToHookDescriptor map[GroupVersionHook]hookDescriptor
 
-	// gvToOpenAPIDefinitions maps a GroupVersion to a func
+	// openAPIDefinitions maps a GroupVersion to a func
 	// which returns OpenAPI definitions for all request and response types with that
 	// GroupVersion.
-	gvToOpenAPIDefinitions map[schema.GroupVersion]OpenAPIDefinitionsGetter
+	openAPIDefinitions []OpenAPIDefinitionsGetter
 
 	// catalogName is the name of this catalog. It is set based on the stack of the New caller.
 	// This is useful for error reporting to indicate the origin of the Catalog.
@@ -99,11 +99,11 @@ type OpenAPIDefinitionsGetter func(ref common.ReferenceCallback) map[string]comm
 // New creates a new Catalog.
 func New() *Catalog {
 	return &Catalog{
-		scheme:                 runtime.NewScheme(),
-		gvhToType:              map[GroupVersionHook]reflect.Type{},
-		typeToGVH:              map[reflect.Type]GroupVersionHook{},
-		gvhToHookDescriptor:    map[GroupVersionHook]hookDescriptor{},
-		gvToOpenAPIDefinitions: map[schema.GroupVersion]OpenAPIDefinitionsGetter{},
+		scheme:              runtime.NewScheme(),
+		gvhToType:           map[GroupVersionHook]reflect.Type{},
+		typeToGVH:           map[reflect.Type]GroupVersionHook{},
+		gvhToHookDescriptor: map[GroupVersionHook]hookDescriptor{},
+		openAPIDefinitions:  []OpenAPIDefinitionsGetter{},
 		// Note: We have to ignore the current file so that GetNameFromCallsite retrieves the name of the caller (the parent).
 		catalogName: naming.GetNameFromCallsite("sigs.k8s.io/cluster-api/internal/runtime/catalog/catalog.go"),
 	}
@@ -187,11 +187,8 @@ func (c *Catalog) AddHook(gv schema.GroupVersion, hookFunc Hook, hookMeta *HookM
 }
 
 // AddOpenAPIDefinitions adds an OpenAPIDefinitionsGetter with the gv GroupVersion.
-func (c *Catalog) AddOpenAPIDefinitions(gv schema.GroupVersion, getter OpenAPIDefinitionsGetter) {
-	if _, ok := c.gvToOpenAPIDefinitions[gv]; ok {
-		panic(fmt.Sprintf("double registration of OpenAPI definitions for GroupVersion %q", gv))
-	}
-	c.gvToOpenAPIDefinitions[gv] = getter
+func (c *Catalog) AddOpenAPIDefinitions(getter OpenAPIDefinitionsGetter) {
+	c.openAPIDefinitions = append(c.openAPIDefinitions, getter)
 }
 
 // Convert will attempt to convert in into out. Both must be pointers.

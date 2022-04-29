@@ -54,7 +54,7 @@ func (bld *Builder) RegisterHook(hookFunc Hook, hookMeta *HookMeta) *Builder {
 // openapi-gen.
 func (bld *Builder) RegisterOpenAPIDefinitions(getter OpenAPIDefinitionsGetter) *Builder {
 	bld.catalogBuilder = append(bld.catalogBuilder, func(c *Catalog) {
-		c.AddOpenAPIDefinitions(bld.GroupVersion, getter)
+		c.AddOpenAPIDefinitions(getter)
 	})
 	return bld
 }

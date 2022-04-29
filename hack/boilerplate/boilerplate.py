@@ -215,7 +215,7 @@ def get_regexs():
     # strip #!.* from scripts
     regexs["shebang"] = re.compile(r"^(#!.*\n)\n*", re.MULTILINE)
     # Search for generated files
-    regexs["generated"] = re.compile('DO NOT EDIT|Do not edit it manually!')
+    regexs["generated"] = re.compile('DO NOT EDIT')
     return regexs
 
 def main():

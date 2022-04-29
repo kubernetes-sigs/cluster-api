@@ -361,3 +361,16 @@ should monitor for changes. When a dependency is modified, Tilt rebuilds the pro
 machine**, copies the binary to the running container, and executes a restart script. This is significantly faster
 than rebuilding the container image for each change. It also helps keep the size of each development image as small as
 possible (the container images do not need the entire go toolchain, source code, module dependencies, etc.).
+
+## IDE support for Tiltfile
+
+For Intellij, Syntax highlighting for the Tiltfile can be configured with a TextMate Bundle. For instructions, please see:
+[Tiltfile TextMate Bundle](https://github.com/tilt-dev/tiltfile.tmbundle).
+
+For VSCode the [Bazel plugin](https://marketplace.visualstudio.com/items?itemName=BazelBuild.vscode-bazel) can be used, it provides
+syntax highlighting and auto-formatting. To enable it for Tiltfile a file association has to be configured via user settings:
+```json
+"files.associations": {
+  "Tiltfile": "starlark",
+},
+```

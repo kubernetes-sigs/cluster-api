@@ -110,7 +110,7 @@ GO_APIDIFF_BIN := go-apidiff
 GO_APIDIFF := $(abspath $(TOOLS_BIN_DIR)/$(GO_APIDIFF_BIN)-$(GO_APIDIFF_VER))
 GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
 
-KPROMO_VER := v3.3.0-beta.3
+KPROMO_VER := v3.4.1
 KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
 KPROMO_PKG := sigs.k8s.io/promo-tools/v3/cmd/kpromo
@@ -657,7 +657,7 @@ release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 
 .PHONY: promote-images
 promote-images: $(KPROMO)
-	$(KPROMO) pr --project cluster-api --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK)
+	$(KPROMO) pr --project cluster-api --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK) --image cluster-api-controller --image kubeadm-control-plane-controller --image kubeadm-bootstrap-controller --digests ""
 
 ## --------------------------------------
 ## Docker

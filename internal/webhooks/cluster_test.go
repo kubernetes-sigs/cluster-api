@@ -31,6 +31,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
 
 func TestClusterDefaultNamespaces(t *testing.T) {
@@ -46,7 +47,7 @@ func TestClusterDefaultNamespaces(t *testing.T) {
 		},
 	}
 	webhook := &Cluster{}
-	tFunc := customDefaultValidateTest(ctx, c, webhook)
+	tFunc := util.CustomDefaultValidateTest(ctx, c, webhook)
 
 	t.Run("for Cluster", tFunc)
 	g.Expect(webhook.Default(ctx, c)).To(Succeed())
@@ -317,7 +318,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 
 		t.Run(tt.name, func(t *testing.T) {
 			// Test if defaulting works in combination with validation.
-			customDefaultValidateTest(ctx, cluster, webhook)(t)
+			util.CustomDefaultValidateTest(ctx, cluster, webhook)(t)
 			// Test defaulting.
 			t.Run("default", func(t *testing.T) {
 				g := NewWithT(t)
@@ -350,7 +351,7 @@ func TestClusterDefaultTopologyVersion(t *testing.T) {
 
 	// Create the webhook and add the fakeClient as its client.
 	webhook := &Cluster{Client: fakeClient}
-	tFunc := customDefaultValidateTest(ctx, c, webhook)
+	tFunc := util.CustomDefaultValidateTest(ctx, c, webhook)
 	t.Run("for Cluster", tFunc)
 	g.Expect(webhook.Default(ctx, c)).To(Succeed())
 

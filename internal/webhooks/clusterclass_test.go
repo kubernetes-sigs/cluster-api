@@ -34,6 +34,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
 
 var (
@@ -76,7 +77,7 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 
 	// Create the webhook and add the fakeClient as its client.
 	webhook := &ClusterClass{Client: fakeClient}
-	tFunc := customDefaultValidateTest(ctx, in, webhook)
+	tFunc := util.CustomDefaultValidateTest(ctx, in, webhook)
 
 	t.Run("for ClusterClass", tFunc)
 

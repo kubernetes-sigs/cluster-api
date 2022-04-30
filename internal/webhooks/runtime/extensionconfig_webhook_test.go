@@ -25,12 +25,15 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/webhooks/util"
 )
 
 var (
+	ctx        = ctrl.SetupSignalHandler()
 	fakeScheme = runtime.NewScheme()
 )
 
@@ -47,6 +50,7 @@ func TestExtensionConfigValidationFeatureGated(t *testing.T) {
 			ClientConfig: runtimev1.ClientConfig{
 				URL: pointer.String("https://extension-address.com"),
 			},
+			NamespaceSelector: &metav1.LabelSelector{},
 		},
 	}
 	updatedExtension := extension.DeepCopy()
@@ -92,6 +96,191 @@ func TestExtensionConfigValidationFeatureGated(t *testing.T) {
 			webhook := ExtensionConfig{}
 			g := NewWithT(t)
 			err := webhook.validate(context.TODO(), tt.old, tt.new)
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+		})
+	}
+}
+
+func TestExtensionConfigDefault(t *testing.T) {
+	g := NewWithT(t)
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+
+	extensionConfig := &runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-extension",
+		},
+		Spec: runtimev1.ExtensionConfigSpec{
+			ClientConfig: runtimev1.ClientConfig{
+				Service: &runtimev1.ServiceReference{
+					Name:      "name",
+					Namespace: "namespace",
+				},
+			},
+		},
+	}
+
+	extensionConfigWebhook := &ExtensionConfig{}
+	t.Run("for Extension", util.CustomDefaultValidateTest(ctx, extensionConfig, extensionConfigWebhook))
+
+	g.Expect(extensionConfigWebhook.Default(ctx, extensionConfig)).To(Succeed())
+	g.Expect(extensionConfig.Spec.NamespaceSelector).To(Equal(&metav1.LabelSelector{}))
+	g.Expect(extensionConfig.Spec.ClientConfig.Service.Port).To(Equal(pointer.Int32(8443)))
+}
+
+func TestExtensionConfigValidate(t *testing.T) {
+	extensionWithURL := &runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-extension",
+		},
+		Spec: runtimev1.ExtensionConfigSpec{
+			ClientConfig: runtimev1.ClientConfig{
+				URL: pointer.String("https://extension-address.com"),
+			},
+		},
+	}
+
+	extensionWithService := &runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-extension",
+		},
+		Spec: runtimev1.ExtensionConfigSpec{
+			ClientConfig: runtimev1.ClientConfig{
+				Service: &runtimev1.ServiceReference{
+					Path:      pointer.StringPtr("/path/to/handler"),
+					Port:      pointer.Int32(1),
+					Name:      "foo",
+					Namespace: "bar",
+				}},
+		},
+	}
+
+	extensionWithServiceAndURL := extensionWithURL.DeepCopy()
+	extensionWithServiceAndURL.Spec.ClientConfig.Service = extensionWithService.Spec.ClientConfig.Service
+
+	// Valid updated Extension
+	updatedExtension := extensionWithURL.DeepCopy()
+	updatedExtension.Spec.ClientConfig.URL = pointer.StringPtr("https://a-in-extension-address.com")
+
+	extensionWithoutURLOrService := extensionWithURL.DeepCopy()
+	extensionWithoutURLOrService.Spec.ClientConfig.URL = nil
+
+	extensionWithInvalidServicePath := extensionWithService.DeepCopy()
+	extensionWithInvalidServicePath.Spec.ClientConfig.Service.Path = pointer.StringPtr("https://example.com")
+
+	extensionWithNoServiceName := extensionWithService.DeepCopy()
+	extensionWithNoServiceName.Spec.ClientConfig.Service.Name = ""
+
+	extensionWithBadServiceName := extensionWithService.DeepCopy()
+	extensionWithBadServiceName.Spec.ClientConfig.Service.Name = "NOT_ALLOWED"
+
+	extensionWithNoServiceNamespace := extensionWithService.DeepCopy()
+	extensionWithNoServiceNamespace.Spec.ClientConfig.Service.Namespace = ""
+
+	badURLExtension := extensionWithURL.DeepCopy()
+	badURLExtension.Spec.ClientConfig.URL = pointer.String("https//extension-address.com")
+
+	extensionWithInvalidServicePort := extensionWithService.DeepCopy()
+	extensionWithInvalidServicePort.Spec.ClientConfig.Service.Port = pointer.Int32(90000)
+
+	tests := []struct {
+		name        string
+		in          *runtimev1.ExtensionConfig
+		old         *runtimev1.ExtensionConfig
+		featureGate bool
+		expectErr   bool
+	}{
+		{
+			name:        "creation should fail if feature flag is disabled",
+			in:          extensionWithURL,
+			featureGate: false,
+			expectErr:   true,
+		},
+		{
+			name:        "update should fail if feature flag is disabled",
+			old:         extensionWithURL,
+			in:          updatedExtension,
+			featureGate: false,
+			expectErr:   true,
+		},
+		{
+			name:        "creation should fail if no name is defined",
+			in:          extensionWithNoServiceName,
+			featureGate: true,
+			expectErr:   true,
+		},
+		{
+			name:        "creation should fail if name violates Kubernetes naming rules",
+			in:          extensionWithBadServiceName,
+			featureGate: true,
+			expectErr:   true,
+		},
+		{
+			name:        "creation should fail if no namespace is defined",
+			in:          extensionWithNoServiceNamespace,
+			featureGate: true,
+			expectErr:   true,
+		},
+		{
+			name:        "update should fail if URL is invalid",
+			old:         extensionWithURL,
+			in:          badURLExtension,
+			featureGate: true,
+			expectErr:   true,
+		},
+		{
+			name:        "update should fail if URL and Service are both nil",
+			old:         extensionWithURL,
+			in:          extensionWithoutURLOrService,
+			featureGate: true,
+			expectErr:   true,
+		},
+		{
+			name:        "update should fail if both URL and Service are defined",
+			old:         extensionWithService,
+			in:          extensionWithServiceAndURL,
+			featureGate: true,
+			expectErr:   true,
+		},
+		{
+			name:        "update should fail if Service Path is invalid",
+			old:         extensionWithService,
+			in:          extensionWithInvalidServicePath,
+			featureGate: true,
+			expectErr:   true,
+		},
+
+		{
+			name:        "update should fail if Service Port is invalid",
+			old:         extensionWithService,
+			in:          extensionWithInvalidServicePort,
+			featureGate: true,
+			expectErr:   true,
+		},
+		{
+			name:        "update should pass if Service Path is valid",
+			old:         extensionWithService,
+			in:          extensionWithService,
+			featureGate: true,
+			expectErr:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.featureGate)()
+			g := NewWithT(t)
+			webhook := &ExtensionConfig{}
+			// Default the objects so we're not handling defaulted cases.
+			g.Expect(webhook.Default(ctx, tt.in)).To(Succeed())
+			if tt.old != nil {
+				g.Expect(webhook.Default(ctx, tt.old)).To(Succeed())
+			}
+
+			err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return

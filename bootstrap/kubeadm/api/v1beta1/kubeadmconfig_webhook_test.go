@@ -416,6 +416,42 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			},
 			expectErr: true,
 		},
+		"file encoding gzip specified with Ignition": {
+			enableIgnitionFeature: true,
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Format: Ignition,
+					Files: []File{
+						{
+							Encoding: Gzip,
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
+		"file encoding gzip+base64 specified with Ignition": {
+			enableIgnitionFeature: true,
+			in: &KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "baz",
+					Namespace: "default",
+				},
+				Spec: KubeadmConfigSpec{
+					Format: Ignition,
+					Files: []File{
+						{
+							Encoding: GzipBase64,
+						},
+					},
+				},
+			},
+			expectErr: true,
+		},
 	}
 
 	for name, tt := range cases {

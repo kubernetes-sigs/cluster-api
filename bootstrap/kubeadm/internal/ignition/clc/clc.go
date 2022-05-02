@@ -184,6 +184,15 @@ storage:
     {{- end }}
     {{- range .WriteFiles }}
     - path: {{ .Path }}
+      {{- $owner := ParseOwner .Owner }}
+      {{ if $owner.User -}}
+      user:
+        name: {{ $owner.User }}
+      {{- end }}
+      {{ if $owner.Group -}}
+      group:
+        name: {{ $owner.Group }}
+      {{- end }}
       # Owner
       {{ if ne .Permissions "" -}}
       mode: {{ .Permissions }}
@@ -259,6 +268,7 @@ func defaultTemplateFuncMap() template.FuncMap {
 		"Split":          strings.Split,
 		"Join":           strings.Join,
 		"MountpointName": mountpointName,
+		"ParseOwner":     parseOwner,
 	}
 }
 
@@ -270,6 +280,40 @@ func templateYAMLIndent(i int, input string) string {
 	split := strings.Split(input, "\n")
 	ident := "\n" + strings.Repeat(" ", i)
 	return strings.Join(split, ident)
+}
+
+type owner struct {
+	User  *string
+	Group *string
+}
+
+func parseOwner(ownerRaw string) owner {
+	if ownerRaw == "" {
+		return owner{}
+	}
+
+	ownerSlice := strings.Split(ownerRaw, ":")
+
+	parseEntity := func(entity string) *string {
+		if entity == "" {
+			return nil
+		}
+
+		entityTrimmed := strings.TrimSpace(entity)
+
+		return &entityTrimmed
+	}
+
+	if len(ownerSlice) == 1 {
+		return owner{
+			User: parseEntity(ownerSlice[0]),
+		}
+	}
+
+	return owner{
+		User:  parseEntity(ownerSlice[0]),
+		Group: parseEntity(ownerSlice[1]),
+	}
 }
 
 func renderCLC(input *cloudinit.BaseUserData, kubeadmConfig string) ([]byte, error) {

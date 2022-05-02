@@ -123,6 +123,14 @@ func TestRender(t *testing.T) {
 						"test_disk", "/var/lib/testdir", "foo",
 					},
 				},
+				WriteFiles: []bootstrapv1.File{
+					{
+						Path:        "/etc/testfile.yaml",
+						Encoding:    bootstrapv1.Base64,
+						Content:     "Zm9vCg==",
+						Permissions: "0600",
+					},
+				},
 			},
 			wantIgnition: types.Config{
 				Ignition: types.Ignition{
@@ -165,6 +173,18 @@ func TestRender(t *testing.T) {
 							FileEmbedded1: types.FileEmbedded1{
 								Contents: types.FileContents{
 									Source: "data:,foo%20ALL%3D(ALL)%20NOPASSWD%3AALL%0A",
+								},
+								Mode: pointer.IntPtr(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/testfile.yaml",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{
+									Source: "data:,foo%0A",
 								},
 								Mode: pointer.IntPtr(384),
 							},

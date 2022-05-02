@@ -185,19 +185,15 @@ storage:
     {{- range .WriteFiles }}
     - path: {{ .Path }}
       # Owner
-      #
-      # If Encoding == gzip+base64 || Encoding == gzip
-      # compression: true
-      #
-      # If Encoding == gzip+base64 || Encoding == "base64"
-      # Put "!!binary" notation before the content to let YAML decoder treat data as
-      # base64 data.
-      #
       {{ if ne .Permissions "" -}}
       mode: {{ .Permissions }}
       {{ end -}}
       contents:
+        {{ if eq .Encoding "base64" -}}
+        inline: !!binary |
+        {{- else -}}
         inline: |
+        {{- end }}
           {{ .Content | Indent 10 }}
     {{- end }}
     - path: /etc/kubeadm.sh

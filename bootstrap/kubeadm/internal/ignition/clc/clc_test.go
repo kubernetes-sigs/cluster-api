@@ -129,6 +129,7 @@ func TestRender(t *testing.T) {
 						Encoding:    bootstrapv1.Base64,
 						Content:     "Zm9vCg==",
 						Permissions: "0600",
+						Owner:       "nobody:nobody",
 					},
 				},
 			},
@@ -306,6 +307,89 @@ func TestRender(t *testing.T) {
 									Source: "data:,%23%20Use%20most%20defaults%20for%20sshd%20configuration.%0ASubsystem%20sftp%20internal-sftp%0AClientAliveInterval%20180%0AUseDNS%20no%0AUsePAM%20yes%0APrintLastLog%20no%20%23%20handled%20by%20PAM%0APrintMotd%20no%20%23%20handled%20by%20PAM%0A%0AMatch%20User%20foo%2Cbar%0A%20%20PasswordAuthentication%20yes%0A",
 								},
 								Mode: pointer.IntPtr(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/kubeadm.sh",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{
+									Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
+								},
+								Mode: pointer.IntPtr(448),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/kubeadm.yml",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{
+									Source: "data:,---%0Afoo%0A",
+								},
+								Mode: pointer.IntPtr(384),
+							},
+						},
+					},
+				},
+				Systemd: types.Systemd{
+					Units: []types.Unit{
+						{
+							Contents: "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
+							Enabled:  pointer.BoolPtr(true),
+							Name:     "kubeadm.service",
+						},
+					},
+				},
+			},
+		},
+		{
+			desc: "base64 encoded content",
+			input: &cloudinit.BaseUserData{
+				PreKubeadmCommands:  preKubeadmCommands,
+				PostKubeadmCommands: postKubeadmCommands,
+				KubeadmCommand:      "kubeadm join",
+				WriteFiles: []bootstrapv1.File{
+					{
+						Path:        "/etc/base64encodedcontent.yaml",
+						Encoding:    bootstrapv1.Base64,
+						Content:     "Zm9vCg==",
+						Permissions: "0600",
+					},
+					{
+						Path:        "/etc/plaincontent.yaml",
+						Content:     "foo",
+						Permissions: "0600",
+					},
+				},
+			},
+			wantIgnition: types.Config{
+				Ignition: types.Ignition{
+					Version: "2.3.0",
+				},
+				Storage: types.Storage{
+					Files: []types.File{
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/base64encodedcontent.yaml",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{Source: "data:,foo%0A"},
+								Mode:     pointer.IntPtr(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/plaincontent.yaml",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{Source: "data:,foo%0A"},
+								Mode:     pointer.IntPtr(384),
 							},
 						},
 						{

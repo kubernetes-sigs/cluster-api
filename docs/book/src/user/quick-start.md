@@ -715,7 +715,7 @@ For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
 ```bash
 clusterctl generate cluster capi-quickstart \
-  --kubernetes-version v1.23.3 \
+  --kubernetes-version v1.24.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -734,7 +734,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 ```bash
 clusterctl generate cluster capi-quickstart --flavor development \
-  --kubernetes-version v1.23.3 \
+  --kubernetes-version v1.24.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -744,7 +744,7 @@ To create a Cluster with ClusterClass:
 
 ```bash
 clusterctl generate cluster capi-quickstart --flavor development-topology \
-  --kubernetes-version v1.23.3 \
+  --kubernetes-version v1.24.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -804,7 +804,7 @@ You should see an output is similar to this:
 
 ```bash
 NAME                            INITIALIZED   API SERVER AVAILABLE   VERSION   REPLICAS   READY   UPDATED   UNAVAILABLE
-capi-quickstart-control-plane   true                                 v1.23.3   3                  3         3
+capi-quickstart-control-plane   true                                 v1.24.0   3                  3         3
 ```
 
 <aside class="note warning">

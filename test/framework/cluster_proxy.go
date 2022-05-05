@@ -309,7 +309,9 @@ func (p *clusterProxy) getKubeconfig(ctx context.Context, namespace string, name
 		Name:      fmt.Sprintf("%s-kubeconfig", name),
 		Namespace: namespace,
 	}
-	Expect(cl.Get(ctx, key, secret)).To(Succeed(), "Failed to get %s", key)
+	Eventually(func() error {
+		return cl.Get(ctx, key, secret)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
 	Expect(secret.Data).To(HaveKey("value"), "Invalid secret %s", key)
 
 	config, err := clientcmd.Load(secret.Data["value"])
@@ -326,7 +328,9 @@ func (p *clusterProxy) isDockerCluster(ctx context.Context, namespace string, na
 		Name:      name,
 		Namespace: namespace,
 	}
-	Expect(cl.Get(ctx, key, cluster)).To(Succeed(), "Failed to get %s", key)
+	Eventually(func() error {
+		return cl.Get(ctx, key, cluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get %s", key)
 
 	return cluster.Spec.InfrastructureRef.Kind == "DockerCluster"
 }

@@ -87,7 +87,9 @@ func GetClusterByName(ctx context.Context, input GetClusterByNameInput) *cluster
 		Namespace: input.Namespace,
 		Name:      input.Name,
 	}
-	Expect(input.Getter.Get(ctx, key, cluster)).To(Succeed(), "Failed to get Cluster object %s/%s", input.Namespace, input.Name)
+	Eventually(func() error {
+		return input.Getter.Get(ctx, key, cluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Cluster object %s/%s", input.Namespace, input.Name)
 	return cluster
 }
 
@@ -109,7 +111,9 @@ func PatchClusterLabel(ctx context.Context, input PatchClusterLabelInput) {
 	patchHelper, err := patch.NewHelper(input.Cluster, input.ClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred())
 	input.Cluster.SetLabels(input.Labels)
-	Expect(patchHelper.Patch(ctx, input.Cluster)).To(Succeed())
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, input.Cluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 }
 
 // WaitForClusterToProvisionInput is the input for WaitForClusterToProvision.

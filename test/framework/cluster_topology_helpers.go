@@ -50,7 +50,9 @@ func GetClusterClassByName(ctx context.Context, input GetClusterClassByNameInput
 		Namespace: input.Namespace,
 		Name:      input.Name,
 	}
-	Expect(input.Getter.Get(ctx, key, clusterClass)).To(Succeed(), "Failed to get ClusterClass object %s/%s", input.Namespace, input.Name)
+	Eventually(func() error {
+		return input.Getter.Get(ctx, key, clusterClass)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get ClusterClass object %s/%s", input.Namespace, input.Name)
 	return clusterClass
 }
 
@@ -96,7 +98,9 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 			input.Cluster.Spec.Topology.Variables[i].Value = apiextensionsv1.JSON{Raw: []byte(strconv.Quote(input.DNSImageTag))}
 		}
 	}
-	Expect(patchHelper.Patch(ctx, input.Cluster)).To(Succeed())
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, input.Cluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	log.Logf("Waiting for control-plane machines to have the upgraded Kubernetes version")
 	WaitForControlPlaneMachinesToBeUpgraded(ctx, WaitForControlPlaneMachinesToBeUpgradedInput{

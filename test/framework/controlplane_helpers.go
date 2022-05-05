@@ -47,7 +47,9 @@ type CreateKubeadmControlPlaneInput struct {
 // CreateKubeadmControlPlane creates the control plane object and necessary dependencies.
 func CreateKubeadmControlPlane(ctx context.Context, input CreateKubeadmControlPlaneInput, intervals ...interface{}) {
 	By("creating the machine template")
-	Expect(input.Creator.Create(ctx, input.MachineTemplate)).To(Succeed())
+	Eventually(func() error {
+		return input.Creator.Create(ctx, input.MachineTemplate)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	By("creating a KubeadmControlPlane")
 	Eventually(func() error {
@@ -332,7 +334,9 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local.ImageMeta.ImageTag = input.EtcdImageTag
 	input.ControlPlane.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageMeta.ImageTag = input.DNSImageTag
 
-	Expect(patchHelper.Patch(ctx, input.ControlPlane)).To(Succeed())
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, input.ControlPlane)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	log.Logf("Waiting for control-plane machines to have the upgraded kubernetes version")
 	WaitForControlPlaneMachinesToBeUpgraded(ctx, WaitForControlPlaneMachinesToBeUpgradedInput{
@@ -392,7 +396,9 @@ func ScaleAndWaitControlPlane(ctx context.Context, input ScaleAndWaitControlPlan
 	scaleBefore := pointer.Int32Deref(input.ControlPlane.Spec.Replicas, 0)
 	input.ControlPlane.Spec.Replicas = pointer.Int32Ptr(input.Replicas)
 	log.Logf("Scaling controlplane %s/%s from %v to %v replicas", input.ControlPlane.Namespace, input.ControlPlane.Name, scaleBefore, input.Replicas)
-	Expect(patchHelper.Patch(ctx, input.ControlPlane)).To(Succeed())
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, input.ControlPlane)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	log.Logf("Waiting for correct number of replicas to exist")
 	Eventually(func() (int, error) {

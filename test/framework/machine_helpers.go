@@ -204,11 +204,15 @@ func PatchNodeCondition(ctx context.Context, input PatchNodeConditionInput) {
 	log.Logf("Patching the node condition to the node")
 	Expect(input.Machine.Status.NodeRef).ToNot(BeNil())
 	node := &corev1.Node{}
-	Expect(input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: input.Machine.Status.NodeRef.Name, Namespace: input.Machine.Status.NodeRef.Namespace}, node)).To(Succeed())
+	Eventually(func() error {
+		return input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: input.Machine.Status.NodeRef.Name, Namespace: input.Machine.Status.NodeRef.Namespace}, node)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 	patchHelper, err := patch.NewHelper(node, input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient())
 	Expect(err).ToNot(HaveOccurred())
 	node.Status.Conditions = append(node.Status.Conditions, input.NodeCondition)
-	Expect(patchHelper.Patch(ctx, node)).To(Succeed())
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, node)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 }
 
 // MachineStatusCheck is a type that operates a status check on a Machine.

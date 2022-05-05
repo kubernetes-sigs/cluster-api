@@ -115,14 +115,13 @@ preferences: {}
 	}
 )
 
-func TestGetKubeConfigSecret(t *testing.T) {
+func TestFromSecret(t *testing.T) {
 	g := NewWithT(t)
 
 	type args struct {
-		ctx            context.Context //nolint:containedctx
-		c              client.Reader
-		cluster        client.ObjectKey
-		userKubeconfig bool
+		ctx     context.Context //nolint:containedctx
+		c       client.Reader
+		cluster client.ObjectKey
 	}
 	tests := []struct {
 		name    string
@@ -139,11 +138,36 @@ func TestGetKubeConfigSecret(t *testing.T) {
 					Name:      "test1",
 					Namespace: "test",
 				},
-				userKubeconfig: false,
 			},
 			want:    validSecret.Data[secret.KubeconfigDataName],
 			wantErr: false,
 		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := FromSecret(tt.args.ctx, tt.args.c, tt.args.cluster)
+			if !tt.wantErr {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
+func TestFromUserSecret(t *testing.T) {
+	g := NewWithT(t)
+
+	type args struct {
+		ctx     context.Context //nolint:containedctx
+		c       client.Reader
+		cluster client.ObjectKey
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr bool
+	}{
 		{
 			name: "get secret for user-kubeconfig",
 			args: args{
@@ -153,7 +177,6 @@ func TestGetKubeConfigSecret(t *testing.T) {
 					Name:      "test1",
 					Namespace: "test",
 				},
-				userKubeconfig: true,
 			},
 			want:    validUserSecret.Data[secret.KubeconfigDataName],
 			wantErr: false,
@@ -161,7 +184,7 @@ func TestGetKubeConfigSecret(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := FromSecret(tt.args.ctx, tt.args.c, tt.args.cluster, tt.args.userKubeconfig)
+			got, err := FromUserSecret(tt.args.ctx, tt.args.c, tt.args.cluster)
 			if !tt.wantErr {
 				g.Expect(err).NotTo(HaveOccurred())
 			}

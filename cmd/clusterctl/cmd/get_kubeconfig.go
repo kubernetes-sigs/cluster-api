@@ -41,13 +41,13 @@ var getKubeconfigCmd = &cobra.Command{
 		Gets the kubeconfig file for accessing a workload cluster`),
 
 	Example: Examples(`
-		# Get the workload cluster's kubeconfig. If provider generates user specific kubeconfig, then it is returned by default.
+		# Get the user kubeconfig. If it is not available, then the workload cluster kubeconfig is returned.
 		clusterctl get kubeconfig <name of workload cluster>
 
-		# Get the workload cluster's kubeconfig in a particular namespace.
+		# Get the kubeconfig in a particular namespace.
 		clusterctl get kubeconfig <name of workload cluster> --namespace foo
 
-		# Get the system's kubeconfig
+		# Get the workload cluster's kubeconfig
 		clusterctl get kubeconfig <name> --user=false`),
 
 	Args: cobra.ExactArgs(1),
@@ -64,7 +64,7 @@ func init() {
 	getKubeconfigCmd.Flags().StringVar(&gk.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 	getKubeconfigCmd.Flags().BoolVar(&gk.userKubeconfig, "user", true,
-		"Fo providers that generates a user specific kubeconfig, it returns the user specific kubeconfig if set to true, else returns system generated kubeconfig.")
+		"By default, the user kubeconfig is returned, but if it is not available or if the flag is set to false it allows to fetch the workload cluster kubeconfig.")
 
 	// completions
 	getKubeconfigCmd.ValidArgsFunction = resourceNameCompletionFunc(

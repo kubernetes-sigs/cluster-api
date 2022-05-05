@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"github.com/pkg/errors"
-	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	utilkubeconfig "sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -28,7 +27,7 @@ import (
 // WorkloadCluster has methods for fetching kubeconfig of workload cluster from management cluster.
 type WorkloadCluster interface {
 	// GetKubeconfig returns the kubeconfig of the workload cluster.
-	GetKubeconfig(workloadClusterName string, namespace string, userKubeconfig bool) (string, error)
+	GetKubeconfig(workloadClusterName string, namespace string) (string, error)
 }
 
 // workloadCluster implements WorkloadCluster.
@@ -43,7 +42,7 @@ func newWorkloadCluster(proxy Proxy) *workloadCluster {
 	}
 }
 
-func (p *workloadCluster) GetKubeconfig(workloadClusterName string, namespace string, userKubeconfig bool) (string, error) {
+func (p *workloadCluster) GetKubeconfig(workloadClusterName string, namespace string) (string, error) {
 	cs, err := p.proxy.NewClient()
 	if err != nil {
 		return "", err
@@ -53,20 +52,32 @@ func (p *workloadCluster) GetKubeconfig(workloadClusterName string, namespace st
 		Namespace: namespace,
 		Name:      workloadClusterName,
 	}
-	dataBytes, err := utilkubeconfig.FromSecret(ctx, cs, obj, userKubeconfig)
+	dataBytes, err := utilkubeconfig.FromSecret(ctx, cs, obj)
 	if err != nil {
 		errSecretName := utilsecret.Name(workloadClusterName, utilsecret.Kubeconfig)
-		if userKubeconfig {
-			errUserSecretName := utilsecret.Name(workloadClusterName, utilsecret.UserKubeconfig)
-			// fallback to Kubeconfig if UserKubeconfig is not found
-			klog.Warningf("unable to find secret %q; finding %q instead", errUserSecretName, errSecretName)
-			dataBytes, err = utilkubeconfig.FromSecret(ctx, cs, obj, false)
-			if err != nil {
-				return "", errors.Wrapf(err, "%q not found in namespace %q", errUserSecretName, namespace)
-			}
-			return string(dataBytes), nil
-		}
 		return "", errors.Wrapf(err, "%q not found in namespace %q", errSecretName, namespace)
 	}
+	return string(dataBytes), nil
+}
+
+// GetUserKubeconfig returns the kubeconfig of the user as provided by the provider.
+// Note: This has not been converted to a method yet to prevent API change.
+func GetUserKubeconfig(proxy Proxy, workloadClusterName string, namespace string) (string, error) {
+	cs, err := proxy.NewClient()
+	if err != nil {
+		return "", err
+	}
+
+	obj := client.ObjectKey{
+		Namespace: namespace,
+		Name:      workloadClusterName,
+	}
+	dataBytes, err := utilkubeconfig.FromUserSecret(ctx, cs, obj)
+
+	if err != nil {
+		errUserSecretName := utilsecret.Name(workloadClusterName, utilsecret.UserKubeconfig)
+		return "", errors.Wrapf(err, "%q not found in namespace %q", errUserSecretName, namespace)
+	}
+
 	return string(dataBytes), nil
 }

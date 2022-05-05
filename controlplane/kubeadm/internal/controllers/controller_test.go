@@ -918,7 +918,7 @@ kubernetesVersion: metav1.16.1`,
 	g.Expect(s.Data).NotTo(BeEmpty())
 	g.Expect(s.Labels).To(Equal(expectedLabels))
 
-	k, err := kubeconfig.FromSecret(ctx, fakeClient, util.ObjectKey(cluster), false)
+	k, err := kubeconfig.FromSecret(ctx, fakeClient, util.ObjectKey(cluster))
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(k).NotTo(BeEmpty())
 

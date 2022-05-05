@@ -61,6 +61,48 @@ users:
 				secret.KubeconfigDataName: []byte(validKubeConfig),
 			},
 		}
+	)
+
+	tests := []struct {
+		name           string
+		expectErr      bool
+		proxy          Proxy
+		userKubeConfig bool
+		want           string
+	}{
+		{
+			name:      "return secret data",
+			expectErr: false,
+			proxy:     test.NewFakeProxy().WithObjs(validSecret),
+			want:      string(validSecret.Data[secret.KubeconfigDataName]),
+		},
+		{
+			name:      "return error if cannot find secret",
+			expectErr: true,
+			proxy:     test.NewFakeProxy(),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			wc := newWorkloadCluster(tt.proxy)
+			data, err := wc.GetKubeconfig("test1", "test")
+
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(data).To(Equal(tt.want))
+		})
+	}
+}
+
+func Test_WorkloadCluster_GetUserKubeconfig(t *testing.T) {
+	var (
 		validUserKubeconfig = `
 clusters:
 - cluster:
@@ -108,12 +150,6 @@ preferences: {}
 		want           string
 	}{
 		{
-			name:      "return secret data",
-			expectErr: false,
-			proxy:     test.NewFakeProxy().WithObjs(validSecret),
-			want:      string(validSecret.Data[secret.KubeconfigDataName]),
-		},
-		{
 			name:      "return error if cannot find secret",
 			expectErr: true,
 			proxy:     test.NewFakeProxy(),
@@ -125,13 +161,6 @@ preferences: {}
 			userKubeConfig: true,
 			want:           string(validUserSecret.Data[secret.KubeconfigDataName]),
 		},
-		{
-			name:           "return system secret data when user data is not found",
-			expectErr:      false,
-			proxy:          test.NewFakeProxy().WithObjs(validSecret),
-			userKubeConfig: true,
-			want:           string(validSecret.Data[secret.KubeconfigDataName]),
-		},
 	}
 
 	for _, tt := range tests {
@@ -139,7 +168,7 @@ preferences: {}
 			g := NewWithT(t)
 
 			wc := newWorkloadCluster(tt.proxy)
-			data, err := wc.GetKubeconfig("test1", "test", tt.userKubeConfig)
+			data, err := GetUserKubeconfig(wc.proxy, "test1", "test")
 
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())

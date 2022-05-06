@@ -32,7 +32,9 @@ type GetControllerDeploymentsInput struct {
 // GetControllerDeployments returns all the deployment for the cluster API controllers existing in a management cluster.
 func GetControllerDeployments(ctx context.Context, input GetControllerDeploymentsInput) []*appsv1.Deployment {
 	deploymentList := &appsv1.DeploymentList{}
-	Expect(input.Lister.List(ctx, deploymentList, capiProviderOptions()...)).To(Succeed(), "Failed to list deployments for the cluster API controllers")
+	Eventually(func() error {
+		return input.Lister.List(ctx, deploymentList, capiProviderOptions()...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list deployments for the cluster API controllers")
 
 	deployments := make([]*appsv1.Deployment, 0, len(deploymentList.Items))
 	for i := range deploymentList.Items {

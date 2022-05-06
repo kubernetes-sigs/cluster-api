@@ -37,6 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -215,7 +216,9 @@ func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
 	Expect(err).NotTo(HaveOccurred(), "Failed to Pods selector for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
 
 	pods := &corev1.PodList{}
-	Expect(input.GetLister.List(ctx, pods, client.InNamespace(input.Deployment.Namespace), client.MatchingLabels(selector))).To(Succeed(), "Failed to list Pods for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	Eventually(func() error {
+		return input.GetLister.List(ctx, pods, client.InNamespace(input.Deployment.Namespace), client.MatchingLabels(selector))
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list Pods for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
 
 	go func() {
 		defer GinkgoRecover()
@@ -363,8 +366,12 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 		},
 	}
 	if input.ControlPlane != nil {
-		serverVersion, err := workloadClient.ServerVersion()
-		Expect(err).ToNot(HaveOccurred())
+		var serverVersion *version.Info
+		Eventually(func() error {
+			var err error
+			serverVersion, err = workloadClient.ServerVersion()
+			return err
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 		// Use the control-plane label for Kubernetes version >= v1.20.0.
 		if utilversion.MustParseGeneric(serverVersion.String()).AtLeast(utilversion.MustParseGeneric("v1.20.0")) {
@@ -447,7 +454,11 @@ type AddPodDisruptionBudgetInput struct {
 }
 
 func AddPodDisruptionBudget(ctx context.Context, input AddPodDisruptionBudgetInput) {
-	budget, err := input.ClientSet.PolicyV1beta1().PodDisruptionBudgets(input.Namespace).Create(ctx, input.Budget, metav1.CreateOptions{})
-	Expect(budget).NotTo(BeNil())
-	Expect(err).To(BeNil(), "podDisruptionBudget needs to be successfully deployed")
+	Eventually(func() error {
+		budget, err := input.ClientSet.PolicyV1beta1().PodDisruptionBudgets(input.Namespace).Create(ctx, input.Budget, metav1.CreateOptions{})
+		if budget != nil && err == nil {
+			return nil
+		}
+		return fmt.Errorf("podDisruptionBudget needs to be successfully deployed: %v", err)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "podDisruptionBudget needs to be successfully deployed")
 }

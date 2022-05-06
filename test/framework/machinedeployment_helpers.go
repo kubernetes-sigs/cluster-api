@@ -72,7 +72,9 @@ type GetMachineDeploymentsByClusterInput struct {
 // it is necessary to ensure this is already happened before calling it.
 func GetMachineDeploymentsByCluster(ctx context.Context, input GetMachineDeploymentsByClusterInput) []*clusterv1.MachineDeployment {
 	deploymentList := &clusterv1.MachineDeploymentList{}
-	Expect(input.Lister.List(ctx, deploymentList, byClusterOptions(input.ClusterName, input.Namespace)...)).To(Succeed(), "Failed to list MachineDeployments object for Cluster %s/%s", input.Namespace, input.ClusterName)
+	Eventually(func() error {
+		return input.Lister.List(ctx, deploymentList, byClusterOptions(input.ClusterName, input.Namespace)...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineDeployments object for Cluster %s/%s", input.Namespace, input.ClusterName)
 
 	deployments := make([]*clusterv1.MachineDeployment, len(deploymentList.Items))
 	for i := range deploymentList.Items {
@@ -148,8 +150,9 @@ func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMach
 	Expect(err).NotTo(HaveOccurred())
 
 	ms := &clusterv1.MachineSetList{}
-	err = input.Lister.List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap))
-	Expect(err).NotTo(HaveOccurred())
+	Eventually(func() error {
+		return input.Lister.List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap))
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	for _, machineSet := range ms.Items {
 		machineSetFD := pointer.StringDeref(machineSet.Spec.Template.Spec.FailureDomain, "<None>")
@@ -159,8 +162,9 @@ func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMach
 		Expect(err).NotTo(HaveOccurred())
 
 		machines := &clusterv1.MachineList{}
-		err = input.Lister.List(ctx, machines, client.InNamespace(machineSet.Namespace), client.MatchingLabels(selectorMap))
-		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() error {
+			return input.Lister.List(ctx, machines, client.InNamespace(machineSet.Namespace), client.MatchingLabels(selectorMap))
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 		for _, machine := range machines.Items {
 			machineFD := pointer.StringDeref(machine.Spec.FailureDomain, "<None>")
@@ -261,9 +265,9 @@ func WaitForMachineDeploymentRollingUpgradeToStart(ctx context.Context, input Wa
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentRollingUpgradeToStarts")
 
 	log.Logf("Waiting for MachineDeployment rolling upgrade to start")
-	Eventually(func() bool {
+	Eventually(func(g Gomega) bool {
 		md := &clusterv1.MachineDeployment{}
-		Expect(input.Getter.Get(ctx, client.ObjectKey{Namespace: input.MachineDeployment.Namespace, Name: input.MachineDeployment.Name}, md)).To(Succeed())
+		g.Expect(input.Getter.Get(ctx, client.ObjectKey{Namespace: input.MachineDeployment.Namespace, Name: input.MachineDeployment.Name}, md)).To(Succeed())
 		return md.Status.Replicas != md.Status.AvailableReplicas
 	}, intervals...).Should(BeTrue())
 }
@@ -281,9 +285,9 @@ func WaitForMachineDeploymentRollingUpgradeToComplete(ctx context.Context, input
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentRollingUpgradeToComplete")
 
 	log.Logf("Waiting for MachineDeployment rolling upgrade to complete")
-	Eventually(func() bool {
+	Eventually(func(g Gomega) bool {
 		md := &clusterv1.MachineDeployment{}
-		Expect(input.Getter.Get(ctx, client.ObjectKey{Namespace: input.MachineDeployment.Namespace, Name: input.MachineDeployment.Name}, md)).To(Succeed())
+		g.Expect(input.Getter.Get(ctx, client.ObjectKey{Namespace: input.MachineDeployment.Namespace, Name: input.MachineDeployment.Name}, md)).To(Succeed())
 		return md.Status.Replicas == md.Status.AvailableReplicas
 	}, intervals...).Should(BeTrue())
 }

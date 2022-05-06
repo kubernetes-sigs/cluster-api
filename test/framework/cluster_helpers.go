@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -40,7 +41,9 @@ type CreateClusterInput struct {
 // CreateCluster will create the Cluster and InfraCluster objects.
 func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...interface{}) {
 	By("creating an InfrastructureCluster resource")
-	Expect(input.Creator.Create(ctx, input.InfraCluster)).To(Succeed())
+	Eventually(func() error {
+		return input.Creator.Create(ctx, input.InfraCluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	// This call happens in an eventually because of a race condition with the
 	// webhook server. If the latter isn't fully online then this call will
@@ -64,7 +67,9 @@ type GetAllClustersByNamespaceInput struct {
 // GetAllClustersByNamespace returns the list of Cluster object in a namespace.
 func GetAllClustersByNamespace(ctx context.Context, input GetAllClustersByNamespaceInput) []*clusterv1.Cluster {
 	clusterList := &clusterv1.ClusterList{}
-	Expect(input.Lister.List(ctx, clusterList, client.InNamespace(input.Namespace))).To(Succeed(), "Failed to list clusters in namespace %s", input.Namespace)
+	Eventually(func() error {
+		return input.Lister.List(ctx, clusterList, client.InNamespace(input.Namespace))
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list clusters in namespace %s", input.Namespace)
 
 	clusters := make([]*clusterv1.Cluster, len(clusterList.Items))
 	for i := range clusterList.Items {
@@ -184,12 +189,15 @@ func DiscoveryAndWaitForCluster(ctx context.Context, input DiscoveryAndWaitForCl
 	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling DiscoveryAndWaitForCluster")
 	Expect(input.Name).ToNot(BeNil(), "Invalid argument. input.Name can't be empty when calling DiscoveryAndWaitForCluster")
 
-	cluster := GetClusterByName(ctx, GetClusterByNameInput{
-		Getter:    input.Getter,
-		Name:      input.Name,
-		Namespace: input.Namespace,
-	})
-	Expect(cluster).ToNot(BeNil(), "Failed to get the Cluster object")
+	var cluster *clusterv1.Cluster
+	Eventually(func() bool {
+		cluster = GetClusterByName(ctx, GetClusterByNameInput{
+			Getter:    input.Getter,
+			Name:      input.Name,
+			Namespace: input.Namespace,
+		})
+		return cluster != nil
+	}, retryableOperationTimeout, retryableOperationInterval).Should(BeTrue(), "Failed to get Cluster object %s/%s", input.Namespace, input.Name)
 
 	// NOTE: We intentionally return the provisioned Cluster because it also contains
 	// the reconciled ControlPlane ref and InfrastructureCluster ref when using a ClusterClass.
@@ -226,11 +234,12 @@ func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, 
 
 	//TODO: consider if to move in another func (what if there are more than one cluster?)
 	log.Logf("Check for all the Cluster API resources being deleted")
-	resources := GetCAPIResources(ctx, GetCAPIResourcesInput{
-		Lister:    input.Client,
-		Namespace: input.Cluster.Namespace,
-	})
-	Expect(resources).To(BeEmpty(), "There are still Cluster API resources in the %q namespace", input.Cluster.Namespace)
+	Eventually(func() []*unstructured.Unstructured {
+		return GetCAPIResources(ctx, GetCAPIResourcesInput{
+			Lister:    input.Client,
+			Namespace: input.Cluster.Namespace,
+		})
+	}, retryableOperationTimeout, retryableOperationInterval).Should(BeEmpty(), "There are still Cluster API resources in the %q namespace", input.Cluster.Namespace)
 }
 
 // DeleteAllClustersAndWaitInput is the input type for DeleteAllClustersAndWait.

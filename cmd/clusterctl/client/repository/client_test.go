@@ -44,20 +44,37 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 		provider config.Provider
 	}
 	tests := []struct {
-		name   string
-		fields fields
+		name     string
+		fields   fields
+		expected Repository
 	}{
 		{
 			name: "successfully creates repository client with local filesystem backend and scheme == \"\"",
 			fields: fields{
 				provider: config.NewProvider("foo", dst1, clusterctlv1.BootstrapProviderType),
 			},
+			expected: &localRepository{},
 		},
 		{
 			name: "successfully creates repository client with local filesystem backend and scheme == \"file\"",
 			fields: fields{
 				provider: config.NewProvider("bar", "file://"+dst2, clusterctlv1.BootstrapProviderType),
 			},
+			expected: &localRepository{},
+		},
+		{
+			name: "successfully creates repository client with GitHub backend",
+			fields: fields{
+				provider: config.NewProvider("bar", "https://github.com/o/r/releases/v0.4.1/file.yaml", clusterctlv1.BootstrapProviderType),
+			},
+			expected: &gitHubRepository{},
+		},
+		{
+			name: "successfully creates repository client with GitLab backend",
+			fields: fields{
+				provider: config.NewProvider("bar", "https://gitlab.example.org/api/v4/projects/group%2Fproject/packages/generic/my-package/v1.0/path", clusterctlv1.BootstrapProviderType),
+			},
+			expected: &gitLabRepository{},
 		},
 	}
 	for _, tt := range tests {
@@ -67,8 +84,7 @@ func Test_newRepositoryClient_LocalFileSystemRepository(t *testing.T) {
 			repoClient, err := newRepositoryClient(tt.fields.provider, configClient)
 			gs.Expect(err).NotTo(HaveOccurred())
 
-			var expected *localRepository
-			gs.Expect(repoClient.repository).To(BeAssignableToTypeOf(expected))
+			gs.Expect(repoClient.repository).To(BeAssignableToTypeOf(tt.expected))
 		})
 	}
 }

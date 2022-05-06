@@ -49,6 +49,56 @@ A GitHub release can be used as a provider repository if:
 See the [GitHub docs](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) for more information
 about how to create a release.
 
+#### Creating a provider repository on GitLab
+
+You can use a GitLab generic packages for provider artifacts.
+
+A provider url should be in the form
+`https://{host}/api/v4/projects/{projectSlug}/packages/generic/{packageName}/{defaultVersion}/{componentsPath}`, where:
+
+* `{host}` should start with `gitlab.` (`gitlab.com`, `gitlab.example.org`, ...)
+* `{projectSlug}` is either a project id (`42`) or escaped full path (`myorg%2Fmyrepo`)
+* `{defaultVersion}` is a valid semantic version number
+* The components YAML, the metadata YAML and eventually the workload cluster templates are included into the same package version
+
+See the [GitLab docs](https://docs.gitlab.com/ee/user/packages/generic_packages/) for more information
+about how to create a generic package.
+
+This can be used in conjunction with [GitLabracadabra](https://gitlab.com/gitlabracadabra/gitlabracadabra/)
+to avoid direct internet access from `clusterctl`, and use GitLab as artifacts repository. For example,
+for the core provider:
+
+- Use the following [action file](https://gitlab.com/gitlabracadabra/gitlabracadabra/#action-files):
+
+  ```yaml
+  external-packages/cluster-api:
+    packages_enabled: true
+    package_mirrors:
+    - github:
+        full_name: kubernetes-sigs/cluster-api
+        tags:
+        - v1.2.3
+        assets:
+        - clusterctl-linux-amd64
+        - core-components.yaml
+        - bootstrap-components.yaml
+        - control-plane-components.yaml
+        - metadata.yaml
+  ```
+
+- Use the following [`clusterctl` configuration](configuration.md):
+
+  ```yaml
+  providers:
+    # override a pre-defined provider on a self-host GitLab
+    - name: "cluster-api"
+      url: "https://gitlab.example.com/api/v4/projects/external-packages%2Fcluster-api/packages/generic/cluster-api/v1.2.3/core-components.yaml"
+      type: "CoreProvider"
+  ```
+
+Limitation: Provider artifacts hosted on GitLab don't support getting all versions.
+As a consequence, you need to set version explicitly for upgrades.
+
 #### Creating a local provider repository
 
 clusterctl supports reading from a repository defined on the local file system.
@@ -138,7 +188,7 @@ Each provider is expected to deploy controllers using a Deployment.
 While defining the Deployment Spec, the container that executes the controller binary MUST be called `manager`.
 
 The manager MUST support a `--namespace` flag for specifying the namespace where the controller
-will look for objects to reconcile; however, clusterctl will always install providers watching for all namespaces 
+will look for objects to reconcile; however, clusterctl will always install providers watching for all namespaces
 (`--namespace=""`); for more details see [support for multiple instances](../developer/architecture/controllers/support-multiple-instances.md)
 for more context.
 
@@ -211,7 +261,7 @@ providers.
 An infrastructure provider could publish a **cluster templates** file to be used by `clusterctl generate cluster`.
 This is single YAML with _all_ the objects required to create a new workload cluster.
 
-With ClusterClass enabled it is possible to have cluster templates with managed topologies. Cluster templates with managed 
+With ClusterClass enabled it is possible to have cluster templates with managed topologies. Cluster templates with managed
 topologies require only the cluster object in the template and a corresponding ClusterClass definition.
 
 The following rules apply:
@@ -269,8 +319,8 @@ The following rules apply:
 ClusterClass definitions MUST be stored in the same location as the component YAML and follow this naming convention:
 1. The ClusterClass definition should be named `clusterclass-{ClusterClass-name}.yaml`, e.g `clusterclass-prod.yaml`.
 
-`{ClusterClass-name}` is the name of the ClusterClass that is referenced from the Cluster.spec.topology.class field 
-in the Cluster template; Cluster template files using a ClusterClass are usually simpler because they are no longer 
+`{ClusterClass-name}` is the name of the ClusterClass that is referenced from the Cluster.spec.topology.class field
+in the Cluster template; Cluster template files using a ClusterClass are usually simpler because they are no longer
 required to have all the templates.
 
 Each provider should create user facing documentation with the list of available ClusterClass definitions.
@@ -283,18 +333,18 @@ The references in the ClusterClass definition should NOT specify a namespace.
 
 It is recommended that none of the objects in the ClusterClass YAML should specify a namespace.
 
-Even if technically possible, it is strongly recommended that none of the objects in the ClusterClass definitions are shared across multiple definitions; 
+Even if technically possible, it is strongly recommended that none of the objects in the ClusterClass definitions are shared across multiple definitions;
 this helps in preventing changing an object inadvertently impacting many ClusterClasses, and consequently, all the Clusters using those ClusterClasses.
 
 #### Variables
 
 Currently the ClusterClass definitions SHOULD NOT have any environment variables in them.
 
-ClusterClass definitions files should not use variable substitution, given that ClusterClass and managed topologies provide an alternative model for variable definition. 
+ClusterClass definitions files should not use variable substitution, given that ClusterClass and managed topologies provide an alternative model for variable definition.
 
 #### Note
 
-A ClusterClass definition is automatically included in the output of  `clusterctl generate cluster` if the cluster template uses a managed topology 
+A ClusterClass definition is automatically included in the output of  `clusterctl generate cluster` if the cluster template uses a managed topology
 and a ClusterClass with the same name does not already exists in the Cluster.
 
 ## OwnerReferences chain
@@ -353,7 +403,7 @@ functioning of `clusterctl` when using non-compliant component YAML or cluster t
 
 Provider authors should be aware that `clusterctl move` command implements a discovery mechanism that considers:
 
-* All the Kind defined in one of the CRDs installed by clusterctl using `clusterctl init` (identified via the `clusterctl.cluster.x-k8s.io label`); 
+* All the Kind defined in one of the CRDs installed by clusterctl using `clusterctl init` (identified via the `clusterctl.cluster.x-k8s.io label`);
   For each CRD, discovery collects:
   * All the objects from the namespace being moved only if the CRD scope is `Namespaced`.
   * All the objects if the CRD scope is `Cluster`.
@@ -365,22 +415,22 @@ that are compliant with one of the following rules:
   * The object is directly or indirectly linked to a `Cluster` object (linked through the `OwnerReference` chain).
   * The object is a secret containing a user provided certificate (linked to a `Cluster` object via a naming convention).
   * The object is directly or indirectly linked to a `ClusterResourceSet` object (through the `OwnerReference` chain).
-  * The object is directly or indirectly linked to another object with the `clusterctl.cluster.x-k8s.io/move-hierarchy` 
+  * The object is directly or indirectly linked to another object with the `clusterctl.cluster.x-k8s.io/move-hierarchy`
     label, e.g. the infrastructure Provider ClusterIdentity objects (linked through the `OwnerReference` chain).
   * The object hase the `clusterctl.cluster.x-k8s.io/move` label or the `clusterctl.cluster.x-k8s.io/move-hierarchy` label,
-    e.g. the CPI config secret. 
-    
-Note. `clusterctl.cluster.x-k8s.io/move` and `clusterctl.cluster.x-k8s.io/move-hierarchy` labels could be applied 
+    e.g. the CPI config secret.
+
+Note. `clusterctl.cluster.x-k8s.io/move` and `clusterctl.cluster.x-k8s.io/move-hierarchy` labels could be applied
 to single objects or at the CRD level (the label applies to all the objects).
-    
+
 Please note that during move:
   * Namespaced objects, if not existing in the target cluster, are created.
-  * Namespaced objects, if already existing in the target cluster, are updated.  
+  * Namespaced objects, if already existing in the target cluster, are updated.
   * Namespaced objects are removed from the source cluster.
   * Global objects, if not existing in the target cluster, are created.
   * Global objects, if already existing in the target cluster, are not updated.
   * Global objects are not removed from the source cluster.
-  * Namespaced objects which are part of an owner chain that starts with a global object (e.g. a secret containing 
+  * Namespaced objects which are part of an owner chain that starts with a global object (e.g. a secret containing
     credentials for an infrastructure Provider ClusterIdentity) are treated as Global objects.
 
 <aside class="note warning">

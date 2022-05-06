@@ -29,6 +29,14 @@ providers:
   - name: "cluster-api"
     url: "https://github.com/myorg/myforkofclusterapi/releases/latest/core-components.yaml"
     type: "CoreProvider"
+  # add a custom provider on a self-hosted GitLab (host should start with "gitlab.")
+  - name: "my-other-infra-provider"
+    url: "https://gitlab.example.com/api/v4/projects/myorg%2Fmyrepo/packages/generic/myrepo/v1.2.3/infrastructure-components.yaml"
+    type: "InfrastructureProvider"
+  # override a pre-defined provider on a self-hosted GitLab (host should start with "gitlab.")
+  - name: "kubeadm"
+    url: "https://gitlab.example.com/api/v4/projects/external-packages%2Fcluster-api/packages/generic/cluster-api/v1.1.3/bootstrap-components.yaml"
+    type: "BootstrapProvider"
 ```
 
 See [provider contract](provider-contract.md) for instructions about how to set up a provider repository.
@@ -168,7 +176,7 @@ overridesFolder: /Users/foobar/workspace/dev-releases
 Image override is an advanced feature and wrong configuration can easily lead to non-functional clusters.
 It's strongly recommended to test configurations on dev/test environments before using this functionality in production.
 
-This feature must always be used in conjunction with 
+This feature must always be used in conjunction with
 [version tag](commands/init.md#provider-version) when executing clusterctl commands.
 
 </aside>

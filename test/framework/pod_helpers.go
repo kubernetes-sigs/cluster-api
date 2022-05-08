@@ -44,7 +44,6 @@ func WaitForPodListCondition(ctx context.Context, input WaitForPodListConditionI
 		if err := input.Lister.List(ctx, podList, input.ListOptions); err != nil {
 			return false, err
 		}
-		Expect(len(podList.Items)).ToNot(BeZero())
 
 		// all pods in the list should satisfy the condition
 		err := input.Condition(podList)

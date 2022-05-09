@@ -820,10 +820,12 @@ func (m *MachinePoolBuilder) Build() *expv1.MachinePool {
 type MachineDeploymentBuilder struct {
 	namespace              string
 	name                   string
+	clusterName            string
 	bootstrapTemplate      *unstructured.Unstructured
 	infrastructureTemplate *unstructured.Unstructured
 	version                *string
 	replicas               *int32
+	defaulter              bool
 	generation             *int64
 	labels                 map[string]string
 	status                 *clusterv1.MachineDeploymentStatus
@@ -849,6 +851,12 @@ func (m *MachineDeploymentBuilder) WithInfrastructureTemplate(ref *unstructured.
 	return m
 }
 
+// WithClusterName adds the clusterName to the MachineDeploymentBuilder.
+func (m *MachineDeploymentBuilder) WithClusterName(name string) *MachineDeploymentBuilder {
+	m.clusterName = name
+	return m
+}
+
 // WithLabels adds the given labels to the MachineDeploymentBuilder.
 func (m *MachineDeploymentBuilder) WithLabels(labels map[string]string) *MachineDeploymentBuilder {
 	m.labels = labels
@@ -864,6 +872,12 @@ func (m *MachineDeploymentBuilder) WithVersion(version string) *MachineDeploymen
 // WithReplicas sets the number of replicas for the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentBuilder) WithReplicas(replicas int32) *MachineDeploymentBuilder {
 	m.replicas = &replicas
+	return m
+}
+
+// WithDefaulter runs the Default function on the MachineDeploymentClassBuilder object.
+func (m *MachineDeploymentBuilder) WithDefaulter(defaulter bool) *MachineDeploymentBuilder {
+	m.defaulter = defaulter
 	return m
 }
 
@@ -907,6 +921,19 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 	}
 	if m.status != nil {
 		obj.Status = *m.status
+	}
+	if m.clusterName != "" {
+		obj.Spec.Template.Spec.ClusterName = m.clusterName
+		obj.Spec.ClusterName = m.clusterName
+		obj.Spec.Selector.MatchLabels = map[string]string{
+			clusterv1.ClusterLabelName: m.clusterName,
+		}
+		obj.Spec.Template.Labels = map[string]string{
+			clusterv1.ClusterLabelName: m.clusterName,
+		}
+	}
+	if m.defaulter {
+		obj.Default()
 	}
 	return obj
 }
@@ -1110,6 +1137,7 @@ type MachineHealthCheckBuilder struct {
 	clusterName  string
 	conditions   []clusterv1.UnhealthyCondition
 	maxUnhealthy *intstr.IntOrString
+	defaulter    bool
 }
 
 // MachineHealthCheck returns a MachineHealthCheckBuilder with the given name and namespace.
@@ -1150,10 +1178,16 @@ func (m *MachineHealthCheckBuilder) WithMaxUnhealthy(maxUnhealthy *intstr.IntOrS
 	return m
 }
 
+// WithDefaulter runs the Default function on the MachineHealthCheck object.
+func (m *MachineHealthCheckBuilder) WithDefaulter(defaulter bool) *MachineHealthCheckBuilder {
+	m.defaulter = defaulter
+	return m
+}
+
 // Build returns a MachineHealthCheck with the supplied details.
 func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
 	// create a MachineHealthCheck with the spec given in the ClusterClass
-	return &clusterv1.MachineHealthCheck{
+	mhc := &clusterv1.MachineHealthCheck{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachineHealthCheck",
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -1170,4 +1204,11 @@ func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
 			MaxUnhealthy:        m.maxUnhealthy,
 		},
 	}
+	if m.clusterName != "" {
+		mhc.Labels = map[string]string{clusterv1.ClusterLabelName: m.clusterName}
+	}
+	if m.defaulter {
+		mhc.Default()
+	}
+	return mhc
 }

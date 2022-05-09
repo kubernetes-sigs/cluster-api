@@ -31,9 +31,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -48,17 +46,30 @@ var (
 	IgnoreTopologyManagedFieldAnnotation = IgnorePaths{
 		{"metadata", "annotations", clusterv1.ClusterTopologyManagedFieldsAnnotation},
 	}
+	IgnoreNameGenerated = IgnorePaths{
+		{"metadata", "name"},
+	}
 )
 
 func TestReconcileShim(t *testing.T) {
 	infrastructureCluster := builder.InfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 	controlPlane := builder.ControlPlane(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
-	cluster1 := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
-	cluster1Shim := clusterShim(cluster1)
+	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
+	// cluster requires a UID because reconcileClusterShim will create a cluster shim
+	// which has the cluster set as Owner in an OwnerReference.
+	// A valid OwnerReferences requires a uid.
+	cluster.SetUID("foo")
 
 	t.Run("Shim gets created when InfrastructureCluster and ControlPlane object have to be created", func(t *testing.T) {
 		g := NewWithT(t)
 
+		// Create namespace and modify input to have correct namespace set
+		namespace, err := env.CreateNamespace(ctx, "reconcile-cluster-shim")
+		g.Expect(err).ToNot(HaveOccurred())
+		cluster1 := cluster.DeepCopy()
+		cluster1.SetNamespace(namespace.GetName())
+		cluster1Shim := clusterShim(cluster1)
+
 		// Create a scope with a cluster and InfrastructureCluster yet to be created.
 		s := scope.New(cluster1)
 		s.Desired = &scope.ClusterState{
@@ -68,21 +79,16 @@ func TestReconcileShim(t *testing.T) {
 			},
 		}
 
-		// Set up an empty fake client.
-		fakeClient := fake.NewClientBuilder().
-			WithScheme(fakeScheme).
-			Build()
-
 		// Run reconcileClusterShim.
 		r := Reconciler{
-			Client: fakeClient,
+			Client: env,
 		}
-		err := r.reconcileClusterShim(ctx, s)
+		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Check cluster shim exists.
 		shim := cluster1Shim.DeepCopy()
-		err = r.Client.Get(ctx, client.ObjectKeyFromObject(shim), shim)
+		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(shim), shim)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Check shim is assigned as owner for InfrastructureCluster and ControlPlane objects.
@@ -90,10 +96,18 @@ func TestReconcileShim(t *testing.T) {
 		g.Expect(s.Desired.InfrastructureCluster.GetOwnerReferences()[0].Name).To(Equal(shim.Name))
 		g.Expect(s.Desired.ControlPlane.Object.GetOwnerReferences()).To(HaveLen(1))
 		g.Expect(s.Desired.ControlPlane.Object.GetOwnerReferences()[0].Name).To(Equal(shim.Name))
+		g.Expect(env.CleanupAndWait(ctx, cluster1Shim)).To(Succeed())
 	})
 	t.Run("Shim creation is re-entrant", func(t *testing.T) {
 		g := NewWithT(t)
 
+		// Create namespace and modify input to have correct namespace set
+		namespace, err := env.CreateNamespace(ctx, "reconcile-cluster-shim")
+		g.Expect(err).ToNot(HaveOccurred())
+		cluster1 := cluster.DeepCopy()
+		cluster1.SetNamespace(namespace.GetName())
+		cluster1Shim := clusterShim(cluster1)
+
 		// Create a scope with a cluster and InfrastructureCluster yet to be created.
 		s := scope.New(cluster1)
 		s.Desired = &scope.ClusterState{
@@ -103,22 +117,19 @@ func TestReconcileShim(t *testing.T) {
 			},
 		}
 
-		// Set up a fake client with an already existing shim.
-		fakeClient := fake.NewClientBuilder().
-			WithScheme(fakeScheme).
-			WithObjects(cluster1Shim.DeepCopy()).
-			Build()
+		// Pre-create a shim
+		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).ToNot(HaveOccurred())
 
 		// Run reconcileClusterShim.
 		r := Reconciler{
-			Client: fakeClient,
+			Client: env,
 		}
-		err := r.reconcileClusterShim(ctx, s)
+		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Check cluster shim exists.
 		shim := cluster1Shim.DeepCopy()
-		err = r.Client.Get(ctx, client.ObjectKeyFromObject(shim), shim)
+		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(shim), shim)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Check shim is assigned as owner for InfrastructureCluster and ControlPlane objects.
@@ -126,9 +137,18 @@ func TestReconcileShim(t *testing.T) {
 		g.Expect(s.Desired.InfrastructureCluster.GetOwnerReferences()[0].Name).To(Equal(shim.Name))
 		g.Expect(s.Desired.ControlPlane.Object.GetOwnerReferences()).To(HaveLen(1))
 		g.Expect(s.Desired.ControlPlane.Object.GetOwnerReferences()[0].Name).To(Equal(shim.Name))
+
+		g.Expect(env.CleanupAndWait(ctx, cluster1Shim)).To(Succeed())
 	})
 	t.Run("Shim is not deleted if InfrastructureCluster and ControlPlane object are waiting to be reconciled", func(t *testing.T) {
 		g := NewWithT(t)
+
+		// Create namespace and modify input to have correct namespace set
+		namespace, err := env.CreateNamespace(ctx, "reconcile-cluster-shim")
+		g.Expect(err).ToNot(HaveOccurred())
+		cluster1 := cluster.DeepCopy()
+		cluster1.SetNamespace(namespace.GetName())
+		cluster1Shim := clusterShim(cluster1)
 
 		// Create a scope with a cluster and InfrastructureCluster created but not yet reconciled.
 		s := scope.New(cluster1)
@@ -145,26 +165,32 @@ func TestReconcileShim(t *testing.T) {
 		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1Shim))
 		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 
-		// Set up a fake client with an already existing shim.
-		fakeClient := fake.NewClientBuilder().
-			WithScheme(fakeScheme).
-			WithObjects(cluster1Shim.DeepCopy()).
-			Build()
+		// Pre-create a shim
+		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).ToNot(HaveOccurred())
 
 		// Run reconcileClusterShim.
 		r := Reconciler{
-			Client: fakeClient,
+			Client: env,
 		}
-		err := r.reconcileClusterShim(ctx, s)
+		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Check cluster shim exists.
 		shim := cluster1Shim.DeepCopy()
-		err = r.Client.Get(ctx, client.ObjectKeyFromObject(shim), shim)
+		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(shim), shim)
 		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(env.CleanupAndWait(ctx, cluster1Shim)).To(Succeed())
 	})
 	t.Run("Shim gets deleted when InfrastructureCluster and ControlPlane object have been reconciled", func(t *testing.T) {
 		g := NewWithT(t)
+
+		// Create namespace and modify input to have correct namespace set
+		namespace, err := env.CreateNamespace(ctx, "reconcile-cluster-shim")
+		g.Expect(err).ToNot(HaveOccurred())
+		cluster1 := cluster.DeepCopy()
+		cluster1.SetNamespace(namespace.GetName())
+		cluster1Shim := clusterShim(cluster1)
 
 		// Create a scope with a cluster and InfrastructureCluster created and reconciled.
 		s := scope.New(cluster1)
@@ -184,26 +210,32 @@ func TestReconcileShim(t *testing.T) {
 		ownerRefs = append(ownerRefs, *ownerReferenceTo(cluster1))
 		s.Current.ControlPlane.Object.SetOwnerReferences(ownerRefs)
 
-		// Set up a fake client with an already existing shim.
-		fakeClient := fake.NewClientBuilder().
-			WithScheme(fakeScheme).
-			WithObjects(cluster1Shim.DeepCopy()).
-			Build()
+		// Pre-create a shim
+		g.Expect(env.CreateAndWait(ctx, cluster1Shim.DeepCopy())).ToNot(HaveOccurred())
 
 		// Run reconcileClusterShim.
 		r := Reconciler{
-			Client: fakeClient,
+			Client: env,
 		}
-		err := r.reconcileClusterShim(ctx, s)
+		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Check cluster shim exists.
 		shim := cluster1Shim.DeepCopy()
-		err = r.Client.Get(ctx, client.ObjectKeyFromObject(shim), shim)
+		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(shim), shim)
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+
+		g.Expect(env.CleanupAndWait(ctx, cluster1Shim)).To(Succeed())
 	})
 	t.Run("No op if InfrastructureCluster and ControlPlane object have been reconciled and shim is gone", func(t *testing.T) {
 		g := NewWithT(t)
+
+		// Create namespace and modify input to have correct namespace set
+		namespace, err := env.CreateNamespace(ctx, "reconcile-cluster-shim")
+		g.Expect(err).ToNot(HaveOccurred())
+		cluster1 := cluster.DeepCopy()
+		cluster1.SetNamespace(namespace.GetName())
+		cluster1Shim := clusterShim(cluster1)
 
 		// Create a scope with a cluster and InfrastructureCluster created and reconciled.
 		s := scope.New(cluster1)
@@ -224,8 +256,10 @@ func TestReconcileShim(t *testing.T) {
 		r := Reconciler{
 			Client: nil,
 		}
-		err := r.reconcileClusterShim(ctx, s)
+		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(env.CleanupAndWait(ctx, cluster1Shim)).To(Succeed())
 	})
 }
 
@@ -267,24 +301,32 @@ func TestReconcileCluster(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			fakeObjs := make([]client.Object, 0)
-			if tt.current != nil {
-				fakeObjs = append(fakeObjs, tt.current)
+			// Create namespace and modify input to have correct namespace set
+			namespace, err := env.CreateNamespace(ctx, "reconcile-cluster")
+			g.Expect(err).ToNot(HaveOccurred())
+			if tt.desired != nil {
+				tt.desired = prepareCluster(tt.desired, namespace.GetName())
 			}
-			fakeClient := fake.NewClientBuilder().
-				WithScheme(fakeScheme).
-				WithObjects(fakeObjs...).
-				Build()
+			if tt.want != nil {
+				tt.want = prepareCluster(tt.want, namespace.GetName())
+			}
+			if tt.current != nil {
+				tt.current = prepareCluster(tt.current, namespace.GetName())
+			}
+
+			if tt.current != nil {
+				g.Expect(env.CreateAndWait(ctx, tt.current)).To(Succeed())
+			}
 
 			s := scope.New(tt.current)
 
 			s.Desired = &scope.ClusterState{Cluster: tt.desired}
 
 			r := Reconciler{
-				Client:   fakeClient,
+				Client:   env,
 				recorder: env.GetEventRecorderFor("test"),
 			}
-			err := r.reconcileCluster(ctx, s)
+			err = r.reconcileCluster(ctx, s)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -292,11 +334,15 @@ func TestReconcileCluster(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			got := tt.want.DeepCopy()
-			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(tt.want), got)
+			err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.want), got)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got.Spec.InfrastructureRef).To(EqualObject(tt.want.Spec.InfrastructureRef))
 			g.Expect(got.Spec.ControlPlaneRef).To(EqualObject(tt.want.Spec.ControlPlaneRef))
+
+			if tt.current != nil {
+				g.Expect(env.CleanupAndWait(ctx, tt.current)).To(Succeed())
+			}
 		})
 	}
 }
@@ -371,14 +417,19 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			fakeObjs := make([]client.Object, 0)
+			// Create namespace and modify input to have correct namespace set
+			namespace, err := env.CreateNamespace(ctx, "reconcile-infrastructure-cluster")
+			g.Expect(err).ToNot(HaveOccurred())
 			if tt.current != nil {
-				fakeObjs = append(fakeObjs, tt.current)
+				tt.current.SetNamespace(namespace.GetName())
 			}
-			fakeClient := fake.NewClientBuilder().
-				WithScheme(fakeScheme).
-				WithObjects(fakeObjs...).
-				Build()
+			if tt.desired != nil {
+				tt.desired.SetNamespace(namespace.GetName())
+			}
+
+			if tt.current != nil {
+				g.Expect(env.CreateAndWait(ctx, tt.current)).To(Succeed())
+			}
 
 			s := scope.New(&clusterv1.Cluster{})
 			s.Current.InfrastructureCluster = tt.current
@@ -386,10 +437,10 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 			s.Desired = &scope.ClusterState{InfrastructureCluster: tt.desired}
 
 			r := Reconciler{
-				Client:   fakeClient,
+				Client:   env,
 				recorder: env.GetEventRecorderFor("test"),
 			}
-			err := r.reconcileInfrastructureCluster(ctx, s)
+			err = r.reconcileInfrastructureCluster(ctx, s)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -397,7 +448,7 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			got := tt.want.DeepCopy() // this is required otherwise Get will modify tt.want
-			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(tt.want), got)
+			err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.want), got)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Spec
@@ -410,6 +461,10 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 			g.Expect(ok).To(BeTrue())
 			for k, v := range wantSpec {
 				g.Expect(gotSpec).To(HaveKeyWithValue(k, v))
+			}
+
+			if tt.desired != nil {
+				g.Expect(env.CleanupAndWait(ctx, tt.desired)).To(Succeed())
 			}
 		})
 	}
@@ -517,8 +572,25 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeObjs := make([]client.Object, 0)
-			s := scope.New(builder.Cluster(metav1.NamespaceDefault, "cluster1").Build())
+			g := NewWithT(t)
+
+			// Create namespace and modify input to have correct namespace set
+			namespace, err := env.CreateNamespace(ctx, "reconcile-control-plane")
+			g.Expect(err).ToNot(HaveOccurred())
+			if tt.class != nil { // *scope.ControlPlaneBlueprint
+				tt.class = prepareControlPlaneBluePrint(tt.class, namespace.GetName())
+			}
+			if tt.current != nil { // *scope.ControlPlaneState
+				tt.current = prepareControlPlaneState(g, tt.current, namespace.GetName())
+			}
+			if tt.desired != nil { // *scope.ControlPlaneState
+				tt.desired = prepareControlPlaneState(g, tt.desired, namespace.GetName())
+			}
+			if tt.want != nil { // *scope.ControlPlaneState
+				tt.want = prepareControlPlaneState(g, tt.want, namespace.GetName())
+			}
+
+			s := scope.New(builder.Cluster(namespace.GetName(), "cluster1").Build())
 			s.Blueprint = &scope.ClusterBlueprint{
 				ClusterClass: &clusterv1.ClusterClass{},
 			}
@@ -532,19 +604,15 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			if tt.current != nil {
 				s.Current.ControlPlane = tt.current
 				if tt.current.Object != nil {
-					fakeObjs = append(fakeObjs, tt.current.Object)
+					g.Expect(env.CreateAndWait(ctx, tt.current.Object)).To(Succeed())
 				}
 				if tt.current.InfrastructureMachineTemplate != nil {
-					fakeObjs = append(fakeObjs, tt.current.InfrastructureMachineTemplate)
+					g.Expect(env.CreateAndWait(ctx, tt.current.InfrastructureMachineTemplate)).To(Succeed())
 				}
 			}
-			fakeClient := fake.NewClientBuilder().
-				WithScheme(fakeScheme).
-				WithObjects(fakeObjs...).
-				Build()
 
 			r := Reconciler{
-				Client:   fakeClient,
+				Client:   env,
 				recorder: env.GetEventRecorderFor("test"),
 			}
 
@@ -556,7 +624,7 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			}
 
 			// Run reconcileControlPlane with the states created in the initial section of the test.
-			err := r.reconcileControlPlane(ctx, s)
+			err = r.reconcileControlPlane(ctx, s)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -565,7 +633,7 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 
 			// Create ControlPlane object for fetching data into
 			gotControlPlaneObject := builder.ControlPlane("", "").Build()
-			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(tt.want.Object), gotControlPlaneObject)
+			err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.want.Object), gotControlPlaneObject)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Get the spec from the ControlPlaneObject we are expecting
@@ -605,9 +673,6 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 			InfrastructureMachineTemplate: infrastructureMachineTemplate,
 		},
 	}
-
-	// Create Cluster object for test cases.
-	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
 
 	// Infrastructure object with a different Kind.
 	incompatibleInfrastructureMachineTemplate := infrastructureMachineTemplate2.DeepCopy()
@@ -661,31 +726,44 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeObjs := make([]client.Object, 0)
+			g := NewWithT(t)
+
+			// Create namespace and modify input to have correct namespace set
+			namespace, err := env.CreateNamespace(ctx, "reconcile-control-plane")
+			g.Expect(err).ToNot(HaveOccurred())
+			if tt.current != nil { // *scope.ControlPlaneState
+				tt.current = prepareControlPlaneState(g, tt.current, namespace.GetName())
+			}
+			if tt.desired != nil { // *scope.ControlPlaneState
+				tt.desired = prepareControlPlaneState(g, tt.desired, namespace.GetName())
+			}
+			if tt.want != nil { // *scope.ControlPlaneState
+				tt.want = prepareControlPlaneState(g, tt.want, namespace.GetName())
+			}
+
+			// Create Cluster object for test cases.
+			cluster := builder.Cluster(namespace.GetName(), "cluster1").Build()
+
 			s := scope.New(cluster)
 			s.Blueprint = blueprint
 			if tt.current != nil {
 				s.Current.ControlPlane = tt.current
 				if tt.current.Object != nil {
-					fakeObjs = append(fakeObjs, tt.current.Object)
+					g.Expect(env.CreateAndWait(ctx, tt.current.Object)).To(Succeed())
 				}
 				if tt.current.InfrastructureMachineTemplate != nil {
-					fakeObjs = append(fakeObjs, tt.current.InfrastructureMachineTemplate)
+					g.Expect(env.CreateAndWait(ctx, tt.current.InfrastructureMachineTemplate)).To(Succeed())
 				}
 			}
-			fakeClient := fake.NewClientBuilder().
-				WithScheme(fakeScheme).
-				WithObjects(fakeObjs...).
-				Build()
 
 			r := Reconciler{
-				Client:   fakeClient,
+				Client:   env,
 				recorder: env.GetEventRecorderFor("test"),
 			}
 			s.Desired = &scope.ClusterState{ControlPlane: &scope.ControlPlaneState{Object: tt.desired.Object, InfrastructureMachineTemplate: tt.desired.InfrastructureMachineTemplate}}
 
 			// Run reconcileControlPlane with the states created in the initial section of the test.
-			err := r.reconcileControlPlane(ctx, s)
+			err = r.reconcileControlPlane(ctx, s)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -694,25 +772,25 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 			// Create ControlPlane object for fetching data into
 			gotControlPlaneObject := builder.ControlPlane("", "").Build()
-			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(tt.want.Object), gotControlPlaneObject)
+			err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.want.Object), gotControlPlaneObject)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Check to see if the controlPlaneObject has been updated with a new template.
 			// This check is just for the naming format uses by generated templates - here it's templateName-*
 			// This check is only performed when we had an initial template that has been changed
+			gotInfrastructureMachineRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(gotControlPlaneObject)
+			g.Expect(err).ToNot(HaveOccurred())
 			if tt.current.InfrastructureMachineTemplate != nil {
-				item, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(gotControlPlaneObject)
-				g.Expect(err).ToNot(HaveOccurred())
 				pattern := fmt.Sprintf("%s.*", controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name))
-				fmt.Println(pattern, item.Name)
-				ok, err := regexp.Match(pattern, []byte(item.Name))
+				ok, err := regexp.Match(pattern, []byte(gotInfrastructureMachineRef.Name))
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(ok).To(BeTrue())
 			}
 
 			// Create object to hold the queried InfrastructureMachineTemplate
+			gotInfrastructureMachineTemplateKey := client.ObjectKey{Namespace: gotInfrastructureMachineRef.Namespace, Name: gotInfrastructureMachineRef.Name}
 			gotInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate("", "").Build()
-			err = fakeClient.Get(ctx, client.ObjectKeyFromObject(tt.want.InfrastructureMachineTemplate), gotInfrastructureMachineTemplate)
+			err = env.GetAPIReader().Get(ctx, gotInfrastructureMachineTemplateKey, gotInfrastructureMachineTemplate)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Get the spec from the InfrastructureMachineTemplate we are expecting
@@ -739,7 +817,6 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 }
 
 func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
-	g := NewWithT(t)
 	// Create InfrastructureMachineTemplates for test cases
 	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()
 
@@ -787,8 +864,9 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 				Object:                        controlPlane1.DeepCopy(),
 				InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
 				MachineHealthCheck:            mhcBuilder.Build()},
-			want: mhcBuilder.
+			want: mhcBuilder.DeepCopy().
 				WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(controlPlane1)}).
+				WithDefaulter(true).
 				Build(),
 		},
 		{
@@ -818,7 +896,9 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 				MachineHealthCheck:            mhcBuilder.WithMaxUnhealthy(&maxUnhealthy).Build(),
 			},
 			// Want to get the updated version of the MachineHealthCheck after reconciliation.
-			want: mhcBuilder.WithMaxUnhealthy(&maxUnhealthy).Build(),
+			want: mhcBuilder.DeepCopy().WithMaxUnhealthy(&maxUnhealthy).
+				WithDefaulter(true).
+				Build(),
 		},
 		{
 			name:  "Should delete ControlPlane MachineHealthCheck when removed from desired state",
@@ -837,8 +917,25 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeObjs := make([]client.Object, 0)
-			s := scope.New(builder.Cluster(metav1.NamespaceDefault, "cluster1").Build())
+			g := NewWithT(t)
+
+			// Create namespace and modify input to have correct namespace set
+			namespace, err := env.CreateNamespace(ctx, "reconcile-control-plane")
+			g.Expect(err).ToNot(HaveOccurred())
+			if tt.class != nil {
+				tt.class = prepareControlPlaneBluePrint(tt.class, namespace.GetName())
+			}
+			if tt.current != nil {
+				tt.current = prepareControlPlaneState(g, tt.current, namespace.GetName())
+			}
+			if tt.desired != nil {
+				tt.desired = prepareControlPlaneState(g, tt.desired, namespace.GetName())
+			}
+			if tt.want != nil {
+				tt.want.SetNamespace(namespace.GetName())
+			}
+
+			s := scope.New(builder.Cluster(namespace.GetName(), "cluster1").Build())
 			s.Blueprint = &scope.ClusterBlueprint{
 				ClusterClass: &clusterv1.ClusterClass{},
 			}
@@ -852,22 +949,18 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			if tt.current != nil {
 				s.Current.ControlPlane = tt.current
 				if tt.current.Object != nil {
-					fakeObjs = append(fakeObjs, tt.current.Object)
+					g.Expect(env.CreateAndWait(ctx, tt.current.Object)).To(Succeed())
 				}
 				if tt.current.InfrastructureMachineTemplate != nil {
-					fakeObjs = append(fakeObjs, tt.current.InfrastructureMachineTemplate)
+					g.Expect(env.CreateAndWait(ctx, tt.current.InfrastructureMachineTemplate)).To(Succeed())
 				}
 				if tt.current.MachineHealthCheck != nil {
-					fakeObjs = append(fakeObjs, tt.current.MachineHealthCheck)
+					g.Expect(env.CreateAndWait(ctx, tt.current.MachineHealthCheck)).To(Succeed())
 				}
 			}
-			fakeClient := fake.NewClientBuilder().
-				WithScheme(fakeScheme).
-				WithObjects(fakeObjs...).
-				Build()
 
 			r := Reconciler{
-				Client:   fakeClient,
+				Client:   env,
 				recorder: env.GetEventRecorderFor("test"),
 			}
 
@@ -876,12 +969,15 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			}
 
 			// Run reconcileControlPlane with the states created in the initial section of the test.
-			err := r.reconcileControlPlane(ctx, s)
+			err = r.reconcileControlPlane(ctx, s)
 			g.Expect(err).ToNot(HaveOccurred())
+
+			gotCP := s.Desired.ControlPlane.Object.DeepCopy()
+			g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKey{Namespace: namespace.GetName(), Name: controlPlane1.GetName()}, gotCP)).To(Succeed())
 
 			// Create MachineHealthCheck object for fetching data into
 			gotMHC := &clusterv1.MachineHealthCheck{}
-			err = fakeClient.Get(ctx, client.ObjectKey{Namespace: controlPlane1.GetNamespace(), Name: controlPlane1.GetName()}, gotMHC)
+			err = env.GetAPIReader().Get(ctx, client.ObjectKey{Namespace: namespace.GetName(), Name: controlPlane1.GetName()}, gotMHC)
 
 			// Nil case: If we want to find nothing (i.e. delete or MHC not created) and the Get call returns a NotFound error from the API the test succeeds.
 			if tt.want == nil && apierrors.IsNotFound(err) {
@@ -890,7 +986,14 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(gotMHC).To(EqualObject(tt.want, IgnoreAutogeneratedMetadata))
+			if tt.want != nil {
+				for i, ref := range tt.want.OwnerReferences {
+					ref.UID = gotCP.GetUID()
+					tt.want.OwnerReferences[i] = ref
+				}
+			}
+
+			g.Expect(gotMHC).To(EqualObject(tt.want, IgnoreAutogeneratedMetadata, IgnorePaths{{"kind"}, {"apiVersion"}}))
 		})
 	}
 }
@@ -973,8 +1076,8 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	infrastructureMachineTemplate9m := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-9m").Build()
 	bootstrapTemplate9m := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-9m").Build()
 	md9 := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m, nil)
-	md9.Object.Spec.Template.ObjectMeta.Labels = map[string]string{clusterv1.ClusterLabelName: "cluster-name"}
-	md9.Object.Spec.Selector.MatchLabels = map[string]string{clusterv1.ClusterLabelName: "cluster-name"}
+	md9.Object.Spec.Template.ObjectMeta.Labels = map[string]string{clusterv1.ClusterLabelName: "cluster-1", "foo": "bar"}
+	md9.Object.Spec.Selector.MatchLabels = map[string]string{clusterv1.ClusterLabelName: "cluster-1", "foo": "bar"}
 	md9WithInstanceSpecificTemplateMetadataAndSelector := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m, nil)
 	md9WithInstanceSpecificTemplateMetadataAndSelector.Object.Spec.Template.ObjectMeta.Labels = map[string]string{"foo": "bar"}
 	md9WithInstanceSpecificTemplateMetadataAndSelector.Object.Spec.Selector.MatchLabels = map[string]string{"foo": "bar"}
@@ -1082,16 +1185,24 @@ func TestReconcileMachineDeployments(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			fakeObjs := make([]client.Object, 0)
-			for _, mdts := range tt.current {
-				fakeObjs = append(fakeObjs, mdts.Object)
-				fakeObjs = append(fakeObjs, mdts.InfrastructureMachineTemplate)
-				fakeObjs = append(fakeObjs, mdts.BootstrapTemplate)
+			// Create namespace and modify input to have correct namespace set
+			namespace, err := env.CreateNamespace(ctx, "reconcile-machine-deployments")
+			g.Expect(err).ToNot(HaveOccurred())
+			for i, s := range tt.current {
+				tt.current[i] = prepareMachineDeploymentState(s, namespace.GetName())
 			}
-			fakeClient := fake.NewClientBuilder().
-				WithScheme(fakeScheme).
-				WithObjects(fakeObjs...).
-				Build()
+			for i, s := range tt.desired {
+				tt.desired[i] = prepareMachineDeploymentState(s, namespace.GetName())
+			}
+			for i, s := range tt.want {
+				tt.want[i] = prepareMachineDeploymentState(s, namespace.GetName())
+			}
+
+			for _, s := range tt.current {
+				g.Expect(env.CreateAndWait(ctx, s.InfrastructureMachineTemplate)).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, s.BootstrapTemplate)).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, s.Object)).To(Succeed())
+			}
 
 			currentMachineDeploymentStates := toMachineDeploymentTopologyStateMap(tt.current)
 			s := scope.New(builder.Cluster(metav1.NamespaceDefault, "cluster-1").Build())
@@ -1100,10 +1211,10 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			s.Desired = &scope.ClusterState{MachineDeployments: toMachineDeploymentTopologyStateMap(tt.desired)}
 
 			r := Reconciler{
-				Client:   fakeClient,
+				Client:   env,
 				recorder: env.GetEventRecorderFor("test"),
 			}
-			err := r.reconcileMachineDeployments(ctx, s)
+			err = r.reconcileMachineDeployments(ctx, s)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1111,7 +1222,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var gotMachineDeploymentList clusterv1.MachineDeploymentList
-			g.Expect(fakeClient.List(ctx, &gotMachineDeploymentList)).To(Succeed())
+			g.Expect(env.GetAPIReader().List(ctx, &gotMachineDeploymentList, &client.ListOptions{Namespace: namespace.GetName()})).To(Succeed())
 			g.Expect(gotMachineDeploymentList.Items).To(HaveLen(len(tt.want)))
 
 			for _, wantMachineDeploymentState := range tt.want {
@@ -1121,6 +1232,12 @@ func TestReconcileMachineDeployments(t *testing.T) {
 					}
 					currentMachineDeploymentTopologyName := wantMachineDeploymentState.Object.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]
 					currentMachineDeploymentState := currentMachineDeploymentStates[currentMachineDeploymentTopologyName]
+
+					// Copy over the name of the newly created InfrastructureRef and Bootsrap.ConfigRef because they get a generated name
+					wantMachineDeploymentState.Object.Spec.Template.Spec.InfrastructureRef.Name = gotMachineDeployment.Spec.Template.Spec.InfrastructureRef.Name
+					if gotMachineDeployment.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+						wantMachineDeploymentState.Object.Spec.Template.Spec.Bootstrap.ConfigRef.Name = gotMachineDeployment.Spec.Template.Spec.Bootstrap.ConfigRef.Name
+					}
 
 					// Compare MachineDeployment.
 					// Note: We're intentionally only comparing Spec as otherwise we would have to account for
@@ -1133,14 +1250,14 @@ func TestReconcileMachineDeployments(t *testing.T) {
 					gotBootstrapTemplate.SetKind(gotBootstrapTemplateRef.Kind)
 					gotBootstrapTemplate.SetAPIVersion(gotBootstrapTemplateRef.APIVersion)
 
-					err = fakeClient.Get(ctx, client.ObjectKey{
+					err = env.GetAPIReader().Get(ctx, client.ObjectKey{
 						Namespace: gotBootstrapTemplateRef.Namespace,
 						Name:      gotBootstrapTemplateRef.Name,
 					}, &gotBootstrapTemplate)
 
 					g.Expect(err).ToNot(HaveOccurred())
 
-					g.Expect(&gotBootstrapTemplate).To(EqualObject(wantMachineDeploymentState.BootstrapTemplate, IgnoreAutogeneratedMetadata, IgnoreTopologyManagedFieldAnnotation))
+					g.Expect(&gotBootstrapTemplate).To(EqualObject(wantMachineDeploymentState.BootstrapTemplate, IgnoreAutogeneratedMetadata, IgnoreTopologyManagedFieldAnnotation, IgnoreNameGenerated))
 
 					// Check BootstrapTemplate rotation if there was a previous MachineDeployment/Template.
 					if currentMachineDeploymentState != nil && currentMachineDeploymentState.BootstrapTemplate != nil {
@@ -1157,14 +1274,14 @@ func TestReconcileMachineDeployments(t *testing.T) {
 					gotInfrastructureMachineTemplate.SetKind(gotInfrastructureMachineTemplateRef.Kind)
 					gotInfrastructureMachineTemplate.SetAPIVersion(gotInfrastructureMachineTemplateRef.APIVersion)
 
-					err = fakeClient.Get(ctx, client.ObjectKey{
+					err = env.GetAPIReader().Get(ctx, client.ObjectKey{
 						Namespace: gotInfrastructureMachineTemplateRef.Namespace,
 						Name:      gotInfrastructureMachineTemplateRef.Name,
 					}, &gotInfrastructureMachineTemplate)
 
 					g.Expect(err).ToNot(HaveOccurred())
 
-					g.Expect(&gotInfrastructureMachineTemplate).To(EqualObject(wantMachineDeploymentState.InfrastructureMachineTemplate, IgnoreAutogeneratedMetadata, IgnoreTopologyManagedFieldAnnotation))
+					g.Expect(&gotInfrastructureMachineTemplate).To(EqualObject(wantMachineDeploymentState.InfrastructureMachineTemplate, IgnoreAutogeneratedMetadata, IgnoreTopologyManagedFieldAnnotation, IgnoreNameGenerated))
 
 					// Check InfrastructureMachineTemplate rotation if there was a previous MachineDeployment/Template.
 					if currentMachineDeploymentState != nil && currentMachineDeploymentState.InfrastructureMachineTemplate != nil {
@@ -1657,11 +1774,13 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			fakeClient := fake.NewClientBuilder().WithScheme(fakeScheme).Build()
+			// Create namespace and modify input to have correct namespace set
+			namespace, err := env.CreateNamespace(ctx, "reconcile-ref-obj-seq")
+			g.Expect(err).ToNot(HaveOccurred())
+
 			r := Reconciler{
-				Client: fakeClient,
-				// NOTE: Intentionally using a fake recorder, so the test can also be run without testenv.
-				recorder: record.NewFakeRecorder(32),
+				Client:   env,
+				recorder: env.GetEventRecorderFor("test"),
 			}
 
 			s := scope.New(&clusterv1.Cluster{})
@@ -1676,16 +1795,16 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				if i > 0 {
 					currentControlPlane = &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"kind":       "KubeadmControlPlane",
+							"kind":       "GenericControlPlane",
 							"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
 						},
 					}
-					g.Expect(fakeClient.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: "my-cluster"}, currentControlPlane)).To(Succeed())
+					g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKey{Namespace: namespace.GetName(), Name: "my-cluster"}, currentControlPlane)).To(Succeed())
 				}
 
 				if step, ok := step.(externalStep); ok {
 					// This is a user step, so let's just update the object.
-					patchHelper, err := patch.NewHelper(currentControlPlane, fakeClient)
+					patchHelper, err := patch.NewHelper(currentControlPlane, env)
 					g.Expect(err).ToNot(HaveOccurred())
 
 					g.Expect(unstructured.SetNestedField(currentControlPlane.Object, step.object.spec, "spec")).To(Succeed())
@@ -1705,11 +1824,11 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 						ControlPlane: &scope.ControlPlaneState{
 							Object: &unstructured.Unstructured{
 								Object: map[string]interface{}{
-									"kind":       "KubeadmControlPlane",
+									"kind":       "GenericControlPlane",
 									"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
 									"metadata": map[string]interface{}{
 										"name":      "my-cluster",
-										"namespace": metav1.NamespaceDefault,
+										"namespace": namespace.GetName(),
 									},
 									"spec": step.desired.spec,
 								},
@@ -1739,11 +1858,11 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					// Build the object for comparison.
 					want := &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"kind":       "KubeadmControlPlane",
+							"kind":       "GenericControlPlane",
 							"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
 							"metadata": map[string]interface{}{
 								"name":      "my-cluster",
-								"namespace": metav1.NamespaceDefault,
+								"namespace": namespace.GetName(),
 							},
 							"spec": step.want.spec,
 						},
@@ -1751,12 +1870,17 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 
 					// Get the reconciled object.
 					got := want.DeepCopy() // this is required otherwise Get will modify want
-					g.Expect(fakeClient.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: "my-cluster"}, got)).To(Succeed())
+					g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKey{Namespace: namespace.GetName(), Name: "my-cluster"}, got)).To(Succeed())
 
 					// Compare want with got.
 					// Ignore .metadata.resourceVersion and .metadata.annotations as we don't care about them in this test.
 					unstructured.RemoveNestedField(got.Object, "metadata", "resourceVersion")
 					unstructured.RemoveNestedField(got.Object, "metadata", "annotations")
+					unstructured.RemoveNestedField(got.Object, "metadata", "creationTimestamp")
+					unstructured.RemoveNestedField(got.Object, "metadata", "generation")
+					unstructured.RemoveNestedField(got.Object, "metadata", "managedFields")
+					unstructured.RemoveNestedField(got.Object, "metadata", "uid")
+					unstructured.RemoveNestedField(got.Object, "metadata", "selfLink")
 					g.Expect(got).To(EqualObject(want), fmt.Sprintf("Step %q failed: %v", step.name, cmp.Diff(want, got)))
 					continue
 				}
@@ -1804,7 +1928,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 					mhcBuilder.DeepCopy().Build()),
 			},
 			want: []*clusterv1.MachineHealthCheck{
-				mhcBuilder.DeepCopy().Build()},
+				mhcBuilder.DeepCopy().WithDefaulter(true).Build()},
 		},
 		{
 			name: "Create a new MachineHealthCheck if the MachineDeployment is modified to include one",
@@ -1817,7 +1941,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 					mhcBuilder.DeepCopy().Build()),
 			},
 			want: []*clusterv1.MachineHealthCheck{
-				mhcBuilder.DeepCopy().Build()}},
+				mhcBuilder.DeepCopy().WithDefaulter(true).Build()}},
 		{
 			name: "Update MachineHealthCheck spec adding a field if the spec adds a field",
 			current: []*scope.MachineDeploymentState{
@@ -1830,6 +1954,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			want: []*clusterv1.MachineHealthCheck{
 				mhcBuilder.DeepCopy().
 					WithMaxUnhealthy(&maxUnhealthy).
+					WithDefaulter(true).
 					Build()},
 		},
 		{
@@ -1843,7 +1968,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 					mhcBuilder.DeepCopy().Build()),
 			},
 			want: []*clusterv1.MachineHealthCheck{
-				mhcBuilder.DeepCopy().Build(),
+				mhcBuilder.DeepCopy().WithDefaulter(true).Build(),
 			},
 		},
 		{
@@ -1869,37 +1994,49 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			fakeObjs := make([]client.Object, 0)
+			// Create namespace and modify input to have correct namespace set
+			namespace, err := env.CreateNamespace(ctx, "reconcile-md-mhc")
+			g.Expect(err).ToNot(HaveOccurred())
+			for i, s := range tt.current {
+				tt.current[i] = prepareMachineDeploymentState(s, namespace.GetName())
+			}
+			for i, s := range tt.desired {
+				tt.desired[i] = prepareMachineDeploymentState(s, namespace.GetName())
+			}
+			for i, mhc := range tt.want {
+				tt.want[i] = mhc.DeepCopy()
+				tt.want[i].SetNamespace(namespace.GetName())
+			}
+
 			for _, mdts := range tt.current {
-				fakeObjs = append(fakeObjs, mdts.Object.DeepCopy())
-				fakeObjs = append(fakeObjs, mdts.InfrastructureMachineTemplate.DeepCopy())
-				fakeObjs = append(fakeObjs, mdts.BootstrapTemplate.DeepCopy())
+				g.Expect(env.CreateAndWait(ctx, mdts.Object)).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, mdts.InfrastructureMachineTemplate)).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, mdts.BootstrapTemplate)).To(Succeed())
 				if mdts.MachineHealthCheck != nil {
-					fakeObjs = append(fakeObjs, mdts.MachineHealthCheck.DeepCopy())
+					for i, ref := range mdts.MachineHealthCheck.OwnerReferences {
+						ref.UID = mdts.Object.GetUID()
+						mdts.MachineHealthCheck.OwnerReferences[i] = ref
+					}
+					g.Expect(env.CreateAndWait(ctx, mdts.MachineHealthCheck)).To(Succeed())
 				}
 			}
 
-			fakeClient := fake.NewClientBuilder().
-				WithScheme(fakeScheme).
-				WithObjects(fakeObjs...).
-				Build()
-
 			currentMachineDeploymentStates := toMachineDeploymentTopologyStateMap(tt.current)
-			s := scope.New(builder.Cluster(metav1.NamespaceDefault, "cluster-1").Build())
+			s := scope.New(builder.Cluster(namespace.GetName(), "cluster-1").Build())
 			s.Current.MachineDeployments = currentMachineDeploymentStates
 
 			s.Desired = &scope.ClusterState{MachineDeployments: toMachineDeploymentTopologyStateMap(tt.desired)}
 
 			r := Reconciler{
-				Client:   fakeClient,
+				Client:   env,
 				recorder: env.GetEventRecorderFor("test"),
 			}
 
-			err := r.reconcileMachineDeployments(ctx, s)
+			err = r.reconcileMachineDeployments(ctx, s)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			var gotMachineHealthCheckList clusterv1.MachineHealthCheckList
-			g.Expect(fakeClient.List(ctx, &gotMachineHealthCheckList)).To(Succeed())
+			g.Expect(env.GetAPIReader().List(ctx, &gotMachineHealthCheckList, &client.ListOptions{Namespace: namespace.GetName()})).To(Succeed())
 			g.Expect(gotMachineHealthCheckList.Items).To(HaveLen(len(tt.want)))
 
 			g.Expect(len(tt.want)).To(Equal(len(gotMachineHealthCheckList.Items)))
@@ -1908,6 +2045,11 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 				for _, gotMHC := range gotMachineHealthCheckList.Items {
 					if wantMHC.Name == gotMHC.Name {
 						actual := gotMHC
+						// unset UID because it got generated
+						for i, ref := range actual.OwnerReferences {
+							ref.UID = ""
+							actual.OwnerReferences[i] = ref
+						}
 						g.Expect(wantMHC).To(EqualObject(&actual, IgnoreAutogeneratedMetadata))
 					}
 				}
@@ -1922,10 +2064,13 @@ func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTem
 			WithInfrastructureTemplate(infrastructureMachineTemplate).
 			WithBootstrapTemplate(bootstrapTemplate).
 			WithLabels(map[string]string{clusterv1.ClusterTopologyMachineDeploymentLabelName: name + "-topology"}).
+			WithClusterName("cluster-1").
+			WithReplicas(1).
+			WithDefaulter(true).
 			Build(),
-		InfrastructureMachineTemplate: infrastructureMachineTemplate,
-		BootstrapTemplate:             bootstrapTemplate,
-		MachineHealthCheck:            machineHealthCheck,
+		InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
+		BootstrapTemplate:             bootstrapTemplate.DeepCopy(),
+		MachineHealthCheck:            machineHealthCheck.DeepCopy(),
 	}
 }
 
@@ -1940,7 +2085,6 @@ func toMachineDeploymentTopologyStateMap(states []*scope.MachineDeploymentState)
 func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 	// create a controlPlane object with enough information to be used as an OwnerReference for the MachineHealthCheck.
 	cp := builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()
-	cp.SetUID("very-unique-identifier")
 	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "cp1").
 		WithSelector(*selectorForControlPlaneMHC()).
 		WithUnhealthyConditions([]clusterv1.UnhealthyCondition{
@@ -1962,7 +2106,7 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 			name:    "Create a MachineHealthCheck",
 			current: nil,
 			desired: mhcBuilder.DeepCopy().Build(),
-			want:    mhcBuilder.DeepCopy().Build(),
+			want:    mhcBuilder.DeepCopy().WithDefaulter(true).Build(),
 		},
 		{
 			name:    "Successfully create a valid Ownerreference on the MachineHealthCheck",
@@ -1975,6 +2119,7 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 			// Want a reconciled object with a full ownerReference including UID
 			want: mhcBuilder.DeepCopy().
 				WithOwnerReferences([]metav1.OwnerReference{{Name: cp.GetName(), Kind: cp.GetKind(), APIVersion: cp.GetAPIVersion(), UID: cp.GetUID()}}).
+				WithDefaulter(true).
 				Build(),
 			wantErr: false,
 		},
@@ -1996,14 +2141,14 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 					Status:  corev1.ConditionUnknown,
 					Timeout: metav1.Duration{Duration: 1000 * time.Minute},
 				},
-			}).Build(),
+			}).WithDefaulter(true).Build(),
 		},
 		{
 			name:    "Don't change a MachineHealthCheck with no difference between desired and current",
 			current: mhcBuilder.DeepCopy().Build(),
 			// update the unhealthy conditions in the MachineHealthCheck
 			desired: mhcBuilder.DeepCopy().Build(),
-			want:    mhcBuilder.DeepCopy().Build(),
+			want:    mhcBuilder.DeepCopy().WithDefaulter(true).Build(),
 		},
 		{
 			name:    "Delete a MachineHealthCheck",
@@ -2018,15 +2163,37 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			got := &clusterv1.MachineHealthCheck{}
+
+			// Create namespace
+			namespace, err := env.CreateNamespace(ctx, "reconcile-mhc")
+			// Create control plane
+			g.Expect(err).ToNot(HaveOccurred())
+			localCP := cp.DeepCopy()
+			localCP.SetNamespace(namespace.GetName())
+			g.Expect(env.CreateAndWait(ctx, localCP)).To(Succeed())
+			// Modify test input and re-use control plane uid if necessary
+			if tt.current != nil {
+				tt.current = tt.current.DeepCopy()
+				tt.current.SetNamespace(namespace.GetName())
+			}
+			if tt.desired != nil {
+				tt.desired = tt.desired.DeepCopy()
+				tt.desired.SetNamespace(namespace.GetName())
+			}
+			if tt.want != nil {
+				tt.want = tt.want.DeepCopy()
+				tt.want.SetNamespace(namespace.GetName())
+				if len(tt.want.OwnerReferences) == 1 {
+					tt.want.OwnerReferences[0].UID = localCP.GetUID()
+				}
+			}
+
 			r := Reconciler{
-				Client: fake.NewClientBuilder().
-					WithScheme(fakeScheme).
-					WithObjects([]client.Object{cp}...).
-					Build(),
+				Client:   env,
 				recorder: env.GetEventRecorderFor("test"),
 			}
 			if tt.current != nil {
-				g.Expect(r.Client.Create(ctx, tt.current)).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, tt.current)).To(Succeed())
 			}
 			if err := r.reconcileMachineHealthCheck(ctx, tt.current, tt.desired); err != nil {
 				if !tt.wantErr {
@@ -2034,18 +2201,18 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 				}
 			}
 
-			if err := r.Client.Get(ctx, client.ObjectKeyFromObject(mhcBuilder.Build()), got); err != nil {
+			key := mhcBuilder.Build()
+			key.SetNamespace(namespace.GetName())
+			if err := env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(key), got); err != nil {
 				if !tt.wantErr {
 					t.Errorf("reconcileMachineHealthCheck() error = %v, wantErr %v", err, tt.wantErr)
 				}
-
-				// Delete case: If we want to find nothing and the Get call returns a NotFound error from the API this is a deletion case and the test succeeds.
-				if tt.want == nil && apierrors.IsNotFound(err) {
-					return
+				if apierrors.IsNotFound(err) {
+					got = nil
 				}
 			}
 
-			g.Expect(got).To(EqualObject(tt.want, IgnoreAutogeneratedMetadata))
+			g.Expect(got).To(EqualObject(tt.want, IgnoreAutogeneratedMetadata, IgnorePaths{{"kind"}, {"apiVersion"}}))
 		})
 	}
 }
@@ -2096,4 +2263,107 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 		err := createErrorWithoutObjectName(originalError, nil)
 		g.Expect(err).To(Equal(wantError), cmp.Diff(err, wantError))
 	})
+}
+
+// prepareControlPlaneBluePrint deep-copies and returns the input scope and sets
+// the given namespace to all relevant objects.
+func prepareControlPlaneBluePrint(in *scope.ControlPlaneBlueprint, namespace string) *scope.ControlPlaneBlueprint {
+	s := &scope.ControlPlaneBlueprint{}
+	if in.InfrastructureMachineTemplate != nil {
+		s.InfrastructureMachineTemplate = in.InfrastructureMachineTemplate.DeepCopy()
+		if s.InfrastructureMachineTemplate.GetNamespace() == metav1.NamespaceDefault {
+			s.InfrastructureMachineTemplate.SetNamespace(namespace)
+		}
+	}
+	if in.MachineHealthCheck != nil {
+		s.MachineHealthCheck = in.MachineHealthCheck.DeepCopy()
+	}
+	if in.Template != nil {
+		s.Template = in.Template.DeepCopy()
+		if s.Template.GetNamespace() == metav1.NamespaceDefault {
+			s.Template.SetNamespace(namespace)
+		}
+	}
+	return s
+}
+
+// prepareControlPlaneState deep-copies and returns the input scope and sets
+// the given namespace to all relevant objects.
+func prepareControlPlaneState(g *WithT, in *scope.ControlPlaneState, namespace string) *scope.ControlPlaneState {
+	s := &scope.ControlPlaneState{}
+	if in.InfrastructureMachineTemplate != nil {
+		s.InfrastructureMachineTemplate = in.InfrastructureMachineTemplate.DeepCopy()
+		if s.InfrastructureMachineTemplate.GetNamespace() == metav1.NamespaceDefault {
+			s.InfrastructureMachineTemplate.SetNamespace(namespace)
+		}
+	}
+	if in.MachineHealthCheck != nil {
+		s.MachineHealthCheck = in.MachineHealthCheck.DeepCopy()
+		if s.MachineHealthCheck.GetNamespace() == metav1.NamespaceDefault {
+			s.MachineHealthCheck.SetNamespace(namespace)
+		}
+	}
+	if in.Object != nil {
+		s.Object = in.Object.DeepCopy()
+		if s.Object.GetNamespace() == metav1.NamespaceDefault {
+			s.Object.SetNamespace(namespace)
+		}
+		if current, ok, err := unstructured.NestedString(s.Object.Object, "spec", "machineTemplate", "infrastructureRef", "namespace"); ok && err == nil && current == metav1.NamespaceDefault {
+			g.Expect(unstructured.SetNestedField(s.Object.Object, namespace, "spec", "machineTemplate", "infrastructureRef", "namespace")).To(Succeed())
+		}
+	}
+	return s
+}
+
+// prepareMachineDeploymentState deep-copies and returns the input scope and sets
+// the given namespace to all relevant objects.
+func prepareMachineDeploymentState(in *scope.MachineDeploymentState, namespace string) *scope.MachineDeploymentState {
+	s := &scope.MachineDeploymentState{}
+	if in.BootstrapTemplate != nil {
+		s.BootstrapTemplate = in.BootstrapTemplate.DeepCopy()
+		if s.BootstrapTemplate.GetNamespace() == metav1.NamespaceDefault {
+			s.BootstrapTemplate.SetNamespace(namespace)
+		}
+	}
+	if in.InfrastructureMachineTemplate != nil {
+		s.InfrastructureMachineTemplate = in.InfrastructureMachineTemplate.DeepCopy()
+		if s.InfrastructureMachineTemplate.GetNamespace() == metav1.NamespaceDefault {
+			s.InfrastructureMachineTemplate.SetNamespace(namespace)
+		}
+	}
+	if in.MachineHealthCheck != nil {
+		s.MachineHealthCheck = in.MachineHealthCheck.DeepCopy()
+		if s.MachineHealthCheck.GetNamespace() == metav1.NamespaceDefault {
+			s.MachineHealthCheck.SetNamespace(namespace)
+		}
+	}
+	if in.Object != nil {
+		s.Object = in.Object.DeepCopy()
+		if s.Object.GetNamespace() == metav1.NamespaceDefault {
+			s.Object.SetNamespace(namespace)
+		}
+		if s.Object.Spec.Template.Spec.Bootstrap.ConfigRef != nil && s.Object.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace == metav1.NamespaceDefault {
+			s.Object.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace = namespace
+		}
+		if s.Object.Spec.Template.Spec.InfrastructureRef.Namespace == metav1.NamespaceDefault {
+			s.Object.Spec.Template.Spec.InfrastructureRef.Namespace = namespace
+		}
+	}
+	return s
+}
+
+// prepareCluster deep-copies and returns the input Cluster and sets
+// the given namespace to all relevant objects.
+func prepareCluster(in *clusterv1.Cluster, namespace string) *clusterv1.Cluster {
+	c := in.DeepCopy()
+	if c.Namespace == metav1.NamespaceDefault {
+		c.SetNamespace(namespace)
+	}
+	if c.Spec.InfrastructureRef != nil && c.Spec.InfrastructureRef.Namespace == metav1.NamespaceDefault {
+		c.Spec.InfrastructureRef.Namespace = namespace
+	}
+	if c.Spec.ControlPlaneRef != nil && c.Spec.ControlPlaneRef.Namespace == metav1.NamespaceDefault {
+		c.Spec.ControlPlaneRef.Namespace = namespace
+	}
+	return c
 }

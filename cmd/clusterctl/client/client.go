@@ -42,7 +42,7 @@ type Client interface {
 	// GetClusterTemplate returns a workload cluster template.
 	GetClusterTemplate(options GetClusterTemplateOptions) (Template, error)
 
-	// GetKubeconfig returns the user kubeconfig by default, but if it is unavailable or if explicitly asked for, then returns the workload cluster kubeconfig.
+	// GetKubeconfig returns the user kubeconfig by default, but if it is unavailable or if explicitly asked for, then returns the system kubeconfig.
 	GetKubeconfig(options GetKubeconfigOptions) (string, error)
 
 	// Delete deletes providers from a management cluster.

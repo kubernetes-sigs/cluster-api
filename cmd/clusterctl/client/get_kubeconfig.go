@@ -34,7 +34,7 @@ type GetKubeconfigOptions struct {
 	// WorkloadClusterName is the name of the workload cluster.
 	WorkloadClusterName string
 
-	// UserKubeconfig determines if user or system kubeconfig should be fetched
+	// UserKubeconfig determines if user or system kubeconfig should be fetched.
 	UserKubeconfig bool
 }
 
@@ -61,14 +61,14 @@ func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, 
 		options.Namespace = currentNamespace
 	}
 
-	// workload cluster kubeconfig is explicitly asked for
+	// system kubeconfig is explicitly asked for
 	if !options.UserKubeconfig {
 		return clusterClient.WorkloadCluster().GetKubeconfig(options.WorkloadClusterName, options.Namespace)
 	}
 	kubeconfig, err := cluster.GetUserKubeconfig(clusterClient.Proxy(), options.WorkloadClusterName, options.Namespace)
 	if err != nil {
 		// fallback on the workload cluster kubeconfig
-		klog.Warningf("failed to fetch the user kubeconfig; fetching the workload cluster kubeconfig instead")
+		klog.Warningf("failed to fetch the user kubeconfig; fetching the system kubeconfig instead")
 		return clusterClient.WorkloadCluster().GetKubeconfig(options.WorkloadClusterName, options.Namespace)
 	}
 	return kubeconfig, err

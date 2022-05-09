@@ -167,8 +167,7 @@ preferences: {}
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			wc := newWorkloadCluster(tt.proxy)
-			data, err := GetUserKubeconfig(wc.proxy, "test1", "test")
+			data, err := GetUserKubeconfig(tt.proxy, "test1", "test")
 
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())

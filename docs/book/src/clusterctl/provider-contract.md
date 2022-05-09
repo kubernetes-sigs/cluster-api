@@ -372,7 +372,7 @@ are set only for objects that are not directly referenced by Cluster API core ob
 ### Secret naming convention
 Provider authors should be aware of the Kubeconfig secret naming conventions. If your provider generates a user specific Kubeconfig secret, the secret should have `<cluster-name>-user-kubeconfig` naming convention.
 
-`clusterctl get kubeconfig` will return this user specific Kubeconfig by default, and fallback to the CAPI generated Kubeconfig that follows a preset naming convention `<cluster-name>-kubeconfig`.
+`clusterctl get kubeconfig` will return this user specific Kubeconfig by default, and fallback to the CAPI generated Kubeconfig that follows the `<cluster-name>-kubeconfig` naming convention.
 
 ### Components YAML transformations
 

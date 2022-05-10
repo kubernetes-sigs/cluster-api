@@ -29,6 +29,9 @@ write_files:{{ range . }}
     {{ if ne .Permissions "" -}}
     permissions: '{{.Permissions}}'
     {{ end -}}
+    {{ if .Append -}}
+    append: true
+    {{ end -}}
     content: |
 {{.Content | Indent 6}}
 {{- end -}}

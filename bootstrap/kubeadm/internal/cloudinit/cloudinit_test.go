@@ -45,6 +45,11 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
 					Path:    "/tmp/my-other-path",
 					Content: "hi",
 				},
+				{
+					Path:    "/tmp/existing-path",
+					Append:  true,
+					Content: "hi",
+				},
 			},
 			WriteFiles: nil,
 			Users:      nil,
@@ -71,6 +76,10 @@ func TestNewInitControlPlaneAdditionalFileEncodings(t *testing.T) {
     content: |
       aGk=`,
 		`-   path: /tmp/my-other-path
+    content: |
+      hi`,
+		`-   path: /tmp/existing-path
+    append: true
     content: |
       hi`,
 	}

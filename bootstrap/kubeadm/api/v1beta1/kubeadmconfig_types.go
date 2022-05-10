@@ -223,6 +223,10 @@ type File struct {
 	// +optional
 	Encoding Encoding `json:"encoding,omitempty"`
 
+	// Append specifies whether to append Content to existing file if Path exists.
+	// +optional
+	Append bool `json:"append,omitempty"`
+
 	// Content is the actual content of the file.
 	// +optional
 	Content string `json:"content,omitempty"`

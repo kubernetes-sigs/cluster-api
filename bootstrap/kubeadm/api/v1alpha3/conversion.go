@@ -38,6 +38,8 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 		return err
 	}
 
+	dst.Spec.Files = restored.Spec.Files
+
 	dst.Spec.Users = restored.Spec.Users
 	if restored.Spec.Users != nil {
 		for i := range restored.Spec.Users {
@@ -119,6 +121,8 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
 		return err
 	}
+
+	dst.Spec.Template.Spec.Files = restored.Spec.Template.Spec.Files
 
 	dst.Spec.Template.Spec.Users = restored.Spec.Template.Spec.Users
 	if restored.Spec.Template.Spec.Users != nil {
@@ -232,6 +236,11 @@ func Convert_v1beta1_JoinConfiguration_To_upstreamv1beta1_JoinConfiguration(in *
 func Convert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in *bootstrapv1.KubeadmConfigSpec, out *KubeadmConfigSpec, s apiconversion.Scope) error {
 	// KubeadmConfigSpec.Ignition does not exist in kubeadm v1alpha3 API.
 	return autoConvert_v1beta1_KubeadmConfigSpec_To_v1alpha3_KubeadmConfigSpec(in, out, s)
+}
+
+func Convert_v1beta1_File_To_v1alpha3_File(in *bootstrapv1.File, out *File, s apiconversion.Scope) error {
+	// File.Append does not exist in kubeadm v1alpha3 API.
+	return autoConvert_v1beta1_File_To_v1alpha3_File(in, out, s)
 }
 
 func Convert_v1beta1_User_To_v1alpha3_User(in *bootstrapv1.User, out *User, s apiconversion.Scope) error {

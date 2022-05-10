@@ -2414,6 +2414,10 @@ spec:
                   description: File defines the input for generating write_files in
                     cloud-init.
                   properties:
+                    append:
+                      description: Append specifies whether to append Content to existing
+                        file if Path exists.
+                      type: boolean
                     content:
                       description: Content is the actual content of the file.
                       type: string

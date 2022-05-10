@@ -215,3 +215,8 @@ images:
 To have more verbose logs you can use the `-v` flag when running the `clusterctl` and set the level of the logging verbose with a positive integer number, ie. `-v 3`.
 
 If you do not want to use the flag every time you issue a command you can set the environment variable `CLUSTERCTL_LOG_LEVEL` or set the variable in the `clusterctl` config file located by default at `$HOME/.cluster-api/clusterctl.yaml`.
+
+
+## Skip checking for updates
+
+`clusterctl` automatically checks for new versions every time it is used. If you do not want `clusterctl` to check for new updates you can set the environment variable `CLUSTERCTL_DISABLE_VERSIONCHECK` to `"true"` or set the variable in the `clusterctl` config file located by default at `$HOME/.cluster-api/clusterctl.yaml`.

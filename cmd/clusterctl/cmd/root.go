@@ -67,6 +67,11 @@ var RootCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		disable, err := configClient.Variables().Get("CLUSTERCTL_DISABLE_VERSIONCHECK")
+		if err == nil && disable == "true" {
+			// version check is disabled. Return early.
+			return nil
+		}
 		output, err := newVersionChecker(configClient.Variables()).Check()
 		if err != nil {
 			return errors.Wrap(err, "unable to verify clusterctl version")

@@ -111,6 +111,8 @@ linters-settings:
       # CAPI exp runtime
       - pkg: sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1
         alias: runtimev1
+      - pkg: sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1
+        alias: runtimehooksv1
       # CAPD
       - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3
         alias: infrav1alpha3
@@ -217,11 +219,11 @@ issues:
   - linters:
     - revive
     text: exported (method|function|type|const) (.+) should have comment or be unexported
-    path: .*(api|types)\/.*\/conversion.*\.go$
+    path: .*(api|types|test)\/.*\/conversion.*\.go$
   - linters:
     - revive
     text: "var-naming: don't use underscores in Go names;"
-    path: .*(api|types)\/.*\/conversion.*\.go$
+    path: .*(api|types|test)\/.*\/conversion.*\.go$
   - linters:
     - revive
     text: "receiver-naming: receiver name"
@@ -229,7 +231,7 @@ issues:
   - linters:
     - stylecheck
     text: "ST1003: should not use underscores in Go names;"
-    path: .*(api|types)\/.*\/conversion.*\.go$
+    path: .*(api|types|test)\/.*\/conversion.*\.go$
   - linters:
     - stylecheck
     text: "ST1016: methods on the same type should have the same receiver name"

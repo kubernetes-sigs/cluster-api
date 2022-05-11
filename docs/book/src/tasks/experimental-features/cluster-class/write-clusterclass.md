@@ -16,7 +16,9 @@ flexible enough to be used in as many Clusters as possible by supporting variant
     * [Complex variable types](#complex-variable-types)
     * [Using variable values in JSON patches](#using-variable-values-in-json-patches)
     * [Optional patches](#optional-patches)
+    * [Version-aware patches](#version-aware-patches)
 * [JSON patches tips &amp; tricks](#json-patches-tips--tricks)
+    
 
 ## Basic ClusterClass
 
@@ -550,6 +552,23 @@ spec:
             type: string
 ```
 
+Even if OpenAPI schema allows defining free form objects, e.g.
+
+```yaml
+variables:
+  - name: freeFormObject
+    schema:
+      openAPIV3Schema:
+        type: object
+```
+
+User should be aware that the lack of the validation of users provided data could lead to problems
+when those values are used in patch or when the generated templates are created (see e.g.
+ [6135](https://github.com/kubernetes-sigs/cluster-api/issues/6135)).
+
+As a consequence we recommend avoiding this practice while we are considering alternatives to make
+it explicit for the ClusterClass authors to opt-in in this feature, thus accepting the implied risks.
+
 ### Using variable values in JSON patches
 
 We already saw above that it's possible to use variable values in JSON patches. It's also 
@@ -676,6 +695,40 @@ can mean that patches are only applied to some MachineDeployments. `enabledIf` i
 individually.
 
 </aside>
+
+### Version-aware patches
+
+In some cases the ClusterClass authors want a patch to be computed according to the Kubernetes version in use.
+
+While this is not a problem "per se" and it does not differ from writing any other patch, it is important 
+to keep in mind that there could be different Kubernetes version in a Cluster at any time, all of them
+accessible via built in variables:
+ 
+- `builtin.cluster.topology.version` defines the Kubernetes version from `cluster.topology`, and it acts
+  as the desired Kubernetes version for the entire cluster. However, during an upgrade workflow it could happen that
+  some objects in the Cluster are still at the older version.
+- `builtin.controlPlane.version`, represent the desired version for the control plane object; usually this
+  version changes immediately after `cluster.topology.version` is updated (unless there are other operations
+  in progress preventing the upgrade to start).
+- `builtin.machineDeployment.version`, represent the desired version for each specific MachineDeployment object;
+  this version changes only after the upgrade for the control plane is completed, and in case of many
+  MachineDeployments in the same cluster, they are upgraded sequentially.
+
+This info should provide the bases for developing version-aware patches, allowing the patch author to determine when a
+patch should adapt to the new Kubernetes version by choosing one of the above variables. In practice the
+following rules applies to the most common use cases:
+
+- When developing a version-aware patch for the control plane, `builtin.controlPlane.version` must be used.
+- When developing a version-aware patch for MachineDeployments, `builtin.machineDeployment.version` must be used.
+
+**Tips & Tricks**:
+
+Sometimes users need to define variables to be used by version-aware patches, and in this case it is important
+to keep in mind that there could be different Kubernetes versions in a Cluster at any time.
+
+A simple approach to solve this problem is to define a map of version-aware variables, with the key of each item
+being the Kubernetes version. Patch could then use the proper builtin variables as a lookup entry to fetch 
+the corresponding values for the Kubernetes version in use by each object.
 
 ## JSON patches tips & tricks
 

@@ -29,8 +29,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog/test/v1alpha1"
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog/test/v1alpha2"
+	"sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
+	"sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
 )
 
 var c = runtimecatalog.New()

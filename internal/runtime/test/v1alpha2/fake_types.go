@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
 
@@ -60,8 +61,9 @@ func (in *FakeRequest) DeepCopyObject() runtime.Object {
 type FakeResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	Second string
-	First  int
+	runtimehooksv1.CommonResponse `json:",inline"`
+	Second                        string
+	First                         int
 }
 
 func (in *FakeResponse) DeepCopyObject() runtime.Object {

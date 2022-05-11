@@ -21,7 +21,7 @@ import (
 
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog/test/v1alpha2"
+	v1alpha2 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
 )
 
 func Convert_v1alpha1_FakeResponse_To_v1alpha2_FakeResponse(in *FakeResponse, out *v1alpha2.FakeResponse, s conversion.Scope) error {

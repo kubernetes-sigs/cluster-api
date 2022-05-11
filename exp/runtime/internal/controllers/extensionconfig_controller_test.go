@@ -18,13 +18,13 @@ package controllers
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
@@ -136,7 +136,7 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 				return err
 			}
 			if *conf.Spec.ClientConfig.URL != updatedServer.URL {
-				return fmt.Errorf("URL not set on updated object: got: %s, want: %s", *conf.Spec.ClientConfig.URL, updatedServer.URL)
+				return errors.Errorf("URL not set on updated object: got: %s, want: %s", *conf.Spec.ClientConfig.URL, updatedServer.URL)
 			}
 			return nil
 		}, 30*time.Second, 100*time.Millisecond).Should(BeNil())

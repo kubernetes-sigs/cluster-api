@@ -184,7 +184,7 @@ func addTypeToOpenAPI(openAPI *spec3.OpenAPI, c *Catalog, typeName string) error
 	}
 
 	if openAPIDefinition == nil {
-		return fmt.Errorf("failed to get definition for %v. If you added a new type, you may need to add +k8s:openapi-gen=true to the package or type and run code-gen again", typeName)
+		return errors.Errorf("failed to get definition for %v. If you added a new type, you may need to add +k8s:openapi-gen=true to the package or type and run code-gen again", typeName)
 	}
 
 	// Add schema for component to components.

@@ -138,7 +138,11 @@ type GroupVersionHook struct {
 	Hook string `json:"hook"`
 }
 
-// FailurePolicy specifies a failure policy that defines how unrecognized errors from the admission endpoint are handled.
+// FailurePolicy specifies how unrecognized errors from the admission endpoint are handled.
+// FailurePolicy helps with extensions not working consistently, e.g. due to an intermittent network issue.
+// The following type of errors are always considered blocking Failures:
+// - Misconfigurations (e.g. incompatible types)
+// - Extension explicitly reports a Status Failure.
 type FailurePolicy string
 
 const (

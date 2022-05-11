@@ -138,3 +138,13 @@ clusterctl init -b kubeadm:v1.0.2 -c kubeadm:v1.0.2 --core cluster-api:v1.0.2 -i
 Even if slightly verbose, pinning the version provides a better control over what is installed, as usually
 required in an enterprise environment, especially if you rely on an internal repository with a separated
 software supply chain or a custom versioning schema.
+
+## Managed Cluster and co-authored slices
+
+As documented in [#6320](https://github.com/kubernetes-sigs/cluster-api/issues/6320) managed topologies
+assumes a slice to be either authored from templates or by the users/the infrastructure controllers.
+
+In cases the slice is instead co-authored (templates provide some info, the infrastructure controller
+fills in other info) this can lead to infinite reconcile.
+
+A solution to this problem is being investigated, but in the meantime you should avoid co-authored slices.

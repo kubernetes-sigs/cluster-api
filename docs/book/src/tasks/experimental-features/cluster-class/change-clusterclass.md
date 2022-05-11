@@ -151,7 +151,12 @@ See [reference](#reference) for more details.
 
 ### Effects on the Clusters
 
-The following table documents the effects each ClusterClass change can have on a Cluster.
+The following table documents the effects each ClusterClass change can have on a Cluster;
+Similar considerations apply to changes introduced by changes in `Cluster.Topology` or by
+changes introduced by patches.
+
+NOTE: for people used to operating Cluster API without Cluster Class, it could also help to keep in mind that the 
+underlying objects like control plane and MachineDeployment act in the same way with and without a ClusterClass.
 
 | Changed field                                   | Effects on Clusters                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 |-------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -187,4 +192,3 @@ A corollary of the behaviour described above is that it is technically possible 
 fields in the object derived from the template in a specific Cluster, but we advise against using the possibility
 or making ad-hoc changes in generated objects unless otherwise needed for a workaround. It is always
 preferable to improve ClusterClasses by supporting new Cluster variants in a reusable way.
-

@@ -123,6 +123,15 @@ func TestRender(t *testing.T) {
 						"test_disk", "/var/lib/testdir", "foo",
 					},
 				},
+				WriteFiles: []bootstrapv1.File{
+					{
+						Path:        "/etc/testfile.yaml",
+						Encoding:    bootstrapv1.Base64,
+						Content:     "Zm9vCg==",
+						Permissions: "0600",
+						Owner:       "nobody:nobody",
+					},
+				},
 			},
 			wantIgnition: types.Config{
 				Ignition: types.Ignition{
@@ -165,6 +174,20 @@ func TestRender(t *testing.T) {
 							FileEmbedded1: types.FileEmbedded1{
 								Contents: types.FileContents{
 									Source: "data:,foo%20ALL%3D(ALL)%20NOPASSWD%3AALL%0A",
+								},
+								Mode: pointer.IntPtr(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/testfile.yaml",
+								User:       &types.NodeUser{Name: "nobody"},
+								Group:      &types.NodeGroup{Name: "nobody"},
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{
+									Source: "data:,foo%0A",
 								},
 								Mode: pointer.IntPtr(384),
 							},
@@ -325,9 +348,221 @@ func TestRender(t *testing.T) {
 				},
 			},
 		},
+		{
+			desc: "base64 encoded content",
+			input: &cloudinit.BaseUserData{
+				PreKubeadmCommands:  preKubeadmCommands,
+				PostKubeadmCommands: postKubeadmCommands,
+				KubeadmCommand:      "kubeadm join",
+				WriteFiles: []bootstrapv1.File{
+					{
+						Path:        "/etc/base64encodedcontent.yaml",
+						Encoding:    bootstrapv1.Base64,
+						Content:     "Zm9vCg==",
+						Permissions: "0600",
+					},
+					{
+						Path:        "/etc/plaincontent.yaml",
+						Content:     "foo",
+						Permissions: "0600",
+					},
+				},
+			},
+			wantIgnition: types.Config{
+				Ignition: types.Ignition{
+					Version: "2.3.0",
+				},
+				Storage: types.Storage{
+					Files: []types.File{
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/base64encodedcontent.yaml",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{Source: "data:,foo%0A"},
+								Mode:     pointer.IntPtr(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/plaincontent.yaml",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{Source: "data:,foo%0A"},
+								Mode:     pointer.IntPtr(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/kubeadm.sh",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{
+									Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
+								},
+								Mode: pointer.IntPtr(448),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/kubeadm.yml",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{
+									Source: "data:,---%0Afoo%0A",
+								},
+								Mode: pointer.IntPtr(384),
+							},
+						},
+					},
+				},
+				Systemd: types.Systemd{
+					Units: []types.Unit{
+						{
+							Contents: "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
+							Enabled:  pointer.BoolPtr(true),
+							Name:     "kubeadm.service",
+						},
+					},
+				},
+			},
+		},
+		{
+			desc: "all file ownership combinations",
+			input: &cloudinit.BaseUserData{
+				PreKubeadmCommands:  preKubeadmCommands,
+				PostKubeadmCommands: postKubeadmCommands,
+				KubeadmCommand:      "kubeadm join",
+				WriteFiles: []bootstrapv1.File{
+					{
+						Path:        "/etc/username-group-name-owner.yaml",
+						Owner:       "nobody:nobody",
+						Permissions: "0600",
+					},
+					{
+						Path:        "/etc/user-only-owner.yaml",
+						Owner:       "nobody",
+						Permissions: "0600",
+					},
+					{
+						Path:        "/etc/user-only-with-colon-owner.yaml",
+						Owner:       "nobody:",
+						Permissions: "0600",
+					},
+					{
+						Path:        "/etc/group-only-owner.yaml",
+						Owner:       ":nobody",
+						Permissions: "0600",
+					},
+				},
+			},
+			wantIgnition: types.Config{
+				Ignition: types.Ignition{
+					Version: "2.3.0",
+				},
+				Storage: types.Storage{
+					Files: []types.File{
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/username-group-name-owner.yaml",
+								User: &types.NodeUser{
+									Name: "nobody",
+								},
+								Group: &types.NodeGroup{
+									Name: "nobody",
+								},
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{Source: "data:,"},
+								Mode:     pointer.IntPtr(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/user-only-owner.yaml",
+								User: &types.NodeUser{
+									Name: "nobody",
+								},
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{Source: "data:,"},
+								Mode:     pointer.IntPtr(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/user-only-with-colon-owner.yaml",
+								User: &types.NodeUser{
+									Name: "nobody",
+								},
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{Source: "data:,"},
+								Mode:     pointer.IntPtr(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/group-only-owner.yaml",
+								Group: &types.NodeGroup{
+									Name: "nobody",
+								},
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{Source: "data:,"},
+								Mode:     pointer.IntPtr(384),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/kubeadm.sh",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{
+									Source: "data:,%23!%2Fbin%2Fbash%0Aset%20-e%0A%0Apre-command%0Aanother-pre-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A%0A%0Akubeadm%20join%0Amkdir%20-p%20%2Frun%2Fcluster-api%20%26%26%20echo%20success%20%3E%20%2Frun%2Fcluster-api%2Fbootstrap-success.complete%0Amv%20%2Fetc%2Fkubeadm.yml%20%2Ftmp%2F%0A%0Apost-kubeadm-command%0Aanother-post-kubeamd-command%0Acat%20%3C%3CEOF%20%3E%20%2Fetc%2Fmodules-load.d%2Fcontainerd.conf%0Aoverlay%0Abr_netfilter%0AEOF%0A",
+								},
+								Mode: pointer.IntPtr(448),
+							},
+						},
+						{
+							Node: types.Node{
+								Filesystem: "root",
+								Path:       "/etc/kubeadm.yml",
+							},
+							FileEmbedded1: types.FileEmbedded1{
+								Contents: types.FileContents{
+									Source: "data:,---%0Afoo%0A",
+								},
+								Mode: pointer.IntPtr(384),
+							},
+						},
+					},
+				},
+				Systemd: types.Systemd{
+					Units: []types.Unit{
+						{
+							Contents: "[Unit]\nDescription=kubeadm\n# Run only once. After successful run, this file is moved to /tmp/.\nConditionPathExists=/etc/kubeadm.yml\n[Service]\n# To not restart the unit when it exits, as it is expected.\nType=oneshot\nExecStart=/etc/kubeadm.sh\n[Install]\nWantedBy=multi-user.target\n",
+							Enabled:  pointer.BoolPtr(true),
+							Name:     "kubeadm.service",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, tt := range tc {
+		tt := tt
+
 		t.Run(tt.desc, func(t *testing.T) {
 			t.Parallel()
 

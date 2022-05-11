@@ -254,6 +254,18 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 		)
 	}
 
+	for i, file := range c.Files {
+		if file.Encoding == Gzip || file.Encoding == GzipBase64 {
+			allErrs = append(
+				allErrs,
+				field.Forbidden(
+					pathPrefix.Child("files").Index(i).Child("encoding"),
+					cannotUseWithIgnition,
+				),
+			)
+		}
+	}
+
 	if c.DiskSetup == nil {
 		return allErrs
 	}

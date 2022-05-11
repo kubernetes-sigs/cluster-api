@@ -193,6 +193,9 @@ func init() {
 }
 
 const (
-	// RuntimeExtensionDiscovered is a condition set on an ExtensionConfig object once it has been discovered by the Runtime SDK client.
-	RuntimeExtensionDiscovered clusterv1.ConditionType = "Discovered"
+	// RuntimeExtensionDiscoveredCondition is a condition set on an ExtensionConfig object once it has been discovered by the Runtime SDK client.
+	RuntimeExtensionDiscoveredCondition clusterv1.ConditionType = "Discovered"
+
+	// DiscoveryFailedReason documents failure of a Discovery call.
+	DiscoveryFailedReason string = "DiscoveryFailed"
 )

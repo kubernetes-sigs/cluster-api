@@ -1,7 +1,7 @@
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: ClusterClass
 metadata:
-  name: "quick-start"
+  name: quick-start
 spec:
   controlPlane:
     ref:
@@ -71,6 +71,44 @@ spec:
         path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/imageRepository"
         valueFrom:
           variable: imageRepository
+  # We have to pin the cgroupDriver to cgroupfs for Kubernetes < v1.24 because kind does not support systemd for those versions, but kubeadm >= 1.21 defaults to systemd.
+  - name: cgroupDriver-controlPlane
+    description: |
+      Sets the cgroupDriver to cgroupfs if a Kubernetes version < v1.24 is referenced.
+      This is required because kind and the node images do not support the default
+      systemd cgroupDriver for kubernetes < v1.24.
+    enabledIf: '{{ semverCompare "<= v1.23" .builtin.controlPlane.version }}'
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/cgroup-driver"
+        value: cgroupfs
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cgroup-driver"
+        value: cgroupfs
+  - name: cgroupDriver-machineDeployment
+    description: |
+      Sets the cgroupDriver to cgroupfs if a Kubernetes version < v1.24 is referenced.
+      This is required because kind and the node images do not support the default
+      systemd cgroupDriver for kubernetes < v1.24.
+    enabledIf: '{{ semverCompare "<= v1.23" .builtin.machineDeployment.version }}'
+    definitions:
+    - selector:
+        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+        kind: KubeadmConfigTemplate
+        matchResources:
+          machineDeploymentClass:
+            names:
+            - default-worker
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cgroup-driver"
+        value: cgroupfs
   - name: etcdImageTag
     description: "Sets tag to use for the etcd image in the KubeadmControlPlane."
     definitions:
@@ -115,7 +153,7 @@ spec:
         path: "/spec/template/spec/customImage"
         valueFrom:
           template: |
-            kindest/node:{{ .builtin.machineDeployment.version }}
+            kindest/node:{{ .builtin.machineDeployment.version | replace "+" "_" }}
     - selector:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: DockerMachineTemplate
@@ -126,12 +164,12 @@ spec:
         path: "/spec/template/spec/customImage"
         valueFrom:
           template: |
-            kindest/node:{{ .builtin.controlPlane.version }}
+            kindest/node:{{ .builtin.controlPlane.version | replace "+" "_" }}
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate
 metadata:
-  name: "quick-start-cluster"
+  name: quick-start-cluster
 spec:
   template:
     spec: {}
@@ -139,7 +177,7 @@ spec:
 kind: KubeadmControlPlaneTemplate
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
-  name: "quick-start-control-plane"
+  name: quick-start-control-plane
 spec:
   template:
     spec:
@@ -148,28 +186,23 @@ spec:
           controllerManager:
             extraArgs: { enable-hostpath-provisioner: 'true' }
           apiServer:
-            certSANs: [localhost, 127.0.0.1, 0.0.0.0]
+            # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
+            certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
         initConfiguration:
           nodeRegistration:
             criSocket: /var/run/containerd/containerd.sock
             kubeletExtraArgs:
-              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
-              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
-              cgroup-driver: cgroupfs
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
         joinConfiguration:
           nodeRegistration:
             criSocket: /var/run/containerd/containerd.sock
             kubeletExtraArgs:
-              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
-              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
-              cgroup-driver: cgroupfs
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
 metadata:
-  name: "quick-start-control-plane"
+  name: quick-start-control-plane
 spec:
   template:
     spec:
@@ -180,7 +213,7 @@ spec:
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
 metadata:
-  name: "quick-start-default-worker-machinetemplate"
+  name: quick-start-default-worker-machinetemplate
 spec:
   template:
     spec: {}
@@ -188,15 +221,12 @@ spec:
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
-  name: "quick-start-default-worker-bootstraptemplate"
+  name: quick-start-default-worker-bootstraptemplate
 spec:
   template:
     spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
-            # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
-            cgroup-driver: cgroupfs
             eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
 

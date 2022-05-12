@@ -1,5 +1,4 @@
 resources:
-  - ../bases/cluster-with-kcp.yaml
+  - ../bases/cluster-with-topology.yaml
   - ../bases/crs.yaml
-  - ../bases/md.yaml
   - ../bases/mp.yaml

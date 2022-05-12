@@ -83,7 +83,7 @@ func apply(ctx context.Context, c client.Client, data []byte) error {
 	errList := []error{}
 	sortedObjs := utilresource.SortForCreate(objs)
 	for i := range sortedObjs {
-		if err := applyUnstructured(ctx, c, &objs[i]); err != nil {
+		if err := applyUnstructured(ctx, c, &sortedObjs[i]); err != nil {
 			errList = append(errList, err)
 		}
 	}

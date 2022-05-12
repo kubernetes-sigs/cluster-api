@@ -224,3 +224,62 @@ func TestSetStatus(t *testing.T) {
 		})
 	}
 }
+
+func TestGetRetryAfterSeconds(t *testing.T) {
+	tests := []struct {
+		name    string
+		obj     *BeforeClusterCreateResponse
+		want    int
+		wantErr bool
+	}{
+		{
+			name: "get the message field from the object",
+			obj: &BeforeClusterCreateResponse{
+				RetryAfterSeconds: 10,
+			},
+			want:    10,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			retryAfterSeconds, err := GetRetryAfterSeconds(tt.obj)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(retryAfterSeconds).To(Equal(tt.want))
+			}
+		})
+	}
+}
+
+func TestSetRetryAfterSeconds(t *testing.T) {
+	tests := []struct {
+		name              string
+		obj               *BeforeClusterCreateResponse
+		retryAfterSeconds int
+		wantErr           bool
+	}{
+		{
+			name:              "setting the status should succeeded",
+			obj:               &BeforeClusterCreateResponse{},
+			retryAfterSeconds: 3,
+			wantErr:           false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			err := SetRetryAfterSeconds(tt.obj, tt.retryAfterSeconds)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(tt.obj.RetryAfterSeconds).To(Equal(tt.retryAfterSeconds))
+			}
+		})
+	}
+}

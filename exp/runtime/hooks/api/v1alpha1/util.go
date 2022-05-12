@@ -24,8 +24,9 @@ import (
 )
 
 const (
-	fieldStatus  = "Status"
-	fieldMessage = "Message"
+	fieldStatus            = "Status"
+	fieldMessage           = "Message"
+	fieldRetryAfterSeconds = "RetryAfterSeconds"
 )
 
 func valueOf(obj interface{}) (reflect.Value, error) {
@@ -88,6 +89,24 @@ func GetMessage(obj interface{}) (string, error) {
 // SetMessage sets the `Message` field in obj.
 func SetMessage(obj interface{}, msg string) error {
 	return setField(obj, fieldMessage, reflect.ValueOf(msg))
+}
+
+// GetRetryAfterSeconds get the `RetryAfterSeconds` field form obj.
+func GetRetryAfterSeconds(obj interface{}) (int, error) {
+	retry, err := getField(obj, fieldRetryAfterSeconds)
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to get %s field from object", fieldRetryAfterSeconds)
+	}
+	retryAfterSeconds, ok := retry.(int)
+	if !ok {
+		return 0, errors.Wrap(err, "received value of unexpected type")
+	}
+	return retryAfterSeconds, nil
+}
+
+// SetRetryAfterSeconds sets the `RetryAfterSeconds` field in obj.
+func SetRetryAfterSeconds(obj interface{}, retryAfterSeconds int) error {
+	return setField(obj, fieldRetryAfterSeconds, reflect.ValueOf(retryAfterSeconds))
 }
 
 func getField(obj interface{}, field string) (interface{}, error) {

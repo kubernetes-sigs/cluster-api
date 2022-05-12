@@ -164,6 +164,7 @@ func (c *client) Hook(hook catalog.Hook) HookClient {
 	}
 }
 
+// HookClient is the client used to make calls of the runtime hooks and runtime extension handlers.
 type HookClient interface {
 	// CallAll calls all the extension registered for the hook.
 	CallAll(ctx context.Context, request runtime.Object, response runtimehooksv1.AggregatableResponse) error
@@ -232,7 +233,9 @@ func (h *hookClient) Call(ctx context.Context, name string, request, response ru
 		ignore := *registration.FailurePolicy == runtimev1.FailurePolicyIgnore
 		if _, ok := err.(*errCallingExtensionHandler); ok && ignore {
 			// Update the response to a default success response and return.
-			runtimehooksv1.SetStatus(response, runtimehooksv1.ResponseStatusSuccess)
+			if err := runtimehooksv1.SetStatus(response, runtimehooksv1.ResponseStatusSuccess); err != nil {
+				return errors.Wrap(err, "failed to construct default success response")
+			}
 			return nil
 		}
 		return errors.Wrap(err, "failed to call extension")
@@ -249,7 +252,7 @@ func (h *hookClient) Call(ctx context.Context, name string, request, response ru
 		}
 		return fmt.Errorf("extensionHandler %s failed with message %s", name, msg)
 	}
-	// Received a successfull response from the extension handler. The `response` object
+	// Received a successful response from the extension handler. The `response` object
 	// is populated with the result. Return no error.
 	return nil
 }
@@ -417,5 +420,5 @@ type errCallingExtensionHandler struct {
 
 func (e *errCallingExtensionHandler) Error() string {
 	// FIXME: find a better error message.
-	return fmt.Sprintf("failed processing handler %s of extension %s with error: %s", e.extensionHandlerName, e.err)
+	return fmt.Sprintf("failed processing handler %s with error: %s", e.extensionHandlerName, e.err)
 }

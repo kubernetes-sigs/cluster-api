@@ -20,12 +20,17 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// AggregatableResponse represents a response object that can be constructed using individual
+// ExtensionHandlerResponses.
+// +kubebuilder:object:generate=false
 type AggregatableResponse interface {
 	runtime.Object
 
 	Aggregate(items []*ExtensionHandlerResponse) error
 }
 
+// ExtensionHandlerResponse represents ths response from a single RuntimeExtensionHandler.
+// +kubebuilder:object:generate=false
 type ExtensionHandlerResponse struct {
 	Name     string
 	Response runtime.Object

@@ -40,6 +40,8 @@ type DiscoveryResponse struct {
 	Message string `json:"message"`
 
 	// Handlers defines the current ExtensionHandlers supported by an Extension.
+	// +listType=map
+	// +listMapKey=name
 	Handlers []ExtensionHandler `json:"handlers"`
 }
 

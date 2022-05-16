@@ -26,7 +26,7 @@ To create a pre-configured cluster run:
 
 ```bash
 ./hack/kind-install-for-capd.sh
-````
+```
 
 You can see the status of the cluster with:
 
@@ -120,7 +120,7 @@ An Azure Service Principal is needed for populating the controller manifests. Th
 
 Add the output of the following as a section in your `tilt-settings.yaml`:
 
-  ```shell
+```bash
   cat <<EOF
   kustomize_substitutions:
      AZURE_SUBSCRIPTION_ID_B64: "$(echo "${AZURE_SUBSCRIPTION_ID}" | tr -d '\n' | base64 | tr -d '\n')"
@@ -248,7 +248,7 @@ manager --logging-format=json
 
 To launch your development environment, run
 
-``` bash
+```bash
 tilt up
 ```
 

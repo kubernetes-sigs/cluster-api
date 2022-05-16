@@ -22,7 +22,7 @@ Before you apply Cluster API's yaml, you should [install `cert-manager`][cm-inst
 [cert-manager]: https://github.com/cert-manager/cert-manager
 [cm-install]: https://cert-manager.io/docs/installation/
 
-```
+```bash
 kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/<version>/cert-manager.yaml
 ```
 
@@ -32,15 +32,17 @@ Before you can deploy the infrastructure controller, you'll need to deploy Clust
 
 You can use a precompiled manifest from the release page, or clone [`cluster-api`][capi] and apply its manifests using `kustomize`.
 
-``` shell
+```bash
 cd cluster-api
 kustomize build config/ | kubectl apply -f-
 ```
 
 Check the status of the manager to make sure it's running properly
 
-```shell
-$ kubectl describe -n capi-system pod | grep -A 5 Conditions
+```bash
+kubectl describe -n capi-system pod | grep -A 5 Conditions
+```
+```bash
 Conditions:
   Type              Status
   Initialized       True
@@ -55,10 +57,12 @@ Conditions:
 
 Now you can apply your provider as well:
 
+```bash
+cd cluster-api-provider-mailgun
+kustomize build config/ | envsubst | kubectl apply -f-
+kubectl describe -n cluster-api-provider-mailgun-system pod | grep -A 5 Conditions
 ```
-$ cd cluster-api-provider-mailgun
-$ kustomize build config/ | envsubst | kubectl apply -f-
-$ kubectl describe -n cluster-api-provider-mailgun-system pod | grep -A 5 Conditions
+```bash
 Conditions:
   Type              Status
   Initialized       True

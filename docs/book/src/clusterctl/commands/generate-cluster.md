@@ -4,7 +4,7 @@ The `clusterctl generate cluster` command returns a YAML template for creating a
 
 For example
 
-```
+```bash
 clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 --control-plane-machine-count=3 --worker-machine-count=3 > my-cluster.yaml
 ```
 
@@ -15,7 +15,7 @@ specify a different target namespace).
 Then, the file can be modified using your editor of choice; when ready, run the following command
 to apply the cluster manifest.
 
-```
+```bash
 kubectl apply -f my-cluster.yaml
 ```
 
@@ -28,14 +28,14 @@ selects a cluster template from the `aws` provider's repository.
 In case there is more than one infrastructure provider, the following syntax can be used to select which infrastructure
 provider to use for the workload cluster:
 
-```
+```bash
 clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
     --infrastructure aws > my-cluster.yaml
 ```
 
 or
 
-```
+```bash
 clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
     --infrastructure aws:v0.4.1 > my-cluster.yaml
 ```
@@ -45,7 +45,7 @@ clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
 The infrastructure provider authors can provide different types of cluster templates, or flavors; use the `--flavor` flag
 to specify which flavor to use; e.g.
 
-```
+```bash
 clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
     --flavor high-availability > my-cluster.yaml
 ```
@@ -61,7 +61,7 @@ for cluster templates can be used as well:
 
 Use the `--from-config-map` flag to read cluster templates stored in a Kubernetes ConfigMap; e.g.
 
-```
+```bash
 clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
     --from-config-map my-templates > my-cluster.yaml
 ```
@@ -73,14 +73,14 @@ Also following flags are available `--from-config-map-namespace` (defaults to cu
 
 Use the `--from` flag to read cluster templates stored in a GitHub repository or in a local file system folder; e.g.
 
-```
+```bash
 clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
    --from https://github.com/my-org/my-repository/blob/main/my-template.yaml > my-cluster.yaml
 ```
 
 or
 
-```
+```bash
 clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
    --from ~/my-template.yaml > my-cluster.yaml
 ```

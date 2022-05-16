@@ -121,7 +121,7 @@ See [clusterctl configuration](../configuration.md) for more info about provider
 If, for any reasons, the user wants to replace the assets available on a provider repository with a locally available asset,
 the user is required to save the file under `$HOME/.cluster-api/overrides/<provider-label>/<version>/<file-name.yaml>`.
 
-```
+```bash
 $HOME/.cluster-api/overrides/infrastructure-aws/v0.5.2/infrastructure-components.yaml
 ```
 

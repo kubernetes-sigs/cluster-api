@@ -12,7 +12,7 @@ This document describes how to use `clusterctl` during the development workflow.
 
 From the root of the local copy of Cluster API, you can build the `clusterctl` binary by running:
 
-```shell
+```bash
 make clusterctl
 ```
 
@@ -35,13 +35,13 @@ If you want to create a local artifact, follow these instructions:
 
 In order to build artifacts for the CAPI core provider, the kubeadm bootstrap provider and the kubeadm control plane provider:
 
-```
+```bash
 make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
 ```
 
 In order to build docker provider artifacts
 
-```
+```bash
 make docker-capd-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
 ```
 
@@ -67,7 +67,7 @@ a `clusterctl-settings.json` file describing how to build the provider assets.
 
 Run the create-local-repository hack from the root of the local copy of Cluster API:
 
-```shell
+```bash
 cmd/clusterctl/hack/create-local-repository.py
 ```
 
@@ -76,7 +76,7 @@ and places them in a local repository folder located under `$HOME/.cluster-api/d
 Additionally, the command output provides you the `clusterctl init` command with all the necessary flags.
 The output should be similar to:
 
-```shell
+```bash
 clusterctl local overrides generated from local repositories for the cluster-api, bootstrap-kubeadm, control-plane-kubeadm, infrastructure-docker, infrastructure-aws providers.
 in order to use them, please run:
 
@@ -87,7 +87,6 @@ clusterctl init \
    --infrastructure aws:v0.5.0 \
    --infrastructure docker:v0.3.8 \
    --config ~/.cluster-api/dev-repository/config.yaml
-
 ```
 
 As you might notice, the command is using the `$HOME/.cluster-api/dev-repository/config.yaml` config file,
@@ -140,7 +139,7 @@ See [Install and/or configure a kubernetes cluster] for more information.
 This is always the case for images published in some image repository like docker hub or gcr.io, but it can't be
 the case for images built locally; in this case, you can use `kind load` to move the images built locally. e.g.
 
-```
+```bash
 kind load docker-image gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:dev
 kind load docker-image gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller-amd64:dev
 kind load docker-image gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller-amd64:dev
@@ -157,9 +156,12 @@ Optionally, you may want to check if the components are running properly. The
 exact components are dependent on which providers you have initialized. Below
 is an example output with the docker provider being installed.
 
-```
+```bash
 kubectl get deploy -A | grep  "cap\|cert"
-capd-system                         capd-controller-manager                         1/1     1            1           25m
+capd-system
+```
+```bash
+capd-controller-manager                         1/1     1            1           25m
 capi-kubeadm-bootstrap-system       capi-kubeadm-bootstrap-controller-manager       1/1     1            1           25m
 capi-kubeadm-control-plane-system   capi-kubeadm-control-plane-controller-manager   1/1     1            1           25m
 capi-system                         capi-controller-manager                         1/1     1            1           25m

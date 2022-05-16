@@ -7,18 +7,18 @@ This functionality is available in clusterctl v0.3.9 or newer.
 
 Get the kubeconfig of a workload cluster named foo.
 
-```shell
+```bash
 clusterctl get kubeconfig foo
 ```
 
 Get the kubeconfig of a workload cluster named foo in the namespace bar
 
-```shell
+```bash
 clusterctl get kubeconfig foo --namespace bar
 ```
 
 Get the kubeconfig of a workload cluster named foo using a specific context bar
 
-```shell
+```bash
 clusterctl get kubeconfig foo --kubeconfig-context bar
 ```

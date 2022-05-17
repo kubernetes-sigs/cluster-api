@@ -52,6 +52,7 @@ const (
 	SideroProviderName    = "sidero"
 	VSphereProviderName   = "vsphere"
 	MAASProviderName      = "maas"
+	KubevirtProviderName  = "kubevirt"
 )
 
 // Bootstrap providers.
@@ -198,6 +199,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         NutanixProviderName,
 			url:          "https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         KubevirtProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

@@ -203,6 +203,7 @@ providers.
 |CAPDO         | cluster.x-k8s.io/provider=infrastructure-digitalocean  |
 |CAPG          | cluster.x-k8s.io/provider=infrastructure-gcp           |
 |CAPX          | cluster.x-k8s.io/provider=infrastructure-nutanix       |
+|CAPK          | cluster.x-k8s.io/provider=infrastructure-kubevirt      |
 
 ### Workload cluster templates
 

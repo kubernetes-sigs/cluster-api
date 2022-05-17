@@ -202,7 +202,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Metal3,Nutanix,OCI,OpenStack,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Metal3,Nutanix,Kubevirt,OCI,OpenStack,vSphere"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
@@ -349,6 +349,11 @@ Please visit the [Metal3 project][Metal3 provider].
 Please follow the Cluster API Provider for [Nutanix Getting Started Guide](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/blob/main/docs/getting_started.md)
 
 {{#/tab }}
+{{#tab Kubevirt}}
+
+Please visit the [Kubevirt project][Kubevirt provider].
+
+{{#/tab }}
 {{#tab OCI}}
 
 Please follow the Cluster API Provider for [Oracle Cloud Infrastructure (OCI) Getting Started Guide][oci-provider]
@@ -448,7 +453,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,Metal3,Nutanix,OpenStack,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,Metal3,Nutanix,Kubevirt,OpenStack,vSphere"}}
 {{#tab AWS}}
 
 ```bash
@@ -629,6 +634,17 @@ To see all required Nutanix environment variables execute:
 clusterctl generate cluster --infrastructure nutanix --list-variables capi-quickstart
 ```
 
+{{#/tab }}
+{{#tab Kubevirt}}
+
+A ClusterAPI compatible image must be available in your Kubevirt image library. For instructions on how to build a compatible image
+see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html).
+
+To see all required Kubevirt environment variables execute:
+```bash
+clusterctl generate cluster --infrastructure kubevirt --list-variables capi-quickstart
+```
+
 
 {{#/tab }}
 {{#tab OpenStack}}
@@ -710,7 +726,7 @@ For more information about prerequisites, credentials management, or permissions
 
 For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
-{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Azure|AWS|DigitalOcean|Equinix Metal|GCP|Metal3|Nutanix|OpenStack|vSphere,Docker"}}
+{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Azure|AWS|DigitalOcean|Equinix Metal|GCP|Metal3|Nutanix|Kubevirt|OpenStack|vSphere,Docker"}}
 {{#tab Azure|AWS|DigitalOcean|Equinix Metal|GCP|Metal3|OpenStack|vSphere}}
 
 ```bash
@@ -835,7 +851,7 @@ See [Additional Notes for the Docker Provider](../clusterctl/developers.md#addit
 
 Calico is used here as an example.
 
-{{#tabs name:"tab-deploy-cni" tabs:"AWS|DigitalOcean|Docker|Equinix Metal|GCP|Metal3|Nutanix|OpenStack|vSphere,Azure"}}
+{{#tabs name:"tab-deploy-cni" tabs:"AWS|DigitalOcean|Docker|Equinix Metal|GCP|Metal3|Nutanix|Kubevirt|OpenStack|vSphere,Azure"}}
 {{#tab AWS|DigitalOcean|Docker|Equinix Metal|GCP|Metal3|OpenStack|vSphere}}
 
 ```bash
@@ -913,6 +929,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [management cluster]: ../reference/glossary.md#management-cluster
 [Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/master/docs/getting-started.md
 [Metal3 provider]: https://github.com/metal3-io/cluster-api-provider-metal3/
+[Kubevirt provider]: https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/
 [oci-provider]: https://oracle.github.io/cluster-api-provider-oci/#getting-started
 [Equinix Metal getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-packet#using
 [provider]:../reference/providers.md

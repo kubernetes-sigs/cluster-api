@@ -30,67 +30,67 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"sigs.k8s.io/cluster-api/api/v1beta1.APIEndpoint":                              schema_sigsk8sio_cluster_api_api_v1beta1_APIEndpoint(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.Bootstrap":                                schema_sigsk8sio_cluster_api_api_v1beta1_Bootstrap(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.Cluster":                                  schema_sigsk8sio_cluster_api_api_v1beta1_Cluster(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClass":                             schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassList":                         schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassPatch":                        schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassPatch(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassSpec":                         schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariable":                     schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassVariable(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterList":                              schema_sigsk8sio_cluster_api_api_v1beta1_ClusterList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterNetwork":                           schema_sigsk8sio_cluster_api_api_v1beta1_ClusterNetwork(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterSpec":                              schema_sigsk8sio_cluster_api_api_v1beta1_ClusterSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterStatus":                            schema_sigsk8sio_cluster_api_api_v1beta1_ClusterStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ClusterVariable":                          schema_sigsk8sio_cluster_api_api_v1beta1_ClusterVariable(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.Condition":                                schema_sigsk8sio_cluster_api_api_v1beta1_Condition(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneClass":                        schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneTopology":                     schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneTopology(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.FailureDomainSpec":                        schema_sigsk8sio_cluster_api_api_v1beta1_FailureDomainSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.JSONPatch":                                schema_sigsk8sio_cluster_api_api_v1beta1_JSONPatch(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.JSONPatchValue":                           schema_sigsk8sio_cluster_api_api_v1beta1_JSONPatchValue(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps":                          schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.LocalObjectTemplate":                      schema_sigsk8sio_cluster_api_api_v1beta1_LocalObjectTemplate(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.Machine":                                  schema_sigsk8sio_cluster_api_api_v1beta1_Machine(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineAddress":                           schema_sigsk8sio_cluster_api_api_v1beta1_MachineAddress(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeployment":                        schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeployment(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentClass":                   schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentClassTemplate":           schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentClassTemplate(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentList":                    schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentSpec":                    schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentStatus":                  schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentStrategy":                schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStrategy(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentTopology":                schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentTopology(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentVariables":               schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentVariables(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheck":                       schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheck(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckClass":                  schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckList":                   schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckSpec":                   schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckStatus":                 schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineList":                              schema_sigsk8sio_cluster_api_api_v1beta1_MachineList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineRollingUpdateDeployment":           schema_sigsk8sio_cluster_api_api_v1beta1_MachineRollingUpdateDeployment(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineSet":                               schema_sigsk8sio_cluster_api_api_v1beta1_MachineSet(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineSetList":                           schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetList(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineSetSpec":                           schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineSetStatus":                         schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineSpec":                              schema_sigsk8sio_cluster_api_api_v1beta1_MachineSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineStatus":                            schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.MachineTemplateSpec":                      schema_sigsk8sio_cluster_api_api_v1beta1_MachineTemplateSpec(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.NetworkRanges":                            schema_sigsk8sio_cluster_api_api_v1beta1_NetworkRanges(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta":                               schema_sigsk8sio_cluster_api_api_v1beta1_ObjectMeta(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.PatchDefinition":                          schema_sigsk8sio_cluster_api_api_v1beta1_PatchDefinition(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.PatchSelector":                            schema_sigsk8sio_cluster_api_api_v1beta1_PatchSelector(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.PatchSelectorMatch":                       schema_sigsk8sio_cluster_api_api_v1beta1_PatchSelectorMatch(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.PatchSelectorMatchMachineDeploymentClass": schema_sigsk8sio_cluster_api_api_v1beta1_PatchSelectorMatchMachineDeploymentClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.Topology":                                 schema_sigsk8sio_cluster_api_api_v1beta1_Topology(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.UnhealthyCondition":                       schema_sigsk8sio_cluster_api_api_v1beta1_UnhealthyCondition(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.VariableSchema":                           schema_sigsk8sio_cluster_api_api_v1beta1_VariableSchema(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.WorkersClass":                             schema_sigsk8sio_cluster_api_api_v1beta1_WorkersClass(ref),
-		"sigs.k8s.io/cluster-api/api/v1beta1.WorkersTopology":                          schema_sigsk8sio_cluster_api_api_v1beta1_WorkersTopology(ref),
+		"./api/v1beta1.APIEndpoint":                              schema__api_v1beta1_APIEndpoint(ref),
+		"./api/v1beta1.Bootstrap":                                schema__api_v1beta1_Bootstrap(ref),
+		"./api/v1beta1.Cluster":                                  schema__api_v1beta1_Cluster(ref),
+		"./api/v1beta1.ClusterClass":                             schema__api_v1beta1_ClusterClass(ref),
+		"./api/v1beta1.ClusterClassList":                         schema__api_v1beta1_ClusterClassList(ref),
+		"./api/v1beta1.ClusterClassPatch":                        schema__api_v1beta1_ClusterClassPatch(ref),
+		"./api/v1beta1.ClusterClassSpec":                         schema__api_v1beta1_ClusterClassSpec(ref),
+		"./api/v1beta1.ClusterClassVariable":                     schema__api_v1beta1_ClusterClassVariable(ref),
+		"./api/v1beta1.ClusterList":                              schema__api_v1beta1_ClusterList(ref),
+		"./api/v1beta1.ClusterNetwork":                           schema__api_v1beta1_ClusterNetwork(ref),
+		"./api/v1beta1.ClusterSpec":                              schema__api_v1beta1_ClusterSpec(ref),
+		"./api/v1beta1.ClusterStatus":                            schema__api_v1beta1_ClusterStatus(ref),
+		"./api/v1beta1.ClusterVariable":                          schema__api_v1beta1_ClusterVariable(ref),
+		"./api/v1beta1.Condition":                                schema__api_v1beta1_Condition(ref),
+		"./api/v1beta1.ControlPlaneClass":                        schema__api_v1beta1_ControlPlaneClass(ref),
+		"./api/v1beta1.ControlPlaneTopology":                     schema__api_v1beta1_ControlPlaneTopology(ref),
+		"./api/v1beta1.FailureDomainSpec":                        schema__api_v1beta1_FailureDomainSpec(ref),
+		"./api/v1beta1.JSONPatch":                                schema__api_v1beta1_JSONPatch(ref),
+		"./api/v1beta1.JSONPatchValue":                           schema__api_v1beta1_JSONPatchValue(ref),
+		"./api/v1beta1.JSONSchemaProps":                          schema__api_v1beta1_JSONSchemaProps(ref),
+		"./api/v1beta1.LocalObjectTemplate":                      schema__api_v1beta1_LocalObjectTemplate(ref),
+		"./api/v1beta1.Machine":                                  schema__api_v1beta1_Machine(ref),
+		"./api/v1beta1.MachineAddress":                           schema__api_v1beta1_MachineAddress(ref),
+		"./api/v1beta1.MachineDeployment":                        schema__api_v1beta1_MachineDeployment(ref),
+		"./api/v1beta1.MachineDeploymentClass":                   schema__api_v1beta1_MachineDeploymentClass(ref),
+		"./api/v1beta1.MachineDeploymentClassTemplate":           schema__api_v1beta1_MachineDeploymentClassTemplate(ref),
+		"./api/v1beta1.MachineDeploymentList":                    schema__api_v1beta1_MachineDeploymentList(ref),
+		"./api/v1beta1.MachineDeploymentSpec":                    schema__api_v1beta1_MachineDeploymentSpec(ref),
+		"./api/v1beta1.MachineDeploymentStatus":                  schema__api_v1beta1_MachineDeploymentStatus(ref),
+		"./api/v1beta1.MachineDeploymentStrategy":                schema__api_v1beta1_MachineDeploymentStrategy(ref),
+		"./api/v1beta1.MachineDeploymentTopology":                schema__api_v1beta1_MachineDeploymentTopology(ref),
+		"./api/v1beta1.MachineDeploymentVariables":               schema__api_v1beta1_MachineDeploymentVariables(ref),
+		"./api/v1beta1.MachineHealthCheck":                       schema__api_v1beta1_MachineHealthCheck(ref),
+		"./api/v1beta1.MachineHealthCheckClass":                  schema__api_v1beta1_MachineHealthCheckClass(ref),
+		"./api/v1beta1.MachineHealthCheckList":                   schema__api_v1beta1_MachineHealthCheckList(ref),
+		"./api/v1beta1.MachineHealthCheckSpec":                   schema__api_v1beta1_MachineHealthCheckSpec(ref),
+		"./api/v1beta1.MachineHealthCheckStatus":                 schema__api_v1beta1_MachineHealthCheckStatus(ref),
+		"./api/v1beta1.MachineList":                              schema__api_v1beta1_MachineList(ref),
+		"./api/v1beta1.MachineRollingUpdateDeployment":           schema__api_v1beta1_MachineRollingUpdateDeployment(ref),
+		"./api/v1beta1.MachineSet":                               schema__api_v1beta1_MachineSet(ref),
+		"./api/v1beta1.MachineSetList":                           schema__api_v1beta1_MachineSetList(ref),
+		"./api/v1beta1.MachineSetSpec":                           schema__api_v1beta1_MachineSetSpec(ref),
+		"./api/v1beta1.MachineSetStatus":                         schema__api_v1beta1_MachineSetStatus(ref),
+		"./api/v1beta1.MachineSpec":                              schema__api_v1beta1_MachineSpec(ref),
+		"./api/v1beta1.MachineStatus":                            schema__api_v1beta1_MachineStatus(ref),
+		"./api/v1beta1.MachineTemplateSpec":                      schema__api_v1beta1_MachineTemplateSpec(ref),
+		"./api/v1beta1.NetworkRanges":                            schema__api_v1beta1_NetworkRanges(ref),
+		"./api/v1beta1.ObjectMeta":                               schema__api_v1beta1_ObjectMeta(ref),
+		"./api/v1beta1.PatchDefinition":                          schema__api_v1beta1_PatchDefinition(ref),
+		"./api/v1beta1.PatchSelector":                            schema__api_v1beta1_PatchSelector(ref),
+		"./api/v1beta1.PatchSelectorMatch":                       schema__api_v1beta1_PatchSelectorMatch(ref),
+		"./api/v1beta1.PatchSelectorMatchMachineDeploymentClass": schema__api_v1beta1_PatchSelectorMatchMachineDeploymentClass(ref),
+		"./api/v1beta1.Topology":                                 schema__api_v1beta1_Topology(ref),
+		"./api/v1beta1.UnhealthyCondition":                       schema__api_v1beta1_UnhealthyCondition(ref),
+		"./api/v1beta1.VariableSchema":                           schema__api_v1beta1_VariableSchema(ref),
+		"./api/v1beta1.WorkersClass":                             schema__api_v1beta1_WorkersClass(ref),
+		"./api/v1beta1.WorkersTopology":                          schema__api_v1beta1_WorkersTopology(ref),
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_APIEndpoint(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_APIEndpoint(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -120,7 +120,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_APIEndpoint(ref common.ReferenceCa
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_Bootstrap(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_Bootstrap(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -148,7 +148,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Bootstrap(ref common.ReferenceCall
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_Cluster(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_Cluster(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -178,24 +178,24 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Cluster(ref common.ReferenceCallba
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterSpec"),
+							Ref:     ref("./api/v1beta1.ClusterSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterStatus"),
+							Ref:     ref("./api/v1beta1.ClusterStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "sigs.k8s.io/cluster-api/api/v1beta1.ClusterSpec", "sigs.k8s.io/cluster-api/api/v1beta1.ClusterStatus"},
+			"./api/v1beta1.ClusterSpec", "./api/v1beta1.ClusterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ClusterClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -225,18 +225,18 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClass(ref common.ReferenceC
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassSpec"),
+							Ref:     ref("./api/v1beta1.ClusterClassSpec"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassSpec"},
+			"./api/v1beta1.ClusterClassSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ClusterClassList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -270,7 +270,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassList(ref common.Refere
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClass"),
+										Ref:     ref("./api/v1beta1.ClusterClass"),
 									},
 								},
 							},
@@ -281,11 +281,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassList(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "sigs.k8s.io/cluster-api/api/v1beta1.ClusterClass"},
+			"./api/v1beta1.ClusterClass", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassPatch(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ClusterClassPatch(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -322,7 +322,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassPatch(ref common.Refer
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.PatchDefinition"),
+										Ref:     ref("./api/v1beta1.PatchDefinition"),
 									},
 								},
 							},
@@ -333,11 +333,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassPatch(ref common.Refer
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.PatchDefinition"},
+			"./api/v1beta1.PatchDefinition"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ClusterClassSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -348,21 +348,21 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassSpec(ref common.Refere
 						SchemaProps: spec.SchemaProps{
 							Description: "Infrastructure is a reference to a provider-specific template that holds the details for provisioning infrastructure specific cluster for the underlying provider. The underlying provider is responsible for the implementation of the template to an infrastructure cluster.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.LocalObjectTemplate"),
+							Ref:         ref("./api/v1beta1.LocalObjectTemplate"),
 						},
 					},
 					"controlPlane": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ControlPlane is a reference to a local struct that holds the details for provisioning the Control Plane for the Cluster.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneClass"),
+							Ref:         ref("./api/v1beta1.ControlPlaneClass"),
 						},
 					},
 					"workers": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Workers describes the worker nodes for the cluster. It is a collection of node types which can be used to create the worker nodes of the cluster.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.WorkersClass"),
+							Ref:         ref("./api/v1beta1.WorkersClass"),
 						},
 					},
 					"variables": {
@@ -373,7 +373,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassSpec(ref common.Refere
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariable"),
+										Ref:     ref("./api/v1beta1.ClusterClassVariable"),
 									},
 								},
 							},
@@ -387,7 +387,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassSpec(ref common.Refere
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassPatch"),
+										Ref:     ref("./api/v1beta1.ClusterClassPatch"),
 									},
 								},
 							},
@@ -397,11 +397,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassSpec(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassPatch", "sigs.k8s.io/cluster-api/api/v1beta1.ClusterClassVariable", "sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneClass", "sigs.k8s.io/cluster-api/api/v1beta1.LocalObjectTemplate", "sigs.k8s.io/cluster-api/api/v1beta1.WorkersClass"},
+			"./api/v1beta1.ClusterClassPatch", "./api/v1beta1.ClusterClassVariable", "./api/v1beta1.ControlPlaneClass", "./api/v1beta1.LocalObjectTemplate", "./api/v1beta1.WorkersClass"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassVariable(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ClusterClassVariable(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -428,7 +428,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassVariable(ref common.Re
 						SchemaProps: spec.SchemaProps{
 							Description: "Schema defines the schema of the variable.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.VariableSchema"),
+							Ref:         ref("./api/v1beta1.VariableSchema"),
 						},
 					},
 				},
@@ -436,11 +436,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassVariable(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.VariableSchema"},
+			"./api/v1beta1.VariableSchema"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ClusterList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -474,7 +474,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterList(ref common.ReferenceCa
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
+										Ref:     ref("./api/v1beta1.Cluster"),
 									},
 								},
 							},
@@ -485,11 +485,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterList(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "sigs.k8s.io/cluster-api/api/v1beta1.Cluster"},
+			"./api/v1beta1.Cluster", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterNetwork(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ClusterNetwork(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -506,13 +506,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterNetwork(ref common.Referenc
 					"services": {
 						SchemaProps: spec.SchemaProps{
 							Description: "The network ranges from which service VIPs are allocated.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.NetworkRanges"),
+							Ref:         ref("./api/v1beta1.NetworkRanges"),
 						},
 					},
 					"pods": {
 						SchemaProps: spec.SchemaProps{
 							Description: "The network ranges from which Pod networks are allocated.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.NetworkRanges"),
+							Ref:         ref("./api/v1beta1.NetworkRanges"),
 						},
 					},
 					"serviceDomain": {
@@ -526,11 +526,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterNetwork(ref common.Referenc
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.NetworkRanges"},
+			"./api/v1beta1.NetworkRanges"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ClusterSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -547,14 +547,14 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterSpec(ref common.ReferenceCa
 					"clusterNetwork": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Cluster network configuration.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterNetwork"),
+							Ref:         ref("./api/v1beta1.ClusterNetwork"),
 						},
 					},
 					"controlPlaneEndpoint": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ControlPlaneEndpoint represents the endpoint used to communicate with the control plane.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.APIEndpoint"),
+							Ref:         ref("./api/v1beta1.APIEndpoint"),
 						},
 					},
 					"controlPlaneRef": {
@@ -572,18 +572,18 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterSpec(ref common.ReferenceCa
 					"topology": {
 						SchemaProps: spec.SchemaProps{
 							Description: "This encapsulates the topology for the cluster. NOTE: It is required to enable the ClusterTopology feature gate flag to activate managed topologies support; this feature is highly experimental, and parts of it might still be not implemented.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Topology"),
+							Ref:         ref("./api/v1beta1.Topology"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "sigs.k8s.io/cluster-api/api/v1beta1.APIEndpoint", "sigs.k8s.io/cluster-api/api/v1beta1.ClusterNetwork", "sigs.k8s.io/cluster-api/api/v1beta1.Topology"},
+			"./api/v1beta1.APIEndpoint", "./api/v1beta1.ClusterNetwork", "./api/v1beta1.Topology", "k8s.io/api/core/v1.ObjectReference"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ClusterStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -599,7 +599,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterStatus(ref common.Reference
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.FailureDomainSpec"),
+										Ref:     ref("./api/v1beta1.FailureDomainSpec"),
 									},
 								},
 							},
@@ -650,7 +650,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterStatus(ref common.Reference
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.Condition"),
+										Ref:     ref("./api/v1beta1.Condition"),
 									},
 								},
 							},
@@ -667,11 +667,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterStatus(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.Condition", "sigs.k8s.io/cluster-api/api/v1beta1.FailureDomainSpec"},
+			"./api/v1beta1.Condition", "./api/v1beta1.FailureDomainSpec"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterVariable(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ClusterVariable(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -702,7 +702,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterVariable(ref common.Referen
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_Condition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_Condition(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -762,7 +762,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Condition(ref common.ReferenceCall
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ControlPlaneClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -773,7 +773,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneClass(ref common.Refer
 						SchemaProps: spec.SchemaProps{
 							Description: "Metadata is the metadata applied to the machines of the ControlPlane. At runtime this metadata is merged with the corresponding metadata from the topology.\n\nThis field is supported if and only if the control plane provider template referenced is Machine based.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
+							Ref:         ref("./api/v1beta1.ObjectMeta"),
 						},
 					},
 					"ref": {
@@ -785,13 +785,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneClass(ref common.Refer
 					"machineInfrastructure": {
 						SchemaProps: spec.SchemaProps{
 							Description: "MachineInfrastructure defines the metadata and infrastructure information for control plane machines.\n\nThis field is supported if and only if the control plane provider template referenced above is Machine based and supports setting replicas.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.LocalObjectTemplate"),
+							Ref:         ref("./api/v1beta1.LocalObjectTemplate"),
 						},
 					},
 					"machineHealthCheck": {
 						SchemaProps: spec.SchemaProps{
 							Description: "MachineHealthCheck defines a MachineHealthCheck for this ControlPlaneClass. This field is supported if and only if the ControlPlane provider template referenced above is Machine based and supports setting replicas.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckClass"),
+							Ref:         ref("./api/v1beta1.MachineHealthCheckClass"),
 						},
 					},
 				},
@@ -799,11 +799,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneClass(ref common.Refer
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "sigs.k8s.io/cluster-api/api/v1beta1.LocalObjectTemplate", "sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckClass", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
+			"./api/v1beta1.LocalObjectTemplate", "./api/v1beta1.MachineHealthCheckClass", "./api/v1beta1.ObjectMeta", "k8s.io/api/core/v1.ObjectReference"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneTopology(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ControlPlaneTopology(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -814,7 +814,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneTopology(ref common.Re
 						SchemaProps: spec.SchemaProps{
 							Description: "Metadata is the metadata applied to the machines of the ControlPlane. At runtime this metadata is merged with the corresponding metadata from the ClusterClass.\n\nThis field is supported if and only if the control plane provider template referenced in the ClusterClass is Machine based.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
+							Ref:         ref("./api/v1beta1.ObjectMeta"),
 						},
 					},
 					"replicas": {
@@ -834,11 +834,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneTopology(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
+			"./api/v1beta1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_FailureDomainSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_FailureDomainSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -874,7 +874,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_FailureDomainSpec(ref common.Refer
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_JSONPatch(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_JSONPatch(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -906,7 +906,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONPatch(ref common.ReferenceCall
 					"valueFrom": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ValueFrom defines the value of the patch. Note: Either Value or ValueFrom is required for add and replace operations. Only one of them is allowed to be set at the same time.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.JSONPatchValue"),
+							Ref:         ref("./api/v1beta1.JSONPatchValue"),
 						},
 					},
 				},
@@ -914,11 +914,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONPatch(ref common.ReferenceCall
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON", "sigs.k8s.io/cluster-api/api/v1beta1.JSONPatchValue"},
+			"./api/v1beta1.JSONPatchValue", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_JSONPatchValue(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_JSONPatchValue(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -945,7 +945,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONPatchValue(ref common.Referenc
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_JSONSchemaProps(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -982,7 +982,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref common.Referen
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps"),
+										Ref:     ref("./api/v1beta1.JSONSchemaProps"),
 									},
 								},
 							},
@@ -991,7 +991,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref common.Referen
 					"additionalProperties": {
 						SchemaProps: spec.SchemaProps{
 							Description: "AdditionalProperties specifies the schema of values in a map (keys are always strings). NOTE: Can only be set if type is object. NOTE: AdditionalProperties is mutually exclusive with Properties. NOTE: This field uses PreserveUnknownFields and Schemaless, because recursive validation is not possible.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps"),
+							Ref:         ref("./api/v1beta1.JSONSchemaProps"),
 						},
 					},
 					"required": {
@@ -1012,7 +1012,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref common.Referen
 					"items": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Items specifies fields of an array. NOTE: Can only be set if type is array. NOTE: This field uses PreserveUnknownFields and Schemaless, because recursive validation is not possible.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps"),
+							Ref:         ref("./api/v1beta1.JSONSchemaProps"),
 						},
 					},
 					"maxItems": {
@@ -1117,11 +1117,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref common.Referen
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON", "sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps"},
+			"./api/v1beta1.JSONSchemaProps", "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_LocalObjectTemplate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_LocalObjectTemplate(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1143,7 +1143,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_LocalObjectTemplate(ref common.Ref
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_Machine(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_Machine(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1173,24 +1173,24 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Machine(ref common.ReferenceCallba
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineSpec"),
+							Ref:     ref("./api/v1beta1.MachineSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineStatus"),
+							Ref:     ref("./api/v1beta1.MachineStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "sigs.k8s.io/cluster-api/api/v1beta1.MachineSpec", "sigs.k8s.io/cluster-api/api/v1beta1.MachineStatus"},
+			"./api/v1beta1.MachineSpec", "./api/v1beta1.MachineStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineAddress(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineAddress(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1220,7 +1220,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineAddress(ref common.Referenc
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeployment(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineDeployment(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1250,24 +1250,24 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeployment(ref common.Refer
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentSpec"),
+							Ref:     ref("./api/v1beta1.MachineDeploymentSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentStatus"),
+							Ref:     ref("./api/v1beta1.MachineDeploymentStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentSpec", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentStatus"},
+			"./api/v1beta1.MachineDeploymentSpec", "./api/v1beta1.MachineDeploymentStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineDeploymentClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1286,13 +1286,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentClass(ref common.
 						SchemaProps: spec.SchemaProps{
 							Description: "Template is a local struct containing a collection of templates for creation of MachineDeployment objects representing a set of worker nodes.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentClassTemplate"),
+							Ref:         ref("./api/v1beta1.MachineDeploymentClassTemplate"),
 						},
 					},
 					"machineHealthCheck": {
 						SchemaProps: spec.SchemaProps{
 							Description: "MachineHealthCheck defines a MachineHealthCheck for this MachineDeploymentClass.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckClass"),
+							Ref:         ref("./api/v1beta1.MachineHealthCheckClass"),
 						},
 					},
 				},
@@ -1300,11 +1300,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentClass(ref common.
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentClassTemplate", "sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckClass"},
+			"./api/v1beta1.MachineDeploymentClassTemplate", "./api/v1beta1.MachineHealthCheckClass"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentClassTemplate(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineDeploymentClassTemplate(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1315,21 +1315,21 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentClassTemplate(ref
 						SchemaProps: spec.SchemaProps{
 							Description: "Metadata is the metadata applied to the machines of the MachineDeployment. At runtime this metadata is merged with the corresponding metadata from the topology.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
+							Ref:         ref("./api/v1beta1.ObjectMeta"),
 						},
 					},
 					"bootstrap": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Bootstrap contains the bootstrap template reference to be used for the creation of worker Machines.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.LocalObjectTemplate"),
+							Ref:         ref("./api/v1beta1.LocalObjectTemplate"),
 						},
 					},
 					"infrastructure": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Infrastructure contains the infrastructure template reference to be used for the creation of worker Machines.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.LocalObjectTemplate"),
+							Ref:         ref("./api/v1beta1.LocalObjectTemplate"),
 						},
 					},
 				},
@@ -1337,11 +1337,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentClassTemplate(ref
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.LocalObjectTemplate", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
+			"./api/v1beta1.LocalObjectTemplate", "./api/v1beta1.ObjectMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineDeploymentList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1375,7 +1375,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentList(ref common.R
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDeployment"),
+										Ref:     ref("./api/v1beta1.MachineDeployment"),
 									},
 								},
 							},
@@ -1386,11 +1386,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentList(ref common.R
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDeployment"},
+			"./api/v1beta1.MachineDeployment", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineDeploymentSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1423,13 +1423,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentSpec(ref common.R
 						SchemaProps: spec.SchemaProps{
 							Description: "Template describes the machines that will be created.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineTemplateSpec"),
+							Ref:         ref("./api/v1beta1.MachineTemplateSpec"),
 						},
 					},
 					"strategy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "The deployment strategy to use to replace existing machines with new ones.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentStrategy"),
+							Ref:         ref("./api/v1beta1.MachineDeploymentStrategy"),
 						},
 					},
 					"minReadySeconds": {
@@ -1465,11 +1465,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentSpec(ref common.R
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentStrategy", "sigs.k8s.io/cluster-api/api/v1beta1.MachineTemplateSpec"},
+			"./api/v1beta1.MachineDeploymentStrategy", "./api/v1beta1.MachineTemplateSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineDeploymentStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1545,7 +1545,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStatus(ref common
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.Condition"),
+										Ref:     ref("./api/v1beta1.Condition"),
 									},
 								},
 							},
@@ -1555,11 +1555,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStatus(ref common
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.Condition"},
+			"./api/v1beta1.Condition"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineDeploymentStrategy(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1576,18 +1576,18 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStrategy(ref comm
 					"rollingUpdate": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Rolling update config params. Present only if MachineDeploymentStrategyType = RollingUpdate.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineRollingUpdateDeployment"),
+							Ref:         ref("./api/v1beta1.MachineRollingUpdateDeployment"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.MachineRollingUpdateDeployment"},
+			"./api/v1beta1.MachineRollingUpdateDeployment"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentTopology(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineDeploymentTopology(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1598,7 +1598,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentTopology(ref comm
 						SchemaProps: spec.SchemaProps{
 							Description: "Metadata is the metadata applied to the machines of the MachineDeployment. At runtime this metadata is merged with the corresponding metadata from the ClusterClass.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
+							Ref:         ref("./api/v1beta1.ObjectMeta"),
 						},
 					},
 					"class": {
@@ -1640,7 +1640,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentTopology(ref comm
 					"variables": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Variables can be used to customize the MachineDeployment through patches.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentVariables"),
+							Ref:         ref("./api/v1beta1.MachineDeploymentVariables"),
 						},
 					},
 				},
@@ -1648,11 +1648,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentTopology(ref comm
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
+			"./api/v1beta1.MachineDeploymentVariables", "./api/v1beta1.ObjectMeta", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentVariables(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineDeploymentVariables(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1667,7 +1667,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentVariables(ref com
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterVariable"),
+										Ref:     ref("./api/v1beta1.ClusterVariable"),
 									},
 								},
 							},
@@ -1677,11 +1677,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentVariables(ref com
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.ClusterVariable"},
+			"./api/v1beta1.ClusterVariable"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheck(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineHealthCheck(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1712,25 +1712,25 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheck(ref common.Refe
 						SchemaProps: spec.SchemaProps{
 							Description: "Specification of machine health check policy",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckSpec"),
+							Ref:         ref("./api/v1beta1.MachineHealthCheckSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Most recently observed status of MachineHealthCheck resource",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckStatus"),
+							Ref:         ref("./api/v1beta1.MachineHealthCheckStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckSpec", "sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckStatus"},
+			"./api/v1beta1.MachineHealthCheckSpec", "./api/v1beta1.MachineHealthCheckStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineHealthCheckClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1745,7 +1745,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckClass(ref common
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.UnhealthyCondition"),
+										Ref:     ref("./api/v1beta1.UnhealthyCondition"),
 									},
 								},
 							},
@@ -1780,11 +1780,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckClass(ref common
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/v1beta1.UnhealthyCondition"},
+			"./api/v1beta1.UnhealthyCondition", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineHealthCheckList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1818,7 +1818,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckList(ref common.
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheck"),
+										Ref:     ref("./api/v1beta1.MachineHealthCheck"),
 									},
 								},
 							},
@@ -1829,11 +1829,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckList(ref common.
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheck"},
+			"./api/v1beta1.MachineHealthCheck", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineHealthCheckSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1863,7 +1863,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckSpec(ref common.
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.UnhealthyCondition"),
+										Ref:     ref("./api/v1beta1.UnhealthyCondition"),
 									},
 								},
 							},
@@ -1899,11 +1899,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckSpec(ref common.
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/v1beta1.UnhealthyCondition"},
+			"./api/v1beta1.UnhealthyCondition", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "k8s.io/apimachinery/pkg/util/intstr.IntOrString"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineHealthCheckStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -1964,7 +1964,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckStatus(ref commo
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.Condition"),
+										Ref:     ref("./api/v1beta1.Condition"),
 									},
 								},
 							},
@@ -1974,11 +1974,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckStatus(ref commo
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.Condition"},
+			"./api/v1beta1.Condition"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2012,7 +2012,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineList(ref common.ReferenceCa
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.Machine"),
+										Ref:     ref("./api/v1beta1.Machine"),
 									},
 								},
 							},
@@ -2023,11 +2023,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineList(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "sigs.k8s.io/cluster-api/api/v1beta1.Machine"},
+			"./api/v1beta1.Machine", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineRollingUpdateDeployment(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineRollingUpdateDeployment(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2061,7 +2061,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineRollingUpdateDeployment(ref
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSet(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineSet(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2091,24 +2091,24 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSet(ref common.ReferenceCal
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineSetSpec"),
+							Ref:     ref("./api/v1beta1.MachineSetSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineSetStatus"),
+							Ref:     ref("./api/v1beta1.MachineSetStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "sigs.k8s.io/cluster-api/api/v1beta1.MachineSetSpec", "sigs.k8s.io/cluster-api/api/v1beta1.MachineSetStatus"},
+			"./api/v1beta1.MachineSetSpec", "./api/v1beta1.MachineSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineSetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2142,7 +2142,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetList(ref common.Referenc
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineSet"),
+										Ref:     ref("./api/v1beta1.MachineSet"),
 									},
 								},
 							},
@@ -2153,11 +2153,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetList(ref common.Referenc
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "sigs.k8s.io/cluster-api/api/v1beta1.MachineSet"},
+			"./api/v1beta1.MachineSet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineSetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2204,7 +2204,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetSpec(ref common.Referenc
 						SchemaProps: spec.SchemaProps{
 							Description: "Template is the object that describes the machine that will be created if insufficient replicas are detected. Object references to custom resources resources are treated as templates.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineTemplateSpec"),
+							Ref:         ref("./api/v1beta1.MachineTemplateSpec"),
 						},
 					},
 				},
@@ -2212,11 +2212,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetSpec(ref common.Referenc
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector", "sigs.k8s.io/cluster-api/api/v1beta1.MachineTemplateSpec"},
+			"./api/v1beta1.MachineTemplateSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineSetStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2290,7 +2290,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetStatus(ref common.Refere
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.Condition"),
+										Ref:     ref("./api/v1beta1.Condition"),
 									},
 								},
 							},
@@ -2300,11 +2300,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetStatus(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.Condition"},
+			"./api/v1beta1.Condition"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2323,7 +2323,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSpec(ref common.ReferenceCa
 						SchemaProps: spec.SchemaProps{
 							Description: "Bootstrap is a reference to a local struct which encapsulates fields to configure the Machine’s bootstrapping mechanism.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Bootstrap"),
+							Ref:         ref("./api/v1beta1.Bootstrap"),
 						},
 					},
 					"infrastructureRef": {
@@ -2371,11 +2371,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSpec(ref common.ReferenceCa
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/v1beta1.Bootstrap"},
+			"./api/v1beta1.Bootstrap", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2422,7 +2422,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref common.Reference
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineAddress"),
+										Ref:     ref("./api/v1beta1.MachineAddress"),
 									},
 								},
 							},
@@ -2466,7 +2466,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref common.Reference
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.Condition"),
+										Ref:     ref("./api/v1beta1.Condition"),
 									},
 								},
 							},
@@ -2476,11 +2476,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/api/core/v1.NodeSystemInfo", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/v1beta1.Condition", "sigs.k8s.io/cluster-api/api/v1beta1.MachineAddress"},
+			"./api/v1beta1.Condition", "./api/v1beta1.MachineAddress", "k8s.io/api/core/v1.NodeSystemInfo", "k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_MachineTemplateSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_MachineTemplateSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2491,25 +2491,25 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineTemplateSpec(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
+							Ref:         ref("./api/v1beta1.ObjectMeta"),
 						},
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Specification of the desired behavior of the machine. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#spec-and-status",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineSpec"),
+							Ref:         ref("./api/v1beta1.MachineSpec"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.MachineSpec", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
+			"./api/v1beta1.MachineSpec", "./api/v1beta1.ObjectMeta"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_NetworkRanges(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_NetworkRanges(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2537,7 +2537,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_NetworkRanges(ref common.Reference
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_ObjectMeta(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_ObjectMeta(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2582,7 +2582,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ObjectMeta(ref common.ReferenceCal
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_PatchDefinition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_PatchDefinition(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2593,7 +2593,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_PatchDefinition(ref common.Referen
 						SchemaProps: spec.SchemaProps{
 							Description: "Selector defines on which templates the patch should be applied.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.PatchSelector"),
+							Ref:         ref("./api/v1beta1.PatchSelector"),
 						},
 					},
 					"jsonPatches": {
@@ -2604,7 +2604,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_PatchDefinition(ref common.Referen
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.JSONPatch"),
+										Ref:     ref("./api/v1beta1.JSONPatch"),
 									},
 								},
 							},
@@ -2615,11 +2615,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_PatchDefinition(ref common.Referen
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.JSONPatch", "sigs.k8s.io/cluster-api/api/v1beta1.PatchSelector"},
+			"./api/v1beta1.JSONPatch", "./api/v1beta1.PatchSelector"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_PatchSelector(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_PatchSelector(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2646,7 +2646,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_PatchSelector(ref common.Reference
 						SchemaProps: spec.SchemaProps{
 							Description: "MatchResources selects templates based on where they are referenced.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.PatchSelectorMatch"),
+							Ref:         ref("./api/v1beta1.PatchSelectorMatch"),
 						},
 					},
 				},
@@ -2654,11 +2654,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_PatchSelector(ref common.Reference
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.PatchSelectorMatch"},
+			"./api/v1beta1.PatchSelectorMatch"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_PatchSelectorMatch(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_PatchSelectorMatch(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2682,18 +2682,18 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_PatchSelectorMatch(ref common.Refe
 					"machineDeploymentClass": {
 						SchemaProps: spec.SchemaProps{
 							Description: "MachineDeploymentClass selects templates referenced in specific MachineDeploymentClasses in .spec.workers.machineDeployments.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.PatchSelectorMatchMachineDeploymentClass"),
+							Ref:         ref("./api/v1beta1.PatchSelectorMatchMachineDeploymentClass"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.PatchSelectorMatchMachineDeploymentClass"},
+			"./api/v1beta1.PatchSelectorMatchMachineDeploymentClass"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_PatchSelectorMatchMachineDeploymentClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_PatchSelectorMatchMachineDeploymentClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2721,7 +2721,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_PatchSelectorMatchMachineDeploymen
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_Topology(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_Topology(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2754,13 +2754,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Topology(ref common.ReferenceCallb
 						SchemaProps: spec.SchemaProps{
 							Description: "ControlPlane describes the cluster control plane.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneTopology"),
+							Ref:         ref("./api/v1beta1.ControlPlaneTopology"),
 						},
 					},
 					"workers": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Workers encapsulates the different constructs that form the worker nodes for the cluster.",
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.WorkersTopology"),
+							Ref:         ref("./api/v1beta1.WorkersTopology"),
 						},
 					},
 					"variables": {
@@ -2771,7 +2771,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Topology(ref common.ReferenceCallb
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.ClusterVariable"),
+										Ref:     ref("./api/v1beta1.ClusterVariable"),
 									},
 								},
 							},
@@ -2782,11 +2782,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Topology(ref common.ReferenceCallb
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Time", "sigs.k8s.io/cluster-api/api/v1beta1.ClusterVariable", "sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneTopology", "sigs.k8s.io/cluster-api/api/v1beta1.WorkersTopology"},
+			"./api/v1beta1.ClusterVariable", "./api/v1beta1.ControlPlaneTopology", "./api/v1beta1.WorkersTopology", "k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_UnhealthyCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_UnhealthyCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2822,7 +2822,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_UnhealthyCondition(ref common.Refe
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_VariableSchema(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_VariableSchema(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2833,7 +2833,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_VariableSchema(ref common.Referenc
 						SchemaProps: spec.SchemaProps{
 							Description: "OpenAPIV3Schema defines the schema of a variable via OpenAPI v3 schema. The schema is a subset of the schema used in Kubernetes CRDs.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps"),
+							Ref:         ref("./api/v1beta1.JSONSchemaProps"),
 						},
 					},
 				},
@@ -2841,11 +2841,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_VariableSchema(ref common.Referenc
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.JSONSchemaProps"},
+			"./api/v1beta1.JSONSchemaProps"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_WorkersClass(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2860,7 +2860,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersClass(ref common.ReferenceC
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentClass"),
+										Ref:     ref("./api/v1beta1.MachineDeploymentClass"),
 									},
 								},
 							},
@@ -2870,11 +2870,11 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersClass(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentClass"},
+			"./api/v1beta1.MachineDeploymentClass"},
 	}
 }
 
-func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersTopology(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema__api_v1beta1_WorkersTopology(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2889,7 +2889,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersTopology(ref common.Referen
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentTopology"),
+										Ref:     ref("./api/v1beta1.MachineDeploymentTopology"),
 									},
 								},
 							},
@@ -2899,6 +2899,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersTopology(ref common.Referen
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentTopology"},
+			"./api/v1beta1.MachineDeploymentTopology"},
 	}
 }

@@ -30,10 +30,10 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoveryRequest":  schema_runtime_hooks_api_v1alpha1_DiscoveryRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoveryResponse": schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ExtensionHandler":  schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GroupVersionHook":  schema_runtime_hooks_api_v1alpha1_GroupVersionHook(ref),
+		"./exp/runtime/hooks/api/v1alpha1.DiscoveryRequest":  schema_runtime_hooks_api_v1alpha1_DiscoveryRequest(ref),
+		"./exp/runtime/hooks/api/v1alpha1.DiscoveryResponse": schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref),
+		"./exp/runtime/hooks/api/v1alpha1.ExtensionHandler":  schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref),
+		"./exp/runtime/hooks/api/v1alpha1.GroupVersionHook":  schema_runtime_hooks_api_v1alpha1_GroupVersionHook(ref),
 	}
 }
 
@@ -117,7 +117,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref common.ReferenceCal
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ExtensionHandler"),
+										Ref:     ref("./exp/runtime/hooks/api/v1alpha1.ExtensionHandler"),
 									},
 								},
 							},
@@ -128,7 +128,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref common.ReferenceCal
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ExtensionHandler"},
+			"./exp/runtime/hooks/api/v1alpha1.ExtensionHandler"},
 	}
 }
 
@@ -151,7 +151,7 @@ func schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref common.ReferenceCall
 						SchemaProps: spec.SchemaProps{
 							Description: "RequestHook defines the versioned runtime hook which this ExtensionHandler serves.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GroupVersionHook"),
+							Ref:         ref("./exp/runtime/hooks/api/v1alpha1.GroupVersionHook"),
 						},
 					},
 					"timeoutSeconds": {
@@ -173,7 +173,7 @@ func schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref common.ReferenceCall
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GroupVersionHook"},
+			"./exp/runtime/hooks/api/v1alpha1.GroupVersionHook"},
 	}
 }
 

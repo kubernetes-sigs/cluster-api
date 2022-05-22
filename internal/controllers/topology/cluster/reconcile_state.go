@@ -230,6 +230,20 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 		return err
 	}
 
+	// If the controlPlane has infrastructureMachines and the InfrastructureMachineTemplate has changed on this reconcile
+	// delete the old template.
+	// This is a best effort deletion only and may leak templates if an error occurs during reconciliation.
+	if s.Blueprint.HasControlPlaneInfrastructureMachine() && s.Current.ControlPlane.InfrastructureMachineTemplate != nil {
+		if s.Current.ControlPlane.InfrastructureMachineTemplate.GetName() != s.Desired.ControlPlane.InfrastructureMachineTemplate.GetName() {
+			if err := r.Client.Delete(ctx, s.Current.ControlPlane.InfrastructureMachineTemplate); err != nil {
+				return errors.Wrapf(err, "failed to delete oldinfrastructure machine template %s of control plane %s",
+					tlog.KObj{Obj: s.Current.ControlPlane.InfrastructureMachineTemplate},
+					tlog.KObj{Obj: s.Current.ControlPlane.Object},
+				)
+			}
+		}
+	}
+
 	// If the ControlPlane has defined a current or desired MachineHealthCheck attempt to reconcile it.
 	if s.Desired.ControlPlane.MachineHealthCheck != nil || s.Current.ControlPlane.MachineHealthCheck != nil {
 		// Set the ControlPlane Object and the Cluster as owners for the MachineHealthCheck to ensure object garbage collection

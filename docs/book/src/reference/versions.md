@@ -119,6 +119,7 @@ The Kubeadm Control Plane requires the Kubeadm Bootstrap Provider.
 | v0.4 (v1alpha4) | v1.8.4                          |
 | v1.0 (v1beta1)  | v1.8.5                          | 
 | v1.1 (v1beta1)  | v1.8.6                          |
+| v1.2 (v1beta1)  | v1.9.2                          |
 
 #### clusterctl
 

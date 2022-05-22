@@ -161,6 +161,13 @@ func (l *ProviderList) FilterByProviderNameAndType(provider string, providerType
 	})
 }
 
+// FilterByProviderNameNamespaceTypeVersion returns a new list of provider that match the name, namespace, type and version.
+func (l *ProviderList) FilterByProviderNameNamespaceTypeVersion(provider, namespace string, providerType ProviderType, version string) []Provider {
+	return l.filterBy(func(p Provider) bool {
+		return p.ProviderName == provider && p.Namespace == namespace && p.Type == string(providerType) && p.Version == version
+	})
+}
+
 // FilterByType returns a new list of providers that match the given type.
 func (l *ProviderList) FilterByType(providerType ProviderType) []Provider {
 	return l.filterBy(func(p Provider) bool {

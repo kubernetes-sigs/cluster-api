@@ -190,10 +190,16 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOptions) (cluster.ProviderInstaller, error) {
 	installer := cluster.ProviderInstaller()
 
+	providerList, err := cluster.ProviderInventory().List()
+	if err != nil {
+		return nil, err
+	}
+
 	addOptions := addToInstallerOptions{
 		installer:           installer,
 		targetNamespace:     options.TargetNamespace,
 		skipTemplateProcess: options.skipTemplateProcess,
+		providerList:        providerList,
 	}
 
 	if options.CoreProvider != "" {
@@ -245,6 +251,7 @@ type addToInstallerOptions struct {
 	installer           cluster.ProviderInstaller
 	targetNamespace     string
 	skipTemplateProcess bool
+	providerList        *clusterctlv1.ProviderList
 }
 
 // addToInstaller adds the components to the install queue and checks that the actual provider type match the target group.
@@ -268,6 +275,17 @@ func (c *clusterctlClient) addToInstaller(options addToInstallerOptions, provide
 
 		if components.Type() != providerType {
 			return errors.Errorf("can't use %q provider as an %q, it is a %q", provider, providerType, components.Type())
+		}
+
+		// If a provider of the same name, type and version already exists in the Cluster skip adding it to the installer.
+		matchingProviders := options.providerList.FilterByProviderNameNamespaceTypeVersion(
+			components.Name(),
+			components.TargetNamespace(),
+			components.Type(),
+			components.Version(),
+		)
+		if len(matchingProviders) != 0 {
+			continue
 		}
 
 		options.installer.Add(components)

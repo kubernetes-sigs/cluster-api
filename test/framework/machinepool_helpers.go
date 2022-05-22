@@ -139,7 +139,9 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 
 		oldVersion := mp.Spec.Template.Spec.Version
 		mp.Spec.Template.Spec.Version = &input.UpgradeVersion
-		Expect(patchHelper.Patch(ctx, mp)).To(Succeed())
+		Eventually(func() error {
+			return patchHelper.Patch(ctx, mp)
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachinePool %s/%s to be upgraded from %s to %s",
 			mp.Namespace, mp.Name, *oldVersion, input.UpgradeVersion)
@@ -176,7 +178,9 @@ func ScaleMachinePoolAndWait(ctx context.Context, input ScaleMachinePoolAndWaitI
 		Expect(err).ToNot(HaveOccurred())
 
 		mp.Spec.Replicas = &input.Replicas
-		Expect(patchHelper.Patch(ctx, mp)).To(Succeed())
+		Eventually(func() error {
+			return patchHelper.Patch(ctx, mp)
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 	}
 
 	for _, mp := range input.MachinePools {

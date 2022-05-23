@@ -37,7 +37,7 @@ if [ -z "${GOBIN}" ]; then
   exit 1
 fi
 
-rm "${GOBIN}/${2}"* || true
+rm -f "${GOBIN}/${2}"* || true
 
 # install the golang module specified as the first argument
 go install "${1}@${3}"

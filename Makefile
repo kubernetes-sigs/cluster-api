@@ -20,6 +20,9 @@ SHELL:=/usr/bin/env bash
 
 .DEFAULT_GOAL:=help
 
+# Enable parallel make
+MAKEFLAGS += -j
+
 #
 # Go.
 #
@@ -190,7 +193,11 @@ ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-*, generate-go-conversions-* and generate-go-openapi targets
-	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions generate-go-openapi
+	$(MAKE) generate-modules
+	$(MAKE) generate-manifests
+	$(MAKE) generate-go-deepcopy
+	$(MAKE) generate-go-conversions
+	$(MAKE) generate-go-openapi
 	$(MAKE) -C $(CAPD_DIR) generate
 
 .PHONY: generate-manifests

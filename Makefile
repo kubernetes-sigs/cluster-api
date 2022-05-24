@@ -408,8 +408,12 @@ apidiff: $(GO_APIDIFF) ## Check for API differences
 ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions docker-provider
 
 .PHONY: verify
-.NOTPARALLEL: verify
-verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
+verify:
+	$(MAKE) verify-doctoc verify-boilerplate verify-shellcheck verify-tiltfile
+	$(MAKE) verify-modules
+	$(MAKE) verify-gen
+	$(MAKE) verify-conversions
+	$(MAKE) verify-docker-provider
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date

@@ -434,6 +434,7 @@ verify-gen: generate  ## Verfiy go generated files are up to date
 	fi
 
 .PHONY: verify-conversions
+.NOTPARALLEL: verify-conversions
 verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion are in place
 	$(CONVERSION_VERIFIER)
 

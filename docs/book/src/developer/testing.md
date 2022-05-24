@@ -223,6 +223,7 @@ kustomize_substitutions:
   EXP_MACHINE_POOL: "true"
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
+  EXP_RUNTIME_SDK: "true"
 ```
 
 </aside>

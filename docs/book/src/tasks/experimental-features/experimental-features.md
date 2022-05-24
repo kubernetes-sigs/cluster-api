@@ -33,7 +33,9 @@ variables:
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_MACHINE_POOL: "true"
   CLUSTER_TOPOLOGY: "true"
+  EXP_RUNTIME_SDK: "true"
 ```
+
 Another way is to set them as environmental variables before running e2e tests.
 
 ## Enabling Experimental Features on Tilt
@@ -45,6 +47,7 @@ kustomize_substitutions:
   EXP_CLUSTER_RESOURCE_SET: 'true'
   EXP_MACHINE_POOL: 'true'
   CLUSTER_TOPOLOGY: 'true'
+  EXP_RUNTIME_SDK: 'true'
 ```
 
 For more details on setting up a development environment with `tilt`, see [Developing Cluster API with Tilt](../../developer/tilt.md)
@@ -73,6 +76,7 @@ Similarly, to **validate** if a particular feature is enabled, see cluster-api-p
 * [ClusterResourceSet](./cluster-resource-set.md)
 * [ClusterClass](./cluster-class/index.md)
 * [Ignition Bootstrap configuration](./ignition.md)
+* [Runtime SDK](./runtime-sdk.md)
 
 **Warning**: Experimental features are unreliable, i.e., some may one day be promoted to the main repository, or they may be modified arbitrarily or even disappear altogether.
 In short, they are not subject to any compatibility or deprecation promise.

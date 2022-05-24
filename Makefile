@@ -408,6 +408,7 @@ apidiff: $(GO_APIDIFF) ## Check for API differences
 ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions docker-provider
 
 .PHONY: verify
+.NOTPARALLEL: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
 
 .PHONY: verify-modules

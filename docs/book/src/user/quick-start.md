@@ -552,13 +552,28 @@ See the [GCP provider] for more information.
 {{#tab IBM Cloud}}
 
 ```bash
+# Required environment variables for VPC
+# VPC region
+export IBMVPC_REGION=us-south
+# VPC zone within the region
+export IBMVPC_ZONE=us-south-1
+# ID of the resource group in which the VPC will be created
+export IBMVPC_RESOURCEGROUP=<your-resource-group-id>
+# Name of the VPC
+export IBMVPC_NAME=ibm-vpc-0
+export IBMVPC_IMAGE_ID=<you-image-id>
+# Profile for the virtual server instances
+export IBMVPC_PROFILE=bx2-4x16
+export IBMVPC_SSHKEY_ID=<your-sshkey-id>
+
+# Required environment variables for PowerVS
 export IBMPOWERVS_SSHKEY_NAME=<your-ssh-key>
 # Internal and external IP of the network
 export IBMPOWERVS_VIP=<internal-ip>
 export IBMPOWERVS_VIP_EXTERNAL=<external-ip>
 export IBMPOWERVS_VIP_CIDR=29
 export IBMPOWERVS_IMAGE_NAME=<your-capi-image-name>
-# ID of the service instance in the cloud account
+# ID of the PowerVS service instance
 export IBMPOWERVS_SERVICE_INSTANCE_ID=<service-instance-id>
 export IBMPOWERVS_NETWORK_NAME=<your-capi-network-name>
 ```

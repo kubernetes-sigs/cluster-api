@@ -57,7 +57,7 @@ Help and contributions are very welcome in the form of code contributions but al
 
 ### Codebase and Go Modules
 
-> :warning: The project does not follow Go Modules guidelines for compatibility requirements for 1.x semver releases.
+> ⚠ The project does not follow Go Modules guidelines for compatibility requirements for 1.x semver releases.
 
 Cluster API follows upstream Kubernetes semantic versioning. With the v1 release of our codebase, we guarantee the following:
 

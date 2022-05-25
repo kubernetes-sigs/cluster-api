@@ -269,8 +269,8 @@ can be found in the annex at the end of the document. Please note that during im
 mechanism allowing to:
 
 - Inform admins about Runtime Extension using a deprecated version of a Runtime Hook (e.g. return a well known
-  HTTP header, set a condition on the RuntimeExtensionConfiguration object defined in the following paragraphs,
-  webhook warnings on RuntimeExtensionConfiguration create/update).
+  HTTP header, set a condition on the ExtensionConfig object defined in the following paragraphs,
+  webhook warnings on ExtensionConfig create/update).
 - Prevent upgrades to new Cluster API versions that makes configured Runtime Extension not functional due to
   the expiration of the deprecation period (e.g. implement a preflight check in the `clusterctl upgrade` command
   or a validation webhook, if possible).
@@ -510,7 +510,7 @@ In these cases above recommendations about availability and identity and access 
 _Important! Cluster administrators should carefully vet any Runtime Extension registration, thus preventing
 malicious components from being added to the system._
 
-_Creating RuntimeExtensionConfiguration will be allowed only if the Runtime Extension feature flag is set to true._
+_Creating ExtensionConfigs will be allowed only if the Runtime Extension feature flag is set to true._
 
 By registering a Runtime Extension the Cluster API Runtime becomes aware of a Runtime Extension implementing a
 Runtime Hook, and as a consequence the runtime starts calling the extension at well-defined moments of the
@@ -519,11 +519,11 @@ workload cluster’s lifecycle.
 This process has many similarities with registering dynamic webhooks in Kubernetes, but some specific 
 behavior is introduced by this proposal:
 
-The Cluster administrator is required to register available Runtime Extension server using the following CR
+The Cluster administrator is required to register available Runtime Extension server using the following CR:
 
 ```yaml
-apiVersion: runtime.cluster.x-k8s.io/v1beta1
-kind: Extension
+apiVersion: runtime.cluster.x-k8s.io/v1alpha1
+kind: ExtensionConfig
 metadata:
   name: "my-amazing-extensions"
 spec:
@@ -544,12 +544,12 @@ spec:
 ```
 
 Once the extension is registered the [discovery hook](#discovery-hook) is called and the above CR is updated with the list
-of the Runtime Extensions supported by the server.
+of the Runtime Extensions supported by the server. The ExtensionConfig is Cluster scoped, meaning it has no namespace. The `namespaceSelector` will enable targeting of a subset of Clusters. 
 
 ```yaml
 
 apiVersion: runtime.cluster.x-k8s.io/v1beta1 
-kind: Extension
+kind: ExtensionConfig
 metadata:
   name: "my-amazing-extensions"
 spec:
@@ -791,7 +791,7 @@ Following threats were considered:
 - Malicious Runtime Extensions being registered 
 
 Mitigation: The same mitigations used for avoiding malicious dynamic webhooks in Kubernetes apply
-(defining RBAC rules for the RuntimeExtensionConfiguration assigning this responsibility to cluster admin only).
+(defining RBAC rules for the ExtensionConfig assigning this responsibility to cluster admin only).
 
 - Privilege escalation of HTTP Servers running Runtime Extensions
 

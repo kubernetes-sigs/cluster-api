@@ -17,7 +17,7 @@ spec:
     shortNames:
     - ext
     singular: extensionconfig
-  scope: Namespaced
+  scope: Cluster
   versions:
   - additionalPrinterColumns:
     - description: Time duration since creation of ExtensionConfig

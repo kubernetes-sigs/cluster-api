@@ -4,7 +4,7 @@
         "pattern": "^http://localhost"
         }
 ],
-    "timeout": "5s",
+    "timeout": "10s",
     "retryOn429": true,
     "retryCount": 5,
     "fallbackRetryDelay": "30s",

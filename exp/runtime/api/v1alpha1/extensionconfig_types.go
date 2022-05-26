@@ -152,7 +152,7 @@ const (
 // ANCHOR_END: ExtensionConfigStatus
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:path=extensionconfigs,shortName=ext,scope=Namespaced,categories=cluster-api
+// +kubebuilder:resource:path=extensionconfigs,shortName=ext,scope=Cluster,categories=cluster-api
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ExtensionConfig"

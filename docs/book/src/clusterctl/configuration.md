@@ -89,6 +89,14 @@ Please note that the configuration above will be considered also when doing `clu
 
 ## Overrides Layer
 
+<aside class="note warning">
+
+<h1> Warning! </h1>
+
+Overrides only provide file replacements; instead, provider version resolution is based only on the actual repository structure.
+
+</aside>
+
 `clusterctl` uses an overrides layer to read in injected provider components,
 cluster templates and metadata. By default, it reads the files from
 `$HOME/.cluster-api/overrides`.
@@ -168,7 +176,7 @@ overridesFolder: /Users/foobar/workspace/dev-releases
 Image override is an advanced feature and wrong configuration can easily lead to non-functional clusters.
 It's strongly recommended to test configurations on dev/test environments before using this functionality in production.
 
-This feature must always be used in conjunction with 
+This feature must always be used in conjunction with
 [version tag](commands/init.md#provider-version) when executing clusterctl commands.
 
 </aside>

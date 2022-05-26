@@ -71,6 +71,9 @@ Cluster API Provider Oracle Cloud Infrastructure (OCI)
 ### CAPV
 Cluster API Provider vSphere
 
+### CAPVC
+Cluster API Provider vcluster
+
 ### CAPZ
 Cluster API Provider Azure
 

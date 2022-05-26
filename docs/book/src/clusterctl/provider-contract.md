@@ -204,6 +204,7 @@ providers.
 |CAPG          | cluster.x-k8s.io/provider=infrastructure-gcp           |
 |CAPX          | cluster.x-k8s.io/provider=infrastructure-nutanix       |
 |CAPK          | cluster.x-k8s.io/provider=infrastructure-kubevirt      |
+|CAPVC         | cluster.x-k8s.io/provider=infrastructure-vcluster      |
 
 ### Workload cluster templates
 

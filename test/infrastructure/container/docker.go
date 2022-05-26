@@ -412,7 +412,7 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 
 	// Make sure we have the image
 	if err := d.PullContainerImageIfNotExists(ctx, runConfig.Image); err != nil {
-		return err
+		return errors.Wrapf(err, "error pulling container image %s", runConfig.Image)
 	}
 
 	// Create the container using our settings

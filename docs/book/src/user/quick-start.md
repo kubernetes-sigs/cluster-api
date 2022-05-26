@@ -45,7 +45,7 @@ a target [management cluster] on the selected [infrastructure provider].
 
    [kind] is not designed for production use.
 
-   **Minimum [kind] supported version**: v0.9.0
+   **Minimum [kind] supported version**: v0.14.0
 
    Note for macOS users: you may need to [increase the memory available](https://docs.docker.com/docker-for-mac/#resources) for containers (recommend 6Gb for CAPD).
 
@@ -285,10 +285,16 @@ The Docker provider is not designed for production use and is intended for devel
 
 </aside>
 
-The Docker provider does not require additional prerequisites.
-You can run:
+The Docker provider requires the `ClusterTopology` feature to deploy ClusterClass-based clusters. We are 
+only supporting ClusterClass-based cluster-templates in this quickstart as ClusterClass makes it possible to 
+adapt configuration based on Kubernetes version. This is required to install Kubernetes clusters < v1.24 and 
+for the upgrade from v1.23 to v1.24 as we have to use different cgroupDrivers depending on Kubernetes version.
 
 ```
+# Enable the experimental Cluster topology feature.
+export CLUSTER_TOPOLOGY=true
+
+# Initialize the management cluster
 clusterctl init --infrastructure docker
 ```
 
@@ -746,7 +752,7 @@ For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
 ```bash
 clusterctl generate cluster capi-quickstart \
-  --kubernetes-version v1.23.3 \
+  --kubernetes-version v1.24.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -765,17 +771,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 ```bash
 clusterctl generate cluster capi-quickstart --flavor development \
-  --kubernetes-version v1.23.3 \
-  --control-plane-machine-count=3 \
-  --worker-machine-count=3 \
-  > capi-quickstart.yaml
-```
-
-To create a Cluster with ClusterClass:
-
-```bash
-clusterctl generate cluster capi-quickstart --flavor development-topology \
-  --kubernetes-version v1.23.3 \
+  --kubernetes-version v1.24.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -835,7 +831,7 @@ You should see an output is similar to this:
 
 ```bash
 NAME                            INITIALIZED   API SERVER AVAILABLE   VERSION   REPLICAS   READY   UPDATED   UNAVAILABLE
-capi-quickstart-control-plane   true                                 v1.23.3   3                  3         3
+capi-quickstart-control-plane   true                                 v1.24.0   3                  3         3
 ```
 
 <aside class="note warning">

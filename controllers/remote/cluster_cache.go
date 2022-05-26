@@ -49,6 +49,7 @@ const (
 	healthCheckPollInterval       = 10 * time.Second
 	healthCheckRequestTimeout     = 5 * time.Second
 	healthCheckUnhealthyThreshold = 10
+	initialCacheSyncTimeout       = 5 * time.Minute
 	clusterCacheControllerName    = "cluster-cache-tracker"
 )
 
@@ -61,6 +62,7 @@ type ClusterCacheTracker struct {
 
 	lock             sync.RWMutex
 	clusterAccessors map[client.ObjectKey]*clusterAccessor
+	clusterLock      *keyedMutex
 	indexes          []Index
 }
 
@@ -102,16 +104,14 @@ func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOpt
 		client:                manager.GetClient(),
 		scheme:                manager.GetScheme(),
 		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
+		clusterLock:           newKeyedMutex(),
 		indexes:               options.Indexes,
 	}, nil
 }
 
 // GetClient returns a cached client for the given cluster.
 func (t *ClusterCacheTracker) GetClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
-	t.lock.Lock()
-	defer t.lock.Unlock()
-
-	accessor, err := t.getClusterAccessorLH(ctx, cluster, t.indexes...)
+	accessor, err := t.getClusterAccessor(ctx, cluster, t.indexes...)
 	if err != nil {
 		return nil, err
 	}
@@ -135,21 +135,48 @@ func (t *ClusterCacheTracker) clusterAccessorExists(cluster client.ObjectKey) bo
 	return exists
 }
 
-// getClusterAccessorLH first tries to return an already-created clusterAccessor for cluster, falling back to creating a
-// new clusterAccessor if needed. Note, this method requires t.lock to already be held (LH=lock held).
-func (t *ClusterCacheTracker) getClusterAccessorLH(ctx context.Context, cluster client.ObjectKey, indexes ...Index) (*clusterAccessor, error) {
-	a := t.clusterAccessors[cluster]
+// getClusterAccessor first tries to return an already-created clusterAccessor for cluster, falling back to creating a new clusterAccessor if needed.
+func (t *ClusterCacheTracker) getClusterAccessor(ctx context.Context, cluster client.ObjectKey, indexes ...Index) (*clusterAccessor, error) {
+	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+
+	loadExistingAccessor := func() *clusterAccessor {
+		t.lock.RLock()
+		defer t.lock.RUnlock()
+		return t.clusterAccessors[cluster]
+	}
+	storeAccessor := func(a *clusterAccessor) {
+		t.lock.Lock()
+		defer t.lock.Unlock()
+		t.clusterAccessors[cluster] = a
+	}
+
+	// if the accessor exists, return early
+	a := loadExistingAccessor()
 	if a != nil {
 		return a, nil
 	}
 
-	a, err := t.newClusterAccessor(ctx, cluster, indexes...)
-	if err != nil {
-		return nil, errors.Wrap(err, "error creating client and cache for remote cluster")
+	// No cluster exists, we might need to initialize one.
+	// Lock on the cluster to ensure only one accessor is initialized for the cluster.
+	unlockCluster := t.clusterLock.Lock(cluster)
+	defer unlockCluster()
+
+	// While we were waiting on the cluster lock, a different goroutine holding the lock might have initialized the accessor
+	// for this cluster successfully. If this is the case we return it.
+	a = loadExistingAccessor()
+	if a != nil {
+		return a, nil
 	}
 
-	t.clusterAccessors[cluster] = a
-
+	// We are the one who needs to initialize it.
+	log.V(4).Info("creating new cluster accessor")
+	a, err := t.newClusterAccessor(ctx, cluster, indexes...)
+	if err != nil {
+		log.V(4).Info("error creating new cluster accessor")
+		return nil, errors.Wrap(err, "error creating client and cache for remote cluster")
+	}
+	log.V(4).Info("storing new cluster accessor")
+	storeAccessor(a)
 	return a, nil
 }
 
@@ -199,7 +226,12 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 
 	// Start the cache!!!
 	go cache.Start(cacheCtx) //nolint:errcheck
-	if !cache.WaitForCacheSync(cacheCtx) {
+
+	// Wait until the cache is initially synced
+	cacheSyncCtx, cacheSyncCtxCancel := context.WithTimeout(ctx, initialCacheSyncTimeout)
+	defer cacheSyncCtxCancel()
+	if !cache.WaitForCacheSync(cacheSyncCtx) {
+		cache.Stop()
 		return nil, fmt.Errorf("failed waiting for cache for remote cluster %v to sync: %w", cluster, err)
 	}
 
@@ -277,13 +309,13 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 		return errors.New("input.Name is required")
 	}
 
-	t.lock.Lock()
-	defer t.lock.Unlock()
-
-	a, err := t.getClusterAccessorLH(ctx, input.Cluster, t.indexes...)
+	a, err := t.getClusterAccessor(ctx, input.Cluster, t.indexes...)
 	if err != nil {
 		return err
 	}
+
+	unlock := t.clusterLock.Lock(input.Cluster)
+	defer unlock()
 
 	if a.watches.Has(input.Name) {
 		t.log.V(6).Info("Watch already exists", "namespace", input.Cluster.Namespace, "cluster", input.Cluster.Name, "name", input.Name)

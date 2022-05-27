@@ -29,7 +29,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	fakev1alpha1 "sigs.k8s.io/cluster-api/internal/runtime/catalog/test/v1alpha1"
 	fakev1alpha2 "sigs.k8s.io/cluster-api/internal/runtime/catalog/test/v1alpha2"
 )
@@ -65,7 +65,7 @@ func TestClient_httpCall(t *testing.T) {
 			request:  &fakev1alpha1.FakeRequest{},
 			response: &fakev1alpha1.FakeResponse{},
 			opts: &httpCallOptions{
-				catalog: catalog.New(),
+				catalog: runtimecatalog.New(),
 			},
 			wantErr: true,
 		},
@@ -79,7 +79,7 @@ func TestClient_httpCall(t *testing.T) {
 			},
 			response: &fakev1alpha1.FakeResponse{},
 			opts: func() *httpCallOptions {
-				c := catalog.New()
+				c := runtimecatalog.New()
 				g.Expect(fakev1alpha1.AddToCatalog(c)).To(Succeed())
 
 				// get same gvh for hook by using the FakeHook and catalog
@@ -103,7 +103,7 @@ func TestClient_httpCall(t *testing.T) {
 			},
 			response: &fakev1alpha2.FakeResponse{},
 			opts: func() *httpCallOptions {
-				c := catalog.New()
+				c := runtimecatalog.New()
 				// register fakev1alpha1 and fakev1alpha2 to enable conversion
 				g.Expect(fakev1alpha1.AddToCatalog(c)).To(Succeed())
 				g.Expect(fakev1alpha2.AddToCatalog(c)).To(Succeed())
@@ -164,7 +164,7 @@ func fakeHookHandler(w http.ResponseWriter, r *http.Request) {
 func TestURLForExtension(t *testing.T) {
 	type args struct {
 		config               runtimev1.ClientConfig
-		gvh                  catalog.GroupVersionHook
+		gvh                  runtimecatalog.GroupVersionHook
 		extensionHandlerName string
 	}
 
@@ -174,7 +174,7 @@ func TestURLForExtension(t *testing.T) {
 		path   string
 	}
 
-	gvh := catalog.GroupVersionHook{
+	gvh := runtimecatalog.GroupVersionHook{
 		Group:   "test.runtime.cluster.x-k8s.io",
 		Version: "v1alpha1",
 		Hook:    "testhook.test-extension",
@@ -202,7 +202,7 @@ func TestURLForExtension(t *testing.T) {
 			want: want{
 				scheme: "http",
 				host:   "extension-service.test1.svc:8443",
-				path:   catalog.GVHToPath(gvh, "test-handler"),
+				path:   runtimecatalog.GVHToPath(gvh, "test-handler"),
 			},
 			wantErr: false,
 		},
@@ -223,7 +223,7 @@ func TestURLForExtension(t *testing.T) {
 			want: want{
 				scheme: "https",
 				host:   "extension-service.test1.svc:8443",
-				path:   catalog.GVHToPath(gvh, "test-handler"),
+				path:   runtimecatalog.GVHToPath(gvh, "test-handler"),
 			},
 			wantErr: false,
 		},
@@ -239,7 +239,7 @@ func TestURLForExtension(t *testing.T) {
 			want: want{
 				scheme: "https",
 				host:   "extension-host.com",
-				path:   catalog.GVHToPath(gvh, "test-handler"),
+				path:   runtimecatalog.GVHToPath(gvh, "test-handler"),
 			},
 			wantErr: false,
 		},

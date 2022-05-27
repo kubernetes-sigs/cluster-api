@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
-	extensionconfigs "sigs.k8s.io/cluster-api/exp/runtime/internal/controllers"
+	runtimecontrollers "sigs.k8s.io/cluster-api/exp/runtime/internal/controllers"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 )
 
@@ -38,7 +38,7 @@ type ExtensionConfigReconciler struct {
 }
 
 func (r *ExtensionConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	return (&extensionconfigs.Reconciler{
+	return (&runtimecontrollers.Reconciler{
 		Client:           r.Client,
 		APIReader:        r.APIReader,
 		RuntimeClient:    r.RuntimeClient,

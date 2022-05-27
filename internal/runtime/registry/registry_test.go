@@ -27,7 +27,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
 
 func TestColdRegistry(t *testing.T) {
@@ -39,7 +39,7 @@ func TestColdRegistry(t *testing.T) {
 	// Add, Remove, List and Get should fail with a cold registry.
 	g.Expect(r.Add(&runtimev1.ExtensionConfig{})).ToNot(Succeed())
 	g.Expect(r.Remove(&runtimev1.ExtensionConfig{})).ToNot(Succeed())
-	_, err := r.List(catalog.GroupHook{Group: "foo", Hook: "bak"})
+	_, err := r.List(runtimecatalog.GroupHook{Group: "foo", Hook: "bak"})
 	g.Expect(err).To(HaveOccurred())
 	_, err = r.Get("foo")
 	g.Expect(err).To(HaveOccurred())
@@ -82,7 +82,7 @@ func TestWarmUpRegistry(t *testing.T) {
 	g.Expect(r.Add(&runtimev1.ExtensionConfig{})).To(Succeed())
 	g.Expect(r.Remove(&runtimev1.ExtensionConfig{})).To(Succeed())
 
-	registrations, err := r.List(catalog.GroupHook{Group: "foo", Hook: "bak"})
+	registrations, err := r.List(runtimecatalog.GroupHook{Group: "foo", Hook: "bak"})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(registrations).To(HaveLen(1))
 	g.Expect(registrations[0].Name).To(Equal("handler.test-extension"))
@@ -165,14 +165,14 @@ func TestRegistry(t *testing.T) {
 	g.Expect(registration.Name).To(Equal("foo.extension1"))
 
 	// List all BeforeClusterUpgrade extensions
-	registrations, err := e.List(catalog.GroupHook{Group: "hook.runtime.cluster.x-k8s.io", Hook: "BeforeClusterUpgrade"})
+	registrations, err := e.List(runtimecatalog.GroupHook{Group: "hook.runtime.cluster.x-k8s.io", Hook: "BeforeClusterUpgrade"})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(registrations).To(HaveLen(2))
 	g.Expect(registrations).To(ContainExtension("foo.extension1"))
 	g.Expect(registrations).To(ContainExtension("bar.extension1"))
 
 	// List all AfterClusterUpgrade extensions
-	registrations, err = e.List(catalog.GroupHook{Group: "hook.runtime.cluster.x-k8s.io", Hook: "AfterClusterUpgrade"})
+	registrations, err = e.List(runtimecatalog.GroupHook{Group: "hook.runtime.cluster.x-k8s.io", Hook: "AfterClusterUpgrade"})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(registrations).To(HaveLen(1))
 	g.Expect(registrations).To(ContainExtension("baz.extension1"))
@@ -180,7 +180,7 @@ func TestRegistry(t *testing.T) {
 	// Add extension2 with one more AfterClusterUpgrade and check it is there
 	g.Expect(e.Add(extension2)).To(Succeed())
 
-	registrations, err = e.List(catalog.GroupHook{Group: "hook.runtime.cluster.x-k8s.io", Hook: "AfterClusterUpgrade"})
+	registrations, err = e.List(runtimecatalog.GroupHook{Group: "hook.runtime.cluster.x-k8s.io", Hook: "AfterClusterUpgrade"})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(registrations).To(HaveLen(2))
 	g.Expect(registrations).To(ContainExtension("baz.extension1"))
@@ -189,11 +189,11 @@ func TestRegistry(t *testing.T) {
 	// Remove extension1 and check everything is updated
 	g.Expect(e.Remove(extension1)).To(Succeed())
 
-	registrations, err = e.List(catalog.GroupHook{Group: "hook.runtime.cluster.x-k8s.io", Hook: "BeforeClusterUpgrade"})
+	registrations, err = e.List(runtimecatalog.GroupHook{Group: "hook.runtime.cluster.x-k8s.io", Hook: "BeforeClusterUpgrade"})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(registrations).To(HaveLen(0))
 
-	registrations, err = e.List(catalog.GroupHook{Group: "hook.runtime.cluster.x-k8s.io", Hook: "AfterClusterUpgrade"})
+	registrations, err = e.List(runtimecatalog.GroupHook{Group: "hook.runtime.cluster.x-k8s.io", Hook: "AfterClusterUpgrade"})
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(registrations).To(HaveLen(1))
 	g.Expect(registrations).To(ContainExtension("qux.extension2"))

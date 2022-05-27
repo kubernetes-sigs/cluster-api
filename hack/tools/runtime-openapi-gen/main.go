@@ -27,7 +27,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
 
 var (
@@ -50,7 +50,7 @@ func main() {
 		klog.Exit("--output-file must have either 'yaml' or 'json' extension")
 	}
 
-	c := catalog.New()
+	c := runtimecatalog.New()
 	_ = runtimehooksv1.AddToCatalog(c)
 
 	c.AddOpenAPIDefinitions(clusterv1.GetOpenAPIDefinitions)

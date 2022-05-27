@@ -28,9 +28,9 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
-	runtimev1registry "sigs.k8s.io/cluster-api/internal/runtime/registry"
+	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 )
 
 func Test_warmupRunnable_Start(t *testing.T) {
@@ -42,8 +42,8 @@ func Test_warmupRunnable_Start(t *testing.T) {
 		ns, err := env.CreateNamespace(ctx, "test-runtime-extension")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		cat := catalog.New()
-		registry := runtimev1registry.New()
+		cat := runtimecatalog.New()
+		registry := runtimeregistry.New()
 		g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 
 		for _, name := range []string{"ext1", "ext2", "ext3"} {
@@ -91,8 +91,8 @@ func Test_warmupRunnable_Start(t *testing.T) {
 		ns, err := env.CreateNamespace(ctx, "test-runtime-extension")
 		g.Expect(err).ToNot(HaveOccurred())
 
-		cat := catalog.New()
-		registry := runtimev1registry.New()
+		cat := runtimecatalog.New()
+		registry := runtimeregistry.New()
 		g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 
 		// Do not create an extension server for an extension with this name, but do create an extensionconfig.

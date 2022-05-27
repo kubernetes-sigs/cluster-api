@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
 
 // DiscoveryRequest represents the object of a discovery request.
@@ -85,7 +85,7 @@ const (
 func Discovery(*DiscoveryRequest, *DiscoveryResponse) {}
 
 func init() {
-	catalogBuilder.RegisterHook(Discovery, &catalog.HookMeta{
+	catalogBuilder.RegisterHook(Discovery, &runtimecatalog.HookMeta{
 		Tags:        []string{"Discovery"},
 		Summary:     "Discovery endpoint",
 		Description: "Discovery endpoint discovers the supported hooks of a RuntimeExtension",

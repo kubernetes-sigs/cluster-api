@@ -56,7 +56,7 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
-	runtimev1webhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
+	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
@@ -256,7 +256,7 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	if err := (&expv1.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for machinepool: %+v", err)
 	}
-	if err := (&runtimev1webhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&runtimewebhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for extensionconfig: %+v", err)
 	}
 

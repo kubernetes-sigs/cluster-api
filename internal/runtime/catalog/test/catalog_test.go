@@ -28,12 +28,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	"sigs.k8s.io/cluster-api/internal/runtime/catalog/test/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/runtime/catalog/test/v1alpha2"
 )
 
-var c = catalog.New()
+var c = runtimecatalog.New()
 
 func init() {
 	_ = v1alpha1.AddToCatalog(c)
@@ -43,7 +43,7 @@ func init() {
 func TestCatalog(t *testing.T) {
 	g := NewWithT(t)
 
-	verify := func(hook catalog.Hook, expectedGV schema.GroupVersion) {
+	verify := func(hook runtimecatalog.Hook, expectedGV schema.GroupVersion) {
 		// Test GroupVersionHook
 		hookGVH, err := c.GroupVersionHook(hook)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -96,7 +96,7 @@ func TestValidateRequest(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		hook      catalog.GroupVersionHook
+		hook      runtimecatalog.GroupVersionHook
 		request   runtime.Object
 		wantError bool
 	}{
@@ -144,7 +144,7 @@ func TestValidateResponse(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		hook      catalog.GroupVersionHook
+		hook      runtimecatalog.GroupVersionHook
 		response  runtime.Object
 		wantError bool
 	}{
@@ -220,42 +220,42 @@ func HookWithThreeInputs(*GoodRequest, *GoodRequest, *GoodResponse) {}
 func HookWithBadRequestAndResponse(*BadRequest, *BadResponse) {}
 
 func TestAddHook(t *testing.T) {
-	c := catalog.New()
+	c := runtimecatalog.New()
 
 	tests := []struct {
 		name      string
-		hook      catalog.Hook
-		hookMeta  *catalog.HookMeta
+		hook      runtimecatalog.Hook
+		hookMeta  *runtimecatalog.HookMeta
 		wantPanic bool
 	}{
 		{
 			name:      "should pass for valid hook",
 			hook:      GoodHook,
-			hookMeta:  &catalog.HookMeta{},
+			hookMeta:  &runtimecatalog.HookMeta{},
 			wantPanic: false,
 		},
 		{
 			name:      "should fail for hook with a return value",
 			hook:      HookWithReturn,
-			hookMeta:  &catalog.HookMeta{},
+			hookMeta:  &runtimecatalog.HookMeta{},
 			wantPanic: true,
 		},
 		{
 			name:      "should fail for a hook with no inputs",
 			hook:      HookWithNoInputs,
-			hookMeta:  &catalog.HookMeta{},
+			hookMeta:  &runtimecatalog.HookMeta{},
 			wantPanic: true,
 		},
 		{
 			name:      "should fail for a hook with more than two arguments",
 			hook:      HookWithThreeInputs,
-			hookMeta:  &catalog.HookMeta{},
+			hookMeta:  &runtimecatalog.HookMeta{},
 			wantPanic: true,
 		},
 		{
 			name:      "should fail for hook with bad request and response arguments",
 			hook:      HookWithBadRequestAndResponse,
-			hookMeta:  &catalog.HookMeta{},
+			hookMeta:  &runtimecatalog.HookMeta{},
 			wantPanic: true,
 		},
 		{

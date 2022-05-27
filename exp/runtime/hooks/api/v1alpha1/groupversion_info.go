@@ -19,7 +19,7 @@ package v1alpha1
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
 
 var (
@@ -29,7 +29,7 @@ var (
 
 	// catalogBuilder is used to add RuntimeHooks and their request and response types
 	// to a Catalog.
-	catalogBuilder = &catalog.Builder{GroupVersion: GroupVersion}
+	catalogBuilder = &runtimecatalog.Builder{GroupVersion: GroupVersion}
 
 	// AddToCatalog adds RuntimeHooks defined in this package and their request and
 	// response types to a catalog.

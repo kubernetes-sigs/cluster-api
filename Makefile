@@ -415,7 +415,7 @@ verify-modules: generate-modules  ## Verify go modules are up to date
 	fi
 
 .PHONY: verify-gen
-verify-gen: generate  ## Verfiy go generated files are up to date
+verify-gen: generate  ## Verify go generated files are up to date
 	@if !(git diff --quiet HEAD); then \
 		git diff; \
 		echo "generated files are out of date, run make generate"; exit 1; \

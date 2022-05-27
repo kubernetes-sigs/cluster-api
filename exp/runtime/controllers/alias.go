@@ -24,12 +24,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	extensionconfigs "sigs.k8s.io/cluster-api/exp/runtime/internal/controllers"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 )
 
 // ExtensionConfigReconciler reconciles an ExtensionConfig object.
 type ExtensionConfigReconciler struct {
-	Client    client.Client
-	APIReader client.Reader
+	Client        client.Client
+	APIReader     client.Reader
+	RuntimeClient runtimeclient.Client
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -39,6 +41,7 @@ func (r *ExtensionConfigReconciler) SetupWithManager(ctx context.Context, mgr ct
 	return (&extensionconfigs.Reconciler{
 		Client:           r.Client,
 		APIReader:        r.APIReader,
+		RuntimeClient:    r.RuntimeClient,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

@@ -56,14 +56,19 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
-	runtimev1controllers "sigs.k8s.io/cluster-api/exp/runtime/controllers"
+	runtimecontrollers "sigs.k8s.io/cluster-api/exp/runtime/controllers"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
+	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	runtimev1webhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
 
 var (
+	catalog  = runtimecatalog.New()
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
 
@@ -110,8 +115,10 @@ func init() {
 	_ = addonsv1.AddToScheme(scheme)
 
 	_ = runtimev1.AddToScheme(scheme)
-
 	// +kubebuilder:scaffold:scheme
+
+	// Register the RuntimeHook types into the catalog.
+	_ = runtimehooksv1.AddToCatalog(catalog)
 }
 
 // InitFlags initializes the flags.
@@ -355,9 +362,15 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		if err = (&runtimev1controllers.ExtensionConfigReconciler{
-			Client:           mgr.GetClient(),
-			APIReader:        mgr.GetAPIReader(),
+		// This is the creation of the single RuntimeExtension registry for the controller.
+		registry := runtimeregistry.New()
+		if err = (&runtimecontrollers.ExtensionConfigReconciler{
+			Client:    mgr.GetClient(),
+			APIReader: mgr.GetAPIReader(),
+			RuntimeClient: runtimeclient.New(runtimeclient.Options{
+				Catalog:  catalog,
+				Registry: registry,
+			}),
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(extensionConfigConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ExtensionConfig")

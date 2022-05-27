@@ -286,9 +286,8 @@ rules:
   - runtime.cluster.x-k8s.io
   resources:
   - extensionconfigs
+  - extensionconfigs/status
   verbs:
-  - create
-  - delete
   - get
   - list
   - patch

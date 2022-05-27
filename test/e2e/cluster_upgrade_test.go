@@ -43,7 +43,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass and testi
 		//   when the target version is >= v1.24.
 		// We can remove this as soon as we don't test upgrades from Kubernetes < v1.24 anymore with CAPD
 		// or MachinePools are supported in ClusterClass.
-		version, err := semver.ParseTolerant(e2eConfig.Variables[KubernetesVersionUpgradeFrom])
+		version, err := semver.ParseTolerant(e2eConfig.GetVariable(KubernetesVersionUpgradeFrom))
 		Expect(err).ToNot(HaveOccurred(), "Invalid argument, KUBERNETES_VERSION_UPGRADE_FROM is not a valid version")
 		if version.LT(semver.MustParse("1.24.0")) {
 			// "upgrades-cgroupfs" is the same as the "topology" flavor but with an additional MachinePool

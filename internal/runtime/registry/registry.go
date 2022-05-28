@@ -24,7 +24,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
 
 // ExtensionRegistry defines the funcs of a RuntimeExtension registry.
@@ -48,7 +48,7 @@ type ExtensionRegistry interface {
 	Remove(extensionConfig *runtimev1.ExtensionConfig) error
 
 	// List all registered RuntimeExtensions for a given catalog.GroupHook.
-	List(gh catalog.GroupHook) ([]*ExtensionRegistration, error)
+	List(gh runtimecatalog.GroupHook) ([]*ExtensionRegistration, error)
 
 	// Get the RuntimeExtensions with the given name.
 	Get(name string) (*ExtensionRegistration, error)
@@ -63,7 +63,7 @@ type ExtensionRegistration struct {
 	ExtensionConfigName string
 
 	// GroupVersionHook is the GroupVersionHook that the RuntimeExtension implements.
-	GroupVersionHook catalog.GroupVersionHook
+	GroupVersionHook runtimecatalog.GroupVersionHook
 
 	// ClientConfig is the ClientConfig to communicate with the RuntimeExtension.
 	ClientConfig runtimev1.ClientConfig
@@ -176,7 +176,7 @@ func (r *extensionRegistry) remove(extensionConfig *runtimev1.ExtensionConfig) {
 }
 
 // List all registered RuntimeExtensions for a given catalog.GroupHook.
-func (r *extensionRegistry) List(gh catalog.GroupHook) ([]*ExtensionRegistration, error) {
+func (r *extensionRegistry) List(gh runtimecatalog.GroupHook) ([]*ExtensionRegistration, error) {
 	if gh.Group == "" {
 		return nil, errors.New("invalid argument: when calling List gh.Group must not be empty")
 	}
@@ -233,7 +233,7 @@ func (r *extensionRegistry) add(extensionConfig *runtimev1.ExtensionConfig) erro
 		registrations = append(registrations, &ExtensionRegistration{
 			ExtensionConfigName: extensionConfig.Name,
 			Name:                e.Name,
-			GroupVersionHook: catalog.GroupVersionHook{
+			GroupVersionHook: runtimecatalog.GroupVersionHook{
 				Group:   gv.Group,
 				Version: gv.Version,
 				Hook:    e.RequestHook.Hook,

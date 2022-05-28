@@ -62,7 +62,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
-	runtimev1webhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
+	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
@@ -502,7 +502,7 @@ func setupWebhooks(mgr ctrl.Manager) {
 
 	// NOTE: ExtensionConfig is behind the RuntimeSDK feature gate flag. The webhook will prevent creating or updating
 	// new objects if the feature flag is disabled.
-	if err := (&runtimev1webhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&runtimewebhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ExtensionConfig")
 		os.Exit(1)
 	}

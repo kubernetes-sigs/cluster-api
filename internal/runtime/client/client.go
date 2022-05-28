@@ -36,16 +36,16 @@ import (
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog"
-	"sigs.k8s.io/cluster-api/internal/runtime/registry"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 )
 
 const defaultDiscoveryTimeout = 10 * time.Second
 
 // Options are creation options for a Client.
 type Options struct {
-	Catalog  *catalog.Catalog
-	Registry registry.ExtensionRegistry
+	Catalog  *runtimecatalog.Catalog
+	Registry runtimeregistry.ExtensionRegistry
 }
 
 // New returns a new Client.
@@ -80,8 +80,8 @@ type Client interface {
 var _ Client = &client{}
 
 type client struct {
-	catalog  *catalog.Catalog
-	registry registry.ExtensionRegistry
+	catalog  *runtimecatalog.Catalog
+	registry runtimeregistry.ExtensionRegistry
 }
 
 func (c *client) WarmUp(extensionConfigList *runtimev1.ExtensionConfigList) error {
@@ -154,9 +154,9 @@ func (c *client) Unregister(extensionConfig *runtimev1.ExtensionConfig) error {
 }
 
 type httpCallOptions struct {
-	catalog *catalog.Catalog
+	catalog *runtimecatalog.Catalog
 	config  runtimev1.ClientConfig
-	gvh     catalog.GroupVersionHook
+	gvh     runtimecatalog.GroupVersionHook
 	name    string
 	timeout time.Duration
 }
@@ -268,7 +268,7 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	return nil
 }
 
-func urlForExtension(config runtimev1.ClientConfig, gvh catalog.GroupVersionHook, name string) (*url.URL, error) {
+func urlForExtension(config runtimev1.ClientConfig, gvh runtimecatalog.GroupVersionHook, name string) (*url.URL, error) {
 	var u *url.URL
 	if config.Service != nil {
 		// The Extension's ClientConfig points ot a service. Construct the URL to the service.
@@ -299,6 +299,6 @@ func urlForExtension(config runtimev1.ClientConfig, gvh catalog.GroupVersionHook
 		}
 	}
 	// Add the subpatch to the ExtensionHandler for the given hook.
-	u.Path = path.Join(u.Path, catalog.GVHToPath(gvh, name))
+	u.Path = path.Join(u.Path, runtimecatalog.GVHToPath(gvh, name))
 	return u, nil
 }

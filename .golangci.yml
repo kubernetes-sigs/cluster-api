@@ -113,6 +113,16 @@ linters-settings:
         alias: runtimev1
       - pkg: sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1
         alias: runtimehooksv1
+      - pkg: sigs.k8s.io/cluster-api/exp/runtime/controllers
+        alias: runtimecontrollers
+      - pkg: sigs.k8s.io/cluster-api/internal/runtime/catalog
+        alias: runtimecatalog
+      - pkg: sigs.k8s.io/cluster-api/internal/runtime/client
+        alias: runtimeclient
+      - pkg: sigs.k8s.io/cluster-api/internal/runtime/registry
+        alias: runtimeregistry
+      - pkg: sigs.k8s.io/cluster-api/internal/webhooks/runtime
+        alias: runtimewebhooks
       # CAPD
       - pkg: sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3
         alias: infrav1alpha3

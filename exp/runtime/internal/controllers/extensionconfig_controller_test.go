@@ -35,9 +35,9 @@ import (
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
-	runtimev1registry "sigs.k8s.io/cluster-api/internal/runtime/registry"
+	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -49,8 +49,8 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 	ns, err := env.CreateNamespace(ctx, "test-extension-config")
 	g.Expect(err).ToNot(HaveOccurred())
 
-	cat := catalog.New()
-	registry := runtimev1registry.New()
+	cat := runtimecatalog.New()
+	registry := runtimeregistry.New()
 	runtimeClient := runtimeclient.New(runtimeclient.Options{
 		Catalog:  cat,
 		Registry: registry,
@@ -186,8 +186,8 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	t.Run("test discovery of a single extension", func(t *testing.T) {
-		cat := catalog.New()
-		registry := runtimev1registry.New()
+		cat := runtimecatalog.New()
+		registry := runtimeregistry.New()
 		g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 		extensionName := "ext1"
 		srv1 := fakeExtensionServer(discoveryHandler("first"))
@@ -216,8 +216,8 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
 	})
 	t.Run("fail discovery for non-running extension", func(t *testing.T) {
-		cat := catalog.New()
-		registry := runtimev1registry.New()
+		cat := runtimecatalog.New()
+		registry := runtimeregistry.New()
 		g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 		extensionName := "ext1"
 

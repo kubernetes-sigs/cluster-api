@@ -22,6 +22,12 @@ spec:
     name: my-cluster
     namespace: default
 ---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerCluster
+metadata:
+  name: my-cluster
+  namespace: default
+---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
 metadata:
@@ -29,7 +35,7 @@ metadata:
   namespace: default
 spec:
   replicas: 1
-  version: v1.23.3
+  version: v1.24.0
   machineTemplate:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -38,22 +44,22 @@ spec:
       namespace: default
   kubeadmConfigSpec:
     clusterConfiguration:
+      apiServer:
+        certSANs:
+        - localhost
+        - 127.0.0.1
+        - 0.0.0.0
       controllerManager:
         extraArgs:
           enable-hostpath-provisioner: "true"
     initConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
-          # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
-          # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
-          cgroup-driver: cgroupfs
           eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-kind: DockerCluster
-metadata:
-  name: my-cluster
-  namespace: default
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
@@ -74,19 +80,19 @@ spec:
   replicas: 2
   template:
     spec:
+      version: v1.24.0
+      clusterName: my-cluster
       bootstrap:
         configRef:
           apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
           kind: KubeadmConfig
           name: worker-mp-0-config
           namespace: default
-      clusterName: my-cluster
       infrastructureRef:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: DockerMachinePool
         name: worker-dmp-0
         namespace: default
-      version: v1.23.3
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachinePool
@@ -103,7 +109,4 @@ spec:
   joinConfiguration:
     nodeRegistration:
       kubeletExtraArgs:
-        # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
-        # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
-        cgroup-driver: cgroupfs
         eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%

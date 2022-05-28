@@ -1,10 +1,4 @@
 # Creates a cluster with one control-plane node and one worker node
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-kind: DockerCluster
-metadata:
-  name: my-cluster
-  namespace: default
----
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: Cluster
 metadata:
@@ -16,7 +10,7 @@ spec:
       cidrBlocks: ["fd00:100:64::/108"]
     pods:
       cidrBlocks: ["fd00:100:96::/48"]
-    serviceDomain: "cluster.local"
+    serviceDomain: cluster.local
   controlPlaneRef:
     apiVersion: controlplane.cluster.x-k8s.io/v1beta1
     kind: KubeadmControlPlane
@@ -29,13 +23,10 @@ spec:
     namespace: default
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-kind: DockerMachineTemplate
+kind: DockerCluster
 metadata:
-  name: controlplane
+  name: my-cluster
   namespace: default
-spec:
-  template:
-    spec: {}
 ---
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 kind: KubeadmControlPlane
@@ -44,7 +35,7 @@ metadata:
   namespace: default
 spec:
   replicas: 1
-  version: v1.23.3
+  version: v1.24.0
   machineTemplate:
     infrastructureRef:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -69,15 +60,49 @@ spec:
         bindPort: 6443
       nodeRegistration:
         kubeletExtraArgs:
-          # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
-          # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
-          cgroup-driver: cgroupfs
           eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
           node-ip: "::"
     joinConfiguration:
       nodeRegistration:
         kubeletExtraArgs:
+          eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
           node-ip: "::"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: controlplane
+  namespace: default
+spec:
+  template:
+    spec: {}
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: worker-md-0
+  namespace: default
+spec:
+  clusterName: my-cluster
+  replicas: 1
+  selector:
+    matchLabels:
+      cluster.x-k8s.io/cluster-name: my-cluster
+  template:
+    spec:
+      version: v1.24.0
+      clusterName: my-cluster
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          name: worker
+          namespace: default
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachineTemplate
+        name: worker
+        namespace: default
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
@@ -92,6 +117,7 @@ apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
   name: worker
+  namespace: default
 spec:
   template:
     spec:
@@ -102,32 +128,5 @@ spec:
       joinConfiguration:
         nodeRegistration:
           kubeletExtraArgs:
-            # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
-            # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
-            cgroup-driver: cgroupfs
             eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
             node-ip: "::"
----
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: MachineDeployment
-metadata:
-  name: worker-md-0
-spec:
-  clusterName: my-cluster
-  replicas: 1
-  selector:
-    matchLabels:
-      cluster.x-k8s.io/cluster-name: my-cluster
-  template:
-    spec:
-      version: v1.23.3
-      clusterName: my-cluster
-      bootstrap:
-        configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-          kind: KubeadmConfigTemplate
-          name: worker
-      infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: DockerMachineTemplate
-        name: worker

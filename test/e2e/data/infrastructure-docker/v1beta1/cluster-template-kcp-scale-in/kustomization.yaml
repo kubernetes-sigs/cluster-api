@@ -1,7 +1,10 @@
 bases:
 - ../bases/crs.yaml
-- ../bases/md.yaml
-- ../bases/cluster-with-kcp.yaml
+- ../bases/cluster-with-topology.yaml
 
-patchesStrategicMerge:
-- ./cluster-with-kcp.yaml
+patches:
+- path: ./kcp-scale-in-variable.yaml
+  target:
+    group: cluster.x-k8s.io
+    version: v1beta1
+    kind: Cluster

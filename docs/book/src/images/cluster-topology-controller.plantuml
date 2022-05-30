@@ -5,14 +5,14 @@ start
 if (Check for the presence of the ""spec.topology.class"" field) then (yes)
     if (Check if ""Cluster"" has ""Infrastructure"" reference) then (yes)
     else (no)
-        :Create a new infraCluster object using the ""ClusterClass"" template;
+        :Create a new InfraCluster object using the ""ClusterClass"" template;
     endif
 
     if (Check if ""Cluster"" has ""ControlPlane"" reference) then (yes)
     else (no)
         :Create a new ""ControlPlane"" object using the ""ClusterClass"" template;
     endif
-    :Update ""InfrasCluster"" and ""ControlPlane"" reference in ""Cluster"";
+    :Update ""InfraCluster"" and ""ControlPlane"" reference in ""Cluster"";
 
     if (Check if each  ""MachineDeployment"" in ""Cluster"" exists) then (no)
         :Create a new ""MachineDeployment"";

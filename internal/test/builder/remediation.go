@@ -25,8 +25,8 @@ var (
 	RemediationGroupVersion = schema.GroupVersion{Group: "remediation.external.io", Version: "v1beta1"}
 
 	// GenericRemediationCRD is a generic infrastructure remediation CRD.
-	GenericRemediationCRD = generateCRD(RemediationGroupVersion.WithKind("GenericExternalRemediation"))
+	GenericRemediationCRD = untypedCRD(RemediationGroupVersion.WithKind("GenericExternalRemediation"))
 
 	// GenericRemediationTemplateCRD is a generic infrastructure remediation template CRD.
-	GenericRemediationTemplateCRD = generateCRD(RemediationGroupVersion.WithKind("GenericExternalRemediationTemplate"))
+	GenericRemediationTemplateCRD = untypedCRD(RemediationGroupVersion.WithKind("GenericExternalRemediationTemplate"))
 )

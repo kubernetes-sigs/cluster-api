@@ -17,6 +17,7 @@ limitations under the License.
 package builder
 
 import (
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -27,10 +28,67 @@ var (
 	// GenericBootstrapConfigKind is the Kind for the GenericBootstrapConfig.
 	GenericBootstrapConfigKind = "GenericBootstrapConfig"
 	// GenericBootstrapConfigCRD is a generic boostrap CRD.
-	GenericBootstrapConfigCRD = generateCRD(BootstrapGroupVersion.WithKind(GenericBootstrapConfigKind))
+	GenericBootstrapConfigCRD = untypedCRD(BootstrapGroupVersion.WithKind(GenericBootstrapConfigKind))
 
 	// GenericBootstrapConfigTemplateKind is the Kind for the GenericBoostrapConfigTemplate.
 	GenericBootstrapConfigTemplateKind = "GenericBootstrapConfigTemplate"
 	// GenericBootstrapConfigTemplateCRD is a generic boostrap template CRD.
-	GenericBootstrapConfigTemplateCRD = generateCRD(BootstrapGroupVersion.WithKind(GenericBootstrapConfigTemplateKind))
+	GenericBootstrapConfigTemplateCRD = untypedCRD(BootstrapGroupVersion.WithKind(GenericBootstrapConfigTemplateKind))
+
+	// TODO: drop generic CRDs in favour of typed test CRDs.
+
+	// TestBootstrapConfigTemplateKind is the kind for the TestBootstrapConfigTemplate type.
+	TestBootstrapConfigTemplateKind = "TestBootstrapConfigTemplate"
+	// TestBootstrapConfigTemplateCRD is a test bootstrap config template CRD.
+	TestBootstrapConfigTemplateCRD = testBootstrapConfigTemplateCRD(BootstrapGroupVersion.WithKind(TestBootstrapConfigTemplateKind))
+
+	// TestBootstrapConfigKind is the kind for the TestBootstrapConfig type.
+	TestBootstrapConfigKind = "TestBootstrapConfig"
+	// TestBootstrapConfigCRD is a test bootstrap config CRD.
+	TestBootstrapConfigCRD = testBootstrapConfigCRD(BootstrapGroupVersion.WithKind(TestBootstrapConfigKind))
+)
+
+func testBootstrapConfigTemplateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
+	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"spec": {
+			Type: "object",
+			Properties: map[string]apiextensionsv1.JSONSchemaProps{
+				// Mandatory field from the Cluster API contract
+				"template": {
+					Type: "object",
+					Properties: map[string]apiextensionsv1.JSONSchemaProps{
+						"spec": bootstrapConfigSpecSchema,
+					},
+				},
+			},
+		},
+	})
+}
+
+func testBootstrapConfigCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
+	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"spec": bootstrapConfigSpecSchema,
+		"status": {
+			Type: "object",
+			Properties: map[string]apiextensionsv1.JSONSchemaProps{
+				// mandatory field from the Cluster API contract
+				"ready":          {Type: "boolean"},
+				"dataSecretName": {Type: "string"},
+				// General purpose fields to be used in different test scenario.
+				"foo": {Type: "string"},
+				"bar": {Type: "string"},
+			},
+		},
+	})
+}
+
+var (
+	bootstrapConfigSpecSchema = apiextensionsv1.JSONSchemaProps{
+		Type: "object",
+		Properties: map[string]apiextensionsv1.JSONSchemaProps{
+			// General purpose fields to be used in different test scenario.
+			"foo": {Type: "string"},
+			"bar": {Type: "string"},
+		},
+	}
 )

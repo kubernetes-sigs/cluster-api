@@ -44,7 +44,7 @@ You can use a GitHub release to package your provider artifacts for other people
 A GitHub release can be used as a provider repository if:
 
 * The release tag is a valid semantic version number
-* The components YAML, the metadata YAML and eventually the workload cluster templates are include into the release assets.
+* The components YAML, the metadata YAML and eventually the workload cluster templates are included into the release assets.
 
 See the [GitHub docs](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) for more information
 about how to create a release.
@@ -123,7 +123,7 @@ are not namespaced, like ClusterRoles/ClusterRoleBinding and CRD objects.
 
 <h1>Warning</h1>
 
-If the generated component YAML does't contain a Namespace object, the user will be required to provide one to `clusterctl init`
+If the generated component YAML doesn't contain a Namespace object, the user will be required to provide one to `clusterctl init`
 using the `--target-namespace` flag.
 
 In case there is more than one Namespace object in the components YAML, `clusterctl` will generate an error and abort

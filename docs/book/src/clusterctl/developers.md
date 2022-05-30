@@ -138,7 +138,7 @@ See [Install and/or configure a kubernetes cluster] for more information.
 *Before* running clusterctl init, you must ensure all the required images are available in the kind cluster.
 
 This is always the case for images published in some image repository like docker hub or gcr.io, but it can't be
-the case for images built locally; in this case, you can use `kind load` to move the images built locally. e.g
+the case for images built locally; in this case, you can use `kind load` to move the images built locally. e.g.
 
 ```
 kind load docker-image gcr.io/k8s-staging-cluster-api/cluster-api-controller-amd64:dev
@@ -187,9 +187,9 @@ The command for getting the kubeconfig file for connecting to a workload cluster
 clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
 ```
 
-### Fix kubeconfig (when using docker on MacOS)
+### Fix kubeconfig (when using docker on macOS)
 
-When using docker on MacOS, you will need to do a couple of additional
+When using docker on macOS, you will need to do a couple of additional
 steps to get the correct kubeconfig for a workload cluster created with the Docker provider:
 
 ```bash

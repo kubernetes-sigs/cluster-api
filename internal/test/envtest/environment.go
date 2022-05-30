@@ -390,6 +390,44 @@ func (e *Environment) CreateAndWait(ctx context.Context, obj client.Object, opts
 	return nil
 }
 
+// PatchAndWait creates or updates the given object using server-side apply and waits for the cache to be updated accordingly.
+//
+// NOTE: Waiting for the cache to be updated helps in preventing test flakes due to the cache sync delays.
+func (e *Environment) PatchAndWait(ctx context.Context, obj client.Object, opts ...client.PatchOption) error {
+	key := client.ObjectKeyFromObject(obj)
+	objCopy := obj.DeepCopyObject().(client.Object)
+	if err := e.GetAPIReader().Get(ctx, key, objCopy); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return err
+		}
+	}
+	// Store old resource version, empty string if not found.
+	oldResourceVersion := objCopy.GetResourceVersion()
+
+	if err := e.Client.Patch(ctx, obj, client.Apply, opts...); err != nil {
+		return err
+	}
+
+	// Makes sure the cache is updated with the new object
+	if err := wait.ExponentialBackoff(
+		cacheSyncBackoff,
+		func() (done bool, err error) {
+			if err := e.Get(ctx, key, objCopy); err != nil {
+				if apierrors.IsNotFound(err) {
+					return false, nil
+				}
+				return false, err
+			}
+			if objCopy.GetResourceVersion() == oldResourceVersion {
+				return false, nil
+			}
+			return true, nil
+		}); err != nil {
+		return errors.Wrapf(err, "object %s, %s is not being added to or did not get updated in the testenv client cache", obj.GetObjectKind().GroupVersionKind().String(), key)
+	}
+	return nil
+}
+
 // CreateNamespace creates a new namespace with a generated name.
 func (e *Environment) CreateNamespace(ctx context.Context, generateName string) (*corev1.Namespace, error) {
 	ns := &corev1.Namespace{

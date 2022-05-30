@@ -29,7 +29,20 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func generateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
+func untypedCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
+	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"spec": {
+			Type:                   "object",
+			XPreserveUnknownFields: pointer.BoolPtr(true),
+		},
+		"status": {
+			Type:                   "object",
+			XPreserveUnknownFields: pointer.BoolPtr(true),
+		},
+	})
+}
+
+func generateCRD(gvk schema.GroupVersionKind, properties map[string]apiextensionsv1.JSONSchemaProps) *apiextensionsv1.CustomResourceDefinition {
 	return &apiextensionsv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
@@ -58,17 +71,8 @@ func generateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDef
 					},
 					Schema: &apiextensionsv1.CustomResourceValidation{
 						OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{
-							Type: "object",
-							Properties: map[string]apiextensionsv1.JSONSchemaProps{
-								"spec": {
-									Type:                   "object",
-									XPreserveUnknownFields: pointer.BoolPtr(true),
-								},
-								"status": {
-									Type:                   "object",
-									XPreserveUnknownFields: pointer.BoolPtr(true),
-								},
-							},
+							Type:       "object",
+							Properties: properties,
 						},
 					},
 				},
@@ -76,3 +80,34 @@ func generateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDef
 		},
 	}
 }
+
+var (
+	refSchema = apiextensionsv1.JSONSchemaProps{
+		Type: "object",
+		Properties: map[string]apiextensionsv1.JSONSchemaProps{
+			"apiVersion": {Type: "string"},
+			"kind":       {Type: "string"},
+			"name":       {Type: "string"},
+			"namespace":  {Type: "string"},
+			// NOTE: omitting fields not used for sake of simplicity.
+		},
+	}
+
+	metadataSchema = apiextensionsv1.JSONSchemaProps{
+		Type: "object",
+		Properties: map[string]apiextensionsv1.JSONSchemaProps{
+			"labels": {
+				Type: "object",
+				AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
+					Schema: &apiextensionsv1.JSONSchemaProps{Type: "string"},
+				},
+			},
+			"annotations": {
+				Type: "object",
+				AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
+					Schema: &apiextensionsv1.JSONSchemaProps{Type: "string"},
+				},
+			},
+		},
+	}
+)

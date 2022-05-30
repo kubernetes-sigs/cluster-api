@@ -176,6 +176,12 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 			builder.GenericInfrastructureClusterTemplateCRD.DeepCopy(),
 			builder.GenericRemediationCRD.DeepCopy(),
 			builder.GenericRemediationTemplateCRD.DeepCopy(),
+			builder.TestInfrastructureClusterCRD.DeepCopy(),
+			builder.TestInfrastructureMachineTemplateCRD.DeepCopy(),
+			builder.TestInfrastructureMachineCRD.DeepCopy(),
+			builder.TestBootstrapConfigTemplateCRD.DeepCopy(),
+			builder.TestBootstrapConfigCRD.DeepCopy(),
+			builder.TestControlPlaneCRD.DeepCopy(),
 		},
 		// initialize webhook here to be able to test the envtest install via webhookOptions
 		// This should set LocalServingCertDir and LocalServingPort that are used below.

@@ -446,6 +446,51 @@ func (i *InfrastructureMachineTemplateBuilder) Build() *unstructured.Unstructure
 	return obj
 }
 
+// TestInfrastructureMachineTemplateBuilder holds the variables and objects needed to build an TestInfrastructureMachineTemplate.
+// +kubebuilder:object:generate=false
+type TestInfrastructureMachineTemplateBuilder struct {
+	namespace  string
+	name       string
+	specFields map[string]interface{}
+}
+
+// TestInfrastructureMachineTemplate creates an TestInfrastructureMachineTemplateBuilder with the given name and namespace.
+func TestInfrastructureMachineTemplate(namespace, name string) *TestInfrastructureMachineTemplateBuilder {
+	return &TestInfrastructureMachineTemplateBuilder{
+		namespace: namespace,
+		name:      name,
+	}
+}
+
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."; the path should correspond to a field defined in the CRD.
+//
+// Example map: map[string]interface{}{
+//     "spec.version": "v1.2.3",
+// }.
+func (i *TestInfrastructureMachineTemplateBuilder) WithSpecFields(fields map[string]interface{}) *TestInfrastructureMachineTemplateBuilder {
+	i.specFields = fields
+	return i
+}
+
+// Build takes the objects and variables in the  InfrastructureMachineTemplateBuilder and generates an unstructured object.
+func (i *TestInfrastructureMachineTemplateBuilder) Build() *unstructured.Unstructured {
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion(InfrastructureGroupVersion.String())
+	obj.SetKind(TestInfrastructureMachineTemplateKind)
+	obj.SetNamespace(i.namespace)
+	obj.SetName(i.name)
+
+	// Initialize the spec.template.spec to make the object valid in reconciliation.
+	setSpecFields(obj, map[string]interface{}{"spec.template.spec": map[string]interface{}{}})
+
+	setSpecFields(obj, i.specFields)
+
+	return obj
+}
+
 // BootstrapTemplateBuilder holds the variables needed to build a generic BootstrapTemplate.
 // +kubebuilder:object:generate=false
 type BootstrapTemplateBuilder struct {
@@ -475,10 +520,50 @@ func (b *BootstrapTemplateBuilder) Build() *unstructured.Unstructured {
 	obj.SetKind(GenericBootstrapConfigTemplateKind)
 	obj.SetNamespace(b.namespace)
 	obj.SetName(b.name)
-	setSpecFields(obj, b.specFields)
 
 	// Initialize the spec.template.spec to make the object valid in reconciliation.
 	setSpecFields(obj, map[string]interface{}{"spec.template.spec": map[string]interface{}{}})
+
+	setSpecFields(obj, b.specFields)
+
+	return obj
+}
+
+// TestBootstrapTemplateBuilder holds the variables needed to build a generic TestBootstrapTemplate.
+// +kubebuilder:object:generate=false
+type TestBootstrapTemplateBuilder struct {
+	namespace  string
+	name       string
+	specFields map[string]interface{}
+}
+
+// TestBootstrapTemplate creates a TestBootstrapTemplateBuilder with the given name and namespace.
+func TestBootstrapTemplate(namespace, name string) *TestBootstrapTemplateBuilder {
+	return &TestBootstrapTemplateBuilder{
+		namespace: namespace,
+		name:      name,
+	}
+}
+
+// WithSpecFields will add fields of any type to the object spec. It takes an argument, fields, which is of the form path: object.
+// NOTE: The path should correspond to a field defined in the CRD.
+func (b *TestBootstrapTemplateBuilder) WithSpecFields(fields map[string]interface{}) *TestBootstrapTemplateBuilder {
+	b.specFields = fields
+	return b
+}
+
+// Build creates a new Unstructured object with the information passed to the BootstrapTemplateBuilder.
+func (b *TestBootstrapTemplateBuilder) Build() *unstructured.Unstructured {
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion(BootstrapGroupVersion.String())
+	obj.SetKind(TestBootstrapConfigTemplateKind)
+	obj.SetNamespace(b.namespace)
+	obj.SetName(b.name)
+
+	// Initialize the spec.template.spec to make the object valid in reconciliation.
+	setSpecFields(obj, map[string]interface{}{"spec.template.spec": map[string]interface{}{}})
+
+	setSpecFields(obj, b.specFields)
 
 	return obj
 }
@@ -626,6 +711,47 @@ func (i *InfrastructureClusterBuilder) Build() *unstructured.Unstructured {
 	return obj
 }
 
+// TestInfrastructureClusterBuilder holds the variables and objects needed to build a generic TestInfrastructureCluster.
+// +kubebuilder:object:generate=false
+type TestInfrastructureClusterBuilder struct {
+	namespace  string
+	name       string
+	specFields map[string]interface{}
+}
+
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."; the path should correspond to a field defined in the CRD.
+//
+// Example map: map[string]interface{}{
+//     "spec.version": "v1.2.3",
+// }.
+func (i *TestInfrastructureClusterBuilder) WithSpecFields(fields map[string]interface{}) *TestInfrastructureClusterBuilder {
+	i.specFields = fields
+	return i
+}
+
+// TestInfrastructureCluster returns and TestInfrastructureClusterBuilder with the given name and namespace.
+func TestInfrastructureCluster(namespace, name string) *TestInfrastructureClusterBuilder {
+	return &TestInfrastructureClusterBuilder{
+		namespace: namespace,
+		name:      name,
+	}
+}
+
+// Build returns an Unstructured object with the information passed to the InfrastructureClusterBuilder.
+func (i *TestInfrastructureClusterBuilder) Build() *unstructured.Unstructured {
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion(InfrastructureGroupVersion.String())
+	obj.SetKind(TestInfrastructureClusterKind)
+	obj.SetNamespace(i.namespace)
+	obj.SetName(i.name)
+
+	setSpecFields(obj, i.specFields)
+	return obj
+}
+
 // ControlPlaneBuilder holds the variables and objects needed to build a generic object for cluster.spec.controlPlaneRef.
 // +kubebuilder:object:generate=false
 type ControlPlaneBuilder struct {
@@ -695,6 +821,101 @@ func (f *ControlPlaneBuilder) Build() *unstructured.Unstructured {
 	obj := &unstructured.Unstructured{}
 	obj.SetAPIVersion(ControlPlaneGroupVersion.String())
 	obj.SetKind(GenericControlPlaneKind)
+	obj.SetNamespace(f.namespace)
+	obj.SetName(f.name)
+
+	setSpecFields(obj, f.specFields)
+	setStatusFields(obj, f.statusFields)
+
+	// TODO(killianmuldoon): Update to use the internal/contract package, when it is importable from here
+	if f.infrastructureMachineTemplate != nil {
+		if err := setNestedRef(obj, f.infrastructureMachineTemplate, "spec", "machineTemplate", "infrastructureRef"); err != nil {
+			panic(err)
+		}
+	}
+	if f.replicas != nil {
+		if err := unstructured.SetNestedField(obj.UnstructuredContent(), *f.replicas, "spec", "replicas"); err != nil {
+			panic(err)
+		}
+	}
+	if f.version != nil {
+		if err := unstructured.SetNestedField(obj.UnstructuredContent(), *f.version, "spec", "version"); err != nil {
+			panic(err)
+		}
+	}
+
+	return obj
+}
+
+// TestControlPlaneBuilder holds the variables and objects needed to build a generic object for cluster.spec.controlPlaneRef.
+// +kubebuilder:object:generate=false
+type TestControlPlaneBuilder struct {
+	namespace                     string
+	name                          string
+	infrastructureMachineTemplate *unstructured.Unstructured
+	replicas                      *int64
+	version                       *string
+	specFields                    map[string]interface{}
+	statusFields                  map[string]interface{}
+}
+
+// TestControlPlane returns a TestControlPlaneBuilder with the given name and Namespace.
+func TestControlPlane(namespace, name string) *TestControlPlaneBuilder {
+	return &TestControlPlaneBuilder{
+		namespace: namespace,
+		name:      name,
+	}
+}
+
+// WithInfrastructureMachineTemplate adds the given unstructured object to the ControlPlaneBuilder as its InfrastructureMachineTemplate.
+func (f *TestControlPlaneBuilder) WithInfrastructureMachineTemplate(t *unstructured.Unstructured) *TestControlPlaneBuilder {
+	f.infrastructureMachineTemplate = t
+	return f
+}
+
+// WithReplicas sets the number of replicas for the ControlPlaneBuilder.
+func (f *TestControlPlaneBuilder) WithReplicas(replicas int64) *TestControlPlaneBuilder {
+	f.replicas = &replicas
+	return f
+}
+
+// WithVersion adds the passed version to the ControlPlaneBuilder.
+func (f *TestControlPlaneBuilder) WithVersion(version string) *TestControlPlaneBuilder {
+	f.version = &version
+	return f
+}
+
+// WithSpecFields sets a map of spec fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the spec field.
+//
+// Note: all the paths should start with "spec."; the path should correspond to a field defined in the CRD.
+//
+// Example map: map[string]interface{}{
+//     "spec.version": "v1.2.3",
+// }.
+func (f *TestControlPlaneBuilder) WithSpecFields(m map[string]interface{}) *TestControlPlaneBuilder {
+	f.specFields = m
+	return f
+}
+
+// WithStatusFields sets a map of status fields on the unstructured object. The keys in the map represent the path and the value corresponds
+// to the value of the status field.
+//
+// Note: all the paths should start with "status."; the path should correspond to a field defined in the CRD.
+//
+// Example map: map[string]interface{}{
+//     "status.version": "v1.2.3",
+// }.
+func (f *TestControlPlaneBuilder) WithStatusFields(m map[string]interface{}) *TestControlPlaneBuilder {
+	f.statusFields = m
+	return f
+}
+
+// Build generates an Unstructured object from the information passed to the ControlPlaneBuilder.
+func (f *TestControlPlaneBuilder) Build() *unstructured.Unstructured {
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion(ControlPlaneGroupVersion.String())
+	obj.SetKind(TestControlPlaneKind)
 	obj.SetNamespace(f.namespace)
 	obj.SetName(f.name)
 

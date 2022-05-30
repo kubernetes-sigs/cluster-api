@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: state-metrics
+  namespace: system
+  labels:
+    control-plane: state-metrics
+spec:
+  selector:
+    matchLabels:
+      control-plane: state-metrics
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        control-plane: state-metrics
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+      - args:
+        - --metric-labels-allowlist=""
+        - --port=8080
+        - --telemetry-port=8081
+        ports:
+        - containerPort: 8080
+          name: metrics
+          protocol: TCP
+        - containerPort: 8081
+          name: telemetry
+          protocol: TCP
+        image: controller:latest
+        name: manager
+        securityContext:
+          allowPrivilegeEscalation: false
+          runAsUser: 1000
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8081
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8081
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 100m
+            memory: 50Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+      serviceAccountName: state-metrics
+      terminationGracePeriodSeconds: 10

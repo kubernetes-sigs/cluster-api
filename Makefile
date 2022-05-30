@@ -54,6 +54,7 @@ ROOT_DIR:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 EXP_DIR := exp
 BIN_DIR := bin
 TEST_DIR := test
+STATE_METRICS_DIR := $(EXP_DIR)/state-metrics
 TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
 E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
@@ -156,6 +157,10 @@ KUBEADM_BOOTSTRAP_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_BOOTSTRAP_IMAGE_NAME)
 KUBEADM_CONTROL_PLANE_IMAGE_NAME ?= kubeadm-control-plane-controller
 KUBEADM_CONTROL_PLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAGE_NAME)
 
+# state metrics
+STATE_METRICS_IMAGE_NAME ?= state-metrics
+STATE_METRICS_IMG ?= $(REGISTRY)/$(STATE_METRICS_IMAGE_NAME)
+
 # It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
 
 TAG ?= dev
@@ -190,7 +195,7 @@ ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-*, generate-go-conversions-* and generate-go-openapi targets
-	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions generate-go-openapi
+	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions generate-go-openapi generate-manifests-cluster-api-state-metrics
 	$(MAKE) -C $(CAPD_DIR) generate
 
 .PHONY: generate-manifests
@@ -243,6 +248,13 @@ generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifest
 		output:rbac:dir=./controlplane/kubeadm/config/rbac \
 		output:webhook:dir=./controlplane/kubeadm/config/webhook \
 		webhook
+
+.PHONY: generate-manifests-cluster-api-state-metrics
+generate-manifests-cluster-api-state-metrics: $(CONTROLLER_GEN) ## Generate RBAC cluster-api-state-metrics
+	cd $(STATE_METRICS_DIR); $(CONTROLLER_GEN) \
+		paths=./pkg/... \
+		rbac:roleName=manager-role \
+		output:rbac:dir=./config/rbac
 
 .PHONY: generate-go-deepcopy
 generate-go-deepcopy:  ## Run all generate-go-deepcopy-* targets
@@ -383,6 +395,7 @@ lint: $(GOLANGCI_LINT) ## Lint the codebase
 	$(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TEST_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 	cd $(TOOLS_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
+	cd $(STATE_METRICS_DIR); $(GOLANGCI_LINT) run -v $(GOLANGCI_LINT_EXTRA_ARGS)
 
 .PHONY: lint-fix
 lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported by the linter
@@ -405,7 +418,7 @@ verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date
-	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum); then \
+	@if !(git diff --quiet HEAD -- go.sum go.mod $(TOOLS_DIR)/go.mod $(TOOLS_DIR)/go.sum $(TEST_DIR)/go.mod $(TEST_DIR)/go.sum $(STATE_METRICS_DIR)/go.mod $(STATE_METRICS_DIR)/go.sum); then \
 		git diff; \
 		echo "go module files are out of date"; exit 1; \
 	fi
@@ -473,6 +486,10 @@ manager-kubeadm-bootstrap: ## Build the kubeadm bootstrap manager binary into th
 manager-kubeadm-control-plane: ## Build the kubeadm control plane manager binary into the ./bin folder
 	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kubeadm-control-plane-manager sigs.k8s.io/cluster-api/controlplane/kubeadm
 
+.PHONY: cluster-api-state-metrics
+cluster-api-state-metrics: ## Build the state metrics binary into the ./bin folder
+	cd $(STATE_METRICS_DIR); go build -trimpath -ldflags "$(LDFLAGS)" -o $(ROOT_DIR)/$(BIN_DIR)/cluster-api-state-metrics sigs.k8s.io/cluster-api/$(STATE_METRICS_DIR)
+
 .PHONY: docker-pull-prerequisites
 docker-pull-prerequisites:
 	docker pull docker.io/docker/dockerfile:1.1-experimental
@@ -508,6 +525,12 @@ docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm contro
 	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-build-cluster-api-state-metrics
+docker-build-cluster-api-state-metrics: ## Build the docker image for state metrics
+	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./exp/state-metrics --build-arg ldflags="$(LDFLAGS)" . -t $(STATE_METRICS_IMG)-$(ARCH):$(TAG) -f $(STATE_METRICS_DIR)/Dockerfile
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(STATE_METRICS_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./$(STATE_METRICS_DIR)/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./$(STATE_METRICS_DIR)/config/default/manager_pull_policy.yaml"
 
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework

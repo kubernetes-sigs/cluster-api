@@ -1,0 +1,31 @@
+# service for scraping cluster-api-state-metrics
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/scheme: "http"
+  name: state-metrics-service
+spec:
+  ports:
+  - name: metrics
+    port: 8080
+    targetPort: metrics
+  selector:
+---
+# service for scraping the telemetry endpoint of cluster-api-state-metrics
+# which exposes internal metrics specific to the exporter itself
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8081"
+    prometheus.io/scheme: "http"
+  name: state-metrics-service-telemetry
+spec:
+  ports:
+  - name: telemetry
+    port: 8081
+    targetPort: telemetry

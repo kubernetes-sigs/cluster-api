@@ -28,7 +28,6 @@ aliases:
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
   - JoelSpeed
-  - sbueringer
   - stmcginnis
 
   # -----------------------------------------------------------
@@ -77,27 +76,38 @@ aliases:
   # OWNER_ALIASES for test
   # -----------------------------------------------------------
 
-  cluster-api-test-reviewers:
   cluster-api-test-maintainers:
+  cluster-api-test-reviewers:
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for test/framework
   # -----------------------------------------------------------
 
-  cluster-api-test-framework-reviewers:
   cluster-api-test-framework-maintainers:
+  cluster-api-test-framework-reviewers:
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for test/infrastructure/docker
   # -----------------------------------------------------------
 
-  cluster-api-provider-docker-reviewers:
   cluster-api-provider-docker-maintainers:
+  cluster-api-provider-docker-reviewers:
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for docs
   # -----------------------------------------------------------
 
+  cluster-api-docs-maintainers:
   cluster-api-docs-reviewers:
     - killianmuldoon
-  cluster-api-docs-maintainers:
+
+  # -----------------------------------------------------------
+  # OWNER_ALIASES for exp/state-metrics
+  # -----------------------------------------------------------
+
+  cluster-api-state-metrics-maintainers:
+  cluster-api-state-metrics-reviewers:
+    - chrischdi
+    - johannesfrey
+    - seanschneeweiss
+    - tobiasgiese

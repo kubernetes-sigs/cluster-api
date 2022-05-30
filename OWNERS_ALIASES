@@ -22,6 +22,7 @@ aliases:
   - CecileRobertMichon
   - enxebre
   - fabriziopandini
+  - sbueringer
   - vincepri
 
   # folks who can review and LGTM any PRs in the repo
@@ -45,6 +46,7 @@ aliases:
 
   cluster-api-bootstrap-provider-kubeadm-maintainers:
   cluster-api-bootstrap-provider-kubeadm-reviewers:
+    - killianmuldoon
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for bootstrap/kubeadm/internal/ignition
@@ -69,6 +71,7 @@ aliases:
 
   cluster-api-clusterctl-maintainers:
   cluster-api-clusterctl-reviewers:
+  - ykakarap
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for test
@@ -76,7 +79,6 @@ aliases:
 
   cluster-api-test-reviewers:
   cluster-api-test-maintainers:
-  - sbueringer
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for test/framework
@@ -97,4 +99,5 @@ aliases:
   # -----------------------------------------------------------
 
   cluster-api-docs-reviewers:
+    - killianmuldoon
   cluster-api-docs-maintainers:

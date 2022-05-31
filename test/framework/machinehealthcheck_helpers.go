@@ -101,7 +101,9 @@ type GetMachineHealthChecksForClusterInput struct {
 // it is necessary to ensure this is already happened before calling it.
 func GetMachineHealthChecksForCluster(ctx context.Context, input GetMachineHealthChecksForClusterInput) []*clusterv1.MachineHealthCheck {
 	machineHealthCheckList := &clusterv1.MachineHealthCheckList{}
-	Expect(input.Lister.List(ctx, machineHealthCheckList, byClusterOptions(input.ClusterName, input.Namespace)...)).To(Succeed(), "Failed to list MachineDeployments object for Cluster %s/%s", input.Namespace, input.ClusterName)
+	Eventually(func() error {
+		return input.Lister.List(ctx, machineHealthCheckList, byClusterOptions(input.ClusterName, input.Namespace)...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineDeployments object for Cluster %s/%s", input.Namespace, input.ClusterName)
 
 	machineHealthChecks := make([]*clusterv1.MachineHealthCheck, len(machineHealthCheckList.Items))
 	for i := range machineHealthCheckList.Items {

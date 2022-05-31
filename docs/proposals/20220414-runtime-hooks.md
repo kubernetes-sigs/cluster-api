@@ -158,7 +158,7 @@ message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
 
-For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://gist.githubusercontent.com/ykakarap/6a58d976df90928cdb31768125d73613/raw/8ce6175060039c2fb7b3ea9a091d712228f56852/lifecycle-hooks-openapi-2.yaml). 
+For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/proposals/images/runtime-hooks/runtime-hooks-openapi.yaml). 
 
 (*) The objects which are part of a Cluster topology are the infrastructure Cluster, the control plane, the MachineDeployments and the templates derived from the ClusterClass.
 
@@ -193,7 +193,7 @@ status: Success
 message: "error message if status == Failure"
 ```
 
-For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://gist.githubusercontent.com/ykakarap/6a58d976df90928cdb31768125d73613/raw/8ce6175060039c2fb7b3ea9a091d712228f56852/lifecycle-hooks-openapi-2.yaml).
+For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/proposals/images/runtime-hooks/runtime-hooks-openapi.yaml).
 
 
 ####  Before Cluster Upgrade
@@ -229,7 +229,7 @@ message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
 
-For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://gist.githubusercontent.com/ykakarap/6a58d976df90928cdb31768125d73613/raw/8ce6175060039c2fb7b3ea9a091d712228f56852/lifecycle-hooks-openapi-2.yaml).
+For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/proposals/images/runtime-hooks/runtime-hooks-openapi.yaml).
 
 * Under normal circumstances spec.topology.version gets propagated to the control plane immediately; however if previous upgrades or worker machine rollouts are still in progress, the system waits for those operations to complete before starting the new upgrade.
 
@@ -265,7 +265,7 @@ message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
 
-For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://gist.githubusercontent.com/ykakarap/6a58d976df90928cdb31768125d73613/raw/8ce6175060039c2fb7b3ea9a091d712228f56852/lifecycle-hooks-openapi-2.yaml).
+For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/proposals/images/runtime-hooks/runtime-hooks-openapi.yaml).
 
 
 ####  After Cluster Upgrade
@@ -299,7 +299,7 @@ status: Success
 message: "error message if status == Failure"
 ```
 
-For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://gist.githubusercontent.com/ykakarap/6a58d976df90928cdb31768125d73613/raw/8ce6175060039c2fb7b3ea9a091d712228f56852/lifecycle-hooks-openapi-2.yaml).
+For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/proposals/images/runtime-hooks/runtime-hooks-openapi.yaml).
 
 ####  Before Cluster Delete
 
@@ -332,7 +332,7 @@ message: "error message if status == Failure"
 retryAfterSeconds: 10
 ```
 
-For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://gist.githubusercontent.com/ykakarap/6a58d976df90928cdb31768125d73613/raw/8ce6175060039c2fb7b3ea9a091d712228f56852/lifecycle-hooks-openapi-2.yaml).
+For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/proposals/images/runtime-hooks/runtime-hooks-openapi.yaml).
 
 
 ###  Runtime Extensions developer guide

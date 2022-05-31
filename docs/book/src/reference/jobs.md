@@ -20,11 +20,13 @@ Prow Presubmits:
 * [pull-cluster-api-test-mink8s-main] `./scripts/ci-test.sh`
 * [pull-cluster-api-e2e-main] `./scripts/ci-e2e.sh`
   * GINKGO_FOCUS: `[PR-Blocking]`
-* ✳️️ [pull-cluster-api-e2e-ipv6-main] `./scripts/ci-e2e.sh`
-  * GINKGO_FOCUS: `[PR-Blocking]`, IP_FAMILY: `IPv6`
+* ✳️️ [pull-cluster-api-e2e-informing-main] `./scripts/ci-e2e.sh`
+  * GINKGO_FOCUS: `[PR-Informing]`, GINKGO_SKIP: `[IPv6]`
+* ✳️️ [pull-cluster-api-e2e-informing-ipv6-main] `./scripts/ci-e2e.sh`
+  * GINKGO_FOCUS: `[IPv6] [PR-Informing]`, IP_FAMILY: `IPv6`
 * ✳️️ ✴️ [pull-cluster-api-e2e-full-main] `./scripts/ci-e2e.sh`
-  * GINKGO_SKIP: `[PR-Blocking] [Conformance] [K8s-Upgrade]` (i.e. "no tags")
-* ✳️️ ✴️ [pull-cluster-api-e2e-workload-upgrade-1-23-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.23` TO: `ci/latest-1.24`
+  * GINKGO_SKIP: `[PR-Blocking] [Conformance] [K8s-Upgrade] [IPv6]` (i.e. "no tags")
+* ✳️️ ✴️ [pull-cluster-api-e2e-workload-upgrade-1-24-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.24` TO: `ci/latest-1.25`
   * GINKGO_FOCUS: `[K8s-Upgrade]`
 
 GitHub Presubmit Workflows:
@@ -74,9 +76,10 @@ GitHub (On Release) Workflows:
 [pull-cluster-api-test-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-test-main
 [pull-cluster-api-test-mink8s-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-test-mink8s-main
 [pull-cluster-api-e2e-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main
-[pull-cluster-api-e2e-ipv6-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main-ipv6
+[pull-cluster-api-e2e-informing-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-informing-main
+[pull-cluster-api-e2e-informing-ipv6-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-informing-ipv6-main
 [pull-cluster-api-e2e-full-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-full-main
-[pull-cluster-api-e2e-workload-upgrade-1-23-latest-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main-1-23-latest
+[pull-cluster-api-e2e-workload-upgrade-1-24-latest-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main-1-24-latest
 [periodic-cluster-api-test-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-test-main
 [periodic-cluster-api-e2e-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main
 [periodic-cluster-api-e2e-upgrade-v0-3-to-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-upgrade-v0-3-to-main

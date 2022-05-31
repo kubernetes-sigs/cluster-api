@@ -38,6 +38,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
+	fakev1alpha1 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -50,6 +51,8 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	cat := runtimecatalog.New()
+	g.Expect(fakev1alpha1.AddToCatalog(cat)).To(Succeed())
+
 	registry := runtimeregistry.New()
 	runtimeClient := runtimeclient.New(runtimeclient.Options{
 		Catalog:  cat,
@@ -187,6 +190,8 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 
 	t.Run("test discovery of a single extension", func(t *testing.T) {
 		cat := runtimecatalog.New()
+		g.Expect(fakev1alpha1.AddToCatalog(cat)).To(Succeed())
+
 		registry := runtimeregistry.New()
 		g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 		extensionName := "ext1"
@@ -217,6 +222,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 	})
 	t.Run("fail discovery for non-running extension", func(t *testing.T) {
 		cat := runtimecatalog.New()
+		g.Expect(fakev1alpha1.AddToCatalog(cat)).To(Succeed())
 		registry := runtimeregistry.New()
 		g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 		extensionName := "ext1"
@@ -254,8 +260,8 @@ func discoveryHandler(handlerList ...string) func(http.ResponseWriter, *http.Req
 		handlers = append(handlers, runtimehooksv1.ExtensionHandler{
 			Name: name,
 			RequestHook: runtimehooksv1.GroupVersionHook{
-				Hook:       name,
-				APIVersion: runtimehooksv1.GroupVersion.String(),
+				Hook:       "FakeHook",
+				APIVersion: fakev1alpha1.GroupVersion.String(),
 			},
 		})
 	}

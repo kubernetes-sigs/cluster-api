@@ -315,6 +315,12 @@ func (c *Catalog) ValidateResponse(hook GroupVersionHook, obj runtime.Object) er
 	return nil
 }
 
+// IsHookRegistered returns true if the GroupVersionHook is registered with the catalog.
+func (c *Catalog) IsHookRegistered(gvh GroupVersionHook) bool {
+	_, found := c.gvhToType[gvh]
+	return found
+}
+
 // GroupVersionHook unambiguously identifies a Hook.
 type GroupVersionHook struct {
 	Group   string

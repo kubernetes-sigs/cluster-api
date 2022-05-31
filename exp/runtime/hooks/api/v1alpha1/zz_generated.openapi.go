@@ -797,14 +797,14 @@ func schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref common.ReferenceCall
 					},
 					"timeoutSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TimeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.",
+							Description: "TimeoutSeconds defines the timeout duration for client calls to the ExtensionHandler. This is defaulted to 10 if left undefined.",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"failurePolicy": {
 						SchemaProps: spec.SchemaProps{
-							Description: "FailurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client.",
+							Description: "FailurePolicy defines how failures in calls to the ExtensionHandler should be handled by a client. This is defaulted to FailurePolicyFail if not defined.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

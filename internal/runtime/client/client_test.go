@@ -325,6 +325,184 @@ func TestURLForExtension(t *testing.T) {
 	}
 }
 
+func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
+	var invalidFailurePolicy runtimehooksv1.FailurePolicy = "DONT_FAIL"
+	cat := runtimecatalog.New()
+	_ = fakev1alpha1.AddToCatalog(cat)
+
+	tests := []struct {
+		name      string
+		discovery *runtimehooksv1.DiscoveryResponse
+		wantErr   bool
+	}{
+		{
+			name: "succeed with valid skeleton DiscoveryResponse",
+			discovery: &runtimehooksv1.DiscoveryResponse{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "DiscoveryResponse",
+					APIVersion: runtimehooksv1.GroupVersion.String(),
+				},
+				Handlers: []runtimehooksv1.ExtensionHandler{{
+					Name: "extension",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						Hook:       "FakeHook",
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+					},
+				}},
+			},
+			wantErr: false,
+		},
+		{
+			name: "error with name violating DNS1123",
+			discovery: &runtimehooksv1.DiscoveryResponse{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "DiscoveryResponse",
+					APIVersion: runtimehooksv1.GroupVersion.String(),
+				},
+				Handlers: []runtimehooksv1.ExtensionHandler{{
+					Name: "HAS-CAPITAL-LETTERS",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						Hook:       "FakeHook",
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+					},
+				}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error with Timeout of over 30 seconds",
+			discovery: &runtimehooksv1.DiscoveryResponse{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "DiscoveryResponse",
+					APIVersion: runtimehooksv1.GroupVersion.String(),
+				},
+				Handlers: []runtimehooksv1.ExtensionHandler{{
+					Name: "ext1",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						Hook:       "FakeHook",
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+					},
+					TimeoutSeconds: pointer.Int32(100),
+				}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error with Timeout of less than 0",
+			discovery: &runtimehooksv1.DiscoveryResponse{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "DiscoveryResponse",
+					APIVersion: runtimehooksv1.GroupVersion.String(),
+				},
+				Handlers: []runtimehooksv1.ExtensionHandler{{
+					Name: "ext1",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						Hook:       "FakeHook",
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+					},
+					TimeoutSeconds: pointer.Int32(-1),
+				}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error with FailurePolicy not Fail or Ignore",
+			discovery: &runtimehooksv1.DiscoveryResponse{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "DiscoveryResponse",
+					APIVersion: runtimehooksv1.GroupVersion.String(),
+				},
+				Handlers: []runtimehooksv1.ExtensionHandler{{
+					Name: "ext1",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						Hook:       "FakeHook",
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+					},
+					TimeoutSeconds: pointer.Int32(20),
+					FailurePolicy:  &invalidFailurePolicy,
+				}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error when handler name is duplicated",
+			discovery: &runtimehooksv1.DiscoveryResponse{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "DiscoveryResponse",
+					APIVersion: runtimehooksv1.GroupVersion.String(),
+				},
+				Handlers: []runtimehooksv1.ExtensionHandler{
+					{
+						Name: "ext1",
+						RequestHook: runtimehooksv1.GroupVersionHook{
+							Hook:       "FakeHook",
+							APIVersion: fakev1alpha1.GroupVersion.String(),
+						},
+					},
+					{
+						Name: "ext1",
+						RequestHook: runtimehooksv1.GroupVersionHook{
+							Hook:       "FakeHook",
+							APIVersion: fakev1alpha1.GroupVersion.String(),
+						},
+					},
+					{
+						Name: "ext2",
+						RequestHook: runtimehooksv1.GroupVersionHook{
+							Hook:       "FakeHook",
+							APIVersion: fakev1alpha1.GroupVersion.String(),
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error if handler GroupVersionHook is not registered",
+			discovery: &runtimehooksv1.DiscoveryResponse{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "DiscoveryResponse",
+					APIVersion: runtimehooksv1.GroupVersion.String(),
+				},
+				Handlers: []runtimehooksv1.ExtensionHandler{{
+					Name: "ext1",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						Hook: "FakeHook",
+						// Version v1alpha2 is not registered with the catalog
+						APIVersion: fakev1alpha2.GroupVersion.String(),
+					},
+				}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error if handler GroupVersion can not be parsed",
+			discovery: &runtimehooksv1.DiscoveryResponse{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "DiscoveryResponse",
+					APIVersion: runtimehooksv1.GroupVersion.String(),
+				},
+				Handlers: []runtimehooksv1.ExtensionHandler{{
+					Name: "ext1",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						Hook: "FakeHook",
+						// Version v1alpha2 is not registered with the catalog
+						APIVersion: "too/many/slashes",
+					},
+				}},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := defaultAndValidateDiscoveryResponse(cat, tt.discovery); (err != nil) != tt.wantErr {
+				t.Errorf("defaultAndValidateDiscoveryResponse() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestClient_CallExtension(t *testing.T) {
 	testHostPort := "127.0.0.1:9090"
 

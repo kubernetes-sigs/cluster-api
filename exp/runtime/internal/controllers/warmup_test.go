@@ -32,6 +32,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
+	fakev1alpha1 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha1"
 )
 
 func Test_warmupRunnable_Start(t *testing.T) {
@@ -44,6 +45,8 @@ func Test_warmupRunnable_Start(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		cat := runtimecatalog.New()
+		g.Expect(fakev1alpha1.AddToCatalog(cat)).To(Succeed())
+
 		registry := runtimeregistry.New()
 		g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 
@@ -93,6 +96,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		cat := runtimecatalog.New()
+		g.Expect(fakev1alpha1.AddToCatalog(cat)).To(Succeed())
 		registry := runtimeregistry.New()
 		g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 

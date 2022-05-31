@@ -77,7 +77,9 @@ func EnsureNamespace(ctx context.Context, mgmt client.Client, namespace string) 
 				Name: namespace,
 			},
 		}
-		Expect(mgmt.Create(ctx, ns)).To(Succeed())
+		Eventually(func() error {
+			return mgmt.Create(ctx, ns)
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 	} else {
 		Fail(err.Error())
 	}

@@ -14,8 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha1 contains types for tests.
+// Package v1alpha2 contains types for tests.
 // Note: they have to be in a separate package because otherwise it wouldn't
 // be possible to register different versions of the same hook.
-// +k8s:conversion-gen=sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2
-package v1alpha1
+package v1alpha2

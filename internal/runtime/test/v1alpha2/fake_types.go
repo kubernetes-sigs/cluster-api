@@ -21,30 +21,14 @@ package v1alpha2
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
 
-var (
-	// GroupVersion is group version identifying rpc services defined in this package
-	// and their request and response types.
-	GroupVersion = schema.GroupVersion{Group: "test.runtime.cluster.x-k8s.io", Version: "v1alpha2"}
-
-	// catalogBuilder is used to add rpc services and their request and response types
-	// to a Catalog.
-	catalogBuilder = &runtimecatalog.Builder{GroupVersion: GroupVersion}
-
-	// AddToCatalog adds rpc services defined in this package and their request and
-	// response types to a catalog.
-	AddToCatalog = catalogBuilder.AddToCatalog
-)
-
-func FakeHook(*FakeRequest, *FakeResponse) {}
-
+// FakeRequest is a response for testing
+// +kubebuilder:object:root=true
 type FakeRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -54,27 +38,26 @@ type FakeRequest struct {
 	First  int
 }
 
-func (in *FakeRequest) DeepCopyObject() runtime.Object {
-	panic("implement me!")
-}
+var _ runtimehooksv1.ResponseObject = &FakeResponse{}
 
+// FakeResponse is a response for testing.
+// +kubebuilder:object:root=true
 type FakeResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
 	runtimehooksv1.CommonResponse `json:",inline"`
-	Second                        string
-	First                         int
+
+	Second string
+	First  int
 }
 
-func (in *FakeResponse) DeepCopyObject() runtime.Object {
-	panic("implement me!")
-}
+func FakeHook(*FakeRequest, *FakeResponse) {}
 
 func init() {
 	catalogBuilder.RegisterHook(FakeHook, &runtimecatalog.HookMeta{
 		Tags:        []string{"fake-tag"},
-		Summary:     "Fake summary",
-		Description: "Fake description",
+		Summary:     "FakeHook summary",
+		Description: "FakeHook description",
 		Deprecated:  true,
 	})
 }

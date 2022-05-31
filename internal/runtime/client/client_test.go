@@ -23,6 +23,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"regexp"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -324,8 +326,6 @@ func TestURLForExtension(t *testing.T) {
 }
 
 func TestClient_CallExtension(t *testing.T) {
-	g := NewWithT(t)
-
 	testHostPort := "127.0.0.1:9090"
 
 	fpFail := runtimev1.FailurePolicyFail
@@ -351,14 +351,6 @@ func TestClient_CallExtension(t *testing.T) {
 			},
 		},
 	}
-	registryWithExtensionHandlerWithFailPolicy := runtimeregistry.New()
-	err := registryWithExtensionHandlerWithFailPolicy.WarmUp(&runtimev1.ExtensionConfigList{
-		Items: []runtimev1.ExtensionConfig{
-			validExtensionHandlerWithFailPolicy,
-		},
-	})
-	g.Expect(err).NotTo(HaveOccurred())
-
 	validExtensionHandlerWithIgnorePolicy := runtimev1.ExtensionConfig{
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
@@ -380,34 +372,6 @@ func TestClient_CallExtension(t *testing.T) {
 		},
 	}
 
-	registryWithExtensionHandlerWithIgnorePolicy := runtimeregistry.New()
-	err = registryWithExtensionHandlerWithIgnorePolicy.WarmUp(&runtimev1.ExtensionConfigList{
-		Items: []runtimev1.ExtensionConfig{
-			validExtensionHandlerWithIgnorePolicy,
-		},
-	})
-	g.Expect(err).NotTo(HaveOccurred())
-
-	successResponse := &fakev1alpha1.FakeResponse{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "FakeResponse",
-			APIVersion: fakev1alpha1.GroupVersion.String(),
-		},
-		CommonResponse: runtimehooksv1.CommonResponse{
-			Status: runtimehooksv1.ResponseStatusSuccess,
-		},
-	}
-
-	failureResponse := &fakev1alpha1.FakeResponse{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "FakeResponse",
-			APIVersion: fakev1alpha1.GroupVersion.String(),
-		},
-		CommonResponse: runtimehooksv1.CommonResponse{
-			Status: runtimehooksv1.ResponseStatusFailure,
-		},
-	}
-
 	type args struct {
 		hook     runtimecatalog.Hook
 		name     string
@@ -415,19 +379,48 @@ func TestClient_CallExtension(t *testing.T) {
 		response runtimehooksv1.ResponseObject
 	}
 	tests := []struct {
-		name       string
-		registry   runtimeregistry.ExtensionRegistry
-		args       args
-		testServer testServerConfig
-		wantErr    bool
+		name                       string
+		registeredExtensionConfigs []runtimev1.ExtensionConfig
+		args                       args
+		testServer                 testServerConfig
+		wantErr                    bool
 	}{
 		{
-			name:     "should fail if ExtensionHandler information is not registered",
-			registry: runtimeregistry.New(),
+			name:                       "should fail when hook and request/response are not compatible",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{validExtensionHandlerWithFailPolicy},
 			testServer: testServerConfig{
-				start:              true,
-				response:           &fakev1alpha1.FakeResponse{},
-				responseStatusCode: http.StatusOK,
+				start: false,
+			},
+			args: args{
+				hook:     fakev1alpha1.FakeHook,
+				name:     "valid-extension",
+				request:  &fakev1alpha1.SecondFakeRequest{},
+				response: &fakev1alpha1.SecondFakeResponse{},
+			},
+			wantErr: true,
+		},
+		{
+			name:                       "should fail when hook GVH does not match the registered ExtensionHandler",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{validExtensionHandlerWithFailPolicy},
+			testServer: testServerConfig{
+				start: false,
+			},
+			args: args{
+				hook:     fakev1alpha1.SecondFakeHook,
+				name:     "valid-extension",
+				request:  &fakev1alpha1.SecondFakeRequest{},
+				response: &fakev1alpha1.SecondFakeResponse{},
+			},
+			wantErr: true,
+		},
+		{
+			name:                       "should fail if ExtensionHandler is not registered",
+			registeredExtensionConfigs: nil,
+			testServer: testServerConfig{
+				start: true,
+				responses: map[string]testServerResponse{
+					"/*": response(runtimehooksv1.ResponseStatusSuccess),
+				},
 			},
 			args: args{
 				hook:     fakev1alpha1.FakeHook,
@@ -438,173 +431,93 @@ func TestClient_CallExtension(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:     "should fail when extension handler from the registry is not compatible with the hook arg",
-			registry: registryWithExtensionHandlerWithFailPolicy,
+			name:                       "should succeed when calling ExtensionHandler with success response and FailurePolicyFail",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{validExtensionHandlerWithFailPolicy},
 			testServer: testServerConfig{
-				start: false,
-			},
-			args: args{
-				hook: fakev1alpha1.SecondFakeHook,
-				name: "valid-extension",
-				request: &fakev1alpha1.FakeRequest{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeRequest",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
+				start: true,
+				responses: map[string]testServerResponse{
+					"/*": response(runtimehooksv1.ResponseStatusSuccess),
 				},
-				response: &fakev1alpha1.FakeResponse{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeResponse",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name:     "should succeed when calling ExtensionHandler with success response and FailurePolicyFail",
-			registry: registryWithExtensionHandlerWithFailPolicy,
-			testServer: testServerConfig{
-				start:              true,
-				response:           successResponse,
-				responseStatusCode: http.StatusOK,
 			}, args: args{
-				hook: fakev1alpha1.FakeHook,
-				name: "valid-extension",
-				request: &fakev1alpha1.FakeRequest{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeRequest",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
-				response: &fakev1alpha1.FakeResponse{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeResponse",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
+				hook:     fakev1alpha1.FakeHook,
+				name:     "valid-extension",
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
 			},
 			wantErr: false,
 		},
 		{
-			name:     "should succeed when calling ExtensionHandler with success response and FailurePolicyIgnore",
-			registry: registryWithExtensionHandlerWithIgnorePolicy,
+			name:                       "should succeed when calling ExtensionHandler with success response and FailurePolicyIgnore",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{validExtensionHandlerWithIgnorePolicy},
 			testServer: testServerConfig{
-				start:              true,
-				response:           successResponse,
-				responseStatusCode: http.StatusOK,
+				start: true,
+				responses: map[string]testServerResponse{
+					"/*": response(runtimehooksv1.ResponseStatusSuccess),
+				},
 			}, args: args{
-				hook: fakev1alpha1.FakeHook,
-				name: "valid-extension",
-				request: &fakev1alpha1.FakeRequest{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeRequest",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
-				response: &fakev1alpha1.FakeResponse{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeResponse",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
+				hook:     fakev1alpha1.FakeHook,
+				name:     "valid-extension",
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
 			},
 			wantErr: false,
 		},
 		{
-			name:     "should fail when calling ExtensionHandler with failure response and FailurePolicyFail",
-			registry: registryWithExtensionHandlerWithFailPolicy,
+			name:                       "should fail when calling ExtensionHandler with failure response and FailurePolicyFail",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{validExtensionHandlerWithFailPolicy},
 			testServer: testServerConfig{
-				start:              true,
-				response:           failureResponse,
-				responseStatusCode: http.StatusOK,
+				start: true,
+				responses: map[string]testServerResponse{
+					"/*": response(runtimehooksv1.ResponseStatusFailure),
+				},
 			}, args: args{
-				hook: fakev1alpha1.FakeHook,
-				name: "valid-extension",
-				request: &fakev1alpha1.FakeRequest{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeRequest",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
-				response: &fakev1alpha1.FakeResponse{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeResponse",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
+				hook:     fakev1alpha1.FakeHook,
+				name:     "valid-extension",
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
 			},
 			wantErr: true,
 		},
 		{
-			name:     "should fail when calling ExtensionHandler with failure response and FailurePolicyIgnore",
-			registry: registryWithExtensionHandlerWithIgnorePolicy,
+			name:                       "should fail when calling ExtensionHandler with failure response and FailurePolicyIgnore",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{validExtensionHandlerWithIgnorePolicy},
 			testServer: testServerConfig{
-				start:              true,
-				response:           failureResponse,
-				responseStatusCode: http.StatusOK,
+				start: true,
+				responses: map[string]testServerResponse{
+					"/*": response(runtimehooksv1.ResponseStatusFailure),
+				},
 			}, args: args{
-				hook: fakev1alpha1.FakeHook,
-				name: "valid-extension",
-				request: &fakev1alpha1.FakeRequest{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeRequest",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
-				response: &fakev1alpha1.FakeResponse{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeResponse",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
+				hook:     fakev1alpha1.FakeHook,
+				name:     "valid-extension",
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
 			},
 			wantErr: true,
 		},
 
 		{
-			name:     "should succeed with unreachable extension and Ignore failure policy",
-			registry: registryWithExtensionHandlerWithIgnorePolicy,
+			name:                       "should succeed with unreachable extension and FailurePolicyIgnore",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{validExtensionHandlerWithIgnorePolicy},
 			testServer: testServerConfig{
 				start: false,
 			}, args: args{
-				hook: fakev1alpha1.FakeHook,
-				name: "valid-extension",
-				request: &fakev1alpha1.FakeRequest{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeRequest",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
-				response: &fakev1alpha1.FakeResponse{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeResponse",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
+				hook:     fakev1alpha1.FakeHook,
+				name:     "valid-extension",
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
 			},
 			wantErr: false,
 		},
 		{
-			name:     "should fail with unreachable extension and Fail failure policy",
-			registry: registryWithExtensionHandlerWithFailPolicy,
+			name:                       "should fail with unreachable extension and FailurePolicyFail",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{validExtensionHandlerWithFailPolicy},
 			testServer: testServerConfig{
 				start: false,
 			}, args: args{
-				hook: fakev1alpha1.FakeHook,
-				name: "valid-extension",
-				request: &fakev1alpha1.FakeRequest{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeRequest",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
-				response: &fakev1alpha1.FakeResponse{
-					TypeMeta: metav1.TypeMeta{
-						Kind:       "FakeResponse",
-						APIVersion: fakev1alpha1.GroupVersion.String(),
-					},
-				},
+				hook:     fakev1alpha1.FakeHook,
+				name:     "valid-extension",
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
 			},
 			wantErr: true,
 		},
@@ -615,22 +528,10 @@ func TestClient_CallExtension(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.testServer.start {
-				l, err := net.Listen("tcp", testHostPort)
-				g.Expect(err).NotTo(HaveOccurred())
-				mux := http.NewServeMux()
-				mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-					respBody, err := json.Marshal(tt.testServer.response)
-					if err != nil {
-						panic(err)
-					}
-					w.WriteHeader(tt.testServer.responseStatusCode)
-					_, _ = w.Write(respBody)
-				})
-				srv := httptest.NewUnstartedServer(mux)
-				// NewUnstartedServer creates a listener. Close that listener and replace
-				// with the one we created.
-				g.Expect(srv.Listener.Close()).To(Succeed())
-				srv.Listener = l
+				if tt.testServer.hostPort == "" {
+					tt.testServer.hostPort = testHostPort
+				}
+				srv := createTestServer(g, tt.testServer)
 				srv.Start()
 				defer srv.Close()
 			}
@@ -641,11 +542,10 @@ func TestClient_CallExtension(t *testing.T) {
 
 			c := New(Options{
 				Catalog:  cat,
-				Registry: tt.registry,
+				Registry: registry(tt.registeredExtensionConfigs),
 			})
 
-			ctx := context.Background()
-			err := c.CallExtension(ctx, tt.args.hook, tt.args.name, tt.args.request, tt.args.response)
+			err := c.CallExtension(context.Background(), tt.args.hook, tt.args.name, tt.args.request, tt.args.response)
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -656,8 +556,328 @@ func TestClient_CallExtension(t *testing.T) {
 	}
 }
 
+func TestClient_CallAllExtensions(t *testing.T) {
+	testHostPort := "127.0.0.1:9090"
+
+	fpFail := runtimev1.FailurePolicyFail
+
+	extensionConfig := runtimev1.ExtensionConfig{
+		Spec: runtimev1.ExtensionConfigSpec{
+			ClientConfig: runtimev1.ClientConfig{
+				URL: pointer.String(fmt.Sprintf("http://%s/", testHostPort)),
+			},
+		},
+		Status: runtimev1.ExtensionConfigStatus{
+			Handlers: []runtimev1.ExtensionHandler{
+				{
+					Name: "first-extension",
+					RequestHook: runtimev1.GroupVersionHook{
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+						Hook:       "FakeHook",
+					},
+					TimeoutSeconds: pointer.Int32Ptr(1),
+					FailurePolicy:  &fpFail,
+				},
+				{
+					Name: "second-extension",
+					RequestHook: runtimev1.GroupVersionHook{
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+						Hook:       "FakeHook",
+					},
+					TimeoutSeconds: pointer.Int32Ptr(1),
+					FailurePolicy:  &fpFail,
+				},
+				{
+					Name: "third-extension",
+					RequestHook: runtimev1.GroupVersionHook{
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+						Hook:       "FakeHook",
+					},
+					TimeoutSeconds: pointer.Int32Ptr(1),
+					FailurePolicy:  &fpFail,
+				},
+			},
+		},
+	}
+
+	type args struct {
+		hook     runtimecatalog.Hook
+		request  runtime.Object
+		response runtimehooksv1.ResponseObject
+	}
+	tests := []struct {
+		name                       string
+		registeredExtensionConfigs []runtimev1.ExtensionConfig
+		args                       args
+		testServer                 testServerConfig
+		wantErr                    bool
+	}{
+		{
+			name:                       "should fail when hook and request/response are not compatible",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{extensionConfig},
+			testServer: testServerConfig{
+				start: false,
+			},
+			args: args{
+				hook:     fakev1alpha1.SecondFakeHook,
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
+			},
+			wantErr: true,
+		},
+		{
+			name:                       "should succeed when no ExtensionHandlers are registered for the hook",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{},
+			testServer: testServerConfig{
+				start: false,
+			},
+			args: args{
+				hook:     fakev1alpha1.FakeHook,
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
+			},
+			wantErr: false,
+		},
+		{
+			name:                       "should succeed when calling ExtensionHandlers with success responses",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{extensionConfig},
+			testServer: testServerConfig{
+				start: true,
+				responses: map[string]testServerResponse{
+					"/*": response(runtimehooksv1.ResponseStatusSuccess),
+				},
+			},
+			args: args{
+				hook:     fakev1alpha1.FakeHook,
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
+			},
+			wantErr: false,
+		},
+		{
+			name:                       "should fail when calling ExtensionHandlers with failure responses",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{extensionConfig},
+			testServer: testServerConfig{
+				start: true,
+				responses: map[string]testServerResponse{
+					"/*": response(runtimehooksv1.ResponseStatusFailure),
+				},
+			},
+			args: args{
+				hook:     fakev1alpha1.FakeHook,
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
+			},
+			wantErr: true,
+		},
+		{
+			name:                       "should fail when one of the ExtensionHandlers returns a failure responses",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{extensionConfig},
+			testServer: testServerConfig{
+				start: true,
+				responses: map[string]testServerResponse{
+					"/test.runtime.cluster.x-k8s.io/v1alpha1/fakehook/first-extension.*":  response(runtimehooksv1.ResponseStatusSuccess),
+					"/test.runtime.cluster.x-k8s.io/v1alpha1/fakehook/second-extension.*": response(runtimehooksv1.ResponseStatusFailure),
+					"/test.runtime.cluster.x-k8s.io/v1alpha1/fakehook/third-extension.*":  response(runtimehooksv1.ResponseStatusSuccess),
+				},
+			},
+			args: args{
+				hook:     fakev1alpha1.FakeHook,
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
+			},
+			wantErr: true,
+		},
+		{
+			name:                       "should fail when one of the ExtensionHandlers returns 404",
+			registeredExtensionConfigs: []runtimev1.ExtensionConfig{extensionConfig},
+			testServer: testServerConfig{
+				start: true,
+				responses: map[string]testServerResponse{
+					"/test.runtime.cluster.x-k8s.io/v1alpha1/fakehook/first-extension.*":  response(runtimehooksv1.ResponseStatusSuccess),
+					"/test.runtime.cluster.x-k8s.io/v1alpha1/fakehook/second-extension.*": response(runtimehooksv1.ResponseStatusFailure),
+					// third-extension has no handler.
+				},
+			},
+			args: args{
+				hook:     fakev1alpha1.FakeHook,
+				request:  &fakev1alpha1.FakeRequest{},
+				response: &fakev1alpha1.FakeResponse{},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			if tt.testServer.start {
+				if tt.testServer.hostPort == "" {
+					tt.testServer.hostPort = testHostPort
+				}
+				srv := createTestServer(g, tt.testServer)
+				srv.Start()
+				defer srv.Close()
+			}
+
+			cat := runtimecatalog.New()
+			_ = fakev1alpha1.AddToCatalog(cat)
+			_ = fakev1alpha2.AddToCatalog(cat)
+
+			c := New(Options{
+				Catalog:  cat,
+				Registry: registry(tt.registeredExtensionConfigs),
+			})
+
+			err := c.CallAllExtensions(context.Background(), tt.args.hook, tt.args.request, tt.args.response)
+
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func Test_aggregateResponses(t *testing.T) {
+	tests := []struct {
+		name              string
+		aggregateResponse runtimehooksv1.ResponseObject
+		responses         []runtimehooksv1.ResponseObject
+		want              runtimehooksv1.ResponseObject
+	}{
+		{
+			name:              "Aggregate response if there is only one response",
+			aggregateResponse: fakeSuccessResponse(),
+			responses: []runtimehooksv1.ResponseObject{
+				fakeSuccessResponse(),
+			},
+			want: fakeSuccessResponse(),
+		},
+		{
+			name:              "Aggregate retry response if there is only one response",
+			aggregateResponse: fakeRetryableSuccessResponse(0),
+			responses: []runtimehooksv1.ResponseObject{
+				fakeRetryableSuccessResponse(5),
+			},
+			want: fakeRetryableSuccessResponse(5),
+		},
+		{
+			name:              "Aggregate retry responses to lowest non-zero retryAfterSeconds value",
+			aggregateResponse: fakeRetryableSuccessResponse(0),
+			responses: []runtimehooksv1.ResponseObject{
+				fakeRetryableSuccessResponse(0),
+				fakeRetryableSuccessResponse(1),
+				fakeRetryableSuccessResponse(5),
+				fakeRetryableSuccessResponse(4),
+				fakeRetryableSuccessResponse(3),
+			},
+			want: fakeRetryableSuccessResponse(1),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			aggregateSuccessfulResponses(tt.aggregateResponse, tt.responses)
+
+			if !reflect.DeepEqual(tt.aggregateResponse, tt.want) {
+				t.Errorf("aggregateSuccessfulResponses() got = %v, want %v", tt.aggregateResponse, tt.want)
+			}
+		})
+	}
+}
+
 type testServerConfig struct {
-	start              bool
+	start     bool
+	responses map[string]testServerResponse
+	hostPort  string
+}
+
+type testServerResponse struct {
 	response           runtime.Object
 	responseStatusCode int
+}
+
+func response(status runtimehooksv1.ResponseStatus) testServerResponse {
+	return testServerResponse{
+		response: &fakev1alpha1.FakeResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: status,
+			},
+		},
+		responseStatusCode: http.StatusOK,
+	}
+}
+
+func createTestServer(g *WithT, server testServerConfig) *httptest.Server {
+	l, err := net.Listen("tcp", server.hostPort)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Write the response for the first match in tt.testServer.responses.
+		for pathRegex, resp := range server.responses {
+			if !regexp.MustCompile(pathRegex).MatchString(r.URL.Path) {
+				continue
+			}
+
+			respBody, err := json.Marshal(resp.response)
+			if err != nil {
+				panic(err)
+			}
+			w.WriteHeader(resp.responseStatusCode)
+			_, _ = w.Write(respBody)
+			return
+		}
+
+		// Otherwise write a 404.
+		w.WriteHeader(http.StatusNotFound)
+	})
+	srv := httptest.NewUnstartedServer(mux)
+	// NewUnstartedServer creates a listener. Close that listener and replace
+	// with the one we created.
+	g.Expect(srv.Listener.Close()).To(Succeed())
+	srv.Listener = l
+
+	return srv
+}
+
+func registry(configs []runtimev1.ExtensionConfig) runtimeregistry.ExtensionRegistry {
+	registry := runtimeregistry.New()
+	err := registry.WarmUp(&runtimev1.ExtensionConfigList{
+		Items: configs,
+	})
+	if err != nil {
+		panic(err)
+	}
+	return registry
+}
+
+func fakeSuccessResponse() *fakev1alpha1.FakeResponse {
+	return &fakev1alpha1.FakeResponse{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "FakeResponse",
+			APIVersion: "v1alpha1",
+		},
+		CommonResponse: runtimehooksv1.CommonResponse{
+			Message: "",
+			Status:  runtimehooksv1.ResponseStatusSuccess,
+		},
+	}
+}
+
+func fakeRetryableSuccessResponse(retryAfterSeconds int32) *fakev1alpha1.RetryableFakeResponse {
+	return &fakev1alpha1.RetryableFakeResponse{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "FakeResponse",
+			APIVersion: "v1alpha1",
+		},
+		CommonResponse: runtimehooksv1.CommonResponse{
+			Message: "",
+			Status:  runtimehooksv1.ResponseStatusSuccess,
+		},
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			RetryAfterSeconds: retryAfterSeconds,
+		},
+	}
 }

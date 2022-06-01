@@ -199,7 +199,9 @@ func ScaleMachinePoolAndWait(ctx context.Context, input ScaleMachinePoolAndWaitI
 		Expect(err).ToNot(HaveOccurred())
 
 		mp.Spec.Replicas = &input.Replicas
-		Expect(patchHelper.Patch(ctx, mp)).To(Succeed())
+		Eventually(func() error {
+			return patchHelper.Patch(ctx, mp)
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 	}
 
 	for _, mp := range input.MachinePools {

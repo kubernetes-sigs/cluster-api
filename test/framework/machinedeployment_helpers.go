@@ -45,13 +45,19 @@ type CreateMachineDeploymentInput struct {
 // CreateMachineDeployment creates the machine deployment and dependencies.
 func CreateMachineDeployment(ctx context.Context, input CreateMachineDeploymentInput) {
 	By("creating a core MachineDeployment resource")
-	Expect(input.Creator.Create(ctx, input.MachineDeployment)).To(Succeed())
+	Eventually(func() error {
+		return input.Creator.Create(ctx, input.MachineDeployment)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	By("creating a BootstrapConfigTemplate resource")
-	Expect(input.Creator.Create(ctx, input.BootstrapConfigTemplate)).To(Succeed())
+	Eventually(func() error {
+		return input.Creator.Create(ctx, input.BootstrapConfigTemplate)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	By("creating an InfrastructureMachineTemplate resource")
-	Expect(input.Creator.Create(ctx, input.InfraMachineTemplate)).To(Succeed())
+	Eventually(func() error {
+		return input.Creator.Create(ctx, input.InfraMachineTemplate)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 }
 
 // GetMachineDeploymentsByClusterInput is the input for GetMachineDeploymentsByCluster.
@@ -178,7 +184,9 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 		if input.UpgradeMachineTemplate != nil {
 			deployment.Spec.Template.Spec.InfrastructureRef.Name = *input.UpgradeMachineTemplate
 		}
-		Expect(patchHelper.Patch(ctx, deployment)).To(Succeed())
+		Eventually(func() error {
+			return patchHelper.Patch(ctx, deployment)
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s",
 			deployment.Namespace, deployment.Name, *oldVersion, input.UpgradeVersion)
@@ -259,21 +267,27 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 			Namespace: input.Cluster.Namespace,
 			Name:      infraRef.Name,
 		}
-		Expect(mgmtClient.Get(ctx, key, infraObj)).NotTo(HaveOccurred())
+		Eventually(func() error {
+			return mgmtClient.Get(ctx, key, infraObj)
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 		// Creates a new infra object
 		newInfraObj := infraObj
 		newInfraObjName := fmt.Sprintf("%s-%s", infraRef.Name, util.RandomString(6))
 		newInfraObj.SetName(newInfraObjName)
 		newInfraObj.SetResourceVersion("")
-		Expect(mgmtClient.Create(ctx, newInfraObj)).NotTo(HaveOccurred())
+		Eventually(func() error {
+			return mgmtClient.Create(ctx, newInfraObj)
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 		// Patch the new infra object's ref to the machine deployment
 		patchHelper, err := patch.NewHelper(deployment, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 		infraRef.Name = newInfraObjName
 		deployment.Spec.Template.Spec.InfrastructureRef = infraRef
-		Expect(patchHelper.Patch(ctx, deployment)).To(Succeed())
+		Eventually(func() error {
+			return patchHelper.Patch(ctx, deployment)
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 		log.Logf("Waiting for rolling upgrade to start.")
 		WaitForMachineDeploymentRollingUpgradeToStart(ctx, WaitForMachineDeploymentRollingUpgradeToStartInput{
@@ -315,7 +329,9 @@ func ScaleAndWaitMachineDeployment(ctx context.Context, input ScaleAndWaitMachin
 	patchHelper, err := patch.NewHelper(input.MachineDeployment, input.ClusterProxy.GetClient())
 	Expect(err).ToNot(HaveOccurred())
 	input.MachineDeployment.Spec.Replicas = pointer.Int32Ptr(input.Replicas)
-	Expect(patchHelper.Patch(ctx, input.MachineDeployment)).To(Succeed())
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, input.MachineDeployment)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
 	log.Logf("Waiting for correct number of replicas to exist")
 	Eventually(func() (int, error) {

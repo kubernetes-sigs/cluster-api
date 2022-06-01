@@ -608,6 +608,16 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validIgnitionConfigurationAfter := validIgnitionConfigurationBefore.DeepCopy()
 	validIgnitionConfigurationAfter.Spec.KubeadmConfigSpec.Ignition.ContainerLinuxConfig.AdditionalConfig = "foo: bar"
 
+	updateInitConfigurationPatches := before.DeepCopy()
+	updateInitConfigurationPatches.Spec.KubeadmConfigSpec.InitConfiguration.Patches = &bootstrapv1.Patches{
+		Directory: "/tmp/patches",
+	}
+
+	updateJoinConfigurationPatches := before.DeepCopy()
+	updateJoinConfigurationPatches.Spec.KubeadmConfigSpec.InitConfiguration.Patches = &bootstrapv1.Patches{
+		Directory: "/tmp/patches",
+	}
+
 	tests := []struct {
 		name                  string
 		enableIgnitionFeature bool
@@ -913,6 +923,18 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    before,
 			kcp:       disableNTPServers,
+		},
+		{
+			name:      "should disallow changes to initConfiguration.patches",
+			expectErr: true,
+			before:    before,
+			kcp:       updateInitConfigurationPatches,
+		},
+		{
+			name:      "should disallow changes to joinConfiguration.patches",
+			expectErr: true,
+			before:    before,
+			kcp:       updateJoinConfigurationPatches,
 		},
 		{
 			name:                  "should return error when Ignition configuration is invalid",

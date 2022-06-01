@@ -925,14 +925,14 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       disableNTPServers,
 		},
 		{
-			name:      "should disallow changes to initConfiguration.patches",
-			expectErr: true,
+			name:      "should allow changes to initConfiguration.patches",
+			expectErr: false,
 			before:    before,
 			kcp:       updateInitConfigurationPatches,
 		},
 		{
-			name:      "should disallow changes to joinConfiguration.patches",
-			expectErr: true,
+			name:      "should allow changes to joinConfiguration.patches",
+			expectErr: false,
 			before:    before,
 			kcp:       updateJoinConfigurationPatches,
 		},

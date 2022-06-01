@@ -128,7 +128,7 @@ func TestExtensionConfigDefault(t *testing.T) {
 
 	g.Expect(extensionConfigWebhook.Default(ctx, extensionConfig)).To(Succeed())
 	g.Expect(extensionConfig.Spec.NamespaceSelector).To(Equal(&metav1.LabelSelector{}))
-	g.Expect(extensionConfig.Spec.ClientConfig.Service.Port).To(Equal(pointer.Int32(8443)))
+	g.Expect(extensionConfig.Spec.ClientConfig.Service.Port).To(Equal(pointer.Int32(443)))
 }
 
 func TestExtensionConfigValidate(t *testing.T) {

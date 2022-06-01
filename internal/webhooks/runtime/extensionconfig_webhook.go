@@ -64,7 +64,7 @@ func (webhook *ExtensionConfig) Default(ctx context.Context, obj runtime.Object)
 	}
 	if extensionConfig.Spec.ClientConfig.Service != nil {
 		if extensionConfig.Spec.ClientConfig.Service.Port == nil {
-			extensionConfig.Spec.ClientConfig.Service.Port = pointer.Int32(8443)
+			extensionConfig.Spec.ClientConfig.Service.Port = pointer.Int32(443)
 		}
 	}
 	return nil

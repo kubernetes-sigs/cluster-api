@@ -35,7 +35,9 @@ var _ ResponseObject = &DiscoveryResponse{}
 type DiscoveryResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
+	// CommonResponse contains Status and Message fields common to all response types.
 	CommonResponse `json:",inline"`
+
 	// Handlers defines the current ExtensionHandlers supported by an Extension.
 	// +listType=map
 	// +listMapKey=name

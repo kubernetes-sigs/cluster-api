@@ -81,8 +81,9 @@ func getClusterAPITypes(ctx context.Context, lister Lister) []metav1.TypeMeta {
 	discoveredTypes := []metav1.TypeMeta{}
 
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
-	err := lister.List(ctx, crdList, capiProviderOptions()...)
-	Expect(err).ToNot(HaveOccurred(), "failed to list CRDs for CAPI providers")
+	Eventually(func() error {
+		return lister.List(ctx, crdList, capiProviderOptions()...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "failed to list CRDs for CAPI providers")
 
 	for _, crd := range crdList.Items {
 		for _, version := range crd.Spec.Versions {

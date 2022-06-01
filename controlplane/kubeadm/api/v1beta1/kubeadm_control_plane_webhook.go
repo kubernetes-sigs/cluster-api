@@ -113,6 +113,8 @@ const (
 	initConfiguration    = "initConfiguration"
 	joinConfiguration    = "joinConfiguration"
 	nodeRegistration     = "nodeRegistration"
+	patches              = "patches"
+	directory            = "directory"
 	preKubeadmCommands   = "preKubeadmCommands"
 	postKubeadmCommands  = "postKubeadmCommands"
 	files                = "files"
@@ -140,7 +142,9 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, clusterConfiguration, controllerManager, "*"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, scheduler, "*"},
 		{spec, kubeadmConfigSpec, initConfiguration, nodeRegistration, "*"},
+		{spec, kubeadmConfigSpec, initConfiguration, patches, directory},
 		{spec, kubeadmConfigSpec, joinConfiguration, nodeRegistration, "*"},
+		{spec, kubeadmConfigSpec, joinConfiguration, patches, directory},
 		{spec, kubeadmConfigSpec, preKubeadmCommands},
 		{spec, kubeadmConfigSpec, postKubeadmCommands},
 		{spec, kubeadmConfigSpec, files},

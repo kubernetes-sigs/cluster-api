@@ -26,7 +26,7 @@ import (
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	v1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	v1beta1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	v1alpha2 "sigs.k8s.io/cluster-api/internal/runtime/catalog/test/v1alpha2"
+	v1alpha2 "sigs.k8s.io/cluster-api/internal/runtime/test/v1alpha2"
 )
 
 func init() {
@@ -98,12 +98,14 @@ func Convert_v1alpha2_FakeRequest_To_v1alpha1_FakeRequest(in *v1alpha2.FakeReque
 }
 
 func autoConvert_v1alpha1_FakeResponse_To_v1alpha2_FakeResponse(in *FakeResponse, out *v1alpha2.FakeResponse, s conversion.Scope) error {
+	out.CommonResponse = in.CommonResponse
 	out.Second = in.Second
 	out.First = in.First
 	return nil
 }
 
 func autoConvert_v1alpha2_FakeResponse_To_v1alpha1_FakeResponse(in *v1alpha2.FakeResponse, out *FakeResponse, s conversion.Scope) error {
+	out.CommonResponse = in.CommonResponse
 	out.Second = in.Second
 	out.First = in.First
 	return nil

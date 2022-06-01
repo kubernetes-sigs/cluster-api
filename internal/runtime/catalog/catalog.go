@@ -257,7 +257,6 @@ func (c *Catalog) NewRequest(hook GroupVersionHook) (runtime.Object, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create request object")
 	}
-	obj.GetObjectKind().SetGroupVersionKind(descriptor.request)
 	return obj, nil
 }
 
@@ -271,7 +270,6 @@ func (c *Catalog) NewResponse(hook GroupVersionHook) (runtime.Object, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create response object")
 	}
-	obj.GetObjectKind().SetGroupVersionKind(descriptor.response)
 	return obj, nil
 }
 
@@ -334,6 +332,11 @@ func (gvh GroupVersionHook) GroupVersion() schema.GroupVersion {
 	return schema.GroupVersion{Group: gvh.Group, Version: gvh.Version}
 }
 
+// GroupHook returns the GroupHook of a GroupVersionHook.
+func (gvh GroupVersionHook) GroupHook() GroupHook {
+	return GroupHook{Group: gvh.Group, Hook: gvh.Hook}
+}
+
 func (gvh GroupVersionHook) String() string {
 	return strings.Join([]string{gvh.Group, "/", gvh.Version, ", Hook=", gvh.Hook}, "")
 }
@@ -348,6 +351,13 @@ var emptyGroupVersionKind = schema.GroupVersionKind{}
 type GroupHook struct {
 	Group string
 	Hook  string
+}
+
+func (gh GroupHook) String() string {
+	if gh.Group == "" {
+		return gh.Hook
+	}
+	return gh.Hook + "." + gh.Group
 }
 
 // GVHToPath calculates the path for a given GroupVersionHook.

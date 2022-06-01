@@ -21,10 +21,10 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
 
@@ -50,6 +50,8 @@ var (
 
 func FakeHook(*FakeRequest, *FakeResponse) {}
 
+// FakeRequest is a response for testing
+// +kubebuilder:object:root=true
 type FakeRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -59,19 +61,36 @@ type FakeRequest struct {
 	First  int
 }
 
-func (in *FakeRequest) DeepCopyObject() runtime.Object {
-	panic("implement me!")
-}
-
+// FakeResponse is a response for testing
+// +kubebuilder:object:root=true
 type FakeResponse struct {
-	metav1.TypeMeta `json:",inline"`
+	metav1.TypeMeta               `json:",inline"`
+	runtimehooksv1.CommonResponse `json:",inline"`
 
 	Second string
 	First  int
 }
 
-func (in *FakeResponse) DeepCopyObject() runtime.Object {
-	panic("implement me!")
+func SecondFakeHook(*SecondFakeRequest, *SecondFakeResponse) {}
+
+// SecondFakeRequest is a response for testing
+// +kubebuilder:object:root=true
+type SecondFakeRequest struct {
+	metav1.TypeMeta `json:",inline"`
+
+	Cluster clusterv1alpha4.Cluster
+
+	Second string
+	First  int
+}
+
+// SecondFakeResponse is a response for testing
+// +kubebuilder:object:root=true
+type SecondFakeResponse struct {
+	metav1.TypeMeta               `json:",inline"`
+	runtimehooksv1.CommonResponse `json:",inline"`
+	Second                        string
+	First                         int
 }
 
 func init() {
@@ -79,6 +98,13 @@ func init() {
 		Tags:        []string{"fake-tag"},
 		Summary:     "Fake summary",
 		Description: "Fake description",
+		Deprecated:  true,
+	})
+
+	catalogBuilder.RegisterHook(SecondFakeHook, &runtimecatalog.HookMeta{
+		Tags:        []string{"fake-tag"},
+		Summary:     "Second Fake summary",
+		Description: "Second Fake description",
 		Deprecated:  true,
 	})
 }

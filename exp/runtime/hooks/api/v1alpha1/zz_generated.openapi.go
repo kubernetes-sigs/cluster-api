@@ -30,6 +30,7 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonResponse":              schema_runtime_hooks_api_v1alpha1_CommonResponse(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoveryRequest":            schema_runtime_hooks_api_v1alpha1_DiscoveryRequest(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoveryResponse":           schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ExtensionHandler":            schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref),
@@ -43,6 +44,36 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequestItem": schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequestItem(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyResponse":    schema_runtime_hooks_api_v1alpha1_ValidateTopologyResponse(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Variable":                    schema_runtime_hooks_api_v1alpha1_Variable(ref),
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_CommonResponse(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CommonResponse is the data structure common to all response types.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"Failure", "Success"}},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "A human-readable description of the status of the call.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"status", "message"},
+			},
+		},
 	}
 }
 

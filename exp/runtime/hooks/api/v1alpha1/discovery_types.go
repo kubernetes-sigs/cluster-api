@@ -28,17 +28,14 @@ type DiscoveryRequest struct {
 	metav1.TypeMeta `json:",inline"`
 }
 
+var _ ResponseObject = &DiscoveryResponse{}
+
 // DiscoveryResponse represents the object received as a discovery response.
 // +kubebuilder:object:root=true
 type DiscoveryResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// Status of the call. One of "Success" or "Failure".
-	Status ResponseStatus `json:"status"`
-
-	// A human-readable description of the status of the call.
-	Message string `json:"message"`
-
+	CommonResponse `json:",inline"`
 	// Handlers defines the current ExtensionHandlers supported by an Extension.
 	// +listType=map
 	// +listMapKey=name
@@ -70,7 +67,11 @@ type GroupVersionHook struct {
 	Hook string `json:"hook"`
 }
 
-// FailurePolicy is the type of a extension failure policy.
+// FailurePolicy specifies how unrecognized errors from the admission endpoint are handled.
+// FailurePolicy helps with extensions not working consistently, e.g. due to an intermittent network issue.
+// The following type of errors are always considered blocking Failures:
+// - Misconfigurations (e.g. incompatible types)
+// - Extension explicitly reports a Status Failure.
 type FailurePolicy string
 
 const (

@@ -16,6 +16,49 @@ limitations under the License.
 
 package v1alpha1
 
+import (
+	"k8s.io/apimachinery/pkg/runtime"
+)
+
+// ResponseObject is a runtime object extended with methods to handle response-specific fields.
+// +kubebuilder:object:generate=false
+type ResponseObject interface {
+	runtime.Object
+	GetMessage() string
+	GetStatus() ResponseStatus
+	SetMessage(message string)
+	SetStatus(status ResponseStatus)
+}
+
+// CommonResponse is the data structure common to all response types.
+type CommonResponse struct {
+	// Status of the call. One of "Success" or "Failure".
+	Status ResponseStatus `json:"status"`
+
+	// A human-readable description of the status of the call.
+	Message string `json:"message"`
+}
+
+// SetMessage sets the message field for the CommonResponse.
+func (r *CommonResponse) SetMessage(message string) {
+	r.Message = message
+}
+
+// SetStatus sets the status field for the CommonResponse.
+func (r *CommonResponse) SetStatus(status ResponseStatus) {
+	r.Status = status
+}
+
+// GetMessage returns the Message field for the CommonResponse.
+func (r *CommonResponse) GetMessage() string {
+	return r.Message
+}
+
+// GetStatus returns the Status field for the CommonResponse.
+func (r *CommonResponse) GetStatus() ResponseStatus {
+	return r.Status
+}
+
 // ResponseStatus represents the status of the hook response.
 // +enum
 type ResponseStatus string

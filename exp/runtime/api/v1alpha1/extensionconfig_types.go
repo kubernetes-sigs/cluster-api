@@ -87,8 +87,8 @@ type ServiceReference struct {
 	// +optional
 	Path *string `json:"path,omitempty"`
 
-	// Port is the port on the service that hosting ExtensionHandler.
-	// Default to 8443.
+	// Port is the port on the service that's hosting the ExtensionHandler.
+	// Default to 443.
 	// `port` should be a valid port number (1-65535, inclusive).
 	// +optional
 	Port *int32 `json:"port,omitempty"`

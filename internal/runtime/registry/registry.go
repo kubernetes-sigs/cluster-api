@@ -206,7 +206,7 @@ func (r *extensionRegistry) Get(name string) (*ExtensionRegistration, error) {
 	defer r.lock.RUnlock()
 
 	if !r.ready {
-		return nil, errors.New("invalid operation: Get cannot called on a registry not yet ready")
+		return nil, errors.New("invalid operation: Get cannot be called on a registry not yet ready")
 	}
 
 	registration, ok := r.items[name]

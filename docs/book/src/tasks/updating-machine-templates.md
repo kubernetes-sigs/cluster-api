@@ -27,9 +27,10 @@ The correct process for modifying an infrastructure machine template is as follo
 Once the new infrastructure machine template has been persisted, users may modify
 the object that was referencing the infrastructure machine template. For example,
 to modify the infrastructure machine template for the `KubeadmControlPlane` object,
-users would modify the `spec.infrastructureTemplate.name` field. For a `MachineDeployment`
-or `MachineSet`, users would need to modify the `spec.template.spec.infrastructureRef.name`
-field. In all cases, the `name` field should be updated to point to the newly-modified
+users would modify the `spec.infrastructureTemplate.name` field. For a `MachineDeployment`, users would need to modify the `spec.template.spec.infrastructureRef.name`
+field and the controller would orchestrate the upgrade by managing `MachineSets` pointing to the new and old references. In the case of a `MachineSet` with no `MachineDeployment` owner, if its template reference is changed, it will only affect upcoming Machines.
+
+In all cases, the `name` field should be updated to point to the newly-modified
 infrastructure machine template. This will trigger a rolling update. (This same process
 is described in the documentation for [upgrading the underlying machine image for
 KubeadmControlPlane](./kubeadm-control-plane.md) in the "How to upgrade the underlying

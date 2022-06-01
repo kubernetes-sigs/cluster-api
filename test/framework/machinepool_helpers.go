@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -51,7 +52,9 @@ func GetMachinePoolsByCluster(ctx context.Context, input GetMachinePoolsByCluste
 	Expect(input.ClusterName).ToNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling GetMachinePoolsByCluster")
 
 	mpList := &expv1.MachinePoolList{}
-	Expect(input.Lister.List(ctx, mpList, byClusterOptions(input.ClusterName, input.Namespace)...)).To(Succeed(), "Failed to list MachinePools object for Cluster %s/%s", input.Namespace, input.ClusterName)
+	Eventually(func() error {
+		return input.Lister.List(ctx, mpList, byClusterOptions(input.ClusterName, input.Namespace)...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachinePools object for Cluster %s/%s", input.Namespace, input.ClusterName)
 
 	mps := make([]*expv1.MachinePool, len(mpList.Items))
 	for i := range mpList.Items {
@@ -279,7 +282,13 @@ func getMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolIn
 	versions := make([]string, len(instances))
 	for i, instance := range instances {
 		node := &corev1.Node{}
-		err := input.WorkloadClusterGetter.Get(ctx, client.ObjectKey{Name: instance.Name}, node)
+		err := wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
+			err := input.WorkloadClusterGetter.Get(ctx, client.ObjectKey{Name: instance.Name}, node)
+			if err != nil {
+				return false, nil //nolint:nilerr
+			}
+			return true, nil
+		})
 		if err != nil {
 			versions[i] = "unknown"
 		} else {

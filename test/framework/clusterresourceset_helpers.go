@@ -39,7 +39,9 @@ type GetClusterResourceSetsInput struct {
 // GetClusterResourceSets returns all ClusterResourceSet objects in a namespace.
 func GetClusterResourceSets(ctx context.Context, input GetClusterResourceSetsInput) []*addonsv1.ClusterResourceSet {
 	crsList := &addonsv1.ClusterResourceSetList{}
-	Expect(input.Lister.List(ctx, crsList, client.InNamespace(input.Namespace))).To(Succeed(), "Failed to list ClusterResourceSet objects for namespace %s", input.Namespace)
+	Eventually(func() error {
+		return input.Lister.List(ctx, crsList, client.InNamespace(input.Namespace))
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list ClusterResourceSet objects for namespace %s", input.Namespace)
 
 	clusterResourceSets := make([]*addonsv1.ClusterResourceSet, len(crsList.Items))
 	for i := range crsList.Items {
@@ -78,12 +80,14 @@ func DiscoverClusterResourceSetAndWaitForSuccess(ctx context.Context, input Disc
 
 	mgmtClient := input.ClusterProxy.GetClient()
 	fmt.Fprintln(GinkgoWriter, "Discovering cluster resource set resources")
-	clusterResourceSets := GetClusterResourceSets(ctx, GetClusterResourceSetsInput{
-		Lister:    mgmtClient,
-		Namespace: input.Cluster.Namespace,
-	})
-
-	Expect(clusterResourceSets).NotTo(BeEmpty())
+	var clusterResourceSets []*addonsv1.ClusterResourceSet
+	Eventually(func() bool {
+		clusterResourceSets = GetClusterResourceSets(ctx, GetClusterResourceSetsInput{
+			Lister:    mgmtClient,
+			Namespace: input.Cluster.Namespace,
+		})
+		return len(clusterResourceSets) > 0
+	}, retryableOperationTimeout, retryableOperationInterval).Should(BeTrue())
 
 	for _, crs := range clusterResourceSets {
 		Expect(crs.Spec.ClusterSelector).NotTo(BeNil())

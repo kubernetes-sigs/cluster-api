@@ -39,7 +39,9 @@ func WaitForClusterMachineNodeRefs(ctx context.Context, input WaitForClusterMach
 	By("Waiting for the machines' nodes to exist")
 	machines := &clusterv1.MachineList{}
 
-	Expect(input.GetLister.List(ctx, machines, byClusterOptions(input.Cluster.Name, input.Cluster.Namespace)...)).To(Succeed(), "Failed to get Cluster machines %s/%s", input.Cluster.Namespace, input.Cluster.Name)
+	Eventually(func() error {
+		return input.GetLister.List(ctx, machines, byClusterOptions(input.Cluster.Name, input.Cluster.Namespace)...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Cluster machines %s/%s", input.Cluster.Namespace, input.Cluster.Name)
 	Eventually(func() (count int, err error) {
 		for _, m := range machines.Items {
 			machine := &clusterv1.Machine{}
@@ -65,7 +67,9 @@ func WaitForClusterMachinesReady(ctx context.Context, input WaitForClusterMachin
 	By("Waiting for the machines' nodes to be ready")
 	machines := &clusterv1.MachineList{}
 
-	Expect(input.GetLister.List(ctx, machines, byClusterOptions(input.Cluster.Name, input.Cluster.Namespace)...)).To(Succeed(), "Failed to get Cluster machines %s/%s", input.Cluster.Namespace, input.Cluster.Name)
+	Eventually(func() error {
+		return input.GetLister.List(ctx, machines, byClusterOptions(input.Cluster.Name, input.Cluster.Namespace)...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Cluster machines %s/%s", input.Cluster.Namespace, input.Cluster.Name)
 	Eventually(func() (count int, err error) {
 		for _, m := range machines.Items {
 			machine := &clusterv1.Machine{}

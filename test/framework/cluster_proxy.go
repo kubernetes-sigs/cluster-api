@@ -248,8 +248,12 @@ func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace
 		return
 	}
 
-	machines, err := getMachinesInCluster(ctx, p.GetClient(), namespace, name)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get machines for the %s/%s cluster", namespace, name)
+	var machines *clusterv1.MachineList
+	Eventually(func() error {
+		var err error
+		machines, err = getMachinesInCluster(ctx, p.GetClient(), namespace, name)
+		return err
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get machines for the %s/%s cluster", namespace, name)
 
 	for i := range machines.Items {
 		m := &machines.Items[i]
@@ -260,8 +264,12 @@ func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace
 		}
 	}
 
-	machinePools, err := getMachinePoolsInCluster(ctx, p.GetClient(), namespace, name)
-	Expect(err).ToNot(HaveOccurred(), "Failed to get machine pools for the %s/%s cluster", namespace, name)
+	var machinePools *expv1.MachinePoolList
+	Eventually(func() error {
+		var err error
+		machinePools, err = getMachinePoolsInCluster(ctx, p.GetClient(), namespace, name)
+		return err
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get machine pools for the %s/%s cluster", namespace, name)
 
 	for i := range machinePools.Items {
 		mp := &machinePools.Items[i]

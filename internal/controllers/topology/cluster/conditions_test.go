@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -46,6 +47,24 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionStatus: corev1.ConditionFalse,
 			wantConditionReason: clusterv1.TopologyReconcileFailedReason,
 			wantErr:             false,
+		},
+		{
+			name:         "should set the condition to false if the there is a blocking hook",
+			reconcileErr: nil,
+			cluster:      &clusterv1.Cluster{},
+			s: &scope.Scope{
+				HookResponseTracker: func() *scope.HookResponseTracker {
+					hrt := scope.NewHookResponseTracker()
+					hrt.Add(runtimehooksv1.BeforeClusterUpgrade, &runtimehooksv1.BeforeClusterUpgradeResponse{
+						CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+							RetryAfterSeconds: int32(10),
+						},
+					})
+					return hrt
+				}(),
+			},
+			wantConditionStatus: corev1.ConditionFalse,
+			wantConditionReason: clusterv1.TopologyReconciledHookBlockingReason,
 		},
 		{
 			name:         "should set the condition to false if new version is not picked up because control plane is provisioning",
@@ -71,6 +90,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					ut.ControlPlane.IsProvisioning = true
 					return ut
 				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantConditionStatus: corev1.ConditionFalse,
 			wantConditionReason: clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
@@ -100,6 +120,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					ut.ControlPlane.IsUpgrading = true
 					return ut
 				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantConditionStatus: corev1.ConditionFalse,
 			wantConditionReason: clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
@@ -129,6 +150,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					ut.ControlPlane.IsScaling = true
 					return ut
 				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantConditionStatus: corev1.ConditionFalse,
 			wantConditionReason: clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
@@ -170,6 +192,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					ut.ControlPlane.PendingUpgrade = true
 					return ut
 				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantConditionStatus: corev1.ConditionFalse,
 			wantConditionReason: clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
@@ -213,6 +236,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					ut.MachineDeployments.MarkPendingUpgrade("md0-abc123")
 					return ut
 				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantConditionStatus: corev1.ConditionFalse,
 			wantConditionReason: clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason,
@@ -256,6 +280,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					ut.MachineDeployments.MarkPendingUpgrade("md0-abc123")
 					return ut
 				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantConditionStatus: corev1.ConditionFalse,
 			wantConditionReason: clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason,
@@ -285,6 +310,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					ut.ControlPlane.IsUpgrading = true
 					return ut
 				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantConditionStatus: corev1.ConditionTrue,
 		},
@@ -313,6 +339,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					ut.ControlPlane.IsScaling = true
 					return ut
 				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantConditionStatus: corev1.ConditionTrue,
 		},
@@ -367,6 +394,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					ut.MachineDeployments.MarkPendingUpgrade("md1-abc123")
 					return ut
 				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantConditionStatus: corev1.ConditionFalse,
 			wantConditionReason: clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason,
@@ -421,6 +449,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 					ut.ControlPlane.PendingUpgrade = false
 					return ut
 				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantConditionStatus: corev1.ConditionTrue,
 		},

@@ -57,6 +57,21 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		return nil
 	}
 
+	// If any of the lifecycle hooks are blocking any part of the reconciliation then topology
+	// is not considered as fully reconciled.
+	if s.HookResponseTracker.AggregateRetryAfter() != 0 {
+		conditions.Set(
+			cluster,
+			conditions.FalseCondition(
+				clusterv1.TopologyReconciledCondition,
+				clusterv1.TopologyReconciledHookBlockingReason,
+				clusterv1.ConditionSeverityInfo,
+				s.HookResponseTracker.AggregateMessage(),
+			),
+		)
+		return nil
+	}
+
 	// If either the Control Plane or any of the MachineDeployments are still pending to pick up the new version (generally
 	// happens when upgrading the cluster) then the topology is not considered as fully reconciled.
 	if s.UpgradeTracker.ControlPlane.PendingUpgrade || s.UpgradeTracker.MachineDeployments.PendingUpgrade() {

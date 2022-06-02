@@ -33,6 +33,10 @@ type Scope struct {
 
 	// UpgradeTracker holds information about ongoing upgrades in the managed topology.
 	UpgradeTracker *UpgradeTracker
+
+	// HookResponseTracker holds the hook responses that will be used to
+	// calculate a combined reconcile result.
+	HookResponseTracker *HookResponseTracker
 }
 
 // New returns a new Scope with only the cluster; while processing a request in the topology/ClusterReconciler controller
@@ -46,6 +50,7 @@ func New(cluster *clusterv1.Cluster) *Scope {
 		Current: &ClusterState{
 			Cluster: cluster,
 		},
-		UpgradeTracker: NewUpgradeTracker(),
+		UpgradeTracker:      NewUpgradeTracker(),
+		HookResponseTracker: NewHookResponseTracker(),
 	}
 }

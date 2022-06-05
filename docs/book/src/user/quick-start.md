@@ -205,7 +205,71 @@ before getting started with Cluster API. See below for the expected settings for
 {{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Metal3,Nutanix,Kubevirt,OCI,OpenStack,vSphere"}}
 {{#tab AWS}}
 
-Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
+Download the latest binary of `clusterawsadm` from the [AWS provider releases].
+{{#tabs name:"install-clusterawsadm" tabs:"linux,macOS,homebrew"}}
+{{#tab linux}}
+
+Download the latest release; on linux, type:
+```
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-linux-amd64" version:"1.x"}} -o clusterawsadm
+```
+
+Make it executable
+```
+chmod +x clusterawsadm
+```
+
+Move the binary to a directory present in your PATH
+```
+sudo mv clusterawsadm /usr/local/bin
+```
+
+Check version to confirm installation
+```
+clusterawsadm version
+```
+{{#/tab }}
+{{#tab macOS}}
+
+Download the latest release; on macOs, type:
+```
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-amd64" version:"1.x"}} -o clusterawsadm
+```
+
+Or if your Mac has an M1 CPU (”Apple Silicon”):
+```
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-arm64" version:"1.x"}} -o clusterawsadm
+```
+
+Make it executable
+```
+chmod +x clusterawsadm
+```
+
+Move the binary to a directory present in your PATH
+```
+sudo mv clusterawsadm /usr/local/bin
+```
+
+Check version to confirm installation
+```
+clusterawsadm version
+```
+{{#/tab }}
+{{#tab homebrew}}
+
+Install the latest release using homebrew:
+```
+brew install clusterawsadm
+```
+
+Check version to confirm installation
+```
+clusterawsadm version
+```
+
+{{#/tab }}
+{{#/tabs }}
 
 The [clusterawsadm] command line utility assists with identity and access management (IAM) for [Cluster API Provider AWS][capa].
 

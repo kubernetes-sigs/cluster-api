@@ -110,6 +110,7 @@ talos               ControlPlaneProvider     https://github.com/siderolabs/clust
 aws                 InfrastructureProvider                                                                                             my-aws-infrastructure-components.yaml
 azure               InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-azure/releases/latest/            infrastructure-components.yaml
 byoh                InfrastructureProvider   https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases/latest/    infrastructure-components.yaml
+cloudstack          InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/releases/latest/       infrastructure-components.yaml
 digitalocean        InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean/releases/latest/     infrastructure-components.yaml
 docker              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api/releases/latest/                           infrastructure-components-development.yaml
 gcp                 InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/              infrastructure-components.yaml
@@ -169,6 +170,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: byoh
   ProviderType: InfrastructureProvider
   URL: https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost/releases/latest/
+- File: infrastructure-components.yaml
+  Name: cloudstack
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/releases/latest/
 - File: infrastructure-components.yaml
   Name: digitalocean
   ProviderType: InfrastructureProvider

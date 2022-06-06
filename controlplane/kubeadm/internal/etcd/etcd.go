@@ -26,6 +26,7 @@ import (
 	"go.etcd.io/etcd/api/v3/etcdserverpb"
 	clientv3 "go.etcd.io/etcd/client/v3"
 	"google.golang.org/grpc"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 )
@@ -151,7 +152,12 @@ func NewClient(ctx context.Context, config ClientConfiguration) (*Client, error)
 		return nil, errors.Wrap(err, "unable to create etcd client")
 	}
 
-	return newEtcdClient(ctx, etcdClient)
+	client, err := newEtcdClient(ctx, etcdClient)
+	if err != nil {
+		closeErr := etcdClient.Close()
+		return nil, errors.Wrap(kerrors.NewAggregate([]error{err, closeErr}), "unable to create etcd client")
+	}
+	return client, nil
 }
 
 func newEtcdClient(ctx context.Context, etcdClient etcd) (*Client, error) {
@@ -162,7 +168,7 @@ func newEtcdClient(ctx context.Context, etcdClient etcd) (*Client, error) {
 
 	status, err := etcdClient.Status(ctx, endpoints[0])
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to get etcd status")
 	}
 
 	return &Client{

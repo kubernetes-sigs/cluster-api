@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	minimumKubernetesVersion = "v1.19.1"
+	minimumKubernetesVersion = "v1.20.0"
 )
 
 var (

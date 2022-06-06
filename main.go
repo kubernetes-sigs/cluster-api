@@ -203,7 +203,7 @@ func main() {
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
-	if err := logOptions.ValidateAndApply(); err != nil {
+	if err := logOptions.ValidateAndApply(nil); err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}

@@ -17,6 +17,7 @@ limitations under the License.
 package variables
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -36,13 +37,13 @@ const (
 )
 
 // ValidateClusterClassVariables validates clusterClassVariable.
-func ValidateClusterClassVariables(clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
+func ValidateClusterClassVariables(ctx context.Context, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, validateClusterClassVariableNamesUnique(clusterClassVariables, fldPath)...)
 
 	for i := range clusterClassVariables {
-		allErrs = append(allErrs, validateClusterClassVariable(&clusterClassVariables[i], fldPath.Index(i))...)
+		allErrs = append(allErrs, validateClusterClassVariable(ctx, &clusterClassVariables[i], fldPath.Index(i))...)
 	}
 
 	return allErrs
@@ -70,14 +71,14 @@ func validateClusterClassVariableNamesUnique(clusterClassVariables []clusterv1.C
 }
 
 // validateClusterClassVariable validates a ClusterClassVariable.
-func validateClusterClassVariable(variable *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
+func validateClusterClassVariable(ctx context.Context, variable *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
 	allErrs := field.ErrorList{}
 
 	// Validate variable name.
 	allErrs = append(allErrs, validateClusterClassVariableName(variable.Name, fldPath.Child("name"))...)
 
 	// Validate schema.
-	allErrs = append(allErrs, validateRootSchema(variable, fldPath.Child("schema", "openAPIV3Schema"))...)
+	allErrs = append(allErrs, validateRootSchema(ctx, variable, fldPath.Child("schema", "openAPIV3Schema"))...)
 
 	return allErrs
 }
@@ -103,7 +104,7 @@ func validateClusterClassVariableName(variableName string, fldPath *field.Path) 
 var validVariableTypes = sets.NewString("object", "array", "string", "number", "integer", "boolean")
 
 // validateRootSchema validates the schema.
-func validateRootSchema(clusterClassVariable *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
+func validateRootSchema(ctx context.Context, clusterClassVariable *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	apiExtensionsSchema, allErrs := convertToAPIExtensionsJSONSchemaProps(&clusterClassVariable.Schema.OpenAPIV3Schema, field.NewPath("schema"))
@@ -136,7 +137,7 @@ func validateRootSchema(clusterClassVariable *clusterv1.ClusterClassVariable, fl
 	}
 
 	// Validate defaults in the structural schema.
-	validationErrors, err := structuraldefaulting.ValidateDefaults(fldPath.Child("schema"), ss, true, true)
+	validationErrors, err := structuraldefaulting.ValidateDefaults(ctx, fldPath.Child("schema"), ss, true, true)
 	if err != nil {
 		return append(allErrs, field.Invalid(fldPath.Child("schema"), "", err.Error()))
 	}

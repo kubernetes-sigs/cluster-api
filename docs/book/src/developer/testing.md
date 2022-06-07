@@ -235,6 +235,7 @@ Each of these can be used to match tests, for example:
 - `[PR-Blocking]` => Sanity tests run before each PR merge
 - `[K8s-Upgrade]` => Tests which verify k8s component version upgrades on workload clusters
 - `[Conformance]` => Tests which run the k8s conformance suite on workload clusters
+- `[ClusterClass]` => Tests which use a ClusterClass to create a workload cluster
 - `When testing KCP.*` => Tests which start with `When testing KCP`
 
 For example:

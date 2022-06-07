@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing ClusterClass changes", func() {
+var _ = Describe("When testing ClusterClass changes [ClusterClass]", func() {
 	ClusterClassChangesSpec(ctx, func() ClusterClassChangesSpecInput {
 		return ClusterClassChangesSpecInput{
 			E2EConfig:             e2eConfig,

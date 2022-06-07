@@ -134,9 +134,6 @@ TILT_PREPARE := $(abspath $(TOOLS_BIN_DIR)/$(TILT_PREPARE_BIN))
 GOLANGCI_LINT_BIN := golangci-lint
 GOLANGCI_LINT := $(abspath $(TOOLS_BIN_DIR)/$(GOLANGCI_LINT_BIN))
 
-# clusterctl.
-CLUSTERCTL_MANIFEST_DIR := cmd/clusterctl/config
-
 # Define Docker related variables. Releases should modify and double check these vars.
 REGISTRY ?= gcr.io/$(shell gcloud config get-value project)
 PROD_REGISTRY ?= k8s.gcr.io/cluster-api
@@ -155,6 +152,11 @@ KUBEADM_BOOTSTRAP_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_BOOTSTRAP_IMAGE_NAME)
 # control plane
 KUBEADM_CONTROL_PLANE_IMAGE_NAME ?= kubeadm-control-plane-controller
 KUBEADM_CONTROL_PLANE_CONTROLLER_IMG ?= $(REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAGE_NAME)
+
+# clusterctl
+CLUSTERCTL_MANIFEST_DIR := cmd/clusterctl/config
+CLUSTERCTL_IMAGE_NAME ?= clusterctl
+CLUSTERCTL_IMG ?= $(REGISTRY)/$(CLUSTERCTL_IMAGE_NAME)
 
 # It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
 
@@ -486,7 +488,7 @@ docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build docker images 
 docker-build-%:
 	$(MAKE) ARCH=$* docker-build
 
-ALL_DOCKER_BUILD = core kubeadm-bootstrap kubeadm-control-plane
+ALL_DOCKER_BUILD = core kubeadm-bootstrap kubeadm-control-plane clusterctl
 
 .PHONY: docker-build
 docker-build: docker-pull-prerequisites ## Run docker-build-* targets for all providers
@@ -509,6 +511,10 @@ docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm contro
 	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./controlplane/kubeadm --build-arg ldflags="$(LDFLAGS)" . -t $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-build-clusterctl
+docker-build-clusterctl: ## Build the docker image for clusterctl with output binary name as 'clusterctl'
+	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./cmd/clusterctl --build-arg ldflags="$(LDFLAGS)" -f ./cmd/clusterctl/Dockerfile . -t $(CLUSTERCTL_IMG)-$(ARCH):$(TAG)
 
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework
@@ -693,6 +699,7 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 	gcloud container images add-tag $(CONTROLLER_IMG):$(TAG) $(CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
+	gcloud container images add-tag $(CLUSTERCTL_IMG):$(TAG) $(CLUSTERCTL_IMG):$(RELEASE_ALIAS_TAG)
 
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
@@ -704,7 +711,7 @@ release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
 
 .PHONY: promote-images
 promote-images: $(KPROMO)
-	$(KPROMO) pr --project cluster-api --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK) --image cluster-api-controller --image kubeadm-control-plane-controller --image kubeadm-bootstrap-controller --digests ""
+	$(KPROMO) pr --project cluster-api --tag $(RELEASE_TAG) --reviewers "$(IMAGE_REVIEWERS)" --fork $(USER_FORK) --image cluster-api-controller --image kubeadm-control-plane-controller --image kubeadm-bootstrap-controller --image clusterctl --digests ""
 
 ## --------------------------------------
 ## Docker
@@ -715,12 +722,14 @@ docker-push: ## Push the docker images
 	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
 	docker push $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	docker push $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(CLUSTERCTL_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-push-all
 docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))  ## Push all the architecture docker images
 	$(MAKE) docker-push-manifest-core
 	$(MAKE) docker-push-manifest-kubeadm-bootstrap
 	$(MAKE) docker-push-manifest-kubeadm-control-plane
+	$(MAKE) docker-push-clusterctl
 
 docker-push-%:
 	$(MAKE) ARCH=$* docker-push
@@ -751,6 +760,13 @@ docker-push-manifest-kubeadm-control-plane: ## Push the multiarch manifest for t
 	docker manifest push --purge $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
+
+.PHONY: docker-push-clusterctl
+docker-push-clusterctl: ## Push the clusterctl images
+	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
+	docker manifest create --amend $(CLUSTERCTL_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CLUSTERCTL_IMG)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CLUSTERCTL_IMG}:${TAG} ${CLUSTERCTL_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge $(CLUSTERCTL_IMG):$(TAG)
 
 .PHONY: set-manifest-pull-policy
 set-manifest-pull-policy:

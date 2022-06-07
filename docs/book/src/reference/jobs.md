@@ -43,13 +43,13 @@ Prow Postsubmits:
 Prow Periodics:
 * [periodic-cluster-api-test-main] `./scripts/ci-test.sh`
 * [periodic-cluster-api-e2e-main] `./scripts/ci-e2e.sh`
-  * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]`
+  * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]|[IPv6]`
 * [periodic-cluster-api-e2e-upgrade-v0-3-to-main] `./scripts/ci-e2e.sh`
   * GINKGO_FOCUS: `[clusterctl-Upgrade]`
 * [periodic-cluster-api-e2e-upgrade-v1-0-to-main] `./scripts/ci-e2e.sh`
   * GINKGO_FOCUS: `[clusterctl-Upgrade]`
 * [periodic-cluster-api-e2e-mink8s-main] `./scripts/ci-e2e.sh`
-  * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]`
+  * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]|[IPv6]|[ClusterClass]`
 * [periodic-cluster-api-e2e-workload-upgrade-1-18-1-19-main] `./scripts/ci-e2e.sh` FROM: `stable-1.18` TO: `stable-1.19`
   * GINKGO_FOCUS: `[K8s-Upgrade]`
 * [periodic-cluster-api-e2e-workload-upgrade-1-19-1-20-main] `./scripts/ci-e2e.sh` FROM: `stable-1.19` TO: `stable-1.20`

@@ -26,7 +26,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass and testing K8S conformance [Conformance] [K8s-Upgrade]", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass and testing K8S conformance [Conformance] [K8s-Upgrade] [ClusterClass]", func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
 		flavor := pointer.String("upgrades")
@@ -62,7 +62,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass and testi
 	})
 })
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass [ClusterClass]", func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
 			E2EConfig:             e2eConfig,
@@ -80,7 +80,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass", func() 
 	})
 })
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane [ClusterClass]", func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
 			E2EConfig:             e2eConfig,
@@ -98,7 +98,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 	})
 })
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane using scale-in rollout", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane using scale-in rollout [ClusterClass]", func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
 			E2EConfig:             e2eConfig,

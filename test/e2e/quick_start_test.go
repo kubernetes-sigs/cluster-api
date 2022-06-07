@@ -36,7 +36,7 @@ var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", fun
 	})
 })
 
-var _ = Describe("When following the Cluster API quick-start with ClusterClass [PR-Informing]", func() {
+var _ = Describe("When following the Cluster API quick-start with ClusterClass [PR-Informing] [ClusterClass]", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:             e2eConfig,

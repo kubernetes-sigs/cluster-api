@@ -30,32 +30,32 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterClusterUpgradeRequest":           schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterClusterUpgradeResponse":          schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterControlPlaneInitializedRequest":  schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterControlPlaneInitializedResponse": schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterControlPlaneUpgradeRequest":      schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.AfterControlPlaneUpgradeResponse":     schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterCreateRequest":           schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterCreateResponse":          schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterDeleteRequest":           schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterDeleteResponse":          schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterUpgradeRequest":          schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterUpgradeResponse":         schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonResponse":                       schema_runtime_hooks_api_v1alpha1_CommonResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoveryRequest":                     schema_runtime_hooks_api_v1alpha1_DiscoveryRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoveryResponse":                    schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ExtensionHandler":                     schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesRequest":               schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesRequestItem":           schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequestItem(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesResponse":              schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesResponseItem":          schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponseItem(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GroupVersionHook":                     schema_runtime_hooks_api_v1alpha1_GroupVersionHook(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.HolderReference":                      schema_runtime_hooks_api_v1alpha1_HolderReference(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequest":              schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequest(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequestItem":          schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequestItem(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyResponse":             schema_runtime_hooks_api_v1alpha1_ValidateTopologyResponse(ref),
-		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Variable":                             schema_runtime_hooks_api_v1alpha1_Variable(ref),
+		"./exp/runtime/hooks/api/v1alpha1.AfterClusterUpgradeRequest":           schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeRequest(ref),
+		"./exp/runtime/hooks/api/v1alpha1.AfterClusterUpgradeResponse":          schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeResponse(ref),
+		"./exp/runtime/hooks/api/v1alpha1.AfterControlPlaneInitializedRequest":  schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedRequest(ref),
+		"./exp/runtime/hooks/api/v1alpha1.AfterControlPlaneInitializedResponse": schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedResponse(ref),
+		"./exp/runtime/hooks/api/v1alpha1.AfterControlPlaneUpgradeRequest":      schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeRequest(ref),
+		"./exp/runtime/hooks/api/v1alpha1.AfterControlPlaneUpgradeResponse":     schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeResponse(ref),
+		"./exp/runtime/hooks/api/v1alpha1.BeforeClusterCreateRequest":           schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateRequest(ref),
+		"./exp/runtime/hooks/api/v1alpha1.BeforeClusterCreateResponse":          schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateResponse(ref),
+		"./exp/runtime/hooks/api/v1alpha1.BeforeClusterDeleteRequest":           schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteRequest(ref),
+		"./exp/runtime/hooks/api/v1alpha1.BeforeClusterDeleteResponse":          schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteResponse(ref),
+		"./exp/runtime/hooks/api/v1alpha1.BeforeClusterUpgradeRequest":          schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeRequest(ref),
+		"./exp/runtime/hooks/api/v1alpha1.BeforeClusterUpgradeResponse":         schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeResponse(ref),
+		"./exp/runtime/hooks/api/v1alpha1.CommonResponse":                       schema_runtime_hooks_api_v1alpha1_CommonResponse(ref),
+		"./exp/runtime/hooks/api/v1alpha1.DiscoveryRequest":                     schema_runtime_hooks_api_v1alpha1_DiscoveryRequest(ref),
+		"./exp/runtime/hooks/api/v1alpha1.DiscoveryResponse":                    schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref),
+		"./exp/runtime/hooks/api/v1alpha1.ExtensionHandler":                     schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref),
+		"./exp/runtime/hooks/api/v1alpha1.GeneratePatchesRequest":               schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequest(ref),
+		"./exp/runtime/hooks/api/v1alpha1.GeneratePatchesRequestItem":           schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequestItem(ref),
+		"./exp/runtime/hooks/api/v1alpha1.GeneratePatchesResponse":              schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref),
+		"./exp/runtime/hooks/api/v1alpha1.GeneratePatchesResponseItem":          schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponseItem(ref),
+		"./exp/runtime/hooks/api/v1alpha1.GroupVersionHook":                     schema_runtime_hooks_api_v1alpha1_GroupVersionHook(ref),
+		"./exp/runtime/hooks/api/v1alpha1.HolderReference":                      schema_runtime_hooks_api_v1alpha1_HolderReference(ref),
+		"./exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequest":              schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequest(ref),
+		"./exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequestItem":          schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequestItem(ref),
+		"./exp/runtime/hooks/api/v1alpha1.ValidateTopologyResponse":             schema_runtime_hooks_api_v1alpha1_ValidateTopologyResponse(ref),
+		"./exp/runtime/hooks/api/v1alpha1.Variable":                             schema_runtime_hooks_api_v1alpha1_Variable(ref),
 	}
 }
 
@@ -719,7 +719,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref common.ReferenceCal
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ExtensionHandler"),
+										Ref:     ref("./exp/runtime/hooks/api/v1alpha1.ExtensionHandler"),
 									},
 								},
 							},
@@ -730,7 +730,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref common.ReferenceCal
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ExtensionHandler"},
+			"./exp/runtime/hooks/api/v1alpha1.ExtensionHandler"},
 	}
 }
 
@@ -753,7 +753,7 @@ func schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref common.ReferenceCall
 						SchemaProps: spec.SchemaProps{
 							Description: "RequestHook defines the versioned runtime hook which this ExtensionHandler serves.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GroupVersionHook"),
+							Ref:         ref("./exp/runtime/hooks/api/v1alpha1.GroupVersionHook"),
 						},
 					},
 					"timeoutSeconds": {
@@ -775,7 +775,7 @@ func schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref common.ReferenceCall
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GroupVersionHook"},
+			"./exp/runtime/hooks/api/v1alpha1.GroupVersionHook"},
 	}
 }
 
@@ -808,7 +808,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequest(ref common.Referen
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Variable"),
+										Ref:     ref("./exp/runtime/hooks/api/v1alpha1.Variable"),
 									},
 								},
 							},
@@ -822,7 +822,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequest(ref common.Referen
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesRequestItem"),
+										Ref:     ref("./exp/runtime/hooks/api/v1alpha1.GeneratePatchesRequestItem"),
 									},
 								},
 							},
@@ -833,7 +833,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequest(ref common.Referen
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesRequestItem", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Variable"},
+			"./exp/runtime/hooks/api/v1alpha1.GeneratePatchesRequestItem", "./exp/runtime/hooks/api/v1alpha1.Variable"},
 	}
 }
 
@@ -856,7 +856,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequestItem(ref common.Ref
 						SchemaProps: spec.SchemaProps{
 							Description: "HolderReference is a reference to the object where the template is used.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.HolderReference"),
+							Ref:         ref("./exp/runtime/hooks/api/v1alpha1.HolderReference"),
 						},
 					},
 					"object": {
@@ -874,7 +874,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequestItem(ref common.Ref
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Variable"),
+										Ref:     ref("./exp/runtime/hooks/api/v1alpha1.Variable"),
 									},
 								},
 							},
@@ -885,7 +885,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequestItem(ref common.Ref
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/runtime.RawExtension", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.HolderReference", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Variable"},
+			"./exp/runtime/hooks/api/v1alpha1.HolderReference", "./exp/runtime/hooks/api/v1alpha1.Variable", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -933,7 +933,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref common.Refere
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesResponseItem"),
+										Ref:     ref("./exp/runtime/hooks/api/v1alpha1.GeneratePatchesResponseItem"),
 									},
 								},
 							},
@@ -944,7 +944,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.GeneratePatchesResponseItem"},
+			"./exp/runtime/hooks/api/v1alpha1.GeneratePatchesResponseItem"},
 	}
 }
 
@@ -1098,7 +1098,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequest(ref common.Refere
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Variable"),
+										Ref:     ref("./exp/runtime/hooks/api/v1alpha1.Variable"),
 									},
 								},
 							},
@@ -1111,7 +1111,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequest(ref common.Refere
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequestItem"),
+										Ref: ref("./exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequestItem"),
 									},
 								},
 							},
@@ -1122,7 +1122,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequest(ref common.Refere
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequestItem", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Variable"},
+			"./exp/runtime/hooks/api/v1alpha1.ValidateTopologyRequestItem", "./exp/runtime/hooks/api/v1alpha1.Variable"},
 	}
 }
 
@@ -1137,7 +1137,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequestItem(ref common.Re
 						SchemaProps: spec.SchemaProps{
 							Description: "HolderReference is a reference to the object where the template is used.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.HolderReference"),
+							Ref:         ref("./exp/runtime/hooks/api/v1alpha1.HolderReference"),
 						},
 					},
 					"object": {
@@ -1155,7 +1155,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequestItem(ref common.Re
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Variable"),
+										Ref:     ref("./exp/runtime/hooks/api/v1alpha1.Variable"),
 									},
 								},
 							},
@@ -1166,7 +1166,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyRequestItem(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/runtime.RawExtension", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.HolderReference", "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.Variable"},
+			"./exp/runtime/hooks/api/v1alpha1.HolderReference", "./exp/runtime/hooks/api/v1alpha1.Variable", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 

@@ -36,7 +36,6 @@ import (
 	"k8s.io/component-base/logs"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
-	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -208,11 +207,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Set the Klog format, as the Serialize format shouldn't be used anymore.
-	// This makes sure that the logs are formatted correctly, i.e.:
-	// * JSON logging format: msg isn't serialized twice
-	// * text logging format: values are formatted with their .String() func.
-	ctrl.SetLogger(klogr.NewWithOptions(klogr.WithFormat(klogr.FormatKlog)))
+	// klog.Background will automatically use the right logger.
+	ctrl.SetLogger(klog.Background())
 
 	if profilerAddress != "" {
 		klog.Infof("Profiler listening for requests at %s", profilerAddress)

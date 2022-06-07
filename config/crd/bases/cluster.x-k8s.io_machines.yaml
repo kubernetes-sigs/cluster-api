@@ -647,7 +647,7 @@ spec:
                     type: string
                   containerRuntimeVersion:
                     description: ContainerRuntime Version reported by the node through
-                      runtime remote API (e.g. docker://1.5.0).
+                      runtime remote API (e.g. containerd://1.4.2).
                     type: string
                   kernelVersion:
                     description: Kernel Version reported by the node from 'uname -r'
@@ -1044,7 +1044,7 @@ spec:
                     type: string
                   containerRuntimeVersion:
                     description: ContainerRuntime Version reported by the node through
-                      runtime remote API (e.g. docker://1.5.0).
+                      runtime remote API (e.g. containerd://1.4.2).
                     type: string
                   kernelVersion:
                     description: Kernel Version reported by the node from 'uname -r'

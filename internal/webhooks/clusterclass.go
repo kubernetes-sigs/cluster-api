@@ -148,7 +148,7 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 
 	// Validate variables.
 	allErrs = append(allErrs,
-		variables.ValidateClusterClassVariables(newClusterClass.Spec.Variables, field.NewPath("spec", "variables"))...,
+		variables.ValidateClusterClassVariables(ctx, newClusterClass.Spec.Variables, field.NewPath("spec", "variables"))...,
 	)
 
 	// Validate patches.

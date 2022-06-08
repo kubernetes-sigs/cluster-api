@@ -43,6 +43,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterUpgradeRequest":          schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeRequest(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.BeforeClusterUpgradeResponse":         schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeResponse(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonResponse":                       schema_runtime_hooks_api_v1alpha1_CommonResponse(ref),
+		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.CommonRetryResponse":                  schema_runtime_hooks_api_v1alpha1_CommonRetryResponse(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoveryRequest":                     schema_runtime_hooks_api_v1alpha1_DiscoveryRequest(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.DiscoveryResponse":                    schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref),
 		"sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1.ExtensionHandler":                     schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref),
@@ -313,7 +314,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeResponse(ref comm
 					},
 					"retryAfterSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RetryAfterSeconds when set to a non-zero value signifies that the hook needs to be retried at a future time.",
+							Description: "RetryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -491,7 +492,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteResponse(ref common.Re
 					},
 					"retryAfterSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RetryAfterSeconds when set to a non-zero value signifies that the hook needs to be retried at a future time.",
+							Description: "RetryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -596,7 +597,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeResponse(ref common.R
 					},
 					"retryAfterSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RetryAfterSeconds when set to a non-zero value signifies that the hook needs to be retried at a future time.",
+							Description: "RetryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
 							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
@@ -634,6 +635,44 @@ func schema_runtime_hooks_api_v1alpha1_CommonResponse(ref common.ReferenceCallba
 					},
 				},
 				Required: []string{"status", "message"},
+			},
+		},
+	}
+}
+
+func schema_runtime_hooks_api_v1alpha1_CommonRetryResponse(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "CommonRetryResponse is the data structure which contains all common retry fields.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+							Enum:        []interface{}{"Failure", "Success"}},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "A human-readable description of the status of the call.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"retryAfterSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RetryAfterSeconds when set to a non-zero value signifies that the hook will be called again at a future time.",
+							Default:     0,
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+				Required: []string{"status", "message", "retryAfterSeconds"},
 			},
 		},
 	}
@@ -912,7 +951,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref common.Refere
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of: \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -921,6 +960,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref common.Refere
 					"message": {
 						SchemaProps: spec.SchemaProps{
 							Description: "A human-readable description of the status of the call.",
+							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -940,7 +980,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref common.Refere
 						},
 					},
 				},
-				Required: []string{"status", "items"},
+				Required: []string{"status", "message", "items"},
 			},
 		},
 		Dependencies: []string{
@@ -1193,7 +1233,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyResponse(ref common.Refer
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of: \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",

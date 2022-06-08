@@ -30,6 +30,15 @@ type ResponseObject interface {
 	SetStatus(status ResponseStatus)
 }
 
+// RetryResponseObject is a ResponseObject which additionally defines the functionality
+// for a response to signal a retry.
+// +kubebuilder:object:generate=false
+type RetryResponseObject interface {
+	ResponseObject
+	GetRetryAfterSeconds() int32
+	SetRetryAfterSeconds(retryAfterSeconds int32)
+}
+
 // CommonResponse is the data structure common to all response types.
 type CommonResponse struct {
 	// Status of the call. One of "Success" or "Failure".
@@ -70,3 +79,24 @@ const (
 	// ResponseStatusFailure represents a failure response.
 	ResponseStatusFailure ResponseStatus = "Failure"
 )
+
+// CommonRetryResponse is the data structure which contains all
+// common retry fields.
+type CommonRetryResponse struct {
+	// CommonResponse contains Status and Message fields common to all response types.
+	CommonResponse `json:",inline"`
+
+	// RetryAfterSeconds when set to a non-zero value signifies that the hook
+	// will be called again at a future time.
+	RetryAfterSeconds int32 `json:"retryAfterSeconds"`
+}
+
+// GetRetryAfterSeconds sets the RetryAfterSeconds value.
+func (r *CommonRetryResponse) GetRetryAfterSeconds() int32 {
+	return r.RetryAfterSeconds
+}
+
+// SetRetryAfterSeconds returns the RetryAfterSeconds value.
+func (r *CommonRetryResponse) SetRetryAfterSeconds(retryAfterSeconds int32) {
+	r.RetryAfterSeconds = retryAfterSeconds
+}

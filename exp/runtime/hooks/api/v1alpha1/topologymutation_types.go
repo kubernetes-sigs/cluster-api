@@ -56,6 +56,8 @@ type GeneratePatchesRequestItem struct {
 	Variables []Variable `json:"variables"`
 }
 
+var _ ResponseObject = &GeneratePatchesResponse{}
+
 // GeneratePatchesResponse is the response of the GeneratePatches hook.
 // NOTE: The patches in GeneratePatchesResponse will be applied in the order in which they are defined to the
 // templates of the request. Thus applying changes consecutively when iterating through internal and external patches.
@@ -63,12 +65,8 @@ type GeneratePatchesRequestItem struct {
 type GeneratePatchesResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// Status of the call.
-	// One of: "Success" or "Failure".
-	Status ResponseStatus `json:"status"`
-
-	// A human-readable description of the status of the call.
-	Message string `json:"message,omitempty"`
+	// CommonResponse contains Status and Message fields common to all response types.
+	CommonResponse `json:",inline"`
 
 	// Items is the list of generated patches.
 	Items []GeneratePatchesResponseItem `json:"items"`
@@ -131,17 +129,15 @@ type ValidateTopologyRequestItem struct {
 	Variables []Variable `json:"variables"`
 }
 
+var _ ResponseObject = &ValidateTopologyResponse{}
+
 // ValidateTopologyResponse is the response of the ValidateTopology hook.
 // +kubebuilder:object:root=true
 type ValidateTopologyResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// Status of the call.
-	// One of: "Success" or "Failure".
-	Status ResponseStatus `json:"status"`
-
-	// A human-readable description of the status of the call.
-	Message string `json:"message"`
+	// CommonResponse contains Status and Message fields common to all response types.
+	CommonResponse `json:",inline"`
 }
 
 // Variable represents a variable value.

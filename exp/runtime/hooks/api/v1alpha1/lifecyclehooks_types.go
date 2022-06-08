@@ -32,17 +32,15 @@ type BeforeClusterCreateRequest struct {
 	Cluster clusterv1.Cluster `json:"cluster"`
 }
 
+var _ RetryResponseObject = &BeforeClusterCreateResponse{}
+
 // BeforeClusterCreateResponse is the response of the BeforeClusterCreate hook.
 // +kubebuilder:object:root=true
 type BeforeClusterCreateResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonResponse contains Status and Message fields common to all response types.
-	CommonResponse `json:",inline"`
-
-	// RetryAfterSeconds when set to a non-zero value signifies that the hook
-	// will be called again at a future time.
-	RetryAfterSeconds int `json:"retryAfterSeconds"`
+	// CommonRetryResponse contains RetryAfterSeconds field common to all retry response types.
+	CommonRetryResponse `json:",inline"`
 }
 
 // BeforeClusterCreate is the runtime hook that will be called right before a Cluster is created.
@@ -56,6 +54,8 @@ type AfterControlPlaneInitializedRequest struct {
 	// The cluster object the lifecycle hook corresponds to.
 	Cluster clusterv1.Cluster `json:"cluster"`
 }
+
+var _ ResponseObject = &AfterControlPlaneInitializedResponse{}
 
 // AfterControlPlaneInitializedResponse is the response of the AfterControlPlaneInitialized hook.
 // +kubebuilder:object:root=true
@@ -80,21 +80,20 @@ type BeforeClusterUpgradeRequest struct {
 
 	// The current Kubernetes version of the cluster.
 	FromKubernetesVersion string `json:"fromKubernetesVersion"`
+
 	// The target Kubernetes version of upgrade.
 	ToKubernetesVersion string `json:"toKubernetesVersion"`
 }
+
+var _ RetryResponseObject = &BeforeClusterUpgradeResponse{}
 
 // BeforeClusterUpgradeResponse is the response of the BeforeClusterUpgrade hook.
 // +kubebuilder:object:root=true
 type BeforeClusterUpgradeResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonResponse contains Status and Message fields common to all response types.
-	CommonResponse `json:",inline"`
-
-	// RetryAfterSeconds when set to a non-zero value signifies that the hook
-	// needs to be retried at a future time.
-	RetryAfterSeconds int `json:"retryAfterSeconds"`
+	// CommonRetryResponse contains RetryAfterSeconds field common to all retry response types.
+	CommonRetryResponse `json:",inline"`
 }
 
 // BeforeClusterUpgrade is the runtime hook that will be called after a cluster.spec.version is upgraded and
@@ -113,17 +112,15 @@ type AfterControlPlaneUpgradeRequest struct {
 	KubernetesVersion string `json:"kubernetesVersion"`
 }
 
+var _ RetryResponseObject = &AfterControlPlaneUpgradeResponse{}
+
 // AfterControlPlaneUpgradeResponse is the response of the AfterControlPlaneUpgrade hook.
 // +kubebuilder:object:root=true
 type AfterControlPlaneUpgradeResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonResponse contains Status and Message fields common to all response types.
-	CommonResponse `json:",inline"`
-
-	// RetryAfterSeconds when set to a non-zero value signifies that the hook
-	// needs to be retried at a future time.
-	RetryAfterSeconds int `json:"retryAfterSeconds"`
+	// CommonRetryResponse contains RetryAfterSeconds field common to all retry response types.
+	CommonRetryResponse `json:",inline"`
 }
 
 // AfterControlPlaneUpgrade is the runtime hook called after the control plane is successfully upgraded to the target
@@ -141,6 +138,8 @@ type AfterClusterUpgradeRequest struct {
 	// The Kubernetes version after upgrade.
 	KubernetesVersion string `json:"kubernetesVersion"`
 }
+
+var _ ResponseObject = &AfterClusterUpgradeResponse{}
 
 // AfterClusterUpgradeResponse is the response of the AfterClusterUpgrade hook.
 // +kubebuilder:object:root=true
@@ -164,17 +163,15 @@ type BeforeClusterDeleteRequest struct {
 	Cluster clusterv1.Cluster `json:"cluster"`
 }
 
+var _ RetryResponseObject = &BeforeClusterDeleteResponse{}
+
 // BeforeClusterDeleteResponse is the response of the BeforeClusterDelete hook.
 // +kubebuilder:object:root=true
 type BeforeClusterDeleteResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonResponse contains Status and Message fields common to all response types.
-	CommonResponse `json:",inline"`
-
-	// RetryAfterSeconds when set to a non-zero value signifies that the hook
-	// needs to be retried at a future time.
-	RetryAfterSeconds int `json:"retryAfterSeconds"`
+	// CommonRetryResponse contains RetryAfterSeconds field common to all retry response types.
+	CommonRetryResponse `json:",inline"`
 }
 
 // BeforeClusterDelete is the runtime hook that is called after a delete is issued on a cluster

@@ -21,34 +21,11 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
-
-var (
-	// GroupVersion is group version identifying rpc services defined in this package
-	// and their request and response types.
-	GroupVersion = schema.GroupVersion{Group: "test.runtime.cluster.x-k8s.io", Version: "v1alpha1"}
-
-	// catalogBuilder is used to add rpc services and their request and response types
-	// to a Catalog.
-	catalogBuilder = &runtimecatalog.Builder{GroupVersion: GroupVersion}
-
-	// AddToCatalog adds rpc services defined in this package and their request and
-	// response types to a catalog.
-	AddToCatalog = catalogBuilder.AddToCatalog
-
-	// localSchemeBuilder provide access to the SchemeBuilder used for managing rpc
-	// method's request and response types defined in this package.
-	// NOTE: this object is required to allow registration of automatically generated
-	// conversions func.
-	localSchemeBuilder = catalogBuilder
-)
-
-func FakeHook(*FakeRequest, *FakeResponse) {}
 
 // FakeRequest is a response for testing
 // +kubebuilder:object:root=true
@@ -61,17 +38,20 @@ type FakeRequest struct {
 	First  int
 }
 
-// FakeResponse is a response for testing
+var _ runtimehooksv1.ResponseObject = &FakeResponse{}
+
+// FakeResponse is a response for testing.
 // +kubebuilder:object:root=true
 type FakeResponse struct {
-	metav1.TypeMeta               `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+
 	runtimehooksv1.CommonResponse `json:",inline"`
 
 	Second string
 	First  int
 }
 
-func SecondFakeHook(*SecondFakeRequest, *SecondFakeResponse) {}
+func FakeHook(*FakeRequest, *FakeResponse) {}
 
 // SecondFakeRequest is a response for testing
 // +kubebuilder:object:root=true
@@ -84,27 +64,69 @@ type SecondFakeRequest struct {
 	First  int
 }
 
-// SecondFakeResponse is a response for testing
+var _ runtimehooksv1.ResponseObject = &SecondFakeResponse{}
+
+// SecondFakeResponse is a response for testing.
 // +kubebuilder:object:root=true
 type SecondFakeResponse struct {
-	metav1.TypeMeta               `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+
 	runtimehooksv1.CommonResponse `json:",inline"`
-	Second                        string
-	First                         int
+
+	Second string
+	First  int
 }
+
+func SecondFakeHook(*SecondFakeRequest, *SecondFakeResponse) {}
+
+// RetryableFakeRequest is a request for testing hooks with retryAfterSeconds.
+// +kubebuilder:object:root=true
+type RetryableFakeRequest struct {
+	metav1.TypeMeta `json:",inline"`
+
+	Cluster clusterv1alpha4.Cluster
+
+	Second string
+	First  int
+}
+
+var _ runtimehooksv1.RetryResponseObject = &RetryableFakeResponse{}
+
+// RetryableFakeResponse is a request for testing hooks with retryAfterSeconds.
+// +kubebuilder:object:root=true
+type RetryableFakeResponse struct {
+	metav1.TypeMeta `json:",inline"`
+
+	runtimehooksv1.CommonResponse `json:",inline"`
+
+	runtimehooksv1.CommonRetryResponse `json:",inline"`
+
+	Second string
+	First  int
+}
+
+// RetryableFakeHook is a request for testing hooks with retryAfterSeconds.
+func RetryableFakeHook(*RetryableFakeRequest, *RetryableFakeResponse) {}
 
 func init() {
 	catalogBuilder.RegisterHook(FakeHook, &runtimecatalog.HookMeta{
 		Tags:        []string{"fake-tag"},
-		Summary:     "Fake summary",
-		Description: "Fake description",
+		Summary:     "FakeHook summary",
+		Description: "FakeHook description",
 		Deprecated:  true,
 	})
 
 	catalogBuilder.RegisterHook(SecondFakeHook, &runtimecatalog.HookMeta{
 		Tags:        []string{"fake-tag"},
-		Summary:     "Second Fake summary",
-		Description: "Second Fake description",
+		Summary:     "SecondFakeHook summary",
+		Description: "SecondFakeHook description",
+		Deprecated:  true,
+	})
+
+	catalogBuilder.RegisterHook(RetryableFakeHook, &runtimecatalog.HookMeta{
+		Tags:        []string{"fake-tag"},
+		Summary:     "RetryableFakeHook summary",
+		Description: "RetryableFakeHook description",
 		Deprecated:  true,
 	})
 }

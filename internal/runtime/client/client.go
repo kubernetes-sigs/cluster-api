@@ -180,10 +180,12 @@ func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook
 	if err := c.catalog.ValidateResponse(gvh, response); err != nil {
 		return errors.Wrapf(err, "response object is invalid for hook %s", gvh)
 	}
+
 	registrations, err := c.registry.List(gvh.GroupHook())
 	if err != nil {
 		return errors.Wrapf(err, "failed to retrieve ExtensionHandlers for %s", gvh.GroupHook())
 	}
+
 	responses := []runtimehooksv1.ResponseObject{}
 	for _, registration := range registrations {
 		// Creates a new instance of the response parameter.
@@ -192,6 +194,7 @@ func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook
 			return errors.Wrapf(err, "ExtensionHandler %s failed", registration.Name)
 		}
 		tmpResponse := responseObject.(runtimehooksv1.ResponseObject)
+
 		err = c.CallExtension(ctx, hook, registration.Name, request, tmpResponse)
 		// If one of the extension handlers fails lets short-circuit here and return early.
 		if err != nil {
@@ -199,15 +202,49 @@ func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook
 		}
 		responses = append(responses, tmpResponse)
 	}
-	if err := aggregateResponses(responses); err != nil {
-		return errors.Wrap(err, "failed to aggregate responses")
-	}
+
+	// Aggregate all responses into a single response.
+	// Note: we only get here if all the extension handlers succeeded.
+	aggregateSuccessfulResponses(response, responses)
+
 	return nil
 }
 
-func aggregateResponses(responses []runtimehooksv1.ResponseObject) error {
-	// TODO:(killianmuldoon) implement proper aggregation logic.
-	return nil
+// aggregateSuccessfulResponses aggregates all successful responses into a single response.
+func aggregateSuccessfulResponses(aggregatedResponse runtimehooksv1.ResponseObject, responses []runtimehooksv1.ResponseObject) {
+	// At this point the Status should always be ResponseStatusSuccess and the Message should be empty.
+	// So let's set those values to avoid keeping values that could have been set by the caller of CallAllExtensions.
+	aggregatedResponse.SetMessage("")
+	aggregatedResponse.SetStatus(runtimehooksv1.ResponseStatusSuccess)
+
+	aggregatedRetryResponse, ok := aggregatedResponse.(runtimehooksv1.RetryResponseObject)
+	if !ok {
+		// If the aggregated response is not a RetryResponseObject then we're done.
+		return
+	}
+	// Note: as all responses have the same type we can assume now that
+	// they all implement the RetryResponseObject interface.
+
+	for _, resp := range responses {
+		aggregatedRetryResponse.SetRetryAfterSeconds(lowestNonZeroRetryAfterSeconds(
+			aggregatedRetryResponse.GetRetryAfterSeconds(),
+			resp.(runtimehooksv1.RetryResponseObject).GetRetryAfterSeconds(),
+		))
+	}
+}
+
+// lowestNonZeroRetryAfterSeconds returns the lowest non-zero value of the two provided values.
+func lowestNonZeroRetryAfterSeconds(i, j int32) int32 {
+	if i == 0 {
+		return j
+	}
+	if j == 0 {
+		return i
+	}
+	if i < j {
+		return i
+	}
+	return j
 }
 
 // CallExtension make the call to the extension with the given name.
@@ -235,6 +272,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, na
 	if err := c.catalog.ValidateResponse(hookGVH, response); err != nil {
 		return errors.Wrapf(err, "response object is invalid for hook %s", hookGVH)
 	}
+
 	registration, err := c.registry.Get(name)
 	if err != nil {
 		return errors.Wrapf(err, "failed to retrieve ExtensionHandler with name %q", name)
@@ -242,6 +280,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, na
 	if hookGVH.GroupHook() != registration.GroupVersionHook.GroupHook() {
 		return errors.Errorf("ExtensionHandler %q does not match group %s, hook %s", name, hookGVH.Group, hookGVH.Hook)
 	}
+
 	var timeoutDuration time.Duration
 	if registration.TimeoutSeconds != nil {
 		timeoutDuration = time.Duration(*registration.TimeoutSeconds) * time.Second
@@ -267,10 +306,12 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, na
 		}
 		return errors.Wrap(err, "failed to call ExtensionHandler")
 	}
+
 	// If the received response is a failure then return an error.
 	if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
 		return errors.Errorf("ExtensionHandler %s failed with message %s", name, response.GetMessage())
 	}
+
 	// Received a successful response from the extension handler. The `response` object
 	// is populated with the result. Return no error.
 	return nil

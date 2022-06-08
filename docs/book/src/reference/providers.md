@@ -25,6 +25,7 @@ updated info about which API version they are supporting.
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
 - [KubeVirt](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt)
 - [MAAS](https://github.com/spectrocloud/cluster-api-provider-maas)
+- [vcluster](https://github.com/loft-sh/cluster-api-provider-vcluster)
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)

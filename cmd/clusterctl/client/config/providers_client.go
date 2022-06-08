@@ -53,6 +53,7 @@ const (
 	VSphereProviderName   = "vsphere"
 	MAASProviderName      = "maas"
 	KubevirtProviderName  = "kubevirt"
+	VclusterProviderName  = "vcluster"
 )
 
 // Bootstrap providers.
@@ -206,6 +207,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         KubevirtProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         VclusterProviderName,
+			url:          "https://github.com/loft-sh/cluster-api-provider-vcluster/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

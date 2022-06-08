@@ -38,6 +38,9 @@ Cluster API Provider AWS
 ### CABPK
 Cluster API Bootstrap Provider Kubeadm
 
+### CAPC
+Cluster API Provider CloudStack
+
 ### CAPD
 Cluster API Provider Docker
 

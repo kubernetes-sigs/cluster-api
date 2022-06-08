@@ -35,25 +35,26 @@ const (
 
 // Infra providers.
 const (
-	AWSProviderName       = "aws"
-	AzureProviderName     = "azure"
-	BYOHProviderName      = "byoh"
-	DockerProviderName    = "docker"
-	DOProviderName        = "digitalocean"
-	GCPProviderName       = "gcp"
-	HetznerProviderName   = "hetzner"
-	IBMCloudProviderName  = "ibmcloud"
-	Metal3ProviderName    = "metal3"
-	NestedProviderName    = "nested"
-	NutanixProviderName   = "nutanix"
-	OCIProviderName       = "oci"
-	OpenStackProviderName = "openstack"
-	PacketProviderName    = "packet"
-	SideroProviderName    = "sidero"
-	VSphereProviderName   = "vsphere"
-	MAASProviderName      = "maas"
-	KubevirtProviderName  = "kubevirt"
-	VclusterProviderName  = "vcluster"
+	AWSProviderName        = "aws"
+	AzureProviderName      = "azure"
+	BYOHProviderName       = "byoh"
+	CloudStackProviderName = "cloudstack"
+	DockerProviderName     = "docker"
+	DOProviderName         = "digitalocean"
+	GCPProviderName        = "gcp"
+	HetznerProviderName    = "hetzner"
+	IBMCloudProviderName   = "ibmcloud"
+	Metal3ProviderName     = "metal3"
+	NestedProviderName     = "nested"
+	NutanixProviderName    = "nutanix"
+	OCIProviderName        = "oci"
+	OpenStackProviderName  = "openstack"
+	PacketProviderName     = "packet"
+	SideroProviderName     = "sidero"
+	VSphereProviderName    = "vsphere"
+	MAASProviderName       = "maas"
+	KubevirtProviderName   = "kubevirt"
+	VclusterProviderName   = "vcluster"
 )
 
 // Bootstrap providers.
@@ -130,6 +131,11 @@ func (p *providersClient) defaults() []Provider {
 			// NB. The Docker provider is not designed for production use and is intended for development environments only.
 			name:         DockerProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/infrastructure-components-development.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         CloudStackProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

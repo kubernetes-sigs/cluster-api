@@ -17,6 +17,7 @@ updated info about which API version they are supporting.
 - [Azure Stack HCI](https://github.com/microsoft/cluster-api-provider-azurestackhci)
 - [Baidu Cloud](https://github.com/baidu/cluster-api-provider-baiducloud)
 - [BYOH](https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost)
+- [CloudStack](https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack)
 - [Metal3](https://github.com/metal3-io/cluster-api-provider-metal3)
 - [DigitalOcean](https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean)
 - [Exoscale](https://github.com/exoscale/cluster-api-provider-exoscale)

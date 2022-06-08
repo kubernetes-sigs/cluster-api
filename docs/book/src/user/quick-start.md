@@ -185,7 +185,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Metal3,Nutanix,Kubevirt,OCI,OpenStack,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Metal3,Nutanix,Kubevirt,OCI,OpenStack,vSphere"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases] and make sure to place it in your path.
@@ -247,6 +247,30 @@ clusterctl init --infrastructure azure
 ```
 
 {{#/tab }}
+{{#tab CloudStack}}
+
+Create a file named cloud-config in the repo's root directory, substituting in your own environment's values
+```bash
+[Global]
+api-url = <cloudstackApiUrl>
+api-key = <cloudstackApiKey>
+secret-key = <cloudstackSecretKey>
+```
+
+Create the base64 encoded credentials by catting your credentials file.
+This command uses your environment variables and encodes
+them in a value to be stored in a Kubernetes Secret.
+
+```bash
+export CLOUDSTACK_B64ENCODED_SECRET=`cat cloud-config | base64 | tr -d '\n'`
+```
+
+Finally, initialize the management cluster
+```bash
+clusterctl init --infrastructure cloudstack
+```
+
+{{#/tab }}
 {{#tab DigitalOcean}}
 
 ```bash
@@ -268,9 +292,9 @@ The Docker provider is not designed for production use and is intended for devel
 
 </aside>
 
-The Docker provider requires the `ClusterTopology` feature to deploy ClusterClass-based clusters. We are 
-only supporting ClusterClass-based cluster-templates in this quickstart as ClusterClass makes it possible to 
-adapt configuration based on Kubernetes version. This is required to install Kubernetes clusters < v1.24 and 
+The Docker provider requires the `ClusterTopology` feature to deploy ClusterClass-based clusters. We are
+only supporting ClusterClass-based cluster-templates in this quickstart as ClusterClass makes it possible to
+adapt configuration based on Kubernetes version. This is required to install Kubernetes clusters < v1.24 and
 for the upgrade from v1.23 to v1.24 as we have to use different cgroupDrivers depending on Kubernetes version.
 
 ```
@@ -442,7 +466,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,Metal3,Nutanix,Kubevirt,OpenStack,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,Metal3,Nutanix,Kubevirt,OpenStack,vSphere"}}
 {{#tab AWS}}
 
 ```bash
@@ -477,6 +501,41 @@ export AZURE_NODE_MACHINE_TYPE="Standard_D2s_v3"
 # [Optional] Select resource group. The default value is ${CLUSTER_NAME}.
 export AZURE_RESOURCE_GROUP="<ResourceGroupName>"
 ```
+
+{{#/tab }}
+{{#tab CloudStack}}
+
+A ClusterAPI compatible image must be available in your Cloudstack installation. For instructions on how to build a compatible image
+see [image-builder (Cloudstack)](https://image-builder.sigs.k8s.io/capi/providers/cloudstack.html)
+
+Prebuilt images can be found [here](http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/)
+
+To see all required Cloudstack environment variables execute:
+```bash
+clusterctl generate cluster --infrastructure cloudstack --list-variables capi-quickstart
+```
+
+Apart from the script, the following Cloudstack environment variables are required.
+```bash
+# Set this to the name of the zone in which to deploy the cluster
+export CLOUDSTACK_ZONE_NAME=<zone name>
+# The name of the network on which the VMs will reside
+export CLOUDSTACK_NETWORK_NAME=<network name>
+# The endpoint of the workload cluster
+export CLUSTER_ENDPOINT_IP=<cluster endpoint address>
+export CLUSTER_ENDPOINT_PORT=<cluster endpoint port>
+# The service offering of the control plane nodes
+export CLOUDSTACK_CONTROL_PLANE_MACHINE_OFFERING=<control plane service offering name>
+# The service offering of the worker nodes
+export CLOUDSTACK_WORKER_MACHINE_OFFERING=<worker node service offering name>
+# The capi compatible template to use
+export CLOUDSTACK_TEMPLATE_NAME=<template name>
+# The ssh key to use to log into the nodes
+export CLOUDSTACK_SSH_KEY_NAME=<ssh key name>
+
+```
+
+A full configuration reference can be found in [configuration.md](https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/blob/master/docs/book/src/clustercloudstack/configuration.md).
 
 {{#/tab }}
 {{#tab DigitalOcean}}
@@ -723,8 +782,8 @@ For more information about prerequisites, credentials management, or permissions
 
 For the purpose of this tutorial, we'll name our cluster capi-quickstart.
 
-{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Azure|AWS|DigitalOcean|Equinix Metal|GCP|Metal3|Nutanix|Kubevirt|OpenStack|vSphere,Docker"}}
-{{#tab Azure|AWS|DigitalOcean|Equinix Metal|GCP|Metal3|OpenStack|vSphere}}
+{{#tabs name:"tab-clusterctl-config-cluster" tabs:"Azure|AWS|CloudStack|DigitalOcean|Equinix Metal|GCP|Metal3|Nutanix|Kubevirt|OpenStack|vSphere,Docker"}}
+{{#tab Azure|AWS|CloudStack|DigitalOcean|Equinix Metal|GCP|Metal3|OpenStack|vSphere}}
 
 ```bash
 clusterctl generate cluster capi-quickstart \
@@ -838,8 +897,8 @@ See [Additional Notes for the Docker Provider](../clusterctl/developers.md#addit
 
 Calico is used here as an example.
 
-{{#tabs name:"tab-deploy-cni" tabs:"AWS|DigitalOcean|Docker|Equinix Metal|GCP|Metal3|Nutanix|Kubevirt|OpenStack|vSphere,Azure"}}
-{{#tab AWS|DigitalOcean|Docker|Equinix Metal|GCP|Metal3|OpenStack|vSphere}}
+{{#tabs name:"tab-deploy-cni" tabs:"AWS|CloudStack|DigitalOcean|Docker|Equinix Metal|GCP|Metal3|Nutanix|Kubevirt|OpenStack|vSphere,Azure"}}
+{{#tab AWS|CloudStack|DigitalOcean|Docker|Equinix Metal|GCP|Metal3|OpenStack|vSphere}}
 
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig \

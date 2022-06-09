@@ -19,7 +19,7 @@ ROOT = ../../..
 
 .DEFAULT_GOAL:=help
 
-GO_VERSION ?= 1.17.3
+GO_VERSION ?= 1.18.3
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
 # Use GOPROXY environment variable if set

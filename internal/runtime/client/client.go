@@ -31,8 +31,12 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/transport"
+	"k8s.io/utils/pointer"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -124,6 +128,11 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 	// Check to see if the response is a failure and handle the failure accordingly.
 	if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
 		return nil, errors.Errorf("discovery failed with %v", response.GetMessage())
+	}
+
+	// Check to see if the response is valid.
+	if err = defaultAndValidateDiscoveryResponse(c.catalog, response); err != nil {
+		return nil, errors.Wrapf(err, "discovery response validation failed")
 	}
 
 	modifiedExtensionConfig := extensionConfig.DeepCopy()
@@ -475,4 +484,68 @@ func urlForExtension(config runtimev1.ClientConfig, gvh runtimecatalog.GroupVers
 	// Add the subpatch to the ExtensionHandler for the given hook.
 	u.Path = path.Join(u.Path, runtimecatalog.GVHToPath(gvh, name))
 	return u, nil
+}
+
+// defaultAndValidateDiscoveryResponse defaults unset values and runs a set of validations on the Discovery Response.
+// If any of these checks fails the response is invalid and an error is returned.
+func defaultAndValidateDiscoveryResponse(cat *runtimecatalog.Catalog, discovery *runtimehooksv1.DiscoveryResponse) error {
+	names := make(map[string]bool)
+	var errs []error
+
+	if discovery == nil {
+		return errors.New("error validating discovery: response is empty")
+	}
+	discovery = defaultDiscoveryResponse(discovery)
+	for _, handler := range discovery.Handlers {
+		// Names should be unique.
+		if _, ok := names[handler.Name]; ok {
+			errs = append(errs, errors.Errorf("duplicate name for handler %s found", handler.Name))
+		}
+		names[handler.Name] = true
+
+		// Name should match Kubernetes naming conventions - validated based on Kubernetes DNS1123 Subdomain rules.
+		if errStrings := validation.IsDNS1123Subdomain(handler.Name); len(errStrings) > 0 {
+			errs = append(errs, errors.Errorf("handler name %s is not valid: %s", handler.Name, errStrings))
+		}
+
+		// Timeout should be a positive integer not greater than 30.
+		if *handler.TimeoutSeconds < 0 || *handler.TimeoutSeconds > 30 {
+			errs = append(errs, errors.Errorf("handler %s timeoutSeconds %d must be between 0 and 30", handler.Name, *handler.TimeoutSeconds))
+		}
+
+		// FailurePolicy must be one of Ignore or Fail.
+		if *handler.FailurePolicy != runtimehooksv1.FailurePolicyFail && *handler.FailurePolicy != runtimehooksv1.FailurePolicyIgnore {
+			errs = append(errs, errors.Errorf("handler %s failurePolicy %s must equal \"Ignore\" or \"Fail\"", handler.Name, *handler.FailurePolicy))
+		}
+
+		gv, err := schema.ParseGroupVersion(handler.RequestHook.APIVersion)
+		if err != nil {
+			errs = append(errs, errors.Wrapf(err, "handler %s requestHook APIVersion %s is not valid", handler.Name, handler.RequestHook.APIVersion))
+		} else if !cat.IsHookRegistered(runtimecatalog.GroupVersionHook{
+			Group:   gv.Group,
+			Version: gv.Version,
+			Hook:    handler.RequestHook.Hook,
+		}) {
+			errs = append(errs, errors.Errorf("handler %s requestHook %s/%s is not in the Runtime SDK catalog", handler.Name, handler.RequestHook.APIVersion, handler.RequestHook.Hook))
+		}
+	}
+	return kerrors.NewAggregate(errs)
+}
+
+// defaultDiscoveryResponse defaults FailurePolicy and TimeoutSeconds for all discovered handlers.
+func defaultDiscoveryResponse(discovery *runtimehooksv1.DiscoveryResponse) *runtimehooksv1.DiscoveryResponse {
+	for i, handler := range discovery.Handlers {
+		// If FailurePolicy is not defined set to "Fail"
+		if handler.FailurePolicy == nil {
+			defaultFailPolicy := runtimehooksv1.FailurePolicyFail
+			handler.FailurePolicy = &defaultFailPolicy
+		}
+		// If TimeoutSeconds is not defined set to ten.
+		if handler.TimeoutSeconds == nil {
+			handler.TimeoutSeconds = pointer.Int32(10)
+		}
+
+		discovery.Handlers[i] = handler
+	}
+	return discovery
 }

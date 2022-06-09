@@ -20,6 +20,8 @@ import (
 	"sync"
 
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
@@ -64,6 +66,9 @@ type ExtensionRegistration struct {
 
 	// GroupVersionHook is the GroupVersionHook that the RuntimeExtension implements.
 	GroupVersionHook runtimecatalog.GroupVersionHook
+
+	// NamespaceSelector limits the namespace in which a Runtime Extension is called.
+	NamespaceSelector labels.Selector
 
 	// ClientConfig is the ClientConfig to communicate with the RuntimeExtension.
 	ClientConfig runtimev1.ClientConfig
@@ -220,6 +225,12 @@ func (r *extensionRegistry) Get(name string) (*ExtensionRegistration, error) {
 func (r *extensionRegistry) add(extensionConfig *runtimev1.ExtensionConfig) error {
 	r.remove(extensionConfig)
 
+	// Create a selector from the NamespaceSelector defined in the extensionConfig spec.
+	selector, err := metav1.LabelSelectorAsSelector(extensionConfig.Spec.NamespaceSelector)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create namespaceSelector")
+	}
+
 	var allErrs []error
 	registrations := []*ExtensionRegistration{}
 	for _, e := range extensionConfig.Status.Handlers {
@@ -238,9 +249,10 @@ func (r *extensionRegistry) add(extensionConfig *runtimev1.ExtensionConfig) erro
 				Version: gv.Version,
 				Hook:    e.RequestHook.Hook,
 			},
-			ClientConfig:   extensionConfig.Spec.ClientConfig,
-			TimeoutSeconds: e.TimeoutSeconds,
-			FailurePolicy:  e.FailurePolicy,
+			NamespaceSelector: selector,
+			ClientConfig:      extensionConfig.Spec.ClientConfig,
+			TimeoutSeconds:    e.TimeoutSeconds,
+			FailurePolicy:     e.FailurePolicy,
 		})
 	}
 

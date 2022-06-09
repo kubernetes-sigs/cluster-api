@@ -29,7 +29,7 @@ type ExtensionConfigSpec struct {
 	// ClientConfig defines how to communicate with ExtensionHandlers.
 	ClientConfig ClientConfig `json:"clientConfig"`
 
-	// NamespaceSelector decides whether to run the webhook on an object based
+	// NamespaceSelector decides whether to call the hook for an object based
 	// on whether the namespace for that object matches the selector.
 	// Default to the empty LabelSelector, which matches everything.
 	// +optional

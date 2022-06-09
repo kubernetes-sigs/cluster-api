@@ -82,7 +82,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// ExtensionConfig not found. Remove from registry.
-			// First need to add Namespace/Name to empty extensionConfig object.
+			// First need to add Namespace/Name to empty ExtensionConfig object.
 			extensionConfig.Name = req.Name
 			extensionConfig.Namespace = req.Namespace
 			return r.reconcileDelete(ctx, extensionConfig)
@@ -117,7 +117,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, kerrors.NewAggregate(errs)
 	}
 
-	// Register the extensionConfig if it was found and patched without error.
+	// Register the ExtensionConfig if it was found and patched without error.
 	if err = r.RuntimeClient.Register(discoveredExtensionConfig); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to register ExtensionConfig %s/%s", extensionConfig.Namespace, extensionConfig.Name)
 	}

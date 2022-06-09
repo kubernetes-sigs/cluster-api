@@ -28,10 +28,15 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
@@ -505,7 +510,15 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 
 func TestClient_CallExtension(t *testing.T) {
 	testHostPort := "127.0.0.1:9090"
-
+	ns := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+		},
+	}
 	fpFail := runtimev1.FailurePolicyFail
 	fpIgnore := runtimev1.FailurePolicyIgnore
 
@@ -514,6 +527,7 @@ func TestClient_CallExtension(t *testing.T) {
 			ClientConfig: runtimev1.ClientConfig{
 				URL: pointer.String(fmt.Sprintf("http://%s/", testHostPort)),
 			},
+			NamespaceSelector: &metav1.LabelSelector{},
 		},
 		Status: runtimev1.ExtensionConfigStatus{
 			Handlers: []runtimev1.ExtensionHandler{
@@ -534,7 +548,7 @@ func TestClient_CallExtension(t *testing.T) {
 			ClientConfig: runtimev1.ClientConfig{
 				URL: pointer.String(fmt.Sprintf("http://%s/", testHostPort)),
 			},
-		},
+			NamespaceSelector: &metav1.LabelSelector{}},
 		Status: runtimev1.ExtensionConfigStatus{
 			Handlers: []runtimev1.ExtensionHandler{
 				{
@@ -549,7 +563,6 @@ func TestClient_CallExtension(t *testing.T) {
 			},
 		},
 	}
-
 	type args struct {
 		hook     runtimecatalog.Hook
 		name     string
@@ -717,13 +730,23 @@ func TestClient_CallExtension(t *testing.T) {
 			cat := runtimecatalog.New()
 			_ = fakev1alpha1.AddToCatalog(cat)
 			_ = fakev1alpha2.AddToCatalog(cat)
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(ns).
+				Build()
 
 			c := New(Options{
 				Catalog:  cat,
 				Registry: registry(tt.registeredExtensionConfigs),
+				Client:   fakeClient,
 			})
 
-			err := c.CallExtension(context.Background(), tt.args.hook, tt.args.name, tt.args.request, tt.args.response)
+			obj := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster",
+					Namespace: "foo",
+				},
+			}
+			err := c.CallExtension(context.Background(), tt.args.hook, obj, tt.args.name, tt.args.request, tt.args.response)
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
@@ -736,7 +759,15 @@ func TestClient_CallExtension(t *testing.T) {
 
 func TestClient_CallAllExtensions(t *testing.T) {
 	testHostPort := "127.0.0.1:9090"
-
+	ns := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+		},
+	}
 	fpFail := runtimev1.FailurePolicyFail
 
 	extensionConfig := runtimev1.ExtensionConfig{
@@ -744,6 +775,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 			ClientConfig: runtimev1.ClientConfig{
 				URL: pointer.String(fmt.Sprintf("http://%s/", testHostPort)),
 			},
+			NamespaceSelector: &metav1.LabelSelector{},
 		},
 		Status: runtimev1.ExtensionConfigStatus{
 			Handlers: []runtimev1.ExtensionHandler{
@@ -901,18 +933,141 @@ func TestClient_CallAllExtensions(t *testing.T) {
 			cat := runtimecatalog.New()
 			_ = fakev1alpha1.AddToCatalog(cat)
 			_ = fakev1alpha2.AddToCatalog(cat)
-
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(ns).
+				Build()
 			c := New(Options{
 				Catalog:  cat,
 				Registry: registry(tt.registeredExtensionConfigs),
+				Client:   fakeClient,
 			})
 
-			err := c.CallAllExtensions(context.Background(), tt.args.hook, tt.args.request, tt.args.response)
+			obj := &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster",
+					Namespace: "foo",
+				},
+			}
+			err := c.CallAllExtensions(context.Background(), tt.args.hook, obj, tt.args.request, tt.args.response)
 
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	}
+}
+
+func Test_client_matchNamespace(t *testing.T) {
+	g := NewWithT(t)
+	foo := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "foo",
+			Labels: map[string]string{
+				corev1.LabelMetadataName: "foo",
+			},
+		},
+	}
+	bar := &corev1.Namespace{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Namespace",
+			APIVersion: corev1.SchemeGroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "bar",
+			Labels: map[string]string{
+				corev1.LabelMetadataName: "bar",
+			},
+		},
+	}
+	matchingMatchExpressions, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{
+			{
+				Key:      corev1.LabelMetadataName,
+				Operator: metav1.LabelSelectorOpIn,
+				Values:   []string{"foo", "bar"},
+			},
+		},
+	})
+	g.Expect(err).To(BeNil())
+	notMatchingMatchExpressions, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{
+			{
+				Key:      corev1.LabelMetadataName,
+				Operator: metav1.LabelSelectorOpIn,
+				Values:   []string{"non-existing", "other"},
+			},
+		},
+	})
+	g.Expect(err).To(BeNil())
+	tests := []struct {
+		name               string
+		selector           labels.Selector
+		namespace          string
+		existingNamespaces []ctrlclient.Object
+		want               bool
+		wantErr            bool
+	}{
+		{
+			name:               "match with single label selector",
+			selector:           labels.SelectorFromSet(labels.Set{corev1.LabelMetadataName: foo.Name}),
+			namespace:          "foo",
+			existingNamespaces: []ctrlclient.Object{foo, bar},
+			want:               true,
+			wantErr:            false,
+		},
+		{
+			name:               "error with non-existent namespace",
+			selector:           labels.SelectorFromSet(labels.Set{corev1.LabelMetadataName: foo.Name}),
+			namespace:          "non-existent",
+			existingNamespaces: []ctrlclient.Object{foo, bar},
+			want:               false,
+			wantErr:            true,
+		},
+		{
+			name:               "doesn't match if namespaceSelector doesn't match namespace",
+			selector:           labels.SelectorFromSet(labels.Set{corev1.LabelMetadataName: bar.Name}),
+			namespace:          "foo",
+			existingNamespaces: []ctrlclient.Object{foo, bar},
+			want:               false,
+			wantErr:            false,
+		},
+		{
+			name:               "match if match expressions match namespace",
+			selector:           matchingMatchExpressions,
+			namespace:          "bar",
+			existingNamespaces: []ctrlclient.Object{foo, bar},
+			want:               true,
+			wantErr:            false,
+		},
+		{
+			name:               "doesn't match if match expressions doesn't match namespace",
+			selector:           notMatchingMatchExpressions,
+			namespace:          "foo",
+			existingNamespaces: []ctrlclient.Object{foo, bar},
+			want:               false,
+			wantErr:            false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := client{
+				Client: fake.NewClientBuilder().
+					WithObjects(tt.existingNamespaces...).
+					Build(),
+			}
+			got, err := c.matchNamespace(context.Background(), tt.selector, tt.namespace)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("matchNamespace() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("matchNamespace() got = %v, want %v", got, tt.want)
 			}
 		})
 	}

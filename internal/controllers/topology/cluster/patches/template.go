@@ -18,123 +18,115 @@ package patches
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/uuid"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/api"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 )
 
-// templateBuilder builds templates.
-type templateBuilder struct {
-	template     *unstructured.Unstructured
-	templateType api.TemplateType
-	mdTopology   *clusterv1.MachineDeploymentTopology
+// requestItemBuilder builds a GeneratePatchesRequestItem.
+type requestItemBuilder struct {
+	template *unstructured.Unstructured
+	holder   runtimehooksv1.HolderReference
 }
 
-// newTemplateBuilder returns a new templateBuilder.
-func newTemplateBuilder(template *unstructured.Unstructured) *templateBuilder {
-	return &templateBuilder{
+// newRequestItemBuilder returns a new requestItemBuilder.
+func newRequestItemBuilder(template *unstructured.Unstructured) *requestItemBuilder {
+	return &requestItemBuilder{
 		template: template,
 	}
 }
 
-// WithType adds templateType to the templateBuilder.
-func (t *templateBuilder) WithType(templateType api.TemplateType) *templateBuilder {
-	t.templateType = templateType
+// WithHolder adds holder to the requestItemBuilder.
+func (t *requestItemBuilder) WithHolder(object client.Object, fieldPath string) *requestItemBuilder {
+	t.holder = runtimehooksv1.HolderReference{
+		APIVersion: object.GetObjectKind().GroupVersionKind().GroupVersion().String(),
+		Kind:       object.GetObjectKind().GroupVersionKind().Kind,
+		Namespace:  object.GetNamespace(),
+		Name:       object.GetName(),
+		FieldPath:  fieldPath,
+	}
 	return t
 }
 
-// WithMachineDeploymentRef adds a MachineDeploymentTopology to the templateBuilder,
-// which is used to add a MachineDeploymentRef to the TemplateRef during BuildTemplateRef.
-func (t *templateBuilder) WithMachineDeploymentRef(mdTopology *clusterv1.MachineDeploymentTopology) *templateBuilder {
-	t.mdTopology = mdTopology
-	return t
-}
-
-// BuildTemplateRef builds an api.TemplateRef.
-func (t *templateBuilder) BuildTemplateRef() api.TemplateRef {
-	templateRef := api.TemplateRef{
-		APIVersion:   t.template.GetAPIVersion(),
-		Kind:         t.template.GetKind(),
-		TemplateType: t.templateType,
-	}
-
-	if t.mdTopology != nil {
-		templateRef.MachineDeploymentRef = api.MachineDeploymentRef{
-			TopologyName: t.mdTopology.Name,
-			Class:        t.mdTopology.Class,
-		}
-	}
-
-	return templateRef
-}
-
-// Build builds an api.GenerateRequestTemplate.
-func (t *templateBuilder) Build() (*api.GenerateRequestTemplate, error) {
-	tpl := &api.GenerateRequestTemplate{
-		TemplateRef: t.BuildTemplateRef(),
+// Build builds a GeneratePatchesRequestItem.
+func (t *requestItemBuilder) Build() (*runtimehooksv1.GeneratePatchesRequestItem, error) {
+	tpl := &runtimehooksv1.GeneratePatchesRequestItem{
+		HolderReference: t.holder,
+		UID:             uuid.NewUUID(),
 	}
 
 	jsonObj, err := json.Marshal(t.template)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal object to json")
+		return nil, errors.Wrap(err, "failed to marshal template to JSON")
 	}
-	tpl.Template = apiextensionsv1.JSON{Raw: jsonObj}
+
+	tpl.Object = runtime.RawExtension{
+		Raw:    jsonObj,
+		Object: t.template,
+	}
 
 	return tpl, nil
 }
 
-// getTemplateAsUnstructured is a utility func that returns a template matching the templateRef from a GenerateRequest.
-func getTemplateAsUnstructured(req *api.GenerateRequest, templateRef api.TemplateRef) (*unstructured.Unstructured, error) {
-	// Find the template the patch should be applied to.
-	template := getTemplate(req, templateRef)
+// getTemplateAsUnstructured is a utility func that returns a template matching the holderKind, holderFieldPath
+// and mdTopologyName from a GeneratePatchesRequest.
+func getTemplateAsUnstructured(req *runtimehooksv1.GeneratePatchesRequest, holderKind, holderFieldPath, mdTopologyName string) (*unstructured.Unstructured, error) {
+	// Find the requestItem.
+	requestItem := getRequestItem(req, holderKind, holderFieldPath, mdTopologyName)
 
-	// If a patch doesn't apply to any object, this is a misconfiguration.
-	if template == nil {
-		return nil, errors.Errorf("failed to get template %s", templateRef)
+	if requestItem == nil {
+		return nil, errors.Errorf("failed to get request item with holder kind %q, holder field path %q and MD topology name %q", holderKind, holderFieldPath, mdTopologyName)
 	}
 
-	return templateToUnstructured(template)
+	// Unmarshal the template.
+	template, err := bytesToUnstructured(requestItem.Object.Raw)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to convert template to Unstructured")
+	}
+
+	return template, nil
 }
 
-// getTemplate is a utility func that returns a template matching the templateRef from a GenerateRequest.
-func getTemplate(req *api.GenerateRequest, templateRef api.TemplateRef) *api.GenerateRequestTemplate {
-	for _, template := range req.Items {
-		if templateRefsAreEqual(templateRef, template.TemplateRef) {
-			return template
+// getRequestItemByUID is a utility func that returns a template matching the uid from a GeneratePatchesRequest.
+func getRequestItemByUID(req *runtimehooksv1.GeneratePatchesRequest, uid types.UID) *runtimehooksv1.GeneratePatchesRequestItem {
+	for i := range req.Items {
+		if req.Items[i].UID == uid {
+			return &req.Items[i]
 		}
 	}
 	return nil
 }
 
-// templateRefsAreEqual returns true if the TemplateRefs are equal.
-func templateRefsAreEqual(a, b api.TemplateRef) bool {
-	return a.APIVersion == b.APIVersion &&
-		a.Kind == b.Kind &&
-		a.TemplateType == b.TemplateType &&
-		a.MachineDeploymentRef.TopologyName == b.MachineDeploymentRef.TopologyName &&
-		a.MachineDeploymentRef.Class == b.MachineDeploymentRef.Class
-}
+// getRequestItem is a utility func that returns a template matching the holderKind, holderFiledPath and mdTopologyName from a GeneratePatchesRequest.
+func getRequestItem(req *runtimehooksv1.GeneratePatchesRequest, holderKind, holderFieldPath, mdTopologyName string) *runtimehooksv1.GeneratePatchesRequestItem {
+	for _, template := range req.Items {
+		if holderKind != "" && template.HolderReference.Kind != holderKind {
+			continue
+		}
+		if holderFieldPath != "" && template.HolderReference.FieldPath != holderFieldPath {
+			continue
+		}
+		if mdTopologyName != "" {
+			templateVariables := toMap(template.Variables)
 
-// templateToUnstructured converts a GenerateRequestTemplate into an Unstructured object.
-func templateToUnstructured(t *api.GenerateRequestTemplate) (*unstructured.Unstructured, error) {
-	// Unmarshal the template.
-	u, err := bytesToUnstructured(t.Template.Raw)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to convert template to Unstructured")
-	}
+			v, err := variables.GetVariableValue(templateVariables, "builtin.machineDeployment.topologyName")
+			if err != nil || string(v.Raw) != strconv.Quote(mdTopologyName) {
+				continue
+			}
+		}
 
-	// Set the GVK.
-	gv, err := schema.ParseGroupVersion(t.TemplateRef.APIVersion)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to convert template to Unstructured: failed to parse group version")
+		return &template
 	}
-	u.SetGroupVersionKind(gv.WithKind(t.TemplateRef.Kind))
-	return u, nil
+	return nil
 }
 
 // bytesToUnstructured provides a utility method that converts a (JSON) byte array into an Unstructured object.
@@ -150,4 +142,14 @@ func bytesToUnstructured(b []byte) (*unstructured.Unstructured, error) {
 	u.SetUnstructuredContent(m)
 
 	return u, nil
+}
+
+// toMap converts a list of Variables to a map of JSON (name is the map key).
+func toMap(variables []runtimehooksv1.Variable) map[string]apiextensionsv1.JSON {
+	variablesMap := map[string]apiextensionsv1.JSON{}
+
+	for i := range variables {
+		variablesMap[variables[i].Name] = variables[i].Value
+	}
+	return variablesMap
 }

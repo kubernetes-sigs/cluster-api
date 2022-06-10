@@ -35,7 +35,7 @@ capi:buildDockerImages () {
   ## Build CAPD provider images, if missing
   if [[ "$(docker images -q "$REGISTRY/capd-manager-$ARCH:$TAG" 2> /dev/null)" == "" ]]; then
     echo "+ Building CAPD images"
-    make -C test/infrastructure/docker docker-build
+    make docker-capd-build
   else
     echo "+ CAPD images already present in the system, skipping make"
   fi

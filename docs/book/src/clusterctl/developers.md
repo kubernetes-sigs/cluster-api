@@ -42,7 +42,7 @@ make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPrese
 In order to build docker provider artifacts
 
 ```
-make -C test/infrastructure/docker docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
+make docker-capd-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
 ```
 
 ### Create a clusterctl-settings.json file

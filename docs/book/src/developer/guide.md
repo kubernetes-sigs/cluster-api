@@ -113,7 +113,7 @@ You'll need to build two docker images, one for Cluster API itself and one for t
 
 ```
 make docker-build
-make -C test/infrastructure/docker docker-build
+make docker-capd-build
 ```
 
 ### Push both images
@@ -125,19 +125,17 @@ The push refers to repository [gcr.io/cluster-api-242700/cluster-api-controller-
 90a39583ad5f: Layer already exists
 932da5156413: Layer already exists
 dev: digest: sha256:263262cfbabd3d1add68172a5a1d141f6481a2bc443672ce80778dc122ee6234 size: 739
-$ make -C test/infrastructure/docker docker-push
-make: Entering directory '/home/liz/src/sigs.k8s.io/cluster-api/test/infrastructure/docker'
-docker push gcr.io/cluster-api-242700/manager:dev
-The push refers to repository [gcr.io/cluster-api-242700/manager]
+$ make docker-capd-push
+docker push gcr.io/cluster-api-242700/capd-manager-amd64:dev
+The push refers to repository [gcr.io/cluster-api-242700/capd-manager-amd64]
 5b1e744b2bae: Pushed
 932da5156413: Layer already exists
 dev: digest: sha256:35670a049372ae063dad910c267a4450758a139c4deb248c04c3198865589ab2 size: 739
-make: Leaving directory '/home/liz/src/sigs.k8s.io/cluster-api/test/infrastructure/docker'
 ```
 
 Make a note of the URLs and the digests. You'll need them for the next step. In this case, they're...
 
-`gcr.io/cluster-api-242700/manager@sha256:35670a049372ae063dad910c267a4450758a139c4deb248c04c3198865589ab2`
+`gcr.io/cluster-api-242700/capd-manager-amd64@sha256:35670a049372ae063dad910c267a4450758a139c4deb248c04c3198865589ab2`
 
 and
 
@@ -162,7 +160,7 @@ spec:
   template:
     spec:
       containers:
-      - image: gcr.io/cluster-api-242700/manager@sha256:35670a049372ae063dad910c267a4450758a139c4deb248c04c3198865589ab2`
+      - image: gcr.io/cluster-api-242700/capd-manager-amd64@sha256:35670a049372ae063dad910c267a4450758a139c4deb248c04c3198865589ab2`
         name: manager
 ```
 

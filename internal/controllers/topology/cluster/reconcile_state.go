@@ -33,8 +33,8 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/mergepatch"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 )
@@ -90,14 +90,21 @@ func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) e
 	// creating InfrastructureCluster/ControlPlane objects and updating the Cluster with the
 	// references to above objects.
 	if s.Current.InfrastructureCluster == nil || s.Current.ControlPlane.Object == nil {
-		if err := r.Client.Create(ctx, shim); err != nil {
-			if !apierrors.IsAlreadyExists(err) {
-				return errors.Wrap(err, "failed to create the cluster shim object")
-			}
-			if err := r.Client.Get(ctx, client.ObjectKeyFromObject(shim), shim); err != nil {
-				return errors.Wrapf(err, "failed to read the cluster shim object")
-			}
+		// Note: we are using Patch instead of create for ensuring consistency in managedFields for the entire controller
+		// but in this case it isn't strictly necessary given that we are not using server side apply for modifying the
+		// object afterwards.
+		helper, err := r.patchHelperFactory(nil, shim)
+		if err != nil {
+			return errors.Wrap(err, "failed to create the patch helper for the cluster shim object")
 		}
+		if err := helper.Patch(ctx); err != nil {
+			return errors.Wrap(err, "failed to create the cluster shim object")
+		}
+
+		if err := r.APIReader.Get(ctx, client.ObjectKeyFromObject(shim), shim); err != nil {
+			return errors.Wrap(err, "get shim after creation")
+		}
+
 		// Enforce type meta back given that it gets blanked out by Get.
 		shim.Kind = "Secret"
 		shim.APIVersion = corev1.SchemeGroupVersion.String()
@@ -163,16 +170,23 @@ func hasOwnerReferenceFrom(obj, owner client.Object) bool {
 	return false
 }
 
+func getOwnerReferenceFrom(obj, owner client.Object) *metav1.OwnerReference {
+	for _, o := range obj.GetOwnerReferences() {
+		if o.Kind == owner.GetObjectKind().GroupVersionKind().Kind && o.Name == owner.GetName() {
+			return &o
+		}
+	}
+	return nil
+}
+
 // reconcileInfrastructureCluster reconciles the desired state of the InfrastructureCluster object.
 func (r *Reconciler) reconcileInfrastructureCluster(ctx context.Context, s *scope.Scope) error {
 	ctx, _ = tlog.LoggerFrom(ctx).WithObject(s.Desired.InfrastructureCluster).Into(ctx)
 	return r.reconcileReferencedObject(ctx, reconcileReferencedObjectInput{
-		cluster: s.Current.Cluster,
-		current: s.Current.InfrastructureCluster,
-		desired: s.Desired.InfrastructureCluster,
-		opts: []mergepatch.HelperOption{
-			mergepatch.IgnorePaths(contract.InfrastructureCluster().IgnorePaths()),
-		},
+		cluster:     s.Current.Cluster,
+		current:     s.Current.InfrastructureCluster,
+		desired:     s.Desired.InfrastructureCluster,
+		ignorePaths: contract.InfrastructureCluster().IgnorePaths(),
 	})
 }
 
@@ -215,17 +229,6 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 		current:       s.Current.ControlPlane.Object,
 		desired:       s.Desired.ControlPlane.Object,
 		versionGetter: contract.ControlPlane().Version().Get,
-		opts: []mergepatch.HelperOption{
-			mergepatch.AuthoritativePaths{
-				// Note: we want to be authoritative WRT machine's metadata labels and annotations.
-				// This has the nice benefit that it greatly simplify the UX around ControlPlaneClass.Metadata and
-				// ControlPlaneTopology.Metadata, given that changes are reflected into generated objects without
-				// accounting for instance specific changes like we do for other maps into spec.
-				// Note: nested metadata have only labels and annotations, so it is possible to override the entire
-				// parent struct.
-				contract.ControlPlane().MachineTemplate().Metadata().Path(),
-			},
-		},
 	}); err != nil {
 		return err
 	}
@@ -282,7 +285,11 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 		desired.OwnerReferences = refs
 
 		log.Infof("Creating %s", tlog.KObj{Obj: desired})
-		if err := r.Client.Create(ctx, desired); err != nil {
+		helper, err := r.patchHelperFactory(nil, desired)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: desired})
+		}
+		if err := helper.Patch(ctx); err != nil {
 			return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: desired})
 		}
 		r.recorder.Eventf(desired, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: desired})
@@ -307,7 +314,7 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 	// Check differences between current and desired MachineHealthChecks, and patch if required.
 	// NOTE: we want to be authoritative on the entire spec because the users are
 	// expected to change MHC fields from the ClusterClass only.
-	patchHelper, err := mergepatch.NewHelper(current, desired, r.Client, mergepatch.AuthoritativePaths{contract.Path{"spec"}})
+	patchHelper, err := r.patchHelperFactory(current, desired)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: current})
 	}
@@ -360,7 +367,9 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 	ctx, log := tlog.LoggerFrom(ctx).WithObject(s.Desired.Cluster).Into(ctx)
 
 	// Check differences between current and desired state, and eventually patch the current object.
-	patchHelper, err := mergepatch.NewHelper(s.Current.Cluster, s.Desired.Cluster, r.Client)
+	patchHelper, err := r.patchHelperFactory(s.Current.Cluster, s.Desired.Cluster, structuredmerge.IgnorePaths{
+		{"spec", "controlPlaneEndpoint"}, // this is a well known field that is managed by the Cluster controller, topology should not express opinions on it.
+	})
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: s.Current.Cluster})
 	}
@@ -430,7 +439,11 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, cluster *clust
 
 	log = log.WithObject(md.Object)
 	log.Infof(fmt.Sprintf("Creating %s", tlog.KObj{Obj: md.Object}))
-	if err := r.Client.Create(ctx, md.Object.DeepCopy()); err != nil {
+	helper, err := r.patchHelperFactory(nil, md.Object)
+	if err != nil {
+		return createErrorWithoutObjectName(err, md.Object)
+	}
+	if err := helper.Patch(ctx); err != nil {
 		return createErrorWithoutObjectName(err, md.Object)
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: md.Object})
@@ -486,23 +499,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, cluster *clust
 
 	// Check differences between current and desired MachineDeployment, and eventually patch the current object.
 	log = log.WithObject(desiredMD.Object)
-	patchHelper, err := mergepatch.NewHelper(currentMD.Object, desiredMD.Object, r.Client, mergepatch.AuthoritativePaths{
-		// Note: we want to be authoritative WRT machine's metadata labels and annotations.
-		// This has the nice benefit that it greatly simplify the UX around MachineDeploymentClass.Metadata and
-		// MachineDeploymentTopology.Metadata, given that changes are reflected into generated objects without
-		// accounting for instance specific changes like we do for other maps into spec.
-		// Note: nested metadata have only labels and annotations, so it is possible to override the entire
-		// parent struct.
-		{"spec", "template", "metadata"},
-		// Note: we want to be authoritative for the selector too, because if the selector and metadata.labels
-		// change, the metadata.labels might not match the selector anymore, if we don't delete outdated labels
-		// from the selector.
-		{"spec", "selector"},
-		// Note: We want to be authoritative for the failureDomain set in the MachineDeployment
-		// spec.template.spec.failureDomain. This ensures that a change to the MachineDeploymentTopology failureDomain
-		// is reconciled correctly.
-		{"spec", "template", "spec", "failureDomain"},
-	})
+	patchHelper, err := r.patchHelperFactory(currentMD.Object, desiredMD.Object)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: currentMD.Object})
 	}
@@ -583,7 +580,7 @@ type reconcileReferencedObjectInput struct {
 	current       *unstructured.Unstructured
 	desired       *unstructured.Unstructured
 	versionGetter unstructuredVersionGetter
-	opts          []mergepatch.HelperOption
+	ignorePaths   []contract.Path
 }
 
 // reconcileReferencedObject reconciles the desired state of the referenced object.
@@ -595,13 +592,12 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 	// If there is no current object, create it.
 	if in.current == nil {
 		log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
-
-		desiredWithManagedFieldAnnotation, err := mergepatch.DeepCopyWithManagedFieldAnnotation(in.desired)
+		helper, err := r.patchHelperFactory(nil, in.desired)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create a copy of %s with the managed field annotation", tlog.KObj{Obj: in.desired})
+			return errors.Wrap(createErrorWithoutObjectName(err, in.desired), "failed to create patch helper")
 		}
-		if err := r.Client.Create(ctx, desiredWithManagedFieldAnnotation); err != nil {
-			return createErrorWithoutObjectName(err, desiredWithManagedFieldAnnotation)
+		if err := helper.Patch(ctx); err != nil {
+			return createErrorWithoutObjectName(err, in.desired)
 		}
 		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: in.desired})
 		return nil
@@ -613,7 +609,7 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 	}
 
 	// Check differences between current and desired state, and eventually patch the current object.
-	patchHelper, err := mergepatch.NewHelper(in.current, in.desired, r.Client, in.opts...)
+	patchHelper, err := r.patchHelperFactory(in.current, in.desired, structuredmerge.IgnorePaths(in.ignorePaths))
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: in.current})
 	}
@@ -673,12 +669,12 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	// If there is no current object, create the desired object.
 	if in.current == nil {
 		log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
-		desiredWithManagedFieldAnnotation, err := mergepatch.DeepCopyWithManagedFieldAnnotation(in.desired)
+		helper, err := r.patchHelperFactory(nil, in.desired)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create a copy of %s with the managed field annotation", tlog.KObj{Obj: in.desired})
+			return errors.Wrap(createErrorWithoutObjectName(err, in.desired), "failed to create patch helper")
 		}
-		if err := r.Client.Create(ctx, desiredWithManagedFieldAnnotation); err != nil {
-			return createErrorWithoutObjectName(err, desiredWithManagedFieldAnnotation)
+		if err := helper.Patch(ctx); err != nil {
+			return createErrorWithoutObjectName(err, in.desired)
 		}
 		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: in.desired})
 		return nil
@@ -694,7 +690,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	}
 
 	// Check differences between current and desired objects, and if there are changes eventually start the template rotation.
-	patchHelper, err := mergepatch.NewHelper(in.current, in.desired, r.Client)
+	patchHelper, err := r.patchHelperFactory(in.current, in.desired)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: in.current})
 	}
@@ -725,12 +721,12 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 
 	log.Infof("Rotating %s, new name %s", tlog.KObj{Obj: in.current}, newName)
 	log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
-	desiredWithManagedFieldAnnotation, err := mergepatch.DeepCopyWithManagedFieldAnnotation(in.desired)
+	helper, err := r.patchHelperFactory(nil, in.desired)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create a copy of %s with the managed field annotation", tlog.KObj{Obj: in.desired})
+		return errors.Wrap(createErrorWithoutObjectName(err, in.desired), "failed to create patch helper")
 	}
-	if err := r.Client.Create(ctx, desiredWithManagedFieldAnnotation); err != nil {
-		return createErrorWithoutObjectName(err, desiredWithManagedFieldAnnotation)
+	if err := helper.Patch(ctx); err != nil {
+		return createErrorWithoutObjectName(err, in.desired)
 	}
 	r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q as a replacement for %q (template rotation)", tlog.KObj{Obj: in.desired}, in.ref.Name)
 

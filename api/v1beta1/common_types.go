@@ -40,6 +40,7 @@ const (
 	// to easily discover which fields have been set by templates + patches/variables at a given reconcile;
 	// instead, it is not necessary to store managed paths for typed objets (e.g. Cluster, MachineDeployments)
 	// given that the topology controller explicitly sets a well-known, immutable list of fields at every reconcile.
+	// Deprecated: Topology controller is now using server side apply and this annotation will be removed in a future release.
 	ClusterTopologyManagedFieldsAnnotation = "topology.cluster.x-k8s.io/managed-field-paths"
 
 	// ClusterTopologyMachineDeploymentLabelName is the label set on the generated  MachineDeployment objects

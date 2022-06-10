@@ -219,6 +219,17 @@ func main() {
 
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-controller-manager")
+
+	minVer := version.MinimumKubernetesVersion
+	if feature.Gates.Enabled(feature.ClusterTopology) {
+		minVer = version.MinimumKubernetesVersionClusterTopology
+	}
+
+	if err := version.CheckKubernetesVersion(restConfig, minVer); err != nil {
+		setupLog.Error(err, "unable to start manager")
+		os.Exit(1)
+	}
+
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                     scheme,
 		MetricsBindAddress:         metricsBindAddr,

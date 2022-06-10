@@ -101,6 +101,7 @@ func TestGetReference(t *testing.T) {
 			r := &Reconciler{
 				Client:                    fakeClient,
 				UnstructuredCachingClient: fakeClient,
+				patchHelperFactory:        dryRunPatchHelperFactory(fakeClient),
 			}
 			got, err := r.getReference(ctx, tt.ref)
 			if tt.wantErr {

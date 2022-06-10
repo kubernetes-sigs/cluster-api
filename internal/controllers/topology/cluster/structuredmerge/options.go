@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2022 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mergepatch
+package structuredmerge
 
 import (
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -29,12 +29,17 @@ type HelperOption interface {
 // HelperOptions contains options for Helper.
 type HelperOptions struct {
 	// internally managed options.
+
+	// allowedPaths instruct the Helper to ignore everything except given paths when computing a patch.
 	allowedPaths []contract.Path
-	managedPaths []contract.Path
 
 	// user defined options.
-	ignorePaths        []contract.Path
-	authoritativePaths []contract.Path
+
+	// IgnorePaths instruct the Helper to ignore given paths when computing a patch.
+	// NOTE: ignorePaths are used to filter out fields nested inside allowedPaths, e.g.
+	// spec.ControlPlaneEndpoint.
+	// NOTE: ignore paths which point to an array are not supported by the current implementation.
+	ignorePaths []contract.Path
 }
 
 // ApplyOptions applies the given patch options on these options,
@@ -47,19 +52,11 @@ func (o *HelperOptions) ApplyOptions(opts []HelperOption) *HelperOptions {
 }
 
 // IgnorePaths instruct the Helper to ignore given paths when computing a patch.
+// NOTE: ignorePaths are used to filter out fields nested inside allowedPaths, e.g.
+// spec.ControlPlaneEndpoint.
 type IgnorePaths []contract.Path
 
 // ApplyToHelper applies this configuration to the given helper options.
 func (i IgnorePaths) ApplyToHelper(opts *HelperOptions) {
 	opts.ignorePaths = i
-}
-
-// AuthoritativePaths instruct the Helper to enforce changes for paths when computing a patch
-// (instead of using two way merge that preserves values from existing objects).
-// NOTE: AuthoritativePaths will be superseded by IgnorePaths in case a path exists in both.
-type AuthoritativePaths []contract.Path
-
-// ApplyToHelper applies this configuration to the given helper options.
-func (i AuthoritativePaths) ApplyToHelper(opts *HelperOptions) {
-	opts.authoritativePaths = i
 }

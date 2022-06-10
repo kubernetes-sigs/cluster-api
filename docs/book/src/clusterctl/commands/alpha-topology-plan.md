@@ -22,6 +22,27 @@ the input should have all the objects needed.
 
 </aside>
 
+<aside class="note">
+
+<h1>Limitations</h1>
+
+The topology controllers uses [Server Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/)
+to support use cases where other controllers are co-authoring the same objects, but this kind of interactions can't be recreated
+in a dry-run scenario.
+
+As a consequence Dry-Run can give some false positives/false negatives when trying to have a preview of
+changes to a set of existing topology owned objects. In other worlds this limitation impacts all the use cases described
+below except for "Designing a new ClusterClass".
+
+More specifically:
+- DryRun doesn't consider OpenAPI schema extension like +ListMap this can lead to false positives when topology
+  dry run is simulating a change to an existing slice (DryRun always reverts external changes, like server side apply when +ListMap=atomic).
+- DryRun doesn't consider existing metadata.managedFields, and this can lead to false negatives when topology dry run
+  is simulating a change where a field is dropped from a template (DryRun always preserve dropped fields, like 
+  server side apply when the field has more than one manager).
+
+</aside>
+
 ## Example use cases
  
 ### Designing a new ClusterClass

@@ -17,7 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -30,30 +29,27 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
-	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/mergepatch"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	. "sigs.k8s.io/cluster-api/internal/test/matchers"
-	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 var (
-	IgnoreTopologyManagedFieldAnnotation = IgnorePaths{
-		{"metadata", "annotations", clusterv1.ClusterTopologyManagedFieldsAnnotation},
-	}
 	IgnoreNameGenerated = IgnorePaths{
 		{"metadata", "name"},
 	}
 )
 
 func TestReconcileShim(t *testing.T) {
-	infrastructureCluster := builder.InfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
-	controlPlane := builder.ControlPlane(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
+	infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
+	controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
 	// cluster requires a UID because reconcileClusterShim will create a cluster shim
 	// which has the cluster set as Owner in an OwnerReference.
@@ -81,7 +77,9 @@ func TestReconcileShim(t *testing.T) {
 
 		// Run reconcileClusterShim.
 		r := Reconciler{
-			Client: env,
+			Client:             env,
+			APIReader:          env.GetAPIReader(),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -122,7 +120,9 @@ func TestReconcileShim(t *testing.T) {
 
 		// Run reconcileClusterShim.
 		r := Reconciler{
-			Client: env,
+			Client:             env,
+			APIReader:          env.GetAPIReader(),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -170,7 +170,9 @@ func TestReconcileShim(t *testing.T) {
 
 		// Run reconcileClusterShim.
 		r := Reconciler{
-			Client: env,
+			Client:             env,
+			APIReader:          env.GetAPIReader(),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -215,7 +217,9 @@ func TestReconcileShim(t *testing.T) {
 
 		// Run reconcileClusterShim.
 		r := Reconciler{
-			Client: env,
+			Client:             env,
+			APIReader:          env.GetAPIReader(),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -254,7 +258,9 @@ func TestReconcileShim(t *testing.T) {
 
 		// Run reconcileClusterShim using a nil client, so an error will be triggered if any operation is attempted
 		r := Reconciler{
-			Client: nil,
+			Client:             nil,
+			APIReader:          env.GetAPIReader(),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(nil),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -267,9 +273,9 @@ func TestReconcileCluster(t *testing.T) {
 	cluster1 := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 		Build()
 	cluster1WithReferences := builder.Cluster(metav1.NamespaceDefault, "cluster1").
-		WithInfrastructureCluster(builder.InfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").
+		WithInfrastructureCluster(builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").
 			Build()).
-		WithControlPlane(builder.ControlPlane(metav1.NamespaceDefault, "control-plane1").Build()).
+		WithControlPlane(builder.TestControlPlane(metav1.NamespaceDefault, "control-plane1").Build()).
 		Build()
 	cluster2WithReferences := cluster1WithReferences.DeepCopy()
 	cluster2WithReferences.SetGroupVersionKind(cluster1WithReferences.GroupVersionKind())
@@ -315,6 +321,7 @@ func TestReconcileCluster(t *testing.T) {
 			}
 
 			if tt.current != nil {
+				// NOTE: it is ok to use create given that the Cluster are created by user.
 				g.Expect(env.CreateAndWait(ctx, tt.current)).To(Succeed())
 			}
 
@@ -323,8 +330,9 @@ func TestReconcileCluster(t *testing.T) {
 			s.Desired = &scope.ClusterState{Cluster: tt.desired}
 
 			r := Reconciler{
-				Client:   env,
-				recorder: env.GetEventRecorderFor("test"),
+				Client:             env,
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				recorder:           env.GetEventRecorderFor("test"),
 			}
 			err = r.reconcileCluster(ctx, s)
 			if tt.wantErr {
@@ -350,67 +358,66 @@ func TestReconcileCluster(t *testing.T) {
 func TestReconcileInfrastructureCluster(t *testing.T) {
 	g := NewWithT(t)
 
-	clusterInfrastructure1 := builder.InfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
-		Build()
-	clusterInfrastructure2 := builder.InfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster2").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
-		Build()
-	clusterInfrastructure3 := builder.InfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster3").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
-		Build()
-	clusterInfrastructure3WithInstanceSpecificChanges := clusterInfrastructure3.DeepCopy()
-	clusterInfrastructure3WithInstanceSpecificChanges.SetLabels(map[string]string{"foo": "bar"})
-	clusterInfrastructure4 := builder.InfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster4").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
-		Build()
-	clusterInfrastructure4WithTemplateOverridingChanges := clusterInfrastructure4.DeepCopy()
-	err := unstructured.SetNestedField(clusterInfrastructure4WithTemplateOverridingChanges.UnstructuredContent(), false, "spec", "fakeSetting")
-	g.Expect(err).ToNot(HaveOccurred())
-	clusterInfrastructure5 := builder.InfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster5").
-		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
+	// build an infrastructure cluster with a field managed by the topology controller (derived from the template).
+	clusterInfrastructure1 := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").
+		WithSpecFields(map[string]interface{}{"spec.foo": "foo"}).
 		Build()
 
+	// build a patch used to simulate instance specific changes made by an external controller, and build the expected cluster infrastructure object.
+	clusterInfrastructure1ExternalChanges := "{ \"spec\": { \"bar\": \"bar\" }}"
+	clusterInfrastructure1WithExternalChanges := clusterInfrastructure1.DeepCopy()
+	g.Expect(unstructured.SetNestedField(clusterInfrastructure1WithExternalChanges.UnstructuredContent(), "bar", "spec", "bar")).To(Succeed())
+
+	// build a patch used to simulate an external controller overriding a field managed by the topology controller.
+	clusterInfrastructure1TemplateOverridingChanges := "{ \"spec\": { \"foo\": \"foo-override\" }}"
+
+	// build a desired infrastructure cluster with incompatible changes.
+	clusterInfrastructure1WithIncompatibleChanges := clusterInfrastructure1.DeepCopy()
+	clusterInfrastructure1WithIncompatibleChanges.SetName("infrastructure-cluster1-changed")
+
 	tests := []struct {
-		name    string
-		current *unstructured.Unstructured
-		desired *unstructured.Unstructured
-		want    *unstructured.Unstructured
-		wantErr bool
+		name            string
+		original        *unstructured.Unstructured
+		externalChanges string
+		desired         *unstructured.Unstructured
+		want            *unstructured.Unstructured
+		wantErr         bool
 	}{
 		{
-			name:    "Should create desired InfrastructureCluster if the current does not exists yet",
-			current: nil,
-			desired: clusterInfrastructure1,
-			want:    clusterInfrastructure1,
-			wantErr: false,
+			name:     "Should create desired InfrastructureCluster if the current does not exists yet",
+			original: nil,
+			desired:  clusterInfrastructure1,
+			want:     clusterInfrastructure1,
+			wantErr:  false,
 		},
 		{
-			name:    "No-op if current InfrastructureCluster is equal to desired",
-			current: clusterInfrastructure2,
-			desired: clusterInfrastructure2,
-			want:    clusterInfrastructure2,
-			wantErr: false,
+			name:     "No-op if current InfrastructureCluster is equal to desired",
+			original: clusterInfrastructure1,
+			desired:  clusterInfrastructure1,
+			want:     clusterInfrastructure1,
+			wantErr:  false,
 		},
 		{
-			name:    "Should preserve instance specific changes",
-			current: clusterInfrastructure3WithInstanceSpecificChanges,
-			desired: clusterInfrastructure3,
-			want:    clusterInfrastructure3WithInstanceSpecificChanges,
-			wantErr: false,
+			name:            "Should preserve changes from external controllers",
+			original:        clusterInfrastructure1,
+			externalChanges: clusterInfrastructure1ExternalChanges,
+			desired:         clusterInfrastructure1,
+			want:            clusterInfrastructure1WithExternalChanges,
+			wantErr:         false,
 		},
 		{
-			name:    "Should restore template values if overridden",
-			current: clusterInfrastructure4WithTemplateOverridingChanges,
-			desired: clusterInfrastructure4,
-			want:    clusterInfrastructure4,
-			wantErr: false,
+			name:            "Should restore template values if overridden by external controllers",
+			original:        clusterInfrastructure1,
+			externalChanges: clusterInfrastructure1TemplateOverridingChanges,
+			desired:         clusterInfrastructure1,
+			want:            clusterInfrastructure1,
+			wantErr:         false,
 		},
 		{
-			name:    "Fails for incompatible changes",
-			current: clusterInfrastructure5,
-			desired: clusterInfrastructure1,
-			wantErr: true,
+			name:     "Fails for incompatible changes",
+			original: clusterInfrastructure1,
+			desired:  clusterInfrastructure1WithIncompatibleChanges,
+			wantErr:  true,
 		},
 	}
 	for _, tt := range tests {
@@ -420,25 +427,37 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 			// Create namespace and modify input to have correct namespace set
 			namespace, err := env.CreateNamespace(ctx, "reconcile-infrastructure-cluster")
 			g.Expect(err).ToNot(HaveOccurred())
-			if tt.current != nil {
-				tt.current.SetNamespace(namespace.GetName())
+			if tt.original != nil {
+				tt.original.SetNamespace(namespace.GetName())
 			}
 			if tt.desired != nil {
 				tt.desired.SetNamespace(namespace.GetName())
 			}
+			if tt.want != nil {
+				tt.want.SetNamespace(namespace.GetName())
+			}
 
-			if tt.current != nil {
-				g.Expect(env.CreateAndWait(ctx, tt.current)).To(Succeed())
+			if tt.original != nil {
+				// NOTE: it is required to use server side apply to creat the object in order to ensure consistency with the topology controller behaviour.
+				g.Expect(env.PatchAndWait(ctx, tt.original.DeepCopy(), client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				// NOTE: it is required to apply instance specific changes with a "plain" Patch operation to simulate a different manger.
+				if tt.externalChanges != "" {
+					g.Expect(env.Patch(ctx, tt.original.DeepCopy(), client.RawPatch(types.MergePatchType, []byte(tt.externalChanges)))).To(Succeed())
+				}
 			}
 
 			s := scope.New(&clusterv1.Cluster{})
-			s.Current.InfrastructureCluster = tt.current
-
-			s.Desired = &scope.ClusterState{InfrastructureCluster: tt.desired}
+			if tt.original != nil {
+				current := builder.TestInfrastructureCluster("", "").Build()
+				g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.original), current)).To(Succeed())
+				s.Current.InfrastructureCluster = current
+			}
+			s.Desired = &scope.ClusterState{InfrastructureCluster: tt.desired.DeepCopy()}
 
 			r := Reconciler{
-				Client:   env,
-				recorder: env.GetEventRecorderFor("test"),
+				Client:             env,
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				recorder:           env.GetEventRecorderFor("test"),
 			}
 			err = r.reconcileInfrastructureCluster(ctx, s)
 			if tt.wantErr {
@@ -470,104 +489,165 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 	}
 }
 
-func TestReconcileControlPlaneObject(t *testing.T) {
+func TestReconcileControlPlane(t *testing.T) {
 	g := NewWithT(t)
-	// Create InfrastructureMachineTemplates for test cases
-	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()
-	infrastructureMachineTemplate2 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra2").Build()
 
-	// Infrastructure object with a different Kind.
-	incompatibleInfrastructureMachineTemplate := infrastructureMachineTemplate2.DeepCopy()
-	incompatibleInfrastructureMachineTemplate.SetKind("incompatibleInfrastructureMachineTemplate")
-	updatedInfrastructureMachineTemplate := infrastructureMachineTemplate.DeepCopy()
-	err := unstructured.SetNestedField(updatedInfrastructureMachineTemplate.UnstructuredContent(), true, "spec", "differentSetting")
-	g.Expect(err).ToNot(HaveOccurred())
+	// Objects for testing reconciliation of a control plane without machines.
 
 	// Create cluster class which does not require controlPlaneInfrastructure.
 	ccWithoutControlPlaneInfrastructure := &scope.ControlPlaneBlueprint{}
-	// Create clusterClasses requiring controlPlaneInfrastructure and one not.
+
+	// Create ControlPlaneObject without machine templates.
+	controlPlaneWithoutInfrastructure := builder.TestControlPlane(metav1.NamespaceDefault, "cp1").
+		WithSpecFields(map[string]interface{}{"spec.foo": "foo"}).
+		Build()
+
+	// Create desired ControlPlaneObject without machine templates but introducing some change.
+	controlPlaneWithoutInfrastructureWithChanges := controlPlaneWithoutInfrastructure.DeepCopy()
+	g.Expect(unstructured.SetNestedField(controlPlaneWithoutInfrastructureWithChanges.UnstructuredContent(), "foo-changed", "spec", "foo")).To(Succeed())
+
+	// Build a patch used to simulate instance specific changes made by an external controller, and build the expected control plane object.
+	controlPlaneWithoutInfrastructureExternalChanges := "{ \"spec\": { \"bar\": \"bar\" }}"
+	controlPlaneWithoutInfrastructureWithExternalChanges := controlPlaneWithoutInfrastructure.DeepCopy()
+	g.Expect(unstructured.SetNestedField(controlPlaneWithoutInfrastructureWithExternalChanges.UnstructuredContent(), "bar", "spec", "bar")).To(Succeed())
+
+	// Build a patch used to simulate an external controller overriding a field managed by the topology controller.
+	controlPlaneWithoutInfrastructureWithExternalOverridingChanges := "{ \"spec\": { \"foo\": \"foo-override\" }}"
+
+	// Create a desired ControlPlaneObject without machine templates but introducing incompatible changes.
+	controlPlaneWithoutInfrastructureWithIncompatibleChanges := controlPlaneWithoutInfrastructure.DeepCopy()
+	controlPlaneWithoutInfrastructureWithIncompatibleChanges.SetName("cp1-changed")
+
+	// Objects for testing reconciliation of a control plane with machines.
+
+	// Create cluster class which does not require controlPlaneInfrastructure.
+	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").
+		WithSpecFields(map[string]interface{}{"spec.template.spec.foo": "foo"}).
+		Build()
 	ccWithControlPlaneInfrastructure := &scope.ControlPlaneBlueprint{InfrastructureMachineTemplate: infrastructureMachineTemplate}
-	// Create ControlPlaneObjects for test cases.
-	controlPlane1 := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
+
+	// Create ControlPlaneObject with machine templates.
+	controlPlaneWithInfrastructure := builder.TestControlPlane(metav1.NamespaceDefault, "cp1").
 		WithInfrastructureMachineTemplate(infrastructureMachineTemplate).
+		WithSpecFields(map[string]interface{}{"spec.foo": "foo"}).
 		Build()
-	controlPlane2 := builder.ControlPlane(metav1.NamespaceDefault, "cp2").
-		WithInfrastructureMachineTemplate(infrastructureMachineTemplate2).
-		Build()
-	// ControlPlane object with novel field in the spec.
-	controlPlane3 := controlPlane1.DeepCopy()
-	err = unstructured.SetNestedField(controlPlane3.UnstructuredContent(), true, "spec", "differentSetting")
-	g.Expect(err).ToNot(HaveOccurred())
-	// ControlPlane object with a new label.
-	controlPlaneWithInstanceSpecificChanges := controlPlane1.DeepCopy()
-	controlPlaneWithInstanceSpecificChanges.SetLabels(map[string]string{"foo": "bar"})
-	// ControlPlane object with instance specific machine template labels.
-	controlPlaneWithInstanceSpecificMachineTemplateLabels := controlPlane1.DeepCopy()
-	err = contract.ControlPlane().MachineTemplate().Metadata().Set(controlPlaneWithInstanceSpecificMachineTemplateLabels, &clusterv1.ObjectMeta{Labels: map[string]string{"foo": "bar"}})
-	g.Expect(err).ToNot(HaveOccurred())
+
+	// Create desired controlPlaneInfrastructure with some change.
+	infrastructureMachineTemplateWithChanges := infrastructureMachineTemplate.DeepCopy()
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplateWithChanges.UnstructuredContent(), "foo-changed", "spec", "template", "spec", "foo")).To(Succeed())
+
+	// Build a patch used to simulate instance specific changes made by an external controller, and build the expected machine infrastructure object.
+	infrastructureMachineTemplateExternalChanges := "{ \"spec\": { \"template\": { \"spec\": { \"bar\": \"bar\" } } }}"
+	infrastructureMachineTemplateWithExternalChanges := infrastructureMachineTemplate.DeepCopy()
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplateWithExternalChanges.UnstructuredContent(), "bar", "spec", "template", "spec", "bar")).To(Succeed())
+
+	// Build a patch used to simulate an external controller overriding a field managed by the topology controller.
+	infrastructureMachineTemplateExternalOverridingChanges := "{ \"spec\": { \"template\": { \"spec\": { \"foo\": \"foo-override\" } } }}"
+
+	// Create a desired infrastructure machine template with incompatible changes.
+	infrastructureMachineTemplateWithIncompatibleChanges := infrastructureMachineTemplate.DeepCopy()
+	gvk := infrastructureMachineTemplateWithIncompatibleChanges.GroupVersionKind()
+	gvk.Kind = "KindChanged"
+	infrastructureMachineTemplateWithIncompatibleChanges.SetGroupVersionKind(gvk)
 
 	tests := []struct {
-		name    string
-		class   *scope.ControlPlaneBlueprint
-		current *scope.ControlPlaneState
-		desired *scope.ControlPlaneState
-		want    *scope.ControlPlaneState
-		wantErr bool
+		name                                 string
+		class                                *scope.ControlPlaneBlueprint
+		original                             *scope.ControlPlaneState
+		controlPlaneExternalChanges          string
+		machineInfrastructureExternalChanges string
+		desired                              *scope.ControlPlaneState
+		want                                 *scope.ControlPlaneState
+		wantRotation                         bool
+		wantErr                              bool
 	}{
+		// Testing reconciliation of a control plane without machines.
 		{
-			name:    "Should create desired ControlPlane if the current does not exist",
-			class:   ccWithoutControlPlaneInfrastructure,
-			current: nil,
-			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			want:    &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			wantErr: false,
+			name:     "Should create desired ControlPlane without machine infrastructure if the current does not exist",
+			class:    ccWithoutControlPlaneInfrastructure,
+			original: nil,
+			desired:  &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
+			want:     &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
+			wantErr:  false,
 		},
 		{
-			name:    "Fail on updating ControlPlaneObject with incompatible changes, here a different Kind for the infrastructureMachineTemplate",
-			class:   ccWithoutControlPlaneInfrastructure,
-			current: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			desired: &scope.ControlPlaneState{Object: controlPlane2.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			wantErr: true,
+			name:     "Should update the ControlPlane without machine infrastructure",
+			class:    ccWithoutControlPlaneInfrastructure,
+			original: &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
+			desired:  &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructureWithChanges.DeepCopy()},
+			want:     &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructureWithChanges.DeepCopy()},
+			wantErr:  false,
 		},
 		{
-			name:    "Update to ControlPlaneObject with no update to the underlying infrastructure",
-			class:   ccWithoutControlPlaneInfrastructure,
-			current: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			desired: &scope.ControlPlaneState{Object: controlPlane3.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			want:    &scope.ControlPlaneState{Object: controlPlane3.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			wantErr: false,
+			name:                        "Should preserve external changes to ControlPlane without machine infrastructure",
+			class:                       ccWithoutControlPlaneInfrastructure,
+			original:                    &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
+			controlPlaneExternalChanges: controlPlaneWithoutInfrastructureExternalChanges,
+			desired:                     &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
+			want:                        &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructureWithExternalChanges.DeepCopy()},
+			wantErr:                     false,
 		},
 		{
-			name:    "Update to ControlPlaneObject with underlying infrastructure.",
-			class:   ccWithControlPlaneInfrastructure,
-			current: &scope.ControlPlaneState{InfrastructureMachineTemplate: nil},
-			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			want:    &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			wantErr: false,
+			name:                        "Should restore template values if overridden by external controllers into a ControlPlane without machine infrastructure",
+			class:                       ccWithoutControlPlaneInfrastructure,
+			original:                    &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
+			controlPlaneExternalChanges: controlPlaneWithoutInfrastructureWithExternalOverridingChanges,
+			desired:                     &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
+			want:                        &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
+			wantErr:                     false,
 		},
 		{
-			name:    "Update to ControlPlaneObject with no underlying infrastructure",
-			class:   ccWithoutControlPlaneInfrastructure,
-			current: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy()},
-			desired: &scope.ControlPlaneState{Object: controlPlane3.DeepCopy()},
-			want:    &scope.ControlPlaneState{Object: controlPlane3.DeepCopy()},
-			wantErr: false,
+			name:     "Fail on updating ControlPlane without machine infrastructure in case of incompatible changes",
+			class:    ccWithoutControlPlaneInfrastructure,
+			original: &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructure.DeepCopy()},
+			desired:  &scope.ControlPlaneState{Object: controlPlaneWithoutInfrastructureWithIncompatibleChanges.DeepCopy()},
+			wantErr:  true,
+		},
+
+		// Testing reconciliation of a control plane with machines.
+		{
+			name:     "Should create desired ControlPlane with machine infrastructure if the current does not exist",
+			class:    ccWithControlPlaneInfrastructure,
+			original: nil,
+			desired:  &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			want:     &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			wantErr:  false,
 		},
 		{
-			name:    "Preserve specific changes to the ControlPlaneObject",
-			class:   ccWithoutControlPlaneInfrastructure,
-			current: &scope.ControlPlaneState{Object: controlPlaneWithInstanceSpecificChanges.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			want:    &scope.ControlPlaneState{Object: controlPlaneWithInstanceSpecificChanges.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			wantErr: false,
+			name:         "Should rotate machine infrastructure in case of changes to the desired template",
+			class:        ccWithControlPlaneInfrastructure,
+			original:     &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			desired:      &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplateWithChanges.DeepCopy()},
+			want:         &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplateWithChanges.DeepCopy()},
+			wantRotation: true,
+			wantErr:      false,
 		},
 		{
-			name:    "Enforce machineTemplate.metadata",
-			class:   ccWithoutControlPlaneInfrastructure,
-			current: &scope.ControlPlaneState{Object: controlPlaneWithInstanceSpecificMachineTemplateLabels.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			want:    &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			wantErr: false,
+			name:                                 "Should preserve external changes to ControlPlane's machine infrastructure", // NOTE: template are not expected to mutate, this is for extra safety.
+			class:                                ccWithControlPlaneInfrastructure,
+			original:                             &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			machineInfrastructureExternalChanges: infrastructureMachineTemplateExternalChanges,
+			desired:                              &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			want:                                 &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplateWithExternalChanges.DeepCopy()},
+			wantRotation:                         false,
+			wantErr:                              false,
+		},
+		{
+			name:                                 "Should restore template values if overridden by external controllers into the ControlPlane's machine infrastructure", // NOTE: template are not expected to mutate, this is for extra safety.
+			class:                                ccWithControlPlaneInfrastructure,
+			original:                             &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			machineInfrastructureExternalChanges: infrastructureMachineTemplateExternalOverridingChanges,
+			desired:                              &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			want:                                 &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			wantRotation:                         true,
+			wantErr:                              false,
+		},
+		{
+			name:     "Fail on updating ControlPlane with a machine infrastructure in case of incompatible changes",
+			class:    ccWithControlPlaneInfrastructure,
+			original: &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
+			desired:  &scope.ControlPlaneState{Object: controlPlaneWithInfrastructure.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplateWithIncompatibleChanges.DeepCopy()},
+			wantErr:  true,
 		},
 	}
 	for _, tt := range tests {
@@ -580,8 +660,8 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			if tt.class != nil { // *scope.ControlPlaneBlueprint
 				tt.class = prepareControlPlaneBluePrint(tt.class, namespace.GetName())
 			}
-			if tt.current != nil { // *scope.ControlPlaneState
-				tt.current = prepareControlPlaneState(g, tt.current, namespace.GetName())
+			if tt.original != nil { // *scope.ControlPlaneState
+				tt.original = prepareControlPlaneState(g, tt.original, namespace.GetName())
 			}
 			if tt.desired != nil { // *scope.ControlPlaneState
 				tt.desired = prepareControlPlaneState(g, tt.desired, namespace.GetName())
@@ -601,19 +681,37 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			}
 
 			s.Current.ControlPlane = &scope.ControlPlaneState{}
-			if tt.current != nil {
-				s.Current.ControlPlane = tt.current
-				if tt.current.Object != nil {
-					g.Expect(env.CreateAndWait(ctx, tt.current.Object)).To(Succeed())
+			if tt.original != nil {
+				if tt.original.InfrastructureMachineTemplate != nil {
+					// NOTE: it is required to use server side apply to creat the object in order to ensure consistency with the topology controller behaviour.
+					g.Expect(env.PatchAndWait(ctx, tt.original.InfrastructureMachineTemplate.DeepCopy(), client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+					// NOTE: it is required to apply instance specific changes with a "plain" Patch operation to simulate a different manger.
+					if tt.machineInfrastructureExternalChanges != "" {
+						g.Expect(env.Patch(ctx, tt.original.InfrastructureMachineTemplate.DeepCopy(), client.RawPatch(types.MergePatchType, []byte(tt.machineInfrastructureExternalChanges)))).To(Succeed())
+					}
+
+					current := builder.TestInfrastructureMachineTemplate("", "").Build()
+					g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.original.InfrastructureMachineTemplate), current)).To(Succeed())
+					s.Current.ControlPlane.InfrastructureMachineTemplate = current
 				}
-				if tt.current.InfrastructureMachineTemplate != nil {
-					g.Expect(env.CreateAndWait(ctx, tt.current.InfrastructureMachineTemplate)).To(Succeed())
+				if tt.original.Object != nil {
+					// NOTE: it is required to use server side apply to creat the object in order to ensure consistency with the topology controller behaviour.
+					g.Expect(env.PatchAndWait(ctx, tt.original.Object.DeepCopy(), client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+					// NOTE: it is required to apply instance specific changes with a "plain" Patch operation to simulate a different manger.
+					if tt.controlPlaneExternalChanges != "" {
+						g.Expect(env.Patch(ctx, tt.original.Object.DeepCopy(), client.RawPatch(types.MergePatchType, []byte(tt.controlPlaneExternalChanges)))).To(Succeed())
+					}
+
+					current := builder.TestControlPlane("", "").Build()
+					g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.original.Object), current)).To(Succeed())
+					s.Current.ControlPlane.Object = current
 				}
 			}
 
 			r := Reconciler{
-				Client:   env,
-				recorder: env.GetEventRecorderFor("test"),
+				Client:             env,
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				recorder:           env.GetEventRecorderFor("test"),
 			}
 
 			s.Desired = &scope.ClusterState{
@@ -632,9 +730,25 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			// Create ControlPlane object for fetching data into
-			gotControlPlaneObject := builder.ControlPlane("", "").Build()
+			gotControlPlaneObject := builder.TestControlPlane("", "").Build()
 			err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.want.Object), gotControlPlaneObject)
 			g.Expect(err).ToNot(HaveOccurred())
+
+			// check for template rotation.
+			gotRotation := false
+			var gotInfrastructureMachineRef *corev1.ObjectReference
+			if tt.class.InfrastructureMachineTemplate != nil {
+				gotInfrastructureMachineRef, err = contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(gotControlPlaneObject)
+				g.Expect(err).ToNot(HaveOccurred())
+				if tt.original != nil {
+					if tt.original.InfrastructureMachineTemplate != nil && tt.original.InfrastructureMachineTemplate.GetName() != gotInfrastructureMachineRef.Name {
+						gotRotation = true
+						// if template has been rotated, fixup infrastructureRef in the wantControlPlaneObjectSpec before comparison.
+						g.Expect(contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(tt.want.Object, refToUnstructured(gotInfrastructureMachineRef))).To(Succeed())
+					}
+				}
+			}
+			g.Expect(gotRotation).To(Equal(tt.wantRotation))
 
 			// Get the spec from the ControlPlaneObject we are expecting
 			wantControlPlaneObjectSpec, ok, err := unstructured.NestedMap(tt.want.Object.UnstructuredContent(), "spec")
@@ -645,184 +759,63 @@ func TestReconcileControlPlaneObject(t *testing.T) {
 			gotControlPlaneObjectSpec, ok, err := unstructured.NestedMap(gotControlPlaneObject.UnstructuredContent(), "spec")
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(ok).To(BeTrue())
+
 			for k, v := range wantControlPlaneObjectSpec {
 				g.Expect(gotControlPlaneObjectSpec).To(HaveKeyWithValue(k, v))
 			}
 			for k, v := range tt.want.Object.GetLabels() {
 				g.Expect(gotControlPlaneObject.GetLabels()).To(HaveKeyWithValue(k, v))
 			}
-		})
-	}
-}
 
-func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
-	g := NewWithT(t)
-
-	// Create InfrastructureMachineTemplates for test cases
-	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").
-		Build()
-	infrastructureMachineTemplate2 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra2").
-		Build()
-
-	// Create the blueprint mandating controlPlaneInfrastructure.
-	blueprint := &scope.ClusterBlueprint{
-		ClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-			WithControlPlaneInfrastructureMachineTemplate(infrastructureMachineTemplate).
-			Build(),
-		ControlPlane: &scope.ControlPlaneBlueprint{
-			InfrastructureMachineTemplate: infrastructureMachineTemplate,
-		},
-	}
-
-	// Infrastructure object with a different Kind.
-	incompatibleInfrastructureMachineTemplate := infrastructureMachineTemplate2.DeepCopy()
-	incompatibleInfrastructureMachineTemplate.SetKind("incompatibleInfrastructureMachineTemplate")
-	updatedInfrastructureMachineTemplate := infrastructureMachineTemplate.DeepCopy()
-	err := unstructured.SetNestedField(updatedInfrastructureMachineTemplate.UnstructuredContent(), true, "spec", "differentSetting")
-	g.Expect(err).ToNot(HaveOccurred())
-	// Create ControlPlaneObjects for test cases.
-	controlPlane1 := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
-		WithInfrastructureMachineTemplate(infrastructureMachineTemplate).
-		Build()
-	// ControlPlane object with novel field in the spec.
-	controlPlane2 := controlPlane1.DeepCopy()
-	err = unstructured.SetNestedField(controlPlane2.UnstructuredContent(), true, "spec", "differentSetting")
-	g.Expect(err).ToNot(HaveOccurred())
-	// ControlPlane object with a new label.
-	controlPlaneWithInstanceSpecificChanges := controlPlane1.DeepCopy()
-	controlPlaneWithInstanceSpecificChanges.SetLabels(map[string]string{"foo": "bar"})
-	// ControlPlane object with the same name as controlPlane1 but a different InfrastructureMachineTemplate
-	controlPlane3 := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
-		WithInfrastructureMachineTemplate(updatedInfrastructureMachineTemplate).
-		Build()
-
-	tests := []struct {
-		name    string
-		current *scope.ControlPlaneState
-		desired *scope.ControlPlaneState
-		want    *scope.ControlPlaneState
-		wantErr bool
-	}{
-		{
-			name:    "Create desired InfrastructureMachineTemplate where it doesn't exist",
-			current: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy()},
-			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			want:    &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			wantErr: false,
-		},
-		{
-			name:    "Update desired InfrastructureMachineTemplate connected to controlPlane",
-			current: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			desired: &scope.ControlPlaneState{Object: controlPlane3, InfrastructureMachineTemplate: updatedInfrastructureMachineTemplate},
-			want:    &scope.ControlPlaneState{Object: controlPlane3, InfrastructureMachineTemplate: updatedInfrastructureMachineTemplate},
-			wantErr: false,
-		},
-		{
-			name:    "Fail on updating infrastructure with incompatible changes",
-			current: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy()},
-			desired: &scope.ControlPlaneState{Object: controlPlane1.DeepCopy(), InfrastructureMachineTemplate: incompatibleInfrastructureMachineTemplate},
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g := NewWithT(t)
-
-			// Create namespace and modify input to have correct namespace set
-			namespace, err := env.CreateNamespace(ctx, "reconcile-control-plane")
-			g.Expect(err).ToNot(HaveOccurred())
-			if tt.current != nil { // *scope.ControlPlaneState
-				tt.current = prepareControlPlaneState(g, tt.current, namespace.GetName())
-			}
-			if tt.desired != nil { // *scope.ControlPlaneState
-				tt.desired = prepareControlPlaneState(g, tt.desired, namespace.GetName())
-			}
-			if tt.want != nil { // *scope.ControlPlaneState
-				tt.want = prepareControlPlaneState(g, tt.want, namespace.GetName())
-			}
-
-			// Create Cluster object for test cases.
-			cluster := builder.Cluster(namespace.GetName(), "cluster1").Build()
-
-			s := scope.New(cluster)
-			s.Blueprint = blueprint
-			if tt.current != nil {
-				s.Current.ControlPlane = tt.current
-				if tt.current.Object != nil {
-					g.Expect(env.CreateAndWait(ctx, tt.current.Object)).To(Succeed())
+			// Check the infrastructure template
+			if tt.want.InfrastructureMachineTemplate != nil {
+				// Check to see if the controlPlaneObject has been updated with a new template.
+				// This check is just for the naming format uses by generated templates - here it's templateName-*
+				// This check is only performed when we had an initial template that has been changed
+				if gotRotation {
+					pattern := fmt.Sprintf("%s.*", controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name))
+					ok, err := regexp.Match(pattern, []byte(gotInfrastructureMachineRef.Name))
+					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(ok).To(BeTrue())
 				}
-				if tt.current.InfrastructureMachineTemplate != nil {
-					g.Expect(env.CreateAndWait(ctx, tt.current.InfrastructureMachineTemplate)).To(Succeed())
-				}
-			}
 
-			r := Reconciler{
-				Client:   env,
-				recorder: env.GetEventRecorderFor("test"),
-			}
-			s.Desired = &scope.ClusterState{ControlPlane: &scope.ControlPlaneState{Object: tt.desired.Object, InfrastructureMachineTemplate: tt.desired.InfrastructureMachineTemplate}}
+				// Create object to hold the queried InfrastructureMachineTemplate
+				gotInfrastructureMachineTemplateKey := client.ObjectKey{Namespace: gotInfrastructureMachineRef.Namespace, Name: gotInfrastructureMachineRef.Name}
+				gotInfrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate("", "").Build()
+				err = env.GetAPIReader().Get(ctx, gotInfrastructureMachineTemplateKey, gotInfrastructureMachineTemplate)
+				g.Expect(err).ToNot(HaveOccurred())
 
-			// Run reconcileControlPlane with the states created in the initial section of the test.
-			err = r.reconcileControlPlane(ctx, s)
-			if tt.wantErr {
-				g.Expect(err).To(HaveOccurred())
-				return
-			}
-			g.Expect(err).ToNot(HaveOccurred())
-
-			// Create ControlPlane object for fetching data into
-			gotControlPlaneObject := builder.ControlPlane("", "").Build()
-			err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(tt.want.Object), gotControlPlaneObject)
-			g.Expect(err).ToNot(HaveOccurred())
-
-			// Check to see if the controlPlaneObject has been updated with a new template.
-			// This check is just for the naming format uses by generated templates - here it's templateName-*
-			// This check is only performed when we had an initial template that has been changed
-			gotInfrastructureMachineRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(gotControlPlaneObject)
-			g.Expect(err).ToNot(HaveOccurred())
-			if tt.current.InfrastructureMachineTemplate != nil {
-				pattern := fmt.Sprintf("%s.*", controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name))
-				ok, err := regexp.Match(pattern, []byte(gotInfrastructureMachineRef.Name))
+				// Get the spec from the InfrastructureMachineTemplate we are expecting
+				wantInfrastructureMachineTemplateSpec, ok, err := unstructured.NestedMap(tt.want.InfrastructureMachineTemplate.UnstructuredContent(), "spec")
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(ok).To(BeTrue())
-			}
 
-			// Create object to hold the queried InfrastructureMachineTemplate
-			gotInfrastructureMachineTemplateKey := client.ObjectKey{Namespace: gotInfrastructureMachineRef.Namespace, Name: gotInfrastructureMachineRef.Name}
-			gotInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate("", "").Build()
-			err = env.GetAPIReader().Get(ctx, gotInfrastructureMachineTemplateKey, gotInfrastructureMachineTemplate)
-			g.Expect(err).ToNot(HaveOccurred())
+				// Get the spec from the InfrastructureMachineTemplate we got from the client.Get
+				gotInfrastructureMachineTemplateSpec, ok, err := unstructured.NestedMap(gotInfrastructureMachineTemplate.UnstructuredContent(), "spec")
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(ok).To(BeTrue())
 
-			// Get the spec from the InfrastructureMachineTemplate we are expecting
-			wantInfrastructureMachineTemplateSpec, ok, err := unstructured.NestedMap(tt.want.InfrastructureMachineTemplate.UnstructuredContent(), "spec")
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(ok).To(BeTrue())
+				// Compare all keys and values in the InfrastructureMachineTemplate Spec
+				for k, v := range wantInfrastructureMachineTemplateSpec {
+					g.Expect(gotInfrastructureMachineTemplateSpec).To(HaveKeyWithValue(k, v))
+				}
 
-			// Get the spec from the InfrastructureMachineTemplate we got from the client.Get
-			gotInfrastructureMachineTemplateSpec, ok, err := unstructured.NestedMap(gotInfrastructureMachineTemplate.UnstructuredContent(), "spec")
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(ok).To(BeTrue())
+				// Check to see that labels are as expected on the object
+				for k, v := range tt.want.InfrastructureMachineTemplate.GetLabels() {
+					g.Expect(gotInfrastructureMachineTemplate.GetLabels()).To(HaveKeyWithValue(k, v))
+				}
 
-			// Compare all keys and values in the InfrastructureMachineTemplate Spec
-			for k, v := range wantInfrastructureMachineTemplateSpec {
-				g.Expect(gotInfrastructureMachineTemplateSpec).To(HaveKeyWithValue(k, v))
-			}
-
-			// Check to see that labels are as expected on the object
-			for k, v := range tt.want.InfrastructureMachineTemplate.GetLabels() {
-				g.Expect(gotInfrastructureMachineTemplate.GetLabels()).To(HaveKeyWithValue(k, v))
-			}
-
-			// If the template was rotated during the reconcile we want to make sure the old template was deleted.
-			if tt.current.InfrastructureMachineTemplate != nil && tt.current.InfrastructureMachineTemplate.GetName() != tt.desired.InfrastructureMachineTemplate.GetName() {
-				obj := &unstructured.Unstructured{}
-				obj.SetAPIVersion(builder.InfrastructureGroupVersion.String())
-				obj.SetKind(builder.GenericInfrastructureMachineTemplateKind)
-				err := r.Client.Get(ctx, client.ObjectKey{
-					Namespace: tt.current.InfrastructureMachineTemplate.GetNamespace(),
-					Name:      tt.current.InfrastructureMachineTemplate.GetName(),
-				}, obj)
-				g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+				// If the template was rotated during the reconcile we want to make sure the old template was deleted.
+				if gotRotation {
+					obj := &unstructured.Unstructured{}
+					obj.SetAPIVersion(builder.InfrastructureGroupVersion.String())
+					obj.SetKind(builder.GenericInfrastructureMachineTemplateKind)
+					err := r.Client.Get(ctx, client.ObjectKey{
+						Namespace: tt.original.InfrastructureMachineTemplate.GetNamespace(),
+						Name:      tt.original.InfrastructureMachineTemplate.GetName(),
+					}, obj)
+					g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
+				}
 			}
 		})
 	}
@@ -830,7 +823,7 @@ func TestReconcileControlPlaneInfrastructureMachineTemplate(t *testing.T) {
 
 func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 	// Create InfrastructureMachineTemplates for test cases
-	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()
+	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()
 
 	mhcClass := &clusterv1.MachineHealthCheckClass{
 		UnhealthyConditions: []clusterv1.UnhealthyCondition{
@@ -852,7 +845,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 	}
 
 	// Create ControlPlane Object.
-	controlPlane1 := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
+	controlPlane1 := builder.TestControlPlane(metav1.NamespaceDefault, "cp1").
 		WithInfrastructureMachineTemplate(infrastructureMachineTemplate).
 		Build()
 
@@ -891,7 +884,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			desired: &scope.ControlPlaneState{
 				Object: controlPlane1.DeepCopy(),
 				// ControlPlane does not have defined MachineInfrastructure.
-				//InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
+				// InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
 			},
 			want: nil,
 		},
@@ -961,19 +954,26 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			if tt.current != nil {
 				s.Current.ControlPlane = tt.current
 				if tt.current.Object != nil {
-					g.Expect(env.CreateAndWait(ctx, tt.current.Object)).To(Succeed())
+					g.Expect(env.PatchAndWait(ctx, tt.current.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				}
 				if tt.current.InfrastructureMachineTemplate != nil {
-					g.Expect(env.CreateAndWait(ctx, tt.current.InfrastructureMachineTemplate)).To(Succeed())
+					g.Expect(env.PatchAndWait(ctx, tt.current.InfrastructureMachineTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				}
 				if tt.current.MachineHealthCheck != nil {
-					g.Expect(env.CreateAndWait(ctx, tt.current.MachineHealthCheck)).To(Succeed())
+					tt.current.MachineHealthCheck.SetOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(tt.current.Object)})
+					g.Expect(env.PatchAndWait(ctx, tt.current.MachineHealthCheck, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 				}
 			}
 
+			// copy over uid of created and desired ControlPlane
+			if tt.current != nil && tt.current.Object != nil && tt.desired != nil && tt.desired.Object != nil {
+				tt.desired.Object.SetUID(tt.current.Object.GetUID())
+			}
+
 			r := Reconciler{
-				Client:   env,
-				recorder: env.GetEventRecorderFor("test"),
+				Client:             env,
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				recorder:           env.GetEventRecorderFor("test"),
 			}
 
 			s.Desired = &scope.ClusterState{
@@ -999,10 +999,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			if tt.want != nil {
-				for i, ref := range tt.want.OwnerReferences {
-					ref.UID = gotCP.GetUID()
-					tt.want.OwnerReferences[i] = ref
-				}
+				tt.want.SetOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(gotCP)})
 			}
 
 			g.Expect(gotMHC).To(EqualObject(tt.want, IgnoreAutogeneratedMetadata, IgnorePaths{{"kind"}, {"apiVersion"}}))
@@ -1013,38 +1010,43 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 func TestReconcileMachineDeployments(t *testing.T) {
 	g := NewWithT(t)
 
-	infrastructureMachineTemplate1 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-1").Build()
-	bootstrapTemplate1 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-1").Build()
+	// Write the config file to access the test env for debugging.
+	// g.Expect(os.WriteFile("test.conf", kubeconfig.FromEnvTestConfig(env.Config, &clusterv1.Cluster{
+	// 	ObjectMeta: metav1.ObjectMeta{Name: "test"},
+	// }), 0777)).To(Succeed())
+
+	infrastructureMachineTemplate1 := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-1").Build()
+	bootstrapTemplate1 := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-1").Build()
 	md1 := newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate1, bootstrapTemplate1, nil)
 
-	infrastructureMachineTemplate2 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-2").Build()
-	bootstrapTemplate2 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-2").Build()
+	infrastructureMachineTemplate2 := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-2").Build()
+	bootstrapTemplate2 := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-2").Build()
 	md2 := newFakeMachineDeploymentTopologyState("md-2", infrastructureMachineTemplate2, bootstrapTemplate2, nil)
 	infrastructureMachineTemplate2WithChanges := infrastructureMachineTemplate2.DeepCopy()
-	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate2WithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate2WithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
 	md2WithRotatedInfrastructureMachineTemplate := newFakeMachineDeploymentTopologyState("md-2", infrastructureMachineTemplate2WithChanges, bootstrapTemplate2, nil)
 
-	infrastructureMachineTemplate3 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-3").Build()
-	bootstrapTemplate3 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-3").Build()
+	infrastructureMachineTemplate3 := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-3").Build()
+	bootstrapTemplate3 := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-3").Build()
 	md3 := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3, nil)
 	bootstrapTemplate3WithChanges := bootstrapTemplate3.DeepCopy()
-	g.Expect(unstructured.SetNestedField(bootstrapTemplate3WithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(bootstrapTemplate3WithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
 	md3WithRotatedBootstrapTemplate := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3WithChanges, nil)
 	bootstrapTemplate3WithChangeKind := bootstrapTemplate3.DeepCopy()
 	bootstrapTemplate3WithChangeKind.SetKind("AnotherGenericBootstrapTemplate")
 	md3WithRotatedBootstrapTemplateChangedKind := newFakeMachineDeploymentTopologyState("md-3", infrastructureMachineTemplate3, bootstrapTemplate3WithChanges, nil)
 
-	infrastructureMachineTemplate4 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-4").Build()
-	bootstrapTemplate4 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-4").Build()
+	infrastructureMachineTemplate4 := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-4").Build()
+	bootstrapTemplate4 := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-4").Build()
 	md4 := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate4, bootstrapTemplate4, nil)
 	infrastructureMachineTemplate4WithChanges := infrastructureMachineTemplate4.DeepCopy()
-	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate4WithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate4WithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
 	bootstrapTemplate4WithChanges := bootstrapTemplate4.DeepCopy()
-	g.Expect(unstructured.SetNestedField(bootstrapTemplate4WithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(bootstrapTemplate4WithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
 	md4WithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate4WithChanges, bootstrapTemplate4WithChanges, nil)
 
-	infrastructureMachineTemplate4m := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-4m").Build()
-	bootstrapTemplate4m := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-4m").Build()
+	infrastructureMachineTemplate4m := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-4m").Build()
+	bootstrapTemplate4m := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-4m").Build()
 	md4m := newFakeMachineDeploymentTopologyState("md-4m", infrastructureMachineTemplate4m, bootstrapTemplate4m, nil)
 	infrastructureMachineTemplate4mWithChanges := infrastructureMachineTemplate4m.DeepCopy()
 	infrastructureMachineTemplate4mWithChanges.SetLabels(map[string]string{"foo": "bar"})
@@ -1052,41 +1054,41 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	bootstrapTemplate4mWithChanges.SetLabels(map[string]string{"foo": "bar"})
 	md4mWithInPlaceUpdatedTemplates := newFakeMachineDeploymentTopologyState("md-4m", infrastructureMachineTemplate4mWithChanges, bootstrapTemplate4mWithChanges, nil)
 
-	infrastructureMachineTemplate5 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-5").Build()
-	bootstrapTemplate5 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-5").Build()
+	infrastructureMachineTemplate5 := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-5").Build()
+	bootstrapTemplate5 := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-5").Build()
 	md5 := newFakeMachineDeploymentTopologyState("md-5", infrastructureMachineTemplate5, bootstrapTemplate5, nil)
 	infrastructureMachineTemplate5WithChangedKind := infrastructureMachineTemplate5.DeepCopy()
 	infrastructureMachineTemplate5WithChangedKind.SetKind("ChangedKind")
 	md5WithChangedInfrastructureMachineTemplateKind := newFakeMachineDeploymentTopologyState("md-4", infrastructureMachineTemplate5WithChangedKind, bootstrapTemplate5, nil)
 
-	infrastructureMachineTemplate6 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-6").Build()
-	bootstrapTemplate6 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-6").Build()
+	infrastructureMachineTemplate6 := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-6").Build()
+	bootstrapTemplate6 := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-6").Build()
 	md6 := newFakeMachineDeploymentTopologyState("md-6", infrastructureMachineTemplate6, bootstrapTemplate6, nil)
 	bootstrapTemplate6WithChangedNamespace := bootstrapTemplate6.DeepCopy()
 	bootstrapTemplate6WithChangedNamespace.SetNamespace("ChangedNamespace")
 	md6WithChangedBootstrapTemplateNamespace := newFakeMachineDeploymentTopologyState("md-6", infrastructureMachineTemplate6, bootstrapTemplate6WithChangedNamespace, nil)
 
-	infrastructureMachineTemplate7 := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-7").Build()
-	bootstrapTemplate7 := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-7").Build()
+	infrastructureMachineTemplate7 := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-7").Build()
+	bootstrapTemplate7 := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-7").Build()
 	md7 := newFakeMachineDeploymentTopologyState("md-7", infrastructureMachineTemplate7, bootstrapTemplate7, nil)
 
-	infrastructureMachineTemplate8Create := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-8-create").Build()
-	bootstrapTemplate8Create := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-create").Build()
+	infrastructureMachineTemplate8Create := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-8-create").Build()
+	bootstrapTemplate8Create := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-create").Build()
 	md8Create := newFakeMachineDeploymentTopologyState("md-8-create", infrastructureMachineTemplate8Create, bootstrapTemplate8Create, nil)
-	infrastructureMachineTemplate8Delete := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-8-delete").Build()
-	bootstrapTemplate8Delete := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-delete").Build()
+	infrastructureMachineTemplate8Delete := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-8-delete").Build()
+	bootstrapTemplate8Delete := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-delete").Build()
 	md8Delete := newFakeMachineDeploymentTopologyState("md-8-delete", infrastructureMachineTemplate8Delete, bootstrapTemplate8Delete, nil)
-	infrastructureMachineTemplate8Update := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-8-update").Build()
-	bootstrapTemplate8Update := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-update").Build()
+	infrastructureMachineTemplate8Update := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-8-update").Build()
+	bootstrapTemplate8Update := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-8-update").Build()
 	md8Update := newFakeMachineDeploymentTopologyState("md-8-update", infrastructureMachineTemplate8Update, bootstrapTemplate8Update, nil)
 	infrastructureMachineTemplate8UpdateWithChanges := infrastructureMachineTemplate8Update.DeepCopy()
-	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate8UpdateWithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate8UpdateWithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
 	bootstrapTemplate8UpdateWithChanges := bootstrapTemplate3.DeepCopy()
-	g.Expect(unstructured.SetNestedField(bootstrapTemplate8UpdateWithChanges.Object, "foo", "spec", "template", "spec")).To(Succeed())
+	g.Expect(unstructured.SetNestedField(bootstrapTemplate8UpdateWithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
 	md8UpdateWithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-8-update", infrastructureMachineTemplate8UpdateWithChanges, bootstrapTemplate8UpdateWithChanges, nil)
 
-	infrastructureMachineTemplate9m := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-9m").Build()
-	bootstrapTemplate9m := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-9m").Build()
+	infrastructureMachineTemplate9m := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-9m").Build()
+	bootstrapTemplate9m := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-9m").Build()
 	md9 := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m, nil)
 	md9.Object.Spec.Template.ObjectMeta.Labels = map[string]string{clusterv1.ClusterLabelName: "cluster-1", "foo": "bar"}
 	md9.Object.Spec.Selector.MatchLabels = map[string]string{clusterv1.ClusterLabelName: "cluster-1", "foo": "bar"}
@@ -1211,9 +1213,9 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			}
 
 			for _, s := range tt.current {
-				g.Expect(env.CreateAndWait(ctx, s.InfrastructureMachineTemplate)).To(Succeed())
-				g.Expect(env.CreateAndWait(ctx, s.BootstrapTemplate)).To(Succeed())
-				g.Expect(env.CreateAndWait(ctx, s.Object)).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, s.InfrastructureMachineTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, s.BootstrapTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, s.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
 			}
 
 			currentMachineDeploymentStates := toMachineDeploymentTopologyStateMap(tt.current)
@@ -1223,8 +1225,9 @@ func TestReconcileMachineDeployments(t *testing.T) {
 			s.Desired = &scope.ClusterState{MachineDeployments: toMachineDeploymentTopologyStateMap(tt.desired)}
 
 			r := Reconciler{
-				Client:   env,
-				recorder: env.GetEventRecorderFor("test"),
+				Client:             env,
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				recorder:           env.GetEventRecorderFor("test"),
 			}
 			err = r.reconcileMachineDeployments(ctx, s)
 			if tt.wantErr {
@@ -1269,7 +1272,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 
 					g.Expect(err).ToNot(HaveOccurred())
 
-					g.Expect(&gotBootstrapTemplate).To(EqualObject(wantMachineDeploymentState.BootstrapTemplate, IgnoreAutogeneratedMetadata, IgnoreTopologyManagedFieldAnnotation, IgnoreNameGenerated))
+					g.Expect(&gotBootstrapTemplate).To(EqualObject(wantMachineDeploymentState.BootstrapTemplate, IgnoreAutogeneratedMetadata, IgnoreNameGenerated))
 
 					// Check BootstrapTemplate rotation if there was a previous MachineDeployment/Template.
 					if currentMachineDeploymentState != nil && currentMachineDeploymentState.BootstrapTemplate != nil {
@@ -1293,7 +1296,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 
 					g.Expect(err).ToNot(HaveOccurred())
 
-					g.Expect(&gotInfrastructureMachineTemplate).To(EqualObject(wantMachineDeploymentState.InfrastructureMachineTemplate, IgnoreAutogeneratedMetadata, IgnoreTopologyManagedFieldAnnotation, IgnoreNameGenerated))
+					g.Expect(&gotInfrastructureMachineTemplate).To(EqualObject(wantMachineDeploymentState.InfrastructureMachineTemplate, IgnoreAutogeneratedMetadata, IgnoreNameGenerated))
 
 					// Check InfrastructureMachineTemplate rotation if there was a previous MachineDeployment/Template.
 					if currentMachineDeploymentState != nil && currentMachineDeploymentState.InfrastructureMachineTemplate != nil {
@@ -1314,6 +1317,12 @@ func TestReconcileMachineDeployments(t *testing.T) {
 // NOTE: by Extension this tests validates managed field handling in mergePatches, and thus its usage in other parts of the
 // codebase.
 func TestReconcileReferencedObjectSequences(t *testing.T) {
+	// g := NewWithT(t)
+	// Write the config file to access the test env for debugging.
+	// g.Expect(os.WriteFile("test.conf", kubeconfig.FromEnvTestConfig(env.Config, &clusterv1.Cluster{
+	// 	ObjectMeta: metav1.ObjectMeta{Name: "test"},
+	// }), 0777)).To(Succeed())
+
 	type object struct {
 		spec map[string]interface{}
 	}
@@ -1373,26 +1382,10 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				reconcileStep{
 					name: "Drop enable-hostpath-provisioner",
 					desired: object{
-						spec: map[string]interface{}{
-							"kubeadmConfigSpec": map[string]interface{}{
-								"clusterConfiguration": map[string]interface{}{
-									// enable-hostpath-provisioner has been removed by e.g a change in ClusterClass (and extraArgs with it).
-									"controllerManager": map[string]interface{}{},
-								},
-							},
-						},
+						spec: nil,
 					},
 					want: object{
-						spec: map[string]interface{}{
-							"kubeadmConfigSpec": map[string]interface{}{
-								"clusterConfiguration": map[string]interface{}{
-									"controllerManager": map[string]interface{}{
-										// Reconcile to drop enable-hostpath-provisioner, extraArgs has been set to an empty object.
-										"extraArgs": map[string]interface{}{},
-									},
-								},
-							},
-						},
+						spec: nil,
 					},
 				},
 			},
@@ -1460,69 +1453,6 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 			},
 		},
 		{
-			name: "Should drop label in metadata (even if outside of .spec.machineTemplate.metadata)",
-			// Note: This test verifies that reconcileReferencedObject treats changes to fields existing in templates as authoritative
-			// and most specifically it verifies that when a spec.template label is deleted, it gets deleted
-			// from the generated object (and it is not being treated as instance specific value).
-			// E.g. AzureMachineTemplate has .spec.template.metadata.labels.
-			reconcileSteps: []interface{}{
-				reconcileStep{
-					name: "Initially reconcile",
-					desired: object{
-						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"metadata": map[string]interface{}{
-									"labels": map[string]interface{}{
-										"label.with.dots/owned": "true",
-										"anotherLabel":          "true",
-									},
-								},
-							},
-						},
-					},
-					want: object{
-						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"metadata": map[string]interface{}{
-									"labels": map[string]interface{}{
-										"label.with.dots/owned": "true",
-										"anotherLabel":          "true",
-									},
-								},
-							},
-						},
-					},
-				},
-				reconcileStep{
-					name: "Drop the label with dots",
-					desired: object{
-						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"metadata": map[string]interface{}{
-									"labels": map[string]interface{}{
-										// label.with.dots/owned has been removed e.g a change in ClusterClass.
-										"anotherLabel": "true",
-									},
-								},
-							},
-						},
-					},
-					want: object{
-						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"metadata": map[string]interface{}{
-									"labels": map[string]interface{}{
-										// Reconcile to drop label.with.dots/owned label.
-										"anotherLabel": "true",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
 			name: "Should enforce field",
 			// Note: This test verifies that reconcileReferencedObject treats changes to fields existing in templates as authoritative
 			// by reverting user changes to a manged field.
@@ -1531,12 +1461,12 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					name: "Initially reconcile",
 					desired: object{
 						spec: map[string]interface{}{
-							"stringField": "ccValue",
+							"foo": "ccValue",
 						},
 					},
 					want: object{
 						spec: map[string]interface{}{
-							"stringField": "ccValue",
+							"foo": "ccValue",
 						},
 					},
 				},
@@ -1544,7 +1474,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					name: "User changes value",
 					object: object{
 						spec: map[string]interface{}{
-							"stringField": "userValue",
+							"foo": "userValue",
 						},
 					},
 				},
@@ -1553,13 +1483,13 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					desired: object{
 						spec: map[string]interface{}{
 							// ClusterClass still proposing the old value.
-							"stringField": "ccValue",
+							"foo": "ccValue",
 						},
 					},
 					want: object{
 						spec: map[string]interface{}{
 							// Reconcile to restore the old value.
-							"stringField": "ccValue",
+							"foo": "ccValue",
 						},
 					},
 				},
@@ -1607,7 +1537,6 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 								"clusterConfiguration": map[string]interface{}{
 									"controllerManager": map[string]interface{}{
 										"extraArgs": map[string]interface{}{
-											"enable-hostpath-provisioner": "true",
 											// User adds enable-garbage-collector.
 											"enable-garbage-collector": "true",
 										},
@@ -1622,10 +1551,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					desired: object{
 						spec: map[string]interface{}{
 							"kubeadmConfigSpec": map[string]interface{}{
-								"clusterConfiguration": map[string]interface{}{
-									// enable-hostpath-provisioner has been removed by e.g a change in ClusterClass (and extraArgs with it).
-									"controllerManager": map[string]interface{}{},
-								},
+								"clusterConfiguration": map[string]interface{}{},
 							},
 						},
 					},
@@ -1656,16 +1582,12 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					name: "Initially reconcile",
 					desired: object{
 						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{},
-							},
+							"machineTemplate": map[string]interface{}{},
 						},
 					},
 					want: object{
 						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{},
-							},
+							"machineTemplate": map[string]interface{}{},
 						},
 					},
 				},
@@ -1673,12 +1595,10 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					name: "User adds an additional object",
 					object: object{
 						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
-									"userDefinedObject": map[string]interface{}{
-										"boolField":   true,
-										"stringField": "def",
-									},
+							"machineTemplate": map[string]interface{}{
+								"infrastructureRef": map[string]interface{}{
+									"apiVersion": "foo/v1alpha1",
+									"kind":       "Foo",
 								},
 							},
 						},
@@ -1688,33 +1608,31 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					name: "ClusterClass starts having an opinion about some fields",
 					desired: object{
 						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
-									"clusterClassObject": map[string]interface{}{
-										"boolField":   true,
-										"stringField": "def",
+							"machineTemplate": map[string]interface{}{
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										"foo": "foo",
 									},
-									"clusterClassField": true,
 								},
+								"nodeDeletionTimeout": "10m",
 							},
 						},
 					},
 					want: object{
 						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
-									// User fields are preserved.
-									"userDefinedObject": map[string]interface{}{
-										"boolField":   true,
-										"stringField": "def",
-									},
-									// ClusterClass authoritative fields are added.
-									"clusterClassObject": map[string]interface{}{
-										"boolField":   true,
-										"stringField": "def",
-									},
-									"clusterClassField": true,
+							"machineTemplate": map[string]interface{}{
+								// User fields are preserved.
+								"infrastructureRef": map[string]interface{}{
+									"apiVersion": "foo/v1alpha1",
+									"kind":       "Foo",
 								},
+								// ClusterClass authoritative fields are added.
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										"foo": "foo",
+									},
+								},
+								"nodeDeletionTimeout": "10m",
 							},
 						},
 					},
@@ -1723,30 +1641,28 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					name: "ClusterClass stops having an opinion on the field",
 					desired: object{
 						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
-									"clusterClassObject": map[string]interface{}{
-										"boolField":   true,
-										"stringField": "def",
+							"machineTemplate": map[string]interface{}{
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										"foo": "foo",
 									},
-									// clusterClassField has been removed by e.g a change in ClusterClass (and extraArgs with it).
 								},
+								// clusterClassField has been removed by e.g a change in ClusterClass (and extraArgs with it).
 							},
 						},
 					},
 					want: object{
 						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
-									// Reconcile to drop clusterClassField,
-									// while preserving user-defined field and clusterClassField.
-									"userDefinedObject": map[string]interface{}{
-										"boolField":   true,
-										"stringField": "def",
-									},
-									"clusterClassObject": map[string]interface{}{
-										"boolField":   true,
-										"stringField": "def",
+							"machineTemplate": map[string]interface{}{
+								// Reconcile to drop clusterClassField,
+								// while preserving user-defined field and clusterClassField.
+								"infrastructureRef": map[string]interface{}{
+									"apiVersion": "foo/v1alpha1",
+									"kind":       "Foo",
+								},
+								"metadata": map[string]interface{}{
+									"labels": map[string]interface{}{
+										"foo": "foo",
 									},
 								},
 							},
@@ -1757,22 +1673,19 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 					name: "ClusterClass stops having an opinion on the object",
 					desired: object{
 						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{}, // clusterClassObject has been removed by e.g a change in ClusterClass (and extraArgs with it).
+							"machineTemplate": map[string]interface{}{
+								// clusterClassObject has been removed by e.g a change in ClusterClass (and extraArgs with it).
 							},
 						},
 					},
 					want: object{
 						spec: map[string]interface{}{
-							"template": map[string]interface{}{
-								"spec": map[string]interface{}{
-									// Reconcile to drop clusterClassObject,
-									// while preserving user-defined field.
-									"userDefinedObject": map[string]interface{}{
-										"boolField":   true,
-										"stringField": "def",
-									},
-									"clusterClassObject": map[string]interface{}{},
+							"machineTemplate": map[string]interface{}{
+								// Reconcile to drop clusterClassObject,
+								// while preserving user-defined field.
+								"infrastructureRef": map[string]interface{}{
+									"apiVersion": "foo/v1alpha1",
+									"kind":       "Foo",
 								},
 							},
 						},
@@ -1791,8 +1704,9 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			r := Reconciler{
-				Client:   env,
-				recorder: env.GetEventRecorderFor("test"),
+				Client:             env,
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				recorder:           env.GetEventRecorderFor("test"),
 			}
 
 			s := scope.New(&clusterv1.Cluster{})
@@ -1807,20 +1721,28 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 				if i > 0 {
 					currentControlPlane = &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"kind":       "GenericControlPlane",
-							"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+							"kind":       builder.TestControlPlaneKind,
+							"apiVersion": builder.ControlPlaneGroupVersion.String(),
 						},
 					}
 					g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKey{Namespace: namespace.GetName(), Name: "my-cluster"}, currentControlPlane)).To(Succeed())
 				}
 
 				if step, ok := step.(externalStep); ok {
-					// This is a user step, so let's just update the object.
-					patchHelper, err := patch.NewHelper(currentControlPlane, env)
+					// This is a user step, so let's just update the object using SSA.
+					obj := &unstructured.Unstructured{
+						Object: map[string]interface{}{
+							"kind":       builder.TestControlPlaneKind,
+							"apiVersion": builder.ControlPlaneGroupVersion.String(),
+							"metadata": map[string]interface{}{
+								"name":      "my-cluster",
+								"namespace": namespace.GetName(),
+							},
+							"spec": step.object.spec,
+						},
+					}
+					err := env.PatchAndWait(ctx, obj, client.FieldOwner("other-controller"), client.ForceOwnership)
 					g.Expect(err).ToNot(HaveOccurred())
-
-					g.Expect(unstructured.SetNestedField(currentControlPlane.Object, step.object.spec, "spec")).To(Succeed())
-					g.Expect(patchHelper.Patch(context.Background(), currentControlPlane)).To(Succeed())
 					continue
 				}
 
@@ -1836,23 +1758,18 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 						ControlPlane: &scope.ControlPlaneState{
 							Object: &unstructured.Unstructured{
 								Object: map[string]interface{}{
-									"kind":       "GenericControlPlane",
-									"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+									"kind":       builder.TestControlPlaneKind,
+									"apiVersion": builder.ControlPlaneGroupVersion.String(),
 									"metadata": map[string]interface{}{
 										"name":      "my-cluster",
 										"namespace": namespace.GetName(),
 									},
-									"spec": step.desired.spec,
 								},
 							},
 						},
 					}
-					if currentControlPlane != nil {
-						// Set the annotation of the current control plane.
-						annotations, found, err := unstructured.NestedFieldCopy(currentControlPlane.Object, "metadata", "annotations")
-						g.Expect(err).ToNot(HaveOccurred())
-						g.Expect(found).To(BeTrue())
-						g.Expect(unstructured.SetNestedField(s.Desired.ControlPlane.Object.Object, annotations, "metadata", "annotations")).To(Succeed())
+					if step.desired.spec != nil {
+						s.Desired.ControlPlane.Object.Object["spec"] = step.desired.spec
 					}
 
 					// Execute a reconcile.0
@@ -1860,24 +1777,21 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 						cluster: s.Current.Cluster,
 						current: s.Current.ControlPlane.Object,
 						desired: s.Desired.ControlPlane.Object,
-						opts: []mergepatch.HelperOption{
-							mergepatch.AuthoritativePaths{
-								// Note: Just using .spec.machineTemplate.metadata here as an example.
-								contract.ControlPlane().MachineTemplate().Metadata().Path(),
-							},
-						}})).To(Succeed())
+					})).To(Succeed())
 
 					// Build the object for comparison.
 					want := &unstructured.Unstructured{
 						Object: map[string]interface{}{
-							"kind":       "GenericControlPlane",
-							"apiVersion": "controlplane.cluster.x-k8s.io/v1beta1",
+							"kind":       builder.TestControlPlaneKind,
+							"apiVersion": builder.ControlPlaneGroupVersion.String(),
 							"metadata": map[string]interface{}{
 								"name":      "my-cluster",
 								"namespace": namespace.GetName(),
 							},
-							"spec": step.want.spec,
 						},
+					}
+					if step.want.spec != nil {
+						want.Object["spec"] = step.want.spec
 					}
 
 					// Get the reconciled object.
@@ -1923,8 +1837,8 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 		WithOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(md)}).
 		WithClusterName("cluster1")
 
-	infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-1").Build()
-	bootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-1").Build()
+	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-1").Build()
+	bootstrapTemplate := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-1").Build()
 
 	tests := []struct {
 		name    string
@@ -2020,16 +1934,33 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 				tt.want[i].SetNamespace(namespace.GetName())
 			}
 
+			uidsByName := map[string]types.UID{}
+
 			for _, mdts := range tt.current {
-				g.Expect(env.CreateAndWait(ctx, mdts.Object)).To(Succeed())
-				g.Expect(env.CreateAndWait(ctx, mdts.InfrastructureMachineTemplate)).To(Succeed())
-				g.Expect(env.CreateAndWait(ctx, mdts.BootstrapTemplate)).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mdts.Object, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mdts.InfrastructureMachineTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				g.Expect(env.PatchAndWait(ctx, mdts.BootstrapTemplate, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+
+				uidsByName[mdts.Object.Name] = mdts.Object.GetUID()
+
 				if mdts.MachineHealthCheck != nil {
 					for i, ref := range mdts.MachineHealthCheck.OwnerReferences {
 						ref.UID = mdts.Object.GetUID()
 						mdts.MachineHealthCheck.OwnerReferences[i] = ref
 					}
-					g.Expect(env.CreateAndWait(ctx, mdts.MachineHealthCheck)).To(Succeed())
+					g.Expect(env.PatchAndWait(ctx, mdts.MachineHealthCheck, client.ForceOwnership, client.FieldOwner(structuredmerge.TopologyManagerName))).To(Succeed())
+				}
+			}
+
+			// copy over ownerReference for desired MachineHealthCheck
+			for _, mdts := range tt.desired {
+				if mdts.MachineHealthCheck != nil {
+					for i, ref := range mdts.MachineHealthCheck.OwnerReferences {
+						if uid, ok := uidsByName[ref.Name]; ok {
+							ref.UID = uid
+							mdts.MachineHealthCheck.OwnerReferences[i] = ref
+						}
+					}
 				}
 			}
 
@@ -2040,8 +1971,9 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			s.Desired = &scope.ClusterState{MachineDeployments: toMachineDeploymentTopologyStateMap(tt.desired)}
 
 			r := Reconciler{
-				Client:   env,
-				recorder: env.GetEventRecorderFor("test"),
+				Client:             env,
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				recorder:           env.GetEventRecorderFor("test"),
 			}
 
 			err = r.reconcileMachineDeployments(ctx, s)
@@ -2201,8 +2133,9 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 			}
 
 			r := Reconciler{
-				Client:   env,
-				recorder: env.GetEventRecorderFor("test"),
+				Client:             env,
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				recorder:           env.GetEventRecorderFor("test"),
 			}
 			if tt.current != nil {
 				g.Expect(env.CreateAndWait(ctx, tt.current)).To(Succeed())

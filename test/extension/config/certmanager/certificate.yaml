@@ -1,0 +1,28 @@
+# The following manifests contain a self-signed issuer CR and a certificate CR.
+# More document can be found at https://docs.cert-manager.io
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: selfsigned-issuer
+spec:
+  selfSigned: { }
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: serving-cert  # this name should match the one appeared in kustomizeconfig.yaml
+spec:
+  # $(SERVICE_NAME) will be substituted by kustomize
+  # $(SERVICE_NAMESPACE) will be substituted on deployment
+  dnsNames:
+  - $(SERVICE_NAME).${SERVICE_NAMESPACE}.svc
+  - $(SERVICE_NAME).${SERVICE_NAMESPACE}.svc.cluster.local
+  # for local testing.
+  - localhost
+  issuerRef:
+    kind: Issuer
+    name: selfsigned-issuer
+  secretName: $(SERVICE_NAME)-cert # this secret will not be prefixed, since it's not managed by kustomize
+  subject:
+    organizations:
+    - k8s-sig-cluster-lifecycle

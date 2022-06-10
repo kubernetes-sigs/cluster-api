@@ -32,6 +32,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 )
 
 // TryAddDefaultSchemes tries to add the following schemes:
@@ -67,6 +68,9 @@ func TryAddDefaultSchemes(scheme *runtime.Scheme) {
 	// Add the api extensions (CRD) to the scheme.
 	_ = apiextensionsv1beta.AddToScheme(scheme)
 	_ = apiextensionsv1.AddToScheme(scheme)
+
+	// Add RuntimeSDK to the scheme.
+	_ = runtimev1.AddToScheme(scheme)
 
 	// Add rbac to the scheme.
 	_ = rbacv1.AddToScheme(scheme)

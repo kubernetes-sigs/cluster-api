@@ -21,26 +21,28 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/test/framework"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
-	"sigs.k8s.io/cluster-api/test/framework/kubetest"
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// ClusterUpgradeConformanceSpecInput is the input for ClusterUpgradeConformanceSpec.
-type ClusterUpgradeConformanceSpecInput struct {
+// clusterUpgradeWithRuntimeSDKSpecInput is the input for clusterUpgradeWithRuntimeSDKSpec.
+type clusterUpgradeWithRuntimeSDKSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
 	SkipCleanup           bool
-	SkipConformanceTests  bool
 
 	// ControlPlaneMachineCount is used in `config cluster` to configure the count of the control plane machines used in the test.
 	// Default is 1.
@@ -56,28 +58,29 @@ type ClusterUpgradeConformanceSpecInput struct {
 	Flavor *string
 }
 
-// ClusterUpgradeConformanceSpec implements a spec that upgrades a cluster and runs the Kubernetes conformance suite.
+// clusterUpgradeWithRuntimeSDKSpec implements a spec that upgrades a cluster and runs the Kubernetes conformance suite.
 // Upgrading a cluster refers to upgrading the control-plane and worker nodes (managed by MD and machine pools).
 // NOTE: This test only works with a KubeadmControlPlane.
 // NOTE: This test works with Clusters with and without ClusterClass.
 // When using ClusterClass the ClusterClass must have the variables "etcdImageTag" and "coreDNSImageTag" of type string.
 // Those variables should have corresponding patches which set the etcd and CoreDNS tags in KCP.
-func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() ClusterUpgradeConformanceSpecInput) {
+func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() clusterUpgradeWithRuntimeSDKSpecInput) {
 	const (
-		kubetestConfigurationVariable = "KUBETEST_CONFIGURATION"
-		specName                      = "k8s-upgrade-and-conformance"
+		textExtensionPathVariable = "TEST_EXTENSION"
+		specName                  = "k8s-upgrade-with-runtimesdk"
 	)
 
 	var (
-		input         ClusterUpgradeConformanceSpecInput
+		input         clusterUpgradeWithRuntimeSDKSpecInput
 		namespace     *corev1.Namespace
+		ext           *runtimev1.ExtensionConfig
 		cancelWatches context.CancelFunc
 
 		controlPlaneMachineCount int64
 		workerMachineCount       int64
 
-		clusterResources       *clusterctl.ApplyClusterTemplateAndWaitResult
-		kubetestConfigFilePath string
+		clusterResources  *clusterctl.ApplyClusterTemplateAndWaitResult
+		testExtensionPath string
 	)
 
 	BeforeEach(func() {
@@ -93,9 +96,8 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		Expect(input.E2EConfig.Variables).To(HaveKey(EtcdVersionUpgradeTo))
 		Expect(input.E2EConfig.Variables).To(HaveKey(CoreDNSVersionUpgradeTo))
 
-		Expect(input.E2EConfig.Variables).To(HaveKey(kubetestConfigurationVariable), "% spec requires a %s variable to be defined in the config file", specName, kubetestConfigurationVariable)
-		kubetestConfigFilePath = input.E2EConfig.GetVariable(kubetestConfigurationVariable)
-		Expect(kubetestConfigFilePath).To(BeAnExistingFile(), "%s should be a valid kubetest config file")
+		testExtensionPath = input.E2EConfig.GetVariable(textExtensionPathVariable)
+		Expect(testExtensionPath).To(BeAnExistingFile(), "The %s variable should resolve to an existing file", textExtensionPathVariable)
 
 		if input.ControlPlaneMachineCount == nil {
 			controlPlaneMachineCount = 1
@@ -114,7 +116,24 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should create and upgrade a workload cluster and eventually run kubetest", func() {
+	It("Should create and upgrade a workload cluster", func() {
+		By("Deploy Test Extension")
+		testExtensionDeploymentTemplate, err := os.ReadFile(testExtensionPath) //nolint:gosec
+		Expect(err).ToNot(HaveOccurred(), "Failed to read the extension config deployment manifest file")
+
+		// Set the SERVICE_NAMESPACE, which is used in the cert-manager Certificate CR.
+		// We have to dynamically set the namespace here, because it depends on the test run and thus
+		// cannot be set when rendering the test extension YAML with kustomize.
+		testExtensionDeployment := strings.ReplaceAll(string(testExtensionDeploymentTemplate), "${SERVICE_NAMESPACE}", namespace.Name)
+		Expect(testExtensionDeployment).ToNot(BeEmpty(), "Test Extension deployment manifest file should not be empty")
+
+		Expect(input.BootstrapClusterProxy.Apply(ctx, []byte(testExtensionDeployment), "--namespace", namespace.Name)).To(Succeed())
+
+		By("Deploy Test Extension ExtensionConfig")
+		ext = extensionConfig(specName, namespace)
+		err = input.BootstrapClusterProxy.GetClient().Create(ctx, ext)
+		Expect(err).ToNot(HaveOccurred(), "Failed to create the extension config")
+
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -137,64 +156,21 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			WaitForMachinePools:          input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
 		}, clusterResources)
 
-		if clusterResources.Cluster.Spec.Topology != nil {
-			// Cluster is using ClusterClass, upgrade via topology.
-			By("Upgrading the Cluster topology")
-			framework.UpgradeClusterTopologyAndWaitForUpgrade(ctx, framework.UpgradeClusterTopologyAndWaitForUpgradeInput{
-				ClusterProxy:                input.BootstrapClusterProxy,
-				Cluster:                     clusterResources.Cluster,
-				ControlPlane:                clusterResources.ControlPlane,
-				EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
-				DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
-				MachineDeployments:          clusterResources.MachineDeployments,
-				KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-				WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-				WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-				WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			})
-		} else {
-			// Cluster is not using ClusterClass, upgrade via individual resources.
-			By("Upgrading the Kubernetes control-plane")
-			var (
-				upgradeCPMachineTemplateTo      *string
-				upgradeWorkersMachineTemplateTo *string
-			)
-
-			if input.E2EConfig.HasVariable(CPMachineTemplateUpgradeTo) {
-				upgradeCPMachineTemplateTo = pointer.StringPtr(input.E2EConfig.GetVariable(CPMachineTemplateUpgradeTo))
-			}
-
-			if input.E2EConfig.HasVariable(WorkersMachineTemplateUpgradeTo) {
-				upgradeWorkersMachineTemplateTo = pointer.StringPtr(input.E2EConfig.GetVariable(WorkersMachineTemplateUpgradeTo))
-			}
-
-			framework.UpgradeControlPlaneAndWaitForUpgrade(ctx, framework.UpgradeControlPlaneAndWaitForUpgradeInput{
-				ClusterProxy:                input.BootstrapClusterProxy,
-				Cluster:                     clusterResources.Cluster,
-				ControlPlane:                clusterResources.ControlPlane,
-				EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
-				DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
-				KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-				UpgradeMachineTemplate:      upgradeCPMachineTemplateTo,
-				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-				WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-				WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-				WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			})
-
-			if workerMachineCount > 0 {
-				By("Upgrading the machine deployment")
-				framework.UpgradeMachineDeploymentsAndWait(ctx, framework.UpgradeMachineDeploymentsAndWaitInput{
-					ClusterProxy:                input.BootstrapClusterProxy,
-					Cluster:                     clusterResources.Cluster,
-					UpgradeVersion:              input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-					UpgradeMachineTemplate:      upgradeWorkersMachineTemplateTo,
-					MachineDeployments:          clusterResources.MachineDeployments,
-					WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-				})
-			}
-		}
+		// Upgrade the Cluster topology to run through an entire cluster lifecycle to test the lifecycle hooks.
+		By("Upgrading the Cluster topology")
+		framework.UpgradeClusterTopologyAndWaitForUpgrade(ctx, framework.UpgradeClusterTopologyAndWaitForUpgradeInput{
+			ClusterProxy:                input.BootstrapClusterProxy,
+			Cluster:                     clusterResources.Cluster,
+			ControlPlane:                clusterResources.ControlPlane,
+			EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
+			DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
+			MachineDeployments:          clusterResources.MachineDeployments,
+			KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+		})
 
 		// Only attempt to upgrade MachinePools if they were provided in the template.
 		if len(clusterResources.MachinePools) > 0 && workerMachineCount > 0 {
@@ -218,27 +194,43 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
 		})
 
-		if !input.SkipConformanceTests {
-			By("Running conformance tests")
-			// Start running the conformance test suite.
-			err := kubetest.Run(
-				ctx,
-				kubetest.RunInput{
-					ClusterProxy:       workloadProxy,
-					NumberOfNodes:      int(clusterResources.ExpectedWorkerNodes()),
-					ArtifactsDirectory: input.ArtifactFolder,
-					ConfigFilePath:     kubetestConfigFilePath,
-					GinkgoNodes:        int(clusterResources.ExpectedWorkerNodes()),
-				},
-			)
-			Expect(err).ToNot(HaveOccurred(), "Failed to run Kubernetes conformance")
-		}
-
 		By("PASSED!")
 	})
 
 	AfterEach(func() {
 		// Dumps all the resources in the spec Namespace, then cleanups the cluster object and the spec Namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
+
+		Eventually(func() error {
+			return input.BootstrapClusterProxy.GetClient().Delete(ctx, ext)
+		}, 10*time.Second, 1*time.Second).Should(Succeed())
 	})
+}
+
+// extensionConfig generates an ExtensionConfig.
+// We make sure this cluster-wide object does not conflict with others by using a random generated
+// name and a NamespaceSelector selecting on the namespace of the current test.
+// Thus, this object is "namespaced" to the current test even though it's a cluster-wide object.
+func extensionConfig(specName string, namespace *corev1.Namespace) *runtimev1.ExtensionConfig {
+	return &runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
+			Annotations: map[string]string{
+				"cert-manager.io/inject-ca-from-secret": fmt.Sprintf("%s/webhook-service-cert", namespace.Name),
+			},
+		},
+		Spec: runtimev1.ExtensionConfigSpec{
+			ClientConfig: runtimev1.ClientConfig{
+				Service: &runtimev1.ServiceReference{
+					Name:      "webhook-service",
+					Namespace: namespace.Name,
+				},
+			},
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{
+					"kubernetes.io/metadata.name:": namespace.Name,
+				},
+			},
+		},
+	}
 }

@@ -1,0 +1,25 @@
+commonLabels:
+
+resources:
+- extension.yaml
+- service.yaml
+
+bases:
+- ../certmanager
+
+patchesStrategicMerge:
+# Provide customizable hook for make targets.
+- extension_image_patch.yaml
+- extension_pull_policy.yaml
+# Enable webhook.
+- extension_webhook_patch.yaml
+
+vars:
+  - name: SERVICE_NAME
+    objref:
+      kind: Service
+      version: v1
+      name: webhook-service
+
+configurations:
+  - kustomizeconfig.yaml

@@ -77,6 +77,7 @@ These diagrams show the relationships between components in a Cluster API releas
 
 \* There is an issue with CRDs in Kubernetes v1.23.{0-2}. ClusterClass with patches is affected by that (for more details please see [this issue](https://github.com/kubernetes-sigs/cluster-api/issues/5990)). Therefore we recommend to use Kubernetes v1.23.3+ with ClusterClass.
    Previous Kubernetes **minor** versions are not affected.
+\** When using CAPI v1.2 with the CLUSTER_TOPOLOGY experimental feature on, the Kubernetes Version for the management cluster must be >= 1.22.0.
 
 The Core Provider also talks to API server of every Workload Cluster. Therefore, the Workload Cluster's Kubernetes version must also be compatible.
 

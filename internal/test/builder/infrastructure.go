@@ -80,6 +80,24 @@ func testInfrastructureClusterCRD(gvk schema.GroupVersionKind) *apiextensionsv1.
 				// General purpose fields to be used in different test scenario.
 				"foo": {Type: "string"},
 				"bar": {Type: "string"},
+				"fooMap": {
+					Type: "object",
+					Properties: map[string]apiextensionsv1.JSONSchemaProps{
+						"foo": {Type: "string"},
+					},
+				},
+				"fooList": {
+					Type: "array",
+					Items: &apiextensionsv1.JSONSchemaPropsOrArray{
+						Schema: &apiextensionsv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]apiextensionsv1.JSONSchemaProps{
+								"foo": {Type: "string"},
+							},
+						},
+					},
+				},
+				// Field for testing
 			},
 		},
 		"status": {

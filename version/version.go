@@ -20,7 +20,40 @@ package version
 import (
 	"fmt"
 	"runtime"
+
+	"github.com/pkg/errors"
+	utilversion "k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/client-go/discovery"
+	"k8s.io/client-go/rest"
 )
+
+const (
+	// MinimumKubernetesVersion defines the minimum Kubernetes version that can be used in a Management Cluster.
+	MinimumKubernetesVersion = "v1.20.0"
+
+	// MinimumKubernetesVersionClusterTopology defines the minimum Kubernetes version that can be used in a
+	// Management Cluster when enabling the ClusterTopology feature gate.
+	MinimumKubernetesVersionClusterTopology = "v1.22.0"
+)
+
+// CheckKubernetesVersion return an error if the Kubernetes version in a cluster is lower than the specified minK8sVersion.
+func CheckKubernetesVersion(config *rest.Config, minK8sVersion string) error {
+	client := discovery.NewDiscoveryClientForConfigOrDie(config)
+	serverVersion, err := client.ServerVersion()
+	if err != nil {
+		return errors.Wrap(err, "failed to get the Kubernetes version")
+	}
+
+	compareResult, err := utilversion.MustParseGeneric(serverVersion.String()).Compare(minK8sVersion)
+	if err != nil {
+		return errors.Wrap(err, "failed to check MinK8sVersion")
+	}
+
+	if compareResult == -1 {
+		return errors.Errorf("unsupported management cluster server version: %s - minimum required version is %s", serverVersion.String(), minK8sVersion)
+	}
+	return nil
+}
 
 var (
 	gitMajor     string // major version, always numeric

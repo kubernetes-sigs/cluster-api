@@ -538,6 +538,7 @@ func TestGetCurrentState(t *testing.T) {
 				Client:                    fakeClient,
 				APIReader:                 fakeClient,
 				UnstructuredCachingClient: fakeClient,
+				patchHelperFactory:        dryRunPatchHelperFactory(fakeClient),
 			}
 			got, err := r.getCurrentState(ctx, s)
 

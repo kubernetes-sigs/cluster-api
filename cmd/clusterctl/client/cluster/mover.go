@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -34,6 +35,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -851,6 +853,9 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 	// Rebuild the owne reference chain
 	o.buildOwnerChain(obj, nodeToCreate)
 
+	// Save the old managed fields for topology managed fields migration
+	oldManagedFields := obj.GetManagedFields()
+
 	// FIXME Workaround for https://github.com/kubernetes/kubernetes/issues/32220. Remove when the issue is fixed.
 	// If the resource already exists, the API server ordinarily returns an AlreadyExists error. Due to the above issue, if the resource has a non-empty metadata.generateName field, the API server returns a ServerTimeoutError. To ensure that the API server returns an AlreadyExists error, we set the metadata.generateName field to an empty string.
 	if len(obj.GetName()) > 0 && len(obj.GetGenerateName()) > 0 {
@@ -896,6 +901,10 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 
 	// Stores the newUID assigned to the newly created object.
 	nodeToCreate.newUID = obj.GetUID()
+
+	if err := patchTopologyManagedFields(ctx, oldManagedFields, obj, cTo); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1163,4 +1172,33 @@ func (o *objectMover) checkTargetProviders(toInventory InventoryClient) error {
 	}
 
 	return kerrors.NewAggregate(errList)
+}
+
+// patchTopologyManagedFields patches the managed fields of obj if parts of it are owned by the topology controller.
+// This is necessary to ensure the managed fields created by the topology controller are still present and thus to
+// prevent unnecessary machine rollouts. Without patching the managed fields, clusterctl would be the owner of the fields
+// which would lead to co-ownership and also additional machine rollouts.
+func patchTopologyManagedFields(ctx context.Context, oldManagedFields []metav1.ManagedFieldsEntry, obj *unstructured.Unstructured, cTo client.Client) error {
+	var containsTopologyManagedFields bool
+	// Check if the object was owned by the topology controller.
+	for _, m := range oldManagedFields {
+		if m.Operation == metav1.ManagedFieldsOperationApply &&
+			m.Manager == structuredmerge.TopologyManagerName &&
+			m.Subresource == "" {
+			containsTopologyManagedFields = true
+			break
+		}
+	}
+	// Return early if the object was not owned by the topology controller.
+	if !containsTopologyManagedFields {
+		return nil
+	}
+	base := obj.DeepCopy()
+	obj.SetManagedFields(oldManagedFields)
+
+	if err := cTo.Patch(ctx, obj, client.MergeFrom(base)); err != nil {
+		return errors.Wrapf(err, "error patching managed fields %q %s/%s",
+			obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
+	}
+	return nil
 }

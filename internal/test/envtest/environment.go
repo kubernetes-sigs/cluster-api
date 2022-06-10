@@ -58,6 +58,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
+	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
 
@@ -90,6 +91,7 @@ type RunInput struct {
 	SetupIndexes        func(ctx context.Context, mgr ctrl.Manager)
 	SetupReconcilers    func(ctx context.Context, mgr ctrl.Manager)
 	SetupEnv            func(e *Environment)
+	MinK8sVersion       string
 }
 
 // Run executes the tests of the given testing.M in a test environment.
@@ -115,6 +117,16 @@ func Run(ctx context.Context, input RunInput) int {
 
 	// Start the environment.
 	env.start(ctx)
+
+	if input.MinK8sVersion != "" {
+		if err := version.CheckKubernetesVersion(env.Config, input.MinK8sVersion); err != nil {
+			fmt.Printf("[IMPORTANT] skipping tests after failing version check: %v\n", err)
+			if err := env.stop(); err != nil {
+				fmt.Println("[WARNING] Failed to stop the test environment")
+			}
+			return 0
+		}
+	}
 
 	// Expose the environment.
 	input.SetupEnv(env)
@@ -286,7 +298,7 @@ func (e *Environment) start(ctx context.Context) {
 		}
 	}()
 	<-e.Manager.Elected()
-	e.WaitForWebhooks()
+	e.waitForWebhooks()
 }
 
 // stop stops the test environment.
@@ -296,8 +308,8 @@ func (e *Environment) stop() error {
 	return e.env.Stop()
 }
 
-// WaitForWebhooks waits for the webhook server to be available.
-func (e *Environment) WaitForWebhooks() {
+// waitForWebhooks waits for the webhook server to be available.
+func (e *Environment) waitForWebhooks() {
 	port := e.env.WebhookInstallOptions.LocalServingPort
 
 	klog.V(2).Infof("Waiting for webhook port %d to be open prior to running tests", port)

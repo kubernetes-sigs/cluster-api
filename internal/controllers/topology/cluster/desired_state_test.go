@@ -124,6 +124,25 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 			obj:         obj,
 		})
 	})
+	t.Run("Carry over the owner reference to ClusterShim, if any", func(t *testing.T) {
+		g := NewWithT(t)
+		shim := clusterShim(cluster)
+
+		// current cluster objects for the test scenario
+		clusterWithInfrastructureRef := cluster.DeepCopy()
+		clusterWithInfrastructureRef.Spec.InfrastructureRef = fakeRef1
+
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		scope := scope.New(clusterWithInfrastructureRef)
+		scope.Current.InfrastructureCluster = infrastructureClusterTemplate.DeepCopy()
+		scope.Current.InfrastructureCluster.SetOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(shim)})
+		scope.Blueprint = blueprint
+
+		obj, err := computeInfrastructureCluster(ctx, scope)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(obj).ToNot(BeNil())
+		g.Expect(hasOwnerReferenceFrom(obj, shim)).To(BeTrue())
+	})
 }
 
 func TestComputeControlPlaneInfrastructureMachineTemplate(t *testing.T) {
@@ -473,6 +492,42 @@ func TestComputeControlPlane(t *testing.T) {
 				assertNestedField(g, obj, tt.expectedVersion, contract.ControlPlane().Version().Path()...)
 			})
 		}
+	})
+	t.Run("Carry over the owner reference to ClusterShim, if any", func(t *testing.T) {
+		g := NewWithT(t)
+		shim := clusterShim(cluster)
+
+		// current cluster objects
+		clusterWithoutReplicas := cluster.DeepCopy()
+		clusterWithoutReplicas.Spec.Topology.ControlPlane.Replicas = nil
+
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     clusterWithoutReplicas.Spec.Topology,
+			ClusterClass: clusterClass,
+			ControlPlane: &scope.ControlPlaneBlueprint{
+				Template: controlPlaneTemplate,
+			},
+		}
+
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		s := scope.New(clusterWithoutReplicas)
+		s.Current.ControlPlane = &scope.ControlPlaneState{
+			Object: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version": "v1.2.2",
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version": "v1.2.1",
+				}).
+				Build(),
+		}
+		s.Current.ControlPlane.Object.SetOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(shim)})
+		s.Blueprint = blueprint
+
+		obj, err := computeControlPlane(ctx, s, nil)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(obj).ToNot(BeNil())
+		g.Expect(hasOwnerReferenceFrom(obj, shim)).To(BeTrue())
 	})
 }
 
@@ -1461,6 +1516,20 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 	}}
 	healthCheckTarget := builder.MachineDeployment("ns1", "md1").Build()
 	clusterName := "cluster1"
+	current := &clusterv1.MachineHealthCheck{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       clusterv1.GroupVersion.WithKind("MachineHealthCheck").Kind,
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "md1",
+			Namespace: "ns1",
+			// The only thing we care about in current is the owner reference to the target object
+			OwnerReferences: []metav1.OwnerReference{
+				*ownerReferenceTo(healthCheckTarget),
+			},
+		},
+	}
 	want := &clusterv1.MachineHealthCheck{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       clusterv1.GroupVersion.WithKind("MachineHealthCheck").Kind,
@@ -1471,6 +1540,9 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 			Namespace: "ns1",
 			// Label is added by defaulting values using MachineHealthCheck.Default()
 			Labels: map[string]string{"cluster.x-k8s.io/cluster-name": "cluster1"},
+			OwnerReferences: []metav1.OwnerReference{
+				*ownerReferenceTo(healthCheckTarget),
+			},
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
 			ClusterName: "cluster1",
@@ -1499,7 +1571,7 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 	t.Run("set all fields correctly", func(t *testing.T) {
 		g := NewWithT(t)
 
-		got := computeMachineHealthCheck(healthCheckTarget, selector, clusterName, mhcSpec)
+		got := computeMachineHealthCheck(healthCheckTarget, selector, clusterName, mhcSpec, current)
 
 		g.Expect(got).To(Equal(want), cmp.Diff(got, want))
 	})

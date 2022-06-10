@@ -67,7 +67,7 @@ func TestClusterReconciler_reconcileNewlyCreatedCluster(t *testing.T) {
 	g.Eventually(func(g Gomega) error {
 		// Get the cluster object.
 		actualCluster := &clusterv1.Cluster{}
-		if err := env.Get(ctx, client.ObjectKey{Name: clusterName1, Namespace: ns.Name}, actualCluster); err != nil {
+		if err := env.GetAPIReader().Get(ctx, client.ObjectKey{Name: clusterName1, Namespace: ns.Name}, actualCluster); err != nil {
 			return err
 		}
 

@@ -794,11 +794,22 @@ spec:
                         will be disabled. If EnabledIf is not set, the patch will
                         be enabled per default.
                       type: string
+                    external:
+                      description: External defines an external patch.
+                      properties:
+                        generateExtension:
+                          description: GenerateExtension references an extension which
+                            is called to generate patches.
+                          type: string
+                        validateExtension:
+                          description: ValidateExtension references an extension which
+                            is called to validate the topology.
+                          type: string
+                      type: object
                     name:
                       description: Name of the patch.
                       type: string
                   required:
-                  - definitions
                   - name
                   type: object
                 type: array

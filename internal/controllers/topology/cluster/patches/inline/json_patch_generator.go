@@ -29,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -43,15 +44,15 @@ type jsonPatchGenerator struct {
 	patch *clusterv1.ClusterClassPatch
 }
 
-// New returns a new inline Generator from a given ClusterClassPatch object.
-func New(patch *clusterv1.ClusterClassPatch) api.Generator {
+// NewGenerator returns a new inline Generator from a given ClusterClassPatch object.
+func NewGenerator(patch *clusterv1.ClusterClassPatch) api.Generator {
 	return &jsonPatchGenerator{
 		patch: patch,
 	}
 }
 
 // Generate generates JSON patches for the given GeneratePatchesRequest based on a ClusterClassPatch.
-func (j *jsonPatchGenerator) Generate(_ context.Context, req *runtimehooksv1.GeneratePatchesRequest) *runtimehooksv1.GeneratePatchesResponse {
+func (j *jsonPatchGenerator) Generate(_ context.Context, _ client.Object, req *runtimehooksv1.GeneratePatchesRequest) (*runtimehooksv1.GeneratePatchesResponse, error) {
 	resp := &runtimehooksv1.GeneratePatchesResponse{}
 
 	globalVariables := patchvariables.ToMap(req.Variables)
@@ -113,15 +114,10 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, req *runtimehooksv1.Gen
 	}
 
 	if err := kerrors.NewAggregate(errs); err != nil {
-		return &runtimehooksv1.GeneratePatchesResponse{
-			CommonResponse: runtimehooksv1.CommonResponse{
-				Status:  runtimehooksv1.ResponseStatusFailure,
-				Message: err.Error(),
-			},
-		}
+		return nil, err
 	}
 
-	return resp
+	return resp, nil
 }
 
 // matchesSelector returns true if the GeneratePatchesRequestItem matches the selector.

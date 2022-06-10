@@ -230,20 +230,22 @@ func (s *Server) Start(ctx context.Context) error {
 
 // discoveryHandler generates a discovery handler based on a list of handlers.
 func discoveryHandler(handlers map[string]ExtensionHandler) func(context.Context, *runtimehooksv1.DiscoveryRequest, *runtimehooksv1.DiscoveryResponse) {
-	return func(_ context.Context, request *runtimehooksv1.DiscoveryRequest, response *runtimehooksv1.DiscoveryResponse) {
-		response.Status = runtimehooksv1.ResponseStatusSuccess
+	cachedHandlers := []runtimehooksv1.ExtensionHandler{}
+	for _, handler := range handlers {
+		cachedHandlers = append(cachedHandlers, runtimehooksv1.ExtensionHandler{
+			Name: handler.Name,
+			RequestHook: runtimehooksv1.GroupVersionHook{
+				APIVersion: handler.gvh.GroupVersion().String(),
+				Hook:       handler.gvh.Hook,
+			},
+			TimeoutSeconds: handler.TimeoutSeconds,
+			FailurePolicy:  handler.FailurePolicy,
+		})
+	}
 
-		for _, handler := range handlers {
-			response.Handlers = append(response.Handlers, runtimehooksv1.ExtensionHandler{
-				Name: handler.Name,
-				RequestHook: runtimehooksv1.GroupVersionHook{
-					APIVersion: handler.gvh.GroupVersion().String(),
-					Hook:       handler.gvh.Hook,
-				},
-				TimeoutSeconds: handler.TimeoutSeconds,
-				FailurePolicy:  handler.FailurePolicy,
-			})
-		}
+	return func(_ context.Context, _ *runtimehooksv1.DiscoveryRequest, response *runtimehooksv1.DiscoveryResponse) {
+		response.SetStatus(runtimehooksv1.ResponseStatusSuccess)
+		response.Handlers = cachedHandlers
 	}
 }
 

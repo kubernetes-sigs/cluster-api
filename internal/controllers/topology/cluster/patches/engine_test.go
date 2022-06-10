@@ -29,7 +29,12 @@ import (
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
+	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	. "sigs.k8s.io/cluster-api/internal/test/matchers"
 )
@@ -361,7 +366,17 @@ func TestApply(t *testing.T) {
 			blueprint, desired := setupTestObjects()
 
 			// If there are patches, set up patch generators.
-			patchEngine := NewEngine()
+			// FIXME(sbueringer) implement test for external patches
+			cat := runtimecatalog.New()
+			g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
+
+			registry := runtimeregistry.New()
+			g.Expect(registry.WarmUp(&runtimev1.ExtensionConfigList{})).To(Succeed())
+			runtimeClient := runtimeclient.New(runtimeclient.Options{
+				Catalog:  cat,
+				Registry: registry,
+			})
+			patchEngine := NewEngine(runtimeClient)
 			if len(tt.patches) > 0 {
 				// Add the patches.
 				blueprint.ClusterClass.Spec.Patches = tt.patches

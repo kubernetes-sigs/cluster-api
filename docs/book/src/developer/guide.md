@@ -67,7 +67,7 @@ You'll need [`envsubst`][envsubst] or similar to handle clusterctl var replaceme
 
 We provide a make target to generate the `envsubst` binary if desired. See the [provider contract][provider-contract] for more details about how clusterctl uses variables.
 
-```
+```bash
 make envsubst
 ```
 
@@ -111,26 +111,29 @@ Many of the Cluster API engineers use it for quick iteration. Please see our [Ti
 
 You'll need to build two docker images, one for Cluster API itself and one for the Docker provider (CAPD).
 
-```
+```bash
 make docker-build
 make docker-capd-build
 ```
 
 ### Push both images
 
-```shell
-$ make docker-push
+```bash
+make docker-push
+```
+```bash
 docker push gcr.io/cluster-api-242700/cluster-api-controller-amd64:dev
 The push refers to repository [gcr.io/cluster-api-242700/cluster-api-controller-amd64]
 90a39583ad5f: Layer already exists
 932da5156413: Layer already exists
 dev: digest: sha256:263262cfbabd3d1add68172a5a1d141f6481a2bc443672ce80778dc122ee6234 size: 739
+```
+```bash
 $ make docker-capd-push
+```
+```bash
 docker push gcr.io/cluster-api-242700/capd-manager-amd64:dev
 The push refers to repository [gcr.io/cluster-api-242700/capd-manager-amd64]
-5b1e744b2bae: Pushed
-932da5156413: Layer already exists
-dev: digest: sha256:35670a049372ae063dad910c267a4450758a139c4deb248c04c3198865589ab2 size: 739
 ```
 
 Make a note of the URLs and the digests. You'll need them for the next step. In this case, they're...
@@ -143,7 +146,7 @@ and
 
 ### Edit the manifests
 
-```
+```bash
 $EDITOR config/manager/manager_image_patch.yaml
 $EDITOR test/infrastructure/docker/config/manager/manager_image_patch.yaml
 ```
@@ -165,8 +168,10 @@ spec:
 ```
 
 ### Apply the manifests
-```shell
-$ kustomize build config/ | ./hack/tools/bin/envsubst | kubectl apply -f -
+```bash
+kustomize build config/ | ./hack/tools/bin/envsubst | kubectl apply -f -
+```
+```bash
 namespace/capi-system configured
 customresourcedefinition.apiextensions.k8s.io/clusters.cluster.x-k8s.io configured
 customresourcedefinition.apiextensions.k8s.io/kubeadmconfigs.bootstrap.cluster.x-k8s.io configured
@@ -179,8 +184,11 @@ clusterrole.rbac.authorization.k8s.io/capi-manager-role configured
 rolebinding.rbac.authorization.k8s.io/capi-leader-election-rolebinding configured
 clusterrolebinding.rbac.authorization.k8s.io/capi-manager-rolebinding configured
 deployment.apps/capi-controller-manager created
-
-$ kustomize build test/infrastructure/docker/config | ./hack/tools/bin/envsubst | kubectl apply -f -
+```
+```bash
+kustomize build test/infrastructure/docker/config | ./hack/tools/bin/envsubst | kubectl apply -f -
+```
+```bash
 namespace/capd-system configured
 customresourcedefinition.apiextensions.k8s.io/dockerclusters.infrastructure.cluster.x-k8s.io configured
 customresourcedefinition.apiextensions.k8s.io/dockermachines.infrastructure.cluster.x-k8s.io configured
@@ -197,11 +205,13 @@ deployment.apps/capd-controller-manager created
 
 ### Check the status of the clusters
 
-```shell
-$ kubectl get po -n capd-system
+```bash
+kubectl get po -n capd-system
+```
+```bash
 NAME                                       READY   STATUS    RESTARTS   AGE
 capd-controller-manager-7568c55d65-ndpts   2/2     Running   0          71s
-$ kubectl get po -n capi-system
+kubectl get po -n capi-system
 NAME                                      READY   STATUS    RESTARTS   AGE
 capi-controller-manager-bf9c6468c-d6msj   1/1     Running   0          2m9s
 ```

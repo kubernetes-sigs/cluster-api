@@ -65,7 +65,7 @@ a target [management cluster] on the selected [infrastructure provider].
    kind create cluster
    ```
    Test to ensure the local kind cluster is ready:
-   ```
+   ```bash
    kubectl cluster-info
    ```
 
@@ -100,19 +100,19 @@ The clusterctl CLI tool handles the lifecycle of a Cluster API management cluste
 
 #### Install clusterctl binary with curl on linux
 Download the latest release; on linux, type:
-```
+```bash
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.1.x"}} -o clusterctl
 ```
 Make the clusterctl binary executable.
-```
+```bash
 chmod +x ./clusterctl
 ```
 Move the binary in to your PATH.
-```
+```bash
 sudo mv ./clusterctl /usr/local/bin/clusterctl
 ```
 Test to ensure the version you installed is up-to-date:
-```
+```bash
 clusterctl version
 ```
 
@@ -121,25 +121,25 @@ clusterctl version
 
 #### Install clusterctl binary with curl on macOS
 Download the latest release; on macOS, type:
-```
+```bash
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.1.x"}} -o clusterctl
 ```
 
 Or if your Mac has an M1 CPU ("Apple Silicon"):
-```
+```bash
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.1.x"}} -o clusterctl
 ```
 
 Make the clusterctl binary executable.
-```
+```bash
 chmod +x ./clusterctl
 ```
 Move the binary in to your PATH.
-```
+```bash
 sudo mv ./clusterctl /usr/local/bin/clusterctl
 ```
 Test to ensure the version you installed is up-to-date:
-```
+```bash
 clusterctl version
 ```
 {{#/tab }}
@@ -154,7 +154,7 @@ brew install clusterctl
 ```
 
 Test to ensure the version you installed is up-to-date:
-```
+```bash
 clusterctl version
 ```
 
@@ -165,13 +165,13 @@ clusterctl version
 Go to the working directory where you want clusterctl downloaded.
 
 Download the latest release; on Windows, type:
-```
+```bash
 curl {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.1.x"}} -o clusterctl.exe
 ```
 Append or prepend the path of that directory to the `PATH` environment variable.
 
 Test to ensure the version you installed is up-to-date:
-```
+```bash
 clusterctl version
 ```
 
@@ -378,7 +378,7 @@ only supporting ClusterClass-based cluster-templates in this quickstart as Clust
 adapt configuration based on Kubernetes version. This is required to install Kubernetes clusters < v1.24 and
 for the upgrade from v1.23 to v1.24 as we have to use different cgroupDrivers depending on Kubernetes version.
 
-```
+```bash
 # Enable the experimental Cluster topology feature.
 export CLUSTER_TOPOLOGY=true
 
@@ -483,7 +483,7 @@ project][vSphere getting started guide].
 
 The output of `clusterctl init` is similar to this:
 
-```shell
+```bash
 Fetching providers
 Installing cert-manager Version="v1.7.2"
 Waiting for cert-manager to be available...

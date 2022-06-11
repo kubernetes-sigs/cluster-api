@@ -17,7 +17,8 @@ Let's assume we have created a CAPD cluster with ClusterClass and specified Kube
 
 ```bash
 > kubectl get kubeadmcontrolplane,machinedeployments
-
+```
+```bash
 NAME                                                                              CLUSTER                   INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE     VERSION
 kubeadmcontrolplane.controlplane.cluster.x-k8s.io/clusterclass-quickstart-XXXX    clusterclass-quickstart   true          true                   1          1       1         0             2m21s   v1.21.2
 
@@ -70,7 +71,7 @@ Assume we have created a CAPD cluster with ClusterClass and Kubernetes v1.23.3 (
 kubectl get machinedeployments
 ```
 Will give us:
-```bash 
+```bash
 NAME                                                            CLUSTER           REPLICAS   READY   UPDATED   UNAVAILABLE   PHASE     AGE   VERSION
 machinedeployment.cluster.x-k8s.io/capi-quickstart-md-0-XXXX   capi-quickstart   3          3       3         0             Running   21m   v1.23.3
 ```
@@ -179,8 +180,7 @@ In order to specify the value of a variable all we have to do is set the value i
 
 We can see the current unset variable with:
 ```bash 
-kubectl get cluster capi-quickstart -o jsonpath='{.spec.topology.variables[1]}'                                                                     
-
+kubectl get cluster capi-quickstart -o jsonpath='{.spec.topology.variables[1]}'                                     
 ```
 Which will return something like:
 ```bash

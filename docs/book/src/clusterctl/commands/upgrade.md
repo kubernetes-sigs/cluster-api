@@ -8,13 +8,13 @@ installed into a management cluster.
 The `clusterctl upgrade plan` command can be used to identify possible targets for upgrades.
 
 
-```shell
+```bash
 clusterctl upgrade plan
 ```
 
 Produces an output similar to this:
 
-```shell
+```bash
 Checking cert-manager version...
 Cert-Manager will be upgraded from "v1.5.0" to "v1.5.3"
 
@@ -27,10 +27,9 @@ bootstrap-kubeadm       capi-kubeadm-bootstrap-system       BootstrapProvider   
 control-plane-kubeadm   capi-kubeadm-control-plane-system   ControlPlaneProvider     v0.4.0           v1.0.0
 cluster-api             capi-system                         CoreProvider             v0.4.0           v1.0.0
 infrastructure-docker   capd-system                         InfrastructureProvider   v0.4.0           v1.0.0
-
-
+```
 You can now apply the upgrade by executing the following command:
-
+```bash
    clusterctl upgrade apply --contract v1beta1
 ```
 
@@ -53,7 +52,7 @@ After choosing the desired option for the upgrade, you can run the following
 command to upgrade all the providers in the management cluster. This upgrades
 all the providers to the latest stable releases.
 
-```shell
+```bash
 clusterctl upgrade apply --contract v1beta1
 ```
 
@@ -85,7 +84,7 @@ User is required to re-apply flag values after the upgrade completes.
 In order to upgrade to a provider's pre-release version, we can do
 the following:
 
-```shell
+```bash
 clusterctl upgrade apply \
     --core capi-system/cluster-api:v1.0.0 \
     --bootstrap capi-kubeadm-bootstrap-system/kubeadm:v1.0.0 \

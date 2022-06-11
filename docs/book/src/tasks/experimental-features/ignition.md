@@ -93,7 +93,7 @@ kubectl get kubeadmcontrolplane ignition-cluster-control-plane
 
 This could take a while. When the control plane is initialized, the `INITIALIZED` field should be `true`:
 
-```
+```bash
 NAME                             CLUSTER            INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE    VERSION
 ignition-cluster-control-plane   ignition-cluster   true                                 1                  1         1             7m7s   v1.22.2
 ```
@@ -120,7 +120,7 @@ kubectl cluster-info
 
 Sample output:
 
-```
+```bash
 Kubernetes control plane is running at https://ignition-cluster-apiserver-284992524.us-east-1.elb.amazonaws.com:6443
 CoreDNS is running at https://ignition-cluster-apiserver-284992524.us-east-1.elb.amazonaws.com:6443/api/v1/namespaces/kube-system/services/kube-dns:dns/proxy
 
@@ -143,7 +143,7 @@ kubectl get nodes
 
 Sample output:
 
-```
+```bash
 NAME                                            STATUS   ROLES                  AGE   VERSION
 ip-10-0-122-154.us-east-1.compute.internal   Ready    control-plane,master   14m   v1.22.2
 ip-10-0-127-59.us-east-1.compute.internal    Ready    <none>                 13m   v1.22.2

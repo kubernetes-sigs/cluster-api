@@ -9,7 +9,9 @@ git init
 You'll then need to set up [go modules][gomod]
 
 ```bash
-$ go mod init github.com/liztio/cluster-api-provider-mailgun
+go mod init github.com/liztio/cluster-api-provider-mailgun
+```
+```bash
 go: creating new go.mod: module github.com/liztio/cluster-api-provider-mailgun
 ```
 [gomod]: https://github.com/golang/go/wiki/Modules#how-to-define-a-module
@@ -39,7 +41,7 @@ kubebuilder create api --group infrastructure --version v1alpha3 --kind MailgunC
 kubebuilder create api --group infrastructure --version v1alpha3 --kind MailgunMachine
 ```
 
-```
+```bash
 Create Resource under pkg/apis [y/n]?
 y
 Create Controller under pkg/controller [y/n]?
@@ -71,7 +73,7 @@ type MailgunMachine struct {
 ```
 
 And regenerate the CRDs:
-```shell
+```bash
 make manifests
 ```
 

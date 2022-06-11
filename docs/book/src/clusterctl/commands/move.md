@@ -17,7 +17,7 @@ corresponding provider in the source cluster.
 
 You can use:
 
-```shell
+```bash
 clusterctl move --to-kubeconfig="path-to-target-kubeconfig.yaml"
 ```
 

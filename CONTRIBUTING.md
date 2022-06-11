@@ -390,10 +390,16 @@ All our CRD objects should have the following `additionalPrinterColumns` order (
 
 Examples:
 ```bash
-$ kubectl get kubeadmcontrolplane
+kubectl get kubeadmcontrolplane
+```
+```bash
 NAMESPACE            NAME                               INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE     VERSION
 quick-start-d5ufye   quick-start-ntysk0-control-plane   true          true                   1          1       1                       2m44s   v1.23.3
-$ kubectl get machinedeployment
+```
+```bash
+kubectl get machinedeployment
+```
+```bash
 NAMESPACE            NAME                      CLUSTER              REPLICAS   READY   UPDATED   UNAVAILABLE   PHASE       AGE     VERSION
 quick-start-d5ufye   quick-start-ntysk0-md-0   quick-start-ntysk0   1                  1         1             ScalingUp   3m28s   v1.23.3
 ```

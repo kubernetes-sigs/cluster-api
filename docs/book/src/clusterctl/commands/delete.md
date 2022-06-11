@@ -4,7 +4,7 @@ The `clusterctl delete` command deletes the provider components from the managem
 
 The operation is designed to prevent accidental deletion of user created objects. For example:
 
-```shell
+```bash
 clusterctl delete --infrastructure aws
 ```
 
@@ -35,7 +35,7 @@ the aws provider, it deletes all the `AWSCluster`, `AWSMachine` etc.
 
 If you want to delete all the providers in a single operation , you can use the `--all` flag.
 
-```shell
+```bash
 clusterctl delete --all
 ```
 [issue 3119]: https://github.com/kubernetes-sigs/cluster-api/issues/3119

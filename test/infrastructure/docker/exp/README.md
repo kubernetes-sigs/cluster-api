@@ -15,7 +15,7 @@ For more information on graduation criteria, see: [Contributing Guidelines](../.
 
 ## Create a new Resource
 Below is an example of creating a `DockerMachinePool` resource in the experimental group.
-```
+```bash
 kubebuilder create api --kind DockerMachinePool --group infrastructure --version v1alpha3 \
   --controller=true --resource=true --make=false
 ```

@@ -28,13 +28,13 @@ that kubeadm enables by default.
 
 Assigning such labels to Nodes must be done after the bootstrap process has completed:
 
-```
+```bash
 kubectl label nodes <name> node-role.kubernetes.io/worker=""
 ```
 
 For convenience, here is an example one-liner to do this post installation
 
-```
+```bash
 # Kubernetes 1.19 (kubeadm 1.19 sets only the node-role.kubernetes.io/master label)
 kubectl get nodes --no-headers -l '!node-role.kubernetes.io/master' -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}' | xargs -I{} kubectl label node {} node-role.kubernetes.io/worker=''
 # Kubernetes >= 1.20 (kubeadm >= 1.20 sets the node-role.kubernetes.io/control-plane label) 
@@ -59,7 +59,7 @@ If the error  `Failed to create inotify object: Too many open files` is present 
 
 On Linux this issue can be resolved by increasing the inotify watch limits with:
 
-```
+```bash
 sysctl fs.inotify.max_user_watches=1048576
 sysctl fs.inotify.max_user_instances=8192
 ```
@@ -78,16 +78,16 @@ If using a version of Docker Desktop for Mac 4.3 or 4.4, the following workaroun
 Increase the maximum inotify file watch settings in the Docker Desktop VM:
 
 1) Enter the Docker Desktop VM
-```
+```bash
 nc -U ~/Library/Containers/com.docker.docker/Data/debug-shell.sock
 ```
 2) Increase the inotify limits using sysctl
-```
+```bash
 sysctl fs.inotify.max_user_watches=1048576
 sysctl fs.inotify.max_user_instances=8192
 ```
 3) Exit the Docker Desktop VM
-```
+```bash
 exit
 ```
 
@@ -96,8 +96,9 @@ exit
 When using older versions of Cluster API 0.4 and 1.0 releases - 0.4.6, 1.0.3 and older respectively - Cert Manager may not be downloadable due to a change in the repository location. This will cause `clusterctl init` to fail with the error:
 
 ```bash
-$ cluster-api % clusterctl init --infrastructure docker
-
+cluster-api % clusterctl init --infrastructure docker
+```
+```bash
 Fetching providers
 Installing cert-manager Version="v1.7.2"
 Error: action failed after 10 attempts: failed to get cert-manager object /, Kind=, /: Object 'Kind' is missing in 'unstructured object has no kind'
@@ -124,14 +125,14 @@ conflicts with clusterctl behavior of picking the latest version of a provider.
 E.g., if you are pinning KCP images to version v1.0.2 but then clusterctl init fetches yamls for version v1.1.0 or greater KCP will 
 fail to start with the following error: 
 
-```
+```bash
 invalid argument "ClusterTopology=false,KubeadmBootstrapFormatIgnition=false" for "--feature-gates" flag: unrecognized feature gate: KubeadmBootstrapFormatIgnition
 ```
 
 In order to solve this problem you should specify the version of the provider you are installing by appending a
 version tag to the provider name:
 
-```shell
+```bash
 clusterctl init -b kubeadm:v1.0.2 -c kubeadm:v1.0.2 --core cluster-api:v1.0.2 -i docker:v1.0.2
 ```
 

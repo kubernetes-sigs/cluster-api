@@ -53,7 +53,7 @@ First, you will need to create a Secret containing the API server etcd client ce
 
 ```bash
 # Kubernetes API server etcd client certificate and key
-$ kubectl create secret tls $CLUSTER_NAME-apiserver-etcd-client \
+kubectl create secret tls $CLUSTER_NAME-apiserver-etcd-client \
   --cert apiserver-etcd-client.crt \
   --key apiserver-etcd-client.key \
   --namespace $CLUSTER_NAMESPACE
@@ -63,7 +63,7 @@ Next, create a Secret for the etcd cluster's CA certificate. The `kubectl create
 
 ```bash
 # Etcd's CA crt file to validate the generated client certificates
-$ kubectl create secret generic $CLUSTER_NAME-etcd \
+kubectl create secret generic $CLUSTER_NAME-etcd \
   --from-file tls.crt \
   --namespace $CLUSTER_NAMESPACE
 ```

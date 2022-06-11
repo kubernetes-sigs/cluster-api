@@ -52,7 +52,7 @@ sudo chmod u+x /usr/local/bin/kustomize
 {{#/tab }}
 {{#/tabs }}
 
-```
+```bash
 # Install Kubebuilder
 os=$(go env GOOS)
 arch=$(go env GOARCH)

@@ -16,7 +16,7 @@ This requires the bash-completion framework.
 
 To install `bash-completion` on macOS, use Homebrew:
 
-```
+```bash
 brew install bash-completion
 ```
 
@@ -34,11 +34,11 @@ You now have to ensure that the clusterctl completion script gets sourced in
 all your shell sessions. There are multiple ways to achieve this:
 
 - Source the completion script in your `~/.bash_profile` file:
-    ```
+    ```bash
     source <(clusterctl completion bash)
     ```
 - Add the completion script to the /usr/local/etc/bash_completion.d directory:
-    ```
+    ```bash
     clusterctl completion bash >/usr/local/etc/bash_completion.d/clusterctl
     ```
 

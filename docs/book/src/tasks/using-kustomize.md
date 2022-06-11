@@ -11,7 +11,7 @@ may be integrated into `clusterctl` to help address this need, but in the meanti
 This document provides a few examples of using `kustomize` with Cluster API. All of these examples
 assume that you are using a directory structure that looks something like this:
 
-```
+```bash
 .
 ├── base
 │   ├── base.yaml

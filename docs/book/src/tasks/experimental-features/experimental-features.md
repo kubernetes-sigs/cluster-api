@@ -57,8 +57,10 @@ For more details on setting up a development environment with `tilt`, see [Devel
 To enable/disable features on existing management clusters, users can modify CAPI controller manager deployment which will restart all controllers with requested features.
 
 ```
-#  kubectl edit -n capi-system deployment.apps/capi-controller-manager
-   // Enable/disable available feautures by modifying Args below.
+kubectl edit -n capi-system deployment.apps/capi-controller-manager
+```
+```
+// Enable/disable available feautures by modifying Args below.
     Args:
       --leader-elect
       --feature-gates=MachinePool=true,ClusterResourceSet=true
@@ -66,8 +68,8 @@ To enable/disable features on existing management clusters, users can modify CAP
 
 Similarly, to **validate** if a particular feature is enabled, see cluster-api-provider deployment arguments by:
 
-```
-# kubectl describe -n capi-system deployment.apps/capi-controller-manager
+```bash
+kubectl describe -n capi-system deployment.apps/capi-controller-manager
 ```
 
 ## Active Experimental Features

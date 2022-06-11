@@ -146,6 +146,8 @@ run,
 
 ```bash
 clusterctl init --infrastructure aws:v0.5.0 -v5
+```
+```bash
 ...
 Using Override="infrastructure-components.yaml" Provider="infrastructure-aws" Version="v0.5.0"
 ...

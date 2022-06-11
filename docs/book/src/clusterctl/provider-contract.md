@@ -56,7 +56,7 @@ clusterctl supports reading from a repository defined on the local file system.
 A local repository can be defined by creating a `<provider-label>` folder with a `<version>` sub-folder for each hosted release;
 the sub-folder name MUST be a valid semantic version number. e.g.
 
-```
+```bash
 ~/local-repository/infrastructure-aws/v0.5.2
 ```
 

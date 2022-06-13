@@ -227,8 +227,12 @@ func extensionConfig(specName string, namespace *corev1.Namespace) *runtimev1.Ex
 				},
 			},
 			NamespaceSelector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"kubernetes.io/metadata.name:": namespace.Name,
+				MatchExpressions: []metav1.LabelSelectorRequirement{
+					{
+						Key:      "kubernetes.io/metadata.name",
+						Operator: metav1.LabelSelectorOpIn,
+						Values:   []string{namespace.Name},
+					},
 				},
 			},
 		},

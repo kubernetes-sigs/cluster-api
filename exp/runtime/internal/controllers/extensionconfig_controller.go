@@ -36,6 +36,7 @@ import (
 )
 
 // +kubebuilder:rbac:groups=runtime.cluster.x-k8s.io,resources=extensionconfigs;extensionconfigs/status,verbs=get;list;watch;patch;update
+// +kubebuilder:rbac:groups="",resources=namespaces,verbs=get;list;watch
 
 // Reconciler reconciles an ExtensionConfig object.
 type Reconciler struct {

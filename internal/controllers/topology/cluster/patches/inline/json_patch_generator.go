@@ -54,14 +54,14 @@ func New(patch *clusterv1.ClusterClassPatch) api.Generator {
 func (j *jsonPatchGenerator) Generate(_ context.Context, req *runtimehooksv1.GeneratePatchesRequest) *runtimehooksv1.GeneratePatchesResponse {
 	resp := &runtimehooksv1.GeneratePatchesResponse{}
 
-	globalVariables := toMap(req.Variables)
+	globalVariables := patchvariables.ToMap(req.Variables)
 
 	// Loop over all templates.
 	errs := []error{}
 	for i := range req.Items {
 		item := &req.Items[i]
 
-		templateVariables := toMap(item.Variables)
+		templateVariables := patchvariables.ToMap(item.Variables)
 
 		// Calculate the list of patches which match the current template.
 		matchingPatches := []clusterv1.PatchDefinition{}
@@ -78,7 +78,7 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, req *runtimehooksv1.Gen
 		}
 
 		// Merge template-specific and global variables.
-		variables, err := mergeVariableMaps(globalVariables, templateVariables)
+		variables, err := patchvariables.MergeVariableMaps(globalVariables, templateVariables)
 		if err != nil {
 			errs = append(errs, errors.Wrapf(err, "failed to merge global and template-specific variables for item with uid %q", item.UID))
 			continue
@@ -122,15 +122,6 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, req *runtimehooksv1.Gen
 	}
 
 	return resp
-}
-
-// toMap converts a list of Variables to a map of JSON (name is the map key).
-func toMap(variables []runtimehooksv1.Variable) map[string]apiextensionsv1.JSON {
-	variablesMap := map[string]apiextensionsv1.JSON{}
-	for i := range variables {
-		variablesMap[variables[i].Name] = variables[i].Value
-	}
-	return variablesMap
 }
 
 // matchesSelector returns true if the GeneratePatchesRequestItem matches the selector.
@@ -356,54 +347,4 @@ func calculateTemplateData(variables map[string]apiextensionsv1.JSON) (map[strin
 	}
 
 	return res, nil
-}
-
-// mergeVariableMaps merges variables.
-// NOTE: In case a variable exists in multiple maps, the variable from the latter map is preserved.
-// NOTE: The builtin variable object is merged instead of simply overwritten.
-func mergeVariableMaps(variableMaps ...map[string]apiextensionsv1.JSON) (map[string]apiextensionsv1.JSON, error) {
-	res := make(map[string]apiextensionsv1.JSON)
-
-	for _, variableMap := range variableMaps {
-		for variableName, variableValue := range variableMap {
-			// If the variable already exits and is the builtin variable, merge it.
-			if _, ok := res[variableName]; ok && variableName == patchvariables.BuiltinsName {
-				mergedV, err := mergeBuiltinVariables(res[variableName], variableValue)
-				if err != nil {
-					return nil, errors.Wrapf(err, "failed to merge builtin variables")
-				}
-				res[variableName] = *mergedV
-				continue
-			}
-			res[variableName] = variableValue
-		}
-	}
-
-	return res, nil
-}
-
-// mergeBuiltinVariables merges builtin variable objects.
-// NOTE: In case a variable exists in multiple builtin variables, the variable from the latter map is preserved.
-func mergeBuiltinVariables(variableList ...apiextensionsv1.JSON) (*apiextensionsv1.JSON, error) {
-	builtins := &patchvariables.Builtins{}
-
-	// Unmarshal all variables into builtins.
-	// NOTE: This accumulates the fields on the builtins.
-	// Fields will be overwritten by later Unmarshals if fields are
-	// set on multiple variables.
-	for _, variable := range variableList {
-		if err := json.Unmarshal(variable.Raw, builtins); err != nil {
-			return nil, errors.Wrapf(err, "failed to unmarshal builtin variable")
-		}
-	}
-
-	// Marshal builtins to JSON.
-	builtinVariableJSON, err := json.Marshal(builtins)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to marshal builtin variable")
-	}
-
-	return &apiextensionsv1.JSON{
-		Raw: builtinVariableJSON,
-	}, nil
 }

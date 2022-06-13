@@ -145,8 +145,7 @@ func (c *Catalog) AddHook(gv schema.GroupVersion, hookFunc Hook, hookMeta *HookM
 	}
 
 	// Calculate the hook name based on the func name.
-	hookFuncName := goruntime.FuncForPC(reflect.ValueOf(hookFunc).Pointer()).Name()
-	hookName := hookFuncName[strings.LastIndex(hookFuncName, ".")+1:]
+	hookName := HookName(hookFunc)
 
 	gvh := GroupVersionHook{
 		Group:   gv.Group,
@@ -345,6 +344,13 @@ func (gvh GroupVersionHook) GroupHook() GroupHook {
 
 func (gvh GroupVersionHook) String() string {
 	return strings.Join([]string{gvh.Group, "/", gvh.Version, ", Hook=", gvh.Hook}, "")
+}
+
+// HookName returns the name of the runtime hook.
+func HookName(hook Hook) string {
+	hookFuncName := goruntime.FuncForPC(reflect.ValueOf(hook).Pointer()).Name()
+	hookName := hookFuncName[strings.LastIndex(hookFuncName, ".")+1:]
+	return hookName
 }
 
 var emptyGroupVersionHook = GroupVersionHook{}

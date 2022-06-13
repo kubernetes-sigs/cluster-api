@@ -214,8 +214,16 @@ func validateExtensionConfigSpec(e *runtimev1.ExtensionConfig) field.ErrorList {
 	}
 	if e.Spec.NamespaceSelector == nil {
 		allErrs = append(allErrs, field.Required(
-			specPath.Child("NamespaceSelector"),
+			specPath.Child("namespaceSelector"),
 			"must be defined",
+		))
+	}
+
+	if _, err := metav1.LabelSelectorAsSelector(e.Spec.NamespaceSelector); err != nil {
+		allErrs = append(allErrs, field.Invalid(
+			specPath.Child("namespaceSelector"),
+			e.Spec.NamespaceSelector,
+			err.Error(),
 		))
 	}
 	return allErrs

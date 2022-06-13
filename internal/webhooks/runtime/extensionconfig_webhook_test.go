@@ -192,6 +192,26 @@ func TestExtensionConfigValidate(t *testing.T) {
 	extensionWithInvalidServicePort := extensionWithService.DeepCopy()
 	extensionWithInvalidServicePort.Spec.ClientConfig.Service.Port = pointer.Int32(90000)
 
+	extensionWithInvalidNamespaceSelector := extensionWithService.DeepCopy()
+	extensionWithInvalidNamespaceSelector.Spec.NamespaceSelector = &metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{
+			{
+				Key:      "foo",
+				Operator: "bad-operator",
+				Values:   []string{"foo", "bar"},
+			},
+		},
+	}
+	extensionWithValidNamespaceSelector := extensionWithService.DeepCopy()
+	extensionWithValidNamespaceSelector.Spec.NamespaceSelector = &metav1.LabelSelector{
+		MatchExpressions: []metav1.LabelSelectorRequirement{
+			{
+				Key:      "foo",
+				Operator: metav1.LabelSelectorOpExists,
+			},
+		},
+	}
+
 	tests := []struct {
 		name        string
 		in          *runtimev1.ExtensionConfig
@@ -233,6 +253,19 @@ func TestExtensionConfigValidate(t *testing.T) {
 		{
 			name:        "creation should fail if Service Namespace violates Kubernetes naming rules",
 			in:          extensionWithBadServiceNamespace,
+			featureGate: true,
+			expectErr:   true,
+		},
+		{
+			name:        "creation should succeed if NamespaceSelector is correctly defined",
+			in:          extensionWithValidNamespaceSelector,
+			featureGate: true,
+			expectErr:   false,
+		},
+
+		{
+			name:        "creation should fail if NamespaceSelector is incorrectly defined",
+			in:          extensionWithInvalidNamespaceSelector,
 			featureGate: true,
 			expectErr:   true,
 		},

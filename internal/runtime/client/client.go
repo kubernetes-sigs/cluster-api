@@ -30,6 +30,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -37,11 +39,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/transport"
 	"k8s.io/utils/pointer"
+	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 type errCallingExtensionHandler error
@@ -52,6 +56,7 @@ const defaultDiscoveryTimeout = 10 * time.Second
 type Options struct {
 	Catalog  *runtimecatalog.Catalog
 	Registry runtimeregistry.ExtensionRegistry
+	Client   ctrlclient.Client
 }
 
 // New returns a new Client.
@@ -59,6 +64,7 @@ func New(options Options) Client {
 	return &client{
 		catalog:  options.Catalog,
 		registry: options.Registry,
+		Client:   options.Client,
 	}
 }
 
@@ -83,10 +89,10 @@ type Client interface {
 	Unregister(extensionConfig *runtimev1.ExtensionConfig) error
 
 	// CallAllExtensions calls all the ExtensionHandler registered for the hook.
-	CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, request runtime.Object, response runtimehooksv1.ResponseObject) error
+	CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtime.Object, response runtimehooksv1.ResponseObject) error
 
 	// CallExtension calls only the ExtensionHandler with the given name.
-	CallExtension(ctx context.Context, hook runtimecatalog.Hook, name string, request runtime.Object, response runtimehooksv1.ResponseObject) error
+	CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtime.Object, response runtimehooksv1.ResponseObject) error
 }
 
 var _ Client = &client{}
@@ -94,6 +100,7 @@ var _ Client = &client{}
 type client struct {
 	catalog  *runtimecatalog.Catalog
 	registry runtimeregistry.ExtensionRegistry
+	Client   ctrlclient.Client
 }
 
 func (c *client) WarmUp(extensionConfigList *runtimev1.ExtensionConfigList) error {
@@ -176,7 +183,7 @@ func (c *client) Unregister(extensionConfig *runtimev1.ExtensionConfig) error {
 // This ensures we don't end up waiting for timeout from multiple unreachable Extensions.
 // See CallExtension for more details on when an ExtensionHandler returns an error.
 // The aggregate result of the ExtensionHandlers is updated into the response object passed to the function.
-func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, request runtime.Object, response runtimehooksv1.ResponseObject) error {
+func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtime.Object, response runtimehooksv1.ResponseObject) error {
 	gvh, err := c.catalog.GroupVersionHook(hook)
 	if err != nil {
 		return errors.Wrap(err, "failed to compute GroupVersionHook")
@@ -204,7 +211,16 @@ func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook
 		}
 		tmpResponse := responseObject.(runtimehooksv1.ResponseObject)
 
-		err = c.CallExtension(ctx, hook, registration.Name, request, tmpResponse)
+		// Compute whether the object the call is being made for matches the namespaceSelector
+		namespaceMatches, err := c.matchNamespace(ctx, registration.NamespaceSelector, forObject.GetNamespace())
+		if err != nil {
+			return errors.Errorf("ExtensionHandler %q namespaceSelector could not be resolved", registration.Name)
+		}
+		// If the object namespace isn't matched by the registration NamespaceSelector skip the call.
+		if !namespaceMatches {
+			continue
+		}
+		err = c.CallExtension(ctx, hook, forObject, registration.Name, request, tmpResponse)
 		// If one of the extension handlers fails lets short-circuit here and return early.
 		if err != nil {
 			return errors.Wrapf(err, "ExtensionHandler %s failed", registration.Name)
@@ -268,7 +284,7 @@ func lowestNonZeroRetryAfterSeconds(i, j int32) int32 {
 // Nb. FailurePolicy does not affect the following kinds of errors:
 // - Internal errors. Examples: hooks is incompatible with ExtensionHandler, ExtensionHandler information is missing.
 // - Error when ExtensionHandler returns a response with `Status` set to `Failure`.
-func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, name string, request runtime.Object, response runtimehooksv1.ResponseObject) error {
+func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtime.Object, response runtimehooksv1.ResponseObject) error {
 	hookGVH, err := c.catalog.GroupVersionHook(hook)
 	if err != nil {
 		return errors.Wrap(err, "failed to compute GroupVersionHook")
@@ -288,6 +304,16 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, na
 	}
 	if hookGVH.GroupHook() != registration.GroupVersionHook.GroupHook() {
 		return errors.Errorf("ExtensionHandler %q does not match group %s, hook %s", name, hookGVH.Group, hookGVH.Hook)
+	}
+
+	// Compute whether the object the call is being made for matches the namespaceSelector
+	namespaceMatches, err := c.matchNamespace(ctx, registration.NamespaceSelector, forObject.GetNamespace())
+	if err != nil {
+		return errors.Errorf("ExtensionHandler %q namespaceSelector could not be resolved", name)
+	}
+	// If the object namespace isn't matched by the registration NamespaceSelector return an error.
+	if !namespaceMatches {
+		return errors.Errorf("ExtensionHandler %q namespaceSelector did not match object %s", name, util.ObjectKey(forObject))
 	}
 
 	var timeoutDuration time.Duration
@@ -548,4 +574,23 @@ func defaultDiscoveryResponse(discovery *runtimehooksv1.DiscoveryResponse) *runt
 		discovery.Handlers[i] = handler
 	}
 	return discovery
+}
+
+// matchNamespace returns true if the passed namespace matches the selector. It returns an error if the namespace does
+// not exist in the API server.
+func (c *client) matchNamespace(ctx context.Context, selector labels.Selector, namespace string) (bool, error) {
+	// return early if the selector is empty.
+	if selector.Empty() {
+		return true, nil
+	}
+	ns := &metav1.PartialObjectMetadata{}
+	ns.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "Namespace",
+	})
+	if err := c.Client.Get(ctx, ctrlclient.ObjectKey{Name: namespace}, ns); err != nil {
+		return false, errors.Wrapf(err, "failed to find namespace %s for extension namespaceSelector", namespace)
+	}
+	return selector.Matches(labels.Set(ns.GetLabels())), nil
 }

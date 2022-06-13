@@ -38,105 +38,119 @@ type Handler struct {
 }
 
 // DoBeforeClusterCreate implements the BeforeClusterCreate hook.
-func (h *Handler) DoBeforeClusterCreate(ctx context.Context, request *runtimehooksv1.BeforeClusterCreateRequest, response *runtimehooksv1.BeforeClusterCreateResponse) (retErr error) {
+func (h *Handler) DoBeforeClusterCreate(ctx context.Context, request *runtimehooksv1.BeforeClusterCreateRequest, response *runtimehooksv1.BeforeClusterCreateResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("BeforeClusterCreate is called")
 	cluster := request.Cluster
 	responseInfo, err := h.responseFromConfigMap(cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterCreate)
 	if err != nil {
-		return err
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+		return
 	}
 	response.Status = runtimehooksv1.ResponseStatus(responseInfo["Status"])
 	retryAfterSeconds, err := strconv.Atoi(responseInfo["RetryAfterSeconds"]) //nolint:gosec
 	if err != nil {
-		return err
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+		return
 	}
 	response.RetryAfterSeconds = int32(retryAfterSeconds)
 	log.Info(fmt.Sprintf("BeforeClusterCreate responding RetryAfterSeconds: %v\n", response.RetryAfterSeconds))
-	return nil
 }
 
 // DoBeforeClusterUpgrade implements the BeforeClusterUpgrade hook.
-func (h *Handler) DoBeforeClusterUpgrade(ctx context.Context, request *runtimehooksv1.BeforeClusterUpgradeRequest, response *runtimehooksv1.BeforeClusterUpgradeResponse) (retErr error) {
+func (h *Handler) DoBeforeClusterUpgrade(ctx context.Context, request *runtimehooksv1.BeforeClusterUpgradeRequest, response *runtimehooksv1.BeforeClusterUpgradeResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("BeforeClusterUpgrade is called")
 	cluster := request.Cluster
 	responseInfo, err := h.responseFromConfigMap(cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterUpgrade)
 	if err != nil {
-		return err
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+		return
 	}
 	response.Status = runtimehooksv1.ResponseStatus(responseInfo["Status"])
 	retryAfterSeconds, err := strconv.Atoi(responseInfo["RetryAfterSeconds"]) //nolint:gosec
 	if err != nil {
-		return err
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+		return
 	}
 	response.RetryAfterSeconds = int32(retryAfterSeconds)
 	log.Info(fmt.Sprintf("BeforeClusterUpgrade responding RetryAfterSeconds: %v\n", response.RetryAfterSeconds))
-	return nil
 }
 
 // DoAfterControlPlaneInitialized implements the AfterControlPlaneInitialized hook.
-func (h *Handler) DoAfterControlPlaneInitialized(ctx context.Context, request *runtimehooksv1.AfterControlPlaneInitializedRequest, response *runtimehooksv1.AfterControlPlaneInitializedResponse) (retErr error) {
+func (h *Handler) DoAfterControlPlaneInitialized(ctx context.Context, request *runtimehooksv1.AfterControlPlaneInitializedRequest, response *runtimehooksv1.AfterControlPlaneInitializedResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("AfterControlPlaneInitialized is called")
 	cluster := request.Cluster
 	responseInfo, err := h.responseFromConfigMap(cluster.Name, cluster.Namespace, runtimehooksv1.AfterControlPlaneInitialized)
 	if err != nil {
-		return err
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+		return
 	}
 	response.Status = runtimehooksv1.ResponseStatus(responseInfo["Status"])
-	return nil
 }
 
 // DoAfterControlPlaneUpgrade implements the AfterControlPlaneUpgrade hook.
-func (h *Handler) DoAfterControlPlaneUpgrade(ctx context.Context, request *runtimehooksv1.AfterControlPlaneUpgradeRequest, response *runtimehooksv1.AfterControlPlaneUpgradeResponse) (retErr error) {
+func (h *Handler) DoAfterControlPlaneUpgrade(ctx context.Context, request *runtimehooksv1.AfterControlPlaneUpgradeRequest, response *runtimehooksv1.AfterControlPlaneUpgradeResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("AfterControlPlaneUpgrade is called")
 	cluster := request.Cluster
 	responseInfo, err := h.responseFromConfigMap(cluster.Name, cluster.Namespace, runtimehooksv1.AfterControlPlaneUpgrade)
 	if err != nil {
-		return err
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+		return
 	}
 	response.Status = runtimehooksv1.ResponseStatus(responseInfo["Status"])
 	retryAfterSeconds, err := strconv.Atoi(responseInfo["RetryAfterSeconds"]) //nolint:gosec
 	if err != nil {
-		return err
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+		return
 	}
 	response.RetryAfterSeconds = int32(retryAfterSeconds)
 	log.Info(fmt.Sprintf("AfterControlPlaneUpgrade responding RetryAfterSeconds: %v\n", response.RetryAfterSeconds))
-	return nil
 }
 
 // DoAfterClusterUpgrade implements the AfterClusterUpgrade hook.
-func (h *Handler) DoAfterClusterUpgrade(ctx context.Context, request *runtimehooksv1.AfterClusterUpgradeRequest, response *runtimehooksv1.AfterClusterUpgradeResponse) (retErr error) {
+func (h *Handler) DoAfterClusterUpgrade(ctx context.Context, request *runtimehooksv1.AfterClusterUpgradeRequest, response *runtimehooksv1.AfterClusterUpgradeResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("AfterClusterUpgrade is called")
 	cluster := request.Cluster
 	responseInfo, err := h.responseFromConfigMap(cluster.Name, cluster.Namespace, runtimehooksv1.AfterClusterUpgrade)
 	if err != nil {
-		return err
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+		return
 	}
 	response.Status = runtimehooksv1.ResponseStatus(responseInfo["Status"])
-	return nil
 }
 
 // DoBeforeClusterDelete implements the BeforeClusterDelete hook.
-func (h *Handler) DoBeforeClusterDelete(ctx context.Context, request *runtimehooksv1.BeforeClusterDeleteRequest, response *runtimehooksv1.BeforeClusterDeleteResponse) (retErr error) {
+func (h *Handler) DoBeforeClusterDelete(ctx context.Context, request *runtimehooksv1.BeforeClusterDeleteRequest, response *runtimehooksv1.BeforeClusterDeleteResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("BeforeClusterDelete is called")
 	cluster := request.Cluster
 	responseInfo, err := h.responseFromConfigMap(cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterDelete)
 	if err != nil {
-		return err
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+		return
 	}
 	response.Status = runtimehooksv1.ResponseStatus(responseInfo["Status"])
 	retryAfterSeconds, err := strconv.Atoi(responseInfo["RetryAfterSeconds"]) //nolint:gosec
 	if err != nil {
-		return err
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+		return
 	}
 	response.RetryAfterSeconds = int32(retryAfterSeconds)
 	log.Info(fmt.Sprintf("BeforeClusterDelete responding RetryAfterSeconds: %v\n", response.RetryAfterSeconds))
-	return nil
 }
 
 func (h *Handler) responseFromConfigMap(name, namespace string, hook runtimecatalog.Hook) (map[string]string, error) {

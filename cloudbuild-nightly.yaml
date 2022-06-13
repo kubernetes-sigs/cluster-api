@@ -14,6 +14,7 @@ steps:
     args:
     - release-staging-nightly
   - name: 'gcr.io/k8s-staging-test-infra/gcb-docker-gcloud:v20220609-2e4c91eb7e'
+    entrypoint: make
     env:
     - DOCKER_CLI_EXPERIMENTAL=enabled
     - TAG=$_GIT_TAG

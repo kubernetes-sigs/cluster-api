@@ -98,6 +98,11 @@ func warmupRegistry(ctx context.Context, client client.Client, reader client.Rea
 		extensionConfig := &extensionConfigList.Items[i]
 		original := extensionConfig.DeepCopy()
 
+		// Inject CABundle from secret if annotation is set. Otherwise https calls may fail.
+		if err := reconcileCABundle(ctx, client, extensionConfig); err != nil {
+			errs = append(errs, err)
+		}
+
 		extensionConfig, err := discoverExtensionConfig(ctx, runtimeClient, extensionConfig)
 		if err != nil {
 			errs = append(errs, err)

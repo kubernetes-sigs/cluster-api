@@ -202,4 +202,9 @@ const (
 
 	// DiscoveryFailedReason documents failure of a Discovery call.
 	DiscoveryFailedReason string = "DiscoveryFailed"
+
+	// InjectCAFromSecretAnnotation is the annotation that specifies that a particular
+	// object wants injection of CAs. It takes the form of a reference to a Secret
+	// as namespace/name.
+	InjectCAFromSecretAnnotation string = "runtime.cluster.x-k8s.io/inject-ca-from-secret"
 )

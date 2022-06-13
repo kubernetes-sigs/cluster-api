@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -27,10 +29,13 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -67,9 +72,18 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 		RuntimeClient: runtimeClient,
 	}
 
-	server := fakeExtensionServer(discoveryHandler("first", "second", "third"))
-	extensionConfig := fakeExtensionConfigForURL(ns.Name, "ext1", server.URL)
+	caCertSecret := fakeCASecret(ns.Name, "ext1-webhook", testcerts.CACert)
+	server, err := fakeSecureExtensionServer(discoveryHandler("first", "second", "third"))
+	g.Expect(err).NotTo(HaveOccurred())
 	defer server.Close()
+	extensionConfig := fakeExtensionConfigForURL(ns.Name, "ext1", server.URL)
+	extensionConfig.Annotations[runtimev1.InjectCAFromSecretAnnotation] = caCertSecret.GetNamespace() + "/" + caCertSecret.GetName()
+
+	// Create the secret which contains the ca certificate.
+	g.Expect(env.CreateAndWait(ctx, caCertSecret)).To(Succeed())
+	defer func() {
+		g.Expect(env.CleanupAndWait(ctx, caCertSecret)).To(Succeed())
+	}()
 	// Create the ExtensionConfig.
 	g.Expect(env.CreateAndWait(ctx, extensionConfig)).To(Succeed())
 	defer func() {
@@ -120,7 +134,8 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 
 	t.Run("Successful reconcile and discovery on Extension update", func(t *testing.T) {
 		// Start a new ExtensionServer where the second handler is removed.
-		updatedServer := fakeExtensionServer(discoveryHandler("first", "third"))
+		updatedServer, err := fakeSecureExtensionServer(discoveryHandler("first", "third"))
+		g.Expect(err).ToNot(HaveOccurred())
 		defer updatedServer.Close()
 		// Close the original server  it's no longer serving.
 		server.Close()
@@ -195,7 +210,8 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		registry := runtimeregistry.New()
 		g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 		extensionName := "ext1"
-		srv1 := fakeExtensionServer(discoveryHandler("first"))
+		srv1, err := fakeSecureExtensionServer(discoveryHandler("first"))
+		g.Expect(err).ToNot(HaveOccurred())
 		defer srv1.Close()
 
 		runtimeClient := runtimeclient.New(runtimeclient.Options{
@@ -228,7 +244,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		extensionName := "ext1"
 
 		// Don't set up a server to run the extensionDiscovery handler.
-		// srv1 := fakeExtensionServer(discoveryHandler("first"))
+		// srv1 := fakeSecureExtensionServer(discoveryHandler("first"))
 		// defer srv1.Close()
 
 		runtimeClient := runtimeclient.New(runtimeclient.Options{
@@ -252,6 +268,70 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		g.Expect(conditions[0].Status).To(Equal(corev1.ConditionFalse))
 		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
 	})
+}
+
+func Test_reconcileCABundle(t *testing.T) {
+	g := NewWithT(t)
+
+	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+
+	tests := []struct {
+		name         string
+		client       client.Client
+		config       *runtimev1.ExtensionConfig
+		wantCABundle []byte
+		wantErr      bool
+	}{
+		{
+			name:    "No-op because no annotation is set",
+			client:  fake.NewClientBuilder().WithScheme(scheme).Build(),
+			config:  fakeCAInjectionRuntimeExtensionConfig("some-namespace", "some-extension-config", "", ""),
+			wantErr: false,
+		},
+		{
+			name: "Inject ca-bundle",
+			client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+				fakeCASecret("some-namespace", "some-ca-secret", []byte("some-ca-data")),
+			).Build(),
+			config:       fakeCAInjectionRuntimeExtensionConfig("some-namespace", "some-extension-config", "some-namespace/some-ca-secret", ""),
+			wantCABundle: []byte(`some-ca-data`),
+			wantErr:      false,
+		},
+		{
+			name: "Update ca-bundle",
+			client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+				fakeCASecret("some-namespace", "some-ca-secret", []byte("some-new-data")),
+			).Build(),
+			config:       fakeCAInjectionRuntimeExtensionConfig("some-namespace", "some-extension-config", "some-namespace/some-ca-secret", "some-old-ca-data"),
+			wantCABundle: []byte(`some-new-data`),
+			wantErr:      false,
+		},
+		{
+			name:    "Fail because secret does not exist",
+			client:  fake.NewClientBuilder().WithScheme(scheme).WithObjects().Build(),
+			config:  fakeCAInjectionRuntimeExtensionConfig("some-namespace", "some-extension-config", "some-namespace/some-ca-secret", ""),
+			wantErr: true,
+		},
+		{
+			name: "Fail because secret does not contain a ca.crt",
+			client: fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+				fakeCASecret("some-namespace", "some-ca-secret", nil),
+			).Build(),
+			config:  fakeCAInjectionRuntimeExtensionConfig("some-namespace", "some-extension-config", "some-namespace/some-ca-secret", ""),
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := reconcileCABundle(context.TODO(), tt.client, tt.config)
+			g.Expect(err != nil).To(Equal(tt.wantErr))
+
+			g.Expect(tt.config.Spec.ClientConfig.CABundle).To(Equal(tt.wantCABundle))
+		})
+	}
 }
 
 func discoveryHandler(handlerList ...string) func(http.ResponseWriter, *http.Request) {
@@ -290,8 +370,9 @@ func fakeExtensionConfigForURL(namespace, name, url string) *runtimev1.Extension
 			APIVersion: runtimehooksv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name:        name,
+			Namespace:   namespace,
+			Annotations: map[string]string{},
 		},
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
@@ -302,9 +383,51 @@ func fakeExtensionConfigForURL(namespace, name, url string) *runtimev1.Extension
 	}
 }
 
-func fakeExtensionServer(discoveryHandler func(w http.ResponseWriter, r *http.Request)) *httptest.Server {
+func fakeSecureExtensionServer(discoveryHandler func(w http.ResponseWriter, r *http.Request)) (*httptest.Server, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", discoveryHandler)
-	srv := httptest.NewServer(mux)
-	return srv
+
+	sCert, err := tls.X509KeyPair(testcerts.ServerCert, testcerts.ServerKey)
+	if err != nil {
+		return nil, err
+	}
+	testServer := httptest.NewUnstartedServer(mux)
+	testServer.TLS = &tls.Config{
+		MinVersion:   tls.VersionTLS13,
+		Certificates: []tls.Certificate{sCert},
+	}
+	testServer.StartTLS()
+
+	return testServer, nil
+}
+
+func fakeCASecret(namespace, name string, caData []byte) *corev1.Secret {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{},
+	}
+	if caData != nil {
+		secret.Data["ca.crt"] = caData
+	}
+	return secret
+}
+
+func fakeCAInjectionRuntimeExtensionConfig(namespace, name, annotationString, caBundleData string) *runtimev1.ExtensionConfig {
+	ext := &runtimev1.ExtensionConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        name,
+			Namespace:   namespace,
+			Annotations: map[string]string{},
+		},
+	}
+	if annotationString != "" {
+		ext.Annotations[runtimev1.InjectCAFromSecretAnnotation] = annotationString
+	}
+	if caBundleData != "" {
+		ext.Spec.ClientConfig.CABundle = []byte(caBundleData)
+	}
+	return ext
 }

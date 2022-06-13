@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
@@ -44,6 +45,13 @@ func Test_warmupRunnable_Start(t *testing.T) {
 		ns, err := env.CreateNamespace(ctx, "test-runtime-extension")
 		g.Expect(err).ToNot(HaveOccurred())
 
+		caCertSecret := fakeCASecret(ns.Name, "ext1-webhook", testcerts.CACert)
+		// Create the secret which contains the fake ca certificate.
+		g.Expect(env.CreateAndWait(ctx, caCertSecret)).To(Succeed())
+		defer func() {
+			g.Expect(env.CleanupAndWait(ctx, caCertSecret)).To(Succeed())
+		}()
+
 		cat := runtimecatalog.New()
 		g.Expect(fakev1alpha1.AddToCatalog(cat)).To(Succeed())
 
@@ -51,10 +59,14 @@ func Test_warmupRunnable_Start(t *testing.T) {
 		g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 
 		for _, name := range []string{"ext1", "ext2", "ext3"} {
-			server := fakeExtensionServer(discoveryHandler("first", "second", "third"))
+			server, err := fakeSecureExtensionServer(discoveryHandler("first", "second", "third"))
+			g.Expect(err).NotTo(HaveOccurred())
 			defer server.Close()
-			g.Expect(env.CreateAndWait(ctx, fakeExtensionConfigForURL(ns.Name, name, server.URL))).To(Succeed())
+			extensionConfig := fakeExtensionConfigForURL(ns.Name, name, server.URL)
+			extensionConfig.Annotations[runtimev1.InjectCAFromSecretAnnotation] = caCertSecret.GetNamespace() + "/" + caCertSecret.GetName()
 
+			// Create the ExtensionConfig.
+			g.Expect(env.CreateAndWait(ctx, extensionConfig)).To(Succeed())
 			defer func(namespace, name, url string) {
 				g.Expect(env.CleanupAndWait(ctx, fakeExtensionConfigForURL(namespace, name, url))).To(Succeed())
 			}(ns.Name, name, server.URL)
@@ -93,7 +105,14 @@ func Test_warmupRunnable_Start(t *testing.T) {
 	t.Run("fail to warm up registry on Start with broken extension", func(t *testing.T) {
 		// This test should time out and throw a failure.
 		ns, err := env.CreateNamespace(ctx, "test-runtime-extension")
-		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(err).NotTo(HaveOccurred())
+
+		caCertSecret := fakeCASecret(ns.Name, "ext1-webhook", testcerts.CACert)
+		// Create the secret which contains the ca certificate.
+		g.Expect(env.CreateAndWait(ctx, caCertSecret)).To(Succeed())
+		defer func() {
+			g.Expect(env.CleanupAndWait(ctx, caCertSecret)).To(Succeed())
+		}()
 
 		cat := runtimecatalog.New()
 		g.Expect(fakev1alpha1.AddToCatalog(cat)).To(Succeed())
@@ -107,9 +126,15 @@ func Test_warmupRunnable_Start(t *testing.T) {
 				g.Expect(env.CreateAndWait(ctx, fakeExtensionConfigForURL(ns.Name, name, "http://localhost:1234"))).To(Succeed())
 				continue
 			}
-			server := fakeExtensionServer(discoveryHandler("first", "second", "third"))
-			g.Expect(env.CreateAndWait(ctx, fakeExtensionConfigForURL(ns.Name, name, server.URL))).To(Succeed())
+			server, err := fakeSecureExtensionServer(discoveryHandler("first", "second", "third"))
+			g.Expect(err).NotTo(HaveOccurred())
 			defer server.Close()
+
+			extensionConfig := fakeExtensionConfigForURL(ns.Name, name, server.URL)
+			extensionConfig.Annotations[runtimev1.InjectCAFromSecretAnnotation] = caCertSecret.GetNamespace() + "/" + caCertSecret.GetName()
+
+			// Create the ExtensionConfig.
+			g.Expect(env.CreateAndWait(ctx, extensionConfig)).To(Succeed())
 		}
 
 		r := &warmupRunnable{

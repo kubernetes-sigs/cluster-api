@@ -432,21 +432,20 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 
 	// use client-go's transport.TLSConfigureFor to ensure good defaults for tls
 	client := http.DefaultClient
-	if opts.config.CABundle != nil {
-		tlsConfig, err := transport.TLSConfigFor(&transport.Config{
-			TLS: transport.TLSConfig{
-				CAData:     opts.config.CABundle,
-				ServerName: extensionURL.Hostname(),
-			},
-		})
-		if err != nil {
-			return errors.Wrap(err, "failed to create tls config")
-		}
-		// this also adds http2
-		client.Transport = utilnet.SetTransportDefaults(&http.Transport{
-			TLSClientConfig: tlsConfig,
-		})
+	tlsConfig, err := transport.TLSConfigFor(&transport.Config{
+		TLS: transport.TLSConfig{
+			CAData:     opts.config.CABundle,
+			ServerName: extensionURL.Hostname(),
+		},
+	})
+	if err != nil {
+		return errors.Wrap(err, "failed to create tls config")
 	}
+	// this also adds http2
+	client.Transport = utilnet.SetTransportDefaults(&http.Transport{
+		TLSClientConfig: tlsConfig,
+	})
+
 	resp, err := client.Do(httpRequest)
 	if err != nil {
 		return errCallingExtensionHandler(
@@ -486,12 +485,8 @@ func urlForExtension(config runtimev1.ClientConfig, gvh runtimecatalog.GroupVers
 		if svc.Port != nil {
 			host = net.JoinHostPort(host, strconv.Itoa(int(*svc.Port)))
 		}
-		scheme := "http"
-		if len(config.CABundle) > 0 {
-			scheme = "https"
-		}
 		u = &url.URL{
-			Scheme: scheme,
+			Scheme: "https",
 			Host:   host,
 		}
 		if svc.Path != nil {
@@ -505,6 +500,9 @@ func urlForExtension(config runtimev1.ClientConfig, gvh runtimecatalog.GroupVers
 		u, err = url.Parse(*config.URL)
 		if err != nil {
 			return nil, errors.Wrap(err, "URL in ClientConfig is invalid")
+		}
+		if u.Scheme != "https" {
+			return nil, errors.Errorf("expected https scheme, got %s", u.Scheme)
 		}
 	}
 	// Add the subpatch to the ExtensionHandler for the given hook.

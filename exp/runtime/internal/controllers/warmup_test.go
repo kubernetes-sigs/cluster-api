@@ -123,7 +123,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 		brokenExtension := "ext2"
 		for _, name := range []string{"ext1", "ext2", "ext3"} {
 			if name == brokenExtension {
-				g.Expect(env.CreateAndWait(ctx, fakeExtensionConfigForURL(ns.Name, name, "http://localhost:1234"))).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, fakeExtensionConfigForURL(ns.Name, name, "https://localhost:1234"))).To(Succeed())
 				continue
 			}
 			server, err := fakeSecureExtensionServer(discoveryHandler("first", "second", "third"))

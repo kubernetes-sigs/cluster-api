@@ -18,6 +18,7 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -32,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apiserver/pkg/admission/plugin/webhook/testcerts"
 	"k8s.io/utils/pointer"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -187,11 +189,14 @@ func TestClient_httpCall(t *testing.T) {
 				// create http server with fakeHookHandler
 				mux := http.NewServeMux()
 				mux.HandleFunc("/", fakeHookHandler)
-				srv := httptest.NewServer(mux)
+
+				srv := newUnstartedTLSServer(mux)
+				srv.StartTLS()
 				defer srv.Close()
 
 				// set url to srv for in tt.opts
 				tt.opts.config.URL = pointer.String(srv.URL)
+				tt.opts.config.CABundle = testcerts.CACert
 			}
 
 			err := httpCall(context.TODO(), tt.request, tt.response, tt.opts)
@@ -260,7 +265,7 @@ func TestURLForExtension(t *testing.T) {
 				extensionHandlerName: "test-handler",
 			},
 			want: want{
-				scheme: "http",
+				scheme: "https",
 				host:   "extension-service.test1.svc:8443",
 				path:   runtimecatalog.GVHToPath(gvh, "test-handler"),
 			},
@@ -525,7 +530,8 @@ func TestClient_CallExtension(t *testing.T) {
 	validExtensionHandlerWithFailPolicy := runtimev1.ExtensionConfig{
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				URL: pointer.String(fmt.Sprintf("http://%s/", testHostPort)),
+				URL:      pointer.String(fmt.Sprintf("https://%s/", testHostPort)),
+				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{},
 		},
@@ -546,7 +552,8 @@ func TestClient_CallExtension(t *testing.T) {
 	validExtensionHandlerWithIgnorePolicy := runtimev1.ExtensionConfig{
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				URL: pointer.String(fmt.Sprintf("http://%s/", testHostPort)),
+				URL:      pointer.String(fmt.Sprintf("https://%s/", testHostPort)),
+				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{}},
 		Status: runtimev1.ExtensionConfigStatus{
@@ -722,8 +729,8 @@ func TestClient_CallExtension(t *testing.T) {
 				if tt.testServer.hostPort == "" {
 					tt.testServer.hostPort = testHostPort
 				}
-				srv := createTestServer(g, tt.testServer)
-				srv.Start()
+				srv := createSecureTestServer(g, tt.testServer)
+				srv.StartTLS()
 				defer srv.Close()
 			}
 
@@ -773,7 +780,8 @@ func TestClient_CallAllExtensions(t *testing.T) {
 	extensionConfig := runtimev1.ExtensionConfig{
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				URL: pointer.String(fmt.Sprintf("http://%s/", testHostPort)),
+				URL:      pointer.String(fmt.Sprintf("https://%s/", testHostPort)),
+				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{},
 		},
@@ -925,8 +933,8 @@ func TestClient_CallAllExtensions(t *testing.T) {
 				if tt.testServer.hostPort == "" {
 					tt.testServer.hostPort = testHostPort
 				}
-				srv := createTestServer(g, tt.testServer)
-				srv.Start()
+				srv := createSecureTestServer(g, tt.testServer)
+				srv.StartTLS()
 				defer srv.Close()
 			}
 
@@ -1142,7 +1150,7 @@ func response(status runtimehooksv1.ResponseStatus) testServerResponse {
 	}
 }
 
-func createTestServer(g *WithT, server testServerConfig) *httptest.Server {
+func createSecureTestServer(g *WithT, server testServerConfig) *httptest.Server {
 	l, err := net.Listen("tcp", server.hostPort)
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -1166,7 +1174,9 @@ func createTestServer(g *WithT, server testServerConfig) *httptest.Server {
 		// Otherwise write a 404.
 		w.WriteHeader(http.StatusNotFound)
 	})
-	srv := httptest.NewUnstartedServer(mux)
+
+	srv := newUnstartedTLSServer(mux)
+
 	// NewUnstartedServer creates a listener. Close that listener and replace
 	// with the one we created.
 	g.Expect(srv.Listener.Close()).To(Succeed())
@@ -1213,4 +1223,17 @@ func fakeRetryableSuccessResponse(retryAfterSeconds int32) *fakev1alpha1.Retryab
 			RetryAfterSeconds: retryAfterSeconds,
 		},
 	}
+}
+
+func newUnstartedTLSServer(handler http.Handler) *httptest.Server {
+	cert, err := tls.X509KeyPair(testcerts.ServerCert, testcerts.ServerKey)
+	if err != nil {
+		panic(err)
+	}
+	srv := httptest.NewUnstartedServer(handler)
+	srv.TLS = &tls.Config{
+		MinVersion:   tls.VersionTLS13,
+		Certificates: []tls.Certificate{cert},
+	}
+	return srv
 }

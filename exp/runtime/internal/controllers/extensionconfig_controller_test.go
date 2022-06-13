@@ -220,6 +220,7 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 		})
 
 		extensionConfig := fakeExtensionConfigForURL(ns.Name, extensionName, srv1.URL)
+		extensionConfig.Spec.ClientConfig.CABundle = testcerts.CACert
 
 		discoveredExtensionConfig, err := discoverExtensionConfig(ctx, runtimeClient, extensionConfig)
 		g.Expect(err).To(BeNil())
@@ -252,7 +253,8 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 			Registry: registry,
 		})
 
-		extensionConfig := fakeExtensionConfigForURL(ns.Name, extensionName, "http://localhost:31239")
+		extensionConfig := fakeExtensionConfigForURL(ns.Name, extensionName, "https://localhost:31239")
+		extensionConfig.Spec.ClientConfig.CABundle = testcerts.CACert
 
 		discoveredExtensionConfig, err := discoverExtensionConfig(ctx, runtimeClient, extensionConfig)
 		g.Expect(err).ToNot(BeNil())

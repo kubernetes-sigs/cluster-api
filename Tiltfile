@@ -29,7 +29,8 @@ os_arch = str(local("go env GOARCH")).rstrip("\n")
 if settings.get("trigger_mode") == "manual":
     trigger_mode(TRIGGER_MODE_MANUAL)
 
-default_registry(settings.get("default_registry"))
+if settings.get("default_registry") != "":
+    default_registry(settings.get("default_registry"))
 
 always_enable_providers = ["core"]
 

@@ -388,9 +388,6 @@ func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 	if err != nil {
 		return errors.Wrapf(err, "unable to set NodeProviderID. error getting a kubectl node")
 	}
-	if kubectlNode == nil {
-		return errors.New("unable to set NodeProviderID. there are no kubectl node available")
-	}
 	if !kubectlNode.IsRunning() {
 		return errors.Wrapf(ContainerNotRunningError{Name: kubectlNode.Name}, "unable to set NodeProviderID")
 	}
@@ -399,7 +396,7 @@ func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 	patch := fmt.Sprintf(`{"spec": {"providerID": %q}}`, m.ProviderID())
 	cmd := kubectlNode.Commander.Command(
 		"kubectl",
-		"--kubeconfig", "/etc/kubernetes/admin.conf",
+		"--kubeconfig", "/etc/kubernetes/kubelet.conf",
 		"patch",
 		"node", m.ContainerName(),
 		"--patch", patch,
@@ -416,28 +413,22 @@ func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 }
 
 func (m *Machine) getKubectlNode(ctx context.Context) (*types.Node, error) {
-	// collect info about the existing controlplane nodes
+	// collect info about the existing nodes
 	filters := container.FilterBuilder{}
 	filters.AddKeyNameValue(filterLabel, clusterLabelKey, m.cluster)
-	filters.AddKeyNameValue(filterLabel, nodeRoleLabelKey, constants.ControlPlaneNodeRoleValue)
 
 	kubectlNodes, err := listContainers(ctx, filters)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
-	if len(kubectlNodes) == 0 {
-		return nil, nil
-	}
-	// Return the first node that is not the current machine.
-	// The assumption being made is that the existing control planes will already be ready.
-	// This is true when we are using kubeadm control plane.
+	// Return the node matching the current machine, required to patch itself using its kubelet config
 	for _, node := range kubectlNodes {
-		if node.Name != m.container.Name {
+		if node.Name == m.container.Name {
 			return node, nil
 		}
 	}
-	// This will happen when the current machine is the only machine.
-	return kubectlNodes[0], nil
+
+	return nil, fmt.Errorf("there are no Kubernetes nodes matching the container name")
 }
 
 // Delete deletes a docker container hosting a Kubernetes node.

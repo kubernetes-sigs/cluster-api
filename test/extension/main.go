@@ -28,9 +28,11 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	"sigs.k8s.io/cluster-api/test/extension/handlers/lifecycle"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/topologymutation"
 	"sigs.k8s.io/cluster-api/test/extension/server"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
@@ -95,6 +97,19 @@ func main() {
 
 	ctx := ctrl.SetupSignalHandler()
 
+	restConfig, err := ctrl.GetConfig()
+	if err != nil {
+		setupLog.Error(err, "error getting config for the cluster")
+		os.Exit(1)
+	}
+	c, err := client.New(restConfig, client.Options{})
+	if err != nil {
+		setupLog.Error(err, "error creating client to the cluster")
+		os.Exit(1)
+	}
+
+	lifecycleHandler := lifecycle.Handler{Client: c}
+
 	webhookServer, err := server.NewServer(server.Options{
 		Catalog: catalog,
 		Port:    webhookPort,
@@ -105,6 +120,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Mutation Hooks
 	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
 		Hook:           runtimehooksv1.GeneratePatches,
 		Name:           "generate-patches",
@@ -115,11 +131,73 @@ func main() {
 		setupLog.Error(err, "error adding handler")
 		os.Exit(1)
 	}
-
 	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
 		Hook:           runtimehooksv1.ValidateTopology,
 		Name:           "validate-topology",
 		HandlerFunc:    topologymutation.ValidateTopology(scheme),
+		TimeoutSeconds: pointer.Int32(5),
+		FailurePolicy:  toPtr(runtimehooksv1.FailurePolicyFail),
+	}); err != nil {
+		setupLog.Error(err, "error adding handler")
+		os.Exit(1)
+	}
+
+	// Lifecycle Hooks
+	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:           runtimehooksv1.BeforeClusterCreate,
+		Name:           "before-cluster-create",
+		HandlerFunc:    lifecycleHandler.DoBeforeClusterCreate,
+		TimeoutSeconds: pointer.Int32(5),
+		FailurePolicy:  toPtr(runtimehooksv1.FailurePolicyFail),
+	}); err != nil {
+		setupLog.Error(err, "error adding handler")
+		os.Exit(1)
+	}
+	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:           runtimehooksv1.AfterControlPlaneInitialized,
+		Name:           "after-control-plane-initialized",
+		HandlerFunc:    lifecycleHandler.DoAfterControlPlaneInitialized,
+		TimeoutSeconds: pointer.Int32(5),
+		FailurePolicy:  toPtr(runtimehooksv1.FailurePolicyFail),
+	}); err != nil {
+		setupLog.Error(err, "error adding handler")
+		os.Exit(1)
+	}
+	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:           runtimehooksv1.BeforeClusterUpgrade,
+		Name:           "before-cluster-upgrade",
+		HandlerFunc:    lifecycleHandler.DoBeforeClusterUpgrade,
+		TimeoutSeconds: pointer.Int32(5),
+		FailurePolicy:  toPtr(runtimehooksv1.FailurePolicyFail),
+	}); err != nil {
+		setupLog.Error(err, "error adding handler")
+		os.Exit(1)
+	}
+
+	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:           runtimehooksv1.AfterControlPlaneUpgrade,
+		Name:           "after-control-plane-upgrade",
+		HandlerFunc:    lifecycleHandler.DoAfterControlPlaneUpgrade,
+		TimeoutSeconds: pointer.Int32(5),
+		FailurePolicy:  toPtr(runtimehooksv1.FailurePolicyFail),
+	}); err != nil {
+		setupLog.Error(err, "error adding handler")
+		os.Exit(1)
+	}
+	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:           runtimehooksv1.AfterClusterUpgrade,
+		Name:           "after-cluster-upgrade",
+		HandlerFunc:    lifecycleHandler.DoAfterClusterUpgrade,
+		TimeoutSeconds: pointer.Int32(5),
+		FailurePolicy:  toPtr(runtimehooksv1.FailurePolicyFail),
+	}); err != nil {
+		setupLog.Error(err, "error adding handler")
+		os.Exit(1)
+	}
+	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:           runtimehooksv1.BeforeClusterDelete,
+		Name:           "before-cluster-delete",
+		HandlerFunc:    lifecycleHandler.DoBeforeClusterDelete,
 		TimeoutSeconds: pointer.Int32(5),
 		FailurePolicy:  toPtr(runtimehooksv1.FailurePolicyFail),
 	}); err != nil {

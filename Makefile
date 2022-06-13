@@ -162,6 +162,10 @@ CLUSTERCTL_MANIFEST_DIR := cmd/clusterctl/config
 CLUSTERCTL_IMAGE_NAME ?= clusterctl
 CLUSTERCTL_IMG ?= $(REGISTRY)/$(CLUSTERCTL_IMAGE_NAME)
 
+# test extension
+TEST_EXTENSION_IMAGE_NAME ?= test-extension
+TEST_EXTENSION_IMG ?= $(REGISTRY)/$(TEST_EXTENSION_IMAGE_NAME)
+
 # It is set by Prow GIT_TAG, a git-based tag of the form vYYYYMMDD-hash, e.g., v20210120-v0.3.10-308-gc61521971
 
 TAG ?= dev
@@ -553,6 +557,12 @@ docker-build-clusterctl: ## Build the docker image for clusterctl with output bi
 
 .PHONY: docker-capd-build-all
 docker-capd-build-all: $(addprefix docker-capd-build-,$(ALL_ARCH)) ## Build capd docker images for all architectures
+
+.PHONY: docker-build-test-extension
+docker-build-test-extension: ## Build the docker image for core controller manager
+	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG) --file ./test/extension/Dockerfile
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(TEST_EXTENSION_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./test/extension/config/default/extension_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./test/extension/config/default/extension_pull_policy.yaml"
 
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework

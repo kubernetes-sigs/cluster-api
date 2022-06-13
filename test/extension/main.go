@@ -1,0 +1,113 @@
+/*
+Copyright 2022 The Kubernetes Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package main
+
+import (
+	"flag"
+	"net/http"
+	"os"
+
+	"github.com/spf13/pflag"
+	"k8s.io/apimachinery/pkg/runtime"
+	cliflag "k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	"sigs.k8s.io/cluster-api/version"
+)
+
+var (
+	catalog  = runtimecatalog.New()
+	scheme   = runtime.NewScheme()
+	setupLog = ctrl.Log.WithName("setup")
+
+	// flags.
+	profilerAddress string
+	webhookPort     int
+	webhookCertDir  string
+	logOptions      = logs.NewOptions()
+)
+
+func init() {
+	_ = infrav1.AddToScheme(scheme)
+
+	// Register the RuntimeHook types into the catalog.
+	_ = runtimehooksv1.AddToCatalog(catalog)
+}
+
+// InitFlags initializes the flags.
+func InitFlags(fs *pflag.FlagSet) {
+	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
+	logOptions.AddFlags(fs)
+
+	fs.StringVar(&profilerAddress, "profiler-address", "",
+		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
+
+	fs.IntVar(&webhookPort, "webhook-port", 9443,
+		"Webhook Server port")
+
+	fs.StringVar(&webhookCertDir, "webhook-cert-dir", "/tmp/k8s-webhook-server/serving-certs/",
+		"Webhook cert dir, only used when webhook-port is specified.")
+}
+
+func main() {
+	InitFlags(pflag.CommandLine)
+	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
+
+	if err := logOptions.ValidateAndApply(nil); err != nil {
+		setupLog.Error(err, "unable to start extension")
+		os.Exit(1)
+	}
+
+	// klog.Background will automatically use the right logger.
+	ctrl.SetLogger(klog.Background())
+
+	if profilerAddress != "" {
+		klog.Infof("Profiler listening for requests at %s", profilerAddress)
+		go func() {
+			klog.Info(http.ListenAndServe(profilerAddress, nil))
+		}()
+	}
+
+	ctx := ctrl.SetupSignalHandler()
+
+	srv := webhook.Server{
+		Host:          "",
+		Port:          webhookPort,
+		CertDir:       webhookCertDir,
+		CertName:      "tls.crt",
+		KeyName:       "tls.key",
+		WebhookMux:    http.NewServeMux(),
+		TLSMinVersion: "1.2",
+	}
+
+	// TODO: next PRs
+	// srv.WebhookMux.Handle("/", operation1Handler)
+
+	setupLog.Info("starting RuntimeExtension", "version", version.Get().String())
+	if err := srv.StartStandalone(ctx, nil); err != nil {
+		setupLog.Error(err, "problem running webhook")
+		os.Exit(1)
+	}
+}

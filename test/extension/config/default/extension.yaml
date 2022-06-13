@@ -1,0 +1,26 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-extension
+spec:
+  selector:
+    matchLabels:
+      app: test-extension
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: test-extension
+    spec:
+      containers:
+      - command:
+        - /extension
+        image: controller:latest
+        name: extension
+      terminationGracePeriodSeconds: 10
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane

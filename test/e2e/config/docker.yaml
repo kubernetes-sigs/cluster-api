@@ -17,6 +17,8 @@ images:
   loadBehavior: tryLoad
 - name: gcr.io/k8s-staging-cluster-api/capd-manager-{ARCH}:dev
   loadBehavior: tryLoad
+- name: gcr.io/k8s-staging-cluster-api/test-extension-{ARCH}:dev
+  loadBehavior: tryLoad
 - name: quay.io/jetstack/cert-manager-cainjector:v1.7.2
   loadBehavior: tryLoad
 - name: quay.io/jetstack/cert-manager-webhook:v1.7.2
@@ -188,11 +190,14 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-node-drain.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-upgrades.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-upgrades-cgroupfs.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-upgrades-runtimesdk.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-upgrades-runtimesdk-cgroupfs.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-kcp-scale-in.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-ipv6.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-ignition.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/clusterclass-quick-start.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/clusterclass-quick-start-runtimesdk.yaml"
     - sourcePath: "../data/shared/v1beta1/metadata.yaml"
 
 variables:
@@ -214,6 +219,7 @@ variables:
   DOCKER_POD_IPV6_CIDRS: "fd00:100:96::/48"
   CNI: "./data/cni/kindnet/kindnet.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
+  TEST_EXTENSION: "./data/test-extension/deployment.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
   # Enabling the feature flags by setting the env variables.
   EXP_CLUSTER_RESOURCE_SET: "true"

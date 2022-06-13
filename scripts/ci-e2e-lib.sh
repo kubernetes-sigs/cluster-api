@@ -39,6 +39,14 @@ capi:buildDockerImages () {
   else
     echo "+ CAPD images already present in the system, skipping make"
   fi
+
+  ## Build test extension images, if missing
+  if [[ "$(docker images -q "$REGISTRY/test-extension-$ARCH:$TAG" 2> /dev/null)" == "" ]]; then
+    echo "+ Building test-extension image"
+    make docker-build-test-extension
+  else
+    echo "+ test-extension image already present in the system, skipping make"
+  fi
 }
 
 # k8s::prepareKindestImages checks all the e2e test variables representing a Kubernetes version,

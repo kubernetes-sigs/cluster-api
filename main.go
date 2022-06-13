@@ -377,6 +377,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			RuntimeClient: runtimeclient.New(runtimeclient.Options{
 				Catalog:  catalog,
 				Registry: registry,
+				Client:   mgr.GetClient(),
 			}),
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(extensionConfigConcurrency)); err != nil {

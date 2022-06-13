@@ -216,7 +216,7 @@ func extensionConfig(specName string, namespace *corev1.Namespace) *runtimev1.Ex
 		ObjectMeta: metav1.ObjectMeta{
 			Name: fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 			Annotations: map[string]string{
-				"cert-manager.io/inject-ca-from-secret": fmt.Sprintf("%s/webhook-service-cert", namespace.Name),
+				runtimev1.InjectCAFromSecretAnnotation: fmt.Sprintf("%s/webhook-service-cert", namespace.Name),
 			},
 		},
 		Spec: runtimev1.ExtensionConfigSpec{

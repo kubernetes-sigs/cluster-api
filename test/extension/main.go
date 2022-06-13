@@ -26,18 +26,21 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	"sigs.k8s.io/cluster-api/test/extension/handlers/topologymutation"
+	"sigs.k8s.io/cluster-api/test/extension/server"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/version"
 )
 
 var (
-	catalog  = runtimecatalog.New()
-	scheme   = runtime.NewScheme()
+	catalog = runtimecatalog.New()
+	scheme  = runtime.NewScheme()
+
 	setupLog = ctrl.Log.WithName("setup")
 
 	// flags.
@@ -92,22 +95,47 @@ func main() {
 
 	ctx := ctrl.SetupSignalHandler()
 
-	srv := webhook.Server{
-		Host:          "",
-		Port:          webhookPort,
-		CertDir:       webhookCertDir,
-		CertName:      "tls.crt",
-		KeyName:       "tls.key",
-		WebhookMux:    http.NewServeMux(),
-		TLSMinVersion: "1.2",
-	}
-
-	// TODO: next PRs
-	// srv.WebhookMux.Handle("/", operation1Handler)
-
-	setupLog.Info("starting RuntimeExtension", "version", version.Get().String())
-	if err := srv.StartStandalone(ctx, nil); err != nil {
-		setupLog.Error(err, "problem running webhook")
+	webhookServer, err := server.NewServer(server.Options{
+		Catalog: catalog,
+		Port:    webhookPort,
+		CertDir: webhookCertDir,
+	})
+	if err != nil {
+		setupLog.Error(err, "error creating webhook server")
 		os.Exit(1)
 	}
+
+	topologyMutationHandler := topologymutation.NewHandler(scheme)
+
+	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:           runtimehooksv1.GeneratePatches,
+		Name:           "generate-patches",
+		HandlerFunc:    topologyMutationHandler.GeneratePatches,
+		TimeoutSeconds: pointer.Int32(5),
+		FailurePolicy:  toPtr(runtimehooksv1.FailurePolicyFail),
+	}); err != nil {
+		setupLog.Error(err, "error adding handler")
+		os.Exit(1)
+	}
+
+	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:           runtimehooksv1.ValidateTopology,
+		Name:           "validate-topology",
+		HandlerFunc:    topologyMutationHandler.ValidateTopology,
+		TimeoutSeconds: pointer.Int32(5),
+		FailurePolicy:  toPtr(runtimehooksv1.FailurePolicyFail),
+	}); err != nil {
+		setupLog.Error(err, "error adding handler")
+		os.Exit(1)
+	}
+
+	setupLog.Info("starting RuntimeExtension", "version", version.Get().String())
+	if err := webhookServer.Start(ctx); err != nil {
+		setupLog.Error(err, "error running webhook server")
+		os.Exit(1)
+	}
+}
+
+func toPtr(f runtimehooksv1.FailurePolicy) *runtimehooksv1.FailurePolicy {
+	return &f
 }

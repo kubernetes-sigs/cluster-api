@@ -1,0 +1,34 @@
+# Adds namespace to all resources.
+namespace: capi-kubeadm-bootstrap-system
+
+namePrefix: capi-kubeadm-bootstrap-
+
+commonLabels:
+  cluster.x-k8s.io/provider: "bootstrap-kubeadm"
+
+bases:
+  - ../../../bootstrap/kubeadm/config/manager
+
+patchesStrategicMerge:
+  # Provide customizable hook for make targets.
+  - ../../../bootstrap/kubeadm/config/default/manager_image_patch.yaml
+  - ../../../bootstrap/kubeadm/config/default/manager_pull_policy.yaml
+
+configurations:
+  - ../../../bootstrap/kubeadm/config/default/kustomizeconfig.yaml
+
+patchesJson6902:
+  - target:
+      group: apps
+      kind: Deployment
+      name: controller-manager
+      namespace: system
+      version: v1
+    path: patch_service_account.yaml
+  - target:
+      group: apps
+      kind: Deployment
+      name: controller-manager
+      namespace: system
+      version: v1
+    path: patch_healthcheck.yaml

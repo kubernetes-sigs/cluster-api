@@ -1,0 +1,96 @@
+namespace: capi-system
+
+namePrefix: capi-
+
+commonLabels:
+  cluster.x-k8s.io/provider: "cluster-api"
+
+bases:
+- ../../../config/crd
+- ../../../config/manager
+- ../../../config/webhook
+- ../../../config/certmanager
+
+patchesStrategicMerge:
+# Provide customizable hook for make targets.
+- ../../../config/default/manager_image_patch.yaml
+- ../../../config/default/manager_pull_policy.yaml
+# Enable webhook.
+- ../../../config/default/manager_webhook_patch.yaml
+# Inject certificate in the webhook definition.
+- ../../../config/default/webhookcainjection_patch.yaml
+
+vars:
+  - name: CERTIFICATE_NAMESPACE # namespace of the certificate CR
+    objref:
+      kind: Certificate
+      group: cert-manager.io
+      version: v1
+      name: serving-cert # this name should match the one in certificate.yaml
+    fieldref:
+      fieldpath: metadata.namespace
+  - name: CERTIFICATE_NAME
+    objref:
+      kind: Certificate
+      group: cert-manager.io
+      version: v1
+      name: serving-cert # this name should match the one in certificate.yaml
+  - name: SERVICE_NAMESPACE # namespace of the service
+    objref:
+      kind: Service
+      version: v1
+      name: webhook-service
+    fieldref:
+      fieldpath: metadata.namespace
+  - name: SERVICE_NAME
+    objref:
+      kind: Service
+      version: v1
+      name: webhook-service
+
+configurations:
+  - ../../../config/default/kustomizeconfig.yaml
+
+patchesJson6902:
+  - target:
+      kind: Namespace
+      name: system
+      version: v1
+    path: patch_namespace.yaml
+  - target:
+      group: apps
+      kind: Deployment
+      name: controller-manager
+      namespace: system
+      version: v1
+    path: patch_service_account.yaml
+  - target:
+      group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: clusters.cluster.x-k8s.io
+    path: patch_crd_webhook_namespace.yaml
+  - target:
+      group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: machinedeployments.cluster.x-k8s.io
+    path: patch_crd_webhook_namespace.yaml
+  - target:
+      group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: machines.cluster.x-k8s.io
+    path: patch_crd_webhook_namespace.yaml
+  - target:
+      group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: machinesets.cluster.x-k8s.io
+    path: patch_crd_webhook_namespace.yaml
+  - target:
+      group: apiextensions.k8s.io
+      version: v1
+      kind: CustomResourceDefinition
+      name: machinehealthchecks.cluster.x-k8s.io
+    path: patch_crd_webhook_namespace.yaml

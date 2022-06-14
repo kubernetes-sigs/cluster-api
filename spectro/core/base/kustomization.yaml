@@ -1,0 +1,30 @@
+namespace: capi-system
+
+namePrefix: capi-
+
+commonLabels:
+  cluster.x-k8s.io/provider: "cluster-api"
+
+bases:
+- ../../../config/manager
+
+patchesStrategicMerge:
+# Provide customizable hook for make targets.
+- ../../../config/default/manager_image_patch.yaml
+- ../../../config/default/manager_pull_policy.yaml
+
+patchesJson6902:
+  - target:
+      group: apps
+      kind: Deployment
+      name: controller-manager
+      namespace: system
+      version: v1
+    path: patch_service_account.yaml
+  - target:
+      group: apps
+      kind: Deployment
+      name: controller-manager
+      namespace: system
+      version: v1
+    path: patch_healthcheck.yaml

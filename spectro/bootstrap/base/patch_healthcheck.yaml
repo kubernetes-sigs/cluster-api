@@ -1,0 +1,6 @@
+- op: remove
+  path: "/spec/template/spec/containers/0/ports"
+- op: remove
+  path: "/spec/template/spec/containers/0/livenessProbe"
+- op: remove
+  path: "/spec/template/spec/containers/0/readinessProbe"

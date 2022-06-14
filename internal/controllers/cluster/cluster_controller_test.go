@@ -21,7 +21,9 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,7 +31,9 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -348,6 +352,53 @@ func TestClusterReconciler(t *testing.T) {
 			return conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 		}, timeout).Should(BeTrue())
 	})
+}
+
+func TestClusterReconciler_reconcileDelete(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+
+	fakeInfraCluster := builder.InfrastructureCluster("test-ns", "test-cluster").Build()
+
+	tests := []struct {
+		name       string
+		cluster    *clusterv1.Cluster
+		wantDelete bool
+	}{
+		{
+			name: "should proceed with delete if the cluster has the ok-to-delete annotation",
+			cluster: func() *clusterv1.Cluster {
+				fakeCluster := builder.Cluster("test-ns", "test-cluster").WithTopology(&clusterv1.Topology{}).WithInfrastructureCluster(fakeInfraCluster).Build()
+				if fakeCluster.Annotations == nil {
+					fakeCluster.Annotations = map[string]string{}
+				}
+				fakeCluster.Annotations[runtimev1.OkToDeleteAnnotation] = ""
+				return fakeCluster
+			}(),
+			wantDelete: true,
+		},
+		{
+			name:       "should not proceed with delete if the cluster does not have the ok-to-delete annotation",
+			cluster:    builder.Cluster("test-ns", "test-cluster").WithTopology(&clusterv1.Topology{}).WithInfrastructureCluster(fakeInfraCluster).Build(),
+			wantDelete: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			fakeClient := fake.NewClientBuilder().WithObjects(fakeInfraCluster, tt.cluster).Build()
+			r := &Reconciler{
+				Client:    fakeClient,
+				APIReader: fakeClient,
+			}
+
+			_, _ = r.reconcileDelete(ctx, tt.cluster)
+			infraCluster := builder.InfrastructureCluster("", "").Build()
+			err := fakeClient.Get(ctx, client.ObjectKeyFromObject(fakeInfraCluster), infraCluster)
+			g.Expect(apierrors.IsNotFound(err)).To(Equal(tt.wantDelete))
+		})
+	}
 }
 
 func TestClusterReconcilerNodeRef(t *testing.T) {

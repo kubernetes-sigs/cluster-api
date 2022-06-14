@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -162,9 +163,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// In case the object is deleted, the managed topology stops to reconcile;
 	// (the other controllers will take care of deletion).
 	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		// TODO: When external patching is supported, we should handle the deletion
-		// of those external CRDs we created.
-		return ctrl.Result{}, nil
+		return r.reconcileDelete(ctx, cluster)
 	}
 
 	patchHelper, err := patch.NewHelper(cluster, r.Client)
@@ -334,6 +333,31 @@ func (r *Reconciler) machineDeploymentToCluster(o client.Object) []ctrl.Request 
 			Name:      md.Spec.ClusterName,
 		},
 	}}
+}
+
+func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
+	// Call the BeforeClusterDelete hook if the 'ok-to-delete' annotation is not set
+	// and add the annotation to the cluster after receiving a successful non-blocking response.
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		if !hooks.IsOkToDelete(cluster) {
+			hookRequest := &runtimehooksv1.BeforeClusterDeleteRequest{
+				Cluster: *cluster,
+			}
+			hookResponse := &runtimehooksv1.BeforeClusterDeleteResponse{}
+			if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterDelete, cluster, hookRequest, hookResponse); err != nil {
+				return ctrl.Result{}, err
+			}
+			if hookResponse.RetryAfterSeconds != 0 {
+				return ctrl.Result{RequeueAfter: time.Duration(hookResponse.RetryAfterSeconds) * time.Second}, nil
+			}
+			// The BeforeClusterDelete hook returned a non-blocking response. Now the cluster is ready to be deleted.
+			// Lets mark the cluster as `ok-to-delete`
+			if err := hooks.MarkAsOkToDelete(ctx, r.Client, cluster); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to mark %s/%s cluster as ok to delete", cluster.Namespace, cluster.Name)
+			}
+		}
+	}
+	return ctrl.Result{}, nil
 }
 
 // serverSideApplyPatchHelperFactory makes use of managed fields provided by server side apply and is used by the controller.

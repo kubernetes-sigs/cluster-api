@@ -23,19 +23,23 @@ import (
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -387,6 +391,157 @@ func TestClusterReconciler_reconcileClusterClassRebase(t *testing.T) {
 		g.Expect(assertMachineDeploymentsReconcile(updatedCluster)).Should(Succeed())
 		return nil
 	}, timeout).Should(Succeed())
+}
+
+func TestClusterReconciler_reconcileDelete(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+
+	catalog := runtimecatalog.New()
+	_ = runtimehooksv1.AddToCatalog(catalog)
+
+	beforeClusterDeleteGVH, err := catalog.GroupVersionHook(runtimehooksv1.BeforeClusterDelete)
+	if err != nil {
+		panic(err)
+	}
+
+	blockingResponse := &runtimehooksv1.BeforeClusterDeleteResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			RetryAfterSeconds: int32(10),
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
+		},
+	}
+	nonBlockingResponse := &runtimehooksv1.BeforeClusterDeleteResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			RetryAfterSeconds: int32(0),
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
+		},
+	}
+	failureResponse := &runtimehooksv1.BeforeClusterDeleteResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusFailure,
+			},
+		},
+	}
+
+	tests := []struct {
+		name               string
+		cluster            *clusterv1.Cluster
+		hookResponse       *runtimehooksv1.BeforeClusterDeleteResponse
+		wantHookToBeCalled bool
+		wantResult         ctrl.Result
+		wantOkToDelete     bool
+		wantErr            bool
+	}{
+		{
+			name: "should apply the ok-to-delete annotation if the BeforeClusterDelete hook returns a non-blocking response",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{},
+				},
+			},
+			hookResponse:       nonBlockingResponse,
+			wantResult:         ctrl.Result{},
+			wantHookToBeCalled: true,
+			wantOkToDelete:     true,
+			wantErr:            false,
+		},
+		{
+			name: "should requeue if the BeforeClusterDelete hook returns a blocking response",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{},
+				},
+			},
+			hookResponse:       blockingResponse,
+			wantResult:         ctrl.Result{RequeueAfter: time.Duration(10) * time.Second},
+			wantHookToBeCalled: true,
+			wantOkToDelete:     false,
+			wantErr:            false,
+		},
+		{
+			name: "should fail if the BeforeClusterDelete hook returns a failure response",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{},
+				},
+			},
+			hookResponse:       failureResponse,
+			wantResult:         ctrl.Result{},
+			wantHookToBeCalled: true,
+			wantOkToDelete:     false,
+			wantErr:            true,
+		},
+		{
+			name: "should succeed if the ok-to-delete annotation is already present",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+					Annotations: map[string]string{
+						// If the hook is already marked the hook should not be called during cluster delete.
+						runtimev1.OkToDeleteAnnotation: "",
+					},
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{},
+				},
+			},
+			// Using a blocking response here should not matter as the hook should never be called.
+			// Using a blocking response to enforce the point.
+			hookResponse:       blockingResponse,
+			wantResult:         ctrl.Result{},
+			wantHookToBeCalled: false,
+			wantOkToDelete:     true,
+			wantErr:            false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.cluster).Build()
+			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+					beforeClusterDeleteGVH: tt.hookResponse,
+				}).
+				WithCatalog(catalog).
+				Build()
+
+			r := &Reconciler{
+				Client:        fakeClient,
+				APIReader:     fakeClient,
+				RuntimeClient: fakeRuntimeClient,
+			}
+
+			res, err := r.reconcileDelete(ctx, tt.cluster)
+			if tt.wantErr {
+				g.Expect(err).NotTo(BeNil())
+			} else {
+				g.Expect(err).To(BeNil())
+				g.Expect(res).To(Equal(tt.wantResult))
+				g.Expect(hooks.IsOkToDelete(tt.cluster)).To(Equal(tt.wantOkToDelete))
+				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.BeforeClusterDelete) == 1).To(Equal(tt.wantHookToBeCalled))
+			}
+		})
+	}
 }
 
 // TestClusterReconciler_deleteClusterClass tests the correct deletion behaviour for a ClusterClass with references in existing Clusters.

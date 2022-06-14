@@ -28,12 +28,17 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
@@ -291,7 +296,9 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		obj, err := computeControlPlane(ctx, scope, nil)
+		r := &Reconciler{}
+
+		obj, err := r.computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -330,7 +337,9 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(clusterWithoutReplicas)
 		scope.Blueprint = blueprint
 
-		obj, err := computeControlPlane(ctx, scope, nil)
+		r := &Reconciler{}
+
+		obj, err := r.computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -370,7 +379,9 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		obj, err := computeControlPlane(ctx, scope, infrastructureMachineTemplate)
+		r := &Reconciler{}
+
+		obj, err := r.computeControlPlane(ctx, scope, infrastructureMachineTemplate)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -420,7 +431,9 @@ func TestComputeControlPlane(t *testing.T) {
 		scope := scope.New(clusterWithControlPlaneRef)
 		scope.Blueprint = blueprint
 
-		obj, err := computeControlPlane(ctx, scope, nil)
+		r := &Reconciler{}
+
+		obj, err := r.computeControlPlane(ctx, scope, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
@@ -486,7 +499,9 @@ func TestComputeControlPlane(t *testing.T) {
 					Object: tt.currentControlPlane,
 				}
 
-				obj, err := computeControlPlane(ctx, s, nil)
+				r := &Reconciler{}
+
+				obj, err := r.computeControlPlane(ctx, s, nil)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(obj).NotTo(BeNil())
 				assertNestedField(g, obj, tt.expectedVersion, contract.ControlPlane().Version().Path()...)
@@ -524,7 +539,9 @@ func TestComputeControlPlane(t *testing.T) {
 		s.Current.ControlPlane.Object.SetOwnerReferences([]metav1.OwnerReference{*ownerReferenceTo(shim)})
 		s.Blueprint = blueprint
 
-		obj, err := computeControlPlane(ctx, s, nil)
+		r := &Reconciler{}
+
+		obj, err := r.computeControlPlane(ctx, s, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 		g.Expect(hasOwnerReferenceFrom(obj, shim)).To(BeTrue())
@@ -532,6 +549,8 @@ func TestComputeControlPlane(t *testing.T) {
 }
 
 func TestComputeControlPlaneVersion(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+
 	// Note: the version used by the machine deployments does
 	// not affect how we determining the control plane version.
 	// We only want to know if the machine deployments are stable.
@@ -567,12 +586,47 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 		}).
 		Build()
 
+	nonBlockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
+		},
+	}
+
+	blockingBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
+			RetryAfterSeconds: int32(10),
+		},
+	}
+
+	failureBeforeClusterUpgradeResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusFailure,
+			},
+		},
+	}
+
+	catalog := runtimecatalog.New()
+	_ = runtimehooksv1.AddToCatalog(catalog)
+
+	beforeClusterUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.BeforeClusterUpgrade)
+	if err != nil {
+		panic("unable to compute GVH")
+	}
+
 	tests := []struct {
 		name                    string
+		hookResponse            *runtimehooksv1.BeforeClusterUpgradeResponse
 		topologyVersion         string
 		controlPlaneObj         *unstructured.Unstructured
 		machineDeploymentsState scope.MachineDeploymentsStateMap
 		expectedVersion         string
+		wantErr                 bool
 	}{
 		{
 			name:            "should return cluster.spec.topology.version if creating a new control plane",
@@ -585,6 +639,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			// Control plane is not scaling implies that controlplane.spec.replicas is equal to controlplane.status.replicas,
 			// Controlplane.status.updatedReplicas and controlplane.status.readyReplicas.
 			name:            "should return cluster.spec.topology.version if the control plane is not upgrading and not scaling",
+			hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
 			topologyVersion: "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
@@ -656,6 +711,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 		},
 		{
 			name:            "should return cluster.spec.topology.version if control plane is not upgrading and not scaling and none of the machine deployments are rolling out",
+			hookResponse:    nonBlockingBeforeClusterUpgradeResponse,
 			topologyVersion: "v1.2.3",
 			controlPlaneObj: builder.ControlPlane("test1", "cp1").
 				WithSpecFields(map[string]interface{}{
@@ -675,6 +731,51 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			},
 			expectedVersion: "v1.2.3",
 		},
+		{
+			name:            "should return the controlplane.spec.version if the BeforeClusterUpgrade hooks returns a blocking response",
+			hookResponse:    blockingBeforeClusterUpgradeResponse,
+			topologyVersion: "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":         "v1.2.2",
+					"status.replicas":        int64(2),
+					"status.updatedReplicas": int64(2),
+					"status.readyReplicas":   int64(2),
+				}).
+				Build(),
+			machineDeploymentsState: scope.MachineDeploymentsStateMap{
+				"md1": &scope.MachineDeploymentState{Object: machineDeploymentStable},
+				"md2": &scope.MachineDeploymentState{Object: machineDeploymentStable},
+			},
+			expectedVersion: "v1.2.2",
+		},
+		{
+			name:            "should fail if the BeforeClusterUpgrade hooks returns a failure response",
+			hookResponse:    failureBeforeClusterUpgradeResponse,
+			topologyVersion: "v1.2.3",
+			controlPlaneObj: builder.ControlPlane("test1", "cp1").
+				WithSpecFields(map[string]interface{}{
+					"spec.version":  "v1.2.2",
+					"spec.replicas": int64(2),
+				}).
+				WithStatusFields(map[string]interface{}{
+					"status.version":         "v1.2.2",
+					"status.replicas":        int64(2),
+					"status.updatedReplicas": int64(2),
+					"status.readyReplicas":   int64(2),
+				}).
+				Build(),
+			machineDeploymentsState: scope.MachineDeploymentsStateMap{
+				"md1": &scope.MachineDeploymentState{Object: machineDeploymentStable},
+				"md2": &scope.MachineDeploymentState{Object: machineDeploymentStable},
+			},
+			expectedVersion: "v1.2.2",
+			wantErr:         true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -688,14 +789,31 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					},
 				}},
 				Current: &scope.ClusterState{
+					Cluster:            &clusterv1.Cluster{},
 					ControlPlane:       &scope.ControlPlaneState{Object: tt.controlPlaneObj},
 					MachineDeployments: tt.machineDeploymentsState,
 				},
-				UpgradeTracker: scope.NewUpgradeTracker(),
+				UpgradeTracker:      scope.NewUpgradeTracker(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
 			}
-			version, err := computeControlPlaneVersion(s)
-			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(version).To(Equal(tt.expectedVersion))
+
+			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+				WithCatalog(catalog).
+				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+					beforeClusterUpgradeGVH: tt.hookResponse,
+				}).
+				Build()
+
+			r := &Reconciler{
+				RuntimeClient: runtimeClient,
+			}
+			version, err := r.computeControlPlaneVersion(ctx, s)
+			if tt.wantErr {
+				g.Expect(err).NotTo(BeNil())
+			} else {
+				g.Expect(err).To(BeNil())
+				g.Expect(version).To(Equal(tt.expectedVersion))
+			}
 		})
 	}
 }

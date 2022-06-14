@@ -175,6 +175,13 @@ func TestValidateResponse(t *testing.T) {
 	}
 }
 
+func TestHookName(t *testing.T) {
+	g := NewWithT(t)
+	expected := "FakeHook"
+	actual := runtimecatalog.HookName(v1alpha1.FakeHook)
+	g.Expect(actual).To(Equal(expected))
+}
+
 type GoodRequest struct {
 	metav1.TypeMeta `json:",inline"`
 

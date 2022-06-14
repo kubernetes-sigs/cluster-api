@@ -26,11 +26,17 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -434,6 +440,95 @@ func TestClusterReconciler_deleteClusterClass(t *testing.T) {
 
 	// Attempt to delete the ClusterClass. Expect an error here as the ClusterClass deletion is blocked by the webhook.
 	g.Expect(env.Delete(ctx, clusterClass)).NotTo(Succeed())
+}
+
+func TestReconciler_callBeforeClusterCreateHook(t *testing.T) {
+	catalog := runtimecatalog.New()
+	_ = runtimehooksv1.AddToCatalog(catalog)
+	gvh, err := catalog.GroupVersionHook(runtimehooksv1.BeforeClusterCreate)
+	if err != nil {
+		panic(err)
+	}
+
+	blockingResponse := &runtimehooksv1.BeforeClusterCreateResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
+			RetryAfterSeconds: int32(10),
+		},
+	}
+	nonBlockingResponse := &runtimehooksv1.BeforeClusterCreateResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusSuccess,
+			},
+			RetryAfterSeconds: int32(0),
+		},
+	}
+	failingResponse := &runtimehooksv1.BeforeClusterCreateResponse{
+		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{
+			CommonResponse: runtimehooksv1.CommonResponse{
+				Status: runtimehooksv1.ResponseStatusFailure,
+			},
+		},
+	}
+
+	tests := []struct {
+		name         string
+		hookResponse *runtimehooksv1.BeforeClusterCreateResponse
+		wantResult   reconcile.Result
+		wantErr      bool
+	}{
+		{
+			name:         "should return a requeue response when the BeforeClusterCreate hook is blocking",
+			hookResponse: blockingResponse,
+			wantResult:   ctrl.Result{RequeueAfter: time.Duration(10) * time.Second},
+			wantErr:      false,
+		},
+		{
+			name:         "should return an empty response when the BeforeClusterCreate hook is not blocking",
+			hookResponse: nonBlockingResponse,
+			wantResult:   ctrl.Result{},
+			wantErr:      false,
+		},
+		{
+			name:         "should error when the BeforeClusterCreate hook returns a failure response",
+			hookResponse: failingResponse,
+			wantResult:   ctrl.Result{},
+			wantErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+				WithCatalog(catalog).
+				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+					gvh: tt.hookResponse,
+				}).
+				Build()
+
+			r := &Reconciler{
+				RuntimeClient: runtimeClient,
+			}
+			s := &scope.Scope{
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{},
+				},
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			}
+			res, err := r.callBeforeClusterCreateHook(ctx, s)
+			if tt.wantErr {
+				g.Expect(err).NotTo(BeNil())
+			} else {
+				g.Expect(err).To(BeNil())
+				g.Expect(res).To(Equal(tt.wantResult))
+			}
+		})
+	}
 }
 
 // setupTestEnvForIntegrationTests builds and then creates in the envtest API server all objects required at init time for each of the

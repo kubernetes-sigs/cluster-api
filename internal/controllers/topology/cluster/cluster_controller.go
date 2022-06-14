@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -30,14 +31,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -58,6 +64,8 @@ type Reconciler struct {
 	// APIReader is used to list MachineSets directly via the API server to avoid
 	// race conditions caused by an outdated cache.
 	APIReader client.Reader
+
+	RuntimeClient runtimeclient.Client
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -207,6 +215,17 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 		return ctrl.Result{}, errors.Wrap(err, "error reading current state of the Cluster topology")
 	}
 
+	// The cluster topology is yet to be created. Call the BeforeClusterCreate hook before proceeding.
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		res, err := r.callBeforeClusterCreateHook(ctx, s)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if !res.IsZero() {
+			return res, nil
+		}
+	}
+
 	// Setup watches for InfrastructureCluster and ControlPlane CRs when they exist.
 	if err := r.setupDynamicWatches(ctx, s); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error creating dynamic watch")
@@ -221,6 +240,12 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 	// Reconciles current and desired state of the Cluster
 	if err := r.reconcileState(ctx, s); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error reconciling the Cluster topology")
+	}
+
+	// requeueAfter will not be 0 if any of the runtime hooks returns a blocking response.
+	requeueAfter := s.HookResponseTracker.AggregateRetryAfter()
+	if requeueAfter != 0 {
+		return ctrl.Result{RequeueAfter: requeueAfter}, nil
 	}
 
 	return ctrl.Result{}, nil
@@ -245,6 +270,25 @@ func (r *Reconciler) setupDynamicWatches(ctx context.Context, s *scope.Scope) er
 		}
 	}
 	return nil
+}
+
+func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.Scope) (reconcile.Result, error) {
+	// If the cluster objects (InfraCluster, ControlPlane, etc) are not yet created we are in the creation phase.
+	// Call the BeforeClusterCreate hook before proceeding.
+	if s.Current.Cluster.Spec.InfrastructureRef == nil && s.Current.Cluster.Spec.ControlPlaneRef == nil {
+		hookRequest := &runtimehooksv1.BeforeClusterCreateRequest{
+			Cluster: *s.Current.Cluster,
+		}
+		hookResponse := &runtimehooksv1.BeforeClusterCreateResponse{}
+		if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterCreate, s.Current.Cluster, hookRequest, hookResponse); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "error calling the %s hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterCreate))
+		}
+		s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterCreate, hookResponse)
+		if hookResponse.RetryAfterSeconds != 0 {
+			return ctrl.Result{RequeueAfter: time.Duration(hookResponse.RetryAfterSeconds) * time.Second}, nil
+		}
+	}
+	return ctrl.Result{}, nil
 }
 
 // clusterClassToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation

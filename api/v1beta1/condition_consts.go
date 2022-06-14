@@ -277,4 +277,8 @@ const (
 	// TopologyReconciledMachineDeploymentsUpgradePendingReason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the MachineDeployments is not yet updated to match the desired topology spec.
 	TopologyReconciledMachineDeploymentsUpgradePendingReason = "MachineDeploymentsUpgradePending"
+
+	// TopologyReconciledHookBlockingReason (Severity=Info) documents reconciliation of a Cluster topology
+	// not yet completed because at least one of the lifecycle hooks is blocking.
+	TopologyReconciledHookBlockingReason = "LifecycleHookBlocking"
 )

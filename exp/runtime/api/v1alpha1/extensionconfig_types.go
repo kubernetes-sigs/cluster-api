@@ -210,4 +210,8 @@ const (
 	// The annotation will be used to track the intent to call a hook as soon as an operation completes;
 	// the intent will be removed as soon as the hook call completes successfully.
 	PendingHooksAnnotation string = "runtime.cluster.x-k8s.io/pending-hooks"
+
+	// OkToDeleteAnnotation is the annotation used to indicate if a cluster is ready to be fully deleted.
+	// This annotation is added to the cluster after the BeforeClusterDelete hook has passed.
+	OkToDeleteAnnotation string = "runtime.cluster.x-k8s.io/ok-to-delete"
 )

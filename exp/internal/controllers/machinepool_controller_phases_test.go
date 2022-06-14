@@ -1200,7 +1200,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
 
 		delNode := &corev1.Node{}
-		err = env.Get(ctx, client.ObjectKeyFromObject(node), delNode)
+		err = env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(node), delNode)
 		g.Expect(err).ToNot(BeNil())
 		g.Expect(apierrors.IsNotFound(err)).To(BeTrue())
 	})

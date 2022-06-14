@@ -28,7 +28,7 @@ jobs:
         path: './src/sigs.k8s.io/cluster-api'
     - name: Set env
       run:  echo "GOPATH=${GITHUB_WORKSPACE}" >> $GITHUB_ENV
-    - uses: actions/cache@v3.0.3
+    - uses: actions/cache@v3.0.4
       name: Restore go cache
       with:
         path: |

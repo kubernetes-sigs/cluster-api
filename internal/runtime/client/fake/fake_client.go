@@ -69,26 +69,34 @@ func (f *RuntimeClientBuilder) MarkReady(ready bool) *RuntimeClientBuilder {
 }
 
 // Build returns the fake runtime client.
-func (f *RuntimeClientBuilder) Build() runtimeclient.Client {
-	return &runtimeClient{
+func (f *RuntimeClientBuilder) Build() *RuntimeClient {
+	return &RuntimeClient{
 		isReady:          f.ready,
 		callAllResponses: f.callAllResponses,
 		callResponses:    f.callResponses,
 		catalog:          f.catalog,
+		callAllTracker:   map[string]int{},
 	}
 }
 
-var _ runtimeclient.Client = &runtimeClient{}
+var _ runtimeclient.Client = &RuntimeClient{}
 
-type runtimeClient struct {
+// RuntimeClient is a fake implementation of runtimeclient.Client.
+type RuntimeClient struct {
 	isReady          bool
 	catalog          *runtimecatalog.Catalog
 	callAllResponses map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject
 	callResponses    map[string]runtimehooksv1.ResponseObject
+
+	callAllTracker map[string]int
 }
 
 // CallAllExtensions implements Client.
-func (fc *runtimeClient) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtime.Object, response runtimehooksv1.ResponseObject) error {
+func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtime.Object, response runtimehooksv1.ResponseObject) error {
+	defer func() {
+		fc.callAllTracker[runtimecatalog.HookName(hook)]++
+	}()
+
 	gvh, err := fc.catalog.GroupVersionHook(hook)
 	if err != nil {
 		return errors.Wrap(err, "failed to compute GVH")
@@ -109,7 +117,7 @@ func (fc *runtimeClient) CallAllExtensions(ctx context.Context, hook runtimecata
 }
 
 // CallExtension implements Client.
-func (fc *runtimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hook, _ metav1.Object, name string, request runtime.Object, response runtimehooksv1.ResponseObject) error {
+func (fc *RuntimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hook, _ metav1.Object, name string, request runtime.Object, response runtimehooksv1.ResponseObject) error {
 	expectedResponse, ok := fc.callResponses[name]
 	if !ok {
 		// This should actually panic because an error here would mean a mistake in the test setup.
@@ -127,25 +135,31 @@ func (fc *runtimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hoo
 }
 
 // Discover implements Client.
-func (fc *runtimeClient) Discover(context.Context, *runtimev1.ExtensionConfig) (*runtimev1.ExtensionConfig, error) {
+func (fc *RuntimeClient) Discover(context.Context, *runtimev1.ExtensionConfig) (*runtimev1.ExtensionConfig, error) {
 	panic("unimplemented")
 }
 
 // IsReady implements Client.
-func (fc *runtimeClient) IsReady() bool {
+func (fc *RuntimeClient) IsReady() bool {
 	return fc.isReady
 }
 
 // Register implements Client.
-func (fc *runtimeClient) Register(extensionConfig *runtimev1.ExtensionConfig) error {
+func (fc *RuntimeClient) Register(extensionConfig *runtimev1.ExtensionConfig) error {
 	panic("unimplemented")
 }
 
 // Unregister implements Client.
-func (fc *runtimeClient) Unregister(extensionConfig *runtimev1.ExtensionConfig) error {
+func (fc *RuntimeClient) Unregister(extensionConfig *runtimev1.ExtensionConfig) error {
 	panic("unimplemented")
 }
 
-func (fc *runtimeClient) WarmUp(extensionConfigList *runtimev1.ExtensionConfigList) error {
+// WarmUp implements Client.
+func (fc *RuntimeClient) WarmUp(extensionConfigList *runtimev1.ExtensionConfigList) error {
 	panic("unimplemented")
+}
+
+// CallAllCount return the number of times a hooks was called.
+func (fc *RuntimeClient) CallAllCount(hook runtimecatalog.Hook) int {
+	return fc.callAllTracker[runtimecatalog.HookName(hook)]
 }

@@ -20,6 +20,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
+// PendingHooksAnnotation is the annotation used to keep a track of pending runtime hooks.
+const PendingHooksAnnotation = "hooks.x-cluster.k8s.io/pending-hooks"
+
 // ResponseObject is a runtime object extended with methods to handle response-specific fields.
 // +kubebuilder:object:generate=false
 type ResponseObject interface {

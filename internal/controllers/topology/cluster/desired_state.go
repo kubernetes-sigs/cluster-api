@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
@@ -313,6 +314,33 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 		// Nb. We do not return early in the function if the control plane is already at the desired version so as
 		// to know if the control plane is being upgraded. This information
 		// is required when updating the TopologyReconciled condition on the cluster.
+
+		// Let's call the AfterControlPlaneUpgrade now that the control plane is upgraded.
+		if feature.Gates.Enabled(feature.RuntimeSDK) {
+			// Call the hook only if it is marked. If it is not marked it means we don't need ot call the
+			// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
+			if hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
+				hookRequest := &runtimehooksv1.AfterControlPlaneUpgradeRequest{
+					Cluster:           *s.Current.Cluster,
+					KubernetesVersion: desiredVersion,
+				}
+				hookResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{}
+				if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
+					return "", errors.Wrapf(err, "error calling the %s hook", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade))
+				}
+				s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, hookResponse)
+				if hookResponse.RetryAfterSeconds != 0 {
+					// We have to block the upgrade of the Machine deployments.
+					s.UpgradeTracker.MachineDeployments.HoldUpgrades(true)
+				} else {
+					// We are done with the hook for now. We don't need to call it anymore. Unmark it.
+					if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
+						return "", errors.Wrapf(err, "failed to unmark the %s hook", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade))
+					}
+				}
+			}
+		}
+
 		return *currentVersion, nil
 	}
 
@@ -354,9 +382,15 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 			// Cannot pickup the new version right now. Need to try again later.
 			return *currentVersion, nil
 		}
+
+		// We are picking up the new version here.
+		// Mark the AfterControlPlaneUpgrade and the AfterClusterUpgrade hooks so that we call them once we are done with the upgrade.
+		if err := hooks.MarkAsPending(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade, runtimehooksv1.AfterClusterUpgrade); err != nil {
+			return "", errors.Wrapf(err, "failed to mark the %s hook", []string{runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade), runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade)})
+		}
 	}
 
-	// Control plane and machine deployments are stable.
+	// Control plane and machine deployments are stable. All the required hook are called.
 	// Ready to pick up the topology version.
 	return desiredVersion, nil
 }

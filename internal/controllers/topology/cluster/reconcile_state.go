@@ -32,10 +32,14 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 )
 
@@ -58,6 +62,12 @@ func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 	// remaining part of the reconcile process.
 	if err := r.reconcileClusterShim(ctx, s); err != nil {
 		return err
+	}
+
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		if err := r.callAfterHooks(ctx, s); err != nil {
+			return err
+		}
 	}
 
 	// Reconcile desired state of the InfrastructureCluster object.
@@ -176,6 +186,112 @@ func getOwnerReferenceFrom(obj, owner client.Object) *metav1.OwnerReference {
 			return &o
 		}
 	}
+	return nil
+}
+
+func (r *Reconciler) callAfterHooks(ctx context.Context, s *scope.Scope) error {
+	if err := r.callAfterControlPlaneInitialized(ctx, s); err != nil {
+		return err
+	}
+
+	if err := r.callAfterClusterUpgrade(ctx, s); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *scope.Scope) error {
+	/*
+		TODO: Working comment - DELETE AFTER:
+		- If the cluster topology is being created then mark the AfterControlPlaneInitialized hook so that we can call it later.
+	*/
+	if s.Current.Cluster.Spec.InfrastructureRef == nil && s.Current.Cluster.Spec.ControlPlaneRef == nil {
+		if err := hooks.MarkAsPending(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneInitialized); err != nil {
+			return errors.Wrapf(err, "failed to mark %s hook", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneInitialized))
+		}
+	}
+
+	if hooks.IsPending(runtimehooksv1.AfterControlPlaneInitialized, s.Current.Cluster) {
+		if isControlPlaneInitialized(s.Current.Cluster) {
+			hookRequest := &runtimehooksv1.AfterControlPlaneInitializedRequest{
+				Cluster: *s.Current.Cluster,
+			}
+			hookResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{}
+			if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterControlPlaneInitialized, s.Current.Cluster, hookRequest, hookResponse); err != nil {
+				return errors.Wrapf(err, "failed to call %s hook", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneInitialized))
+			}
+			s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneInitialized, hookResponse)
+			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneInitialized); err != nil {
+				return errors.Wrapf(err, "failed to unmark %s hook", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneInitialized))
+			}
+		}
+	}
+
+	return nil
+}
+
+func isControlPlaneInitialized(cluster *clusterv1.Cluster) bool {
+	for _, condition := range cluster.GetConditions() {
+		// TODO: Should we check for the ControlPlaneInitialized condition or the ControlPlaneReadyCondition?
+		// From the description of the hook it looks like it should be the ControlPlaneReadyCondition - but need to double check.
+		if condition.Type == clusterv1.ControlPlaneInitializedCondition {
+			if condition.Status == corev1.ConditionTrue {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope) error {
+	/*
+		TODO: Working comment - DELETE LATER:
+		- if the AfterClusterUpgrade hook is pending then check that the cluster is fully upgraded. If it is fully upgraded then call the hook.
+			- A cluster is full upgraded if
+				- Control plane is not upgrading
+				- Control plane is not scaling
+				- Control plane is not pending an upgrade
+				- MachineDeployments are not currently rolling out
+				- MAchineDeployments are not about to roll out
+				- MachineDeployments are not pending an upgrade
+	*/
+	if hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster) {
+		cpUpgrading, err := contract.ControlPlane().IsUpgrading(s.Current.ControlPlane.Object)
+		if err != nil {
+			return errors.Wrap(err, "failed to check if control plane is upgrading")
+		}
+
+		var cpScaling bool
+		if s.Blueprint.Topology.ControlPlane.Replicas != nil {
+			cpScaling, err = contract.ControlPlane().IsScaling(s.Current.ControlPlane.Object)
+			if err != nil {
+				return errors.Wrap(err, "failed to check if the control plane is scaling")
+			}
+		}
+
+		if !cpUpgrading && !cpScaling && !s.UpgradeTracker.ControlPlane.PendingUpgrade && // Control Plane checks
+			len(s.UpgradeTracker.MachineDeployments.RolloutNames()) == 0 && // Machine deployments are not rollout out or not about to roll out
+			!s.UpgradeTracker.MachineDeployments.PendingUpgrade() { // Machine Deployments is are not pending an upgrade
+			// Everything is stable and the cluster can be considered fully upgraded.
+			hookRequest := &runtimehooksv1.AfterClusterUpgradeRequest{
+				Cluster:           *s.Current.Cluster,
+				KubernetesVersion: s.Current.Cluster.Spec.Topology.Version,
+			}
+			hookResponse := &runtimehooksv1.AfterClusterUpgradeResponse{}
+			if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
+				return errors.Wrapf(err, "failed to call %s hook", runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade))
+			}
+			s.HookResponseTracker.Add(runtimehooksv1.AfterClusterUpgrade, hookResponse)
+			// The hook is successfully called. We can unmark the hook.
+			// TODO: follow up check - what if the cluster object in current is not updated with the latest tracking annotation.
+			// 							Is that possible?
+			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterClusterUpgrade); err != nil {
+				return errors.Wrapf(err, "failed to unmark the %s hook", runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade))
+			}
+		}
+	}
+
 	return nil
 }
 

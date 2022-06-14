@@ -18,6 +18,7 @@ package repository
 
 import (
 	"net/url"
+	"strings"
 
 	"github.com/pkg/errors"
 
@@ -164,13 +165,26 @@ func repositoryFactory(providerConfig config.Provider, configVariablesClient con
 		return nil, errors.Errorf("failed to parse repository url %q", providerConfig.URL())
 	}
 
-	// if the url is a github repository
-	if rURL.Scheme == httpsScheme && rURL.Host == githubDomain {
-		repo, err := NewGitHubRepository(providerConfig, configVariablesClient)
-		if err != nil {
-			return nil, errors.Wrap(err, "error creating the GitHub repository client")
+	if rURL.Scheme == httpsScheme {
+		// if the url is a GitHub repository
+		if rURL.Host == githubDomain {
+			repo, err := NewGitHubRepository(providerConfig, configVariablesClient)
+			if err != nil {
+				return nil, errors.Wrap(err, "error creating the GitHub repository client")
+			}
+			return repo, err
 		}
-		return repo, err
+
+		// if the url is a GitLab repository
+		if strings.HasPrefix(rURL.Host, gitlabHostPrefix) && strings.HasPrefix(rURL.RawPath, gitlabPackagesAPIPrefix) {
+			repo, err := NewGitLabRepository(providerConfig, configVariablesClient)
+			if err != nil {
+				return nil, errors.Wrap(err, "error creating the GitLab repository client")
+			}
+			return repo, err
+		}
+
+		return nil, errors.Errorf("invalid provider url. Only GitHub and GitLab are supported for %q schema", rURL.Scheme)
 	}
 
 	// if the url is a local filesystem repository

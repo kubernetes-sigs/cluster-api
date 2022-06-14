@@ -49,6 +49,56 @@ A GitHub release can be used as a provider repository if:
 See the [GitHub docs](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) for more information
 about how to create a release.
 
+#### Creating a provider repository on GitLab
+
+You can use a GitLab generic packages for provider artifacts.
+
+A provider url should be in the form
+`https://{host}/api/v4/projects/{projectSlug}/packages/generic/{packageName}/{defaultVersion}/{componentsPath}`, where:
+
+* `{host}` should start with `gitlab.` (`gitlab.com`, `gitlab.example.org`, ...)
+* `{projectSlug}` is either a project id (`42`) or escaped full path (`myorg%2Fmyrepo`)
+* `{defaultVersion}` is a valid semantic version number
+* The components YAML, the metadata YAML and eventually the workload cluster templates are included into the same package version
+
+See the [GitLab docs](https://docs.gitlab.com/ee/user/packages/generic_packages/) for more information
+about how to create a generic package.
+
+This can be used in conjunction with [GitLabracadabra](https://gitlab.com/gitlabracadabra/gitlabracadabra/)
+to avoid direct internet access from `clusterctl`, and use GitLab as artifacts repository. For example,
+for the core provider:
+
+- Use the following [action file](https://gitlab.com/gitlabracadabra/gitlabracadabra/#action-files):
+
+  ```yaml
+  external-packages/cluster-api:
+    packages_enabled: true
+    package_mirrors:
+    - github:
+        full_name: kubernetes-sigs/cluster-api
+        tags:
+        - v1.2.3
+        assets:
+        - clusterctl-linux-amd64
+        - core-components.yaml
+        - bootstrap-components.yaml
+        - control-plane-components.yaml
+        - metadata.yaml
+  ```
+
+- Use the following [`clusterctl` configuration](configuration.md):
+
+  ```yaml
+  providers:
+    # override a pre-defined provider on a self-host GitLab
+    - name: "cluster-api"
+      url: "https://gitlab.example.com/api/v4/projects/external-packages%2Fcluster-api/packages/generic/cluster-api/v1.2.3/core-components.yaml"
+      type: "CoreProvider"
+  ```
+
+Limitation: Provider artifacts hosted on GitLab don't support getting all versions.
+As a consequence, you need to set version explicitly for upgrades.
+
 #### Creating a local provider repository
 
 clusterctl supports reading from a repository defined on the local file system.

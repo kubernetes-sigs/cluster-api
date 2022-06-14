@@ -49,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/certs"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/patch"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 const (
@@ -293,14 +294,14 @@ func (w *Workload) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machin
 }
 
 // RemoveNodeFromKubeadmConfigMap removes the entry for the node from the kubeadm configmap.
-func (w *Workload) RemoveNodeFromKubeadmConfigMap(ctx context.Context, name string, version semver.Version) error {
-	if version.GTE(minKubernetesVersionWithoutClusterStatus) {
+func (w *Workload) RemoveNodeFromKubeadmConfigMap(ctx context.Context, name string, v semver.Version) error {
+	if version.Compare(v, minKubernetesVersionWithoutClusterStatus, version.WithoutPreReleases()) >= 0 {
 		return nil
 	}
 
 	return w.updateClusterStatus(ctx, func(s *bootstrapv1.ClusterStatus) {
 		delete(s.APIEndpoints, name)
-	}, version)
+	}, v)
 }
 
 // updateClusterStatus gets the ClusterStatus kubeadm-config ConfigMap, converts it to the

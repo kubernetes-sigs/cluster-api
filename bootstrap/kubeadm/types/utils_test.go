@@ -49,6 +49,14 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "pass with minimum kubernetes alpha version for kubeadm API v1beta1",
+			args: args{
+				version: semver.MustParse("1.13.0-alpha.0.734+ba502ee555924a"),
+			},
+			want:    upstreamv1beta1.GroupVersion,
+			wantErr: false,
+		},
+		{
 			name: "pass with minimum kubernetes version for kubeadm API v1beta1",
 			args: args{
 				version: semver.MustParse("1.13.0"),
@@ -65,6 +73,14 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "pass with minimum kubernetes alpha version for kubeadm API v1beta2",
+			args: args{
+				version: semver.MustParse("1.15.0-alpha.0.734+ba502ee555924a"),
+			},
+			want:    upstreamv1beta2.GroupVersion,
+			wantErr: false,
+		},
+		{
 			name: "pass with minimum kubernetes version for kubeadm API v1beta2",
 			args: args{
 				version: semver.MustParse("1.15.0"),
@@ -78,6 +94,14 @@ func TestKubeVersionToKubeadmAPIGroupVersion(t *testing.T) {
 				version: semver.MustParse("1.20.99"),
 			},
 			want:    upstreamv1beta2.GroupVersion,
+			wantErr: false,
+		},
+		{
+			name: "pass with minimum kubernetes alpha version for kubeadm API v1beta3",
+			args: args{
+				version: semver.MustParse("1.22.0-alpha.0.734+ba502ee555924a"),
+			},
+			want:    upstreamv1beta3.GroupVersion,
 			wantErr: false,
 		},
 		{

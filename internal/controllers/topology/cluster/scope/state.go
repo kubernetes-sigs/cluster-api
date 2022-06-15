@@ -68,6 +68,16 @@ func (mds MachineDeploymentsStateMap) RollingOut() []string {
 	return names
 }
 
+// AreAtVersion return true if all the machine deployments are the desired version.
+func (mds MachineDeploymentsStateMap) AreAtVersion(version string) bool {
+	for _, md := range mds {
+		if !md.IsAtVersion(version) {
+			return false
+		}
+	}
+	return true
+}
+
 // IsAnyRollingOut returns true if at least one of the
 // machine deployments is rolling out. False, otherwise.
 func (mds MachineDeploymentsStateMap) IsAnyRollingOut() bool {
@@ -95,4 +105,13 @@ type MachineDeploymentState struct {
 // - if any of the replicas of the the machine deployment is not ready.
 func (md *MachineDeploymentState) IsRollingOut() bool {
 	return !mdutil.DeploymentComplete(md.Object, &md.Object.Status) || *md.Object.Spec.Replicas != md.Object.Status.ReadyReplicas
+}
+
+// IsAtVersion return true if the MachineDeployment spec version matches the version.
+// If the MachineDeployment does not support version then it returns false.
+func (md *MachineDeploymentState) IsAtVersion(version string) bool {
+	if md.Object.Spec.Template.Spec.Version != nil {
+		return version == *md.Object.Spec.Template.Spec.Version
+	}
+	return false
 }

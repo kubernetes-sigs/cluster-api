@@ -333,6 +333,11 @@ func computeControlPlaneVersion(s *scope.Scope) (string, error) {
 	if s.Current.MachineDeployments.IsAnyRollingOut() {
 		return *currentVersion, nil
 	}
+	// If any of the MachineDeployments are not at the desired version, then do not pick
+	// up the desiredVersion yet. We will pick up the new version after all MachineDeployments are at the desired version.
+	if !s.Current.MachineDeployments.AreAtVersion(*currentVersion) {
+		return *currentVersion, nil
+	}
 
 	// Control plane and machine deployments are stable.
 	// Ready to pick up the topology version.
@@ -549,6 +554,16 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 // than the number of allowed concurrent upgrades.
 func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState, currentMDState *scope.MachineDeploymentState) (string, error) {
 	desiredVersion := s.Blueprint.Topology.Version
+	// If there already exists a control plane then the MachineDeployment should always target to match the current version
+	// of the control plane.
+	if s.Current.ControlPlane.Object != nil {
+		currentCPVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to get version of current control plane")
+		}
+		desiredVersion = *currentCPVersion
+	}
+
 	// If creating a new machine deployment, we can pick up the desired version
 	// Note: We are not blocking the creation of new machine deployments when
 	// the control plane or any of the machine deployments are upgrading/scaling.
@@ -611,6 +626,7 @@ func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *s
 	// Check if we are about to upgrade the control plane. In that case, do not upgrade the machine deployment yet.
 	// Wait for the new upgrade operation on the control plane to finish before picking up the new version for the
 	// machine deployment.
+	// TODO: We probably don't need this check anymore.
 	currentCPVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to get version of current control plane")

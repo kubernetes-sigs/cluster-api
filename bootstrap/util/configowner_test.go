@@ -20,13 +20,13 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -270,6 +270,7 @@ func TestHasNodeRefs(t *testing.T) {
 		}
 
 		for _, mp := range machinePools {
+			mp := mp
 			content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&mp)
 			if err != nil {
 				g.Fail(err.Error())
@@ -347,6 +348,7 @@ func TestHasNodeRefs(t *testing.T) {
 		}
 
 		for _, mp := range machinePools {
+			mp := mp
 			content, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&mp)
 			if err != nil {
 				g.Fail(err.Error())

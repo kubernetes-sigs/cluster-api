@@ -143,11 +143,11 @@ func validateExtensionConfigSpec(e *runtimev1.ExtensionConfig) field.ErrorList {
 				*e.Spec.ClientConfig.URL,
 				fmt.Sprintf("must be a valid URL, e.g. https://example.com: %v", err),
 			))
-		} else if uri.Scheme != "http" && uri.Scheme != "https" {
+		} else if uri.Scheme != "https" {
 			allErrs = append(allErrs, field.Invalid(
 				specPath.Child("clientConfig", "url"),
 				*e.Spec.ClientConfig.URL,
-				"'https' and 'http' are the only allowed URL schemes, e.g. https://example.com",
+				"'https' is the only allowed URL scheme, e.g. https://example.com",
 			))
 		}
 	}

@@ -85,8 +85,7 @@ spec:
                       of `url` or `service` must be specified. \n The `host` should
                       not refer to a service running in the cluster; use the `service`
                       field instead. \n The scheme should be \"https\"; the URL should
-                      begin with \"https://\". \"http\" is supported for insecure
-                      development purposes only. \n A path is optional, and if present
+                      begin with \"https://\". \n A path is optional, and if present
                       may be any string permissible in a URL. If a path is set it
                       will be used as prefix and the hook-specific path will be appended.
                       \n Attempting to use a user or basic auth e.g. \"user:password@\"

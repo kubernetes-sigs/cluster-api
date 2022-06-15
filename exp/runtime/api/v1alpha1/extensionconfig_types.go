@@ -47,7 +47,6 @@ type ClientConfig struct {
 	// the `service` field instead.
 	//
 	// The scheme should be "https"; the URL should begin with "https://".
-	// "http" is supported for insecure development purposes only.
 	//
 	// A path is optional, and if present may be any string permissible in
 	// a URL. If a path is set it will be used as prefix and the hook-specific

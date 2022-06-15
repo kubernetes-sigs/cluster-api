@@ -969,6 +969,11 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			if tt.current != nil && tt.current.Object != nil && tt.desired != nil && tt.desired.Object != nil {
 				tt.desired.Object.SetUID(tt.current.Object.GetUID())
 			}
+			// copy over owner reference of created MHC to wanted MHC
+			// This is normally done by computeDesiredState.
+			if tt.current != nil && tt.desired != nil && tt.current.MachineHealthCheck != nil && tt.desired.MachineHealthCheck != nil {
+				tt.desired.MachineHealthCheck.OwnerReferences = tt.current.MachineHealthCheck.OwnerReferences
+			}
 
 			r := Reconciler{
 				Client:             env,

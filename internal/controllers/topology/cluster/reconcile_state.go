@@ -251,7 +251,8 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 	if s.Desired.ControlPlane.MachineHealthCheck != nil || s.Current.ControlPlane.MachineHealthCheck != nil {
 		// Set the ControlPlane Object and the Cluster as owners for the MachineHealthCheck to ensure object garbage collection
 		// in case something happens before the MHC sets ownership to the Cluster.
-		if s.Desired.ControlPlane.MachineHealthCheck != nil {
+		// NOTE: This is only necessary when the ControlPlane Object did not yet exist during computeDesiredState.
+		if s.Current.ControlPlane.Object == nil && s.Desired.ControlPlane.MachineHealthCheck != nil {
 			s.Desired.ControlPlane.MachineHealthCheck.SetOwnerReferences([]metav1.OwnerReference{
 				*ownerReferenceTo(s.Desired.ControlPlane.Object),
 			})

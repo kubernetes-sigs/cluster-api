@@ -24,9 +24,11 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
@@ -34,6 +36,7 @@ func TestValidatePatches(t *testing.T) {
 	tests := []struct {
 		name         string
 		clusterClass clusterv1.ClusterClass
+		runtimeSDK   bool
 		wantErr      bool
 	}{
 		{
@@ -279,8 +282,9 @@ func TestValidatePatches(t *testing.T) {
 					},
 					Patches: []clusterv1.ClusterClassPatch{
 						{
-							Name:      "patch1",
-							EnabledIf: pointer.String(`template {{ .variableB }}`),
+							Name:        "patch1",
+							EnabledIf:   pointer.String(`template {{ .variableB }}`),
+							Definitions: []clusterv1.PatchDefinition{},
 						},
 					},
 				},
@@ -1378,9 +1382,142 @@ func TestValidatePatches(t *testing.T) {
 			},
 			wantErr: false,
 		},
+
+		// Patch with External
+		{
+			name: "pass if patch defines both external.generateExtension and external.validateExtension",
+			clusterClass: clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					ControlPlane: clusterv1.ControlPlaneClass{
+						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+							Ref: &corev1.ObjectReference{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								Kind:       "ControlPlaneTemplate",
+							},
+						},
+					},
+
+					Patches: []clusterv1.ClusterClassPatch{
+						{
+							Name: "patch1",
+							External: &clusterv1.ExternalPatchDefinition{
+								GenerateExtension: pointer.String("generate-extension"),
+								ValidateExtension: pointer.String("generate-extension"),
+							},
+						},
+					},
+				},
+			},
+			runtimeSDK: true,
+			wantErr:    false,
+		},
+		{
+			name: "error if patch defines both external and RuntimeSDK is not enabled",
+			clusterClass: clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					ControlPlane: clusterv1.ControlPlaneClass{
+						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+							Ref: &corev1.ObjectReference{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								Kind:       "ControlPlaneTemplate",
+							},
+						},
+					},
+
+					Patches: []clusterv1.ClusterClassPatch{
+						{
+							Name: "patch1",
+							External: &clusterv1.ExternalPatchDefinition{
+								GenerateExtension: pointer.String("generate-extension"),
+								ValidateExtension: pointer.String("generate-extension"),
+							},
+						},
+					},
+				},
+			},
+			runtimeSDK: false,
+			wantErr:    true,
+		},
+		{
+			name: "error if patch defines neither external.generateExtension nor external.validateExtension",
+			clusterClass: clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					ControlPlane: clusterv1.ControlPlaneClass{
+						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+							Ref: &corev1.ObjectReference{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								Kind:       "ControlPlaneTemplate",
+							},
+						},
+					},
+
+					Patches: []clusterv1.ClusterClassPatch{
+						{
+							Name:     "patch1",
+							External: &clusterv1.ExternalPatchDefinition{},
+						},
+					},
+				},
+			},
+			runtimeSDK: true,
+			wantErr:    true,
+		},
+		{
+			name: "error if patch defines both external and definitions",
+			clusterClass: clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					ControlPlane: clusterv1.ControlPlaneClass{
+						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+							Ref: &corev1.ObjectReference{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								Kind:       "ControlPlaneTemplate",
+							},
+						},
+					},
+
+					Patches: []clusterv1.ClusterClassPatch{
+						{
+							Name: "patch1",
+							External: &clusterv1.ExternalPatchDefinition{
+								GenerateExtension: pointer.String("generate-extension"),
+								ValidateExtension: pointer.String("generate-extension"),
+							},
+							Definitions: []clusterv1.PatchDefinition{},
+						},
+					},
+				},
+			},
+			runtimeSDK: true,
+			wantErr:    true,
+		},
+		{
+			name: "error if neither external nor definitions is defined",
+			clusterClass: clusterv1.ClusterClass{
+				Spec: clusterv1.ClusterClassSpec{
+					ControlPlane: clusterv1.ControlPlaneClass{
+						LocalObjectTemplate: clusterv1.LocalObjectTemplate{
+							Ref: &corev1.ObjectReference{
+								APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+								Kind:       "ControlPlaneTemplate",
+							},
+						},
+					},
+
+					Patches: []clusterv1.ClusterClassPatch{
+						{
+							Name: "patch1",
+						},
+					},
+				},
+			},
+			runtimeSDK: true,
+			wantErr:    true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.runtimeSDK)()
+
 			g := NewWithT(t)
 
 			errList := validatePatches(&tt.clusterClass)

@@ -26,12 +26,15 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/api"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/external"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/inline"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 )
 
 // Engine is a patch engine which applies patches defined in a ClusterBlueprint to a ClusterState.
@@ -40,18 +43,15 @@ type Engine interface {
 }
 
 // NewEngine creates a new patch engine.
-func NewEngine() Engine {
+func NewEngine(runtimeClient runtimeclient.Client) Engine {
 	return &engine{
-		createPatchGenerator: createPatchGenerator,
+		runtimeClient: runtimeClient,
 	}
 }
 
 // engine implements the Engine interface.
 type engine struct {
-	// createPatchGenerator is the func which returns a patch generator
-	// based on a ClusterClassPatch.
-	// Note: This field is also used to inject patches in unit tests.
-	createPatchGenerator func(patch *clusterv1.ClusterClassPatch) (api.Generator, error)
+	runtimeClient runtimeclient.Client
 }
 
 // Apply applies patches to the desired state according to the patches from the ClusterClass, variables from the Cluster
@@ -83,7 +83,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 		log.V(5).Infof("Applying patch to templates")
 
 		// Create patch generator for the current patch.
-		generator, err := e.createPatchGenerator(&clusterClassPatch)
+		generator, err := createPatchGenerator(e.runtimeClient, &clusterClassPatch)
 		if err != nil {
 			return err
 		}
@@ -92,14 +92,38 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 		// NOTE: All the partial patches accumulate on top of the request, so the
 		// patch generator in the next iteration of the loop will get the modified
 		// version of the request (including the patched version of the templates).
-		resp := generator.Generate(ctx, req)
-		if resp.Status == runtimehooksv1.ResponseStatusFailure {
-			return errors.Errorf("failed to generate patches for patch %q: %v", clusterClassPatch.Name, resp.Message)
+		resp, err := generator.Generate(ctx, desired.Cluster, req)
+		if err != nil {
+			return errors.Wrapf(err, "failed to generate patches for patch %q", clusterClassPatch.Name)
 		}
 
 		// Apply patches to the request.
 		if err := applyPatchesToRequest(ctx, req, resp); err != nil {
 			return err
+		}
+	}
+
+	// Convert request to validation request.
+	validationRequest := convertToValidationRequest(req)
+
+	// Loop over patches in ClusterClass and validate topology,
+	// respecting the order in which they are defined.
+	for i := range blueprint.ClusterClass.Spec.Patches {
+		clusterClassPatch := blueprint.ClusterClass.Spec.Patches[i]
+
+		if clusterClassPatch.External == nil || clusterClassPatch.External.ValidateExtension == nil {
+			continue
+		}
+
+		ctx, log = log.WithValues("patch", clusterClassPatch.Name).Into(ctx)
+
+		log.V(5).Infof("Validating topology")
+
+		validator := external.NewValidator(e.runtimeClient, &clusterClassPatch)
+
+		_, err := validator.Validate(ctx, desired.Cluster, validationRequest)
+		if err != nil {
+			return errors.Wrapf(err, "validation of patch %q failed", clusterClassPatch.Name)
 		}
 	}
 
@@ -234,10 +258,20 @@ func lookupMDTopology(topology *clusterv1.Topology, mdTopologyName string) (*clu
 // createPatchGenerator creates a patch generator for the given patch.
 // NOTE: Currently only inline JSON patches are supported; in the future we will add
 // external patches as well.
-func createPatchGenerator(patch *clusterv1.ClusterClassPatch) (api.Generator, error) {
+func createPatchGenerator(runtimeClient runtimeclient.Client, patch *clusterv1.ClusterClassPatch) (api.Generator, error) {
 	// Return a jsonPatchGenerator if there are PatchDefinitions in the patch.
 	if len(patch.Definitions) > 0 {
-		return inline.New(patch), nil
+		return inline.NewGenerator(patch), nil
+	}
+	// Return an externalPatchGenerator if there is an external configuration in the patch.
+	if patch.External != nil && patch.External.GenerateExtension != nil {
+		if !feature.Gates.Enabled(feature.RuntimeSDK) {
+			return nil, errors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", patch.Name)
+		}
+		if runtimeClient == nil {
+			return nil, errors.Errorf("failed to create patch generator for patch %q: runtimeClient is not set up", patch.Name)
+		}
+		return external.NewGenerator(runtimeClient, patch), nil
 	}
 
 	return nil, errors.Errorf("failed to create patch generator for patch %q", patch.Name)
@@ -294,6 +328,24 @@ func applyPatchesToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatc
 		}
 	}
 	return nil
+}
+
+// convertToValidationRequest converts a GeneratePatchesRequest to a ValidateTopologyRequest.
+func convertToValidationRequest(generateRequest *runtimehooksv1.GeneratePatchesRequest) *runtimehooksv1.ValidateTopologyRequest {
+	validationRequest := &runtimehooksv1.ValidateTopologyRequest{}
+	validationRequest.Variables = generateRequest.Variables
+
+	for i := range generateRequest.Items {
+		item := generateRequest.Items[i]
+
+		validationRequest.Items = append(validationRequest.Items, &runtimehooksv1.ValidateTopologyRequestItem{
+			HolderReference: item.HolderReference,
+			Object:          item.Object,
+			Variables:       item.Variables,
+		})
+	}
+
+	return validationRequest
 }
 
 // updateDesiredState uses the patched templates of a GeneratePatchesRequest to update the desired state.

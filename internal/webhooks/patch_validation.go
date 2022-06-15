@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/feature"
 )
 
 // validatePatches returns errors if the Patches in the ClusterClass violate any validation rules.
@@ -85,11 +86,47 @@ func validatePatchDefinitions(patch clusterv1.ClusterClassPatch, clusterClass *c
 
 	allErrs = append(allErrs, validateEnabledIf(patch.EnabledIf, path.Child("enabledIf"))...)
 
-	for i, definition := range patch.Definitions {
+	if patch.Definitions == nil && patch.External == nil {
 		allErrs = append(allErrs,
-			validateJSONPatches(definition.JSONPatches, clusterClass.Spec.Variables, path.Child("definitions").Index(i).Child("jsonPatches"))...)
+			field.Required(
+				path,
+				"one of definitions or external must be defined",
+			))
+	}
+
+	if patch.Definitions != nil && patch.External != nil {
 		allErrs = append(allErrs,
-			validateSelectors(definition.Selector, clusterClass, path.Child("definitions").Index(i).Child("selector"))...)
+			field.Invalid(
+				path,
+				patch,
+				"only one of definitions or external can be defined",
+			))
+	}
+
+	if patch.Definitions != nil {
+		for i, definition := range patch.Definitions {
+			allErrs = append(allErrs,
+				validateJSONPatches(definition.JSONPatches, clusterClass.Spec.Variables, path.Child("definitions").Index(i).Child("jsonPatches"))...)
+			allErrs = append(allErrs,
+				validateSelectors(definition.Selector, clusterClass, path.Child("definitions").Index(i).Child("selector"))...)
+		}
+	}
+	if patch.External != nil {
+		if !feature.Gates.Enabled(feature.RuntimeSDK) {
+			allErrs = append(allErrs,
+				field.Forbidden(
+					path.Child("external"),
+					"patch.external can be used only if the RuntimeSDK feature flag is enabled",
+				))
+		}
+		if patch.External.ValidateExtension == nil && patch.External.GenerateExtension == nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					path.Child("external"),
+					patch.External,
+					"one of validateExtension and generateExtension must be defined",
+				))
+		}
 	}
 	return allErrs
 }

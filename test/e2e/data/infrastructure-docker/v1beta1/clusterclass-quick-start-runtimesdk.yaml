@@ -72,11 +72,10 @@ spec:
         example: "0"
         description: "kubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines."
   patches:
-# TODO: enable external patches once topology mutation is implemented
-#  - name: lbImageRepository
-#    external:
-#      generateExtension: generate-patches.k8s-upgrade-with-runtimesdk
-#      validateExtension: validate-topology.k8s-upgrade-with-runtimesdk
+  - name: lbImageRepository
+    external:
+      generateExtension: generate-patches.k8s-upgrade-with-runtimesdk
+      validateExtension: validate-topology.k8s-upgrade-with-runtimesdk
   - name: imageRepository
     description: "Sets the imageRepository used for the KubeadmControlPlane."
     definitions:

@@ -46,6 +46,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.Condition":                                schema_sigsk8sio_cluster_api_api_v1beta1_Condition(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneClass":                        schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneClass(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.ControlPlaneTopology":                     schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneTopology(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.ExternalPatchDefinition":                  schema_sigsk8sio_cluster_api_api_v1beta1_ExternalPatchDefinition(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.FailureDomainSpec":                        schema_sigsk8sio_cluster_api_api_v1beta1_FailureDomainSpec(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.JSONPatch":                                schema_sigsk8sio_cluster_api_api_v1beta1_JSONPatch(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.JSONPatchValue":                           schema_sigsk8sio_cluster_api_api_v1beta1_JSONPatchValue(ref),
@@ -328,12 +329,18 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassPatch(ref common.Refer
 							},
 						},
 					},
+					"external": {
+						SchemaProps: spec.SchemaProps{
+							Description: "External defines an external patch.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ExternalPatchDefinition"),
+						},
+					},
 				},
-				Required: []string{"name", "definitions"},
+				Required: []string{"name"},
 			},
 		},
 		Dependencies: []string{
-			"sigs.k8s.io/cluster-api/api/v1beta1.PatchDefinition"},
+			"sigs.k8s.io/cluster-api/api/v1beta1.ExternalPatchDefinition", "sigs.k8s.io/cluster-api/api/v1beta1.PatchDefinition"},
 	}
 }
 
@@ -835,6 +842,33 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneTopology(ref common.Re
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_ExternalPatchDefinition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ExternalPatchDefinition defines an external patch.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"generateExtension": {
+						SchemaProps: spec.SchemaProps{
+							Description: "GenerateExtension references an extension which is called to generate patches.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"validateExtension": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ValidateExtension references an extension which is called to validate the topology.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
 	}
 }
 

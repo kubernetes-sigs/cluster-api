@@ -74,6 +74,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
+	if err := indexByExtensionInjectCAFromSecretName(ctx, mgr); err != nil {
+		return err
+	}
+
 	// warmupRunnable will attempt to sync the RuntimeSDK registry with existing ExtensionConfig objects to ensure extensions
 	// are discovered before controllers begin reconciling.
 	err = mgr.Add(&warmupRunnable{
@@ -180,19 +184,18 @@ func (r *Reconciler) secretToExtensionConfig(secret client.Object) []reconcile.R
 	result := []ctrl.Request{}
 
 	extensionConfigs := runtimev1.ExtensionConfigList{}
-	if err := r.Client.List(context.Background(), &extensionConfigs); err != nil {
+	indexKey := secret.GetNamespace() + "/" + secret.GetName()
+
+	if err := r.Client.List(
+		context.Background(),
+		&extensionConfigs,
+		client.MatchingFields{injectCAFromSecretAnnotationField: indexKey},
+	); err != nil {
 		return nil
 	}
 
 	for _, ext := range extensionConfigs.Items {
-		if secretNameRaw, ok := ext.GetAnnotations()[runtimev1.InjectCAFromSecretAnnotation]; ok {
-			secretName := splitNamespacedName(secretNameRaw)
-			// append all extensions to the result which refer the object as secret
-			if secretName.Namespace == secret.GetNamespace() && secretName.Name == secret.GetName() {
-				name := client.ObjectKey{Namespace: ext.GetNamespace(), Name: ext.GetName()}
-				result = append(result, ctrl.Request{NamespacedName: name})
-			}
-		}
+		result = append(result, ctrl.Request{NamespacedName: client.ObjectKey{Name: ext.Name}})
 	}
 
 	return result

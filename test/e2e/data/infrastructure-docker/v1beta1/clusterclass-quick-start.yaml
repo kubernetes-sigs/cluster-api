@@ -13,6 +13,12 @@ spec:
         kind: DockerMachineTemplate
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         name: quick-start-control-plane
+    machineHealthCheck:
+      maxUnhealthy: 100%
+      unhealthyConditions:
+      - type: e2e.remediation.condition
+        status: "False"
+        timeout: 20s
   infrastructure:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -32,6 +38,12 @@ spec:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
+      machineHealthCheck:
+        maxUnhealthy: 100%
+        unhealthyConditions:
+        - type: e2e.remediation.condition
+          status: "False"
+          timeout: 20s
   variables:
   - name: lbImageRepository
     required: true

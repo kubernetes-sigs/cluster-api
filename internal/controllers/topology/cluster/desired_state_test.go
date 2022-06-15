@@ -2024,20 +2024,6 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 	}}
 	healthCheckTarget := builder.MachineDeployment("ns1", "md1").Build()
 	clusterName := "cluster1"
-	current := &clusterv1.MachineHealthCheck{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       clusterv1.GroupVersion.WithKind("MachineHealthCheck").Kind,
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "md1",
-			Namespace: "ns1",
-			// The only thing we care about in current is the owner reference to the target object
-			OwnerReferences: []metav1.OwnerReference{
-				*ownerReferenceTo(healthCheckTarget),
-			},
-		},
-	}
 	want := &clusterv1.MachineHealthCheck{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       clusterv1.GroupVersion.WithKind("MachineHealthCheck").Kind,
@@ -2048,9 +2034,6 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 			Namespace: "ns1",
 			// Label is added by defaulting values using MachineHealthCheck.Default()
 			Labels: map[string]string{"cluster.x-k8s.io/cluster-name": "cluster1"},
-			OwnerReferences: []metav1.OwnerReference{
-				*ownerReferenceTo(healthCheckTarget),
-			},
 		},
 		Spec: clusterv1.MachineHealthCheckSpec{
 			ClusterName: "cluster1",
@@ -2079,7 +2062,7 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 	t.Run("set all fields correctly", func(t *testing.T) {
 		g := NewWithT(t)
 
-		got := computeMachineHealthCheck(healthCheckTarget, selector, clusterName, mhcSpec, current)
+		got := computeMachineHealthCheck(healthCheckTarget, selector, clusterName, mhcSpec)
 
 		g.Expect(got).To(Equal(want), cmp.Diff(got, want))
 	})

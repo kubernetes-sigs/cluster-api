@@ -346,3 +346,12 @@ func ipFamilyToString(ipFamily clusterv1.ClusterIPFamily) string {
 		return "Invalid"
 	}
 }
+
+// ToMap converts a list of Variables to a map of JSON (name is the map key).
+func ToMap(variables []runtimehooksv1.Variable) map[string]apiextensionsv1.JSON {
+	variablesMap := map[string]apiextensionsv1.JSON{}
+	for i := range variables {
+		variablesMap[variables[i].Name] = variables[i].Value
+	}
+	return variablesMap
+}

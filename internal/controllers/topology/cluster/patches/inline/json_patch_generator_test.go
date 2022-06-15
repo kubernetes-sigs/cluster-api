@@ -1759,33 +1759,6 @@ func TestCalculateTemplateData(t *testing.T) {
 	}
 }
 
-func TestMergeVariables(t *testing.T) {
-	t.Run("Merge variables", func(t *testing.T) {
-		g := NewWithT(t)
-
-		m, err := mergeVariableMaps(
-			map[string]apiextensionsv1.JSON{
-				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster-name","namespace":"default","topology":{"class":"clusterClass1","version":"v1.21.1"}}}`)},
-				"a":                         {Raw: []byte("a-different")},
-				"c":                         {Raw: []byte("c")},
-			},
-			map[string]apiextensionsv1.JSON{
-				// Verify that builtin variables are merged correctly and
-				// the latter variables take precedent ("cluster-name-overwrite").
-				patchvariables.BuiltinsName: {Raw: []byte(`{"controlPlane":{"replicas":3},"cluster":{"name":"cluster-name-overwrite"}}`)},
-				"a":                         {Raw: []byte("a")},
-				"b":                         {Raw: []byte("b")},
-			},
-		)
-		g.Expect(err).To(BeNil())
-
-		g.Expect(m).To(HaveKeyWithValue(patchvariables.BuiltinsName, apiextensionsv1.JSON{Raw: []byte(`{"cluster":{"name":"cluster-name-overwrite","namespace":"default","topology":{"version":"v1.21.1","class":"clusterClass1"}},"controlPlane":{"replicas":3}}`)}))
-		g.Expect(m).To(HaveKeyWithValue("a", apiextensionsv1.JSON{Raw: []byte("a")}))
-		g.Expect(m).To(HaveKeyWithValue("b", apiextensionsv1.JSON{Raw: []byte("b")}))
-		g.Expect(m).To(HaveKeyWithValue("c", apiextensionsv1.JSON{Raw: []byte("c")}))
-	})
-}
-
 // toJSONCompact is used to be able to write JSON values in a readable manner.
 func toJSONCompact(value string) []byte {
 	var compactValue bytes.Buffer

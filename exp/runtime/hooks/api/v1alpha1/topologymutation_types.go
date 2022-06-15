@@ -171,7 +171,7 @@ type HolderReference struct {
 }
 
 // ValidateTopology validates the Cluster topology after all patches have been applied.
-func ValidateTopology(*GeneratePatchesRequest, *GeneratePatchesResponse) {}
+func ValidateTopology(*ValidateTopologyRequest, *ValidateTopologyResponse) {}
 
 func init() {
 	catalogBuilder.RegisterHook(GeneratePatches, &runtimecatalog.HookMeta{

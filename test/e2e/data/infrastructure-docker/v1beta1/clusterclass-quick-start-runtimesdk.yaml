@@ -75,8 +75,8 @@ spec:
 # TODO: enable external patches once topology mutation is implemented
 #  - name: lbImageRepository
 #    external:
-#      generateExtension: generate-patches.test-extension-config
-#      validateExtension: validate-topology.test-extension-config
+#      generateExtension: generate-patches.k8s-upgrade-with-runtimesdk
+#      validateExtension: validate-topology.k8s-upgrade-with-runtimesdk
   - name: imageRepository
     description: "Sets the imageRepository used for the KubeadmControlPlane."
     definitions:

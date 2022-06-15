@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -955,7 +956,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 								Name:      "test-cluster",
 								Namespace: "test-ns",
 								Annotations: map[string]string{
-									runtimehooksv1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
+									runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
 								},
 							},
 							Spec: clusterv1.ClusterSpec{},
@@ -986,7 +987,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 								Name:      "test-cluster",
 								Namespace: "test-ns",
 								Annotations: map[string]string{
-									runtimehooksv1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
+									runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
 								},
 							},
 							Spec: clusterv1.ClusterSpec{},
@@ -1017,7 +1018,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 								Name:      "test-cluster",
 								Namespace: "test-ns",
 								Annotations: map[string]string{
-									runtimehooksv1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
+									runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
 								},
 							},
 							Spec: clusterv1.ClusterSpec{},
@@ -1050,7 +1051,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 								Name:      "test-cluster",
 								Namespace: "test-ns",
 								Annotations: map[string]string{
-									runtimehooksv1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
+									runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
 								},
 							},
 							Spec: clusterv1.ClusterSpec{},
@@ -1083,7 +1084,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 								Name:      "test-cluster",
 								Namespace: "test-ns",
 								Annotations: map[string]string{
-									runtimehooksv1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
+									runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
 								},
 							},
 							Spec: clusterv1.ClusterSpec{},

@@ -26,11 +26,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
 
-func TestIsMarked(t *testing.T) {
+func TestIsPending(t *testing.T) {
 	tests := []struct {
 		name string
 		obj  client.Object
@@ -38,13 +39,13 @@ func TestIsMarked(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "should return true if the hook is marked",
+			name: "should return true if the hook is marked as pending",
 			obj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-ns",
 					Annotations: map[string]string{
-						runtimehooksv1.PendingHooksAnnotation: "AfterClusterUpgrade",
+						runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 					},
 				},
 			},
@@ -52,13 +53,13 @@ func TestIsMarked(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "should return true if the hook is marked - other hooks are marked too",
+			name: "should return true if the hook is marked - other hooks are marked as pending too",
 			obj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-ns",
 					Annotations: map[string]string{
-						runtimehooksv1.PendingHooksAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+						runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 					},
 				},
 			},
@@ -66,7 +67,7 @@ func TestIsMarked(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "should return false if the hook is not marked",
+			name: "should return false if the hook is not marked as pending",
 			obj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
@@ -77,13 +78,13 @@ func TestIsMarked(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "should return false if the hook is not marked - other hooks are marked",
+			name: "should return false if the hook is not marked - other hooks are marked as pending",
 			obj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-ns",
 					Annotations: map[string]string{
-						runtimehooksv1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
+						runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
 					},
 				},
 			},
@@ -100,14 +101,14 @@ func TestIsMarked(t *testing.T) {
 	}
 }
 
-func TestMark(t *testing.T) {
+func TestMarkAsPending(t *testing.T) {
 	tests := []struct {
 		name string
 		obj  client.Object
 		hook runtimecatalog.Hook
 	}{
 		{
-			name: "should add the marker if not already present",
+			name: "should add the marker if not already marked as pending",
 			obj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
@@ -117,26 +118,26 @@ func TestMark(t *testing.T) {
 			hook: runtimehooksv1.AfterClusterUpgrade,
 		},
 		{
-			name: "should add the marker if not already present - other hooks are present",
+			name: "should add the marker if not already marked as pending - other hooks are present",
 			obj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-ns",
 					Annotations: map[string]string{
-						runtimehooksv1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
+						runtimev1.PendingHooksAnnotation: "AfterControlPlaneUpgrade",
 					},
 				},
 			},
 			hook: runtimehooksv1.AfterClusterUpgrade,
 		},
 		{
-			name: "should pass if the marker is already present",
+			name: "should pass if the marker is already marked as pending",
 			obj: &corev1.ConfigMap{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-cluster",
 					Namespace: "test-ns",
 					Annotations: map[string]string{
-						runtimehooksv1.PendingHooksAnnotation: "AfterClusterUpgrade",
+						runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 					},
 				},
 			},
@@ -151,12 +152,12 @@ func TestMark(t *testing.T) {
 			ctx := context.Background()
 			g.Expect(MarkAsPending(ctx, fakeClient, tt.obj, tt.hook)).To(Succeed())
 			annotations := tt.obj.GetAnnotations()
-			g.Expect(annotations[runtimehooksv1.PendingHooksAnnotation]).To(ContainSubstring(runtimecatalog.HookName(tt.hook)))
+			g.Expect(annotations[runtimev1.PendingHooksAnnotation]).To(ContainSubstring(runtimecatalog.HookName(tt.hook)))
 		})
 	}
 }
 
-func TestUnmark(t *testing.T) {
+func TestMarkAsDone(t *testing.T) {
 	tests := []struct {
 		name string
 		obj  client.Object
@@ -179,7 +180,7 @@ func TestUnmark(t *testing.T) {
 					Name:      "test-cluster",
 					Namespace: "test-ns",
 					Annotations: map[string]string{
-						runtimehooksv1.PendingHooksAnnotation: "AfterClusterUpgrade",
+						runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 					},
 				},
 			},
@@ -192,7 +193,7 @@ func TestUnmark(t *testing.T) {
 					Name:      "test-cluster",
 					Namespace: "test-ns",
 					Annotations: map[string]string{
-						runtimehooksv1.PendingHooksAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
+						runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 					},
 				},
 			},
@@ -207,7 +208,7 @@ func TestUnmark(t *testing.T) {
 			ctx := context.Background()
 			g.Expect(MarkAsDone(ctx, fakeClient, tt.obj, tt.hook)).To(Succeed())
 			annotations := tt.obj.GetAnnotations()
-			g.Expect(annotations[runtimehooksv1.PendingHooksAnnotation]).NotTo(ContainSubstring(runtimecatalog.HookName(tt.hook)))
+			g.Expect(annotations[runtimev1.PendingHooksAnnotation]).NotTo(ContainSubstring(runtimecatalog.HookName(tt.hook)))
 		})
 	}
 }

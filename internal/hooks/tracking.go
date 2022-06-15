@@ -25,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -46,7 +46,7 @@ func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, hook
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-	annotations[runtimehooksv1.PendingHooksAnnotation] = addToCommaSeparatedList(annotations[runtimehooksv1.PendingHooksAnnotation], hookNames...)
+	annotations[runtimev1.PendingHooksAnnotation] = addToCommaSeparatedList(annotations[runtimev1.PendingHooksAnnotation], hookNames...)
 	obj.SetAnnotations(annotations)
 
 	if err := patchHelper.Patch(ctx, obj); err != nil {
@@ -63,10 +63,10 @@ func IsPending(hook runtimecatalog.Hook, obj client.Object) bool {
 	if annotations == nil {
 		return false
 	}
-	return isInCommaSeparatedList(annotations[runtimehooksv1.PendingHooksAnnotation], hookName)
+	return isInCommaSeparatedList(annotations[runtimev1.PendingHooksAnnotation], hookName)
 }
 
-// MarkAsDone remove the information on the object that represents tha hook is marked.
+// MarkAsDone removes the information on the object that represents that the hook is pending.
 func MarkAsDone(ctx context.Context, c client.Client, obj client.Object, hooks ...runtimecatalog.Hook) (retErr error) {
 	patchHelper, err := patch.NewHelper(obj, c)
 	if err != nil {
@@ -82,9 +82,9 @@ func MarkAsDone(ctx context.Context, c client.Client, obj client.Object, hooks .
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-	annotations[runtimehooksv1.PendingHooksAnnotation] = removeFromCommaSeparatedList(annotations[runtimehooksv1.PendingHooksAnnotation], hookNames...)
-	if annotations[runtimehooksv1.PendingHooksAnnotation] == "" {
-		delete(annotations, runtimehooksv1.PendingHooksAnnotation)
+	annotations[runtimev1.PendingHooksAnnotation] = removeFromCommaSeparatedList(annotations[runtimev1.PendingHooksAnnotation], hookNames...)
+	if annotations[runtimev1.PendingHooksAnnotation] == "" {
+		delete(annotations, runtimev1.PendingHooksAnnotation)
 	}
 	obj.SetAnnotations(annotations)
 

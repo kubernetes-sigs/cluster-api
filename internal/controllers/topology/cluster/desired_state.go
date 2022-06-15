@@ -315,7 +315,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 		// to know if the control plane is being upgraded. This information
 		// is required when updating the TopologyReconciled condition on the cluster.
 
-		// Let's call the AfterControlPlaneUpgrade now that the control plane is upgraded.
+		// Call the AfterControlPlaneUpgrade now that the control plane is upgraded.
 		if feature.Gates.Enabled(feature.RuntimeSDK) {
 			// Call the hook only if it is marked. If it is not marked it means we don't need ot call the
 			// hook because we didn't go through an upgrade or we already called the hook after the upgrade.

@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
@@ -325,7 +326,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					Name:      "test-cluster",
 					Namespace: "test-ns",
 					Annotations: map[string]string{
-						runtimehooksv1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
+						runtimev1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
@@ -353,7 +354,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					Name:      "test-cluster",
 					Namespace: "test-ns",
 					Annotations: map[string]string{
-						runtimehooksv1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
+						runtimev1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
@@ -381,7 +382,7 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 					Name:      "test-cluster",
 					Namespace: "test-ns",
 					Annotations: map[string]string{
-						runtimehooksv1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
+						runtimev1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
 					},
 				},
 				Spec: clusterv1.ClusterSpec{
@@ -586,7 +587,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 							Name:      "test-cluster",
 							Namespace: "test-ns",
 							Annotations: map[string]string{
-								runtimehooksv1.PendingHooksAnnotation: "AfterClusterUpgrade",
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 							},
 						},
 						Spec: clusterv1.ClusterSpec{},
@@ -619,7 +620,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 							Name:      "test-cluster",
 							Namespace: "test-ns",
 							Annotations: map[string]string{
-								runtimehooksv1.PendingHooksAnnotation: "AfterClusterUpgrade",
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 							},
 						},
 						Spec: clusterv1.ClusterSpec{},
@@ -652,7 +653,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 							Name:      "test-cluster",
 							Namespace: "test-ns",
 							Annotations: map[string]string{
-								runtimehooksv1.PendingHooksAnnotation: "AfterClusterUpgrade",
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 							},
 						},
 						Spec: clusterv1.ClusterSpec{},
@@ -689,7 +690,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 							Name:      "test-cluster",
 							Namespace: "test-ns",
 							Annotations: map[string]string{
-								runtimehooksv1.PendingHooksAnnotation: "AfterClusterUpgrade",
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 							},
 						},
 						Spec: clusterv1.ClusterSpec{},
@@ -727,7 +728,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 							Name:      "test-cluster",
 							Namespace: "test-ns",
 							Annotations: map[string]string{
-								runtimehooksv1.PendingHooksAnnotation: "AfterClusterUpgrade",
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 							},
 						},
 						Spec: clusterv1.ClusterSpec{},
@@ -765,7 +766,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 							Name:      "test-cluster",
 							Namespace: "test-ns",
 							Annotations: map[string]string{
-								runtimehooksv1.PendingHooksAnnotation: "AfterClusterUpgrade",
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 							},
 						},
 						Spec: clusterv1.ClusterSpec{
@@ -802,7 +803,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 							Name:      "test-cluster",
 							Namespace: "test-ns",
 							Annotations: map[string]string{
-								runtimehooksv1.PendingHooksAnnotation: "AfterClusterUpgrade",
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
 							},
 						},
 						Spec: clusterv1.ClusterSpec{

@@ -30,8 +30,9 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-// MarkAsPending sets the information on the object to signify that the hook is marked.
-func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, hooks ...runtimecatalog.Hook) (retErr error) {
+// MarkAsPending adds to the object's PendingHooksAnnotation the intent to execute a hook after an operation completes.
+// Usually this function is called when an operation is starting in order to track the intent to call an After<operation> hook later in the process.
+func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, hooks ...runtimecatalog.Hook) error {
 	patchHelper, err := patch.NewHelper(obj, c)
 	if err != nil {
 		return errors.Wrap(err, "failed to create patch helper")
@@ -56,7 +57,7 @@ func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, hook
 	return nil
 }
 
-// IsPending returns true if the hook is marked on the object.
+// IsPending returns true if there is an intent to call a hook being tracked in the object's PendingHooksAnnotation.
 func IsPending(hook runtimecatalog.Hook, obj client.Object) bool {
 	hookName := runtimecatalog.HookName(hook)
 	annotations := obj.GetAnnotations()
@@ -66,8 +67,10 @@ func IsPending(hook runtimecatalog.Hook, obj client.Object) bool {
 	return isInCommaSeparatedList(annotations[runtimev1.PendingHooksAnnotation], hookName)
 }
 
-// MarkAsDone removes the information on the object that represents that the hook is pending.
-func MarkAsDone(ctx context.Context, c client.Client, obj client.Object, hooks ...runtimecatalog.Hook) (retErr error) {
+// MarkAsDone removes the intent to call a Hook from the object's PendingHooksAnnotation.
+// Usually this func is called after all the registered extensions for the Hook returned an answer without requests
+// to hold on to the object's lifecycle (retryAfterSeconds).
+func MarkAsDone(ctx context.Context, c client.Client, obj client.Object, hooks ...runtimecatalog.Hook) error {
 	patchHelper, err := patch.NewHelper(obj, c)
 	if err != nil {
 		return errors.Wrap(err, "failed to create patch helper")

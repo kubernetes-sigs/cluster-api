@@ -317,9 +317,10 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 
 		// Call the AfterControlPlaneUpgrade now that the control plane is upgraded.
 		if feature.Gates.Enabled(feature.RuntimeSDK) {
-			// Call the hook only if it is marked. If it is not marked it means we don't need ot call the
+			// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
 			// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
 			if hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
+				// Call all the registered extension for the hook.
 				hookRequest := &runtimehooksv1.AfterControlPlaneUpgradeRequest{
 					Cluster:           *s.Current.Cluster,
 					KubernetesVersion: desiredVersion,
@@ -328,14 +329,17 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 				if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
 					return "", errors.Wrapf(err, "error calling the %s hook", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade))
 				}
+				// Add the response to the tracker so we can later update condition or requeue when required.
 				s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, hookResponse)
+
+				// If the extension responds to hold off on starting Machine deployments upgrades,
+				// change the UpgradeTracker accordingly, otherwise the hook call is completed and we
+				// can remove this hook from the list of pending-hooks.
 				if hookResponse.RetryAfterSeconds != 0 {
-					// We have to block the upgrade of the Machine deployments.
 					s.UpgradeTracker.MachineDeployments.HoldUpgrades(true)
 				} else {
-					// We are done with the hook for now. We don't need to call it anymore. Unmark it.
 					if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
-						return "", errors.Wrapf(err, "failed to unmark the %s hook", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade))
+						return "", errors.Wrapf(err, "failed to remove the %s hook from pending hooks tracker", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade))
 					}
 				}
 			}
@@ -377,6 +381,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 		if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
 			return "", errors.Wrapf(err, "failed to call %s hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade))
 		}
+		// Add the response to the tracker so we can later update condition or requeue when required.
 		s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, hookResponse)
 		if hookResponse.RetryAfterSeconds != 0 {
 			// Cannot pickup the new version right now. Need to try again later.
@@ -384,9 +389,9 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 		}
 
 		// We are picking up the new version here.
-		// Mark the AfterControlPlaneUpgrade and the AfterClusterUpgrade hooks so that we call them once we are done with the upgrade.
+		// Track the intent of calling the AfterControlPlaneUpgrade and the AfterClusterUpgrade hooks once we are done with the upgrade.
 		if err := hooks.MarkAsPending(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade, runtimehooksv1.AfterClusterUpgrade); err != nil {
-			return "", errors.Wrapf(err, "failed to mark the %s hook", []string{runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade), runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade)})
+			return "", errors.Wrapf(err, "failed to mark the %s hook as pending", []string{runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade), runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade)})
 		}
 	}
 

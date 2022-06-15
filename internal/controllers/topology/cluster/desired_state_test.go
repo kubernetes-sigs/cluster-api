@@ -908,7 +908,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			name                string
 			s                   *scope.Scope
 			hookResponse        *runtimehooksv1.AfterControlPlaneUpgradeResponse
-			wantMarked          bool
+			wantIntentToCall    bool
 			wantHookToBeCalled  bool
 			wantAllowMDUpgrades bool
 			wantErr             bool
@@ -937,12 +937,12 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					UpgradeTracker:      scope.NewUpgradeTracker(),
 					HookResponseTracker: scope.NewHookResponseTracker(),
 				},
-				wantMarked:         false,
+				wantIntentToCall:   false,
 				wantHookToBeCalled: false,
 				wantErr:            false,
 			},
 			{
-				name: "should not call hook if the control plane is provisioning - hook is marked",
+				name: "should not call hook if the control plane is provisioning - there is intent to call hook",
 				s: &scope.Scope{
 					Blueprint: &scope.ClusterBlueprint{
 						Topology: &clusterv1.Topology{
@@ -968,12 +968,12 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					UpgradeTracker:      scope.NewUpgradeTracker(),
 					HookResponseTracker: scope.NewHookResponseTracker(),
 				},
-				wantMarked:         true,
+				wantIntentToCall:   true,
 				wantHookToBeCalled: false,
 				wantErr:            false,
 			},
 			{
-				name: "should not call hook if the control plane is upgrading - hook is marked",
+				name: "should not call hook if the control plane is upgrading - there is intent to call hook",
 				s: &scope.Scope{
 					Blueprint: &scope.ClusterBlueprint{
 						Topology: &clusterv1.Topology{
@@ -999,12 +999,12 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					UpgradeTracker:      scope.NewUpgradeTracker(),
 					HookResponseTracker: scope.NewHookResponseTracker(),
 				},
-				wantMarked:         true,
+				wantIntentToCall:   true,
 				wantHookToBeCalled: false,
 				wantErr:            false,
 			},
 			{
-				name: "should call hook if the control plane is at desired version - non blocking response should unmark hook and allow MD upgrades",
+				name: "should call hook if the control plane is at desired version - non blocking response should remove hook from pending hooks list and allow MD upgrades",
 				s: &scope.Scope{
 					Blueprint: &scope.ClusterBlueprint{
 						Topology: &clusterv1.Topology{
@@ -1031,13 +1031,13 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					HookResponseTracker: scope.NewHookResponseTracker(),
 				},
 				hookResponse:        nonBlockingResponse,
-				wantMarked:          false,
+				wantIntentToCall:    false,
 				wantHookToBeCalled:  true,
 				wantAllowMDUpgrades: true,
 				wantErr:             false,
 			},
 			{
-				name: "should call hook if the control plane is at desired version - blocking response should leave the hook as marked and block MD upgrades",
+				name: "should call hook if the control plane is at desired version - blocking response should leave the hook in pending hooks list and block MD upgrades",
 				s: &scope.Scope{
 					Blueprint: &scope.ClusterBlueprint{
 						Topology: &clusterv1.Topology{
@@ -1064,13 +1064,13 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					HookResponseTracker: scope.NewHookResponseTracker(),
 				},
 				hookResponse:        blockingResponse,
-				wantMarked:          true,
+				wantIntentToCall:    true,
 				wantHookToBeCalled:  true,
 				wantAllowMDUpgrades: false,
 				wantErr:             false,
 			},
 			{
-				name: "should call hook if the control plane is at desired version - failure response should leave the hook as marked",
+				name: "should call hook if the control plane is at desired version - failure response should leave the hook in pending hooks list",
 				s: &scope.Scope{
 					Blueprint: &scope.ClusterBlueprint{
 						Topology: &clusterv1.Topology{
@@ -1097,7 +1097,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					HookResponseTracker: scope.NewHookResponseTracker(),
 				},
 				hookResponse:       failureResponse,
-				wantMarked:         true,
+				wantIntentToCall:   true,
 				wantHookToBeCalled: true,
 				wantErr:            true,
 			},
@@ -1124,7 +1124,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 
 				_, err := r.computeControlPlaneVersion(ctx, tt.s)
 				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneUpgrade) == 1).To(Equal(tt.wantHookToBeCalled))
-				g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, tt.s.Current.Cluster)).To(Equal(tt.wantMarked))
+				g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, tt.s.Current.Cluster)).To(Equal(tt.wantIntentToCall))
 				g.Expect(err != nil).To(Equal(tt.wantErr))
 				if tt.wantHookToBeCalled && !tt.wantErr {
 					g.Expect(tt.s.UpgradeTracker.MachineDeployments.AllowUpgrade()).To(Equal(tt.wantAllowMDUpgrades))
@@ -1133,7 +1133,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 		}
 	})
 
-	t.Run("marking AfterClusterUpgrade and AfterControlPlaneUpgrade hooks", func(t *testing.T) {
+	t.Run("register intent to call AfterClusterUpgrade and AfterControlPlaneUpgrade hooks", func(t *testing.T) {
 		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
 
 		catalog := runtimecatalog.New()
@@ -1201,7 +1201,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 		desiredVersion, err := r.computeControlPlaneVersion(ctx, s)
 		g := NewWithT(t)
 		g.Expect(err).To(BeNil())
-		// When successfully picking up the new version the AfterControlPlaneUpgrade and AfterClusterUpgrade hooks should be marked
+		// When successfully picking up the new version the intent to call AfterControlPlaneUpgrade and AfterClusterUpgrade hooks should be registered.
 		g.Expect(desiredVersion).To(Equal("v1.2.3"))
 		g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster)).To(BeTrue())
 		g.Expect(hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster)).To(BeTrue())

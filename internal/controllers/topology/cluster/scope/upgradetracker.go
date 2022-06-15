@@ -78,7 +78,8 @@ func (m *MachineDeploymentUpgradeTracker) RolloutNames() []string {
 	return m.rollingOutNames.List()
 }
 
-// HoldUpgrades is used to set if any subsequent upgrade operations should be paused.
+// HoldUpgrades is used to set if any subsequent upgrade operations should be paused,
+// e.g. because a AfterControlPlaneUpgrade hook response asked to do so.
 // If HoldUpgrades is called with `true` then AllowUpgrade would return false.
 func (m *MachineDeploymentUpgradeTracker) HoldUpgrades(val bool) {
 	m.holdUpgrades = val

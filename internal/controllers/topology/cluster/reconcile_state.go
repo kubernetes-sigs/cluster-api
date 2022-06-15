@@ -202,18 +202,18 @@ func (r *Reconciler) callAfterHooks(ctx context.Context, s *scope.Scope) error {
 }
 
 func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *scope.Scope) error {
-	/*
-		TODO: Working comment - DELETE AFTER:
-		- If the cluster topology is being created then mark the AfterControlPlaneInitialized hook so that we can call it later.
-	*/
+	// If the cluster topology is being created then track to intent to call the AfterControlPlaneInitialized hook so that we can call it later.
 	if s.Current.Cluster.Spec.InfrastructureRef == nil && s.Current.Cluster.Spec.ControlPlaneRef == nil {
 		if err := hooks.MarkAsPending(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneInitialized); err != nil {
-			return errors.Wrapf(err, "failed to mark %s hook", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneInitialized))
+			return errors.Wrapf(err, "failed to remove the %s hook from pending hooks tracker", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneInitialized))
 		}
 	}
 
+	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
+	// hook because already called the hook after the control plane is initialized.
 	if hooks.IsPending(runtimehooksv1.AfterControlPlaneInitialized, s.Current.Cluster) {
 		if isControlPlaneInitialized(s.Current.Cluster) {
+			// The control plane is initialized for the first time. Call all the registered extensions for the hook.
 			hookRequest := &runtimehooksv1.AfterControlPlaneInitializedRequest{
 				Cluster: *s.Current.Cluster,
 			}
@@ -233,8 +233,6 @@ func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *sc
 
 func isControlPlaneInitialized(cluster *clusterv1.Cluster) bool {
 	for _, condition := range cluster.GetConditions() {
-		// TODO: Should we check for the ControlPlaneInitialized condition or the ControlPlaneReadyCondition?
-		// From the description of the hook it looks like it should be the ControlPlaneReadyCondition - but need to double check.
 		if condition.Type == clusterv1.ControlPlaneInitializedCondition {
 			if condition.Status == corev1.ConditionTrue {
 				return true
@@ -245,23 +243,26 @@ func isControlPlaneInitialized(cluster *clusterv1.Cluster) bool {
 }
 
 func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope) error {
-	/*
-		TODO: Working comment - DELETE LATER:
-		- if the AfterClusterUpgrade hook is pending then check that the cluster is fully upgraded. If it is fully upgraded then call the hook.
-			- A cluster is full upgraded if
-				- Control plane is not upgrading
-				- Control plane is not scaling
-				- Control plane is not pending an upgrade
-				- MachineDeployments are not currently rolling out
-				- MAchineDeployments are not about to roll out
-				- MachineDeployments are not pending an upgrade
-	*/
+	// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
+	// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
 	if hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster) {
+		// Call the registered extensions for the hook after the cluster is fully upgraded.
+		// A clusters is considered fully upgraded if:
+		// - Control plane is not upgrading
+		// - Control plane is not scaling
+		// - Control plane is not pending an upgrade
+		// - MachineDeployments are not currently rolling out
+		// - MAchineDeployments are not about to roll out
+		// - MachineDeployments are not pending an upgrade
+
+		// Check if the control plane is upgrading.
 		cpUpgrading, err := contract.ControlPlane().IsUpgrading(s.Current.ControlPlane.Object)
 		if err != nil {
 			return errors.Wrap(err, "failed to check if control plane is upgrading")
 		}
 
+		// Check if the control plane is scaling. If the control plane does not support replicas
+		// it will be considered as not scaling.
 		var cpScaling bool
 		if s.Blueprint.Topology.ControlPlane.Replicas != nil {
 			cpScaling, err = contract.ControlPlane().IsScaling(s.Current.ControlPlane.Object)
@@ -272,7 +273,7 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 
 		if !cpUpgrading && !cpScaling && !s.UpgradeTracker.ControlPlane.PendingUpgrade && // Control Plane checks
 			len(s.UpgradeTracker.MachineDeployments.RolloutNames()) == 0 && // Machine deployments are not rollout out or not about to roll out
-			!s.UpgradeTracker.MachineDeployments.PendingUpgrade() { // Machine Deployments is are not pending an upgrade
+			!s.UpgradeTracker.MachineDeployments.PendingUpgrade() { // Machine Deployments are not pending an upgrade
 			// Everything is stable and the cluster can be considered fully upgraded.
 			hookRequest := &runtimehooksv1.AfterClusterUpgradeRequest{
 				Cluster:           *s.Current.Cluster,
@@ -283,11 +284,9 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 				return errors.Wrapf(err, "failed to call %s hook", runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade))
 			}
 			s.HookResponseTracker.Add(runtimehooksv1.AfterClusterUpgrade, hookResponse)
-			// The hook is successfully called. We can unmark the hook.
-			// TODO: follow up check - what if the cluster object in current is not updated with the latest tracking annotation.
-			// 							Is that possible?
+			// The hook is successfully called; we can remove this hook from the list of pending-hooks.
 			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterClusterUpgrade); err != nil {
-				return errors.Wrapf(err, "failed to unmark the %s hook", runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade))
+				return errors.Wrapf(err, "failed to remove the %s hook from pending hooks tracker", runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade))
 			}
 		}
 	}

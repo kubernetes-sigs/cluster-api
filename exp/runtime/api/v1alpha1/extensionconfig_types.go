@@ -206,4 +206,9 @@ const (
 	// object wants injection of CAs. It takes the form of a reference to a Secret
 	// as namespace/name.
 	InjectCAFromSecretAnnotation string = "runtime.cluster.x-k8s.io/inject-ca-from-secret"
+
+	// PendingHooksAnnotation is the annotation used to keep a track of pending runtime hooks.
+	// The annotation will be used to track the intent to call a hook as soon as an operation completes;
+	// the intent will be removed as soon as the hook call completes successfully.
+	PendingHooksAnnotation string = "runtime.cluster.x-k8s.io/pending-hooks"
 )

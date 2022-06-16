@@ -31,12 +31,19 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
+	"sigs.k8s.io/cluster-api/internal/hooks"
+	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	. "sigs.k8s.io/cluster-api/internal/test/matchers"
 )
@@ -267,6 +274,583 @@ func TestReconcileShim(t *testing.T) {
 
 		g.Expect(env.CleanupAndWait(ctx, cluster1Shim)).To(Succeed())
 	})
+}
+
+func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
+	catalog := runtimecatalog.New()
+	_ = runtimehooksv1.AddToCatalog(catalog)
+
+	afterControlPlaneInitializedGVH, err := catalog.GroupVersionHook(runtimehooksv1.AfterControlPlaneInitialized)
+	if err != nil {
+		panic(err)
+	}
+
+	successResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{
+
+		CommonResponse: runtimehooksv1.CommonResponse{
+			Status: runtimehooksv1.ResponseStatusSuccess,
+		},
+	}
+	failureResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{
+		CommonResponse: runtimehooksv1.CommonResponse{
+			Status: runtimehooksv1.ResponseStatusFailure,
+		},
+	}
+
+	tests := []struct {
+		name               string
+		cluster            *clusterv1.Cluster
+		hookResponse       *runtimehooksv1.AfterControlPlaneInitializedResponse
+		wantMarked         bool
+		wantHookToBeCalled bool
+		wantError          bool
+	}{
+		{
+			name: "hook should be marked if the cluster is about to be created",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+				},
+				Spec: clusterv1.ClusterSpec{},
+			},
+			hookResponse:       successResponse,
+			wantMarked:         true,
+			wantHookToBeCalled: false,
+			wantError:          false,
+		},
+		{
+			name: "hook should be called if it is marked and the control plane is ready - the hook should become unmarked for a success response",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+					Annotations: map[string]string{
+						runtimev1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
+					},
+				},
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef:   &corev1.ObjectReference{},
+					InfrastructureRef: &corev1.ObjectReference{},
+				},
+				Status: clusterv1.ClusterStatus{
+					Conditions: clusterv1.Conditions{
+						clusterv1.Condition{
+							Type:   clusterv1.ControlPlaneInitializedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
+			hookResponse:       successResponse,
+			wantMarked:         false,
+			wantHookToBeCalled: true,
+			wantError:          false,
+		},
+		{
+			name: "hook should be called if it is marked and the control plane is ready - the hook should remain marked for a failure response",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+					Annotations: map[string]string{
+						runtimev1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
+					},
+				},
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef:   &corev1.ObjectReference{},
+					InfrastructureRef: &corev1.ObjectReference{},
+				},
+				Status: clusterv1.ClusterStatus{
+					Conditions: clusterv1.Conditions{
+						clusterv1.Condition{
+							Type:   clusterv1.ControlPlaneInitializedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
+			hookResponse:       failureResponse,
+			wantMarked:         true,
+			wantHookToBeCalled: true,
+			wantError:          true,
+		},
+		{
+			name: "hook should not be called if it is marked and the control plane is not ready - the hook should remain marked",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+					Annotations: map[string]string{
+						runtimev1.PendingHooksAnnotation: "AfterControlPlaneInitialized",
+					},
+				},
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef:   &corev1.ObjectReference{},
+					InfrastructureRef: &corev1.ObjectReference{},
+				},
+				Status: clusterv1.ClusterStatus{
+					Conditions: clusterv1.Conditions{
+						clusterv1.Condition{
+							Type:   clusterv1.ControlPlaneInitializedCondition,
+							Status: corev1.ConditionFalse,
+						},
+					},
+				},
+			},
+			hookResponse:       failureResponse,
+			wantMarked:         true,
+			wantHookToBeCalled: false,
+			wantError:          false,
+		},
+		{
+			name: "hook should not be called if it is not marked",
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+				},
+				Spec: clusterv1.ClusterSpec{
+					ControlPlaneRef:   &corev1.ObjectReference{},
+					InfrastructureRef: &corev1.ObjectReference{},
+				},
+				Status: clusterv1.ClusterStatus{
+					Conditions: clusterv1.Conditions{
+						clusterv1.Condition{
+							Type:   clusterv1.ControlPlaneInitializedCondition,
+							Status: corev1.ConditionTrue,
+						},
+					},
+				},
+			},
+			hookResponse:       failureResponse,
+			wantMarked:         false,
+			wantHookToBeCalled: false,
+			wantError:          false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			s := &scope.Scope{
+				Current: &scope.ClusterState{
+					Cluster: tt.cluster,
+				},
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			}
+
+			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+					afterControlPlaneInitializedGVH: tt.hookResponse,
+				}).
+				WithCatalog(catalog).
+				Build()
+
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.cluster).Build()
+
+			r := &Reconciler{
+				Client:        fakeClient,
+				APIReader:     fakeClient,
+				RuntimeClient: fakeRuntimeClient,
+			}
+
+			err := r.callAfterControlPlaneInitialized(ctx, s)
+			g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneInitialized) == 1).To(Equal(tt.wantHookToBeCalled))
+			g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneInitialized, tt.cluster)).To(Equal(tt.wantMarked))
+			g.Expect(err != nil).To(Equal(tt.wantError))
+		})
+	}
+}
+
+func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
+	catalog := runtimecatalog.New()
+	_ = runtimehooksv1.AddToCatalog(catalog)
+
+	afterClusterUpgradeGVH, err := catalog.GroupVersionHook(runtimehooksv1.AfterClusterUpgrade)
+	if err != nil {
+		panic(err)
+	}
+
+	successResponse := &runtimehooksv1.AfterClusterUpgradeResponse{
+
+		CommonResponse: runtimehooksv1.CommonResponse{
+			Status: runtimehooksv1.ResponseStatusSuccess,
+		},
+	}
+	failureResponse := &runtimehooksv1.AfterClusterUpgradeResponse{
+		CommonResponse: runtimehooksv1.CommonResponse{
+			Status: runtimehooksv1.ResponseStatusFailure,
+		},
+	}
+
+	topologyVersion := "v1.2.3"
+	lowerVersion := "v1.2.2"
+	controlPlaneStableAtTopologyVersion := builder.ControlPlane("test1", "cp1").
+		WithSpecFields(map[string]interface{}{
+			"spec.version":  topologyVersion,
+			"spec.replicas": int64(2),
+		}).
+		WithStatusFields(map[string]interface{}{
+			"status.version":         topologyVersion,
+			"status.replicas":        int64(2),
+			"status.updatedReplicas": int64(2),
+			"status.readyReplicas":   int64(2),
+		}).
+		Build()
+	controlPlaneStableAtLowerVersion := builder.ControlPlane("test1", "cp1").
+		WithSpecFields(map[string]interface{}{
+			"spec.version":  lowerVersion,
+			"spec.replicas": int64(2),
+		}).
+		WithStatusFields(map[string]interface{}{
+			"status.version":         lowerVersion,
+			"status.replicas":        int64(2),
+			"status.updatedReplicas": int64(2),
+			"status.readyReplicas":   int64(2),
+		}).
+		Build()
+	controlPlaneUpgrading := builder.ControlPlane("test1", "cp1").
+		WithSpecFields(map[string]interface{}{
+			"spec.version":  topologyVersion,
+			"spec.replicas": int64(2),
+		}).
+		WithStatusFields(map[string]interface{}{
+			"status.version":         lowerVersion,
+			"status.replicas":        int64(2),
+			"status.updatedReplicas": int64(2),
+			"status.readyReplicas":   int64(2),
+		}).
+		Build()
+	controlPlaneScaling := builder.ControlPlane("test1", "cp1").
+		WithSpecFields(map[string]interface{}{
+			"spec.version":  topologyVersion,
+			"spec.replicas": int64(2),
+		}).
+		WithStatusFields(map[string]interface{}{
+			"status.version":         topologyVersion,
+			"status.replicas":        int64(1),
+			"status.updatedReplicas": int64(1),
+			"status.readyReplicas":   int64(1),
+		}).
+		Build()
+
+	tests := []struct {
+		name               string
+		s                  *scope.Scope
+		hookResponse       *runtimehooksv1.AfterClusterUpgradeResponse
+		wantMarked         bool
+		wantHookToBeCalled bool
+		wantError          bool
+	}{
+		{
+			name: "hook should not be called if it is not marked",
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						ControlPlane: clusterv1.ControlPlaneTopology{
+							Replicas: pointer.Int32(2),
+						},
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-cluster",
+							Namespace: "test-ns",
+						},
+						Spec: clusterv1.ClusterSpec{},
+					},
+				},
+				HookResponseTracker: scope.NewHookResponseTracker(),
+				UpgradeTracker:      scope.NewUpgradeTracker(),
+			},
+			wantMarked:         false,
+			hookResponse:       successResponse,
+			wantHookToBeCalled: false,
+			wantError:          false,
+		},
+		{
+			name: "hook should not be called if the control plane is upgrading - hook is marked",
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						ControlPlane: clusterv1.ControlPlaneTopology{
+							Replicas: pointer.Int32(2),
+						},
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-cluster",
+							Namespace: "test-ns",
+							Annotations: map[string]string{
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
+							},
+						},
+						Spec: clusterv1.ClusterSpec{},
+					},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: controlPlaneUpgrading,
+					},
+				},
+				HookResponseTracker: scope.NewHookResponseTracker(),
+				UpgradeTracker:      scope.NewUpgradeTracker(),
+			},
+			wantMarked:         true,
+			hookResponse:       successResponse,
+			wantHookToBeCalled: false,
+			wantError:          false,
+		},
+		{
+			name: "hook should not be called if the control plane is scaling - hook is marked",
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						ControlPlane: clusterv1.ControlPlaneTopology{
+							Replicas: pointer.Int32(2),
+						},
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-cluster",
+							Namespace: "test-ns",
+							Annotations: map[string]string{
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
+							},
+						},
+						Spec: clusterv1.ClusterSpec{},
+					},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: controlPlaneScaling,
+					},
+				},
+				HookResponseTracker: scope.NewHookResponseTracker(),
+				UpgradeTracker:      scope.NewUpgradeTracker(),
+			},
+			wantMarked:         true,
+			hookResponse:       successResponse,
+			wantHookToBeCalled: false,
+			wantError:          false,
+		},
+		{
+			name: "hook should not be called if the control plane is stable at a lower version and is pending an upgrade - hook is marked",
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						ControlPlane: clusterv1.ControlPlaneTopology{
+							Replicas: pointer.Int32(2),
+						},
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-cluster",
+							Namespace: "test-ns",
+							Annotations: map[string]string{
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
+							},
+						},
+						Spec: clusterv1.ClusterSpec{},
+					},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: controlPlaneStableAtLowerVersion,
+					},
+				},
+				HookResponseTracker: scope.NewHookResponseTracker(),
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.PendingUpgrade = true
+					return ut
+				}(),
+			},
+			wantMarked:         true,
+			hookResponse:       successResponse,
+			wantHookToBeCalled: false,
+			wantError:          false,
+		},
+		{
+			name: "hook should not be called if the control plane is stable at desired version but MDs are rolling out - hook is marked",
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						ControlPlane: clusterv1.ControlPlaneTopology{
+							Replicas: pointer.Int32(2),
+						},
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-cluster",
+							Namespace: "test-ns",
+							Annotations: map[string]string{
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
+							},
+						},
+						Spec: clusterv1.ClusterSpec{},
+					},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: controlPlaneStableAtTopologyVersion,
+					},
+				},
+				HookResponseTracker: scope.NewHookResponseTracker(),
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.PendingUpgrade = false
+					ut.MachineDeployments.MarkRollingOut("md1")
+					return ut
+				}(),
+			},
+			wantMarked:         true,
+			hookResponse:       successResponse,
+			wantHookToBeCalled: false,
+			wantError:          false,
+		},
+		{
+			name: "hook should not be called if the control plane is stable at desired version but MDs are pending upgrade - hook is marked",
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						ControlPlane: clusterv1.ControlPlaneTopology{
+							Replicas: pointer.Int32(2),
+						},
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-cluster",
+							Namespace: "test-ns",
+							Annotations: map[string]string{
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
+							},
+						},
+						Spec: clusterv1.ClusterSpec{},
+					},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: controlPlaneStableAtTopologyVersion,
+					},
+				},
+				HookResponseTracker: scope.NewHookResponseTracker(),
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.PendingUpgrade = false
+					ut.MachineDeployments.MarkPendingUpgrade("md1")
+					return ut
+				}(),
+			},
+			wantMarked:         true,
+			hookResponse:       successResponse,
+			wantHookToBeCalled: false,
+			wantError:          false,
+		},
+		{
+			name: "hook should be called if the control plane and MDs are stable at the topology version - success response should unmark the hook",
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						ControlPlane: clusterv1.ControlPlaneTopology{
+							Replicas: pointer.Int32(2),
+						},
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-cluster",
+							Namespace: "test-ns",
+							Annotations: map[string]string{
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
+							},
+						},
+						Spec: clusterv1.ClusterSpec{
+							Topology: &clusterv1.Topology{
+								Version: topologyVersion,
+							},
+						},
+					},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: controlPlaneStableAtTopologyVersion,
+					},
+				},
+				HookResponseTracker: scope.NewHookResponseTracker(),
+				UpgradeTracker:      scope.NewUpgradeTracker(),
+			},
+			wantMarked:         false,
+			hookResponse:       successResponse,
+			wantHookToBeCalled: true,
+			wantError:          false,
+		},
+		{
+			name: "hook should be called if the control plane and MDs are stable at the topology version - failure response should leave the hook marked",
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						ControlPlane: clusterv1.ControlPlaneTopology{
+							Replicas: pointer.Int32(2),
+						},
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-cluster",
+							Namespace: "test-ns",
+							Annotations: map[string]string{
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
+							},
+						},
+						Spec: clusterv1.ClusterSpec{
+							Topology: &clusterv1.Topology{
+								Version: topologyVersion,
+							},
+						},
+					},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: controlPlaneStableAtTopologyVersion,
+					},
+				},
+				HookResponseTracker: scope.NewHookResponseTracker(),
+				UpgradeTracker:      scope.NewUpgradeTracker(),
+			},
+			wantMarked:         true,
+			hookResponse:       failureResponse,
+			wantHookToBeCalled: true,
+			wantError:          true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+				WithCallAllExtensionResponses(map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject{
+					afterClusterUpgradeGVH: tt.hookResponse,
+				}).
+				WithCatalog(catalog).
+				Build()
+
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.s.Current.Cluster).Build()
+
+			r := &Reconciler{
+				Client:        fakeClient,
+				APIReader:     fakeClient,
+				RuntimeClient: fakeRuntimeClient,
+			}
+
+			err := r.callAfterClusterUpgrade(ctx, tt.s)
+			g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterClusterUpgrade) == 1).To(Equal(tt.wantHookToBeCalled))
+			g.Expect(hooks.IsPending(runtimehooksv1.AfterClusterUpgrade, tt.s.Current.Cluster)).To(Equal(tt.wantMarked))
+			g.Expect(err != nil).To(Equal(tt.wantError))
+		})
+	}
 }
 
 func TestReconcileCluster(t *testing.T) {

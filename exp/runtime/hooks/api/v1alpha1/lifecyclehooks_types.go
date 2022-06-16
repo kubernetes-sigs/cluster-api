@@ -188,7 +188,7 @@ func init() {
 	catalogBuilder.RegisterHook(AfterControlPlaneInitialized, &runtimecatalog.HookMeta{
 		Tags:        []string{"Lifecycle Hooks"},
 		Summary:     "Called after the Control Plane is available for the first time",
-		Description: "This non-blocking hook is called after the ControlPlane for the Cluster is marked as available for the first time",
+		Description: "This non-blocking hook is called after the ControlPlane for the Cluster reachable for the first time",
 	})
 
 	catalogBuilder.RegisterHook(BeforeClusterUpgrade, &runtimecatalog.HookMeta{

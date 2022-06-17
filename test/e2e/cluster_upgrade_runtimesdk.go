@@ -26,9 +26,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/test/framework"
@@ -117,22 +119,26 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 	})
 
 	It("Should create and upgrade a workload cluster", func() {
+		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		By("Deploy Test Extension")
 		testExtensionDeploymentTemplate, err := os.ReadFile(testExtensionPath) //nolint:gosec
-		Expect(err).ToNot(HaveOccurred(), "Failed to read the extension config deployment manifest file")
+		Expect(err).ToNot(HaveOccurred(), "Failed to read the extension deployment manifest file")
 
 		// Set the SERVICE_NAMESPACE, which is used in the cert-manager Certificate CR.
 		// We have to dynamically set the namespace here, because it depends on the test run and thus
 		// cannot be set when rendering the test extension YAML with kustomize.
 		testExtensionDeployment := strings.ReplaceAll(string(testExtensionDeploymentTemplate), "${SERVICE_NAMESPACE}", namespace.Name)
-		Expect(testExtensionDeployment).ToNot(BeEmpty(), "Test Extension deployment manifest file should not be empty")
 
+		Expect(testExtensionDeployment).ToNot(BeEmpty(), "Test Extension deployment manifest file should not be empty")
 		Expect(input.BootstrapClusterProxy.Apply(ctx, []byte(testExtensionDeployment), "--namespace", namespace.Name)).To(Succeed())
 
-		By("Deploy Test Extension ExtensionConfig")
+		By("Deploy Test Extension ExtensionConfig and ConfigMap")
 		ext = extensionConfig(specName, namespace)
 		err = input.BootstrapClusterProxy.GetClient().Create(ctx, ext)
 		Expect(err).ToNot(HaveOccurred(), "Failed to create the extension config")
+		responses := responsesConfigMap(clusterName, namespace)
+		err = input.BootstrapClusterProxy.GetClient().Create(ctx, responses)
+		Expect(err).ToNot(HaveOccurred(), "Failed to create the responses configmap")
 
 		By("Creating a workload cluster")
 
@@ -145,7 +151,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 				Flavor:                   pointer.StringDeref(input.Flavor, "upgrades"),
 				Namespace:                namespace.Name,
-				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
+				ClusterName:              clusterName,
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
 				ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneMachineCount),
 				WorkerMachineCount:       pointer.Int64Ptr(workerMachineCount),
@@ -194,6 +200,17 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
 		})
 
+		By("Checking all lifecycle hooks have been called")
+		// Assert that each hook passed to this function is marked as "true" in the response configmap
+		err = checkLifecycleHooks(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterName, map[string]string{
+			"BeforeClusterCreate":          "",
+			"BeforeClusterUpgrade":         "",
+			"AfterControlPlaneInitialized": "",
+			"AfterControlPlaneUpgrade":     "",
+			"AfterClusterUpgrade":          "",
+		})
+		Expect(err).ToNot(HaveOccurred(), "Lifecycle hook calls were not as expected")
+
 		By("PASSED!")
 	})
 
@@ -240,4 +257,35 @@ func extensionConfig(specName string, namespace *corev1.Namespace) *runtimev1.Ex
 			},
 		},
 	}
+}
+
+// responsesConfigMap generates a ConfigMap with preloaded responses for the test extension.
+func responsesConfigMap(name string, namespace *corev1.Namespace) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-hookresponses", name),
+			Namespace: namespace.Name,
+		},
+		// Every response contain only Status:Success. The test checks whether each handler has been called at least once.
+		Data: map[string]string{
+			"BeforeClusterCreate-response":          `{"Status": "Success"}`,
+			"BeforeClusterUpgrade-response":         `{"Status": "Success"}`,
+			"AfterControlPlaneInitialized-response": `{"Status": "Success"}`,
+			"AfterControlPlaneUpgrade-response":     `{"Status": "Success"}`,
+			"AfterClusterUpgrade-response":          `{"Status": "Success"}`,
+		},
+	}
+}
+
+func checkLifecycleHooks(ctx context.Context, c client.Client, namespace string, clusterName string, hooks map[string]string) error {
+	configMap := &corev1.ConfigMap{}
+	configMapName := clusterName + "-hookresponses"
+	err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: configMapName}, configMap)
+	Expect(err).ToNot(HaveOccurred(), "Failed to get the hook response configmap")
+	for hook := range hooks {
+		if _, ok := configMap.Data[hook+"-called"]; !ok {
+			return errors.Errorf("hook %s call not recorded in configMap %s/%s", hook, namespace, configMapName)
+		}
+	}
+	return nil
 }

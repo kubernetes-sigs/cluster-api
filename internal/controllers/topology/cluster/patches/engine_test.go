@@ -18,6 +18,7 @@ package patches
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
@@ -26,20 +27,22 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
-	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
-	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	. "sigs.k8s.io/cluster-api/internal/test/matchers"
 )
 
 func TestApply(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
 	type expectedFields struct {
 		infrastructureCluster                          map[string]interface{}
 		controlPlane                                   map[string]interface{}
@@ -49,9 +52,11 @@ func TestApply(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		patches        []clusterv1.ClusterClassPatch
-		expectedFields expectedFields
+		name                   string
+		patches                []clusterv1.ClusterClassPatch
+		externalPatchResponses map[string]runtimehooksv1.ResponseObject
+		expectedFields         expectedFields
+		wantErr                bool
 	}{
 		{
 			name: "Should preserve desired state, if there are no patches",
@@ -348,6 +353,132 @@ func TestApply(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Successfully apply external jsonPatch with generate and validate",
+			patches: []clusterv1.ClusterClassPatch{
+				{
+					Name: "fake-patch1",
+					External: &clusterv1.ExternalPatchDefinition{
+						GenerateExtension: pointer.String("patch-infrastructureCluster"),
+						ValidateExtension: pointer.String("validate-infrastructureCluster"),
+					},
+				},
+			},
+			externalPatchResponses: map[string]runtimehooksv1.ResponseObject{
+				"patch-infrastructureCluster": &runtimehooksv1.GeneratePatchesResponse{
+					Items: []runtimehooksv1.GeneratePatchesResponseItem{
+						{
+							UID:       "1",
+							PatchType: runtimehooksv1.JSONPatchType,
+							Patch: bytesPatch([]jsonPatchRFC6902{{
+								Op:    "add",
+								Path:  "/spec/template/spec/resource",
+								Value: &apiextensionsv1.JSON{Raw: []byte(`"infraCluster"`)}}}),
+						},
+					},
+				},
+				"validate-infrastructureCluster": &runtimehooksv1.ValidateTopologyResponse{
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Status: runtimehooksv1.ResponseStatusSuccess,
+					},
+				},
+			},
+			expectedFields: expectedFields{
+				infrastructureCluster: map[string]interface{}{
+					"spec.resource": "infraCluster",
+				},
+			},
+		},
+		{
+			name: "error on failed validation with external jsonPatch",
+			patches: []clusterv1.ClusterClassPatch{
+				{
+					Name: "fake-patch1",
+					External: &clusterv1.ExternalPatchDefinition{
+						GenerateExtension: pointer.String("patch-infrastructureCluster"),
+						ValidateExtension: pointer.String("validate-infrastructureCluster"),
+					},
+				},
+			},
+			externalPatchResponses: map[string]runtimehooksv1.ResponseObject{
+				"patch-infrastructureCluster": &runtimehooksv1.GeneratePatchesResponse{
+					Items: []runtimehooksv1.GeneratePatchesResponseItem{
+						{
+							UID:       "1",
+							PatchType: runtimehooksv1.JSONPatchType,
+							Patch: bytesPatch([]jsonPatchRFC6902{{
+								Op:    "add",
+								Path:  "/spec/template/spec/resource",
+								Value: &apiextensionsv1.JSON{Raw: []byte(`"invalid-infraCluster"`)}}}),
+						},
+					},
+				},
+				"validate-infrastructureCluster": &runtimehooksv1.ValidateTopologyResponse{
+					CommonResponse: runtimehooksv1.CommonResponse{
+						Status:  runtimehooksv1.ResponseStatusFailure,
+						Message: "not a valid infrastructureCluster",
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Successfully apply multiple external jsonPatch",
+			patches: []clusterv1.ClusterClassPatch{
+				{
+					Name: "fake-patch1",
+					External: &clusterv1.ExternalPatchDefinition{
+						GenerateExtension: pointer.String("patch-infrastructureCluster"),
+					},
+				},
+				{
+					Name: "fake-patch2",
+					External: &clusterv1.ExternalPatchDefinition{
+						GenerateExtension: pointer.String("patch-controlPlane"),
+					},
+				},
+			},
+
+			externalPatchResponses: map[string]runtimehooksv1.ResponseObject{
+				"patch-infrastructureCluster": &runtimehooksv1.GeneratePatchesResponse{
+					Items: []runtimehooksv1.GeneratePatchesResponseItem{
+						{
+							UID:       "1",
+							PatchType: runtimehooksv1.JSONPatchType,
+							Patch: bytesPatch([]jsonPatchRFC6902{{
+								Op:    "add",
+								Path:  "/spec/template/spec/resource",
+								Value: &apiextensionsv1.JSON{Raw: []byte(`"infraCluster"`)}}}),
+						},
+						{
+							UID:       "1",
+							PatchType: runtimehooksv1.JSONPatchType,
+							Patch: bytesPatch([]jsonPatchRFC6902{{
+								Op:    "add",
+								Path:  "/spec/template/spec/another",
+								Value: &apiextensionsv1.JSON{Raw: []byte(`"resource"`)}}}),
+						},
+					},
+				},
+				"patch-controlPlane": &runtimehooksv1.GeneratePatchesResponse{
+					Items: []runtimehooksv1.GeneratePatchesResponseItem{
+						{
+							UID:       "2",
+							PatchType: runtimehooksv1.JSONMergePatchType,
+							Patch:     []byte(`{"spec":{"template":{"spec":{"resource": "controlPlane"}}}}`)},
+					},
+				},
+			},
+			expectedFields: expectedFields{
+				infrastructureCluster: map[string]interface{}{
+					"spec.resource": "infraCluster",
+					"spec.another":  "resource",
+				},
+				controlPlane: map[string]interface{}{
+					"spec.resource": "controlPlane",
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -366,17 +497,26 @@ func TestApply(t *testing.T) {
 			blueprint, desired := setupTestObjects()
 
 			// If there are patches, set up patch generators.
-			// FIXME(sbueringer) implement test for external patches
 			cat := runtimecatalog.New()
 			g.Expect(runtimehooksv1.AddToCatalog(cat)).To(Succeed())
 
-			registry := runtimeregistry.New()
-			g.Expect(registry.WarmUp(&runtimev1.ExtensionConfigList{})).To(Succeed())
-			runtimeClient := runtimeclient.New(runtimeclient.Options{
-				Catalog:  cat,
-				Registry: registry,
-			})
+			runtimeClient := fakeruntimeclient.NewRuntimeClientBuilder().WithCatalog(cat).Build()
+
+			if tt.externalPatchResponses != nil {
+				// replace the package variable uuidGenerator with one that returns an incremented integer.
+				// each patch will have a new uuid in the order in which they're defined and called.
+				var uuid int32
+				uuidGenerator = func() types.UID {
+					uuid++
+					return types.UID(fmt.Sprintf("%d", uuid))
+				}
+				runtimeClient = fakeruntimeclient.NewRuntimeClientBuilder().
+					WithCallExtensionResponses(tt.externalPatchResponses).
+					WithCatalog(cat).
+					Build()
+			}
 			patchEngine := NewEngine(runtimeClient)
+
 			if len(tt.patches) > 0 {
 				// Add the patches.
 				blueprint.ClusterClass.Spec.Patches = tt.patches
@@ -412,7 +552,12 @@ func TestApply(t *testing.T) {
 			}
 
 			// Apply patches.
-			g.Expect(patchEngine.Apply(context.Background(), blueprint, desired)).To(Succeed())
+			if err := patchEngine.Apply(context.Background(), blueprint, desired); err != nil {
+				if !tt.wantErr {
+					t.Fatal(err)
+				}
+				return
+			}
 
 			// Compare the patched desired objects with the expected desired objects.
 			g.Expect(desired.Cluster).To(EqualObject(expectedCluster))
@@ -586,4 +731,19 @@ func setSpecFields(obj *unstructured.Unstructured, fields map[string]interface{}
 			panic(err)
 		}
 	}
+}
+
+// jsonPatchRFC6902 represents a jsonPatch.
+type jsonPatchRFC6902 struct {
+	Op    string                `json:"op"`
+	Path  string                `json:"path"`
+	Value *apiextensionsv1.JSON `json:"value,omitempty"`
+}
+
+func bytesPatch(patch []jsonPatchRFC6902) []byte {
+	out, err := json.Marshal(patch)
+	if err != nil {
+		panic(err)
+	}
+	return out
 }

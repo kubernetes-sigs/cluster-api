@@ -517,7 +517,7 @@ manager-capd: ## Build the kubeadm control plane manager binary into the ./bin f
 
 .PHONY: docker-pull-prerequisites
 docker-pull-prerequisites:
-	docker pull docker.io/docker/dockerfile:1.1-experimental
+	docker pull docker.io/docker/dockerfile:1.4
 	docker pull $(GO_CONTAINER_IMAGE)
 	docker pull gcr.io/distroless/static:latest
 

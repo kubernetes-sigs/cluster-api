@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta2"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/types/upstreamv1beta3"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 var (
@@ -63,14 +64,14 @@ var (
 )
 
 // KubeVersionToKubeadmAPIGroupVersion maps a Kubernetes version to the correct Kubeadm API Group supported.
-func KubeVersionToKubeadmAPIGroupVersion(version semver.Version) (schema.GroupVersion, error) {
+func KubeVersionToKubeadmAPIGroupVersion(v semver.Version) (schema.GroupVersion, error) {
 	switch {
-	case version.LT(v1beta1KubeadmVersion):
+	case version.Compare(v, v1beta1KubeadmVersion, version.WithoutPreReleases()) < 0:
 		return schema.GroupVersion{}, errors.New("the bootstrap provider for kubeadm doesn't support Kubernetes version lower than v1.13.0")
-	case version.LT(v1beta2KubeadmVersion):
+	case version.Compare(v, v1beta2KubeadmVersion, version.WithoutPreReleases()) < 0:
 		// NOTE: All the Kubernetes version >= v1.13 and < v1.15 should use the kubeadm API version v1beta1
 		return upstreamv1beta1.GroupVersion, nil
-	case version.LT(v1beta3KubeadmVersion):
+	case version.Compare(v, v1beta3KubeadmVersion, version.WithoutPreReleases()) < 0:
 		// NOTE: All the Kubernetes version >= v1.15 and < v1.22 should use the kubeadm API version v1beta2
 		return upstreamv1beta2.GroupVersion, nil
 	default:

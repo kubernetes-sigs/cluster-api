@@ -323,6 +323,13 @@ func TestRemoveMachineFromKubeadmConfigMap(t *testing.T) {
 				`),
 		},
 		{
+			name:              "no op for Kubernetes version 1.22.0 alpha",
+			kubernetesVersion: semver.MustParse("1.22.0-alpha.0.734+ba502ee555924a"), // Kubernetes version >= 1.22.0 should not manage ClusterStatus
+			machine:           machine,
+			objs:              []client.Object{kubeadmConfigWithoutClusterStatus},
+			expectErr:         false,
+		},
+		{
 			name:              "no op for Kubernetes version >= 1.22.0",
 			kubernetesVersion: minKubernetesVersionWithoutClusterStatus, // Kubernetes version >= 1.22.0 should not manage ClusterStatus
 			machine:           machine,

@@ -576,6 +576,13 @@ func TestUpdateCoreDNSClusterRole(t *testing.T) {
 			expectCoreDNSPolicyRules: coreDNS180PolicyRules,
 		},
 		{
+			name:                     "patch ClusterRole: Kubernetes == 1.22 alpha and CoreDNS == 1.8.1",
+			kubernetesVersion:        semver.Version{Major: 1, Minor: 22, Patch: 0, Pre: []semver.PRVersion{{VersionStr: "alpha"}}},
+			coreDNSVersion:           "1.8.1",
+			coreDNSPolicyRules:       coreDNS180PolicyRules,
+			expectCoreDNSPolicyRules: coreDNS181PolicyRules,
+		},
+		{
 			name:                     "patch ClusterRole: Kubernetes == 1.22 and CoreDNS == 1.8.1",
 			kubernetesVersion:        semver.Version{Major: 1, Minor: 22, Patch: 0},
 			coreDNSVersion:           "1.8.1",

@@ -260,7 +260,7 @@ func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(ctx context.Context,
 // we have to update the ClusterRole accordingly.
 func (w *Workload) updateCoreDNSClusterRole(ctx context.Context, kubernetesVersion semver.Version, info *coreDNSInfo) error {
 	// Do nothing for Kubernetes < 1.22.
-	if kubernetesVersion.LT(semver.Version{Major: 1, Minor: 22, Patch: 0}) {
+	if version.Compare(kubernetesVersion, semver.Version{Major: 1, Minor: 22, Patch: 0}, version.WithoutPreReleases()) < 0 {
 		return nil
 	}
 

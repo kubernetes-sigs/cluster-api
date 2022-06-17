@@ -590,6 +590,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	disallowedUpgrade119Version := before.DeepCopy()
 	disallowedUpgrade119Version.Spec.Version = "v1.19.0"
 
+	disallowedUpgrade120AlphaVersion := before.DeepCopy()
+	disallowedUpgrade120AlphaVersion.Spec.Version = "v1.20.0-alpha.0.734_ba502ee555924a"
+
 	updateNTPServers := before.DeepCopy()
 	updateNTPServers.Spec.KubeadmConfigSpec.NTP.Servers = []string{"new-server"}
 
@@ -899,6 +902,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: true,
 			before:    disallowedUpgrade118Prev,
 			kcp:       disallowedUpgrade119Version,
+		},
+		{
+			name:      "should return error when trying to upgrade two minor versions",
+			expectErr: true,
+			before:    disallowedUpgrade118Prev,
+			kcp:       disallowedUpgrade120AlphaVersion,
 		},
 		{
 			name:      "should not return an error when maxSurge value is updated to 0",

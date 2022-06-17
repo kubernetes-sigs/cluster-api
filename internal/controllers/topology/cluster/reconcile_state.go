@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/external"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -364,14 +363,6 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 
 	// If the ControlPlane has defined a current or desired MachineHealthCheck attempt to reconcile it.
 	if s.Desired.ControlPlane.MachineHealthCheck != nil || s.Current.ControlPlane.MachineHealthCheck != nil {
-		// Set the ControlPlane Object and the Cluster as owners for the MachineHealthCheck to ensure object garbage collection
-		// in case something happens before the MHC sets ownership to the Cluster.
-		if s.Desired.ControlPlane.MachineHealthCheck != nil {
-			s.Desired.ControlPlane.MachineHealthCheck.SetOwnerReferences([]metav1.OwnerReference{
-				*ownerReferenceTo(s.Desired.ControlPlane.Object),
-			})
-		}
-
 		// Reconcile the current and desired state of the MachineHealthCheck.
 		if err := r.reconcileMachineHealthCheck(ctx, s.Current.ControlPlane.MachineHealthCheck, s.Desired.ControlPlane.MachineHealthCheck); err != nil {
 			return err
@@ -387,18 +378,6 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 
 	// If a current MachineHealthCheck doesn't exist but there is a desired MachineHealthCheck attempt to create.
 	if current == nil && desired != nil {
-		// First ensure the ownerReferences are valid.
-		refs := []metav1.OwnerReference{}
-		for _, ref := range desired.OwnerReferences {
-			currentRef := ref
-			ownerRef, err := r.resolveOwnerReferenceIfIncomplete(ctx, desired.Namespace, &currentRef)
-			if err != nil {
-				return errors.Wrapf(err, "failed to resolve owner reference %v for %s", ref, tlog.KObj{Obj: desired})
-			}
-			refs = append(refs, *ownerRef)
-		}
-		desired.OwnerReferences = refs
-
 		log.Infof("Creating %s", tlog.KObj{Obj: desired})
 		helper, err := r.patchHelperFactory(nil, desired)
 		if err != nil {
@@ -444,34 +423,6 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 	}
 	r.recorder.Eventf(current, corev1.EventTypeNormal, updateEventReason, "Updated %q", tlog.KObj{Obj: current})
 	return nil
-}
-
-// resolveOwnerReferenceIfIncomplete checks if an OwnerReferences is valid. If not it attempts to get the referenced object
-// to create a valid ownerReference.
-func (r *Reconciler) resolveOwnerReferenceIfIncomplete(ctx context.Context, namespace string, reference *metav1.OwnerReference) (*metav1.OwnerReference, error) {
-	var owner *unstructured.Unstructured
-	var err error
-
-	// First check that the ownerReference has at least Name Kind and APIVersion defined.
-	if reference.Name == "" || reference.APIVersion == "" || reference.Kind == "" {
-		return nil, errors.Errorf("ownerReference not valid: %v", reference)
-	}
-
-	// If the UID field is not empty this is a fully valid reference and can be returned and used.
-	if reference.UID != "" {
-		return reference, nil
-	}
-
-	// Get the object set an ownerReference for the MachineHealthCheck.
-	owner, err = external.Get(ctx, r.Client, &corev1.ObjectReference{
-		Kind:       reference.Kind,
-		Name:       reference.Name,
-		APIVersion: reference.APIVersion},
-		namespace)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve %s %q in namespace %q", reference.Kind, reference.Name, namespace)
-	}
-	return ownerReferenceTo(owner), nil
 }
 
 // reconcileCluster reconciles the desired state of the Cluster object.
@@ -563,13 +514,8 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, cluster *clust
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: md.Object})
 
-	// If the MachineDeployment has defined a MachineHealthCheck set the OwnerReference and reconcile it.
+	// If the MachineDeployment has defined a MachineHealthCheck reconcile it.
 	if md.MachineHealthCheck != nil {
-		// Set the MachineDeployment Object as owner to ensure object garbage collection in case something
-		// happens before the MHC sets ownership to the Cluster.
-		md.MachineHealthCheck.SetOwnerReferences([]metav1.OwnerReference{
-			*ownerReferenceTo(md.Object),
-		})
 		if err := r.reconcileMachineHealthCheck(ctx, nil, md.MachineHealthCheck); err != nil {
 			return err
 		}

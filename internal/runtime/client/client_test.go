@@ -21,7 +21,6 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -514,7 +513,6 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 }
 
 func TestClient_CallExtension(t *testing.T) {
-	testHostPort := "127.0.0.1:9090"
 	ns := &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Namespace",
@@ -530,7 +528,8 @@ func TestClient_CallExtension(t *testing.T) {
 	validExtensionHandlerWithFailPolicy := runtimev1.ExtensionConfig{
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				URL:      pointer.String(fmt.Sprintf("https://%s/", testHostPort)),
+				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
+				URL:      pointer.String("https://127.0.0.1/"),
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{},
@@ -552,7 +551,8 @@ func TestClient_CallExtension(t *testing.T) {
 	validExtensionHandlerWithIgnorePolicy := runtimev1.ExtensionConfig{
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				URL:      pointer.String(fmt.Sprintf("https://%s/", testHostPort)),
+				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
+				URL:      pointer.String("https://127.0.0.1/"),
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{}},
@@ -726,12 +726,14 @@ func TestClient_CallExtension(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.testServer.start {
-				if tt.testServer.hostPort == "" {
-					tt.testServer.hostPort = testHostPort
-				}
-				srv := createSecureTestServer(g, tt.testServer)
+				srv := createSecureTestServer(tt.testServer)
 				srv.StartTLS()
 				defer srv.Close()
+
+				// Set the URL to the real address of the test server.
+				for i := range tt.registeredExtensionConfigs {
+					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = pointer.String(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
+				}
 			}
 
 			cat := runtimecatalog.New()
@@ -765,7 +767,6 @@ func TestClient_CallExtension(t *testing.T) {
 }
 
 func TestClient_CallAllExtensions(t *testing.T) {
-	testHostPort := "127.0.0.1:9090"
 	ns := &corev1.Namespace{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Namespace",
@@ -780,7 +781,8 @@ func TestClient_CallAllExtensions(t *testing.T) {
 	extensionConfig := runtimev1.ExtensionConfig{
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
-				URL:      pointer.String(fmt.Sprintf("https://%s/", testHostPort)),
+				// Set a fake URL, in test cases where we start the test server the URL will be overridden.
+				URL:      pointer.String("https://127.0.0.1/"),
 				CABundle: testcerts.CACert,
 			},
 			NamespaceSelector: &metav1.LabelSelector{},
@@ -930,12 +932,14 @@ func TestClient_CallAllExtensions(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.testServer.start {
-				if tt.testServer.hostPort == "" {
-					tt.testServer.hostPort = testHostPort
-				}
-				srv := createSecureTestServer(g, tt.testServer)
+				srv := createSecureTestServer(tt.testServer)
 				srv.StartTLS()
 				defer srv.Close()
+
+				// Set the URL to the real address of the test server.
+				for i := range tt.registeredExtensionConfigs {
+					tt.registeredExtensionConfigs[i].Spec.ClientConfig.URL = pointer.String(fmt.Sprintf("https://%s/", srv.Listener.Addr().String()))
+				}
 			}
 
 			cat := runtimecatalog.New()
@@ -1131,7 +1135,6 @@ func Test_aggregateResponses(t *testing.T) {
 type testServerConfig struct {
 	start     bool
 	responses map[string]testServerResponse
-	hostPort  string
 }
 
 type testServerResponse struct {
@@ -1150,10 +1153,7 @@ func response(status runtimehooksv1.ResponseStatus) testServerResponse {
 	}
 }
 
-func createSecureTestServer(g *WithT, server testServerConfig) *httptest.Server {
-	l, err := net.Listen("tcp", server.hostPort)
-	g.Expect(err).NotTo(HaveOccurred())
-
+func createSecureTestServer(server testServerConfig) *httptest.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		// Write the response for the first match in tt.testServer.responses.
@@ -1176,11 +1176,6 @@ func createSecureTestServer(g *WithT, server testServerConfig) *httptest.Server 
 	})
 
 	srv := newUnstartedTLSServer(mux)
-
-	// NewUnstartedServer creates a listener. Close that listener and replace
-	// with the one we created.
-	g.Expect(srv.Listener.Close()).To(Succeed())
-	srv.Listener = l
 
 	return srv
 }

@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -452,14 +453,21 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 			errors.Wrapf(err, "failed to call ExtensionHandler: %q", opts.name),
 		)
 	}
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		respBody, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return errCallingExtensionHandler(
+				errors.Errorf("failed to call ExtensionHandler: failed to read response body (status code: %d)", resp.StatusCode),
+			)
+		}
+
 		return errCallingExtensionHandler(
-			errors.Errorf("non 200 response code, %q, not accepted", resp.StatusCode),
+			errors.Errorf("failed to call ExtensionHandler: response: %q (status code: %d)", string(respBody), resp.StatusCode),
 		)
 	}
 
-	defer resp.Body.Close()
 	if err := json.NewDecoder(resp.Body).Decode(responseLocal); err != nil {
 		return errCallingExtensionHandler(
 			errors.Wrap(err, "failed to decode message"),

@@ -20,8 +20,6 @@ import (
 	"fmt"
 	"testing"
 
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -35,6 +33,7 @@ import (
 
 func Test_clusterctlClient_GetKubeconfig(t *testing.T) {
 	configClient := newFakeConfig()
+	objects := test.FakeCAPISetupObjects()
 	kubeconfig := cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}
 	clusterClient := newFakeCluster(cluster.Kubeconfig{Path: "cluster1"}, configClient)
 
@@ -47,6 +46,7 @@ func Test_clusterctlClient_GetKubeconfig(t *testing.T) {
 		client    *fakeClient
 		options   GetKubeconfigOptions
 		expectErr bool
+		want      string
 	}{
 		{
 			name:      "returns error if unable to get client for mgmt cluster",
@@ -58,6 +58,54 @@ func Test_clusterctlClient_GetKubeconfig(t *testing.T) {
 			client:    badClient,
 			options:   GetKubeconfigOptions{Kubeconfig: Kubeconfig(kubeconfig), UserKubeconfig: true},
 			expectErr: true,
+		},
+		{
+			name: "returns the default user kubeconfig",
+			client: func() *fakeClient {
+				newclusterClient := newFakeCluster(kubeconfig, configClient).
+					WithObjs(append(objects, getKubeconfigSecret(true))...)
+				return newFakeClient(configClient).WithCluster(newclusterClient)
+			}(),
+			options: GetKubeconfigOptions{
+				Kubeconfig:          Kubeconfig(kubeconfig),
+				Namespace:           "default",
+				WorkloadClusterName: "mgmt-cluster",
+				UserKubeconfig:      true,
+			},
+			expectErr: false,
+			want:      getKubeconfig("mgmt-cluster", true),
+		},
+		{
+			name: "returns the system kubeconfig when the secret for user kubeconfig is not available",
+			client: func() *fakeClient {
+				newclusterClient := newFakeCluster(kubeconfig, configClient).
+					WithObjs(append(objects, getKubeconfigSecret(false))...)
+				return newFakeClient(configClient).WithCluster(newclusterClient)
+			}(),
+			options: GetKubeconfigOptions{
+				Kubeconfig:          Kubeconfig(kubeconfig),
+				Namespace:           "default",
+				WorkloadClusterName: "mgmt-cluster",
+				UserKubeconfig:      true,
+			},
+			expectErr: false,
+			want:      getKubeconfig("mgmt-cluster", false),
+		},
+		{
+			name: "returns the system kubeconfig when GetKubeconfigOptions.UserKubeconfig is set to false",
+			client: func() *fakeClient {
+				newclusterClient := newFakeCluster(kubeconfig, configClient).
+					WithObjs(append(objects, getKubeconfigSecret(false))...)
+				return newFakeClient(configClient).WithCluster(newclusterClient)
+			}(),
+			options: GetKubeconfigOptions{
+				Kubeconfig:          Kubeconfig(kubeconfig),
+				Namespace:           "default",
+				WorkloadClusterName: "mgmt-cluster",
+				UserKubeconfig:      false,
+			},
+			expectErr: false,
+			want:      getKubeconfig("mgmt-cluster", false),
 		},
 	}
 
@@ -71,74 +119,63 @@ func Test_clusterctlClient_GetKubeconfig(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(config).ToNot(BeEmpty())
+			g.Expect(config).To(BeEquivalentTo(tt.want))
 		})
 	}
 }
 
-const validUserKubeconfig = `
+//getKubeconfig returns a user/system specific kubeconfig with given cluster name
+func getKubeconfig(clusterName string, isUser bool) string {
+	var username string
+	if isUser {
+		username += fmt.Sprintf("%s-user", clusterName)
+	} else {
+		username += fmt.Sprintf("%s-admin", clusterName)
+	}
+	return fmt.Sprintf(`
 apiVersion: v1
 kind: Config
 clusters:
 - cluster:
     certificate-authority-data: randomstring
     server: https://test-cluster-api.us-east-1.eks.amazonaws.com
-  name: default_mgmt-cluster-control-plane
+  name: mgmt-cluster
 contexts:
 - context:
-    cluster: default_mgmt-cluster-control-plane
-    user: default_mgmt-cluster-control-plane-user
-  name: default_mgmt-cluster-control-plane-user@default_mgmt-cluster-control-plane
-current-context: default_mgmt-cluster-control-plane-user@default_mgmt-cluster-control-plane
+    cluster: mgmt-cluster
+    user: %[1]s
+  name: mgmt-cluster
+current-context: mgmt-cluster
 preferences: {}
 users
-- name: default_mgmt-cluster-control-plane-user
+- name: %[1]s
   user:
-    client-certificate-data: stuff-cert-data
-    client-key-data: stuff-key-data
-`
+    token: sometoken
+`, username)
+}
 
-func Test_clusterctlClient_GetKubeconfig1(t *testing.T) {
-	newconfigClient := newFakeConfig()
-	newclusterClient := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "default_mgmt-cluster-control-plane-user@default_mgmt-cluster-control-plane"}, newconfigClient)
-	newclusterClient.fakeProxy = test.NewFakeProxy().WithObjs(&corev1.Secret{
+//getKubeconfigSecret returns user/system specific kubeconfig secret
+func getKubeconfigSecret(isUser bool) *corev1.Secret {
+	clusterName := "mgmt-cluster"
+	var secretName string
+	if isUser {
+		secretName = fmt.Sprintf("%s-user-kubeconfig", clusterName)
+	} else {
+		secretName = fmt.Sprintf("%s-kubeconfig", clusterName)
+	}
+	return &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1",
 			Kind:       "Secret",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "mgmt-cluster-user-kubeconfig",
+			Name:      secretName,
 			Namespace: "default",
-			Labels:    map[string]string{clusterv1.ClusterLabelName: "mgmt-cluster-user"},
+			Labels:    map[string]string{clusterv1.ClusterLabelName: clusterName},
 		},
 		Data: map[string][]byte{
-			secret.KubeconfigDataName: []byte(validUserKubeconfig),
+			secret.KubeconfigDataName: []byte(getKubeconfig(clusterName, isUser)),
 		},
 		Type: clusterv1.ClusterSecretType,
-	}, &apiextensionsv1.CustomResourceDefinition{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
-			Kind:       "CustomResourceDefinition",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("clusters.%s", clusterv1.GroupVersion.Group),
-			Labels: map[string]string{
-				fmt.Sprintf("clusterctl.%s", clusterv1.GroupVersion.String()): "",
-				fmt.Sprintf("%s/provider", clusterv1.GroupVersion.String()):   "cluster-api",
-			},
-		},
-	})
-	client := newFakeClient(newconfigClient).WithCluster(newclusterClient)
-
-	options := GetKubeconfigOptions{
-		Kubeconfig:          Kubeconfig(cluster.Kubeconfig{Path: "kubeconfig", Context: "default_mgmt-cluster-control-plane-user@default_mgmt-cluster-control-plane"}),
-		Namespace:           "default",
-		WorkloadClusterName: "mgmt-cluster",
-		UserKubeconfig:      true,
 	}
-	g := NewWithT(t)
-
-	config, err := client.GetKubeconfig(options)
-	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(config).ToNot(BeEmpty())
 }

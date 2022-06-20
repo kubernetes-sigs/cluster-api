@@ -20,10 +20,11 @@ set -o pipefail
 
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 
-YQ="hack/tools/bin/yq"
+YQ_BIN=yq
+YQ_PATH=hack/tools/bin/${YQ_BIN}
 
-cd "${REPO_ROOT}" && make ${YQ} >/dev/null
+cd "${REPO_ROOT}" && make ${YQ_BIN} >/dev/null
 
 KEYS=()
-while IFS='' read -r line; do KEYS+=("$line"); done < <(${YQ} e '.aliases["cluster-api-maintainers"][]' OWNERS_ALIASES)
+while IFS='' read -r line; do KEYS+=("$line"); done < <(${YQ_PATH} e '.aliases["cluster-api-maintainers"][]' OWNERS_ALIASES)
 echo "${KEYS[@]/#/@}"

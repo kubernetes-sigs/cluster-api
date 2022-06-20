@@ -29,6 +29,10 @@ var errNotFound = errors.New("not found")
 // Path defines a how to access a field in an Unstructured object.
 type Path []string
 
+func (p Path) String() string {
+	return strings.Join(p, ".")
+}
+
 // Int64 represents an accessor to an int64 path value.
 type Int64 struct {
 	path Path

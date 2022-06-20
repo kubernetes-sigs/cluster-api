@@ -79,7 +79,7 @@ func NewNodePool(ctx context.Context, c client.Client, cluster *clusterv1.Cluste
 // currently the nodepool supports only a recreate strategy for replacing old nodes with new ones
 // (all existing machines are killed before new ones are created).
 // TODO: consider if to support a Rollout strategy (a more progressive node replacement).
-func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) {
+func (np *NodePool) ReconcileMachines(ctx context.Context, remoteClient client.Client) (ctrl.Result, error) {
 	desiredReplicas := int(*np.machinePool.Spec.Replicas)
 
 	// Delete all the machines in excess (outdated machines or machines exceeding desired replica count).
@@ -140,7 +140,7 @@ func (np *NodePool) ReconcileMachines(ctx context.Context) (ctrl.Result, error) 
 	result := ctrl.Result{}
 	for i := range np.machines {
 		machine := np.machines[i]
-		if res, err := np.reconcileMachine(ctx, machine); err != nil || !res.IsZero() {
+		if res, err := np.reconcileMachine(ctx, machine, remoteClient); err != nil || !res.IsZero() {
 			if err != nil {
 				return ctrl.Result{}, errors.Wrap(err, "failed to reconcile machine")
 			}
@@ -240,7 +240,7 @@ func (np *NodePool) refresh(ctx context.Context) error {
 }
 
 // reconcileMachine will build and provision a docker machine and update the docker machine pool status for that instance.
-func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machine) (ctrl.Result, error) {
+func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machine, remoteClient client.Client) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	var machineStatus infraexpv1.DockerMachinePoolInstanceStatus
@@ -334,7 +334,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 		// Usually a cloud provider will do this, but there is no docker-cloud provider.
 		// Requeue if there is an error, as this is likely momentary load balancer
 		// state changes during control plane provisioning.
-		if err := externalMachine.SetNodeProviderID(ctx); err != nil {
+		if err = externalMachine.SetNodeProviderID(ctx, remoteClient); err != nil {
 			log.V(4).Info("transient error setting the provider id")
 			return ctrl.Result{Requeue: true}, nil //nolint:nilerr
 		}

@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	utilexp "sigs.k8s.io/cluster-api/exp/util"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
@@ -49,6 +50,7 @@ type DockerMachinePoolReconciler struct {
 	Client           client.Client
 	Scheme           *runtime.Scheme
 	ContainerRuntime container.Runtime
+	Tracker          *remote.ClusterCacheTracker
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachinepools,verbs=get;list;watch;create;update;patch;delete
@@ -186,7 +188,11 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	}
 
 	// Reconcile machines and updates Status.Instances
-	res, err := pool.ReconcileMachines(ctx)
+	remoteClient, err := r.Tracker.GetClient(ctx, client.ObjectKeyFromObject(cluster))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to generate workload cluster client")
+	}
+	res, err := pool.ReconcileMachines(ctx, remoteClient)
 	if err != nil {
 		return res, err
 	}

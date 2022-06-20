@@ -35,6 +35,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
@@ -49,6 +50,7 @@ import (
 type DockerMachineReconciler struct {
 	client.Client
 	ContainerRuntime container.Runtime
+	Tracker          *remote.ClusterCacheTracker
 }
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=dockermachines,verbs=get;list;watch;create;update;patch;delete
@@ -310,7 +312,11 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	// Usually a cloud provider will do this, but there is no docker-cloud provider.
 	// Requeue if there is an error, as this is likely momentary load balancer
 	// state changes during control plane provisioning.
-	if err := externalMachine.SetNodeProviderID(ctx); err != nil {
+	remoteClient, err := r.Tracker.GetClient(ctx, client.ObjectKeyFromObject(cluster))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to generate workload cluster client")
+	}
+	if err := externalMachine.SetNodeProviderID(ctx, remoteClient); err != nil {
 		if errors.As(err, &docker.ContainerNotRunningError{}) {
 			return ctrl.Result{}, errors.Wrap(err, "failed to patch the Kubernetes node with the machine providerID")
 		}

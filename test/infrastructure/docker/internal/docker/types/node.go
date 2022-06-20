@@ -18,8 +18,6 @@ limitations under the License.
 package types
 
 import (
-	"bufio"
-	"bytes"
 	"context"
 	"io"
 	"path/filepath"
@@ -162,22 +160,6 @@ type ContainerCmd struct {
 	stdin    io.Reader
 	stdout   io.Writer
 	stderr   io.Writer
-}
-
-// RunLoggingOutputOnFail runs the cmd, logging error output if Run returns an error.
-func (c *ContainerCmd) RunLoggingOutputOnFail(ctx context.Context) ([]string, error) {
-	var buff bytes.Buffer
-	c.SetStdout(&buff)
-	c.SetStderr(&buff)
-	err := c.Run(ctx)
-	out := make([]string, 0)
-	if err != nil {
-		scanner := bufio.NewScanner(&buff)
-		for scanner.Scan() {
-			out = append(out, scanner.Text())
-		}
-	}
-	return out, errors.WithStack(err)
 }
 
 // Run will run a configured ContainerCmd inside a container instance.

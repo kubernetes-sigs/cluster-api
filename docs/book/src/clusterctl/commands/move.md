@@ -53,7 +53,7 @@ used to provision a target Management cluster.
 
 This can now be achieved with the following procedure:
 
-1. Create a temporary bootstrap cluster, e.g. using Kind or Minikube
+1. Create a temporary bootstrap cluster, e.g. using kind or minikube
 2. Use `clusterctl init` to install the provider components
 3. Use `clusterctl generate cluster ... | kubectl apply -f -` to provision a target management cluster
 4. Wait for the target management cluster to be up and running

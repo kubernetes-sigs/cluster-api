@@ -127,11 +127,11 @@ Proposed priority for project at this time: Low
 ### Tooling: Provisioners
 
 Examples of this use case, in which a tooling provisioner is using
-Cluster API to automate behavior, includes tools such as kops and kubicorn.
+Cluster API to automate behavior, includes tools such as kOps and kubicorn.
 
 Proposed priority for project at this time: Low
 
-Maintainers of tools such as kops have indicated interest in using
+Maintainers of tools such as kOps have indicated interest in using
 Cluster API, but they have also indicated they do not have much time to
 take on the work. If this changes, this use case would increase in priority.
 

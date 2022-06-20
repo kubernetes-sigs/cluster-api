@@ -79,7 +79,7 @@ This proposal introduces support to allow infrastructure cluster resources (e.g.
 Currently, Cluster API infrastructure providers support an opinionated happy path to create and manage cluster infrastructure lifecycle.
 The fundamental use case we want to support is out of tree controllers or tools that can manage these resources.
 
-For example, users could create clusters using tools such as Terraform, Crossplane, or Kops and run CAPI on top of installed infrastructure.
+For example, users could create clusters using tools such as Terraform, Crossplane, or kOps and run CAPI on top of installed infrastructure.
 
 The proposal might also ease adoption of Cluster API in heavily restricted environments where the provider infrastructure for the cluster needs to be managed out of band.
 

@@ -16,7 +16,7 @@ This guide explains how to deploy an AWS workload cluster using Ignition.
 
 - [kubectl](https://kubernetes.io/docs/tasks/tools/#kubectl) installed locally
 - [clusterawsadm](https://cluster-api-aws.sigs.k8s.io/introduction.html#clusterawsadm) installed locally - download from the [releases](https://github.com/kubernetes-sigs/cluster-api-provider-aws/releases) page of the AWS provider
-- [Kind](https://kind.sigs.k8s.io/) and [Docker](https://www.docker.com/) installed locally (when using Kind to create a management cluster)
+- [kind](https://kind.sigs.k8s.io/) and [Docker](https://www.docker.com/) installed locally (when using kind to create a management cluster)
 
 ## Configure a management cluster
 

@@ -15,11 +15,11 @@
 # limitations under the License.
 
 
-# This script installs a local KIND cluster with a local container registry and the correct files mounted for using CAPD
+# This script installs a local kind cluster with a local container registry and the correct files mounted for using CAPD
 # to test Cluster API.
-# This script is a customized version of the kind_with_local_registry script supplied by the KIND maintainers at
+# This script is a customized version of the kind_with_local_registry script supplied by the kind maintainers at
 # https://kind.sigs.k8s.io/docs/user/local-registry/
-# The modifications mount the docker socket inside the KIND cluster so that CAPD can be used to
+# The modifications mount the docker socket inside the kind cluster so that CAPD can be used to
 # created docker containers.
 
 set -o errexit

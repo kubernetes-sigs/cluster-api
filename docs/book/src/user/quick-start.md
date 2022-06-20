@@ -15,7 +15,7 @@ If using a [provider] that does not support v1beta1 or v1alpha4 yet, please foll
 ### Common Prerequisites
 
 - Install and setup [kubectl] in your local environment
-- Install [Kind] and [Docker]
+- Install [kind] and [Docker]
 
 ### Install and/or configure a Kubernetes cluster
 

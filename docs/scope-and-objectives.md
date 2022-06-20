@@ -106,7 +106,7 @@ As a result, existing popular deployment mechanisms that manage Kubernetes clust
 - To add these APIs to Kubernetes core (kubernetes/kubernetes).
    -  This API should live in a namespace outside the core and follow the best practices defined by api-reviewers, but is not subject to core-api constraints.
 - To manage the lifecycle of infrastructure unrelated to the running of Kubernetes-conformant clusters.
-- To force all Kubernetes lifecycle products (kops, kubespray, GKE, AKS, EKS, IKS etc.) to support or use these APIs.
+- To force all Kubernetes lifecycle products (kOps, Kubespray, GKE, AKS, EKS, IKS etc.) to support or use these APIs.
 - To manage non-Cluster API provisioned Kubernetes-conformant clusters.
 - To manage a single cluster spanning multiple infrastructure providers.
 - To configure a machine at any time other than create or upgrade.

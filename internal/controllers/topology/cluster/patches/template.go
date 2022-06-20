@@ -24,6 +24,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/uuid"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,6 +32,9 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 )
+
+// unstructuredDecoder is used to decode byte arrays into Unstructured objects.
+var unstructuredDecoder = serializer.NewCodecFactory(nil).UniversalDeserializer()
 
 // requestItemBuilder builds a GeneratePatchesRequestItem.
 type requestItemBuilder struct {
@@ -135,14 +139,10 @@ func getRequestItem(req *runtimehooksv1.GeneratePatchesRequest, holderKind, hold
 // bytesToUnstructured provides a utility method that converts a (JSON) byte array into an Unstructured object.
 func bytesToUnstructured(b []byte) (*unstructured.Unstructured, error) {
 	// Unmarshal the JSON.
-	var m map[string]interface{}
-	if err := json.Unmarshal(b, &m); err != nil {
+	u := &unstructured.Unstructured{}
+	if _, _, err := unstructuredDecoder.Decode(b, nil, u); err != nil {
 		return nil, errors.Wrap(err, "failed to unmarshal object from json")
 	}
-
-	// Set the content.
-	u := &unstructured.Unstructured{}
-	u.SetUnstructuredContent(m)
 
 	return u, nil
 }

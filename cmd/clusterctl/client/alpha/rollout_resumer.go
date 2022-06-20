@@ -51,5 +51,5 @@ func (r *rollout) ObjectResumer(proxy cluster.Proxy, ref corev1.ObjectReference)
 func resumeMachineDeployment(proxy cluster.Proxy, name, namespace string) error {
 	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", false)))
 
-	return patchMachineDeployemt(proxy, name, namespace, patch)
+	return patchMachineDeployment(proxy, name, namespace, patch)
 }

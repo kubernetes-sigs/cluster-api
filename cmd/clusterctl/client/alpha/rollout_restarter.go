@@ -51,5 +51,5 @@ func (r *rollout) ObjectRestarter(proxy cluster.Proxy, ref corev1.ObjectReferenc
 // setRestartedAtAnnotation sets the restartedAt annotation in the MachineDeployment's spec.template.objectmeta.
 func setRestartedAtAnnotation(proxy cluster.Proxy, name, namespace string) error {
 	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/restartedAt\":\"%v\"}}}}}", time.Now().Format(time.RFC3339))))
-	return patchMachineDeployemt(proxy, name, namespace, patch)
+	return patchMachineDeployment(proxy, name, namespace, patch)
 }

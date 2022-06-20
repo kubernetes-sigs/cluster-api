@@ -50,5 +50,5 @@ func (r *rollout) ObjectPauser(proxy cluster.Proxy, ref corev1.ObjectReference) 
 // pauseMachineDeployment sets Paused to true in the MachineDeployment's spec.
 func pauseMachineDeployment(proxy cluster.Proxy, name, namespace string) error {
 	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", true)))
-	return patchMachineDeployemt(proxy, name, namespace, patch)
+	return patchMachineDeployment(proxy, name, namespace, patch)
 }

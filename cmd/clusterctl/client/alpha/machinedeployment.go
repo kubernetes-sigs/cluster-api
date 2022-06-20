@@ -49,8 +49,8 @@ func getMachineDeployment(proxy cluster.Proxy, name, namespace string) (*cluster
 	return mdObj, nil
 }
 
-// patchMachineDeployemt applies a patch to a machinedeployment.
-func patchMachineDeployemt(proxy cluster.Proxy, name, namespace string, patch client.Patch) error {
+// patchMachineDeployment applies a patch to a machinedeployment.
+func patchMachineDeployment(proxy cluster.Proxy, name, namespace string, patch client.Patch) error {
 	cFrom, err := proxy.NewClient()
 	if err != nil {
 		return err

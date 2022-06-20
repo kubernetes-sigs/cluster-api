@@ -115,6 +115,11 @@ KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
 KPROMO_PKG := sigs.k8s.io/promo-tools/v3/cmd/kpromo
 
+YQ_VER := v4.25.2
+YQ_BIN := yq
+YQ :=  $(abspath $(TOOLS_BIN_DIR)/$(YQ_BIN)-$(YQ_VER))
+YQ_PKG := github.com/mikefarah/yq/v4
+
 CONVERSION_VERIFIER_BIN := conversion-verifier
 CONVERSION_VERIFIER := $(abspath $(TOOLS_BIN_DIR)/$(CONVERSION_VERIFIER_BIN))
 
@@ -970,6 +975,9 @@ $(SETUP_ENVTEST_BIN): $(SETUP_ENVTEST) ## Build a local copy of setup-envtest.
 .PHONY: $(KPROMO_BIN)
 $(KPROMO_BIN): $(KPROMO) ## Build a local copy of kpromo
 
+.PHONY: $(YQ_BIN)
+$(YQ_BIN): $(YQ) ## Build a local copy of yq
+
 .PHONY: $(TILT_PREPARE_BIN)
 $(TILT_PREPARE_BIN): $(TILT_PREPARE) ## Build a local copy of tilt-prepare.
 
@@ -1017,6 +1025,9 @@ $(TILT_PREPARE): $(TOOLS_DIR)/go.mod # Build tilt-prepare from tools folder.
 
 $(KPROMO):
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(KPROMO_PKG) $(KPROMO_BIN) ${KPROMO_VER}
+
+$(YQ):
+	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(YQ_PKG) $(YQ_BIN) ${YQ_VER}
 
 $(GOLANGCI_LINT): .github/workflows/golangci-lint.yml # Download golangci-lint using hack script into tools folder.
 	hack/ensure-golangci-lint.sh \

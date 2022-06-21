@@ -46,7 +46,7 @@ func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, 
 	}
 
 	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err = clusterClient.ProviderInventory().CheckCAPIContract(); err != nil {
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(); err != nil {
 		return "", err
 	}
 
@@ -67,7 +67,7 @@ func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, 
 	}
 	kubeconfig, err := cluster.GetUserKubeconfig(clusterClient.Proxy(), options.WorkloadClusterName, options.Namespace)
 	if err != nil {
-		// fallback on the workload cluster kubeconfig
+		// fallback on the system kubeconfig
 		klog.Warningf("failed to fetch the user kubeconfig; fetching the system kubeconfig instead")
 		return clusterClient.WorkloadCluster().GetKubeconfig(options.WorkloadClusterName, options.Namespace)
 	}

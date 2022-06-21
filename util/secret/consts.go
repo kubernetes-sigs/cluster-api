@@ -29,10 +29,10 @@ const (
 	// TLSCrtDataName is the key used to store a TLS certificate in the secret's data field.
 	TLSCrtDataName = "tls.crt"
 
-	// Kubeconfig is the secret name suffix storing the Cluster Kubeconfig.
+	// Kubeconfig is the secret name suffix storing the Cluster's System Kubeconfig.
 	Kubeconfig = Purpose("kubeconfig")
 
-	// UserKubeconfig is the secret name suffix storing the Cluster Kubeconfig.
+	// UserKubeconfig is the secret name suffix storing the Cluster's User Kubeconfig.
 	UserKubeconfig = Purpose("user-kubeconfig")
 
 	// ClusterCA is the secret name suffix for APIServer CA.

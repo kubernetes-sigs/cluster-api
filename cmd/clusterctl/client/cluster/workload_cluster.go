@@ -54,8 +54,8 @@ func (p *workloadCluster) GetKubeconfig(workloadClusterName string, namespace st
 	}
 	dataBytes, err := utilkubeconfig.FromSecret(ctx, cs, obj)
 	if err != nil {
-		errSecretName := utilsecret.Name(workloadClusterName, utilsecret.Kubeconfig)
-		return "", errors.Wrapf(err, "%q not found in namespace %q", errSecretName, namespace)
+		secretName := utilsecret.Name(workloadClusterName, utilsecret.Kubeconfig)
+		return "", errors.Wrapf(err, "%q not found in namespace %q", secretName, namespace)
 	}
 	return string(dataBytes), nil
 }
@@ -75,8 +75,8 @@ func GetUserKubeconfig(proxy Proxy, workloadClusterName string, namespace string
 	dataBytes, err := utilkubeconfig.FromUserSecret(ctx, cs, obj)
 
 	if err != nil {
-		errUserSecretName := utilsecret.Name(workloadClusterName, utilsecret.UserKubeconfig)
-		return "", errors.Wrapf(err, "%q not found in namespace %q", errUserSecretName, namespace)
+		userSecretName := utilsecret.Name(workloadClusterName, utilsecret.UserKubeconfig)
+		return "", errors.Wrapf(err, "%q not found in namespace %q", userSecretName, namespace)
 	}
 
 	return string(dataBytes), nil

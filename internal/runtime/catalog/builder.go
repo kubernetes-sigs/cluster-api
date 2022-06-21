@@ -38,7 +38,7 @@ type Builder struct {
 	schemeBuilder runtime.SchemeBuilder
 }
 
-// RegisterHook registers a Hook and its request and response types.
+// RegisterHook registers a Hook with its request and response types and metadata.
 // The passed in hookFunc must have the following type: func(*RequestType,*ResponseType)
 // The name of the func becomes the "hook" field of the GroupVersionHook.
 func (bld *Builder) RegisterHook(hookFunc Hook, hookMeta *HookMeta) *Builder {
@@ -59,8 +59,8 @@ func (bld *Builder) RegisterOpenAPIDefinitions(getter OpenAPIDefinitionsGetter) 
 	return bld
 }
 
-// AddToCatalog adds all registered Hooks their request and response types and the
-// OpenAPIDefinitions to the catalog.
+// AddToCatalog adds all registered Hooks with their request and response types and metadata
+// and the OpenAPIDefinitions to the catalog.
 func (bld *Builder) AddToCatalog(catalog *Catalog) error {
 	for _, addTo := range bld.catalogBuilder {
 		addTo(catalog)
@@ -72,13 +72,13 @@ func (bld *Builder) AddToCatalog(catalog *Catalog) error {
 // Note: This function is used by generated conversion code.
 // If we would just expose the func from the embedded schemeBuilder
 // directly it would not work because it is nil at that time and
-// appending to a nil schemeBuilder doesn't propagate to our builder.
+// appending to a nil schemeBuilder doesn't propagate to our Builder.
 func (bld *Builder) Register(f func(*runtime.Scheme) error) {
 	bld.schemeBuilder.Register(f)
 }
 
-// Build returns a new Catalog containing all registered Hooks their request and response types
-// and the OpenAPIDefinitions.
+// Build returns a new Catalog containing all registered Hooks with their request and response types
+// and metadata and the OpenAPIDefinitions.
 func (bld *Builder) Build() (*Catalog, error) {
 	s := New()
 	return s, bld.AddToCatalog(s)

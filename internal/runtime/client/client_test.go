@@ -1069,7 +1069,7 @@ func Test_client_matchNamespace(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := client{
-				Client: fake.NewClientBuilder().
+				client: fake.NewClientBuilder().
 					WithObjects(tt.existingNamespaces...).
 					Build(),
 			}

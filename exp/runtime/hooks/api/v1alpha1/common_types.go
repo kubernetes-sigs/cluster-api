@@ -20,7 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
-// ResponseObject is a runtime object extended with methods to handle response-specific fields.
+// ResponseObject is a runtime.Object extended with methods to handle response-specific fields.
 // +kubebuilder:object:generate=false
 type ResponseObject interface {
 	runtime.Object
@@ -40,6 +40,8 @@ type RetryResponseObject interface {
 }
 
 // CommonResponse is the data structure common to all response types.
+// Note: By embedding CommonResponse in a runtime.Object the ResponseObject
+// interface is satisfied.
 type CommonResponse struct {
 	// Status of the call. One of "Success" or "Failure".
 	Status ResponseStatus `json:"status"`
@@ -48,12 +50,12 @@ type CommonResponse struct {
 	Message string `json:"message"`
 }
 
-// SetMessage sets the message field for the CommonResponse.
+// SetMessage sets the Message field for the CommonResponse.
 func (r *CommonResponse) SetMessage(message string) {
 	r.Message = message
 }
 
-// SetStatus sets the status field for the CommonResponse.
+// SetStatus sets the Status field for the CommonResponse.
 func (r *CommonResponse) SetStatus(status ResponseStatus) {
 	r.Status = status
 }
@@ -73,7 +75,7 @@ func (r *CommonResponse) GetStatus() ResponseStatus {
 type ResponseStatus string
 
 const (
-	// ResponseStatusSuccess represents the success response.
+	// ResponseStatusSuccess represents a success response.
 	ResponseStatusSuccess ResponseStatus = "Success"
 
 	// ResponseStatusFailure represents a failure response.
@@ -81,7 +83,9 @@ const (
 )
 
 // CommonRetryResponse is the data structure which contains all
-// common retry fields.
+// common and retry fields.
+// Note: By embedding CommonRetryResponse in a runtime.Object the RetryResponseObject
+// interface is satisfied.
 type CommonRetryResponse struct {
 	// CommonResponse contains Status and Message fields common to all response types.
 	CommonResponse `json:",inline"`
@@ -91,12 +95,12 @@ type CommonRetryResponse struct {
 	RetryAfterSeconds int32 `json:"retryAfterSeconds"`
 }
 
-// GetRetryAfterSeconds sets the RetryAfterSeconds value.
+// GetRetryAfterSeconds returns the RetryAfterSeconds field for the CommonRetryResponse.
 func (r *CommonRetryResponse) GetRetryAfterSeconds() int32 {
 	return r.RetryAfterSeconds
 }
 
-// SetRetryAfterSeconds returns the RetryAfterSeconds value.
+// SetRetryAfterSeconds sets the RetryAfterSeconds field for the CommonRetryResponse.
 func (r *CommonRetryResponse) SetRetryAfterSeconds(retryAfterSeconds int32) {
 	r.RetryAfterSeconds = retryAfterSeconds
 }

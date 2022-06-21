@@ -14,9 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1alpha2 contains types for catalog tests
-// Note: they have to be in a separate package because otherwise it wouldn't
-// be possible to register different versions of the same hook.
 package v1alpha2
 
 import (

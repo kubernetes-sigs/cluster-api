@@ -35,6 +35,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -75,7 +76,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	if err := indexByExtensionInjectCAFromSecretName(ctx, mgr); err != nil {
-		return err
+		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
 
 	// warmupRunnable will attempt to sync the RuntimeSDK registry with existing ExtensionConfig objects to ensure extensions
@@ -94,7 +95,9 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	var errs []error
 	log := ctrl.LoggerFrom(ctx)
+
 	// Requeue events when the registry is not ready.
+	// The registry will become ready once the warmupRunnable has completed.
 	if !r.RuntimeClient.IsReady() {
 		return ctrl.Result{Requeue: true}, nil
 	}
@@ -104,7 +107,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// ExtensionConfig not found. Remove from registry.
-			// First need to add Namespace/Name to empty ExtensionConfig object.
+			// First we need to add Namespace/Name to empty ExtensionConfig object.
 			extensionConfig.Name = req.Name
 			extensionConfig.Namespace = req.Namespace
 			return r.reconcileDelete(ctx, extensionConfig)
@@ -157,7 +160,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func patchExtensionConfig(ctx context.Context, client client.Client, original, modified *runtimev1.ExtensionConfig, options ...patch.Option) error {
 	patchHelper, err := patch.NewHelper(original, client)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create PatchHelper for ExtensionConfig %s/%s", modified.Namespace, modified.Name)
+		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: modified})
 	}
 
 	options = append(options, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
@@ -165,7 +168,7 @@ func patchExtensionConfig(ctx context.Context, client client.Client, original, m
 	}})
 	err = patchHelper.Patch(ctx, modified, options...)
 	if err != nil {
-		return errors.Wrapf(err, "failed to patch ExtensionConfig %s/%s", modified.Namespace, modified.Name)
+		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: modified})
 	}
 	return nil
 }
@@ -174,12 +177,13 @@ func patchExtensionConfig(ctx context.Context, client client.Client, original, m
 // effort deletion that may not catch all cases.
 func (r *Reconciler) reconcileDelete(_ context.Context, extensionConfig *runtimev1.ExtensionConfig) (ctrl.Result, error) {
 	if err := r.RuntimeClient.Unregister(extensionConfig); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to unregister ExtensionConfig %s/%s", extensionConfig.Namespace, extensionConfig.Name)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to unregister %s", tlog.KObj{Obj: extensionConfig})
 	}
 	return ctrl.Result{}, nil
 }
 
-// secretToExtensionConfig maps a secret to ExtensionConfigs to reconcile them on updates of the secrets.
+// secretToExtensionConfig maps a secret to ExtensionConfigs with the corresponding InjectCAFromSecretAnnotation
+// to reconcile them on updates of the secrets.
 func (r *Reconciler) secretToExtensionConfig(secret client.Object) []reconcile.Request {
 	result := []ctrl.Request{}
 
@@ -187,7 +191,7 @@ func (r *Reconciler) secretToExtensionConfig(secret client.Object) []reconcile.R
 	indexKey := secret.GetNamespace() + "/" + secret.GetName()
 
 	if err := r.Client.List(
-		context.Background(),
+		context.TODO(),
 		&extensionConfigs,
 		client.MatchingFields{injectCAFromSecretAnnotationField: indexKey},
 	); err != nil {
@@ -209,7 +213,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 	if err != nil {
 		modifiedExtensionConfig := extensionConfig.DeepCopy()
 		conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredCondition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "error in discovery: %v", err)
-		return modifiedExtensionConfig, errors.Wrapf(err, "failed to discover ExtensionConfig %s/%s", extensionConfig.Namespace, extensionConfig.Name)
+		return modifiedExtensionConfig, errors.Wrapf(err, "failed to discover %s", tlog.KObj{Obj: extensionConfig})
 	}
 
 	conditions.MarkTrue(discoveredExtension, runtimev1.RuntimeExtensionDiscoveredCondition)
@@ -217,7 +221,8 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 }
 
 // reconcileCABundle reconciles the CA bundle for the ExtensionConfig.
-// cert-manager code: pkg/controller/cainjector/sources.go certificateDataSource.
+// Note: This was implemented to behave similar to the cert-manager cainjector.
+// We couldn't use the cert-manager cainjector because it doesn't work with CRs.
 func reconcileCABundle(ctx context.Context, client client.Client, config *runtimev1.ExtensionConfig) error {
 	secretNameRaw, ok := config.Annotations[runtimev1.InjectCAFromSecretAnnotation]
 	if !ok {
@@ -226,18 +231,18 @@ func reconcileCABundle(ctx context.Context, client client.Client, config *runtim
 	secretName := splitNamespacedName(secretNameRaw)
 
 	if secretName.Namespace == "" || secretName.Name == "" {
-		return errors.Errorf("secret name %q must be in the form namespace/name", secretNameRaw)
+		return errors.Errorf("failed to reconcile caBundle: secret name %q must be in the form <namespace>/<name>", secretNameRaw)
 	}
 
 	var secret corev1.Secret
 	// Note: this is an expensive API call because secrets are explicitly not cached.
 	if err := client.Get(ctx, secretName, &secret); err != nil {
-		return errors.Wrapf(err, "failed to get secret %s", secretNameRaw)
+		return errors.Wrapf(err, "failed to reconcile caBundle: failed to get secret %q", secretNameRaw)
 	}
 
 	caData, hasCAData := secret.Data[tlsCAKey]
 	if !hasCAData {
-		return errors.Errorf("secret %s does not contain a %s", secretNameRaw, tlsCAKey)
+		return errors.Errorf("failed to reconcile caBundle: secret %s does not contain a %q entry", secretNameRaw, tlsCAKey)
 	}
 
 	config.Spec.ClientConfig.CABundle = caData
@@ -245,7 +250,7 @@ func reconcileCABundle(ctx context.Context, client client.Client, config *runtim
 }
 
 // splitNamespacedName turns the string form of a namespaced name
-// (<namespace>/<name>) back into a types.NamespacedName.
+// (<namespace>/<name>) into a types.NamespacedName.
 func splitNamespacedName(nameStr string) types.NamespacedName {
 	splitPoint := strings.IndexRune(nameStr, types.Separator)
 	if splitPoint == -1 {

@@ -48,7 +48,9 @@ type warmupRunnable struct {
 }
 
 // NeedLeaderElection satisfies the controller runtime LeaderElectionRunnable interface.
-// This helps ensure we warm up the RuntimeSDK registry before controllers begin reconciling.
+// This ensures we warm up the RuntimeSDK registry only after the controller became leader.
+// Note: Only after the warmupRunnable is completed the registry becomes ready and thus
+// all controllers using the client or registry will wait until warmup is completed.
 func (r *warmupRunnable) NeedLeaderElection() bool {
 	return true
 }
@@ -57,7 +59,7 @@ func (r *warmupRunnable) NeedLeaderElection() bool {
 // cause the CAPI controller manager to fail.
 // We are retrying for 60 seconds to mitigate failures when the CAPI controller manager and RuntimeExtensions
 // are started at the same time. After 60 seconds we crash the entire controller to surface the
-// issue which block reconciliation of all Clusters to users in a timely fashion.
+// issue to users in a timely fashion as it would block reconciliation of all Clusters.
 func (r *warmupRunnable) Start(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	if r.warmupInterval == 0 {
@@ -78,20 +80,20 @@ func (r *warmupRunnable) Start(ctx context.Context) error {
 	})
 
 	if err != nil {
-		return errors.Wrapf(err, "ExtensionConfig registry warmup timed out after  %s", r.warmupTimeout.String())
+		return errors.Wrapf(err, "ExtensionConfig registry warmup timed out after %s", r.warmupTimeout.String())
 	}
 
 	return nil
 }
 
-// warmupRegistry attempts to discover all existing ExtensionConfigs and patch their Status with discovered Handlers.
+// warmupRegistry attempts to discover all existing ExtensionConfigs and patch their status with discovered Handlers.
 // It warms up the registry by passing it the up-to-date list of ExtensionConfigs.
 func warmupRegistry(ctx context.Context, client client.Client, reader client.Reader, runtimeClient runtimeclient.Client) error {
 	var errs []error
 
 	extensionConfigList := runtimev1.ExtensionConfigList{}
 	if err := reader.List(ctx, &extensionConfigList); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to list ExtensionConfigs")
 	}
 
 	for i := range extensionConfigList.Items {
@@ -101,6 +103,8 @@ func warmupRegistry(ctx context.Context, client client.Client, reader client.Rea
 		// Inject CABundle from secret if annotation is set. Otherwise https calls may fail.
 		if err := reconcileCABundle(ctx, client, extensionConfig); err != nil {
 			errs = append(errs, err)
+			// Note: we continue here because if reconcileCABundle doesn't work discovery will fail as well.
+			continue
 		}
 
 		extensionConfig, err := discoverExtensionConfig(ctx, runtimeClient, extensionConfig)
@@ -108,7 +112,7 @@ func warmupRegistry(ctx context.Context, client client.Client, reader client.Rea
 			errs = append(errs, err)
 		}
 
-		// Patch the ExtensionConfig with the updated condition and Handlers if discovered.
+		// Always patch the ExtensionConfig as it may contain updates in conditions or clientConfig.caBundle.
 		if err = patchExtensionConfig(ctx, client, original, extensionConfig); err != nil {
 			errs = append(errs, err)
 		}

@@ -50,13 +50,13 @@ func (f *RuntimeClientBuilder) WithCatalog(catalog *runtimecatalog.Catalog) *Run
 	return f
 }
 
-// WithCallAllExtensionResponses can be used to dictate the responses for the runtime hooks.
+// WithCallAllExtensionResponses can be used to dictate the responses for CallAllExtensions.
 func (f *RuntimeClientBuilder) WithCallAllExtensionResponses(responses map[runtimecatalog.GroupVersionHook]runtimehooksv1.ResponseObject) *RuntimeClientBuilder {
 	f.callAllResponses = responses
 	return f
 }
 
-// WithCallExtensionResponses can be used to dictate the responses for the runtime extension handlers.
+// WithCallExtensionResponses can be used to dictate the responses for CallExtension.
 func (f *RuntimeClientBuilder) WithCallExtensionResponses(responses map[string]runtimehooksv1.ResponseObject) *RuntimeClientBuilder {
 	f.callResponses = responses
 	return f
@@ -101,15 +101,18 @@ func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecata
 	if err != nil {
 		return errors.Wrap(err, "failed to compute GVH")
 	}
+
 	expectedResponse, ok := fc.callAllResponses[gvh]
 	if !ok {
 		// This should actually panic because an error here would mean a mistake in the test setup.
 		panic(fmt.Sprintf("test response not available hook for %q", gvh))
 	}
+
 	if err := fc.catalog.Convert(expectedResponse, response, ctx); err != nil {
 		// This should actually panic because an error here would mean a mistake in the test setup.
 		panic("cannot update response")
 	}
+
 	if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
 		return errors.Errorf("runtime hook %q failed", gvh)
 	}
@@ -123,10 +126,12 @@ func (fc *RuntimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hoo
 		// This should actually panic because an error here would mean a mistake in the test setup.
 		panic(fmt.Sprintf("test response not available for extension %q", name))
 	}
+
 	if err := fc.catalog.Convert(expectedResponse, response, ctx); err != nil {
 		// This should actually panic because an error here would mean a mistake in the test setup.
 		panic("cannot update response")
 	}
+
 	// If the received response is a failure then return an error.
 	if response.GetStatus() == runtimehooksv1.ResponseStatusFailure {
 		return errors.Errorf("ExtensionHandler %s failed with message %s", name, response.GetMessage())
@@ -159,7 +164,7 @@ func (fc *RuntimeClient) WarmUp(extensionConfigList *runtimev1.ExtensionConfigLi
 	panic("unimplemented")
 }
 
-// CallAllCount return the number of times a hooks was called.
+// CallAllCount return the number of times a hook was called.
 func (fc *RuntimeClient) CallAllCount(hook runtimecatalog.Hook) int {
 	return fc.callAllTracker[runtimecatalog.HookName(hook)]
 }

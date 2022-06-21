@@ -317,7 +317,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassPatch(ref common.Refer
 					},
 					"definitions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Definitions define the patches inline. Note: Patches will be applied in the order of the array.",
+							Description: "Definitions define inline patches. Note: Patches will be applied in the order of the array. Note: Exactly one of Definitions or External must be set.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -331,7 +331,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassPatch(ref common.Refer
 					},
 					"external": {
 						SchemaProps: spec.SchemaProps{
-							Description: "External defines an external patch.",
+							Description: "External defines an external patch. Note: Exactly one of Definitions or External must be set.",
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ExternalPatchDefinition"),
 						},
 					},
@@ -849,7 +849,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ExternalPatchDefinition(ref common
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ExternalPatchDefinition defines an external patch.",
+				Description: "ExternalPatchDefinition defines an external patch. Note: At least one of GenerateExtension or ValidateExtension must be set.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"generateExtension": {

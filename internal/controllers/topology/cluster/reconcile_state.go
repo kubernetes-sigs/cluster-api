@@ -218,11 +218,11 @@ func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *sc
 			}
 			hookResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{}
 			if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterControlPlaneInitialized, s.Current.Cluster, hookRequest, hookResponse); err != nil {
-				return errors.Wrapf(err, "failed to call %s hook", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneInitialized))
+				return err
 			}
 			s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneInitialized, hookResponse)
 			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneInitialized); err != nil {
-				return errors.Wrapf(err, "failed to unmark %s hook", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneInitialized))
+				return err
 			}
 		}
 	}
@@ -280,12 +280,12 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 			}
 			hookResponse := &runtimehooksv1.AfterClusterUpgradeResponse{}
 			if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterClusterUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
-				return errors.Wrapf(err, "failed to call %s hook", runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade))
+				return err
 			}
 			s.HookResponseTracker.Add(runtimehooksv1.AfterClusterUpgrade, hookResponse)
 			// The hook is successfully called; we can remove this hook from the list of pending-hooks.
 			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterClusterUpgrade); err != nil {
-				return errors.Wrapf(err, "failed to remove the %s hook from pending hooks tracker", runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade))
+				return err
 			}
 		}
 	}

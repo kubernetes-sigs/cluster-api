@@ -28,7 +28,7 @@ import (
 type BeforeClusterCreateRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// The cluster object the lifecycle hook corresponds to.
+	// Cluster is the cluster object the lifecycle hook corresponds to.
 	Cluster clusterv1.Cluster `json:"cluster"`
 }
 
@@ -39,11 +39,11 @@ var _ RetryResponseObject = &BeforeClusterCreateResponse{}
 type BeforeClusterCreateResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonRetryResponse contains RetryAfterSeconds field common to all retry response types.
+	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
 	CommonRetryResponse `json:",inline"`
 }
 
-// BeforeClusterCreate is the runtime hook that will be called right before a Cluster is created.
+// BeforeClusterCreate is the hook that will be called right before a Cluster is created.
 func BeforeClusterCreate(*BeforeClusterCreateRequest, *BeforeClusterCreateResponse) {}
 
 // AfterControlPlaneInitializedRequest is the request of the AfterControlPlaneInitialized hook.
@@ -51,7 +51,7 @@ func BeforeClusterCreate(*BeforeClusterCreateRequest, *BeforeClusterCreateRespon
 type AfterControlPlaneInitializedRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// The cluster object the lifecycle hook corresponds to.
+	// Cluster is the cluster object the lifecycle hook corresponds to.
 	Cluster clusterv1.Cluster `json:"cluster"`
 }
 
@@ -66,7 +66,7 @@ type AfterControlPlaneInitializedResponse struct {
 	CommonResponse `json:",inline"`
 }
 
-// AfterControlPlaneInitialized is the runtime hook that will be called after the control plane is available for the first time.
+// AfterControlPlaneInitialized is the hook that will be called after the control plane is available for the first time.
 func AfterControlPlaneInitialized(*AfterControlPlaneInitializedRequest, *AfterControlPlaneInitializedResponse) {
 }
 
@@ -75,13 +75,13 @@ func AfterControlPlaneInitialized(*AfterControlPlaneInitializedRequest, *AfterCo
 type BeforeClusterUpgradeRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// The cluster object the lifecycle hook corresponds to.
+	// Cluster is the cluster object the lifecycle hook corresponds to.
 	Cluster clusterv1.Cluster `json:"cluster"`
 
-	// The current Kubernetes version of the cluster.
+	// FromKubernetesVersion is the current Kubernetes version of the cluster.
 	FromKubernetesVersion string `json:"fromKubernetesVersion"`
 
-	// The target Kubernetes version of upgrade.
+	// ToKubernetesVersion is the target Kubernetes version of the upgrade.
 	ToKubernetesVersion string `json:"toKubernetesVersion"`
 }
 
@@ -92,11 +92,11 @@ var _ RetryResponseObject = &BeforeClusterUpgradeResponse{}
 type BeforeClusterUpgradeResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonRetryResponse contains RetryAfterSeconds field common to all retry response types.
+	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
 	CommonRetryResponse `json:",inline"`
 }
 
-// BeforeClusterUpgrade is the runtime hook that will be called after a cluster.spec.version is upgraded and
+// BeforeClusterUpgrade is the hook that will be called after a Cluster.spec.version is upgraded and
 // before the updated version is propagated to the underlying objects.
 func BeforeClusterUpgrade(*BeforeClusterUpgradeRequest, *BeforeClusterUpgradeResponse) {}
 
@@ -105,10 +105,10 @@ func BeforeClusterUpgrade(*BeforeClusterUpgradeRequest, *BeforeClusterUpgradeRes
 type AfterControlPlaneUpgradeRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// The cluster object the lifecycle hook corresponds to.
+	// Cluster is the cluster object the lifecycle hook corresponds to.
 	Cluster clusterv1.Cluster `json:"cluster"`
 
-	// The Kubernetes version after upgrade.
+	// KubernetesVersion is the Kubernetes version after upgrade.
 	KubernetesVersion string `json:"kubernetesVersion"`
 }
 
@@ -119,11 +119,11 @@ var _ RetryResponseObject = &AfterControlPlaneUpgradeResponse{}
 type AfterControlPlaneUpgradeResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonRetryResponse contains RetryAfterSeconds field common to all retry response types.
+	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
 	CommonRetryResponse `json:",inline"`
 }
 
-// AfterControlPlaneUpgrade is the runtime hook called after the control plane is successfully upgraded to the target
+// AfterControlPlaneUpgrade is the hook called after the control plane is successfully upgraded to the target
 // Kubernetes version and before the target version is propagated to the workload machines.
 func AfterControlPlaneUpgrade(*AfterControlPlaneUpgradeRequest, *AfterControlPlaneUpgradeResponse) {}
 
@@ -132,10 +132,10 @@ func AfterControlPlaneUpgrade(*AfterControlPlaneUpgradeRequest, *AfterControlPla
 type AfterClusterUpgradeRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// The cluster object the lifecycle hook corresponds to.
+	// Cluster is the cluster object the lifecycle hook corresponds to.
 	Cluster clusterv1.Cluster `json:"cluster"`
 
-	// The Kubernetes version after upgrade.
+	// KubernetesVersion is the Kubernetes version after upgrade.
 	KubernetesVersion string `json:"kubernetesVersion"`
 }
 
@@ -150,8 +150,8 @@ type AfterClusterUpgradeResponse struct {
 	CommonResponse `json:",inline"`
 }
 
-// AfterClusterUpgrade is the runtime hook that is called after all of the cluster is updated
-// to the target kubernetes version.
+// AfterClusterUpgrade is the hook that is called after the entire cluster is updated
+// to the target Kubernetes version.
 func AfterClusterUpgrade(*AfterClusterUpgradeRequest, *AfterClusterUpgradeResponse) {}
 
 // BeforeClusterDeleteRequest is the request of the BeforeClusterDelete hook.
@@ -159,7 +159,7 @@ func AfterClusterUpgrade(*AfterClusterUpgradeRequest, *AfterClusterUpgradeRespon
 type BeforeClusterDeleteRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// The cluster object the lifecycle hook corresponds to.
+	// Cluster is the cluster object the lifecycle hook corresponds to.
 	Cluster clusterv1.Cluster `json:"cluster"`
 }
 
@@ -170,48 +170,48 @@ var _ RetryResponseObject = &BeforeClusterDeleteResponse{}
 type BeforeClusterDeleteResponse struct {
 	metav1.TypeMeta `json:",inline"`
 
-	// CommonRetryResponse contains RetryAfterSeconds field common to all retry response types.
+	// CommonRetryResponse contains Status, Message and RetryAfterSeconds fields.
 	CommonRetryResponse `json:",inline"`
 }
 
-// BeforeClusterDelete is the runtime hook that is called after a delete is issued on a cluster
+// BeforeClusterDelete is the hook that is called after delete is issued on a cluster
 // and before the cluster and its underlying objects are deleted.
 func BeforeClusterDelete(*BeforeClusterDeleteRequest, *BeforeClusterDeleteResponse) {}
 
 func init() {
 	catalogBuilder.RegisterHook(BeforeClusterCreate, &runtimecatalog.HookMeta{
 		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called before Cluster topology is created",
-		Description: "This blocking hook is called after the Cluster is created by the user and immediately before all the objects which are part of a Cluster topology are going to be created",
+		Summary:     "Called before Cluster topology is created.",
+		Description: "This blocking hook is called after the Cluster is created by the user and immediately before all the objects which are part of a Cluster topology are going to be created.",
 	})
 
 	catalogBuilder.RegisterHook(AfterControlPlaneInitialized, &runtimecatalog.HookMeta{
 		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called after the Control Plane is available for the first time",
-		Description: "This non-blocking hook is called after the ControlPlane for the Cluster reachable for the first time",
+		Summary:     "Called after the Control Plane is available for the first time.",
+		Description: "This non-blocking hook is called after the Control Plane for the Cluster is reachable for the first time.",
 	})
 
 	catalogBuilder.RegisterHook(BeforeClusterUpgrade, &runtimecatalog.HookMeta{
 		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called before the Cluster begins upgrade",
-		Description: "This blocking hook is called after the Cluster object has been updated with a new spec.topology.version by the user, and immediately before the new version is propagated to the Control Plane",
+		Summary:     "Called before the Cluster is upgraded.",
+		Description: "This blocking hook is called after the Cluster object has been updated with a new spec.topology.version by the user, and immediately before the new version is propagated to the Control Plane.",
 	})
 
 	catalogBuilder.RegisterHook(AfterControlPlaneUpgrade, &runtimecatalog.HookMeta{
 		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called after the Control Plane finished upgrade",
-		Description: "This blocking hook is called after the Control Plane has been upgraded to the version specified in spec.topology.version, and immediately before the new version is propagated to the MachineDeployments of the Cluster",
+		Summary:     "Called after the Control Plane is upgraded.",
+		Description: "This blocking hook is called after the Control Plane has been upgraded to the version specified in spec.topology.version, and immediately before the new version is propagated to the MachineDeployments.",
 	})
 
 	catalogBuilder.RegisterHook(AfterClusterUpgrade, &runtimecatalog.HookMeta{
 		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called after the Cluster finished upgrade",
-		Description: "This non-blocking hook is called after the Cluster, Control Plane and Workers have been upgraded to the version specified in spec.topology.version",
+		Summary:     "Called after the Cluster is upgraded.",
+		Description: "This non-blocking hook is called after the Cluster, Control Plane and MachineDeployments have been upgraded to the version specified in spec.topology.version.",
 	})
 
 	catalogBuilder.RegisterHook(BeforeClusterDelete, &runtimecatalog.HookMeta{
 		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called before the Cluster is deleted",
-		Description: "This blocking hook is called after the Cluster has been deleted by the user, and immediately before objects of the Cluster are going to be deleted",
+		Summary:     "Called before the Cluster is deleted.",
+		Description: "This blocking hook is called after the Cluster deletion has been triggered by the user, and immediately before objects of the Cluster are going to be deleted.",
 	})
 }

@@ -336,12 +336,14 @@ type ClusterClassPatch struct {
 	// +optional
 	EnabledIf *string `json:"enabledIf,omitempty"`
 
-	// Definitions define the patches inline.
+	// Definitions define inline patches.
 	// Note: Patches will be applied in the order of the array.
+	// Note: Exactly one of Definitions or External must be set.
 	// +optional
 	Definitions []PatchDefinition `json:"definitions,omitempty"`
 
 	// External defines an external patch.
+	// Note: Exactly one of Definitions or External must be set.
 	// +optional
 	External *ExternalPatchDefinition `json:"external,omitempty"`
 }
@@ -447,6 +449,7 @@ type JSONPatchValue struct {
 }
 
 // ExternalPatchDefinition defines an external patch.
+// Note: At least one of GenerateExtension or ValidateExtension must be set.
 type ExternalPatchDefinition struct {
 	// GenerateExtension references an extension which is called to generate patches.
 	// +optional

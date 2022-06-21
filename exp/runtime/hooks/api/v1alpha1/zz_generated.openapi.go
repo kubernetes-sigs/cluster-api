@@ -83,14 +83,14 @@ func schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeRequest(ref common.Ref
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The cluster object the lifecycle hook corresponds to.",
+							Description: "Cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
 						},
 					},
 					"kubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The Kubernetes version after upgrade.",
+							Description: "KubernetesVersion is the Kubernetes version after upgrade.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -128,7 +128,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterClusterUpgradeResponse(ref common.Re
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -172,7 +172,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedRequest(ref c
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The cluster object the lifecycle hook corresponds to.",
+							Description: "Cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
 						},
@@ -209,7 +209,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneInitializedResponse(ref 
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -253,14 +253,14 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeRequest(ref commo
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The cluster object the lifecycle hook corresponds to.",
+							Description: "Cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
 						},
 					},
 					"kubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The Kubernetes version after upgrade.",
+							Description: "KubernetesVersion is the Kubernetes version after upgrade.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -298,7 +298,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeResponse(ref comm
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -350,7 +350,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateRequest(ref common.Ref
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The cluster object the lifecycle hook corresponds to.",
+							Description: "Cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
 						},
@@ -387,7 +387,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterCreateResponse(ref common.Re
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -439,7 +439,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteRequest(ref common.Ref
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The cluster object the lifecycle hook corresponds to.",
+							Description: "Cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
 						},
@@ -476,7 +476,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterDeleteResponse(ref common.Re
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -528,14 +528,14 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeRequest(ref common.Re
 					},
 					"cluster": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The cluster object the lifecycle hook corresponds to.",
+							Description: "Cluster is the cluster object the lifecycle hook corresponds to.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.Cluster"),
 						},
 					},
 					"fromKubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The current Kubernetes version of the cluster.",
+							Description: "FromKubernetesVersion is the current Kubernetes version of the cluster.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -543,7 +543,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeRequest(ref common.Re
 					},
 					"toKubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The target Kubernetes version of upgrade.",
+							Description: "ToKubernetesVersion is the target Kubernetes version of the upgrade.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -581,7 +581,7 @@ func schema_runtime_hooks_api_v1alpha1_BeforeClusterUpgradeResponse(ref common.R
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -614,12 +614,12 @@ func schema_runtime_hooks_api_v1alpha1_CommonResponse(ref common.ReferenceCallba
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CommonResponse is the data structure common to all response types.",
+				Description: "CommonResponse is the data structure common to all response types. Note: By embedding CommonResponse in a runtime.Object the ResponseObject interface is satisfied.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -644,12 +644,12 @@ func schema_runtime_hooks_api_v1alpha1_CommonRetryResponse(ref common.ReferenceC
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "CommonRetryResponse is the data structure which contains all common retry fields.",
+				Description: "CommonRetryResponse is the data structure which contains all common and retry fields. Note: By embedding CommonRetryResponse in a runtime.Object the RetryResponseObject interface is satisfied.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -682,7 +682,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoveryRequest(ref common.ReferenceCall
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "DiscoveryRequest represents the object of a discovery request.",
+				Description: "DiscoveryRequest is the request of the Discovery hook.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -709,7 +709,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref common.ReferenceCal
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "DiscoveryResponse represents the object received as a discovery response.",
+				Description: "DiscoveryResponse is the response of the Discovery hook.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -728,7 +728,7 @@ func schema_runtime_hooks_api_v1alpha1_DiscoveryResponse(ref common.ReferenceCal
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -777,7 +777,7 @@ func schema_runtime_hooks_api_v1alpha1_ExtensionHandler(ref common.ReferenceCall
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ExtensionHandler represents the discovery information of the extension which includes the hook it supports.",
+				Description: "ExtensionHandler represents the discovery information for an extension handler which includes the hook it supports.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"name": {
@@ -885,7 +885,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesRequestItem(ref common.Ref
 				Properties: map[string]spec.Schema{
 					"uid": {
 						SchemaProps: spec.SchemaProps{
-							Description: "UID is an identifier for this template. It allows us to correlate the template in the request with the corresponding generates patches in the response.",
+							Description: "UID is an identifier for this template. It allows us to correlate the template in the request with the corresponding generated patches in the response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -951,7 +951,7 @@ func schema_runtime_hooks_api_v1alpha1_GeneratePatchesResponse(ref common.Refere
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1034,7 +1034,7 @@ func schema_runtime_hooks_api_v1alpha1_GroupVersionHook(ref common.ReferenceCall
 				Properties: map[string]spec.Schema{
 					"apiVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion is the Version of the Hook",
+							Description: "APIVersion is the group and version of the Hook",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -1233,7 +1233,7 @@ func schema_runtime_hooks_api_v1alpha1_ValidateTopologyResponse(ref common.Refer
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents the success response.",
+							Description: "Status of the call. One of \"Success\" or \"Failure\".\n\nPossible enum values:\n - `\"Failure\"` represents a failure response.\n - `\"Success\"` represents a success response.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",

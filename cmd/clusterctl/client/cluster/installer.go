@@ -96,7 +96,7 @@ func (i *providerInstaller) Install(opts InstallOptions) ([]repository.Component
 		ret = append(ret, components)
 	}
 
-	return ret, i.waitForProvidersReady(opts)
+	return ret, waitForProvidersReady(opts, i.installQueue, i.proxy)
 }
 
 func installComponentsAndUpdateInventory(components repository.Components, providerComponents ComponentsClient, providerInventory InventoryClient) error {
@@ -115,7 +115,7 @@ func installComponentsAndUpdateInventory(components repository.Components, provi
 }
 
 // waitForProvidersReady waits till the installed components are ready.
-func (i *providerInstaller) waitForProvidersReady(opts InstallOptions) error {
+func waitForProvidersReady(opts InstallOptions, installQueue []repository.Components, proxy Proxy) error {
 	// If we dont have to wait for providers to be installed
 	// return early.
 	if !opts.WaitProviders {
@@ -125,15 +125,15 @@ func (i *providerInstaller) waitForProvidersReady(opts InstallOptions) error {
 	log := logf.Log
 	log.Info("Waiting for providers to be available...")
 
-	return i.waitManagerDeploymentsReady(opts)
+	return waitManagerDeploymentsReady(opts, installQueue, proxy)
 }
 
 // waitManagerDeploymentsReady waits till the installed manager deployments are ready.
-func (i *providerInstaller) waitManagerDeploymentsReady(opts InstallOptions) error {
-	for _, components := range i.installQueue {
+func waitManagerDeploymentsReady(opts InstallOptions, installQueue []repository.Components, proxy Proxy) error {
+	for _, components := range installQueue {
 		for _, obj := range components.Objs() {
 			if util.IsDeploymentWithManager(obj) {
-				if err := i.waitDeploymentReady(obj, opts.WaitProviderTimeout); err != nil {
+				if err := waitDeploymentReady(obj, opts.WaitProviderTimeout, proxy); err != nil {
 					return err
 				}
 			}
@@ -142,9 +142,9 @@ func (i *providerInstaller) waitManagerDeploymentsReady(opts InstallOptions) err
 	return nil
 }
 
-func (i *providerInstaller) waitDeploymentReady(deployment unstructured.Unstructured, timeout time.Duration) error {
+func waitDeploymentReady(deployment unstructured.Unstructured, timeout time.Duration, proxy Proxy) error {
 	return wait.Poll(100*time.Millisecond, timeout, func() (bool, error) {
-		c, err := i.proxy.NewClient()
+		c, err := proxy.NewClient()
 		if err != nil {
 			return false, err
 		}

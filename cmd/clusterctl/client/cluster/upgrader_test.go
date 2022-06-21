@@ -888,6 +888,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 		contract string
 		wantErr  bool
 		errorMsg string
+		opts     UpgradeOptions
 	}{
 		{
 			name: "fails to upgrade to current contract when there are multiple instances of the core provider",
@@ -924,6 +925,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 			contract: test.CurrentCAPIContract,
 			wantErr:  true,
 			errorMsg: "detected multiple instances of the same provider",
+			opts:     UpgradeOptions{},
 		},
 		{
 			name: "fails to upgrade to current contract when there are multiple instances of the infra provider",
@@ -960,6 +962,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 			contract: test.CurrentCAPIContract,
 			wantErr:  true,
 			errorMsg: "detected multiple instances of the same provider",
+			opts:     UpgradeOptions{},
 		},
 	}
 
@@ -976,7 +979,7 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
 			}
-			err := u.ApplyPlan(tt.contract)
+			err := u.ApplyPlan(tt.opts, tt.contract)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).Should(ContainSubstring(tt.errorMsg))
@@ -1002,6 +1005,7 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 		providersToUpgrade []UpgradeItem
 		wantErr            bool
 		errorMsg           string
+		opts               UpgradeOptions
 	}{
 		{
 			name: "fails to upgrade to v1alpha4 when there are multiple instances of the core provider",
@@ -1047,6 +1051,7 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 			},
 			wantErr:  true,
 			errorMsg: "invalid management cluster: there should a core provider, found 2",
+			opts:     UpgradeOptions{},
 		},
 		{
 			name: "fails to upgrade to v1alpha4 when there are multiple instances of the infra provider",
@@ -1096,6 +1101,7 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 			},
 			wantErr:  true,
 			errorMsg: "detected multiple instances of the same provider",
+			opts:     UpgradeOptions{},
 		},
 	}
 
@@ -1112,7 +1118,7 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
 			}
-			err := u.ApplyCustomPlan(tt.providersToUpgrade...)
+			err := u.ApplyCustomPlan(tt.opts, tt.providersToUpgrade...)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).Should(ContainSubstring(tt.errorMsg))

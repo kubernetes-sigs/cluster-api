@@ -975,9 +975,7 @@ clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
 
 <h1>Warning</h1>
 
-If you are using Docker on MacOS, you will need to do a couple of additional
-steps to get the correct kubeconfig for a workload cluster created with the Docker provider.
-See [Additional Notes for the Docker Provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider).
+If you're using Docker Desktop on macOS, or Docker Desktop (Docker Engine works fine) on Linux, you'll need to take a few extra steps to get the kubeconfig for a workload cluster created with the Docker provider. See [Additional Notes for the Docker provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider).
 
 </aside>
 

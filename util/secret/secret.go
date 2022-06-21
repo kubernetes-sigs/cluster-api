@@ -59,7 +59,7 @@ func ParseSecretName(name string) (string, Purpose, error) {
 	var separatorPos = strings.LastIndex(name, "-")
 
 	if strings.Contains(name, string(UserKubeconfig)) {
-		separatorPos = strings.LastIndexAny(name[:separatorPos], "-")
+		separatorPos = strings.LastIndex(name[:separatorPos], "-")
 	}
 
 	if separatorPos == -1 {

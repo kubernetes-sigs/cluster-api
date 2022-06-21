@@ -18,8 +18,8 @@ package client
 
 import (
 	"github.com/pkg/errors"
-	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
 // GetKubeconfigOptions carries all the options supported by GetKubeconfig.
@@ -68,7 +68,8 @@ func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, 
 	kubeconfig, err := cluster.GetUserKubeconfig(clusterClient.Proxy(), options.WorkloadClusterName, options.Namespace)
 	if err != nil {
 		// fallback on the system kubeconfig
-		klog.Warningf("failed to fetch the user kubeconfig; fetching the system kubeconfig instead")
+		logger := log.Log
+		logger.Info("failed to fetch the user kubeconfig; fetching the system kubeconfig instead")
 		return clusterClient.WorkloadCluster().GetKubeconfig(options.WorkloadClusterName, options.Namespace)
 	}
 	return kubeconfig, err

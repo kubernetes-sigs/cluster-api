@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -31,6 +33,8 @@ type upgradeApplyOptions struct {
 	bootstrapProviders      []string
 	controlPlaneProviders   []string
 	infrastructureProviders []string
+	waitProviders           bool
+	waitProviderTimeout     int
 }
 
 var ua = &upgradeApplyOptions{}
@@ -73,6 +77,10 @@ func init() {
 		"Bootstrap providers instance and versions (e.g. capi-kubeadm-bootstrap-system/kubeadm:v0.3.0) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().StringSliceVarP(&ua.controlPlaneProviders, "control-plane", "c", nil,
 		"ControlPlane providers instance and versions (e.g. capi-kubeadm-control-plane-system/kubeadm:v0.3.0) to upgrade to. This flag can be used as alternative to --contract.")
+	upgradeApplyCmd.Flags().BoolVar(&ua.waitProviders, "wait-providers", false,
+		"Wait for providers to be upgraded.")
+	upgradeApplyCmd.Flags().IntVar(&ua.waitProviderTimeout, "wait-provider-timeout", 5*60,
+		"Wait timeout per provider upgrade in seconds. This value is ignored if --wait-providers is false")
 }
 
 func runUpgradeApply() error {
@@ -100,5 +108,7 @@ func runUpgradeApply() error {
 		BootstrapProviders:      ua.bootstrapProviders,
 		ControlPlaneProviders:   ua.controlPlaneProviders,
 		InfrastructureProviders: ua.infrastructureProviders,
+		WaitProviders:           ua.waitProviders,
+		WaitProviderTimeout:     time.Duration(ua.waitProviderTimeout) * time.Second,
 	})
 }

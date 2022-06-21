@@ -18,6 +18,7 @@ package client
 
 import (
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -107,6 +108,12 @@ type ApplyUpgradeOptions struct {
 
 	// InfrastructureProviders instance and versions (e.g. capa-system/aws:v0.5.0) to upgrade to. This field can be used as alternative to Contract.
 	InfrastructureProviders []string
+
+	// WaitProviders instructs the upgrade apply command to wait till the providers are successfully upgraded.
+	WaitProviders bool
+
+	// WaitProviderTimeout sets the timeout per provider upgrade.
+	WaitProviderTimeout time.Duration
 }
 
 func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
@@ -150,6 +157,11 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 		len(options.ControlPlaneProviders) > 0 ||
 		len(options.InfrastructureProviders) > 0
 
+	opts := cluster.UpgradeOptions{
+		WaitProviders:       options.WaitProviders,
+		WaitProviderTimeout: options.WaitProviderTimeout,
+	}
+
 	// If we are upgrading a specific set of providers only, process the providers and call ApplyCustomPlan.
 	if isCustomUpgrade {
 		// Converts upgrade references back into an UpgradeItem.
@@ -175,11 +187,11 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 		}
 
 		// Execute the upgrade using the custom upgrade items
-		return clusterClient.ProviderUpgrader().ApplyCustomPlan(upgradeItems...)
+		return clusterClient.ProviderUpgrader().ApplyCustomPlan(opts, upgradeItems...)
 	}
 
 	// Otherwise we are upgrading a whole management cluster according to a clusterctl generated upgrade plan.
-	return clusterClient.ProviderUpgrader().ApplyPlan(options.Contract)
+	return clusterClient.ProviderUpgrader().ApplyPlan(opts, options.Contract)
 }
 
 func addUpgradeItems(upgradeItems []cluster.UpgradeItem, providerType clusterctlv1.ProviderType, providers ...string) ([]cluster.UpgradeItem, error) {

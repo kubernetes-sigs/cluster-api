@@ -125,6 +125,12 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 		return err
 	}
 
+	// Update the cluster role independent of image change. Kubernetes may get updated
+	// to v1.22 which requires updating the cluster role without image changes.
+	if err := w.updateCoreDNSClusterRole(ctx, version, info); err != nil {
+		return err
+	}
+
 	// Return early if the from/to image is the same.
 	if info.FromImage == info.ToImage {
 		return nil
@@ -142,9 +148,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 	if err := w.updateCoreDNSCorefile(ctx, info); err != nil {
 		return err
 	}
-	if err := w.updateCoreDNSClusterRole(ctx, version, info); err != nil {
-		return err
-	}
+
 	if err := w.updateCoreDNSDeployment(ctx, info); err != nil {
 		return errors.Wrap(err, "unable to update coredns deployment")
 	}
@@ -270,6 +274,19 @@ func (w *Workload) updateCoreDNSClusterRole(ctx context.Context, kubernetesVersi
 		return err
 	}
 	if targetCoreDNSVersion.LT(semver.Version{Major: 1, Minor: 8, Patch: 1}) {
+		return nil
+	}
+
+	sourceCoreDNSVersion, err := extractImageVersion(info.FromImageTag)
+	if err != nil {
+		return err
+	}
+	// Do nothing for Kubernetes > 1.22 and sourceCoreDNSVersion >= 1.8.1.
+	// With those versions we know that the ClusterRole has already been updated,
+	// as there must have been a previous upgrade to Kubernetes 1.22
+	// (Kubernetes minor versions cannot be skipped) and to CoreDNS >= v1.8.1.
+	if kubernetesVersion.GTE(semver.Version{Major: 1, Minor: 23, Patch: 0}) &&
+		sourceCoreDNSVersion.GTE(semver.Version{Major: 1, Minor: 8, Patch: 1}) {
 		return nil
 	}
 

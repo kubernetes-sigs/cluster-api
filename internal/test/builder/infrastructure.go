@@ -47,6 +47,11 @@ var (
 
 	// TODO: drop generic CRDs in favour of typed test CRDs.
 
+	// TestInfrastructureClusterTemplateKind is the kind for the TestInfrastructureClusterTemplate type.
+	TestInfrastructureClusterTemplateKind = "TestInfrastructureClusterTemplate"
+	// TestInfrastructureClusterTemplateCRD is a test infrastructure machine template CRD.
+	TestInfrastructureClusterTemplateCRD = testInfrastructureClusterTemplateCRD(InfrastructureGroupVersion.WithKind(TestInfrastructureClusterTemplateKind))
+
 	// TestInfrastructureClusterKind is the kind for the TestInfrastructureCluster type.
 	TestInfrastructureClusterKind = "TestInfrastructureCluster"
 	// TestInfrastructureClusterCRD is a test infrastructure machine CRD.
@@ -63,43 +68,36 @@ var (
 	TestInfrastructureMachineCRD = testInfrastructureMachineCRD(InfrastructureGroupVersion.WithKind(TestInfrastructureMachineKind))
 )
 
-func testInfrastructureClusterCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
+func testInfrastructureClusterTemplateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
 	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"metadata": {
+			// NOTE: in CRD there is only a partial definition of metadata schema.
+			// Ref https://github.com/kubernetes-sigs/controller-tools/blob/59485af1c1f6a664655dad49543c474bb4a0d2a2/pkg/crd/gen.go#L185
+			Type: "object",
+		},
 		"spec": {
 			Type: "object",
 			Properties: map[string]apiextensionsv1.JSONSchemaProps{
 				// Mandatory field from the Cluster API contract
-				"controlPlaneEndpoint": {
+				"template": {
 					Type: "object",
 					Properties: map[string]apiextensionsv1.JSONSchemaProps{
-						"host": {Type: "string"},
-						"port": {Type: "integer"},
-					},
-					Required: []string{"host", "port"},
-				},
-				// General purpose fields to be used in different test scenario.
-				"foo": {Type: "string"},
-				"bar": {Type: "string"},
-				"fooMap": {
-					Type: "object",
-					Properties: map[string]apiextensionsv1.JSONSchemaProps{
-						"foo": {Type: "string"},
+						"spec": clusterSpecSchema,
 					},
 				},
-				"fooList": {
-					Type: "array",
-					Items: &apiextensionsv1.JSONSchemaPropsOrArray{
-						Schema: &apiextensionsv1.JSONSchemaProps{
-							Type: "object",
-							Properties: map[string]apiextensionsv1.JSONSchemaProps{
-								"foo": {Type: "string"},
-							},
-						},
-					},
-				},
-				// Field for testing
 			},
 		},
+	})
+}
+
+func testInfrastructureClusterCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
+	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"metadata": {
+			// NOTE: in CRD there is only a partial definition of metadata schema.
+			// Ref https://github.com/kubernetes-sigs/controller-tools/blob/59485af1c1f6a664655dad49543c474bb4a0d2a2/pkg/crd/gen.go#L185
+			Type: "object",
+		},
+		"spec": clusterSpecSchema,
 		"status": {
 			Type: "object",
 			Properties: map[string]apiextensionsv1.JSONSchemaProps{
@@ -116,6 +114,11 @@ func testInfrastructureClusterCRD(gvk schema.GroupVersionKind) *apiextensionsv1.
 
 func testInfrastructureMachineTemplateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
 	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"metadata": {
+			// NOTE: in CRD there is only a partial definition of metadata schema.
+			// Ref https://github.com/kubernetes-sigs/controller-tools/blob/59485af1c1f6a664655dad49543c474bb4a0d2a2/pkg/crd/gen.go#L185
+			Type: "object",
+		},
 		"spec": {
 			Type: "object",
 			Properties: map[string]apiextensionsv1.JSONSchemaProps{
@@ -134,6 +137,11 @@ func testInfrastructureMachineTemplateCRD(gvk schema.GroupVersionKind) *apiexten
 
 func testInfrastructureMachineCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
 	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"metadata": {
+			// NOTE: in CRD there is only a partial definition of metadata schema.
+			// Ref https://github.com/kubernetes-sigs/controller-tools/blob/59485af1c1f6a664655dad49543c474bb4a0d2a2/pkg/crd/gen.go#L185
+			Type: "object",
+		},
 		"spec": machineSpecSchema,
 		"status": {
 			Type: "object",
@@ -149,6 +157,42 @@ func testInfrastructureMachineCRD(gvk schema.GroupVersionKind) *apiextensionsv1.
 }
 
 var (
+	clusterSpecSchema = apiextensionsv1.JSONSchemaProps{
+		Type: "object",
+		Properties: map[string]apiextensionsv1.JSONSchemaProps{
+			// Mandatory field from the Cluster API contract
+			"controlPlaneEndpoint": {
+				Type: "object",
+				Properties: map[string]apiextensionsv1.JSONSchemaProps{
+					"host": {Type: "string"},
+					"port": {Type: "integer"},
+				},
+				Required: []string{"host", "port"},
+			},
+			// General purpose fields to be used in different test scenario.
+			"foo": {Type: "string"},
+			"bar": {Type: "string"},
+			"fooMap": {
+				Type: "object",
+				Properties: map[string]apiextensionsv1.JSONSchemaProps{
+					"foo": {Type: "string"},
+				},
+			},
+			"fooList": {
+				Type: "array",
+				Items: &apiextensionsv1.JSONSchemaPropsOrArray{
+					Schema: &apiextensionsv1.JSONSchemaProps{
+						Type: "object",
+						Properties: map[string]apiextensionsv1.JSONSchemaProps{
+							"foo": {Type: "string"},
+						},
+					},
+				},
+			},
+			// Field for testing
+		},
+	}
+
 	machineSpecSchema = apiextensionsv1.JSONSchemaProps{
 		Type: "object",
 		Properties: map[string]apiextensionsv1.JSONSchemaProps{

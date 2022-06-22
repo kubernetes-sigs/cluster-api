@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-github/v33/github"
+	"github.com/google/go-github/v45/github"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/pointer"
 

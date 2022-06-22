@@ -17,7 +17,7 @@ require (
 	github.com/go-logr/logr v1.2.0
 	github.com/gobuffalo/flect v0.2.5
 	github.com/google/go-cmp v0.5.8
-	github.com/google/go-github/v33 v33.0.0
+	github.com/google/go-github/v45 v45.2.0
 	github.com/google/gofuzz v1.2.0
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/onsi/ginkgo v1.16.5
@@ -83,7 +83,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/cel-go v0.10.1 // indirect
-	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/gregjones/httpcache v0.0.0-20180305231024-9cad4c3443a7 // indirect

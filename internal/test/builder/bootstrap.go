@@ -50,6 +50,11 @@ var (
 
 func testBootstrapConfigTemplateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
 	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"metadata": {
+			// NOTE: in CRD there is only a partial definition of metadata schema.
+			// Ref https://github.com/kubernetes-sigs/controller-tools/blob/59485af1c1f6a664655dad49543c474bb4a0d2a2/pkg/crd/gen.go#L185
+			Type: "object",
+		},
 		"spec": {
 			Type: "object",
 			Properties: map[string]apiextensionsv1.JSONSchemaProps{
@@ -67,6 +72,11 @@ func testBootstrapConfigTemplateCRD(gvk schema.GroupVersionKind) *apiextensionsv
 
 func testBootstrapConfigCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
 	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"metadata": {
+			// NOTE: in CRD there is only a partial definition of metadata schema.
+			// Ref https://github.com/kubernetes-sigs/controller-tools/blob/59485af1c1f6a664655dad49543c474bb4a0d2a2/pkg/crd/gen.go#L185
+			Type: "object",
+		},
 		"spec": bootstrapConfigSpecSchema,
 		"status": {
 			Type: "object",

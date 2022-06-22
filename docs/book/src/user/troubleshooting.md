@@ -96,7 +96,7 @@ exit
 When using older versions of Cluster API 0.4 and 1.0 releases - 0.4.6, 1.0.3 and older respectively - Cert Manager may not be downloadable due to a change in the repository location. This will cause `clusterctl init` to fail with the error:
 
 ```bash
-cluster-api % clusterctl init --infrastructure docker
+clusterctl init --infrastructure docker
 ```
 ```bash
 Fetching providers
@@ -115,6 +115,31 @@ cert-manager:
 Alternatively a Cert Manager yaml file can be placed in the [clusterctl overrides layer](../clusterctl/configuration.md#overrides-layer) which is by default in `$HOME/.cluster-api/overrides`. A Cert Manager yaml file can be placed at `$(HOME)/.cluster-api/overrides/cert-manager/v1.7.2/cert-manager.yaml`
 
 More information on the clusterctl config file can be found at [its page in the book](../clusterctl/configuration.md#clusterctl-configuration-file)
+
+## Failed clusterctl upgrade apply - 'failed to update cert-manager component'
+
+Upgrading Cert Manager may fail due to a breaking change introduced in Cert Manager release v1.6.
+An upgrade using `clusterctl` is affected when:
+
+* using `clusterctl` in version `v1.1.4` or a more recent version.
+* Cert Manager lower than version `v1.0.0` did run in the management cluster (which was shipped in Cluster API until including `v0.3.14`).
+
+This will cause `clusterctl upgrade apply` to fail with the error:
+
+```bash
+clusterctl upgrade apply
+```
+
+```bash
+Checking cert-manager version...
+Deleting cert-manager Version="v1.5.3"
+Installing cert-manager Version="v1.7.2"
+Error: action failed after 10 attempts: failed to update cert-manager component apiextensions.k8s.io/v1, Kind=CustomResourceDefinition, /certificaterequests.cert-manager.io: CustomResourceDefinition.apiextensions.k8s.io "certificaterequests.cert-manager.io" is invalid: status.storedVersions[0]: Invalid value: "v1alpha2": must appear in spec.versions
+```
+
+The Cert Manager maintainers provide documentation to [migrate the deprecated API Resources](https://cert-manager.io/docs/installation/upgrading/remove-deprecated-apis/#upgrading-existing-cert-manager-resources) to the new storage versions to mitigate the issue.
+
+More information about the change in Cert Manager can be found at [their upgrade notes from v1.5 to v1.6](https://cert-manager.io/docs/installation/upgrading/upgrading-1.5-1.6).
 
 ## Clusterctl failing to start providers due to outdated image overrides
 

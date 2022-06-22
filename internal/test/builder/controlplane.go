@@ -37,63 +37,47 @@ var (
 
 	// TODO: drop generic CRDs in favour of typed test CRDs.
 
+	// TestControlPlaneTemplateKind is the Kind for the TestControlPlaneTemplate.
+	TestControlPlaneTemplateKind = "TestControlPlaneTemplate"
+	// TestControlPlaneTemplateCRD is a test control plane template CRD.
+	TestControlPlaneTemplateCRD = testControlPlaneTemplateCRD(ControlPlaneGroupVersion.WithKind(TestControlPlaneTemplateKind))
+
 	// TestControlPlaneKind is the Kind for the TestControlPlane.
 	TestControlPlaneKind = "TestControlPlane"
 	// TestControlPlaneCRD is a test control plane CRD.
 	TestControlPlaneCRD = testControlPlaneCRD(ControlPlaneGroupVersion.WithKind(TestControlPlaneKind))
 )
 
-func testControlPlaneCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
+func testControlPlaneTemplateCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
 	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"metadata": {
+			// NOTE: in CRD there is only a partial definition of metadata schema.
+			// Ref https://github.com/kubernetes-sigs/controller-tools/blob/59485af1c1f6a664655dad49543c474bb4a0d2a2/pkg/crd/gen.go#L185
+			Type: "object",
+		},
 		"spec": {
 			Type: "object",
 			Properties: map[string]apiextensionsv1.JSONSchemaProps{
-				// Mandatory field from the Cluster API contract - version support
-				"version": {
-					Type: "string",
-				},
-				// mandatory field from the Cluster API contract - replicas support
-				"replicas": {
-					Type:   "integer",
-					Format: "int32",
-				},
-				// mandatory field from the Cluster API contract - using Machines support
-				"machineTemplate": {
+				// Mandatory field from the Cluster API contract
+				"template": {
 					Type: "object",
 					Properties: map[string]apiextensionsv1.JSONSchemaProps{
-						"metadata":            metadataSchema,
-						"infrastructureRef":   refSchema,
-						"nodeDeletionTimeout": {Type: "string"},
-						"nodeDrainTimeout":    {Type: "string"},
-					},
-				},
-				// General purpose fields to be used in different test scenario.
-				"foo": {Type: "string"},
-				"bar": {Type: "string"},
-				// Copy of a subset of KCP spec fields to test server side apply on deep nested structs
-				"kubeadmConfigSpec": {
-					Type: "object",
-					Properties: map[string]apiextensionsv1.JSONSchemaProps{
-						"clusterConfiguration": {
-							Type: "object",
-							Properties: map[string]apiextensionsv1.JSONSchemaProps{
-								"controllerManager": {
-									Type: "object",
-									Properties: map[string]apiextensionsv1.JSONSchemaProps{
-										"extraArgs": {
-											Type: "object",
-											AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
-												Schema: &apiextensionsv1.JSONSchemaProps{Type: "string"},
-											},
-										},
-									},
-								},
-							},
-						},
+						"spec": controPlaneSpecSchema,
 					},
 				},
 			},
 		},
+	})
+}
+
+func testControlPlaneCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
+	return generateCRD(gvk, map[string]apiextensionsv1.JSONSchemaProps{
+		"metadata": {
+			// NOTE: in CRD there is only a partial definition of metadata schema.
+			// Ref https://github.com/kubernetes-sigs/controller-tools/blob/59485af1c1f6a664655dad49543c474bb4a0d2a2/pkg/crd/gen.go#L185
+			Type: "object",
+		},
+		"spec": controPlaneSpecSchema,
 		"status": {
 			Type: "object",
 			Properties: map[string]apiextensionsv1.JSONSchemaProps{
@@ -114,3 +98,55 @@ func testControlPlaneCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomRes
 		},
 	})
 }
+
+var (
+	controPlaneSpecSchema = apiextensionsv1.JSONSchemaProps{
+		Type: "object",
+		Properties: map[string]apiextensionsv1.JSONSchemaProps{
+			// Mandatory field from the Cluster API contract - version support
+			"version": {
+				Type: "string",
+			},
+			// mandatory field from the Cluster API contract - replicas support
+			"replicas": {
+				Type:   "integer",
+				Format: "int32",
+			},
+			// mandatory field from the Cluster API contract - using Machines support
+			"machineTemplate": {
+				Type: "object",
+				Properties: map[string]apiextensionsv1.JSONSchemaProps{
+					"metadata":            metadataSchema,
+					"infrastructureRef":   refSchema,
+					"nodeDeletionTimeout": {Type: "string"},
+					"nodeDrainTimeout":    {Type: "string"},
+				},
+			},
+			// General purpose fields to be used in different test scenario.
+			"foo": {Type: "string"},
+			"bar": {Type: "string"},
+			// Copy of a subset of KCP spec fields to test server side apply on deep nested structs
+			"kubeadmConfigSpec": {
+				Type: "object",
+				Properties: map[string]apiextensionsv1.JSONSchemaProps{
+					"clusterConfiguration": {
+						Type: "object",
+						Properties: map[string]apiextensionsv1.JSONSchemaProps{
+							"controllerManager": {
+								Type: "object",
+								Properties: map[string]apiextensionsv1.JSONSchemaProps{
+									"extraArgs": {
+										Type: "object",
+										AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
+											Schema: &apiextensionsv1.JSONSchemaProps{Type: "string"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+)

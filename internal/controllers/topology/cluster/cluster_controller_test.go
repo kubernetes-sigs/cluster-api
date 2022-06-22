@@ -547,19 +547,19 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	// Cluster given a skeletal Cluster object and a ClusterClass. The objects include:
 
 	// 1) Templates for Machine, Cluster, ControlPlane and Bootstrap.
-	infrastructureMachineTemplate1 := builder.InfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()
-	infrastructureMachineTemplate2 := builder.InfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName2).
+	infrastructureMachineTemplate1 := builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()
+	infrastructureMachineTemplate2 := builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName2).
 		WithSpecFields(map[string]interface{}{"spec.template.spec.fakeSetting": true}).
 		Build()
-	infrastructureClusterTemplate1 := builder.InfrastructureClusterTemplate(ns.Name, "infraclustertemplate1").
+	infrastructureClusterTemplate1 := builder.TestInfrastructureClusterTemplate(ns.Name, "infraclustertemplate1").
 		Build()
-	infrastructureClusterTemplate2 := builder.InfrastructureClusterTemplate(ns.Name, "infraclustertemplate2").
+	infrastructureClusterTemplate2 := builder.TestInfrastructureClusterTemplate(ns.Name, "infraclustertemplate2").
 		WithSpecFields(map[string]interface{}{"spec.template.spec.alteredSetting": true}).
 		Build()
-	controlPlaneTemplate := builder.ControlPlaneTemplate(ns.Name, "cp1").
+	controlPlaneTemplate := builder.TestControlPlaneTemplate(ns.Name, "cp1").
 		WithInfrastructureMachineTemplate(infrastructureMachineTemplate1).
 		Build()
-	bootstrapTemplate := builder.BootstrapTemplate(ns.Name, "bootstraptemplate").Build()
+	bootstrapTemplate := builder.TestBootstrapTemplate(ns.Name, "bootstraptemplate").Build()
 
 	// 2) ClusterClass definitions including definitions of MachineDeploymentClasses used inside the ClusterClass.
 	machineDeploymentClass1 := builder.MachineDeploymentClass(workerClassName1).
@@ -676,14 +676,14 @@ func assertClusterReconcile(cluster *clusterv1.Cluster) error {
 
 	// Check if InfrastructureRef exists and is of the expected Kind and APIVersion.
 	if err := referenceExistsWithCorrectKindAndAPIVersion(cluster.Spec.InfrastructureRef,
-		builder.GenericInfrastructureClusterKind,
+		builder.TestInfrastructureClusterKind,
 		builder.InfrastructureGroupVersion); err != nil {
 		return err
 	}
 
 	// Check if ControlPlaneRef exists is of the expected Kind and APIVersion.
 	if err := referenceExistsWithCorrectKindAndAPIVersion(cluster.Spec.ControlPlaneRef,
-		builder.GenericControlPlaneKind,
+		builder.TestControlPlaneKind,
 		builder.ControlPlaneGroupVersion); err != nil {
 		return err
 	}
@@ -742,7 +742,7 @@ func assertControlPlaneReconcile(cluster *clusterv1.Cluster) error {
 			return err
 		}
 		if err := referenceExistsWithCorrectKindAndAPIVersion(cpInfra,
-			builder.GenericInfrastructureMachineTemplateKind,
+			builder.TestInfrastructureMachineTemplateKind,
 			builder.InfrastructureGroupVersion); err != nil {
 			return err
 		}
@@ -824,7 +824,7 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 
 			// Check if the InfrastructureReference exists.
 			if err := referenceExistsWithCorrectKindAndAPIVersion(&md.Spec.Template.Spec.InfrastructureRef,
-				builder.GenericInfrastructureMachineTemplateKind,
+				builder.TestInfrastructureMachineTemplateKind,
 				builder.InfrastructureGroupVersion); err != nil {
 				return err
 			}
@@ -836,7 +836,7 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 
 			// Check if the Bootstrap reference has the expected Kind and APIVersion.
 			if err := referenceExistsWithCorrectKindAndAPIVersion(md.Spec.Template.Spec.Bootstrap.ConfigRef,
-				builder.GenericBootstrapConfigTemplateKind,
+				builder.TestBootstrapConfigTemplateKind,
 				builder.BootstrapGroupVersion); err != nil {
 				return err
 			}

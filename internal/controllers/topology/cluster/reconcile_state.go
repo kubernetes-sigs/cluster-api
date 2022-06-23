@@ -101,7 +101,7 @@ func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) e
 		// Note: we are using Patch instead of create for ensuring consistency in managedFields for the entire controller
 		// but in this case it isn't strictly necessary given that we are not using server side apply for modifying the
 		// object afterwards.
-		helper, err := r.patchHelperFactory(nil, shim)
+		helper, err := r.patchHelperFactory(ctx, nil, shim)
 		if err != nil {
 			return errors.Wrap(err, "failed to create the patch helper for the cluster shim object")
 		}
@@ -384,7 +384,7 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 	// If a current MachineHealthCheck doesn't exist but there is a desired MachineHealthCheck attempt to create.
 	if current == nil && desired != nil {
 		log.Infof("Creating %s", tlog.KObj{Obj: desired})
-		helper, err := r.patchHelperFactory(nil, desired)
+		helper, err := r.patchHelperFactory(ctx, nil, desired)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: desired})
 		}
@@ -413,7 +413,7 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 	// Check differences between current and desired MachineHealthChecks, and patch if required.
 	// NOTE: we want to be authoritative on the entire spec because the users are
 	// expected to change MHC fields from the ClusterClass only.
-	patchHelper, err := r.patchHelperFactory(current, desired)
+	patchHelper, err := r.patchHelperFactory(ctx, current, desired)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: current})
 	}
@@ -438,7 +438,7 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 	ctx, log := tlog.LoggerFrom(ctx).WithObject(s.Desired.Cluster).Into(ctx)
 
 	// Check differences between current and desired state, and eventually patch the current object.
-	patchHelper, err := r.patchHelperFactory(s.Current.Cluster, s.Desired.Cluster)
+	patchHelper, err := r.patchHelperFactory(ctx, s.Current.Cluster, s.Desired.Cluster)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: s.Current.Cluster})
 	}
@@ -508,7 +508,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, cluster *clust
 
 	log = log.WithObject(md.Object)
 	log.Infof(fmt.Sprintf("Creating %s", tlog.KObj{Obj: md.Object}))
-	helper, err := r.patchHelperFactory(nil, md.Object)
+	helper, err := r.patchHelperFactory(ctx, nil, md.Object)
 	if err != nil {
 		return createErrorWithoutObjectName(err, md.Object)
 	}
@@ -563,7 +563,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, cluster *clust
 
 	// Check differences between current and desired MachineDeployment, and eventually patch the current object.
 	log = log.WithObject(desiredMD.Object)
-	patchHelper, err := r.patchHelperFactory(currentMD.Object, desiredMD.Object)
+	patchHelper, err := r.patchHelperFactory(ctx, currentMD.Object, desiredMD.Object)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: currentMD.Object})
 	}
@@ -656,7 +656,7 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 	// If there is no current object, create it.
 	if in.current == nil {
 		log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
-		helper, err := r.patchHelperFactory(nil, in.desired)
+		helper, err := r.patchHelperFactory(ctx, nil, in.desired)
 		if err != nil {
 			return errors.Wrap(createErrorWithoutObjectName(err, in.desired), "failed to create patch helper")
 		}
@@ -673,7 +673,7 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 	}
 
 	// Check differences between current and desired state, and eventually patch the current object.
-	patchHelper, err := r.patchHelperFactory(in.current, in.desired, structuredmerge.IgnorePaths(in.ignorePaths))
+	patchHelper, err := r.patchHelperFactory(ctx, in.current, in.desired, structuredmerge.IgnorePaths(in.ignorePaths))
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: in.current})
 	}
@@ -733,7 +733,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	// If there is no current object, create the desired object.
 	if in.current == nil {
 		log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
-		helper, err := r.patchHelperFactory(nil, in.desired)
+		helper, err := r.patchHelperFactory(ctx, nil, in.desired)
 		if err != nil {
 			return errors.Wrap(createErrorWithoutObjectName(err, in.desired), "failed to create patch helper")
 		}
@@ -754,7 +754,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	}
 
 	// Check differences between current and desired objects, and if there are changes eventually start the template rotation.
-	patchHelper, err := r.patchHelperFactory(in.current, in.desired)
+	patchHelper, err := r.patchHelperFactory(ctx, in.current, in.desired)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: in.current})
 	}
@@ -785,7 +785,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 
 	log.Infof("Rotating %s, new name %s", tlog.KObj{Obj: in.current}, newName)
 	log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
-	helper, err := r.patchHelperFactory(nil, in.desired)
+	helper, err := r.patchHelperFactory(ctx, nil, in.desired)
 	if err != nil {
 		return errors.Wrap(createErrorWithoutObjectName(err, in.desired), "failed to create patch helper")
 	}

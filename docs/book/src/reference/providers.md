@@ -29,6 +29,7 @@ updated info about which API version they are supporting.
 - [vcluster](https://github.com/loft-sh/cluster-api-provider-vcluster)
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix)
+- [OCI](https://github.com/oracle/cluster-api-provider-oci)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
 - [Equinix Metal (formerly Packet)](https://github.com/kubernetes-sigs/cluster-api-provider-packet)
 - [Sidero](https://github.com/siderolabs/sidero)

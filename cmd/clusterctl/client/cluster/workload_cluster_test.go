@@ -159,8 +159,8 @@ users
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-
-			data, err := GetUserKubeconfig(tt.proxy, "test1", "test")
+			wcluster := newWorkloadCluster(tt.proxy)
+			data, err := wcluster.GetUserKubeconfig("test1", "test")
 
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())

@@ -28,6 +28,7 @@ import (
 type WorkloadCluster interface {
 	// GetKubeconfig returns the kubeconfig of the workload cluster.
 	GetKubeconfig(workloadClusterName string, namespace string) (string, error)
+	GetUserKubeconfig(workloadClusterName string, namespace string) (string, error)
 }
 
 // workloadCluster implements WorkloadCluster.
@@ -62,8 +63,8 @@ func (p *workloadCluster) GetKubeconfig(workloadClusterName string, namespace st
 
 // GetUserKubeconfig returns the kubeconfig of the user as provided by the provider.
 // Note: This has not been converted to a method yet to prevent API change.
-func GetUserKubeconfig(proxy Proxy, workloadClusterName string, namespace string) (string, error) {
-	cs, err := proxy.NewClient()
+func (p *workloadCluster) GetUserKubeconfig(workloadClusterName string, namespace string) (string, error) {
+	cs, err := p.proxy.NewClient()
 	if err != nil {
 		return "", err
 	}

@@ -18,7 +18,6 @@ package client
 
 import (
 	"github.com/pkg/errors"
-	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
@@ -65,7 +64,7 @@ func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, 
 	if !options.UserKubeconfig {
 		return clusterClient.WorkloadCluster().GetKubeconfig(options.WorkloadClusterName, options.Namespace)
 	}
-	kubeconfig, err := cluster.GetUserKubeconfig(clusterClient.Proxy(), options.WorkloadClusterName, options.Namespace)
+	kubeconfig, err := clusterClient.WorkloadCluster().GetUserKubeconfig(options.WorkloadClusterName, options.Namespace)
 	if err != nil {
 		// fallback on the system kubeconfig
 		logger := log.Log

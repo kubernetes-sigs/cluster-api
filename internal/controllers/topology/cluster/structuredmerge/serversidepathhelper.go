@@ -81,6 +81,14 @@ func NewServerSidePatchHelper(original, modified client.Object, c client.Client,
 	}
 	filterObject(modifiedUnstructured, helperOptions)
 
+	// Carry over uid to match the intent to:
+	// * create (uid==""): Setting no uid ensures an object gets created, not updated.
+	// * update (uid!=""): Setting an uid ensures an object which has the same uid gets updated.
+	modifiedUnstructured.SetUID("")
+	if originalUnstructured != nil {
+		modifiedUnstructured.SetUID(originalUnstructured.GetUID())
+	}
+
 	// Determine if the intent defined in the modified object is going to trigger
 	// an actual change when running server side apply, and if this change might impact the object spec or not.
 	var hasChanges, hasSpecChanges bool

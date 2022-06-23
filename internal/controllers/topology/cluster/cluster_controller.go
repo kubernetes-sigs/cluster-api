@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge/diff"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/util"
@@ -114,7 +115,8 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	r.patchEngine = patches.NewEngine(r.RuntimeClient)
 	r.recorder = mgr.GetEventRecorderFor("topology/cluster")
 	if r.patchHelperFactory == nil {
-		r.patchHelperFactory = serverSideApplyPatchHelperFactory(r.Client)
+		crdSchemaCache := diff.NewCRDSchemaCache(r.Client)
+		r.patchHelperFactory = serverSideApplyPatchHelperFactory(r.Client, crdSchemaCache)
 	}
 	return nil
 }
@@ -338,15 +340,15 @@ func (r *Reconciler) machineDeploymentToCluster(o client.Object) []ctrl.Request 
 }
 
 // serverSideApplyPatchHelperFactory makes use of managed fields provided by server side apply and is used by the controller.
-func serverSideApplyPatchHelperFactory(c client.Client) structuredmerge.PatchHelperFactoryFunc {
-	return func(original, modified client.Object, opts ...structuredmerge.HelperOption) (structuredmerge.PatchHelper, error) {
-		return structuredmerge.NewServerSidePatchHelper(original, modified, c, opts...)
+func serverSideApplyPatchHelperFactory(c client.Client, crdSchemaCache diff.CRDSchemaCache) structuredmerge.PatchHelperFactoryFunc {
+	return func(ctx context.Context, original, modified client.Object, opts ...structuredmerge.HelperOption) (structuredmerge.PatchHelper, error) {
+		return structuredmerge.NewServerSidePatchHelper(ctx, original, modified, c, crdSchemaCache, opts...)
 	}
 }
 
 // dryRunPatchHelperFactory makes use of a two-ways patch and is used in situations where we cannot rely on managed fields.
 func dryRunPatchHelperFactory(c client.Client) structuredmerge.PatchHelperFactoryFunc {
-	return func(original, modified client.Object, opts ...structuredmerge.HelperOption) (structuredmerge.PatchHelper, error) {
+	return func(ctx context.Context, original, modified client.Object, opts ...structuredmerge.HelperOption) (structuredmerge.PatchHelper, error) {
 		return structuredmerge.NewTwoWaysPatchHelper(original, modified, c, opts...)
 	}
 }

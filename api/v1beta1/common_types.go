@@ -43,6 +43,10 @@ const (
 	// Deprecated: Topology controller is now using server side apply and this annotation will be removed in a future release.
 	ClusterTopologyManagedFieldsAnnotation = "topology.cluster.x-k8s.io/managed-field-paths"
 
+	// ClusterTopologyLastAppliedIntentAnnotation is the annotation used to store the last-applied-intent
+	// by the topology controller.
+	ClusterTopologyLastAppliedIntentAnnotation = "topology.cluster.x-k8s.io/last-applied-intent"
+
 	// ClusterTopologyMachineDeploymentLabelName is the label set on the generated  MachineDeployment objects
 	// to track the name of the MachineDeployment topology it represents.
 	ClusterTopologyMachineDeploymentLabelName = "topology.cluster.x-k8s.io/deployment-name"

@@ -28,6 +28,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge/diff"
 )
 
 // TopologyManagerName is the manager name in managed fields for the topology controller.
@@ -41,7 +42,7 @@ type serverSidePatchHelper struct {
 }
 
 // NewServerSidePatchHelper returns a new PatchHelper using server side apply.
-func NewServerSidePatchHelper(original, modified client.Object, c client.Client, opts ...HelperOption) (PatchHelper, error) {
+func NewServerSidePatchHelper(ctx context.Context, original, modified client.Object, c client.Client, crdSchemaCache diff.CRDSchemaCache, opts ...HelperOption) (PatchHelper, error) {
 	helperOptions := &HelperOptions{}
 	helperOptions = helperOptions.ApplyOptions(opts)
 	helperOptions.allowedPaths = []contract.Path{
@@ -60,8 +61,15 @@ func NewServerSidePatchHelper(original, modified client.Object, c client.Client,
 	// If required, convert the original and modified objects to unstructured and filter out all the information
 	// not relevant for the topology controller.
 
-	var originalUnstructured *unstructured.Unstructured
+	var originalUnstructured, previousIntent *unstructured.Unstructured
 	if !isNil(original) {
+		// Gets the previousIntent from the original object, to be used later for DryRunDiff.
+		var err error
+		previousIntent, err = diff.GetPreviousIntent(original)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get last applied intent")
+		}
+
 		originalUnstructured = &unstructured.Unstructured{}
 		switch original.(type) {
 		case *unstructured.Unstructured:
@@ -100,11 +108,20 @@ func NewServerSidePatchHelper(original, modified client.Object, c client.Client,
 	case isNil(original):
 		hasChanges, hasSpecChanges = true, true
 	default:
-		hasChanges, hasSpecChanges = dryRunPatch(&dryRunInput{
-			path:     contract.Path{},
-			fieldsV1: getTopologyManagedFields(original),
-			original: originalUnstructured.Object,
-			modified: modifiedUnstructured.Object,
+		// Gets the schema for the modified object gvk.
+		// NOTE: this schema drives DryRunDiff operations; modified (current intent) and original (current object)
+		// are of the same gvk, given that we are always calling UpdateReferenceAPIContract when reading both of them.
+		// previousIntent instead could be of an older version, but this impacts dryRun only partially (see diff.isDroppingAnyIntent for more details)
+		schema, err := crdSchemaCache.LoadOrStore(ctx, modifiedUnstructured.GroupVersionKind())
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get schema for %s", modifiedUnstructured.GroupVersionKind().String())
+		}
+
+		hasChanges, hasSpecChanges = diff.DryRunDiff(&diff.DryRunDiffInput{
+			PreviousIntent: previousIntent,
+			CurrentIntent:  modifiedUnstructured,
+			CurrentObject:  originalUnstructured,
+			Schema:         schema,
 		})
 	}
 
@@ -134,6 +151,12 @@ func (h *serverSidePatchHelper) Patch(ctx context.Context) error {
 
 	log := ctrl.LoggerFrom(ctx)
 	log.V(5).Info("Patching object", "Intent", h.modified)
+
+	// Stores che current intent as last applied intent.
+	// NOTE: we are doing this at this stage so it won't impact the dryRunDiff logic.
+	if err := diff.AddCurrentIntentAnnotation(h.modified); err != nil {
+		return errors.Wrap(err, "failed to add last applied intent annotation")
+	}
 
 	options := []client.PatchOption{
 		client.FieldOwner(TopologyManagerName),

@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge/diff"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
@@ -52,9 +53,14 @@ var (
 	IgnoreNameGenerated = IgnorePaths{
 		{"metadata", "name"},
 	}
+	IgnoreLastAppliedIntentAnnotation = IgnorePaths{
+		{"metadata", "annotations", clusterv1.ClusterTopologyLastAppliedIntentAnnotation},
+	}
 )
 
 func TestReconcileShim(t *testing.T) {
+	crdSchemaCache := diff.NewCRDSchemaCache(env)
+
 	infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
 	controlPlane := builder.TestControlPlane(metav1.NamespaceDefault, "controlplane-cluster1").Build()
 	cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").Build()
@@ -86,7 +92,7 @@ func TestReconcileShim(t *testing.T) {
 		r := Reconciler{
 			Client:             env,
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, crdSchemaCache),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -129,7 +135,7 @@ func TestReconcileShim(t *testing.T) {
 		r := Reconciler{
 			Client:             env,
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, crdSchemaCache),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -179,7 +185,7 @@ func TestReconcileShim(t *testing.T) {
 		r := Reconciler{
 			Client:             env,
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, crdSchemaCache),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -226,7 +232,7 @@ func TestReconcileShim(t *testing.T) {
 		r := Reconciler{
 			Client:             env,
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(env, crdSchemaCache),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -267,7 +273,7 @@ func TestReconcileShim(t *testing.T) {
 		r := Reconciler{
 			Client:             nil,
 			APIReader:          env.GetAPIReader(),
-			patchHelperFactory: serverSideApplyPatchHelperFactory(nil),
+			patchHelperFactory: serverSideApplyPatchHelperFactory(nil, crdSchemaCache),
 		}
 		err = r.reconcileClusterShim(ctx, s)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -854,6 +860,8 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 }
 
 func TestReconcileCluster(t *testing.T) {
+	crdSchemaCache := diff.NewCRDSchemaCache(env)
+
 	cluster1 := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 		Build()
 	cluster1WithReferences := builder.Cluster(metav1.NamespaceDefault, "cluster1").
@@ -915,7 +923,7 @@ func TestReconcileCluster(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, crdSchemaCache),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 			err = r.reconcileCluster(ctx, s)
@@ -941,6 +949,7 @@ func TestReconcileCluster(t *testing.T) {
 
 func TestReconcileInfrastructureCluster(t *testing.T) {
 	g := NewWithT(t)
+	crdSchemaCache := diff.NewCRDSchemaCache(env)
 
 	// build an infrastructure cluster with a field managed by the topology controller (derived from the template).
 	clusterInfrastructure1 := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").
@@ -1040,7 +1049,7 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, crdSchemaCache),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 			err = r.reconcileInfrastructureCluster(ctx, s)
@@ -1075,6 +1084,7 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 
 func TestReconcileControlPlane(t *testing.T) {
 	g := NewWithT(t)
+	crdSchemaCache := diff.NewCRDSchemaCache(env)
 
 	// Objects for testing reconciliation of a control plane without machines.
 
@@ -1294,7 +1304,7 @@ func TestReconcileControlPlane(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, crdSchemaCache),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 
@@ -1406,6 +1416,8 @@ func TestReconcileControlPlane(t *testing.T) {
 }
 
 func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
+	crdSchemaCache := diff.NewCRDSchemaCache(env)
+
 	// Create InfrastructureMachineTemplates for test cases
 	infrastructureMachineTemplate := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()
 
@@ -1554,7 +1566,7 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, crdSchemaCache),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 
@@ -1579,13 +1591,14 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			}
 
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(gotMHC).To(EqualObject(tt.want, IgnoreAutogeneratedMetadata, IgnorePaths{{"kind"}, {"apiVersion"}}))
+			g.Expect(gotMHC).To(EqualObject(tt.want, IgnoreAutogeneratedMetadata, IgnoreLastAppliedIntentAnnotation, IgnorePaths{{"kind"}, {"apiVersion"}}))
 		})
 	}
 }
 
 func TestReconcileMachineDeployments(t *testing.T) {
 	g := NewWithT(t)
+	crdSchemaCache := diff.NewCRDSchemaCache(env)
 
 	// Write the config file to access the test env for debugging.
 	// g.Expect(os.WriteFile("test.conf", kubeconfig.FromEnvTestConfig(env.Config, &clusterv1.Cluster{
@@ -1803,7 +1816,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, crdSchemaCache),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 			err = r.reconcileMachineDeployments(ctx, s)
@@ -1849,7 +1862,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 
 					g.Expect(err).ToNot(HaveOccurred())
 
-					g.Expect(&gotBootstrapTemplate).To(EqualObject(wantMachineDeploymentState.BootstrapTemplate, IgnoreAutogeneratedMetadata, IgnoreNameGenerated))
+					g.Expect(&gotBootstrapTemplate).To(EqualObject(wantMachineDeploymentState.BootstrapTemplate, IgnoreAutogeneratedMetadata, IgnoreLastAppliedIntentAnnotation, IgnoreNameGenerated))
 
 					// Check BootstrapTemplate rotation if there was a previous MachineDeployment/Template.
 					if currentMachineDeploymentState != nil && currentMachineDeploymentState.BootstrapTemplate != nil {
@@ -1873,7 +1886,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 
 					g.Expect(err).ToNot(HaveOccurred())
 
-					g.Expect(&gotInfrastructureMachineTemplate).To(EqualObject(wantMachineDeploymentState.InfrastructureMachineTemplate, IgnoreAutogeneratedMetadata, IgnoreNameGenerated))
+					g.Expect(&gotInfrastructureMachineTemplate).To(EqualObject(wantMachineDeploymentState.InfrastructureMachineTemplate, IgnoreAutogeneratedMetadata, IgnoreLastAppliedIntentAnnotation, IgnoreNameGenerated))
 
 					// Check InfrastructureMachineTemplate rotation if there was a previous MachineDeployment/Template.
 					if currentMachineDeploymentState != nil && currentMachineDeploymentState.InfrastructureMachineTemplate != nil {
@@ -1894,6 +1907,8 @@ func TestReconcileMachineDeployments(t *testing.T) {
 // NOTE: by Extension this tests validates managed field handling in mergePatches, and thus its usage in other parts of the
 // codebase.
 func TestReconcileReferencedObjectSequences(t *testing.T) {
+	crdSchemaCache := diff.NewCRDSchemaCache(env)
+
 	// g := NewWithT(t)
 	// Write the config file to access the test env for debugging.
 	// g.Expect(os.WriteFile("test.conf", kubeconfig.FromEnvTestConfig(env.Config, &clusterv1.Cluster{
@@ -2282,7 +2297,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, crdSchemaCache),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 
@@ -2395,6 +2410,8 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 }
 
 func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
+	crdSchemaCache := diff.NewCRDSchemaCache(env)
+
 	md := builder.MachineDeployment(metav1.NamespaceDefault, "md-1").WithLabels(
 		map[string]string{
 			clusterv1.ClusterTopologyMachineDeploymentLabelName: "machine-deployment-one",
@@ -2520,6 +2537,13 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 				uidsByName[mdts.Object.Name] = mdts.Object.GetUID()
 
 				if mdts.MachineHealthCheck != nil {
+					// Adds last applied intent annotation assuming the current object has been originated from the topology controller, without external changes.
+					currentIntent := &unstructured.Unstructured{}
+					g.Expect(env.Scheme().Convert(mdts.MachineHealthCheck, currentIntent, nil)).To(Succeed())
+					g.Expect(diff.AddCurrentIntentAnnotation(currentIntent)).To(Succeed())
+					g.Expect(env.Scheme().Convert(currentIntent, mdts.MachineHealthCheck, nil)).To(Succeed())
+					mdts.MachineHealthCheck.SetGroupVersionKind(currentIntent.GroupVersionKind())
+
 					for i, ref := range mdts.MachineHealthCheck.OwnerReferences {
 						ref.UID = mdts.Object.GetUID()
 						mdts.MachineHealthCheck.OwnerReferences[i] = ref
@@ -2548,7 +2572,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, crdSchemaCache),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 
@@ -2570,7 +2594,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 							ref.UID = ""
 							actual.OwnerReferences[i] = ref
 						}
-						g.Expect(wantMHC).To(EqualObject(&actual, IgnoreAutogeneratedMetadata))
+						g.Expect(&actual).To(EqualObject(wantMHC, IgnoreAutogeneratedMetadata, IgnoreLastAppliedIntentAnnotation))
 					}
 				}
 			}
@@ -2603,6 +2627,8 @@ func toMachineDeploymentTopologyStateMap(states []*scope.MachineDeploymentState)
 }
 
 func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
+	crdSchemaCache := diff.NewCRDSchemaCache(env)
+
 	// create a controlPlane object with enough information to be used as an OwnerReference for the MachineHealthCheck.
 	cp := builder.ControlPlane(metav1.NamespaceDefault, "cp1").Build()
 	mhcBuilder := builder.MachineHealthCheck(metav1.NamespaceDefault, "cp1").
@@ -2694,7 +2720,7 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 
 			r := Reconciler{
 				Client:             env,
-				patchHelperFactory: serverSideApplyPatchHelperFactory(env),
+				patchHelperFactory: serverSideApplyPatchHelperFactory(env, crdSchemaCache),
 				recorder:           env.GetEventRecorderFor("test"),
 			}
 			if tt.current != nil {
@@ -2717,7 +2743,7 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 				}
 			}
 
-			g.Expect(got).To(EqualObject(tt.want, IgnoreAutogeneratedMetadata, IgnorePaths{{"kind"}, {"apiVersion"}}))
+			g.Expect(got).To(EqualObject(tt.want, IgnoreAutogeneratedMetadata, IgnoreLastAppliedIntentAnnotation, IgnorePaths{{"kind"}, {"apiVersion"}}))
 		})
 	}
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package structuredmerge
 
 import (
+	"encoding/json"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -25,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge/diff"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -35,12 +37,14 @@ func TestServerSideApply(t *testing.T) {
 
 	// Write the config file to access the test env for debugging.
 	// g.Expect(os.WriteFile("test.conf", kubeconfig.FromEnvTestConfig(env.Config, &clusterv1.Cluster{
-	// 	ObjectMeta: metav1.ObjectMeta{Name: "test"},
-	// }), 0777)).To(Succeed())
+	//	ObjectMeta: metav1.ObjectMeta{Name: "test"},
+	// }), 0777)).To(Succeed())0777)).To(Succeed())
 
 	// Create a namespace for running the test
 	ns, err := env.CreateNamespace(ctx, "ssa")
 	g.Expect(err).ToNot(HaveOccurred())
+
+	schemaCache := diff.NewCRDSchemaCache(env.Client)
 
 	// Build the test object to work with.
 	obj := builder.TestInfrastructureCluster(ns.Name, "obj1").WithSpecFields(map[string]interface{}{
@@ -56,7 +60,7 @@ func TestServerSideApply(t *testing.T) {
 		var original *unstructured.Unstructured
 		modified := obj.DeepCopy()
 
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient())
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -67,7 +71,7 @@ func TestServerSideApply(t *testing.T) {
 		var original *clusterv1.MachineDeployment
 		modified := obj.DeepCopy()
 
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient())
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -77,7 +81,7 @@ func TestServerSideApply(t *testing.T) {
 		g := NewWithT(t)
 
 		// Create a patch helper with original == nil and modified == obj, ensure this is detected as operation that triggers changes.
-		p0, err := NewServerSidePatchHelper(nil, obj.DeepCopy(), env.GetClient(), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctx, nil, obj.DeepCopy(), env.GetClient(), schemaCache, IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -102,6 +106,8 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(controlPlaneEndpointFieldV1).ToNot(BeEmpty())
 		g.Expect(controlPlaneEndpointFieldV1).To(HaveKey("f:host")) // topology controller should express opinions on spec.controlPlaneEndpoint.host.
 		g.Expect(controlPlaneEndpointFieldV1).To(HaveKey("f:port")) // topology controller should express opinions on spec.controlPlaneEndpoint.port.
+
+		g.Expect(got.GetAnnotations()).To(HaveKey(clusterv1.ClusterTopologyLastAppliedIntentAnnotation))
 	})
 
 	t.Run("Server side apply patch helper detects no changes", func(t *testing.T) {
@@ -113,7 +119,7 @@ func TestServerSideApply(t *testing.T) {
 
 		// Create a patch helper for a modified object with no changes.
 		modified := obj.DeepCopy()
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient(), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache, IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -130,7 +136,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "status", "foo")).To(Succeed())
 
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient(), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache, IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -147,7 +153,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "bar")).To(Succeed())
 
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient(), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache, IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -164,7 +170,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj.DeepCopy()
 		modified.SetLabels(map[string]string{"foo": "changed"})
 
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient(), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache, IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -181,7 +187,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj.DeepCopy()
 		modified.SetAnnotations(map[string]string{"foo": "changed"})
 
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient(), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache, IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -201,10 +207,11 @@ func TestServerSideApply(t *testing.T) {
 				APIVersion: "foo/v1alpha1",
 				Kind:       "foo",
 				Name:       "foo",
+				UID:        "foo",
 			},
 		})
 
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient(), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache, IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -221,7 +228,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "foo")).To(Succeed())
 
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient(), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache, IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -256,17 +263,18 @@ func TestServerSideApply(t *testing.T) {
 		// Create a patch helper for a modified object with no changes to what previously applied by th topology manager.
 		modified := obj.DeepCopy()
 
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient(), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache, IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
 
-		// Create the object using server side apply
+		// Change the object using server side apply (should be a no-op).
 		g.Expect(p0.Patch(ctx)).To(Succeed())
 
 		// Check the object and verify fields set by the other controller are preserved.
 		got := obj.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(got), got)).To(Succeed())
+		g.Expect(original.GetResourceVersion()).To(Equal(got.GetResourceVersion()))
 
 		v1, _, _ := unstructured.NestedString(got.Object, "spec", "foo")
 		g.Expect(v1).To(Equal("changed"))
@@ -287,6 +295,8 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(specFieldV1).To(HaveKey("f:controlPlaneEndpoint")) // topology controller should express opinions on spec.controlPlaneEndpoint.
 		g.Expect(specFieldV1).ToNot(HaveKey("f:foo"))               // topology controller should not express opinions on ignore paths.
 		g.Expect(specFieldV1).ToNot(HaveKey("f:bar"))               // topology controller should not express opinions on fields managed by other controllers.
+
+		g.Expect(got.GetAnnotations()).To(HaveKey(clusterv1.ClusterTopologyLastAppliedIntentAnnotation))
 	})
 
 	t.Run("Topology controller reconcile again with some changes on topology managed fields", func(t *testing.T) {
@@ -300,7 +310,7 @@ func TestServerSideApply(t *testing.T) {
 		modified := obj.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "controlPlaneEndpoint", "host")).To(Succeed())
 
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient(), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache, IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -311,6 +321,7 @@ func TestServerSideApply(t *testing.T) {
 		// Check the object and verify the change is applied as well as the fields set by the other controller are still preserved.
 		got := obj.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(got), got)).To(Succeed())
+		g.Expect(original.GetResourceVersion()).ToNot(Equal(got.GetResourceVersion()))
 
 		v0, _, _ := unstructured.NestedString(got.Object, "spec", "controlPlaneEndpoint", "host")
 		g.Expect(v0).To(Equal("changed"))
@@ -322,6 +333,8 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(v3).To(Equal("changed"))
 		v4, _, _ := unstructured.NestedBool(got.Object, "status", "ready")
 		g.Expect(v4).To(Equal(true))
+
+		g.Expect(got.GetAnnotations()).To(HaveKey(clusterv1.ClusterTopologyLastAppliedIntentAnnotation))
 	})
 
 	t.Run("Topology controller reconcile again with an opinion on a field managed by another controller (force ownership)", func(t *testing.T) {
@@ -336,7 +349,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "controlPlaneEndpoint", "host")).To(Succeed())
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed-by-topology-controller", "spec", "bar")).To(Succeed())
 
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient(), IgnorePaths{{"spec", "foo"}})
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache, IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
@@ -347,6 +360,7 @@ func TestServerSideApply(t *testing.T) {
 		// Check the object and verify the change is applied as well as managed field updated accordingly.
 		got := obj.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(got), got)).To(Succeed())
+		g.Expect(original.GetResourceVersion()).ToNot(Equal(got.GetResourceVersion()))
 
 		v2, _, _ := unstructured.NestedString(got.Object, "spec", "bar")
 		g.Expect(v2).To(Equal("changed-by-topology-controller"))
@@ -360,6 +374,8 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(specFieldV1).To(HaveKey("f:controlPlaneEndpoint")) // topology controller should express opinions on spec.controlPlaneEndpoint.
 		g.Expect(specFieldV1).ToNot(HaveKey("f:foo"))               // topology controller should not express opinions on ignore paths.
 		g.Expect(specFieldV1).To(HaveKey("f:bar"))                  // topology controller now has an opinion on a field previously managed by other controllers (force ownership).
+
+		g.Expect(got.GetAnnotations()).To(HaveKey(clusterv1.ClusterTopologyLastAppliedIntentAnnotation))
 	})
 	t.Run("No-op on unstructured object having empty map[string]interface in spec", func(t *testing.T) {
 		g := NewWithT(t)
@@ -381,7 +397,7 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
 
 		// Create a patch helper for a modified object with which has no changes.
-		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient())
+		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
@@ -400,6 +416,8 @@ func TestServerSideApply_CleanupLegacyManagedFields(t *testing.T) {
 	ns, err := env.CreateNamespace(ctx, "ssa")
 	g.Expect(err).ToNot(HaveOccurred())
 
+	schemaCache := diff.NewCRDSchemaCache(env.Client)
+
 	// Build the test object to work with.
 	obj := builder.TestInfrastructureCluster(ns.Name, "obj1").WithSpecFields(map[string]interface{}{
 		"spec.foo": "",
@@ -417,7 +435,7 @@ func TestServerSideApply_CleanupLegacyManagedFields(t *testing.T) {
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(obj), original)).To(Succeed())
 
 		modified := obj.DeepCopy()
-		_, err := NewServerSidePatchHelper(original, modified, env.GetClient())
+		_, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), schemaCache)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Get created object after cleanup
@@ -443,4 +461,24 @@ func TestServerSideApply_CleanupLegacyManagedFields(t *testing.T) {
 		g.Expect(gotLegacyManager).To(BeFalse())
 		g.Expect(gotSSAManager).To(BeTrue())
 	})
+}
+
+// getTopologyManagedFields returns metadata.managedFields entry tracking
+// server side apply operations for the topology controller.
+func getTopologyManagedFields(original client.Object) map[string]interface{} {
+	r := map[string]interface{}{}
+
+	for _, m := range original.GetManagedFields() {
+		if m.Operation == metav1.ManagedFieldsOperationApply &&
+			m.Manager == TopologyManagerName &&
+			m.APIVersion == original.GetObjectKind().GroupVersionKind().GroupVersion().String() {
+			// NOTE: API server ensures this is a valid json.
+			err := json.Unmarshal(m.FieldsV1.Raw, &r)
+			if err != nil {
+				continue
+			}
+			break
+		}
+	}
+	return r
 }

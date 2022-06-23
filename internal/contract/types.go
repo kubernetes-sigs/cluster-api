@@ -34,6 +34,20 @@ func (p Path) Append(k string) Path {
 	return append(p, k)
 }
 
+// Item return a path for an item element, represented as <path> + []. item elements are used as
+// a placeholder for schema definitions for list items of for map items.
+func (p Path) Item() Path {
+	item := Path{}
+	for i, x := range p {
+		if i < len(p)-1 {
+			item = append(item, x)
+			continue
+		}
+		item = append(item, x+"[]")
+	}
+	return item
+}
+
 // IsParentOf check if one path is Parent of the other.
 func (p Path) IsParentOf(other Path) bool {
 	if len(p) >= len(other) {

@@ -65,6 +65,12 @@ if [[ "$${KUBERNETES_VERSION}" != "" ]]; then
   CI_DIR=/tmp/k8s-ci
   mkdir -p "$${CI_DIR}"
   declare -a PACKAGES_TO_TEST=("kubectl" "kubelet" "kubeadm")
+  {{- if .IsControlPlaneMachine }}
+  declare -a CONTAINERS_TO_TEST=("kube-apiserver" "kube-controller-manager" "kube-proxy" "kube-scheduler")
+  {{- else }}
+  declare -a CONTAINERS_TO_TEST=("kube-proxy")
+  {{- end }}
+  CONTAINER_EXT="tar"
   echo "* testing CI version $${KUBERNETES_VERSION}"
   # Check for semver
   if [[ "$${KUBERNETES_VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -96,6 +102,18 @@ if [[ "$${KUBERNETES_VERSION}" != "" ]]; then
     done
     systemctl restart kubelet
   fi
+  IMAGE_REGISTRY_PREFIX=registry.k8s.io
+  # Kubernetes builds from 1.20 through 1.24 are tagged with k8s.gcr.io
+  if [[ "$${CI_VERSION}" =~ ^v1\.(1[0-9]|2[0-4])[\.[0-9]+ ]]; then
+    IMAGE_REGISTRY_PREFIX=k8s.gcr.io
+  fi
+  for CI_CONTAINER in "$${CONTAINERS_TO_TEST[@]}"; do
+    echo "* downloading package: $${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}"
+    wget "$${CI_URL}/$${CI_CONTAINER}.$${CONTAINER_EXT}" -O "$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}"
+    $${SUDO} ctr -n k8s.io images import "$${CI_DIR}/$${CI_CONTAINER}.$${CONTAINER_EXT}" || echo "* ignoring expected 'ctr images import' result"
+    $${SUDO} ctr -n k8s.io images tag "$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}" "$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}"
+    $${SUDO} ctr -n k8s.io images tag "$${IMAGE_REGISTRY_PREFIX}/$${CI_CONTAINER}-amd64:$${KUBERNETES_VERSION//+/_}" "gcr.io/k8s-staging-ci-images/$${CI_CONTAINER}:$${KUBERNETES_VERSION//+/_}"
+  done
 fi
 echo "* checking binary versions"
 echo "ctr version: " "$(ctr version)"

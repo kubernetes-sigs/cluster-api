@@ -1,10 +1,6 @@
 on:
   pull_request_target:
     types: [opened, edited, synchronize, reopened]
-    # Don't run this check on PRs created by the cherry-pick bot,
-    # as the PR description is too short, but otherwise the PRs are fine.
-    branches-ignore:
-      - k8s-infra-cherrypick-robot/**
 
 jobs:
   verify:
@@ -14,5 +10,8 @@ jobs:
     - name: Verifier action
       id: verifier
       uses: kubernetes-sigs/kubebuilder-release-tools@v0.2.0
+      # Don't run this step on PRs created by the cherry-pick bot,
+      # as the PR description is too short, but otherwise the PRs are fine.
+      if: ${{ github.event.pull_request.head.repo.owner.login != 'k8s-infra-cherrypick-robot' }}
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}

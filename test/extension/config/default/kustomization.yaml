@@ -3,6 +3,9 @@ commonLabels:
 resources:
 - extension.yaml
 - service.yaml
+- role.yaml
+- rolebinding.yaml
+- service_account.yaml
 
 bases:
 - ../certmanager

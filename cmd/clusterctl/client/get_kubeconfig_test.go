@@ -20,15 +20,14 @@ import (
 	"fmt"
 	"testing"
 
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util/secret"
-
-	. "github.com/onsi/gomega"
-
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
+	"sigs.k8s.io/cluster-api/util/secret"
 )
 
 func Test_clusterctlClient_GetKubeconfig(t *testing.T) {
@@ -126,7 +125,7 @@ func Test_clusterctlClient_GetKubeconfig(t *testing.T) {
 	}
 }
 
-//getKubeconfig returns a user/system specific kubeconfig with given cluster name
+// getKubeconfig returns a user/system specific kubeconfig with given cluster name.
 func getKubeconfig(clusterName string, isUser bool) string {
 	var username string
 	if isUser {
@@ -156,7 +155,7 @@ users
 `, username, clusterName)
 }
 
-//getKubeconfigSecret returns user/system specific kubeconfig secret
+// getKubeconfigSecret returns user/system specific kubeconfig secret.
 func getKubeconfigSecret(isUser bool, clusterName string) *corev1.Secret {
 	var secretName string
 	if isUser {

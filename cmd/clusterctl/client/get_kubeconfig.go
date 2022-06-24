@@ -18,6 +18,7 @@ package client
 
 import (
 	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 

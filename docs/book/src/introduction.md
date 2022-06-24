@@ -10,6 +10,7 @@ Started by the Kubernetes Special Interest Group (SIG) [Cluster Lifecycle](https
 * [Concepts](./user/concepts.md)
 * [Developer guide](./developer/guide.md)
 * [Contributing](./CONTRIBUTING.md)
+* [Videos explaining Cluster API architecture](./developer/guide.md#videos-explaining-capi-architecture-and-code-walkthroughs)
 
 <aside class="note">
 

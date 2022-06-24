@@ -11,7 +11,7 @@ Defaulting webhooks are an implementation of a [Kubernetes mutating webhook](htt
 ## Conversion webhooks
 Conversion webhooks are what allow Cluster API to work with multiple API types without requiring different versions. It does this by converting the incoming version to a `Hub` version which is used internally by the controllers. To read more about conversion see the [Kubebuilder documentation](https://book.kubebuilder.io/multiversion-tutorial/conversion.html)
 
-For a walkthrough on implementing conversion webhooks see the video in the [Developer Guide](https://cluster-api.sigs.k8s.io/developer/guide.html?highlight=video#videos-explaining-capi-architecture-and-code-walkthroughs)
+For a walkthrough on implementing conversion webhooks see the video in the [Developer Guide](../guide.md#videos-explaining-capi-architecture-and-code-walkthroughs)
 
 ## Implementing webhooks with Controller Runtime and Kubebuilder
 The webhooks in Cluster API are offered through tools in Controller Runtime and Kubebuilder. The webhooks implement interfaces defined in Controller Runtime, while generation of manifests can be done using Kubebuilder.

@@ -9,4 +9,4 @@ The Runtime SDK feature provides an extensibility mechanism that allows systems,
 
 
 More details on the Runtime SDK can be found at:
-[RuntimeSDK CAEP](./../../../../proposals/20220221-runtime-SDK.md)
+[RuntimeSDK CAEP](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220221-runtime-SDK.md)

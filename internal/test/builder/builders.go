@@ -469,7 +469,7 @@ func TestInfrastructureMachineTemplate(namespace, name string) *TestInfrastructu
 //     "spec.version": "v1.2.3",
 // }.
 func (i *TestInfrastructureMachineTemplateBuilder) WithSpecFields(fields map[string]interface{}) *TestInfrastructureMachineTemplateBuilder {
-	i.specFields = fielda
+	i.specFields = fields
 	return i
 }
 

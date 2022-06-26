@@ -42,20 +42,8 @@ type serverSidePatchHelper struct {
 
 // NewServerSidePatchHelper returns a new PatchHelper using server side apply.
 func NewServerSidePatchHelper(original, modified client.Object, c client.Client, opts ...HelperOption) (PatchHelper, error) {
-	helperOptions := &HelperOptions{}
-	helperOptions = helperOptions.ApplyOptions(opts)
-	helperOptions.allowedPaths = []contract.Path{
-		// apiVersion, kind, name and namespace are required field for a server side apply intent.
-		{"apiVersion"},
-		{"kind"},
-		{"metadata", "name"},
-		{"metadata", "namespace"},
-		// the topology controller controls/has an opinion for labels, annotation, ownerReferences and spec only.
-		{"metadata", "labels"},
-		{"metadata", "annotations"},
-		{"metadata", "ownerReferences"},
-		{"spec"},
-	}
+	// Create helperOptions for filtering the original and modified objects to the desired intent.
+	helperOptions := newHelperOptions(modified, opts...)
 
 	// If required, convert the original and modified objects to unstructured and filter out all the information
 	// not relevant for the topology controller.

@@ -439,9 +439,7 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 	ctx, log := tlog.LoggerFrom(ctx).WithObject(s.Desired.Cluster).Into(ctx)
 
 	// Check differences between current and desired state, and eventually patch the current object.
-	patchHelper, err := r.patchHelperFactory(s.Current.Cluster, s.Desired.Cluster, structuredmerge.IgnorePaths{
-		{"spec", "controlPlaneEndpoint"}, // this is a well known field that is managed by the Cluster controller, topology should not express opinions on it.
-	})
+	patchHelper, err := r.patchHelperFactory(s.Current.Cluster, s.Desired.Cluster)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: s.Current.Cluster})
 	}

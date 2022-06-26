@@ -75,15 +75,16 @@ type ClusterClassChangesSpecInput struct {
 
 // ClusterClassChangesSpec implements a test that verifies that ClusterClass changes are rolled out successfully.
 // Thus, the test consists of the following steps:
-// * Deploy Cluster using a ClusterClass and wait until it is fully provisioned.
-// * Modify the ControlPlaneTemplate of the ClusterClass by setting ModifyControlPlaneFields
-//   and wait until the change has been rolled out to the ControlPlane of the Cluster.
-// * Modify the BootstrapTemplate of all MachineDeploymentClasses of the ClusterClass by setting
-//   ModifyMachineDeploymentBootstrapConfigTemplateFields and wait until the change has been rolled out
-//   to the MachineDeployments of the Cluster.
-// * Rebase the Cluster to a copy of the ClusterClass which has an additional worker label set. Then wait
-//   until the change has been rolled out to the MachineDeployments of the Cluster and verify the ControlPlane
-//   has not been changed.
+//   - Deploy Cluster using a ClusterClass and wait until it is fully provisioned.
+//   - Modify the ControlPlaneTemplate of the ClusterClass by setting ModifyControlPlaneFields
+//     and wait until the change has been rolled out to the ControlPlane of the Cluster.
+//   - Modify the BootstrapTemplate of all MachineDeploymentClasses of the ClusterClass by setting
+//     ModifyMachineDeploymentBootstrapConfigTemplateFields and wait until the change has been rolled out
+//     to the MachineDeployments of the Cluster.
+//   - Rebase the Cluster to a copy of the ClusterClass which has an additional worker label set. Then wait
+//     until the change has been rolled out to the MachineDeployments of the Cluster and verify the ControlPlane
+//     has not been changed.
+//
 // NOTE: The ClusterClass can be changed in many ways (as documented in the ClusterClass Operations doc).
 // This test verifies a subset of the possible operations and aims to test the most complicated rollouts
 // (template changes, label propagation, rebase), everything else will be covered by unit or integration tests.

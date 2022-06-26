@@ -854,11 +854,11 @@ func assertInfrastructureClusterReconcile(cluster *clusterv1.Cluster) error {
 }
 
 // assertControlPlaneReconcile checks if the ControlPlane object:
-// 1) Is created.
-// 2) Has the correct labels and annotations.
-// 3) If it requires ControlPlane Infrastructure and if so:
-//		i) That the infrastructureMachineTemplate is created correctly.
-//      ii) That the infrastructureMachineTemplate has the correct labels and annotations
+//  1. Is created.
+//  2. Has the correct labels and annotations.
+//  3. If it requires ControlPlane Infrastructure and if so:
+//     i) That the infrastructureMachineTemplate is created correctly.
+//     ii) That the infrastructureMachineTemplate has the correct labels and annotations
 func assertControlPlaneReconcile(cluster *clusterv1.Cluster) error {
 	cp, err := getAndAssertLabelsAndAnnotations(*cluster.Spec.ControlPlaneRef, cluster.Name)
 	if err != nil {

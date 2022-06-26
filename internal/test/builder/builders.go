@@ -426,9 +426,9 @@ func InfrastructureMachineTemplate(namespace, name string) *InfrastructureMachin
 //
 // Note: all the paths should start with "spec."
 //
-// Example map: map[string]interface{}{
-//     "spec.version": "v1.2.3",
-// }.
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
 func (i *InfrastructureMachineTemplateBuilder) WithSpecFields(fields map[string]interface{}) *InfrastructureMachineTemplateBuilder {
 	setSpecFields(i.obj, fields)
 	return i
@@ -465,9 +465,9 @@ func TestInfrastructureMachineTemplate(namespace, name string) *TestInfrastructu
 //
 // Note: all the paths should start with "spec."; the path should correspond to a field defined in the CRD.
 //
-// Example map: map[string]interface{}{
-//     "spec.version": "v1.2.3",
-// }.
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
 func (i *TestInfrastructureMachineTemplateBuilder) WithSpecFields(fields map[string]interface{}) *TestInfrastructureMachineTemplateBuilder {
 	setSpecFields(i.obj, fields)
 	return i
@@ -562,9 +562,9 @@ func InfrastructureClusterTemplate(namespace, name string) *InfrastructureCluste
 //
 // Note: all the paths should start with "spec."
 //
-// Example map: map[string]interface{}{
-//     "spec.version": "v1.2.3",
-// }.
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
 func (i *InfrastructureClusterTemplateBuilder) WithSpecFields(fields map[string]interface{}) *InfrastructureClusterTemplateBuilder {
 	setSpecFields(i.obj, fields)
 	return i
@@ -600,9 +600,9 @@ func TestInfrastructureClusterTemplate(namespace, name string) *TestInfrastructu
 //
 // Note: all the paths should start with "spec."; the path should correspond to a field defined in the CRD.
 //
-// Example map: map[string]interface{}{
-//     "spec.version": "v1.2.3",
-// }.
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
 func (i *TestInfrastructureClusterTemplateBuilder) WithSpecFields(fields map[string]interface{}) *TestInfrastructureClusterTemplateBuilder {
 	setSpecFields(i.obj, fields)
 	return i
@@ -636,9 +636,9 @@ func ControlPlaneTemplate(namespace, name string) *ControlPlaneTemplateBuilder {
 //
 // Note: all the paths should start with "spec."
 //
-// Example map: map[string]interface{}{
-//     "spec.version": "v1.2.3",
-// }.
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
 func (c *ControlPlaneTemplateBuilder) WithSpecFields(fields map[string]interface{}) *ControlPlaneTemplateBuilder {
 	setSpecFields(c.obj, fields)
 	return c
@@ -683,9 +683,9 @@ func TestControlPlaneTemplate(namespace, name string) *TestControlPlaneTemplateB
 //
 // Note: all the paths should start with "spec."; the path should correspond to a field defined in the CRD.
 //
-// Example map: map[string]interface{}{
-//     "spec.version": "v1.2.3",
-// }.
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
 func (c *TestControlPlaneTemplateBuilder) WithSpecFields(fields map[string]interface{}) *TestControlPlaneTemplateBuilder {
 	setSpecFields(c.obj, fields)
 	return c
@@ -714,9 +714,9 @@ type InfrastructureClusterBuilder struct {
 //
 // Note: all the paths should start with "spec."
 //
-// Example map: map[string]interface{}{
-//     "spec.version": "v1.2.3",
-// }.
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
 func (i *InfrastructureClusterBuilder) WithSpecFields(fields map[string]interface{}) *InfrastructureClusterBuilder {
 	setSpecFields(i.obj, fields)
 	return i
@@ -759,9 +759,9 @@ func TestInfrastructureCluster(namespace, name string) *TestInfrastructureCluste
 //
 // Note: all the paths should start with "spec."; the path should correspond to a field defined in the CRD.
 //
-// Example map: map[string]interface{}{
-//     "spec.version": "v1.2.3",
-// }.
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
 func (i *TestInfrastructureClusterBuilder) WithSpecFields(fields map[string]interface{}) *TestInfrastructureClusterBuilder {
 	setSpecFields(i.obj, fields)
 	return i
@@ -819,9 +819,9 @@ func (c *ControlPlaneBuilder) WithVersion(version string) *ControlPlaneBuilder {
 //
 // Note: all the paths should start with "spec."
 //
-// Example map: map[string]interface{}{
-//     "spec.version": "v1.2.3",
-// }.
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
 func (c *ControlPlaneBuilder) WithSpecFields(fields map[string]interface{}) *ControlPlaneBuilder {
 	setSpecFields(c.obj, fields)
 	return c
@@ -832,9 +832,9 @@ func (c *ControlPlaneBuilder) WithSpecFields(fields map[string]interface{}) *Con
 //
 // Note: all the paths should start with "status."
 //
-// Example map: map[string]interface{}{
-//     "status.version": "v1.2.3",
-// }.
+//	Example map: map[string]interface{}{
+//	    "status.version": "v1.2.3",
+//	}.
 func (c *ControlPlaneBuilder) WithStatusFields(fields map[string]interface{}) *ControlPlaneBuilder {
 	setStatusFields(c.obj, fields)
 	return c
@@ -892,9 +892,9 @@ func (c *TestControlPlaneBuilder) WithVersion(version string) *TestControlPlaneB
 //
 // Note: all the paths should start with "spec."
 //
-// Example map: map[string]interface{}{
-//     "spec.version": "v1.2.3",
-// }.
+//	Example map: map[string]interface{}{
+//	    "spec.version": "v1.2.3",
+//	}.
 func (c *TestControlPlaneBuilder) WithSpecFields(fields map[string]interface{}) *TestControlPlaneBuilder {
 	setSpecFields(c.obj, fields)
 	return c
@@ -905,9 +905,9 @@ func (c *TestControlPlaneBuilder) WithSpecFields(fields map[string]interface{}) 
 //
 // Note: all the paths should start with "status."
 //
-// Example map: map[string]interface{}{
-//     "status.version": "v1.2.3",
-// }.
+//	Example map: map[string]interface{}{
+//	    "status.version": "v1.2.3",
+//	}.
 func (c *TestControlPlaneBuilder) WithStatusFields(fields map[string]interface{}) *TestControlPlaneBuilder {
 	setStatusFields(c.obj, fields)
 	return c

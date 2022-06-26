@@ -138,7 +138,8 @@ var annotationsToSkip = map[string]bool{
 
 // skipCopyAnnotation returns true if we should skip copying the annotation with the given annotation key
 // TODO(tbd): How to decide which annotations should / should not be copied?
-//       See https://github.com/kubernetes/kubernetes/pull/20035#issuecomment-179558615
+//
+//	See https://github.com/kubernetes/kubernetes/pull/20035#issuecomment-179558615
 func skipCopyAnnotation(key string) bool {
 	return annotationsToSkip[key]
 }
@@ -411,8 +412,8 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 
 // FindOldMachineSets returns the old machine sets targeted by the given Deployment, with the given slice of MSes.
 // Returns two list of machine sets
-//  - the first contains all old machine sets with all non-zero replicas
-//  - the second contains all old machine sets
+//   - the first contains all old machine sets with all non-zero replicas
+//   - the second contains all old machine sets
 func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) ([]*clusterv1.MachineSet, []*clusterv1.MachineSet) {
 	var requiredMSs []*clusterv1.MachineSet
 	allMSs := make([]*clusterv1.MachineSet, 0, len(msList))

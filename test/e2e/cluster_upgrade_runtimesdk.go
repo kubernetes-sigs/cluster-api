@@ -437,10 +437,11 @@ func beforeClusterDeleteHandler(ctx context.Context, c client.Client, namespace,
 }
 
 // runtimeHookTestHandler runs a series of tests in sequence to check if the runtimeHook passed to it succeeds.
-//	1) Checks that the hook has been called at least once and, if withTopologyReconciledCondition is set, checks that the TopologyReconciled condition is a Failure.
-//	2) Check that the hook's blockingCondition is consistently true.
-//	- At this point the function sets the hook's response to be non-blocking.
-//	3) Check that the hook's blocking condition becomes false.
+//  1. Checks that the hook has been called at least once and, if withTopologyReconciledCondition is set, checks that the TopologyReconciled condition is a Failure.
+//  2. Check that the hook's blockingCondition is consistently true.
+//     - At this point the function sets the hook's response to be non-blocking.
+//  3. Check that the hook's blocking condition becomes false.
+//
 // Note: runtimeHookTestHandler assumes that the hook passed to it is currently returning a blocking response.
 // Updating the response to be non-blocking happens inline in the function.
 func runtimeHookTestHandler(ctx context.Context, c client.Client, namespace, clusterName, hookName string, withTopologyReconciledCondition bool, blockingCondition func() bool, intervals []interface{}) {

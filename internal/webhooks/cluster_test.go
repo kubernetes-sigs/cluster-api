@@ -47,9 +47,8 @@ func TestClusterDefaultNamespaces(t *testing.T) {
 		},
 	}
 	webhook := &Cluster{}
-	tFunc := util.CustomDefaultValidateTest(ctx, c, webhook)
+	t.Run("for Cluster", util.CustomDefaultValidateTest(ctx, c, webhook))
 
-	t.Run("for Cluster", tFunc)
 	g.Expect(webhook.Default(ctx, c)).To(Succeed())
 
 	g.Expect(c.Spec.InfrastructureRef.Namespace).To(Equal(c.Namespace))
@@ -351,8 +350,8 @@ func TestClusterDefaultTopologyVersion(t *testing.T) {
 
 	// Create the webhook and add the fakeClient as its client.
 	webhook := &Cluster{Client: fakeClient}
-	tFunc := util.CustomDefaultValidateTest(ctx, c, webhook)
-	t.Run("for Cluster", tFunc)
+	t.Run("for Cluster", util.CustomDefaultValidateTest(ctx, c, webhook))
+
 	g.Expect(webhook.Default(ctx, c)).To(Succeed())
 
 	g.Expect(c.Spec.Topology.Version).To(HavePrefix("v"))

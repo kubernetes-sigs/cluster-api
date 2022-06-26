@@ -440,7 +440,11 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 
 	// Check differences between current and desired state, and eventually patch the current object.
 	patchHelper, err := r.patchHelperFactory(s.Current.Cluster, s.Desired.Cluster, structuredmerge.IgnorePaths{
-		{"spec", "controlPlaneEndpoint"}, // this is a well known field that is managed by the Cluster controller, topology should not express opinions on it.
+		// The topology controller should not express opinions on the following:
+		{"spec", "controlPlaneEndpoint"}, // this is a well known field that is managed by the Cluster controller.
+		{"spec", "topology"},             // this struct read as input for the topology patch engine.
+		{"spec", "paused"},               // this field that is managed by the user.
+		{"spec", "clusterNetwork"},       // this is a well known field that is managed by the user.
 	})
 	if err != nil {
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: s.Current.Cluster})

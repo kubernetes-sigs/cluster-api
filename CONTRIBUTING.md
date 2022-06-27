@@ -134,6 +134,7 @@ Cluster API maintains the most recent release branch for all supported API and c
         - 🐛 (`:bug:`, patch and bugfixes)
         - 📖 (`:book:`, documentation or proposals)
         - 🌱 (`:seedling:`, minor or other)
+1. If your PR has multiple commits, you must [squash them into a single commit](https://kubernetes.io/docs/contribute/new-content/open-a-pr/#squashing-commits) before merging your PR.
 
 Individual commits should not be tagged separately, but will generally be
 assumed to match the PR. For instance, if you have a bugfix in with

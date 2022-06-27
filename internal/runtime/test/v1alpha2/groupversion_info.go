@@ -19,7 +19,7 @@ package v1alpha2
 import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
-	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
 var (

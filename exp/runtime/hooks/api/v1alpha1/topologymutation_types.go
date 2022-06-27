@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
-	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
 // GeneratePatchesRequest is the request of the GeneratePatches hook.

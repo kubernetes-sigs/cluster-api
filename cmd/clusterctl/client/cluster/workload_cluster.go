@@ -62,7 +62,6 @@ func (p *workloadCluster) GetKubeconfig(workloadClusterName string, namespace st
 }
 
 // GetUserKubeconfig returns the kubeconfig of the user as provided by the provider.
-// Note: This has not been converted to a method yet to prevent API change.
 func (p *workloadCluster) GetUserKubeconfig(workloadClusterName string, namespace string) (string, error) {
 	cs, err := p.proxy.NewClient()
 	if err != nil {

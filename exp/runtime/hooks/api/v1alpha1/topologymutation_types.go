@@ -40,7 +40,7 @@ type GeneratePatchesRequest struct {
 // GeneratePatchesRequestItem represents a template to generate patches for.
 type GeneratePatchesRequestItem struct {
 	// UID is an identifier for this template. It allows us to correlate the template in the request
-	// with the corresponding generates patches in the response.
+	// with the corresponding generated patches in the response.
 	UID types.UID `json:"uid"`
 
 	// HolderReference is a reference to the object where the template is used.

@@ -40,15 +40,14 @@ type Catalog struct {
 	// gvhToType maps a GroupVersionHook to the corresponding RuntimeHook function.
 	gvhToType map[GroupVersionHook]reflect.Type
 
-	// gvhToType maps a RuntimeHook to the corresponding GroupVersionHook.
+	// typeToGVH maps a RuntimeHook function to the corresponding GroupVersionHook.
 	typeToGVH map[reflect.Type]GroupVersionHook
 
 	// gvhToHookDescriptor maps a GroupVersionHook to the corresponding hook descriptor.
 	gvhToHookDescriptor map[GroupVersionHook]hookDescriptor
 
-	// openAPIDefinitions maps a GroupVersion to a func
-	// which returns OpenAPI definitions for all request and response types with that
-	// GroupVersion.
+	// openAPIDefinitions is a list of OpenAPIDefinitionsGetter, which return OpenAPI definitions
+	// for all request and response types of a GroupVersion.
 	openAPIDefinitions []OpenAPIDefinitionsGetter
 
 	// catalogName is the name of this catalog. It is set based on the stack of the New caller.
@@ -56,8 +55,9 @@ type Catalog struct {
 	catalogName string
 }
 
-// Hook is a marker interface for a hook.
-// Hooks should be defined as a: func(*RequestType, *ResponseType).
+// Hook is a marker interface for a RuntimeHook function.
+// RuntimeHook functions should be defined as a: func(*RequestType, *ResponseType).
+// The name of the func should be the name of the hook.
 type Hook interface{}
 
 // hookDescriptor is a data structure which holds
@@ -87,7 +87,7 @@ type HookMeta struct {
 	Deprecated bool
 
 	// Singleton signals if the hook can only be implemented once on a
-	// Runtime Extension, e.g. like the DiscoveryHook.
+	// Runtime Extension, e.g. like the Discovery hook.
 	Singleton bool
 }
 
@@ -104,44 +104,44 @@ func New() *Catalog {
 		typeToGVH:           map[reflect.Type]GroupVersionHook{},
 		gvhToHookDescriptor: map[GroupVersionHook]hookDescriptor{},
 		openAPIDefinitions:  []OpenAPIDefinitionsGetter{},
-		// Note: We have to ignore the current file so that GetNameFromCallsite retrieves the name of the caller (the parent).
+		// Note: We have to ignore the current file so that GetNameFromCallsite retrieves the name of the caller of New (the parent).
 		catalogName: naming.GetNameFromCallsite("sigs.k8s.io/cluster-api/internal/runtime/catalog/catalog.go"),
 	}
 }
 
-// AddHook adds a HookFunc and its request and response types with the gv GroupVersion.
+// AddHook adds a RuntimeHook function and its request and response types with the gv GroupVersion.
 // The passed in hookFunc must have the following type: func(*RequestType,*ResponseType)
-// The name of the func becomes the "hook" in GroupVersionHook.
+// The name of the func becomes the "Hook" in GroupVersionHook.
 // GroupVersion must not have empty fields.
 func (c *Catalog) AddHook(gv schema.GroupVersion, hookFunc Hook, hookMeta *HookMeta) {
 	// Validate gv.Group and gv.Version are not empty.
 	if gv.Group == "" {
-		panic("group must not be empty")
+		panic("Group must not be empty")
 	}
 	if gv.Version == "" {
-		panic("version must not be empty")
+		panic("Version must not be empty")
 	}
 
 	// Validate that hookFunc is a func.
 	t := reflect.TypeOf(hookFunc)
 	if t.Kind() != reflect.Func {
-		panic("hook must be a func")
+		panic("Hook must be a func")
 	}
 	if t.NumIn() != 2 {
-		panic("hook must have two input parameter: *RequestType, *ResponseType")
+		panic("Hook must have two input parameter: *RequestType, *ResponseType")
 	}
 	if t.NumOut() != 0 {
-		panic("hook must have no output parameter")
+		panic("Hook must have no output parameter")
 	}
 
 	// Create request and response objects based on the input types.
 	request, ok := reflect.New(t.In(0).Elem()).Interface().(runtime.Object)
 	if !ok {
-		panic("hook request (first parameter) must be a runtime.Object")
+		panic("Hook request (first parameter) must be a runtime.Object")
 	}
 	response, ok := reflect.New(t.In(1).Elem()).Interface().(runtime.Object)
 	if !ok {
-		panic("hook response (second parameter) must be a runtime.Object")
+		panic("Hook response (second parameter) must be a runtime.Object")
 	}
 
 	// Calculate the hook name based on the func name.
@@ -155,10 +155,10 @@ func (c *Catalog) AddHook(gv schema.GroupVersion, hookFunc Hook, hookMeta *HookM
 
 	// Validate that the GVH is not already registered with another type.
 	if oldT, found := c.gvhToType[gvh]; found && oldT != t {
-		panic(fmt.Sprintf("double registration of different type for %v: old=%v.%v, new=%v.%v in catalog %q", gvh, oldT.PkgPath(), oldT.Name(), t.PkgPath(), t.Name(), c.catalogName))
+		panic(fmt.Sprintf("Double registration of different type for %v: old=%v.%v, new=%v.%v in catalog %q", gvh, oldT.PkgPath(), oldT.Name(), t.PkgPath(), t.Name(), c.catalogName))
 	}
 
-	// Add GVH <=> RuntimeHook mappings.
+	// Add GVH <=> RuntimeHook function mappings.
 	c.gvhToType[gvh] = t
 	c.typeToGVH[t] = gvh
 
@@ -169,11 +169,11 @@ func (c *Catalog) AddHook(gv schema.GroupVersion, hookFunc Hook, hookMeta *HookM
 	// Create a hook descriptor and store it in the GVH => Descriptor map.
 	requestGVK, err := c.GroupVersionKind(request)
 	if err != nil {
-		panic(fmt.Sprintf("failed to get GVK for request %T: %v", request, err))
+		panic(fmt.Sprintf("Failed to get GVK for request %T: %v", request, err))
 	}
 	responseGVK, err := c.GroupVersionKind(response)
 	if err != nil {
-		panic(fmt.Sprintf("failed to get GVK for response %T: %v", request, err))
+		panic(fmt.Sprintf("Failed to get GVK for response %T: %v", request, err))
 	}
 	if hookMeta == nil {
 		panic("hookMeta cannot be nil")
@@ -185,7 +185,7 @@ func (c *Catalog) AddHook(gv schema.GroupVersion, hookFunc Hook, hookMeta *HookM
 	}
 }
 
-// AddOpenAPIDefinitions adds an OpenAPIDefinitionsGetter with the gv GroupVersion.
+// AddOpenAPIDefinitions adds an OpenAPIDefinitionsGetter.
 func (c *Catalog) AddOpenAPIDefinitions(getter OpenAPIDefinitionsGetter) {
 	c.openAPIDefinitions = append(c.openAPIDefinitions, getter)
 }
@@ -196,18 +196,18 @@ func (c *Catalog) Convert(in, out interface{}, context interface{}) error {
 	return c.scheme.Convert(in, out, context)
 }
 
-// GroupVersionHook returns the GVH of the Hook or an error if hook is not a function
+// GroupVersionHook returns the GVH of the hookFunc or an error if hook is not a function
 // or not registered.
 func (c *Catalog) GroupVersionHook(hookFunc Hook) (GroupVersionHook, error) {
 	// Validate that hookFunc is a func.
 	t := reflect.TypeOf(hookFunc)
 	if t.Kind() != reflect.Func {
-		return emptyGroupVersionHook, errors.Errorf("hook %T is not a func", hookFunc)
+		return emptyGroupVersionHook, errors.Errorf("hook %s is not a func", HookName(hookFunc))
 	}
 
 	gvh, ok := c.typeToGVH[t]
 	if !ok {
-		return emptyGroupVersionHook, errors.Errorf("hook %T is not registered in catalog %q", hookFunc, c.catalogName)
+		return emptyGroupVersionHook, errors.Errorf("hook %s is not registered in catalog %q", HookName(hookFunc), c.catalogName)
 	}
 	return gvh, nil
 }
@@ -230,7 +230,7 @@ func (c *Catalog) GroupVersionKind(obj runtime.Object) (schema.GroupVersionKind,
 func (c *Catalog) Request(hook GroupVersionHook) (schema.GroupVersionKind, error) {
 	descriptor, ok := c.gvhToHookDescriptor[hook]
 	if !ok {
-		return emptyGroupVersionKind, errors.Errorf("hook %T is not registered in catalog %q", hook, c.catalogName)
+		return emptyGroupVersionKind, errors.Errorf("failed to get request GVK for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
 	}
 
 	return descriptor.request, nil
@@ -240,7 +240,7 @@ func (c *Catalog) Request(hook GroupVersionHook) (schema.GroupVersionKind, error
 func (c *Catalog) Response(hook GroupVersionHook) (schema.GroupVersionKind, error) {
 	descriptor, ok := c.gvhToHookDescriptor[hook]
 	if !ok {
-		return emptyGroupVersionKind, errors.Errorf("hook %T is not registered in catalog %q", hook, c.catalogName)
+		return emptyGroupVersionKind, errors.Errorf("failed to get response GVK for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
 	}
 
 	return descriptor.response, nil
@@ -250,11 +250,11 @@ func (c *Catalog) Response(hook GroupVersionHook) (schema.GroupVersionKind, erro
 func (c *Catalog) NewRequest(hook GroupVersionHook) (runtime.Object, error) {
 	descriptor, ok := c.gvhToHookDescriptor[hook]
 	if !ok {
-		return nil, errors.Errorf("hook %T is not registered in catalog %q", hook, c.catalogName)
+		return nil, errors.Errorf("failed to create request object for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
 	}
 	obj, err := c.scheme.New(descriptor.request)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create request object")
+		return nil, errors.Wrapf(err, "failed to create request object for hook %s", hook)
 	}
 	return obj, nil
 }
@@ -263,11 +263,11 @@ func (c *Catalog) NewRequest(hook GroupVersionHook) (runtime.Object, error) {
 func (c *Catalog) NewResponse(hook GroupVersionHook) (runtime.Object, error) {
 	descriptor, ok := c.gvhToHookDescriptor[hook]
 	if !ok {
-		return nil, errors.Errorf("hook %T is not registered in catalog %q", hook, c.catalogName)
+		return nil, errors.Errorf("failed to create response object for hook %s: hook is not registered in catalog %q", hook, c.catalogName)
 	}
 	obj, err := c.scheme.New(descriptor.response)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to create response object")
+		return nil, errors.Wrapf(err, "failed to create response object for hook %s", hook)
 	}
 	return obj, nil
 }
@@ -278,17 +278,17 @@ func (c *Catalog) ValidateRequest(hook GroupVersionHook, obj runtime.Object) err
 	// Get GVK of obj.
 	objGVK, err := c.GroupVersionKind(obj)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to validate request for hook %s", hook)
 	}
 
 	// Get request GVK from hook.
 	hookGVK, err := c.Request(hook)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to validate request for hook %s", hook)
 	}
 
 	if objGVK != hookGVK {
-		return errors.Errorf("request object has invalid GVK %q, expected %q", objGVK, hookGVK)
+		return errors.Errorf("request object of hook %s has invalid GVK %q, expected %q", hook, objGVK, hookGVK)
 	}
 	return nil
 }
@@ -299,17 +299,17 @@ func (c *Catalog) ValidateResponse(hook GroupVersionHook, obj runtime.Object) er
 	// Get GVK of obj.
 	objGVK, err := c.GroupVersionKind(obj)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to validate response for hook %s", hook)
 	}
 
 	// Get response GVK from hook.
 	hookGVK, err := c.Response(hook)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to validate response for hook %s", hook)
 	}
 
 	if objGVK != hookGVK {
-		return errors.Errorf("response object has invalid GVK %q, expected %q", objGVK, hookGVK)
+		return errors.Errorf("response object of hook %s has invalid GVK %q, expected %q", hook, objGVK, hookGVK)
 	}
 	return nil
 }
@@ -327,7 +327,7 @@ type GroupVersionHook struct {
 	Hook    string
 }
 
-// Empty returns true if group, version, and hook are empty.
+// Empty returns true if group, version and hook are empty.
 func (gvh GroupVersionHook) Empty() bool {
 	return gvh.Group == "" && gvh.Version == "" && gvh.Hook == ""
 }
@@ -342,13 +342,15 @@ func (gvh GroupVersionHook) GroupHook() GroupHook {
 	return GroupHook{Group: gvh.Group, Hook: gvh.Hook}
 }
 
+// String returns a string representation of a GroupVersionHook.
 func (gvh GroupVersionHook) String() string {
 	return strings.Join([]string{gvh.Group, "/", gvh.Version, ", Hook=", gvh.Hook}, "")
 }
 
 // HookName returns the name of the runtime hook.
-func HookName(hook Hook) string {
-	hookFuncName := goruntime.FuncForPC(reflect.ValueOf(hook).Pointer()).Name()
+// Note: The name of the hook is the name of the hookFunc.
+func HookName(hookFunc Hook) string {
+	hookFuncName := goruntime.FuncForPC(reflect.ValueOf(hookFunc).Pointer()).Name()
 	hookName := hookFuncName[strings.LastIndex(hookFuncName, ".")+1:]
 	return hookName
 }
@@ -365,6 +367,7 @@ type GroupHook struct {
 	Hook  string
 }
 
+// String returns a string representation of a GroupHook.
 func (gh GroupHook) String() string {
 	if gh.Group == "" {
 		return gh.Hook
@@ -375,7 +378,7 @@ func (gh GroupHook) String() string {
 // GVHToPath calculates the path for a given GroupVersionHook.
 // This func is aligned with Kubernetes paths for cluster-wide resources, e.g.:
 // /apis/storage.k8s.io/v1/storageclasses/standard.
-// Note: name is only appended if set, e.g. the Discovery Hook does not have a name.
+// Note: name is only appended if set, e.g. the Discovery hook does not have a name.
 func GVHToPath(gvh GroupVersionHook, name string) string {
 	if name == "" {
 		return fmt.Sprintf("/%s/%s/%s", gvh.Group, gvh.Version, strings.ToLower(gvh.Hook))

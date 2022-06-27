@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	tlog "sigs.k8s.io/cluster-api/internal/log"
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -35,10 +36,10 @@ import (
 func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, hooks ...runtimecatalog.Hook) error {
 	patchHelper, err := patch.NewHelper(obj, c)
 	if err != nil {
-		return errors.Wrap(err, "failed to create patch helper")
+		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: obj})
 	}
 
-	// read the annotation of the objects and add the hook to the comma separated list
+	// Read the annotation of the objects and add the hook to the comma separated list
 	hookNames := []string{}
 	for _, hook := range hooks {
 		hookNames = append(hookNames, runtimecatalog.HookName(hook))
@@ -51,7 +52,7 @@ func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, hook
 	obj.SetAnnotations(annotations)
 
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return errors.Wrap(err, "failed to apply patch")
+		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: obj})
 	}
 
 	return nil
@@ -73,10 +74,10 @@ func IsPending(hook runtimecatalog.Hook, obj client.Object) bool {
 func MarkAsDone(ctx context.Context, c client.Client, obj client.Object, hooks ...runtimecatalog.Hook) error {
 	patchHelper, err := patch.NewHelper(obj, c)
 	if err != nil {
-		return errors.Wrap(err, "failed to create patch helper")
+		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: obj})
 	}
 
-	// read the annotation of the objects and add the hook to the comma separated list
+	// Read the annotation of the objects and add the hook to the comma separated list
 	hookNames := []string{}
 	for _, hook := range hooks {
 		hookNames = append(hookNames, runtimecatalog.HookName(hook))
@@ -92,7 +93,7 @@ func MarkAsDone(ctx context.Context, c client.Client, obj client.Object, hooks .
 	obj.SetAnnotations(annotations)
 
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return errors.Wrap(err, "failed to apply patch")
+		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: obj})
 	}
 
 	return nil

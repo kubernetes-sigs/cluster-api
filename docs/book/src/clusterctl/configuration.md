@@ -97,6 +97,14 @@ Please note that the configuration above will be considered also when doing `clu
 
 ## Overrides Layer
 
+<aside class="note warning">
+
+<h1> Warning! </h1>
+
+Overrides only provide file replacements; instead, provider version resolution is based only on the actual repository structure.
+
+</aside>
+
 `clusterctl` uses an overrides layer to read in injected provider components,
 cluster templates and metadata. By default, it reads the files from
 `$HOME/.cluster-api/overrides`.

@@ -247,7 +247,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 				installQueue: tt.fields.installQueue,
 			}
 
-			err := i.Validate()
+			err := i.Validate(false)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

@@ -78,6 +78,8 @@ type CertManagerClient interface {
 
 	// Images return the list of images required for installing the cert-manager.
 	Images() ([]string, error)
+
+	GetManifestObjects() ([]unstructured.Unstructured, error)
 }
 
 // certManagerClient implements CertManagerClient .
@@ -164,17 +166,40 @@ func (cm *certManagerClient) EnsureInstalled() error {
 	return cm.install()
 }
 
-func (cm *certManagerClient) install() error {
+func (cm *certManagerClient) GetManifestObjects() ([]unstructured.Unstructured, error) {
 	log := logf.Log
 
 	config, err := cm.configClient.CertManager().Get()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	log.Info("Installing cert-manager", "Version", config.Version())
 
 	// Gets the cert-manager components from the repository.
 	objs, err := cm.getManifestObjs(config)
+	if err != nil {
+		return nil, err
+	}
+
+	return objs, nil
+}
+
+func (cm *certManagerClient) install() error {
+	//log := logf.Log
+
+	// config, err := cm.configClient.CertManager().Get()
+	// if err != nil {
+	// 	return err
+	// }
+	// log.Info("Installing cert-manager", "Version", config.Version())
+
+	// // Gets the cert-manager components from the repository.
+	// objs, err := cm.getManifestObjs(config)
+	// if err != nil {
+	// 	return err
+	// }
+
+	objs, err := cm.GetManifestObjects()
 	if err != nil {
 		return err
 	}

@@ -49,11 +49,13 @@ type ProviderInstaller interface {
 	// Install performs the installation of the providers ready in the install queue.
 	Install(InstallOptions) ([]repository.Components, error)
 
+	Components() []repository.Components
+
 	// Validate performs steps to validate a management cluster by looking at the current state and the providers in the queue.
 	// The following checks are performed in order to ensure a fully operational cluster:
 	// - There must be only one instance of the same provider
 	// - All the providers in must support the same API Version of Cluster API (contract)
-	Validate() error
+	Validate(skipCurrent bool) error
 
 	// Images returns the list of images required for installing the providers ready in the install queue.
 	Images() []string
@@ -97,6 +99,10 @@ func (i *providerInstaller) Install(opts InstallOptions) ([]repository.Component
 	}
 
 	return ret, i.waitForProvidersReady(opts)
+}
+
+func (i *providerInstaller) Components() []repository.Components {
+	return i.installQueue
 }
 
 func installComponentsAndUpdateInventory(components repository.Components, providerComponents ComponentsClient, providerInventory InventoryClient) error {
@@ -165,11 +171,16 @@ func (i *providerInstaller) waitDeploymentReady(deployment unstructured.Unstruct
 	})
 }
 
-func (i *providerInstaller) Validate() error {
-	// Get the list of providers currently in the cluster.
-	providerList, err := i.providerInventory.List()
-	if err != nil {
-		return err
+func (i *providerInstaller) Validate(skipCurrent bool) error {
+	providerList := &clusterctlv1.ProviderList{}
+	var err error
+
+	if !skipCurrent {
+		// Get the list of providers currently in the cluster.
+		providerList, err = i.providerInventory.List()
+		if err != nil {
+			return err
+		}
 	}
 
 	// Starts simulating what will be the resulting management cluster by adding to the list the providers in the installQueue.

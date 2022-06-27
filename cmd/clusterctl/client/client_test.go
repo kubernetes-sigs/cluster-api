@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -152,6 +153,10 @@ func (f fakeClient) TopologyPlan(options TopologyPlanOptions) (*cluster.Topology
 	return f.internalClient.TopologyPlan(options)
 }
 
+func (f fakeClient) Export(options ExportOptions) ([]byte, error) {
+	return f.internalClient.Export(options)
+}
+
 // newFakeClient returns a clusterctl client that allows to execute tests on a set of fake config, fake repositories and fake clusters.
 // you can use WithCluster and WithRepository to prepare for the test case.
 func newFakeClient(configClient config.Client) *fakeClient {
@@ -261,6 +266,10 @@ func (p *fakeCertManagerClient) PlanUpgrade() (cluster.CertManagerUpgradePlan, e
 
 func (p *fakeCertManagerClient) Images() ([]string, error) {
 	return p.images, p.imagesError
+}
+
+func (p *fakeCertManagerClient) GetManifestObjects() ([]unstructured.Unstructured, error) {
+	return nil, nil
 }
 
 func (p *fakeCertManagerClient) WithCertManagerPlan(plan CertManagerUpgradePlan) *fakeCertManagerClient {

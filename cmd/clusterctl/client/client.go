@@ -91,6 +91,7 @@ type AlphaClient interface {
 	RolloutUndo(options RolloutOptions) error
 	// TopologyPlan dry runs the topology reconciler
 	TopologyPlan(options TopologyPlanOptions) (*TopologyPlanOutput, error)
+	Export(options ExportOptions) ([]byte, error)
 }
 
 // YamlPrinter exposes methods that prints the processed template and

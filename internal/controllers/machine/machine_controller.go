@@ -525,7 +525,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 			log.Error(err, "Could not find node from noderef, it may have already been deleted")
 			return ctrl.Result{}, nil
 		}
-		return ctrl.Result{}, errors.Errorf("unable to get node %q: %v", nodeName, err)
+		return ctrl.Result{}, errors.Wrapf(err, "unable to get node %v", nodeName)
 	}
 
 	drainer := &kubedrain.Helper{
@@ -560,7 +560,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 	if err := kubedrain.RunCordonOrUncordon(drainer, node, true); err != nil {
 		// Machine will be re-reconciled after a cordon failure.
 		log.Error(err, "Cordon failed")
-		return ctrl.Result{}, errors.Errorf("unable to cordon node %s: %v", node.Name, err)
+		return ctrl.Result{}, errors.Wrapf(err, "unable to cordon node %v", node.Name)
 	}
 
 	if err := kubedrain.RunNodeDrain(drainer, node.Name); err != nil {

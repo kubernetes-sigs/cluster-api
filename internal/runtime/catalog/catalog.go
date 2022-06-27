@@ -57,6 +57,7 @@ type Catalog struct {
 
 // Hook is a marker interface for a RuntimeHook function.
 // RuntimeHook functions should be defined as a: func(*RequestType, *ResponseType).
+// The name of the func should be the name of the hook.
 type Hook interface{}
 
 // hookDescriptor is a data structure which holds

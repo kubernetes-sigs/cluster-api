@@ -260,7 +260,7 @@ func schema_runtime_hooks_api_v1alpha1_AfterControlPlaneUpgradeRequest(ref commo
 					},
 					"kubernetesVersion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "KubernetesVersion is the Kubernetes version after upgrade.",
+							Description: "KubernetesVersion is the Kubernetes version of the Control Plane after the upgrade.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",

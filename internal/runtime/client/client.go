@@ -69,7 +69,7 @@ func New(options Options) Client {
 	}
 }
 
-// Client is the runtime client to interact extensions.
+// Client is the runtime client to interact with extensions.
 type Client interface {
 	// WarmUp can be used to initialize a "cold" RuntimeClient with all
 	// known runtimev1.ExtensionConfigs at a given time.

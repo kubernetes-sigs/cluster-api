@@ -26,7 +26,7 @@ import (
 
 // ExtensionConfigSpec defines the desired state of ExtensionConfig.
 type ExtensionConfigSpec struct {
-	// ClientConfig defines how to communicate with ExtensionHandlers.
+	// ClientConfig defines how to communicate with the Extension server.
 	ClientConfig ClientConfig `json:"clientConfig"`
 
 	// NamespaceSelector decides whether to call the hook for an object based
@@ -37,11 +37,11 @@ type ExtensionConfigSpec struct {
 }
 
 // ClientConfig contains the information to make a client
-// connection with an ExtensionHandler.
+// connection with an Extension server.
 type ClientConfig struct {
-	// URL gives the location of the ExtensionHandler, in standard URL form
-	// (`scheme://host:port/path`). Exactly one of `url` or `service`
-	// must be specified.
+	// URL gives the location of the Extension server, in standard URL form
+	// (`scheme://host:port/path`).
+	// Note: Exactly one of `url` or `service` must be specified.
 	//
 	// The scheme must be "https".
 	//
@@ -49,8 +49,7 @@ type ClientConfig struct {
 	// the `service` field instead.
 	//
 	// A path is optional, and if present may be any string permissible in
-	// a URL. If a path is set it will be used as prefix and the hook-specific
-	// path will be appended.
+	// a URL. If a path is set it will be used as prefix to the hook-specific path.
 	//
 	// Attempting to use a user or basic auth e.g. "user:password@" is not
 	// allowed. Fragments ("#...") and query parameters ("?...") are not
@@ -59,20 +58,20 @@ type ClientConfig struct {
 	// +optional
 	URL *string `json:"url,omitempty"`
 
-	// Service is a reference to the Kubernetes service for the ExtensionHandler.
-	// Exactly one of `url` or `service` must be specified.
+	// Service is a reference to the Kubernetes service for the Extension server.
+	// Note: Exactly one of `url` or `service` must be specified.
 	//
-	// If the ExtensionHandler is running within a cluster, then you should use `service`.
+	// If the Extension server is running within a cluster, then you should use `service`.
 	//
 	// +optional
 	Service *ServiceReference `json:"service,omitempty"`
 
-	// CABundle is a PEM encoded CA bundle which will be used to validate the ExtensionHandler's server certificate.
+	// CABundle is a PEM encoded CA bundle which will be used to validate the Extension server's server certificate.
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
 }
 
-// ServiceReference holds a reference to a Kubernetes Service of an ExtensionHandler.
+// ServiceReference holds a reference to a Kubernetes Service of an Extension server.
 type ServiceReference struct {
 	// Namespace is the namespace of the service.
 	Namespace string `json:"namespace"`
@@ -81,12 +80,11 @@ type ServiceReference struct {
 	Name string `json:"name"`
 
 	// Path is an optional URL path and if present may be any string permissible in
-	// a URL. If a path is set it will be used as prefix and the hook-specific
-	// path will be appended.
+	// a URL. If a path is set it will be used as prefix to the hook-specific path.
 	// +optional
 	Path *string `json:"path,omitempty"`
 
-	// Port is the port on the service that's hosting the ExtensionHandler.
+	// Port is the port on the service that's hosting the Extension server.
 	// Defaults to 443.
 	// Port should be a valid port number (1-65535, inclusive).
 	// +optional
@@ -119,6 +117,7 @@ type ExtensionHandler struct {
 	RequestHook GroupVersionHook `json:"requestHook"`
 
 	// TimeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.
+	// Defaults to 10 is not set.
 	// +optional
 	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
 
@@ -137,7 +136,7 @@ type GroupVersionHook struct {
 	Hook string `json:"hook"`
 }
 
-// FailurePolicy specifies how unrecognized errors from the admission endpoint are handled.
+// FailurePolicy specifies how unrecognized errors when calling the ExtensionHandler are handled.
 // FailurePolicy helps with extensions not working consistently, e.g. due to an intermittent network issue.
 // The following type of errors are never ignored by FailurePolicy Ignore:
 // - Misconfigurations (e.g. incompatible types)
@@ -203,7 +202,7 @@ const (
 	DiscoveryFailedReason string = "DiscoveryFailed"
 
 	// InjectCAFromSecretAnnotation is the annotation that specifies that an ExtensionConfig
-	// object wants injection of CAs. It takes the form of a reference to a Secret
+	// object wants injection of CAs. The value is a reference to a Secret
 	// as <namespace>/<name>.
 	InjectCAFromSecretAnnotation string = "runtime.cluster.x-k8s.io/inject-ca-from-secret"
 

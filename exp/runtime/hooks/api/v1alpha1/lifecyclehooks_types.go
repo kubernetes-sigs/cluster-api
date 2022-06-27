@@ -43,7 +43,7 @@ type BeforeClusterCreateResponse struct {
 	CommonRetryResponse `json:",inline"`
 }
 
-// BeforeClusterCreate is the hook that will be called right before a Cluster is created.
+// BeforeClusterCreate is the hook that will be called right before the topology of the Cluster is created.
 func BeforeClusterCreate(*BeforeClusterCreateRequest, *BeforeClusterCreateResponse) {}
 
 // AfterControlPlaneInitializedRequest is the request of the AfterControlPlaneInitialized hook.
@@ -66,7 +66,7 @@ type AfterControlPlaneInitializedResponse struct {
 	CommonResponse `json:",inline"`
 }
 
-// AfterControlPlaneInitialized is the hook that will be called after the control plane is available for the first time.
+// AfterControlPlaneInitialized is the hook that will be called after the control plane is initialized for the first time.
 func AfterControlPlaneInitialized(*AfterControlPlaneInitializedRequest, *AfterControlPlaneInitializedResponse) {
 }
 
@@ -108,7 +108,7 @@ type AfterControlPlaneUpgradeRequest struct {
 	// Cluster is the cluster object the lifecycle hook corresponds to.
 	Cluster clusterv1.Cluster `json:"cluster"`
 
-	// KubernetesVersion is the Kubernetes version after upgrade.
+	// KubernetesVersion is the Kubernetes version of the Control Plane after the upgrade.
 	KubernetesVersion string `json:"kubernetesVersion"`
 }
 
@@ -187,7 +187,7 @@ func init() {
 
 	catalogBuilder.RegisterHook(AfterControlPlaneInitialized, &runtimecatalog.HookMeta{
 		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called after the Control Plane is available for the first time.",
+		Summary:     "Called after the Control Plane is initialized for the first time.",
 		Description: "This non-blocking hook is called after the Control Plane for the Cluster is reachable for the first time.",
 	})
 

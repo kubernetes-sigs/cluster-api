@@ -403,18 +403,26 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 }
 
 // InfrastructureMachineTemplateBuilder holds the variables and objects needed to build an InfrastructureMachineTemplate.
-// +kubebuilder:object:generate=false
 type InfrastructureMachineTemplateBuilder struct {
-	namespace  string
-	name       string
-	specFields map[string]interface{}
+	obj *unstructured.Unstructured
 }
 
 // InfrastructureMachineTemplate creates an InfrastructureMachineTemplateBuilder with the given name and namespace.
 func InfrastructureMachineTemplate(namespace, name string) *InfrastructureMachineTemplateBuilder {
+	obj := &unstructured.Unstructured{}
+	obj.SetName(name)
+	obj.SetNamespace(namespace)
+	obj.SetAPIVersion(InfrastructureGroupVersion.String())
+	obj.SetKind(GenericInfrastructureMachineTemplateKind)
+	// Set the mandatory spec fields for the object.
+	if err := unstructured.SetNestedField(obj.Object, map[string]interface{}{}, "spec"); err != nil {
+		panic(err)
+	}
+	if err := unstructured.SetNestedField(obj.Object, map[string]interface{}{}, "spec", "template", "spec"); err != nil {
+		panic(err)
+	}
 	return &InfrastructureMachineTemplateBuilder{
-		namespace: namespace,
-		name:      name,
+		obj,
 	}
 }
 
@@ -427,23 +435,13 @@ func InfrastructureMachineTemplate(namespace, name string) *InfrastructureMachin
 //     "spec.version": "v1.2.3",
 // }.
 func (i *InfrastructureMachineTemplateBuilder) WithSpecFields(fields map[string]interface{}) *InfrastructureMachineTemplateBuilder {
-	i.specFields = fields
+	setSpecFields(i.obj, fields)
 	return i
 }
 
 // Build takes the objects and variables in the  InfrastructureMachineTemplateBuilder and generates an unstructured object.
 func (i *InfrastructureMachineTemplateBuilder) Build() *unstructured.Unstructured {
-	obj := &unstructured.Unstructured{}
-	obj.SetAPIVersion(InfrastructureGroupVersion.String())
-	obj.SetKind(GenericInfrastructureMachineTemplateKind)
-	obj.SetNamespace(i.namespace)
-	obj.SetName(i.name)
-
-	// Initialize the spec.template.spec to make the object valid in reconciliation.
-	setSpecFields(obj, map[string]interface{}{"spec.template.spec": map[string]interface{}{}})
-
-	setSpecFields(obj, i.specFields)
-	return obj
+	return i.obj
 }
 
 // TestInfrastructureMachineTemplateBuilder holds the variables and objects needed to build an TestInfrastructureMachineTemplate.

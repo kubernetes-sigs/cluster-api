@@ -97,7 +97,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log := ctrl.LoggerFrom(ctx)
 
 	// Requeue events when the registry is not ready.
-	// The registry will become ready once the warmupRunnable has completed.
+	// The registry will become ready after it is 'warmed up' by warmupRunnable.
 	if !r.RuntimeClient.IsReady() {
 		return ctrl.Result{Requeue: true}, nil
 	}
@@ -222,7 +222,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 
 // reconcileCABundle reconciles the CA bundle for the ExtensionConfig.
 // Note: This was implemented to behave similar to the cert-manager cainjector.
-// We couldn't use the cert-manager cainjector because it doesn't work with CRs.
+// We couldn't use the cert-manager cainjector because it doesn't work with CustomResources.
 func reconcileCABundle(ctx context.Context, client client.Client, config *runtimev1.ExtensionConfig) error {
 	secretNameRaw, ok := config.Annotations[runtimev1.InjectCAFromSecretAnnotation]
 	if !ok {

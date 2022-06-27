@@ -50,7 +50,7 @@ type warmupRunnable struct {
 // NeedLeaderElection satisfies the controller runtime LeaderElectionRunnable interface.
 // This ensures we warm up the RuntimeSDK registry only after the controller became leader.
 // Note: Only after the warmupRunnable is completed the registry becomes ready and thus
-// all controllers using the client or registry will wait until warmup is completed.
+// all controllers using the runtime client or registry will wait until warmup is completed.
 func (r *warmupRunnable) NeedLeaderElection() bool {
 	return true
 }

@@ -45,18 +45,19 @@ spec:
             description: ExtensionConfigSpec is the desired state of the ExtensionConfig
             properties:
               clientConfig:
-                description: ClientConfig defines how to communicate with ExtensionHandlers.
+                description: ClientConfig defines how to communicate with the Extension
+                  server.
                 properties:
                   caBundle:
                     description: CABundle is a PEM encoded CA bundle which will be
-                      used to validate the ExtensionHandler's server certificate.
+                      used to validate the Extension server's server certificate.
                     format: byte
                     type: string
                   service:
                     description: "Service is a reference to the Kubernetes service
-                      for the ExtensionHandler. Either `service` or `url` must be
-                      specified. \n If the ExtensionHandler is running within a cluster,
-                      then you should use `service`."
+                      for the Extension server. Note: Exactly one of `url` or `service`
+                      must be specified. \n If the Extension server is running within
+                      a cluster, then you should use `service`."
                     properties:
                       name:
                         description: Name is the name of the service.
@@ -65,13 +66,13 @@ spec:
                         description: Namespace is the namespace of the service.
                         type: string
                       path:
-                        description: Path is an optional URL path which will be sent
-                          in any request to this service. If a path is set it will
-                          be used as prefix and the hook-specific path will be appended.
+                        description: Path is an optional URL path and if present may
+                          be any string permissible in a URL. If a path is set it
+                          will be used as prefix to the hook-specific path.
                         type: string
                       port:
                         description: Port is the port on the service that's hosting
-                          the ExtensionHandler. Default to 443. `port` should be a
+                          the Extension server. Defaults to 443. Port should be a
                           valid port number (1-65535, inclusive).
                         format: int32
                         type: integer
@@ -80,15 +81,14 @@ spec:
                     - namespace
                     type: object
                   url:
-                    description: "URL gives the location of the ExtensionHandler,
-                      in standard URL form (`scheme://host:port/path`). Exactly one
-                      of `url` or `service` must be specified. \n The `host` should
-                      not refer to a service running in the cluster; use the `service`
-                      field instead. \n The scheme should be \"https\"; the URL should
-                      begin with \"https://\". \n A path is optional, and if present
-                      may be any string permissible in a URL. If a path is set it
-                      will be used as prefix and the hook-specific path will be appended.
-                      \n Attempting to use a user or basic auth e.g. \"user:password@\"
+                    description: "URL gives the location of the Extension server,
+                      in standard URL form (`scheme://host:port/path`). Note: Exactly
+                      one of `url` or `service` must be specified. \n The scheme must
+                      be \"https\". \n The `host` should not refer to a service running
+                      in the cluster; use the `service` field instead. \n A path is
+                      optional, and if present may be any string permissible in a
+                      URL. If a path is set it will be used as prefix to the hook-specific
+                      path. \n Attempting to use a user or basic auth e.g. \"user:password@\"
                       is not allowed. Fragments (\"#...\") and query parameters (\"?...\")
                       are not allowed either."
                     type: string
@@ -96,8 +96,8 @@ spec:
               namespaceSelector:
                 description: NamespaceSelector decides whether to call the hook for
                   an object based on whether the namespace for that object matches
-                  the selector. Default to the empty LabelSelector, which matches
-                  everything.
+                  the selector. Defaults to the empty LabelSelector, which matches
+                  all objects.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.
@@ -211,7 +211,8 @@ spec:
                         which this ExtensionHandler serves.
                       properties:
                         apiVersion:
-                          description: APIVersion is the Version of the Hook.
+                          description: APIVersion is the group and version of the
+                            Hook.
                           type: string
                         hook:
                           description: Hook is the name of the hook.
@@ -222,7 +223,8 @@ spec:
                       type: object
                     timeoutSeconds:
                       description: TimeoutSeconds defines the timeout duration for
-                        client calls to the ExtensionHandler.
+                        client calls to the ExtensionHandler. Defaults to 10 is not
+                        set.
                       format: int32
                       type: integer
                   required:

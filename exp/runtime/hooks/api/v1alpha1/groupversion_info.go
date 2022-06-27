@@ -23,7 +23,7 @@ import (
 )
 
 var (
-	// GroupVersion is group version identifying RuntimeHooks defined in this package
+	// GroupVersion is the group version identifying RuntimeHooks defined in this package
 	// and their request and response types.
 	GroupVersion = schema.GroupVersion{Group: "hooks.runtime.cluster.x-k8s.io", Version: "v1alpha1"}
 

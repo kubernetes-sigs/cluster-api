@@ -22,7 +22,7 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
 
-// DiscoveryRequest represents the object of a discovery request.
+// DiscoveryRequest is the request of the Discovery hook.
 // +kubebuilder:object:root=true
 type DiscoveryRequest struct {
 	metav1.TypeMeta `json:",inline"`
@@ -30,7 +30,7 @@ type DiscoveryRequest struct {
 
 var _ ResponseObject = &DiscoveryResponse{}
 
-// DiscoveryResponse represents the object received as a discovery response.
+// DiscoveryResponse is the response of the Discovery hook.
 // +kubebuilder:object:root=true
 type DiscoveryResponse struct {
 	metav1.TypeMeta `json:",inline"`
@@ -44,7 +44,7 @@ type DiscoveryResponse struct {
 	Handlers []ExtensionHandler `json:"handlers"`
 }
 
-// ExtensionHandler represents the discovery information of the extension which includes
+// ExtensionHandler represents the discovery information for an extension handler which includes
 // the hook it supports.
 type ExtensionHandler struct {
 	// Name is the name of the ExtensionHandler.
@@ -64,25 +64,25 @@ type ExtensionHandler struct {
 
 // GroupVersionHook defines the runtime hook when the ExtensionHandler is called.
 type GroupVersionHook struct {
-	// APIVersion is the Version of the Hook
+	// APIVersion is the group and version of the Hook
 	APIVersion string `json:"apiVersion"`
 
 	// Hook is the name of the hook
 	Hook string `json:"hook"`
 }
 
-// FailurePolicy specifies how unrecognized errors from the admission endpoint are handled.
+// FailurePolicy specifies how unrecognized errors when calling the ExtensionHandler are handled.
 // FailurePolicy helps with extensions not working consistently, e.g. due to an intermittent network issue.
-// The following type of errors are always considered blocking Failures:
+// The following type of errors are never ignored by FailurePolicy Ignore:
 // - Misconfigurations (e.g. incompatible types)
-// - Extension explicitly reports a Status Failure.
+// - Extension explicitly returns a Status Failure.
 type FailurePolicy string
 
 const (
-	// FailurePolicyIgnore means that an error calling the extension is ignored.
+	// FailurePolicyIgnore means that an error when calling the extension is ignored.
 	FailurePolicyIgnore FailurePolicy = "Ignore"
 
-	// FailurePolicyFail means that an error calling the extension is not ignored.
+	// FailurePolicyFail means that an error when calling the extension is not ignored.
 	FailurePolicyFail FailurePolicy = "Fail"
 )
 
@@ -92,8 +92,8 @@ func Discovery(*DiscoveryRequest, *DiscoveryResponse) {}
 func init() {
 	catalogBuilder.RegisterHook(Discovery, &runtimecatalog.HookMeta{
 		Tags:        []string{"Discovery"},
-		Summary:     "Discovery endpoint",
-		Description: "Discovery endpoint discovers the supported hooks of a RuntimeExtension",
+		Summary:     "Discovery hook",
+		Description: "Discovery hook discovers the supported hooks of a RuntimeExtension",
 		Singleton:   true,
 	})
 }

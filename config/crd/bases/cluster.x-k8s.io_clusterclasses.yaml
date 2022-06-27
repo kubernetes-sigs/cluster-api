@@ -672,8 +672,9 @@ spec:
                     to customize the referenced templates.
                   properties:
                     definitions:
-                      description: 'Definitions define the patches inline. Note: Patches
-                        will be applied in the order of the array.'
+                      description: 'Definitions define inline patches. Note: Patches
+                        will be applied in the order of the array. Note: Exactly one
+                        of Definitions or External must be set.'
                       items:
                         description: PatchDefinition defines a patch which is applied
                           to customize the referenced templates.
@@ -795,7 +796,8 @@ spec:
                         be enabled per default.
                       type: string
                     external:
-                      description: External defines an external patch.
+                      description: 'External defines an external patch. Note: Exactly
+                        one of Definitions or External must be set.'
                       properties:
                         generateExtension:
                           description: GenerateExtension references an extension which

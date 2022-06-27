@@ -49,10 +49,10 @@ type ExtensionRegistry interface {
 	// Remove removes all RuntimeExtensions corresponding to the provided ExtensionConfig.
 	Remove(extensionConfig *runtimev1.ExtensionConfig) error
 
-	// List all registered RuntimeExtensions for a given catalog.GroupHook.
+	// List lists all registered RuntimeExtensions for a given catalog.GroupHook.
 	List(gh runtimecatalog.GroupHook) ([]*ExtensionRegistration, error)
 
-	// Get the RuntimeExtensions with the given name.
+	// Get gets the RuntimeExtensions with the given name.
 	Get(name string) (*ExtensionRegistration, error)
 }
 
@@ -67,18 +67,20 @@ type ExtensionRegistration struct {
 	// GroupVersionHook is the GroupVersionHook that the RuntimeExtension implements.
 	GroupVersionHook runtimecatalog.GroupVersionHook
 
-	// NamespaceSelector limits the namespace in which a Runtime Extension is called.
+	// NamespaceSelector limits the objects by namespace for which a Runtime Extension is called.
 	NamespaceSelector labels.Selector
 
 	// ClientConfig is the ClientConfig to communicate with the RuntimeExtension.
 	ClientConfig runtimev1.ClientConfig
+
 	// TimeoutSeconds is the timeout duration used for calls to the RuntimeExtension.
 	TimeoutSeconds *int32
+
 	// FailurePolicy defines how failures in calls to the RuntimeExtension should be handled by a client.
 	FailurePolicy *runtimev1.FailurePolicy
 }
 
-// extensionRegistry is a implementation of ExtensionRegistry.
+// extensionRegistry is an implementation of ExtensionRegistry.
 type extensionRegistry struct {
 	// ready represents if the registry has been warmed up.
 	ready bool
@@ -100,14 +102,14 @@ func New() ExtensionRegistry {
 // After WarmUp completes the RuntimeExtension registry is considered ready.
 func (r *extensionRegistry) WarmUp(extensionConfigList *runtimev1.ExtensionConfigList) error {
 	if extensionConfigList == nil {
-		return errors.New("invalid argument: when calling WarmUp extensionConfigList must not be nil")
+		return errors.New("failed to warm up registry: invalid argument: when calling WarmUp ExtensionConfigList must not be nil")
 	}
 
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	if r.ready {
-		return errors.New("invalid operation: WarmUp cannot be called on a registry which has already been warmed up")
+		return errors.New("failed to warm up registry: invalid operation: WarmUp cannot be called on a registry which has already been warmed up")
 	}
 
 	var allErrs []error
@@ -120,7 +122,7 @@ func (r *extensionRegistry) WarmUp(extensionConfigList *runtimev1.ExtensionConfi
 		// Reset the map, so that the next WarmUp can start with an empty map
 		// and doesn't inherit entries from this failed WarmUp.
 		r.items = map[string]*ExtensionRegistration{}
-		return kerrors.NewAggregate(allErrs)
+		return errors.Wrapf(kerrors.NewAggregate(allErrs), "failed to warm up registry")
 	}
 
 	r.ready = true
@@ -142,14 +144,14 @@ func (r *extensionRegistry) IsReady() bool {
 // one from the newly provided ExtensionConfig.
 func (r *extensionRegistry) Add(extensionConfig *runtimev1.ExtensionConfig) error {
 	if extensionConfig == nil {
-		return errors.New("invalid argument: when calling Add extensionConfig must not be nil")
+		return errors.New("failed to add ExtensionConfig to registry: invalid argument: when calling Add extensionConfig must not be nil")
 	}
 
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	if !r.ready {
-		return errors.New("invalid operation: Add cannot be called on a registry which has not been warmed up")
+		return errors.Errorf("failed to add ExtensionConfig %q to registry: invalid operation: Add cannot be called on a registry which has not been warmed up", extensionConfig.Name)
 	}
 
 	return r.add(extensionConfig)
@@ -158,14 +160,14 @@ func (r *extensionRegistry) Add(extensionConfig *runtimev1.ExtensionConfig) erro
 // Remove removes all RuntimeExtensions corresponding to the provided ExtensionConfig.
 func (r *extensionRegistry) Remove(extensionConfig *runtimev1.ExtensionConfig) error {
 	if extensionConfig == nil {
-		return errors.New("invalid argument: when calling Remove extensionConfig must not be nil")
+		return errors.New("failed to remove ExtensionConfig from registry: invalid argument: when calling Remove ExtensionConfig must not be nil")
 	}
 
 	r.lock.Lock()
 	defer r.lock.Unlock()
 
 	if !r.ready {
-		return errors.New("invalid operation: Remove cannot be called on a registry which has not been warmed up")
+		return errors.Errorf("failed to remove ExtensionConfig %q from registry: invalid operation: Remove cannot be called on a registry which has not been warmed up", extensionConfig.Name)
 	}
 
 	r.remove(extensionConfig)
@@ -180,20 +182,20 @@ func (r *extensionRegistry) remove(extensionConfig *runtimev1.ExtensionConfig) {
 	}
 }
 
-// List all registered RuntimeExtensions for a given catalog.GroupHook.
+// List lists all registered RuntimeExtensions for a given catalog.GroupHook.
 func (r *extensionRegistry) List(gh runtimecatalog.GroupHook) ([]*ExtensionRegistration, error) {
 	if gh.Group == "" {
-		return nil, errors.New("invalid argument: when calling List gh.Group must not be empty")
+		return nil, errors.New("failed to list extension handlers: invalid argument: when calling List gh.Group must not be empty")
 	}
 	if gh.Hook == "" {
-		return nil, errors.New("invalid argument: when calling List gh.Hook must not be empty")
+		return nil, errors.New("failed to list extension handlers: invalid argument: when calling List gh.Hook must not be empty")
 	}
 
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
 	if !r.ready {
-		return nil, errors.New("invalid operation: List cannot be called on a registry which has not been warmed up")
+		return nil, errors.Errorf("failed to list extension handlers for GroupHook %q: invalid operation: List cannot be called on a registry which has not been warmed up", gh.String())
 	}
 
 	l := []*ExtensionRegistration{}
@@ -205,18 +207,18 @@ func (r *extensionRegistry) List(gh runtimecatalog.GroupHook) ([]*ExtensionRegis
 	return l, nil
 }
 
-// Get the RuntimeExtensions with the given name.
+// Get gets the RuntimeExtensions with the given name.
 func (r *extensionRegistry) Get(name string) (*ExtensionRegistration, error) {
 	r.lock.RLock()
 	defer r.lock.RUnlock()
 
 	if !r.ready {
-		return nil, errors.New("invalid operation: Get cannot be called on a registry not yet ready")
+		return nil, errors.Errorf("failed to get extension handler %q from registry: invalid operation: Get cannot be called on a registry not yet ready", name)
 	}
 
 	registration, ok := r.items[name]
 	if !ok {
-		return nil, errors.Errorf("RuntimeExtension with name %q has not been registered", name)
+		return nil, errors.Errorf("failed to get extension handler %q from registry: handler with name %q has not been registered", name, name)
 	}
 
 	return registration, nil
@@ -228,7 +230,7 @@ func (r *extensionRegistry) add(extensionConfig *runtimev1.ExtensionConfig) erro
 	// Create a selector from the NamespaceSelector defined in the extensionConfig spec.
 	selector, err := metav1.LabelSelectorAsSelector(extensionConfig.Spec.NamespaceSelector)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create namespaceSelector")
+		return errors.Wrapf(err, "failed to add ExtensionConfig %q to registry: failed to create namespaceSelector", extensionConfig.Name)
 	}
 
 	var allErrs []error
@@ -236,7 +238,7 @@ func (r *extensionRegistry) add(extensionConfig *runtimev1.ExtensionConfig) erro
 	for _, e := range extensionConfig.Status.Handlers {
 		gv, err := schema.ParseGroupVersion(e.RequestHook.APIVersion)
 		if err != nil {
-			allErrs = append(allErrs, errors.Wrapf(err, "failed to parse GroupVersion %q", e.RequestHook.APIVersion))
+			allErrs = append(allErrs, errors.Wrapf(err, "failed to add extension handler %q to registry: failed to parse GroupVersion %q of handler %q", e.Name, e.RequestHook.APIVersion, e.Name))
 			continue
 		}
 
@@ -257,7 +259,7 @@ func (r *extensionRegistry) add(extensionConfig *runtimev1.ExtensionConfig) erro
 	}
 
 	if len(allErrs) > 0 {
-		return kerrors.NewAggregate(allErrs)
+		return errors.Wrapf(kerrors.NewAggregate(allErrs), "failed to add ExtensionConfig %q to registry", extensionConfig.Name)
 	}
 
 	for _, registration := range registrations {

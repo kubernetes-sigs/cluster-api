@@ -326,7 +326,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 				}
 				hookResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{}
 				if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
-					return "", errors.Wrapf(err, "error calling the %s hook", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade))
+					return "", err
 				}
 				// Add the response to the tracker so we can later update condition or requeue when required.
 				s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, hookResponse)
@@ -378,7 +378,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 		}
 		hookResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{}
 		if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
-			return "", errors.Wrapf(err, "failed to call %s hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade))
+			return "", err
 		}
 		// Add the response to the tracker so we can later update condition or requeue when required.
 		s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, hookResponse)

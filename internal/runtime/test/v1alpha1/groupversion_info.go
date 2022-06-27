@@ -23,21 +23,21 @@ import (
 )
 
 var (
-	// GroupVersion is group version identifying rpc services defined in this package
+	// GroupVersion is the group version identifying test RuntimeHooks defined in this package
 	// and their request and response types.
 	GroupVersion = schema.GroupVersion{Group: "test.runtime.cluster.x-k8s.io", Version: "v1alpha1"}
 
-	// catalogBuilder is used to add rpc services and their request and response types
+	// catalogBuilder is used to add RuntimeHooks and their request and response types
 	// to a Catalog.
 	catalogBuilder = &runtimecatalog.Builder{GroupVersion: GroupVersion}
 
-	// AddToCatalog adds rpc services defined in this package and their request and
+	// AddToCatalog adds test RuntimeHooks defined in this package and their request and
 	// response types to a catalog.
 	AddToCatalog = catalogBuilder.AddToCatalog
 
-	// localSchemeBuilder provide access to the SchemeBuilder used for managing rpc
-	// method's request and response types defined in this package.
-	// NOTE: this object is required to allow registration of automatically generated
-	// conversions func.
+	// localSchemeBuilder provide access to the SchemeBuilder used for managing RuntimeHooks
+	// and their request and response types defined in this package.
+	// NOTE: The localSchemeBuilder is required to allow registration of automatically generated
+	// conversion funcs.
 	localSchemeBuilder = catalogBuilder
 )

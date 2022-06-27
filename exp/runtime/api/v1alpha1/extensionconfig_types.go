@@ -26,31 +26,30 @@ import (
 
 // ExtensionConfigSpec defines the desired state of ExtensionConfig.
 type ExtensionConfigSpec struct {
-	// ClientConfig defines how to communicate with ExtensionHandlers.
+	// ClientConfig defines how to communicate with the Extension server.
 	ClientConfig ClientConfig `json:"clientConfig"`
 
 	// NamespaceSelector decides whether to call the hook for an object based
 	// on whether the namespace for that object matches the selector.
-	// Default to the empty LabelSelector, which matches everything.
+	// Defaults to the empty LabelSelector, which matches all objects.
 	// +optional
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
 }
 
 // ClientConfig contains the information to make a client
-// connection with an ExtensionHandler.
+// connection with an Extension server.
 type ClientConfig struct {
-	// URL gives the location of the ExtensionHandler, in standard URL form
-	// (`scheme://host:port/path`). Exactly one of `url` or `service`
-	// must be specified.
+	// URL gives the location of the Extension server, in standard URL form
+	// (`scheme://host:port/path`).
+	// Note: Exactly one of `url` or `service` must be specified.
+	//
+	// The scheme must be "https".
 	//
 	// The `host` should not refer to a service running in the cluster; use
 	// the `service` field instead.
 	//
-	// The scheme should be "https"; the URL should begin with "https://".
-	//
 	// A path is optional, and if present may be any string permissible in
-	// a URL. If a path is set it will be used as prefix and the hook-specific
-	// path will be appended.
+	// a URL. If a path is set it will be used as prefix to the hook-specific path.
 	//
 	// Attempting to use a user or basic auth e.g. "user:password@" is not
 	// allowed. Fragments ("#...") and query parameters ("?...") are not
@@ -59,20 +58,20 @@ type ClientConfig struct {
 	// +optional
 	URL *string `json:"url,omitempty"`
 
-	// Service is a reference to the Kubernetes service for the ExtensionHandler.
-	// Either `service` or `url` must be specified.
+	// Service is a reference to the Kubernetes service for the Extension server.
+	// Note: Exactly one of `url` or `service` must be specified.
 	//
-	// If the ExtensionHandler is running within a cluster, then you should use `service`.
+	// If the Extension server is running within a cluster, then you should use `service`.
 	//
 	// +optional
 	Service *ServiceReference `json:"service,omitempty"`
 
-	// CABundle is a PEM encoded CA bundle which will be used to validate the ExtensionHandler's server certificate.
+	// CABundle is a PEM encoded CA bundle which will be used to validate the Extension server's server certificate.
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
 }
 
-// ServiceReference holds a reference to a Kubernetes Service.
+// ServiceReference holds a reference to a Kubernetes Service of an Extension server.
 type ServiceReference struct {
 	// Namespace is the namespace of the service.
 	Namespace string `json:"namespace"`
@@ -80,15 +79,14 @@ type ServiceReference struct {
 	// Name is the name of the service.
 	Name string `json:"name"`
 
-	// Path is an optional URL path which will be sent in any request to
-	// this service. If a path is set it will be used as prefix and the hook-specific
-	// path will be appended.
+	// Path is an optional URL path and if present may be any string permissible in
+	// a URL. If a path is set it will be used as prefix to the hook-specific path.
 	// +optional
 	Path *string `json:"path,omitempty"`
 
-	// Port is the port on the service that's hosting the ExtensionHandler.
-	// Default to 443.
-	// `port` should be a valid port number (1-65535, inclusive).
+	// Port is the port on the service that's hosting the Extension server.
+	// Defaults to 443.
+	// Port should be a valid port number (1-65535, inclusive).
 	// +optional
 	Port *int32 `json:"port,omitempty"`
 }
@@ -119,6 +117,7 @@ type ExtensionHandler struct {
 	RequestHook GroupVersionHook `json:"requestHook"`
 
 	// TimeoutSeconds defines the timeout duration for client calls to the ExtensionHandler.
+	// Defaults to 10 is not set.
 	// +optional
 	TimeoutSeconds *int32 `json:"timeoutSeconds,omitempty"`
 
@@ -130,25 +129,25 @@ type ExtensionHandler struct {
 
 // GroupVersionHook defines the runtime hook when the ExtensionHandler is called.
 type GroupVersionHook struct {
-	// APIVersion is the Version of the Hook.
+	// APIVersion is the group and version of the Hook.
 	APIVersion string `json:"apiVersion"`
 
 	// Hook is the name of the hook.
 	Hook string `json:"hook"`
 }
 
-// FailurePolicy specifies how unrecognized errors from the admission endpoint are handled.
+// FailurePolicy specifies how unrecognized errors when calling the ExtensionHandler are handled.
 // FailurePolicy helps with extensions not working consistently, e.g. due to an intermittent network issue.
-// The following type of errors are always considered blocking Failures:
+// The following type of errors are never ignored by FailurePolicy Ignore:
 // - Misconfigurations (e.g. incompatible types)
-// - Extension explicitly reports a Status Failure.
+// - Extension explicitly returns a Status Failure.
 type FailurePolicy string
 
 const (
-	// FailurePolicyIgnore means that an error calling the extension is ignored.
+	// FailurePolicyIgnore means that an error when calling the extension is ignored.
 	FailurePolicyIgnore FailurePolicy = "Ignore"
 
-	// FailurePolicyFail means that an error calling the extension is propagated as an error.
+	// FailurePolicyFail means that an error when calling the extension is propagated as an error.
 	FailurePolicyFail FailurePolicy = "Fail"
 )
 
@@ -202,12 +201,12 @@ const (
 	// DiscoveryFailedReason documents failure of a Discovery call.
 	DiscoveryFailedReason string = "DiscoveryFailed"
 
-	// InjectCAFromSecretAnnotation is the annotation that specifies that a particular
-	// object wants injection of CAs. It takes the form of a reference to a Secret
-	// as namespace/name.
+	// InjectCAFromSecretAnnotation is the annotation that specifies that an ExtensionConfig
+	// object wants injection of CAs. The value is a reference to a Secret
+	// as <namespace>/<name>.
 	InjectCAFromSecretAnnotation string = "runtime.cluster.x-k8s.io/inject-ca-from-secret"
 
-	// PendingHooksAnnotation is the annotation used to keep a track of pending runtime hooks.
+	// PendingHooksAnnotation is the annotation used to keep track of pending runtime hooks.
 	// The annotation will be used to track the intent to call a hook as soon as an operation completes;
 	// the intent will be removed as soon as the hook call completes successfully.
 	PendingHooksAnnotation string = "runtime.cluster.x-k8s.io/pending-hooks"

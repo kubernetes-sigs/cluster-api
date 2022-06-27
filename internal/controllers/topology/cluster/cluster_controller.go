@@ -42,7 +42,6 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
-	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -281,7 +280,7 @@ func (r *Reconciler) callBeforeClusterCreateHook(ctx context.Context, s *scope.S
 		}
 		hookResponse := &runtimehooksv1.BeforeClusterCreateResponse{}
 		if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterCreate, s.Current.Cluster, hookRequest, hookResponse); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "error calling the %s hook", runtimecatalog.HookName(runtimehooksv1.BeforeClusterCreate))
+			return ctrl.Result{}, err
 		}
 		s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterCreate, hookResponse)
 		if hookResponse.RetryAfterSeconds != 0 {

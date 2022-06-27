@@ -92,7 +92,7 @@ func (webhook *ExtensionConfig) ValidateUpdate(ctx context.Context, old, updated
 	return webhook.validate(ctx, oldExtensionConfig, newExtensionConfig)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
+// validate validates an ExtensionConfig create or update.
 func (webhook *ExtensionConfig) validate(_ context.Context, _, newExtensionConfig *runtimev1.ExtensionConfig) error {
 	// NOTE: ExtensionConfig is behind the RuntimeSDK feature gate flag; the web hook
 	// must prevent creating and updating objects in case the feature flag is disabled.
@@ -125,13 +125,13 @@ func validateExtensionConfigSpec(e *runtimev1.ExtensionConfig) field.ErrorList {
 	if e.Spec.ClientConfig.URL == nil && e.Spec.ClientConfig.Service == nil {
 		allErrs = append(allErrs, field.Required(
 			specPath.Child("clientConfig"),
-			"either URL or Service must be defined",
+			"either url or service must be defined",
 		))
 	}
 	if e.Spec.ClientConfig.URL != nil && e.Spec.ClientConfig.Service != nil {
 		allErrs = append(allErrs, field.Forbidden(
 			specPath.Child("clientConfig"),
-			"only one of URL or Service can be defined",
+			"only one of url or service can be defined",
 		))
 	}
 
@@ -180,7 +180,7 @@ func validateExtensionConfigSpec(e *runtimev1.ExtensionConfig) field.ErrorList {
 		for _, msg := range validation.IsDNS1123Label(e.Spec.ClientConfig.Service.Namespace) {
 			allErrs = append(allErrs, field.Invalid(
 				specPath.Child("clientConfig", "service", "namespace"),
-				e.Spec.ClientConfig.Service.Name,
+				e.Spec.ClientConfig.Service.Namespace,
 				msg,
 			))
 		}

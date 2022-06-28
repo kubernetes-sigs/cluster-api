@@ -184,10 +184,11 @@ type ApplyClusterTemplateAndWaitInput struct {
 	WaitForMachineDeployments    []interface{}
 	WaitForMachinePools          []interface{}
 	Args                         []string // extra args to be used during `kubectl apply`
+	PreWaitForCluster            func()
 	ControlPlaneWaiters
 }
 
-// Waiter is a function that runs and waits for a long running operation to finish and updates the result.
+// Waiter is a function that runs and waits for a long-running operation to finish and updates the result.
 type Waiter func(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult)
 
 // ControlPlaneWaiters are Waiter functions for the control plane.
@@ -271,6 +272,14 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 
 	log.Logf("Applying the cluster template yaml to the cluster")
 	Expect(input.ClusterProxy.Apply(ctx, workloadClusterTemplate, input.Args...)).To(Succeed())
+
+	// Once we applied the cluster template we can run PreWaitForCluster.
+	// Note: This can e.g. be used to verify the BeforeClusterCreate lifecycle hook is executed
+	// and blocking correctly.
+	if input.PreWaitForCluster != nil {
+		log.Logf("Calling PreWaitForCluster")
+		input.PreWaitForCluster()
+	}
 
 	log.Logf("Waiting for the cluster infrastructure to be provisioned")
 	result.Cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{

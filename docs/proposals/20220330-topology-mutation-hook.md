@@ -33,8 +33,7 @@ superseded-by:
     * [ClusterClass author guide](#clusterclass-author-guide)
     * [Developer guide](#developer-guide)
       * [Cluster topology reconciliation](#cluster-topology-reconciliation)
-      * [GeneratePatches Hook](#generatepatches-hook)
-      * [ValidateTopology Hook](#validatetopology-hook)
+      * [Definitions](#definitions)
       * [Guidelines](#guidelines)
       * [clusterctl alpha topology plan](#clusterctl-alpha-topology-plan)
     * [Security Model](#security-model)
@@ -169,115 +168,22 @@ This section provides guidance for developers on the implementation of an Extern
 
 #### Cluster topology reconciliation
 
-This section documents when the Topology Mutation Hook is going to be called during each Cluster topology reconciliation. More specifically we are going to call two different hooks for each reconciliation:
-
-* **GeneratePatches**: GeneratePatches is responsible for generating patches for the entire Cluster topology.
-* **[optional] ValidateTopology**: ValidateTopology is called after all patches have been applied and thus allows the External Patch Extension developer to validate the resulting objects.
- 
-  **Note**: ValidateTopology is optional, i.e. it will be only called if an External Patch Extension implements it (and returns it during discovery).
+This section documents when the Topology Mutation Hook is going to be called during each Cluster topology reconciliation.
 
 ![Cluster topology reconciliation](./images/topology-mutation-hook/topology-reconciliation.png)
 
-#### GeneratePatches Hook
+The remainder of this section has been moved to the Cluster API [book](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md#introduction)
+to avoid duplication.
 
-A GeneratePatches call generates patches for the entire Cluster topology. Accordingly the request contains all templates, the global variables and the template-specific variables. The response contains generated patches.
+#### Definitions
 
-Example request:
-* Generating patches for a Cluster topology is done via a single call to allow External Patch Extensions a holistic view of the entire Cluster topology. Additionally this allows us to reduce the number of round-trips.
-* Each item in the request will contain the template as a raw object. Additionally information about where the template is used is provided via `holderReference`.
-```yaml
-variables:
-- name: <variable-name>
-  value: <variable-value>
-  ...
-items:
-- uid: 7091de79-e26c-4af5-8be3-071bc4b102c9
-  holderReference:
-    apiVersion: cluster.x-k8s.io/v1beta1
-    kind: MachineDeployment
-    namespace: default
-    name: cluster-md1-xyz
-    fieldPath: spec.template.spec.infrastructureRef
-  object:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-    kind: AWSMachineTemplate
-    spec:
-    ...
-  variables:
-  - name: <variable-name>
-    value: <variable-value>
-    ...
-```
-
-Example response:
-* The response contains patches instead of full objects to reduce the payload.
-* Templates in the request and patches in the response will be correlated via UIDs.
-* Like for inline patches external patches are only allowed to change `spec.template.spec`.
-```yaml
-status: Success # or Failure
-message: "error message if status == Failure"
-items:
-- uid: 7091de79-e26c-4af5-8be3-071bc4b102c9
-  patchType: JSONPatch
-  patch: <JSON-patch>
-```
-
-The full OpenAPI specification (draft) of the GeneratePatches hook can be seen via the [Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/proposals/images/topology-mutation-hook/runtime-sdk-openapi.yaml).
-
-During implementation we will consider introducing a library to facilitate development of External Patch Extensions. It will provide capabilities like:
-* Access builtin variables
-* Extract certain templates from a GeneratePatches request (e.g. all bootstrap templates)
-
-#### ValidateTopology Hook
-
-A ValidateTopology call validates the topology after all patches have been applied. The request contains all templates of the Cluster topology, the global variables and the template-specific variables. The response contains the result of the validation.
-
-Example request:
-* The request is the same as the GeneratePatches request except the `uid` fields. We don't
-  need them as we don't have to correlate anything in the response.
-```yaml
-variables:
-- name: <variable-name>
-  value: <variable-value>
-  ...
-items:
-- holderReference:
-    apiVersion: cluster.x-k8s.io/v1beta1
-    kind: MachineDeployment
-    namespace: default
-    name: cluster-md1-xyz
-    fieldPath: spec.template.spec.infrastructureRef
-  object:
-    apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-    kind: AWSMachineTemplate
-    spec:
-    ...
-  variables:
-  - name: <variable-name>
-    value: <variable-value>
-    ...
-```
-
-Example response:
-```yaml
-status: Success # or Failure
-message: "error message if status == Failure"
-```
-
-The full OpenAPI specification (draft) of the ValidateTopology hook can be seen via the [Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/proposals/images/topology-mutation-hook/runtime-sdk-openapi.yaml).
-
+This section has been moved to the Cluster API [book](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md#definitions)
+to avoid duplication.
 
 #### Guidelines
 
-For general Runtime Extension developer guidelines please refer to the [developer guide in the Runtime SDK proposal](https://github.com/kubernetes-sigs/cluster-api/blob/75b39db545ae439f4f6203b5e07496d3b0a6aa75/docs/proposals/20220221-runtime-SDK.md#runtime-extensions-developer-guide). This section outlines guidelines specific to External Patch Extensions:
-
-* **Input validation**: An External Patch Extension must always validate its input, i.e. it must validate that all variables exist and have the right type and it must validate the kind and apiVersion of the templates which should be patched.
-* **Timeouts**: As External Patch Extensions are called during each Cluster topology reconciliation, they must respond as fast as possible (&lt;=200ms) to avoid delaying individual reconciles and congestion.
-* **Availability**: An External Patch Extension must be always available, otherwise Cluster topologies won’t be reconciled anymore.
-* **Side Effects**: An External Patch Extension must not make out-of-band changes. If necessary external data can be retrieved, but be aware of performance impact.
-* **Deterministic results**: For a given request (a set of templates and variables) an External Patch Extension must always return the same response (a set of patches). Otherwise the Cluster topology will never reach a stable state.
-* **Idempotence**: An External Patch Extension must only return patches if changes to the templates are required, i.e. unnecessary patches when the template is already in the desired state must be avoided.
-* **Avoid Dependencies**: An External Patch Extension must be independent of other External Patch Extensions. However if dependencies cannot be avoided, it is possible to control the order in which patches are executed via the ClusterClass.
+This section has been moved to the Cluster API [book](../../docs/book/src/tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md#guidelines)
+to avoid duplication.
 
 #### clusterctl alpha topology plan
 

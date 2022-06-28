@@ -45,7 +45,7 @@ var (
 
 	setupLog = ctrl.Log.WithName("setup")
 
-	// flags.
+	// Flags.
 	profilerAddress string
 	webhookPort     int
 	webhookCertDir  string
@@ -197,7 +197,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("starting RuntimeExtension", "version", version.Get().String())
+	setupLog.Info("Starting Runtime Extension server", "version", version.Get().String())
 	if err := webhookServer.Start(ctx); err != nil {
 		setupLog.Error(err, "error running webhook server")
 		os.Exit(1)

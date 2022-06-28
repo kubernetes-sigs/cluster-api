@@ -58,17 +58,19 @@ func GetClusterClassByName(ctx context.Context, input GetClusterClassByNameInput
 
 // UpgradeClusterTopologyAndWaitForUpgradeInput is the input type for UpgradeClusterTopologyAndWaitForUpgrade.
 type UpgradeClusterTopologyAndWaitForUpgradeInput struct {
-	ClusterProxy                ClusterProxy
-	Cluster                     *clusterv1.Cluster
-	ControlPlane                *controlplanev1.KubeadmControlPlane
-	EtcdImageTag                string
-	DNSImageTag                 string
-	MachineDeployments          []*clusterv1.MachineDeployment
-	KubernetesUpgradeVersion    string
-	WaitForMachinesToBeUpgraded []interface{}
-	WaitForKubeProxyUpgrade     []interface{}
-	WaitForDNSUpgrade           []interface{}
-	WaitForEtcdUpgrade          []interface{}
+	ClusterProxy                            ClusterProxy
+	Cluster                                 *clusterv1.Cluster
+	ControlPlane                            *controlplanev1.KubeadmControlPlane
+	EtcdImageTag                            string
+	DNSImageTag                             string
+	MachineDeployments                      []*clusterv1.MachineDeployment
+	KubernetesUpgradeVersion                string
+	WaitForMachinesToBeUpgraded             []interface{}
+	WaitForKubeProxyUpgrade                 []interface{}
+	WaitForDNSUpgrade                       []interface{}
+	WaitForEtcdUpgrade                      []interface{}
+	PreWaitForControlPlaneToBeUpgraded      func()
+	PreWaitForMachineDeploymentToBeUpgraded func()
 }
 
 // UpgradeClusterTopologyAndWaitForUpgrade upgrades a Cluster topology and waits for it to be upgraded.
@@ -102,6 +104,14 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 		return patchHelper.Patch(ctx, input.Cluster)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
 
+	// Once we have patched the Kubernetes Cluster we can run PreWaitForControlPlaneToBeUpgraded.
+	// Note: This can e.g. be used to verify the BeforeClusterUpgrade lifecycle hook is executed
+	// and blocking correctly.
+	if input.PreWaitForControlPlaneToBeUpgraded != nil {
+		log.Logf("Calling PreWaitForControlPlaneToBeUpgraded")
+		input.PreWaitForControlPlaneToBeUpgraded()
+	}
+
 	log.Logf("Waiting for control-plane machines to have the upgraded Kubernetes version")
 	WaitForControlPlaneMachinesToBeUpgraded(ctx, WaitForControlPlaneMachinesToBeUpgradedInput{
 		Lister:                   mgmtClient,
@@ -132,6 +142,14 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 		ListOptions: &client.ListOptions{LabelSelector: lblSelector},
 		Condition:   EtcdImageTagCondition(input.EtcdImageTag, int(*input.ControlPlane.Spec.Replicas)),
 	}, input.WaitForEtcdUpgrade...)
+
+	// Once the ControlPlane is upgraded we can run PreWaitForMachineDeploymentToBeUpgraded.
+	// Note: This can e.g. be used to verify the AfterControlPlaneUpgrade lifecycle hook is executed
+	// and blocking correctly.
+	if input.PreWaitForMachineDeploymentToBeUpgraded != nil {
+		log.Logf("Calling PreWaitForMachineDeploymentToBeUpgraded")
+		input.PreWaitForMachineDeploymentToBeUpgraded()
+	}
 
 	for _, deployment := range input.MachineDeployments {
 		if *deployment.Spec.Replicas > 0 {

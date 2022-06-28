@@ -42,18 +42,15 @@ func (h *Handler) DoBeforeClusterCreate(ctx context.Context, request *runtimehoo
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("BeforeClusterCreate is called")
 	cluster := request.Cluster
-	if err := h.recordCallInConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterCreate); err != nil {
+
+	if err := h.readResponseFromConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterCreate, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
 	}
-	log.Info("BeforeClusterCreate has been recorded in configmap", "cm", cluster.Name+"-hookresponses")
-
-	err := h.readResponseFromConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterCreate, response)
-	if err != nil {
+	if err := h.recordCallInConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterCreate, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
-		return
 	}
 }
 
@@ -62,16 +59,16 @@ func (h *Handler) DoBeforeClusterUpgrade(ctx context.Context, request *runtimeho
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("BeforeClusterUpgrade is called")
 	cluster := request.Cluster
-	if err := h.recordCallInConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterUpgrade); err != nil {
+
+	if err := h.readResponseFromConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterUpgrade, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
 	}
-	err := h.readResponseFromConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterUpgrade, response)
-	if err != nil {
+
+	if err := h.recordCallInConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterUpgrade, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
-		return
 	}
 }
 
@@ -80,16 +77,16 @@ func (h *Handler) DoAfterControlPlaneInitialized(ctx context.Context, request *r
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("AfterControlPlaneInitialized is called")
 	cluster := request.Cluster
-	if err := h.recordCallInConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.AfterControlPlaneInitialized); err != nil {
+
+	if err := h.readResponseFromConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.AfterControlPlaneInitialized, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
 	}
-	err := h.readResponseFromConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.AfterControlPlaneInitialized, response)
-	if err != nil {
+
+	if err := h.recordCallInConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.AfterControlPlaneInitialized, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
-		return
 	}
 }
 
@@ -98,16 +95,16 @@ func (h *Handler) DoAfterControlPlaneUpgrade(ctx context.Context, request *runti
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("AfterControlPlaneUpgrade is called")
 	cluster := request.Cluster
-	if err := h.recordCallInConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
+
+	if err := h.readResponseFromConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.AfterControlPlaneUpgrade, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
 	}
-	err := h.readResponseFromConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.AfterControlPlaneUpgrade, response)
-	if err != nil {
+
+	if err := h.recordCallInConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.AfterControlPlaneUpgrade, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
-		return
 	}
 }
 
@@ -116,16 +113,16 @@ func (h *Handler) DoAfterClusterUpgrade(ctx context.Context, request *runtimehoo
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("AfterClusterUpgrade is called")
 	cluster := request.Cluster
-	if err := h.recordCallInConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.AfterClusterUpgrade); err != nil {
+
+	if err := h.readResponseFromConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.AfterClusterUpgrade, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
 	}
-	err := h.readResponseFromConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.AfterClusterUpgrade, response)
-	if err != nil {
+
+	if err := h.recordCallInConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.AfterClusterUpgrade, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
-		return
 	}
 }
 
@@ -136,13 +133,13 @@ func (h *Handler) readResponseFromConfigMap(ctx context.Context, name, namespace
 	if err := h.Client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: configMapName}, configMap); err != nil {
 		return errors.Wrapf(err, "failed to read the ConfigMap %s/%s", namespace, configMapName)
 	}
-	if err := yaml.Unmarshal([]byte(configMap.Data[hookName+"-response"]), response); err != nil {
+	if err := yaml.Unmarshal([]byte(configMap.Data[hookName+"-preloadedResponse"]), response); err != nil {
 		return errors.Wrapf(err, "failed to read %q response information from ConfigMap", hook)
 	}
 	return nil
 }
 
-func (h *Handler) recordCallInConfigMap(ctx context.Context, name, namespace string, hook runtimecatalog.Hook) error {
+func (h *Handler) recordCallInConfigMap(ctx context.Context, name, namespace string, hook runtimecatalog.Hook, response runtimehooksv1.ResponseObject) error {
 	hookName := runtimecatalog.HookName(hook)
 	configMap := &corev1.ConfigMap{}
 	configMapName := name + "-hookresponses"
@@ -150,8 +147,9 @@ func (h *Handler) recordCallInConfigMap(ctx context.Context, name, namespace str
 		return errors.Wrapf(err, "failed to read the ConfigMap %s/%s", namespace, configMapName)
 	}
 
+	// Patch the actualResponseStatus with the returned value
 	patch := client.RawPatch(types.MergePatchType,
-		[]byte(fmt.Sprintf(`{"data":{"%s-called":"true"}}`, hookName)))
+		[]byte(fmt.Sprintf(`{"data":{"%s-actualResponseStatus":"%s"}}`, hookName, response.GetStatus()))) //nolint:gocritic
 	if err := h.Client.Patch(ctx, configMap, patch); err != nil {
 		return errors.Wrapf(err, "failed to update the ConfigMap %s/%s", namespace, configMapName)
 	}

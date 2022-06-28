@@ -21,8 +21,8 @@ import (
 	"strings"
 	"time"
 
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
 )
 
 // HookResponseTracker is a helper to capture the responses of the various lifecycle hooks.

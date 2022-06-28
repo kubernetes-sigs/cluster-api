@@ -105,7 +105,7 @@ func New() *Catalog {
 		gvhToHookDescriptor: map[GroupVersionHook]hookDescriptor{},
 		openAPIDefinitions:  []OpenAPIDefinitionsGetter{},
 		// Note: We have to ignore the current file so that GetNameFromCallsite retrieves the name of the caller of New (the parent).
-		catalogName: naming.GetNameFromCallsite("sigs.k8s.io/cluster-api/internal/runtime/catalog/catalog.go"),
+		catalogName: naming.GetNameFromCallsite("sigs.k8s.io/cluster-api/exp/runtime/catalog/catalog.go"),
 	}
 }
 

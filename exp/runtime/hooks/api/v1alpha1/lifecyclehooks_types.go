@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
 // BeforeClusterCreateRequest is the request of the BeforeClusterCreate hook.

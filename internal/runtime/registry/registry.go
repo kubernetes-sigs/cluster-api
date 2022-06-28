@@ -26,7 +26,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
-	runtimecatalog "sigs.k8s.io/cluster-api/internal/runtime/catalog"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
 // ExtensionRegistry defines the funcs of a RuntimeExtension registry.

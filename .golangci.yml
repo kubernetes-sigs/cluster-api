@@ -115,7 +115,7 @@ linters-settings:
         alias: runtimehooksv1
       - pkg: sigs.k8s.io/cluster-api/exp/runtime/controllers
         alias: runtimecontrollers
-      - pkg: sigs.k8s.io/cluster-api/internal/runtime/catalog
+      - pkg: sigs.k8s.io/cluster-api/exp/runtime/catalog
         alias: runtimecatalog
       - pkg: sigs.k8s.io/cluster-api/internal/runtime/client
         alias: runtimeclient

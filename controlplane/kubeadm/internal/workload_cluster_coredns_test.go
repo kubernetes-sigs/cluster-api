@@ -108,6 +108,16 @@ func TestUpdateCoreDNS(t *testing.T) {
 			"Corefile": expectedCorefile,
 		},
 	}
+	updatedCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      coreDNSKey,
+			Namespace: metav1.NamespaceSystem,
+		},
+		Data: map[string]string{
+			"Corefile":        "updated-core-file",
+			"Corefile-backup": expectedCorefile,
+		},
+	}
 	kubeadmCM := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      kubeadmConfigKey,
@@ -124,15 +134,48 @@ func TestUpdateCoreDNS(t *testing.T) {
 				`),
 		},
 	}
+	kubeadmCM181 := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kubeadmConfigKey,
+			Namespace: metav1.NamespaceSystem,
+		},
+		Data: map[string]string{
+			"ClusterConfiguration": yaml.Raw(`
+				apiServer:
+				apiVersion: kubeadm.k8s.io/v1beta2
+				dns:
+				  type: CoreDNS
+					imageTag: v1.8.1
+				imageRepository: k8s.gcr.io
+				kind: ClusterConfiguration
+				`),
+		},
+	}
+
+	oldCR := &rbacv1.ClusterRole{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ClusterRole",
+			APIVersion: "rbac.authorization.k8s.io/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: coreDNSClusterRoleName,
+		},
+	}
+
+	semver1191 := semver.MustParse("1.19.1")
+	semver1221 := semver.MustParse("1.22.1")
+	semver1230 := semver.MustParse("1.23.0")
 
 	tests := []struct {
 		name          string
 		kcp           *controlplanev1.KubeadmControlPlane
 		migrator      coreDNSMigrator
+		semver        semver.Version
 		objs          []client.Object
 		expectErr     bool
 		expectUpdates bool
 		expectImage   string
+		expectRules   []rbacv1.PolicyRule
 	}{
 		{
 			name: "returns early without error if skip core dns annotation is present",
@@ -150,6 +193,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 					},
 				},
 			},
+			semver:    semver1191,
 			objs:      []client.Object{badCM},
 			expectErr: false,
 		},
@@ -160,23 +204,27 @@ func TestUpdateCoreDNS(t *testing.T) {
 					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{},
 				},
 			},
+			semver:    semver1191,
 			objs:      []client.Object{badCM},
 			expectErr: false,
 		},
 		{
 			name:      "returns early without error if CoreDNS info is not found",
 			kcp:       validKCP,
+			semver:    semver1191,
 			expectErr: false,
 		},
 		{
 			name:      "returns error if there was a problem retrieving CoreDNS info",
 			kcp:       validKCP,
+			semver:    semver1191,
 			objs:      []client.Object{badCM},
 			expectErr: true,
 		},
 		{
 			name:      "returns early without error if CoreDNS fromImage == ToImage",
 			kcp:       validKCP,
+			semver:    semver1191,
 			objs:      []client.Object{depl, cm},
 			expectErr: false,
 		},
@@ -198,6 +246,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 					},
 				},
 			},
+			semver:    semver1191,
 			objs:      []client.Object{depl, cm},
 			expectErr: true,
 		},
@@ -218,6 +267,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 					},
 				},
 			},
+			semver: semver1191,
 			// no kubeadmConfigMap available so it will trigger an error
 			objs:      []client.Object{depl, cm},
 			expectErr: true,
@@ -242,6 +292,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 			migrator: &fakeMigrator{
 				migrateErr: errors.New("failed to migrate"),
 			},
+			semver:    semver1191,
 			objs:      []client.Object{depl, cm, kubeadmCM},
 			expectErr: true,
 		},
@@ -265,6 +316,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 			migrator: &fakeMigrator{
 				migratedCorefile: "updated-core-file",
 			},
+			semver:        semver1191,
 			objs:          []client.Object{depl, cm, kubeadmCM},
 			expectErr:     false,
 			expectUpdates: true,
@@ -290,6 +342,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 			migrator: &fakeMigrator{
 				migratedCorefile: "updated-core-file",
 			},
+			semver:        semver1191,
 			objs:          []client.Object{deplWithImage("k8s.gcr.io/some-repo/coredns:1.7.0"), cm, kubeadmCM},
 			expectErr:     false,
 			expectUpdates: true,
@@ -314,6 +367,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 			migrator: &fakeMigrator{
 				migratedCorefile: "updated-core-file",
 			},
+			semver:        semver1191,
 			objs:          []client.Object{deplWithImage("k8s.gcr.io/coredns:1.6.7"), cm, kubeadmCM},
 			expectErr:     false,
 			expectUpdates: true,
@@ -338,6 +392,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 			migrator: &fakeMigrator{
 				migratedCorefile: "updated-core-file",
 			},
+			semver:        semver1191,
 			objs:          []client.Object{deplWithImage("k8s.gcr.io/coredns:1.7.0"), cm, kubeadmCM},
 			expectErr:     false,
 			expectUpdates: false,
@@ -361,6 +416,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 			migrator: &fakeMigrator{
 				migratedCorefile: "updated-core-file",
 			},
+			semver:        semver1191,
 			objs:          []client.Object{deplWithImage("k8s.gcr.io/coredns:1.7.0"), cm, kubeadmCM},
 			expectErr:     false,
 			expectUpdates: true,
@@ -382,12 +438,61 @@ func TestUpdateCoreDNS(t *testing.T) {
 					},
 				},
 			},
+			semver: semver1191,
 			migrator: &fakeMigrator{
 				migratedCorefile: "updated-core-file",
 			},
 			objs:          []client.Object{deplWithImage("k8s.gcr.io/coredns/coredns:v1.8.0"), cm, kubeadmCM},
 			expectErr:     false,
 			expectUpdates: false,
+			expectRules:   oldCR.Rules,
+		},
+		{
+			name: "upgrade from Kubernetes v1.21.x to v1.22.y and update cluster role",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							DNS: bootstrapv1.DNS{
+								ImageMeta: bootstrapv1.ImageMeta{
+									ImageRepository: "k8s.gcr.io",
+									ImageTag:        "v1.8.1", // NOTE: ImageTags requires the v prefix
+								},
+							},
+						},
+					},
+				},
+			},
+			migrator: &fakeMigrator{
+				migratedCorefile: "updated-core-file",
+			},
+			semver:        semver1221,
+			objs:          []client.Object{deplWithImage("k8s.gcr.io/coredns/coredns:v1.8.1"), updatedCM, kubeadmCM181, oldCR},
+			expectErr:     false,
+			expectUpdates: true,
+			expectImage:   "k8s.gcr.io/coredns/coredns:v1.8.1", // NOTE: ImageName has coredns/coredns
+			expectRules:   coreDNS181PolicyRules,
+		},
+		{
+			name: "returns early without error if kubernetes version is >= v1.23",
+			kcp: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
+							DNS: bootstrapv1.DNS{
+								ImageMeta: bootstrapv1.ImageMeta{
+									ImageRepository: "k8s.gcr.io",
+									ImageTag:        "v1.8.1", // NOTE: ImageTags requires the v prefix
+								},
+							},
+						},
+					},
+				},
+			},
+			semver:      semver1230,
+			objs:        []client.Object{deplWithImage("k8s.gcr.io/coredns/coredns:v1.8.1"), updatedCM, kubeadmCM181},
+			expectErr:   false,
+			expectRules: oldCR.Rules,
 		},
 	}
 
@@ -412,7 +517,7 @@ func TestUpdateCoreDNS(t *testing.T) {
 				Client:          env.GetClient(),
 				CoreDNSMigrator: tt.migrator,
 			}
-			err := w.UpdateCoreDNS(ctx, tt.kcp, semver.MustParse("1.19.1"))
+			err := w.UpdateCoreDNS(ctx, tt.kcp, tt.semver)
 
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
@@ -455,6 +560,15 @@ func TestUpdateCoreDNS(t *testing.T) {
 					g.Expect(env.Get(ctx, client.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}, &actualDeployment)).To(Succeed())
 					return actualDeployment.Spec.Template.Spec.Containers[0].Image
 				}, "5s").Should(Equal(tt.expectImage))
+
+				// assert CoreDNS ClusterRole
+				if tt.expectRules != nil {
+					var actualClusterRole rbacv1.ClusterRole
+					g.Eventually(func() []rbacv1.PolicyRule {
+						g.Expect(env.Get(ctx, client.ObjectKey{Name: coreDNSClusterRoleName}, &actualClusterRole)).To(Succeed())
+						return actualClusterRole.Rules
+					}, "5s").Should(Equal(tt.expectRules))
+				}
 			}
 		})
 	}
@@ -550,6 +664,7 @@ func TestUpdateCoreDNSClusterRole(t *testing.T) {
 		name                     string
 		kubernetesVersion        semver.Version
 		coreDNSVersion           string
+		sourceCoreDNSVersion     string
 		coreDNSPolicyRules       []rbacv1.PolicyRule
 		expectErr                bool
 		expectCoreDNSPolicyRules []rbacv1.PolicyRule
@@ -569,9 +684,18 @@ func TestUpdateCoreDNSClusterRole(t *testing.T) {
 			expectCoreDNSPolicyRules: coreDNS180PolicyRules,
 		},
 		{
+			name:                     "does not patch ClusterRole: Kubernetes > 1.22 && CoreDNS >= 1.8.1",
+			kubernetesVersion:        semver.Version{Major: 1, Minor: 23, Patch: 0},
+			coreDNSVersion:           "1.8.1",
+			sourceCoreDNSVersion:     "1.8.1",
+			coreDNSPolicyRules:       coreDNS180PolicyRules,
+			expectCoreDNSPolicyRules: coreDNS180PolicyRules,
+		},
+		{
 			name:                     "does not patch ClusterRole: CoreDNS < 1.8.1",
 			kubernetesVersion:        semver.Version{Major: 1, Minor: 22, Patch: 0},
 			coreDNSVersion:           "1.8.0",
+			sourceCoreDNSVersion:     "1.7.0",
 			coreDNSPolicyRules:       coreDNS180PolicyRules,
 			expectCoreDNSPolicyRules: coreDNS180PolicyRules,
 		},
@@ -579,6 +703,7 @@ func TestUpdateCoreDNSClusterRole(t *testing.T) {
 			name:                     "patch ClusterRole: Kubernetes == 1.22 alpha and CoreDNS == 1.8.1",
 			kubernetesVersion:        semver.Version{Major: 1, Minor: 22, Patch: 0, Pre: []semver.PRVersion{{VersionStr: "alpha"}}},
 			coreDNSVersion:           "1.8.1",
+			sourceCoreDNSVersion:     "1.8.1",
 			coreDNSPolicyRules:       coreDNS180PolicyRules,
 			expectCoreDNSPolicyRules: coreDNS181PolicyRules,
 		},
@@ -586,6 +711,7 @@ func TestUpdateCoreDNSClusterRole(t *testing.T) {
 			name:                     "patch ClusterRole: Kubernetes == 1.22 and CoreDNS == 1.8.1",
 			kubernetesVersion:        semver.Version{Major: 1, Minor: 22, Patch: 0},
 			coreDNSVersion:           "1.8.1",
+			sourceCoreDNSVersion:     "1.8.1",
 			coreDNSPolicyRules:       coreDNS180PolicyRules,
 			expectCoreDNSPolicyRules: coreDNS181PolicyRules,
 		},
@@ -593,6 +719,7 @@ func TestUpdateCoreDNSClusterRole(t *testing.T) {
 			name:                     "patch ClusterRole: Kubernetes > 1.22 and CoreDNS > 1.8.1",
 			kubernetesVersion:        semver.Version{Major: 1, Minor: 22, Patch: 2},
 			coreDNSVersion:           "1.8.5",
+			sourceCoreDNSVersion:     "1.8.1",
 			coreDNSPolicyRules:       coreDNS180PolicyRules,
 			expectCoreDNSPolicyRules: coreDNS181PolicyRules,
 		},
@@ -600,6 +727,7 @@ func TestUpdateCoreDNSClusterRole(t *testing.T) {
 			name:                     "patch ClusterRole: Kubernetes > 1.22 and CoreDNS > 1.8.1: no-op",
 			kubernetesVersion:        semver.Version{Major: 1, Minor: 22, Patch: 2},
 			coreDNSVersion:           "1.8.5",
+			sourceCoreDNSVersion:     "1.8.5",
 			coreDNSPolicyRules:       coreDNS181PolicyRules,
 			expectCoreDNSPolicyRules: coreDNS181PolicyRules,
 		},
@@ -622,7 +750,7 @@ func TestUpdateCoreDNSClusterRole(t *testing.T) {
 				Client: fakeClient,
 			}
 
-			err := w.updateCoreDNSClusterRole(ctx, tt.kubernetesVersion, &coreDNSInfo{ToImageTag: tt.coreDNSVersion})
+			err := w.updateCoreDNSClusterRole(ctx, tt.kubernetesVersion, &coreDNSInfo{ToImageTag: tt.coreDNSVersion, FromImageTag: tt.sourceCoreDNSVersion})
 
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())

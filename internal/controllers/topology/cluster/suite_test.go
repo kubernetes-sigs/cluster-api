@@ -27,6 +27,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/cache"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -77,6 +78,12 @@ func TestMain(m *testing.M) {
 			Client:                    mgr.GetClient(),
 			APIReader:                 mgr.GetAPIReader(),
 			UnstructuredCachingClient: unstructuredCachingClient,
+			rateLimitingCache: cache.NewTTLStore(func(obj interface{}) (string, error) {
+				if _, ok := obj.(string); !ok {
+					return "", fmt.Errorf("expected string but got %T", obj)
+				}
+				return obj.(string), nil
+			}, time.Nanosecond),
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 5}); err != nil {
 			panic(fmt.Sprintf("unable to create topology cluster reconciler: %v", err))
 		}

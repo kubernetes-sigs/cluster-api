@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
+	"k8s.io/client-go/util/workqueue"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	_ "k8s.io/component-base/logs/json/register"
@@ -254,7 +255,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Setup the context that's going to be used in controllers and for the manager.
+	// Set up the context that's going to be used in controllers and for the manager.
 	ctx := ctrl.SetupSignalHandler()
 
 	setupChecks(mgr)
@@ -355,7 +356,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			RuntimeClient:             runtimeClient,
 			UnstructuredCachingClient: unstructuredCachingClient,
 			WatchFilterValue:          watchFilterValue,
-		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
+		}).SetupWithManager(ctx, mgr, controller.Options{
+			MaxConcurrentReconciles: clusterTopologyConcurrency,
+			RateLimiter: workqueue.NewMaxOfRateLimiter(
+				workqueue.DefaultControllerRateLimiter(),
+				workqueue.NewItemFastSlowRateLimiter(1*time.Second, 5*time.Second, 0),
+			)},
+		); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterTopology")
 			os.Exit(1)
 		}

@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -80,6 +81,9 @@ type Reconciler struct {
 	patchEngine patches.Engine
 
 	patchHelperFactory structuredmerge.PatchHelperFactoryFunc
+
+	// rateLimitingCache is a TTL cache that is used to rate limit reconciles per cluster.
+	rateLimitingCache cache.Store
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -115,6 +119,14 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	if r.patchHelperFactory == nil {
 		r.patchHelperFactory = serverSideApplyPatchHelperFactory(r.Client)
 	}
+	if r.rateLimitingCache == nil {
+		r.rateLimitingCache = cache.NewTTLStore(func(obj interface{}) (string, error) {
+			if _, ok := obj.(string); !ok {
+				return "", fmt.Errorf("expected string but got %T", obj)
+			}
+			return obj.(string), nil
+		}, 5*time.Second)
+	}
 	return nil
 }
 
@@ -127,6 +139,14 @@ func (r *Reconciler) SetupForDryRun(recorder record.EventRecorder) {
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
+
+	// If the request is rate limited, requeue. The rate limiting is handled by the rate limiter passed to the controller.
+	if rateLimited, err := r.requestIsRateLimited(ctx, req); err != nil {
+		return ctrl.Result{}, err
+	} else if rateLimited {
+		return ctrl.Result{Requeue: true}, nil
+	}
+	log.Info(fmt.Sprintf("Reconciling %s", req.String()))
 
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}
@@ -348,4 +368,23 @@ func dryRunPatchHelperFactory(c client.Client) structuredmerge.PatchHelperFactor
 	return func(original, modified client.Object, opts ...structuredmerge.HelperOption) (structuredmerge.PatchHelper, error) {
 		return structuredmerge.NewTwoWaysPatchHelper(original, modified, c, opts...)
 	}
+}
+
+func (r *Reconciler) requestIsRateLimited(ctx context.Context, req reconcile.Request) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	// If no rateLimitingCache is defined return false.
+	if r.rateLimitingCache == nil {
+		return false, nil
+	}
+	if _, found, err := r.rateLimitingCache.Get(req.String()); found && err == nil {
+		log.Info(fmt.Sprintf("Requeuing %s due to rate limit", req.String()))
+		return true, nil
+	} else if err != nil {
+		return false, errors.Wrap(err, fmt.Sprintf("failed to read item %s from rate limiting cache", req.String()))
+	}
+	if err := r.rateLimitingCache.Add(req.String()); err != nil {
+		return false, errors.Wrap(err, fmt.Sprintf("failed to add item  %s to rate limiting cache", req.String()))
+	}
+	return false, nil
 }

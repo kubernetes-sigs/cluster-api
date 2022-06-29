@@ -353,7 +353,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 			// The BeforeClusterDelete hook returned a non-blocking response. Now the cluster is ready to be deleted.
 			// Lets mark the cluster as `ok-to-delete`
 			if err := hooks.MarkAsOkToDelete(ctx, r.Client, cluster); err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to mark %s/%s cluster as ok to delete", cluster.Namespace, cluster.Name)
+				return ctrl.Result{}, err
 			}
 		}
 	}

@@ -92,7 +92,7 @@ superseded-by:
   (TCG) that allows hosts to attest to their identity via PKI and a secure crypto-processor which
   may either be a separate chip, built into the CPU or a virtual device provided by the hypervisor.
 
-- **Trust on first use:** Often abbreviated to TOFO is an authentication convention that a provided
+- **Trust on first use:** Often abbreviated to TOFU is an authentication convention that a provided
   credential is only trusted from one endpoint which is recorded, and if presented again from a
   different endpoint it is untrusted. See https://en.wikipedia.org/wiki/Trust_on_first_use for more
   information.

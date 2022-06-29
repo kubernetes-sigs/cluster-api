@@ -69,7 +69,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 		Lister: client,
 	})
 	if len(controllersDeployments) == 0 {
-		initInput := InitInput{
+		initInput := InitInput{ // FIXME(sbueringer): set wait-providers on init and upgrade
 			// pass reference to the management cluster hosting this test
 			KubeconfigPath: input.ClusterProxy.GetKubeconfigPath(),
 			// pass the clusterctl config file that points to the local provider repository created for this test
@@ -126,6 +126,7 @@ type UpgradeManagementClusterAndWaitInput struct {
 	ClusterctlConfigPath string
 	Contract             string
 	LogFolder            string
+	ClusterctlBinaryPath string
 }
 
 // UpgradeManagementClusterAndWait upgrades provider a management cluster using clusterctl, and waits for the cluster to be ready.
@@ -136,12 +137,17 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 	Expect(input.Contract).ToNot(BeEmpty(), "Invalid argument. input.Contract can't be empty when calling UpgradeManagementClusterAndWait")
 	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for UpgradeManagementClusterAndWait")
 
-	Upgrade(ctx, UpgradeInput{
+	upgradeInput := UpgradeInput{
 		ClusterctlConfigPath: input.ClusterctlConfigPath,
 		KubeconfigPath:       input.ClusterProxy.GetKubeconfigPath(),
 		Contract:             input.Contract,
 		LogFolder:            input.LogFolder,
-	})
+	}
+	if input.ClusterctlBinaryPath != "" {
+		UpgradeWithBinary(ctx, input.ClusterctlBinaryPath, upgradeInput)
+	} else {
+		Upgrade(ctx, upgradeInput)
+	}
 
 	client := input.ClusterProxy.GetClient()
 

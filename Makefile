@@ -214,12 +214,15 @@ generate-manifests: $(addprefix generate-manifests-,$(ALL_GENERATE_MODULES)) ## 
 generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.g. CRD, RBAC etc. for core
 	$(MAKE) clean-generated-yaml SRC_DIRS="./config/crd/bases"
 	$(CONTROLLER_GEN) \
-		paths=./api/... \
+		paths=./api/v1alpha4 \
+		paths=./api/v1beta1 \
 		paths=./internal/controllers/... \
 		paths=./internal/webhooks/... \
-		paths=./$(EXP_DIR)/api/... \
+		paths=./$(EXP_DIR)/api/v1alpha4 \
+		paths=./$(EXP_DIR)/api/v1beta1 \
 		paths=./$(EXP_DIR)/internal/controllers/... \
-		paths=./$(EXP_DIR)/addons/api/... \
+		paths=./$(EXP_DIR)/addons/api/v1alpha4 \
+		paths=./$(EXP_DIR)/addons/api/v1beta1 \
 		paths=./$(EXP_DIR)/addons/internal/controllers/... \
 		paths=./$(EXP_DIR)/runtime/api/... \
 		paths=./$(EXP_DIR)/runtime/internal/controllers/... \
@@ -238,7 +241,8 @@ generate-manifests-core: $(CONTROLLER_GEN) $(KUSTOMIZE) ## Generate manifests e.
 generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for kubeadm bootstrap
 	$(MAKE) clean-generated-yaml SRC_DIRS="./bootstrap/kubeadm/config/crd/bases"
 	$(CONTROLLER_GEN) \
-		paths=./bootstrap/kubeadm/api/... \
+		paths=./bootstrap/kubeadm/api/v1alpha4 \
+		paths=./bootstrap/kubeadm/api/v1beta1 \
 		paths=./bootstrap/kubeadm/internal/controllers/... \
 		crd:crdVersions=v1 \
 		rbac:roleName=manager-role \
@@ -251,7 +255,8 @@ generate-manifests-kubeadm-bootstrap: $(CONTROLLER_GEN) ## Generate manifests e.
 generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for kubeadm control plane
 	$(MAKE) clean-generated-yaml SRC_DIRS="./controlplane/kubeadm/config/crd/bases"
 	$(CONTROLLER_GEN) \
-		paths=./controlplane/kubeadm/api/... \
+		paths=./controlplane/kubeadm/api/v1alpha4 \
+		paths=./controlplane/kubeadm/api/v1beta1 \
 		paths=./controlplane/kubeadm/internal/controllers/... \
 		paths=./controlplane/kubeadm/internal/webhooks/... \
 		crd:crdVersions=v1 \
@@ -265,8 +270,10 @@ generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifest
 generate-manifests-capd: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for capd provider
 	$(MAKE) clean-generated-yaml SRC_DIRS="$(CAPD_DIR)/config/crd/bases"
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
-		paths=./api/... \
-		paths=./$(EXP_DIR)/api/... \
+		paths=./api/v1alpha4 \
+		paths=./api/v1beta1 \
+		paths=./$(EXP_DIR)/api/v1alpha4 \
+		paths=./$(EXP_DIR)/api/v1beta1 \
 		paths=./$(EXP_DIR)/internal/controllers/... \
 		paths=./internal/controllers/... \
 		crd:crdVersions=v1 \

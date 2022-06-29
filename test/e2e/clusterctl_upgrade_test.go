@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 )
 
-var _ = Describe("When testing clusterctl upgrades [clusterctl-Upgrade]", func() {
+var _ = Describe("When testing clusterctl upgrades [clusterctl-Upgrade][PR-Blocking]", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{
 			E2EConfig:             e2eConfig,

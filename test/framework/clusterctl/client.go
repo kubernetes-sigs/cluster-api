@@ -57,12 +57,14 @@ type InitInput struct {
 }
 
 // Init calls clusterctl init with the list of providers defined in the local repository.
-func Init(ctx context.Context, input InitInput) {
-	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s",
+func Init(_ context.Context, input InitInput) {
+	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s --config %s --kubeconfig %s",
 		input.CoreProvider,
 		strings.Join(input.BootstrapProviders, ","),
 		strings.Join(input.ControlPlaneProviders, ","),
 		strings.Join(input.InfrastructureProviders, ","),
+		input.ClusterctlConfigPath,
+		input.KubeconfigPath,
 	)
 
 	initOpt := clusterctlclient.InitOptions{
@@ -86,11 +88,13 @@ func Init(ctx context.Context, input InitInput) {
 
 // InitWithBinary uses clusterctl binary to run init with the list of providers defined in the local repository.
 func InitWithBinary(_ context.Context, binary string, input InitInput) {
-	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s",
+	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s --config %s --kubeconfig %s",
 		input.CoreProvider,
 		strings.Join(input.BootstrapProviders, ","),
 		strings.Join(input.ControlPlaneProviders, ","),
 		strings.Join(input.InfrastructureProviders, ","),
+		input.ClusterctlConfigPath,
+		input.KubeconfigPath,
 	)
 
 	cmd := exec.Command(binary, "init", //nolint:gosec // We don't care about command injection here.
@@ -123,8 +127,10 @@ type UpgradeInput struct {
 
 // Upgrade calls clusterctl upgrade apply with the list of providers defined in the local repository.
 func Upgrade(ctx context.Context, input UpgradeInput) {
-	log.Logf("clusterctl upgrade apply --contract %s",
+	log.Logf("clusterctl upgrade apply --contract %s --config %s --kubeconfig %s",
 		input.Contract,
+		input.ClusterctlConfigPath,
+		input.KubeconfigPath,
 	)
 
 	upgradeOpt := clusterctlclient.ApplyUpgradeOptions{
@@ -140,6 +146,32 @@ func Upgrade(ctx context.Context, input UpgradeInput) {
 
 	err := clusterctlClient.ApplyUpgrade(upgradeOpt)
 	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl upgrade")
+}
+
+// UpgradeWithBinary uses clusterctl binary to run init with the list of providers defined in the local repository.
+func UpgradeWithBinary(_ context.Context, binary string, input UpgradeInput) {
+	log.Logf("clusterctl upgrade apply --contract %s --config %s --kubeconfig %s",
+		input.Contract,
+		input.ClusterctlConfigPath,
+		input.KubeconfigPath,
+	)
+
+	cmd := exec.Command(binary, "upgrade", //nolint:gosec // We don't care about command injection here.
+		"apply",
+		"--contract", input.Contract,
+		"--config", input.ClusterctlConfigPath,
+		"--kubeconfig", input.KubeconfigPath,
+	)
+
+	out, err := cmd.CombinedOutput()
+	_ = os.WriteFile(filepath.Join(input.LogFolder, "clusterctl-with-binary-upgrade.log"), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
+	var stdErr string
+	if err != nil {
+		if exitErr, ok := err.(*exec.ExitError); ok {
+			stdErr = string(exitErr.Stderr)
+		}
+	}
+	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl upgrade:\nstdout:\n%s\nstderr:\n%s", string(out), stdErr)
 }
 
 // DeleteInput is the input for Delete.

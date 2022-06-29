@@ -303,6 +303,22 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		)
 		Expect(err).NotTo(HaveOccurred())
 
+		log.Logf("Downloading clusterctl binary from %s", "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-linux-amd64")
+		clusterctlBinaryPath = downloadToTmpFile(ctx, "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-linux-amd64")
+		defer os.Remove(clusterctlBinaryPath) // clean up
+
+		err = os.Chmod(clusterctlBinaryPath, 0744) //nolint:gosec
+		Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
+
+		By("Upgrading providers to v0.4.8")
+		clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
+			ClusterctlBinaryPath: clusterctlBinaryPath, // use v0.4.8 version of clusterctl to upgrade the management cluster
+			ClusterctlConfigPath: input.ClusterctlConfigPath,
+			ClusterProxy:         managementClusterProxy,
+			Contract:             clusterv1alpha4.GroupVersion.Version,
+			LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
+		}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
+
 		By("Upgrading providers to the latest version available")
 		clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
 			ClusterctlConfigPath: input.ClusterctlConfigPath,

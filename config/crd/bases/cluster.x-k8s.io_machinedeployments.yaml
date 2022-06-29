@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.8.0
+    controller-gen.kubebuilder.io/version: v0.9.1
   creationTimestamp: null
   name: machinedeployments.cluster.x-k8s.io
 spec:
@@ -141,6 +141,7 @@ spec:
                       are ANDed.
                     type: object
                 type: object
+                x-kubernetes-map-type: atomic
               strategy:
                 description: The deployment strategy to use to replace existing machines
                   with new ones.
@@ -299,6 +300,7 @@ spec:
                           - name
                           - uid
                           type: object
+                          x-kubernetes-map-type: atomic
                         type: array
                     type: object
                   spec:
@@ -352,6 +354,7 @@ spec:
                                 description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                                 type: string
                             type: object
+                            x-kubernetes-map-type: atomic
                           data:
                             description: "Data contains the bootstrap data, such as
                               cloud-init details scripts. If nil, the Machine should
@@ -412,6 +415,7 @@ spec:
                             description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                             type: string
                         type: object
+                        x-kubernetes-map-type: atomic
                       nodeDrainTimeout:
                         description: 'NodeDrainTimeout is the total amount of time
                           that the controller will spend on draining a node. The default
@@ -637,6 +641,7 @@ spec:
                       are ANDed.
                     type: object
                 type: object
+                x-kubernetes-map-type: atomic
               strategy:
                 description: The deployment strategy to use to replace existing machines
                   with new ones.
@@ -772,6 +777,7 @@ spec:
                                 description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                                 type: string
                             type: object
+                            x-kubernetes-map-type: atomic
                           dataSecretName:
                             description: DataSecretName is the name of the secret
                               that stores the bootstrap data script. If nil, the Machine
@@ -826,6 +832,7 @@ spec:
                             description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                             type: string
                         type: object
+                        x-kubernetes-map-type: atomic
                       nodeDrainTimeout:
                         description: 'NodeDrainTimeout is the total amount of time
                           that the controller will spend on draining a node. The default
@@ -1104,6 +1111,7 @@ spec:
                       are ANDed.
                     type: object
                 type: object
+                x-kubernetes-map-type: atomic
               strategy:
                 description: The deployment strategy to use to replace existing machines
                   with new ones.
@@ -1239,6 +1247,7 @@ spec:
                                 description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                                 type: string
                             type: object
+                            x-kubernetes-map-type: atomic
                           dataSecretName:
                             description: DataSecretName is the name of the secret
                               that stores the bootstrap data script. If nil, the Machine
@@ -1293,6 +1302,7 @@ spec:
                             description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
                             type: string
                         type: object
+                        x-kubernetes-map-type: atomic
                       nodeDeletionTimeout:
                         description: NodeDeletionTimeout defines how long the controller
                           will attempt to delete the Node that the Machine hosts after
@@ -1438,9 +1448,3 @@ spec:
         specReplicasPath: .spec.replicas
         statusReplicasPath: .status.replicas
       status: {}
-status:
-  acceptedNames:
-    kind: ""
-    plural: ""
-  conditions: []
-  storedVersions: []

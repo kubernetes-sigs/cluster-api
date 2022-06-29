@@ -31,6 +31,8 @@ type providerKey struct{}
 type Runtime interface {
 	SaveContainerImage(ctx context.Context, image, dest string) error
 	PullContainerImageIfNotExists(ctx context.Context, image string) error
+	PullContainerImage(ctx context.Context, image string) error
+	ImageExistsLocally(ctx context.Context, image string) (bool, error)
 	GetHostPort(ctx context.Context, containerName, portAndProtocol string) (string, error)
 	GetContainerIPs(ctx context.Context, containerName string) (string, string, error)
 	ExecContainer(ctx context.Context, containerName string, config *ExecContainerInput, command string, args ...string) error

@@ -750,6 +750,7 @@ release-binaries: ## Build the binaries to publish with a release
 	RELEASE_BINARY=clusterctl-darwin-amd64 BUILD_PATH=./cmd/clusterctl GOOS=darwin GOARCH=amd64 $(MAKE) release-binary
 	RELEASE_BINARY=clusterctl-darwin-arm64 BUILD_PATH=./cmd/clusterctl GOOS=darwin GOARCH=arm64 $(MAKE) release-binary
 	RELEASE_BINARY=clusterctl-windows-amd64.exe BUILD_PATH=./cmd/clusterctl GOOS=windows GOARCH=amd64 $(MAKE) release-binary
+	RELEASE_BINARY=clusterctl-linux-ppc64le BUILD_PATH=./cmd/clusterctl GOOS=linux GOARCH=ppc64le $(MAKE) release-binary
 
 release-binary: $(RELEASE_DIR)
 	docker run \

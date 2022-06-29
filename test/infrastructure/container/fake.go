@@ -66,6 +66,16 @@ func (f *FakeRuntime) PullContainerImageIfNotExists(ctx context.Context, image s
 	return nil
 }
 
+// PullContainerImage triggers the Docker engine to pull an image.
+func (f *FakeRuntime) PullContainerImage(ctx context.Context, image string) error {
+	return nil
+}
+
+// ImageExistsLocally returns if the specified image exists in local container image cache.
+func (f *FakeRuntime) ImageExistsLocally(ctx context.Context, image string) (bool, error) {
+	return false, nil
+}
+
 // GetHostPort looks up the host port bound for the port and protocol (e.g. "6443/tcp").
 func (f *FakeRuntime) GetHostPort(ctx context.Context, containerName, portAndProtocol string) (string, error) {
 	return "", nil

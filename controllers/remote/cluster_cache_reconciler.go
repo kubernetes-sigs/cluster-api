@@ -19,7 +19,6 @@ package remote
 import (
 	"context"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -34,8 +33,6 @@ import (
 // ClusterCacheReconciler is responsible for stopping remote cluster caches when
 // the cluster for the remote cache is being deleted.
 type ClusterCacheReconciler struct {
-	// Deprecated: this field is unused and will be dropped in an upcoming release.
-	Log     logr.Logger
 	Client  client.Client
 	Tracker *ClusterCacheTracker
 

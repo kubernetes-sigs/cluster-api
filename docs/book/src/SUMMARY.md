@@ -59,6 +59,7 @@
         - [Control Plane](./developer/architecture/controllers/control-plane.md)
         - [MachinePool](./developer/architecture/controllers/machine-pool.md)
         - [ClusterTopology](./developer/architecture/controllers/cluster-topology.md)
+        - [ClusterResourceSet](./developer/architecture/controllers/cluster-resource-set.md)
         - [Metadata propagation](./developer/architecture/controllers/metadata-propagation.md)
         - [Multi-tenancy](./developer/architecture/controllers/multi-tenancy.md)
         - [Support multiple instances](./developer/architecture/controllers/support-multiple-instances.md)

@@ -31,7 +31,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -338,7 +337,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 					s.UpgradeTracker.MachineDeployments.HoldUpgrades(true)
 				} else {
 					if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
-						return "", errors.Wrapf(err, "failed to remove the %s hook from pending hooks tracker", runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade))
+						return "", err
 					}
 				}
 			}
@@ -390,7 +389,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 		// We are picking up the new version here.
 		// Track the intent of calling the AfterControlPlaneUpgrade and the AfterClusterUpgrade hooks once we are done with the upgrade.
 		if err := hooks.MarkAsPending(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade, runtimehooksv1.AfterClusterUpgrade); err != nil {
-			return "", errors.Wrapf(err, "failed to mark the %s hook as pending", []string{runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade), runtimecatalog.HookName(runtimehooksv1.AfterClusterUpgrade)})
+			return "", err
 		}
 	}
 

@@ -34,16 +34,17 @@ import (
 // MarkAsPending adds to the object's PendingHooksAnnotation the intent to execute a hook after an operation completes.
 // Usually this function is called when an operation is starting in order to track the intent to call an After<operation> hook later in the process.
 func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, hooks ...runtimecatalog.Hook) error {
-	patchHelper, err := patch.NewHelper(obj, c)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: obj})
-	}
-
-	// Read the annotation of the objects and add the hook to the comma separated list
 	hookNames := []string{}
 	for _, hook := range hooks {
 		hookNames = append(hookNames, runtimecatalog.HookName(hook))
 	}
+
+	patchHelper, err := patch.NewHelper(obj, c)
+	if err != nil {
+		return errors.Wrapf(err, "failed to mark %q hook(s) as pending: failed to create patch helper for %s", strings.Join(hookNames, ","), tlog.KObj{Obj: obj})
+	}
+
+	// Read the annotation of the objects and add the hook to the comma separated list
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
@@ -52,7 +53,7 @@ func MarkAsPending(ctx context.Context, c client.Client, obj client.Object, hook
 	obj.SetAnnotations(annotations)
 
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: obj})
+		return errors.Wrapf(err, "failed to mark %q hook(s) as pending: failed to patch %s", strings.Join(hookNames, ","), tlog.KObj{Obj: obj})
 	}
 
 	return nil
@@ -72,16 +73,17 @@ func IsPending(hook runtimecatalog.Hook, obj client.Object) bool {
 // Usually this func is called after all the registered extensions for the Hook returned an answer without requests
 // to hold on to the object's lifecycle (retryAfterSeconds).
 func MarkAsDone(ctx context.Context, c client.Client, obj client.Object, hooks ...runtimecatalog.Hook) error {
-	patchHelper, err := patch.NewHelper(obj, c)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: obj})
-	}
-
-	// Read the annotation of the objects and add the hook to the comma separated list
 	hookNames := []string{}
 	for _, hook := range hooks {
 		hookNames = append(hookNames, runtimecatalog.HookName(hook))
 	}
+
+	patchHelper, err := patch.NewHelper(obj, c)
+	if err != nil {
+		return errors.Wrapf(err, "failed to mark %q hook(s) as done: failed to create patch helper for %s", strings.Join(hookNames, ","), tlog.KObj{Obj: obj})
+	}
+
+	// Read the annotation of the objects and add the hook to the comma separated list
 	annotations := obj.GetAnnotations()
 	if annotations == nil {
 		annotations = map[string]string{}
@@ -93,7 +95,7 @@ func MarkAsDone(ctx context.Context, c client.Client, obj client.Object, hooks .
 	obj.SetAnnotations(annotations)
 
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: obj})
+		return errors.Wrapf(err, "failed to mark %q hook(s) as done: failed to patch %s", strings.Join(hookNames, ","), tlog.KObj{Obj: obj})
 	}
 
 	return nil
@@ -115,7 +117,7 @@ func IsOkToDelete(obj client.Object) bool {
 func MarkAsOkToDelete(ctx context.Context, c client.Client, obj client.Object) error {
 	patchHelper, err := patch.NewHelper(obj, c)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: obj})
+		return errors.Wrapf(err, "failed to mark %s as ok to delete: failed to create patch helper", tlog.KObj{Obj: obj})
 	}
 
 	annotations := obj.GetAnnotations()
@@ -126,7 +128,7 @@ func MarkAsOkToDelete(ctx context.Context, c client.Client, obj client.Object) e
 	obj.SetAnnotations(annotations)
 
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: obj})
+		return errors.Wrapf(err, "failed to mark %s as ok to delete: failed to patch", tlog.KObj{Obj: obj})
 	}
 
 	return nil

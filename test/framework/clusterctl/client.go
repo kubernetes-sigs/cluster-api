@@ -57,12 +57,14 @@ type InitInput struct {
 }
 
 // Init calls clusterctl init with the list of providers defined in the local repository.
-func Init(ctx context.Context, input InitInput) {
-	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s",
+func Init(_ context.Context, input InitInput) {
+	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s --config %s --kubeconfig %s",
 		input.CoreProvider,
 		strings.Join(input.BootstrapProviders, ","),
 		strings.Join(input.ControlPlaneProviders, ","),
 		strings.Join(input.InfrastructureProviders, ","),
+		input.ClusterctlConfigPath,
+		input.KubeconfigPath,
 	)
 
 	initOpt := clusterctlclient.InitOptions{
@@ -75,6 +77,7 @@ func Init(ctx context.Context, input InitInput) {
 		ControlPlaneProviders:   input.ControlPlaneProviders,
 		InfrastructureProviders: input.InfrastructureProviders,
 		LogUsageInstructions:    true,
+		WaitProviders:           true,
 	}
 
 	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-init.log", input.LogFolder)
@@ -86,11 +89,13 @@ func Init(ctx context.Context, input InitInput) {
 
 // InitWithBinary uses clusterctl binary to run init with the list of providers defined in the local repository.
 func InitWithBinary(_ context.Context, binary string, input InitInput) {
-	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s",
+	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s --config %s --kubeconfig %s",
 		input.CoreProvider,
 		strings.Join(input.BootstrapProviders, ","),
 		strings.Join(input.ControlPlaneProviders, ","),
 		strings.Join(input.InfrastructureProviders, ","),
+		input.ClusterctlConfigPath,
+		input.KubeconfigPath,
 	)
 
 	cmd := exec.Command(binary, "init", //nolint:gosec // We don't care about command injection here.
@@ -123,8 +128,10 @@ type UpgradeInput struct {
 
 // Upgrade calls clusterctl upgrade apply with the list of providers defined in the local repository.
 func Upgrade(ctx context.Context, input UpgradeInput) {
-	log.Logf("clusterctl upgrade apply --contract %s",
+	log.Logf("clusterctl upgrade apply --contract %s --config %s --kubeconfig %s",
 		input.Contract,
+		input.ClusterctlConfigPath,
+		input.KubeconfigPath,
 	)
 
 	upgradeOpt := clusterctlclient.ApplyUpgradeOptions{
@@ -132,7 +139,8 @@ func Upgrade(ctx context.Context, input UpgradeInput) {
 			Path:    input.KubeconfigPath,
 			Context: "",
 		},
-		Contract: input.Contract,
+		Contract:      input.Contract,
+		WaitProviders: true,
 	}
 
 	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-upgrade.log", input.LogFolder)

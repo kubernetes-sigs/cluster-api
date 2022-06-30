@@ -167,6 +167,27 @@ func Test_filterIgnoredPaths(t *testing.T) {
 				// we are filtering out spec.foo and then spec given that it is an empty map
 			},
 		},
+		{
+			name: "Cleanup empty nested maps",
+			ctx: &filterIntentInput{
+				path: contract.Path{},
+				value: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"bar": map[string]interface{}{
+							"foo": "123",
+						},
+					},
+				},
+				shouldFilter: isIgnorePath(
+					[]contract.Path{
+						{"spec", "bar", "foo"},
+					},
+				),
+			},
+			wantValue: map[string]interface{}{
+				// we are filtering out spec.bar.foo and then spec given that it is an empty map
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

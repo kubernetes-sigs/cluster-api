@@ -253,6 +253,12 @@ func (cm *certManagerClient) EnsureLatestVersion() error {
 		return nil
 	}
 
+	// Migrate CRs to latest CRD storage version, if necessary.
+	// Note: We have to do this before cert-manager is deleted so conversion webhooks still work.
+	if err := cm.migrateCRDs(); err != nil {
+		return err
+	}
+
 	// delete the cert-manager version currently installed (because it should be upgraded);
 	// NOTE: CRDs, and namespace are preserved in order to avoid deletion of user objects;
 	// web-hooks are preserved to avoid a user attempting to CREATE a cert-manager resource while the upgrade is in progress.
@@ -263,6 +269,30 @@ func (cm *certManagerClient) EnsureLatestVersion() error {
 
 	// Install cert-manager.
 	return cm.install()
+}
+
+func (cm *certManagerClient) migrateCRDs() error {
+	config, err := cm.configClient.CertManager().Get()
+	if err != nil {
+		return err
+	}
+
+	// Gets the new cert-manager components from the repository.
+	objs, err := cm.getManifestObjs(config)
+	if err != nil {
+		return err
+	}
+
+	c, err := cm.proxy.NewClient()
+	if err != nil {
+		return err
+	}
+
+	if err := newCRDMigrator(c).Run(ctx, objs); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (cm *certManagerClient) deleteObjs(objs []unstructured.Unstructured) error {

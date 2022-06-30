@@ -360,6 +360,31 @@ func (u *providerUpgrader) doUpgrade(upgradePlan *UpgradePlan) error {
 		return providers[a].GetProviderType().Order() < providers[b].GetProviderType().Order()
 	})
 
+	// Migrate CRs to latest CRD storage version, if necessary.
+	// Note: We have to do this before the providers are scaled down or deleted
+	// so conversion webhooks still work.
+	for _, upgradeItem := range providers {
+		// If there is not a specified next version, skip it (we are already up-to-date).
+		if upgradeItem.NextVersion == "" {
+			continue
+		}
+
+		// Gets the provider components for the target version.
+		components, err := u.getUpgradeComponents(upgradeItem)
+		if err != nil {
+			return err
+		}
+
+		c, err := u.proxy.NewClient()
+		if err != nil {
+			return err
+		}
+
+		if err := newCRDMigrator(c).Run(ctx, components.Objs()); err != nil {
+			return err
+		}
+	}
+
 	// Scale down all providers.
 	// This is done to ensure all Pods of all "old" provider Deployments have been deleted.
 	// Otherwise it can happen that a provider Pod survives the upgrade because we create

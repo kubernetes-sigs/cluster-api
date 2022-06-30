@@ -56,7 +56,7 @@ var configRepositoryCmd = &cobra.Command{
 		Display the list of providers and their repository configurations.
 
 		clusterctl ships with a list of known providers; if necessary, edit
-		$HOME/.cluster-api/clusterctl.yaml file to add new provider or to customize existing ones.`),
+		$HOME/.cluster-api/clusterctl.yaml file to add a new provider or to customize existing ones.`),
 
 	Example: Examples(`
 		# Displays the list of available providers.

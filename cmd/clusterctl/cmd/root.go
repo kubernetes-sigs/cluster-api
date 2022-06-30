@@ -46,7 +46,7 @@ var (
 var RootCmd = &cobra.Command{
 	Use:          "clusterctl",
 	SilenceUsage: true,
-	Short:        "clusterctl controls the lifecyle of a Cluster API management cluster",
+	Short:        "clusterctl controls the lifecycle of a Cluster API management cluster",
 	Long: LongDesc(`
 		Get started with Cluster API using clusterctl to create a management cluster,
 		install providers, and create templates for your workload cluster.`),

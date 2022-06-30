@@ -489,19 +489,6 @@ func (k KubeAwareAPIVersions) Less(i, j int) bool {
 	return k8sversion.CompareKubeAwareVersionStrings(k[i], k[j]) < 0
 }
 
-// MachinesByCreationTimestamp sorts a list of Machine by creation timestamp, using their names as a tie breaker.
-// Deprecated: This struct will be removed in a future release.
-type MachinesByCreationTimestamp []*clusterv1.Machine
-
-func (o MachinesByCreationTimestamp) Len() int      { return len(o) }
-func (o MachinesByCreationTimestamp) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
-func (o MachinesByCreationTimestamp) Less(i, j int) bool {
-	if o[i].CreationTimestamp.Equal(&o[j].CreationTimestamp) {
-		return o[i].Name < o[j].Name
-	}
-	return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
-}
-
 // ClusterToObjectsMapper returns a mapper function that gets a cluster and lists all objects for the object passed in
 // and returns a list of requests.
 // NB: The objects are required to have `clusterv1.ClusterLabelName` applied.

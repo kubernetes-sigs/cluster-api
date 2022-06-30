@@ -22,8 +22,8 @@ import (
 
 var getCmd = &cobra.Command{
 	Use:   "get",
-	Short: "Get info from a management or a workload cluster",
-	Long:  `Get info from a management or a workload cluster`,
+	Short: "Get info from a management or workload cluster",
+	Long:  `Get info from a management or workload cluster`,
 }
 
 func init() {

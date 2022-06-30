@@ -79,6 +79,7 @@ func filterIntent(ctx *filterIntentInput) bool {
 			// Ensure we are not leaving empty maps around.
 			if v, ok := fieldCtx.value.(map[string]interface{}); ok && len(v) == 0 {
 				delete(value, field)
+				gotDeletions = true
 			}
 		}
 	}

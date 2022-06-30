@@ -386,6 +386,49 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
 	})
+	t.Run("Error on object which has another uid due to immutability", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Get the current object (assumes tests to be run in sequence).
+		original := obj.DeepCopy()
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
+
+		// Create a patch helper for a modified object with some changes to what previously applied by th topology manager.
+		modified := obj.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "controlPlaneEndpoint", "host")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modified.Object, "changed-by-topology-controller", "spec", "bar")).To(Succeed())
+
+		// Set an other uid to original
+		original.SetUID("a-wrong-one")
+		modified.SetUID("")
+
+		// Create a patch helper which should fail because original's real UID changed.
+		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient())
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(p0.HasChanges()).To(BeTrue())
+		g.Expect(p0.HasSpecChanges()).To(BeTrue())
+		g.Expect(p0.Patch(ctx)).ToNot(Succeed())
+	})
+	t.Run("Error on object which does not exist (anymore) but was expected to get updated", func(t *testing.T) {
+		original := builder.TestInfrastructureCluster(ns.Name, "obj3").WithSpecFields(map[string]interface{}{
+			"spec.controlPlaneEndpoint.host": "1.2.3.4",
+			"spec.controlPlaneEndpoint.port": int64(1234),
+			"spec.foo":                       "", // this field is then explicitly ignored by the patch helper
+		}).Build()
+
+		modified := original.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "controlPlaneEndpoint", "host")).To(Succeed())
+
+		// Set a not existing uid to the not existing original object
+		original.SetUID("does-not-exist")
+
+		// Create a patch helper which should fail because original does not exist.
+		p0, err := NewServerSidePatchHelper(original, modified, env.GetClient())
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(p0.HasChanges()).To(BeTrue())
+		g.Expect(p0.HasSpecChanges()).To(BeTrue())
+		g.Expect(p0.Patch(ctx)).ToNot(Succeed())
+	})
 }
 
 func TestServerSideApply_CleanupLegacyManagedFields(t *testing.T) {

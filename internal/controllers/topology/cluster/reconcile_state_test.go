@@ -1660,7 +1660,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	md8Update := newFakeMachineDeploymentTopologyState("md-8-update", infrastructureMachineTemplate8Update, bootstrapTemplate8Update, nil)
 	infrastructureMachineTemplate8UpdateWithChanges := infrastructureMachineTemplate8Update.DeepCopy()
 	g.Expect(unstructured.SetNestedField(infrastructureMachineTemplate8UpdateWithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
-	bootstrapTemplate8UpdateWithChanges := bootstrapTemplate3.DeepCopy()
+	bootstrapTemplate8UpdateWithChanges := bootstrapTemplate8Update.DeepCopy()
 	g.Expect(unstructured.SetNestedField(bootstrapTemplate8UpdateWithChanges.Object, "foo", "spec", "template", "spec", "foo")).To(Succeed())
 	md8UpdateWithRotatedTemplates := newFakeMachineDeploymentTopologyState("md-8-update", infrastructureMachineTemplate8UpdateWithChanges, bootstrapTemplate8UpdateWithChanges, nil)
 

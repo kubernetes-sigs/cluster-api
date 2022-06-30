@@ -20,6 +20,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/gomega"
 
@@ -270,7 +271,9 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
 	log.Logf("Applying the cluster template yaml to the cluster")
-	Expect(input.ClusterProxy.Apply(ctx, workloadClusterTemplate, input.Args...)).To(Succeed())
+	Eventually(func() error {
+		return input.ClusterProxy.Apply(ctx, workloadClusterTemplate, input.Args...)
+	}, 10*time.Second).Should(Succeed(), "Failed to apply the cluster template")
 
 	log.Logf("Waiting for the cluster infrastructure to be provisioned")
 	result.Cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{

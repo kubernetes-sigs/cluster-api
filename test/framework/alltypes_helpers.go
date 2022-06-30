@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 )
 
 // GetCAPIResourcesInput is the input for GetCAPIResources.
@@ -167,7 +168,7 @@ func CreateRelatedResources(ctx context.Context, input CreateRelatedResourcesInp
 	By("creating related resources")
 	for i := range input.RelatedResources {
 		obj := input.RelatedResources[i]
-		By(fmt.Sprintf("creating a/an %s resource", obj.GetObjectKind().GroupVersionKind()))
+		Byf("creating a/an %s resource", obj.GetObjectKind().GroupVersionKind())
 		Eventually(func() error {
 			return input.Creator.Create(ctx, obj)
 		}, intervals...).Should(Succeed())

@@ -18,7 +18,6 @@ package framework
 
 import (
 	"context"
-	"fmt"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -27,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -152,7 +152,7 @@ type DeleteClusterInput struct {
 
 // DeleteCluster deletes the cluster and waits for everything the cluster owned to actually be gone.
 func DeleteCluster(ctx context.Context, input DeleteClusterInput) {
-	By(fmt.Sprintf("Deleting cluster %s", input.Cluster.GetName()))
+	Byf("Deleting cluster %s", input.Cluster.GetName())
 	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
 }
 
@@ -164,7 +164,7 @@ type WaitForClusterDeletedInput struct {
 
 // WaitForClusterDeleted waits until the cluster object has been deleted.
 func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput, intervals ...interface{}) {
-	By(fmt.Sprintf("Waiting for cluster %s to be deleted", input.Cluster.GetName()))
+	Byf("Waiting for cluster %s to be deleted", input.Cluster.GetName())
 	Eventually(func() bool {
 		cluster := &clusterv1.Cluster{}
 		key := client.ObjectKey{

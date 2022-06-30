@@ -482,7 +482,7 @@ type deleteClusterV1alpha3Input struct {
 
 // deleteClusterV1alpha3 deletes the cluster and waits for everything the cluster owned to actually be gone using the older API.
 func deleteClusterV1alpha3(ctx context.Context, input deleteClusterV1alpha3Input) {
-	By(fmt.Sprintf("Deleting cluster %s", input.Cluster.GetName()))
+	Byf("Deleting cluster %s", input.Cluster.GetName())
 	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
 }
 
@@ -494,7 +494,7 @@ type waitForClusterDeletedV1alpha3Input struct {
 
 // waitForClusterDeletedV1alpha3 waits until the cluster object has been deleted using the older API.
 func waitForClusterDeletedV1alpha3(ctx context.Context, input waitForClusterDeletedV1alpha3Input, intervals ...interface{}) {
-	By(fmt.Sprintf("Waiting for cluster %s to be deleted", input.Cluster.GetName()))
+	Byf("Waiting for cluster %s to be deleted", input.Cluster.GetName())
 	Eventually(func() bool {
 		cluster := &clusterv1alpha3.Cluster{}
 		key := client.ObjectKey{
@@ -552,7 +552,7 @@ type deleteClusterV1alpha4Input struct {
 
 // deleteClusterV1alpha4 deletes the cluster and waits for everything the cluster owned to actually be gone using the older API.
 func deleteClusterV1alpha4(ctx context.Context, input deleteClusterV1alpha4Input) {
-	By(fmt.Sprintf("Deleting cluster %s", input.Cluster.GetName()))
+	Byf("Deleting cluster %s", input.Cluster.GetName())
 	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
 }
 
@@ -564,7 +564,7 @@ type waitForClusterDeletedV1alpha4Input struct {
 
 // waitForClusterDeletedV1alpha4 waits until the cluster object has been deleted using the older API.
 func waitForClusterDeletedV1alpha4(ctx context.Context, input waitForClusterDeletedV1alpha4Input, intervals ...interface{}) {
-	By(fmt.Sprintf("Waiting for cluster %s to be deleted", input.Cluster.GetName()))
+	Byf("Waiting for cluster %s to be deleted", input.Cluster.GetName())
 	Eventually(func() bool {
 		cluster := &clusterv1alpha4.Cluster{}
 		key := client.ObjectKey{

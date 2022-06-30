@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 )
 
@@ -61,7 +62,7 @@ type WaitForDeploymentsAvailableInput struct {
 // all the desired replicas are in place.
 // This can be used to check if Cluster API controllers installed in the management cluster are working.
 func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAvailableInput, intervals ...interface{}) {
-	By(fmt.Sprintf("Waiting for deployment %s/%s to be available", input.Deployment.GetNamespace(), input.Deployment.GetName()))
+	Byf("Waiting for deployment %s/%s to be available", input.Deployment.GetNamespace(), input.Deployment.GetName())
 	deployment := &appsv1.Deployment{}
 	Eventually(func() bool {
 		key := client.ObjectKey{

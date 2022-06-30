@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -145,7 +146,7 @@ func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMach
 
 	machineDeploymentFD := pointer.StringDeref(input.MachineDeployment.Spec.Template.Spec.FailureDomain, "<None>")
 
-	By(fmt.Sprintf("Checking all the machines controlled by %s are in the %q failure domain", input.MachineDeployment.Name, machineDeploymentFD))
+	Byf("Checking all the machines controlled by %s are in the %q failure domain", input.MachineDeployment.Name, machineDeploymentFD)
 	selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
 	Expect(err).NotTo(HaveOccurred())
 

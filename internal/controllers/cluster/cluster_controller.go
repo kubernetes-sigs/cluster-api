@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/hooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -214,6 +215,14 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) 
 // reconcileDelete handles cluster deletion.
 func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
+
+	// If the RuntimeSDK and ClusterTopology flags are enabled, for clusters with managed topologies
+	// only proceed with delete if the cluster is marked as `ok-to-delete`
+	if feature.Gates.Enabled(feature.RuntimeSDK) && feature.Gates.Enabled(feature.ClusterTopology) {
+		if cluster.Spec.Topology != nil && !hooks.IsOkToDelete(cluster) {
+			return ctrl.Result{}, nil
+		}
+	}
 
 	descendants, err := r.listDescendants(ctx, cluster)
 	if err != nil {

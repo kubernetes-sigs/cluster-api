@@ -28,6 +28,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/pointer"
@@ -125,7 +126,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should create and upgrade a workload cluster", func() {
+	It("Should create, upgrade and delete a workload cluster", func() {
 		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		By("Deploy Test Extension")
 		testExtensionDeploymentTemplate, err := os.ReadFile(testExtensionPath) //nolint:gosec
@@ -228,11 +229,17 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
 		})
 
+		By("Dumping resources and deleting the workload cluster")
+		dumpAndDeleteCluster(ctx, input.BootstrapClusterProxy, namespace.Name, clusterName, input.ArtifactFolder)
+
+		beforeClusterDeleteHandler(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterName, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster"))
+
 		By("Checking all lifecycle hooks have been called")
 		// Assert that each hook has been called and returned "Success" during the test.
 		err = checkLifecycleHookResponses(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterName, map[string]string{
 			"BeforeClusterCreate":          "Success",
 			"BeforeClusterUpgrade":         "Success",
+			"BeforeClusterDelete":          "Success",
 			"AfterControlPlaneInitialized": "Success",
 			"AfterControlPlaneUpgrade":     "Success",
 			"AfterClusterUpgrade":          "Success",
@@ -300,6 +307,7 @@ func responsesConfigMap(name string, namespace *corev1.Namespace) *corev1.Config
 			"BeforeClusterCreate-preloadedResponse":      fmt.Sprintf(`{"Status": "Failure", "Message": %q}`, hookFailedMessage),
 			"BeforeClusterUpgrade-preloadedResponse":     fmt.Sprintf(`{"Status": "Failure", "Message": %q}`, hookFailedMessage),
 			"AfterControlPlaneUpgrade-preloadedResponse": fmt.Sprintf(`{"Status": "Failure", "Message": %q}`, hookFailedMessage),
+			"BeforeClusterDelete-preloadedResponse":      fmt.Sprintf(`{"Status": "Failure", "Message": %q}`, hookFailedMessage),
 
 			// Non-blocking hooks are set to Status:Success.
 			"AfterControlPlaneInitialized-preloadedResponse": `{"Status": "Success"}`,
@@ -347,9 +355,8 @@ func getLifecycleHookResponsesFromConfigMap(ctx context.Context, c client.Client
 // beforeClusterCreateTestHandler calls runtimeHookTestHandler with a blockedCondition function which returns false if
 // the Cluster has entered ClusterPhaseProvisioned.
 func beforeClusterCreateTestHandler(ctx context.Context, c client.Client, namespace, clusterName string, intervals []interface{}) {
-	log.Logf("Blocking with BeforeClusterCreate hook")
 	hookName := "BeforeClusterCreate"
-	runtimeHookTestHandler(ctx, c, namespace, clusterName, hookName, func() bool {
+	runtimeHookTestHandler(ctx, c, namespace, clusterName, hookName, true, func() bool {
 		blocked := true
 		// This hook should block the Cluster from entering the "Provisioned" state.
 		cluster := &clusterv1.Cluster{}
@@ -371,9 +378,8 @@ func beforeClusterCreateTestHandler(ctx context.Context, c client.Client, namesp
 // beforeClusterUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if the
 // Cluster has controlplanev1.RollingUpdateInProgressReason in its ReadyCondition.
 func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, namespace, clusterName string, intervals []interface{}) {
-	log.Logf("Blocking with BeforeClusterUpgrade hook")
 	hookName := "BeforeClusterUpgrade"
-	runtimeHookTestHandler(ctx, c, namespace, clusterName, hookName, func() bool {
+	runtimeHookTestHandler(ctx, c, namespace, clusterName, hookName, true, func() bool {
 		var blocked = true
 
 		cluster := &clusterv1.Cluster{}
@@ -397,9 +403,8 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, names
 // afterControlPlaneUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if any
 // MachineDeployment in the Cluster has upgraded to the target Kubernetes version.
 func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, namespace, clusterName, version string, intervals []interface{}) {
-	log.Logf("Blocking with AfterControlPlaneUpgrade hook")
 	hookName := "AfterControlPlaneUpgrade"
-	runtimeHookTestHandler(ctx, c, namespace, clusterName, hookName, func() bool {
+	runtimeHookTestHandler(ctx, c, namespace, clusterName, hookName, true, func() bool {
 		var blocked = true
 		cluster := &clusterv1.Cluster{}
 		Eventually(func() error {
@@ -429,15 +434,32 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, n
 	}, intervals)
 }
 
+// beforeClusterDeleteHandler calls runtimeHookTestHandler with a blocking function which returns false if the Cluster
+// can not be found in the API server.
+func beforeClusterDeleteHandler(ctx context.Context, c client.Client, namespace, clusterName string, intervals []interface{}) {
+	hookName := "BeforeClusterDelete"
+	runtimeHookTestHandler(ctx, c, namespace, clusterName, hookName, false, func() bool {
+		var blocked = true
+
+		// If the Cluster is not found it has been deleted and the hook is unblocked.
+		if apierrors.IsNotFound(c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: clusterName}, &clusterv1.Cluster{})) {
+			blocked = false
+		}
+		return blocked
+	}, intervals)
+}
+
 // runtimeHookTestHandler runs a series of tests in sequence to check if the runtimeHook passed to it succeeds.
-//	1) Checks that the hook has been called at least once the TopologyReconciled condition is a Failure.
+//	1) Checks that the hook has been called at least once and, if withTopologyReconciledCondition is set, checks that the TopologyReconciled condition is a Failure.
 //	2) Check that the hook's blockingCondition is consistently true.
 //	- At this point the function sets the hook's response to be non-blocking.
 //	3) Check that the hook's blocking condition becomes false.
 // Note: runtimeHookTestHandler assumes that the hook passed to it is currently returning a blocking response.
 // Updating the response to be non-blocking happens inline in the function.
-func runtimeHookTestHandler(ctx context.Context, c client.Client, namespace, clusterName, hookName string, blockingCondition func() bool, intervals []interface{}) {
-	// Check that the LifecycleHook has been called at least once and the TopologyReconciled condition is a Failure.
+func runtimeHookTestHandler(ctx context.Context, c client.Client, namespace, clusterName, hookName string, withTopologyReconciledCondition bool, blockingCondition func() bool, intervals []interface{}) {
+	log.Logf("Blocking with %s hook", hookName)
+
+	// Check that the LifecycleHook has been called at least once and - when required - that the TopologyReconciled condition is a Failure.
 	Eventually(func() error {
 		if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, namespace, clusterName, []string{hookName}); err != nil {
 			return err
@@ -446,7 +468,10 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, namespace, clu
 		if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: clusterName}, cluster); err != nil {
 			return err
 		}
-		if !(conditions.GetReason(cluster, clusterv1.TopologyReconciledCondition) == clusterv1.TopologyReconcileFailedReason) {
+
+		// Check for the existence of the condition if withTopologyReconciledCondition is true.
+		if withTopologyReconciledCondition &&
+			(conditions.GetReason(cluster, clusterv1.TopologyReconciledCondition) != clusterv1.TopologyReconcileFailedReason) {
 			return errors.New("Condition not found on Cluster object")
 		}
 		return nil
@@ -483,4 +508,28 @@ func clusterConditionShowsHookFailed(cluster *clusterv1.Cluster, hookName string
 	return conditions.GetReason(cluster, clusterv1.TopologyReconciledCondition) == clusterv1.TopologyReconcileFailedReason &&
 		strings.Contains(conditions.GetMessage(cluster, clusterv1.TopologyReconciledCondition), hookFailedMessage) &&
 		strings.Contains(conditions.GetMessage(cluster, clusterv1.TopologyReconciledCondition), hookName)
+}
+
+func dumpAndDeleteCluster(ctx context.Context, proxy framework.ClusterProxy, namespace, clusterName, artifactFolder string) {
+	By("Deleting the workload cluster")
+	cluster := &clusterv1.Cluster{}
+	Eventually(func() error {
+		return proxy.GetClient().Get(ctx, client.ObjectKey{Namespace: namespace, Name: clusterName}, cluster)
+	}).Should(Succeed())
+
+	// Dump all the logs from the workload cluster before deleting them.
+	proxy.CollectWorkloadClusterLogs(ctx, cluster.Namespace, cluster.Name, filepath.Join(artifactFolder, "clusters-beforeClusterDelete", cluster.Name))
+
+	// Dump all Cluster API related resources to artifacts before deleting them.
+	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
+		Lister:    proxy.GetClient(),
+		Namespace: namespace,
+		LogPath:   filepath.Join(artifactFolder, "clusters-beforeClusterDelete", proxy.GetName(), "resources"),
+	})
+
+	By("Deleting the workload cluster")
+	framework.DeleteCluster(ctx, framework.DeleteClusterInput{
+		Deleter: proxy.GetClient(),
+		Cluster: cluster,
+	})
 }

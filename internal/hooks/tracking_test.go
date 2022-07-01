@@ -212,3 +212,82 @@ func TestMarkAsDone(t *testing.T) {
 		})
 	}
 }
+
+func TestIsOkToDelete(t *testing.T) {
+	tests := []struct {
+		name string
+		obj  client.Object
+		want bool
+	}{
+		{
+			name: "should return true if the object has the 'ok-to-delete' annotation",
+			obj: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+					Annotations: map[string]string{
+						runtimev1.OkToDeleteAnnotation: "",
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "should return false if the object does not have the 'ok-to-delete' annotation",
+			obj: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+				},
+			},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(IsOkToDelete(tt.obj)).To(Equal(tt.want))
+		})
+	}
+}
+
+func TestMarkAsOkToDelete(t *testing.T) {
+	tests := []struct {
+		name string
+		obj  client.Object
+	}{
+		{
+			name: "should add the 'ok-to-delete' annotation on the object if not already present",
+			obj: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+				},
+			},
+		},
+		{
+			name: "should succeed if the 'ok-to-delete' annotation is already present",
+			obj: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+					Annotations: map[string]string{
+						runtimev1.OkToDeleteAnnotation: "",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.obj).Build()
+			ctx := context.Background()
+			g.Expect(MarkAsOkToDelete(ctx, fakeClient, tt.obj)).To(Succeed())
+			annotations := tt.obj.GetAnnotations()
+			g.Expect(annotations).To(HaveKey(runtimev1.OkToDeleteAnnotation))
+		})
+	}
+}

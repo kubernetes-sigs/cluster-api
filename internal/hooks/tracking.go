@@ -99,6 +99,39 @@ func MarkAsDone(ctx context.Context, c client.Client, obj client.Object, hooks .
 	return nil
 }
 
+// IsOkToDelete returns true if object has the OkToDeleteAnnotation in the annotations of the object, false otherwise.
+func IsOkToDelete(obj client.Object) bool {
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		return false
+	}
+	if _, ok := annotations[runtimev1.OkToDeleteAnnotation]; ok {
+		return true
+	}
+	return false
+}
+
+// MarkAsOkToDelete adds the OkToDeleteAnnotation annotation to the object and patches it.
+func MarkAsOkToDelete(ctx context.Context, c client.Client, obj client.Object) error {
+	patchHelper, err := patch.NewHelper(obj, c)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: obj})
+	}
+
+	annotations := obj.GetAnnotations()
+	if annotations == nil {
+		annotations = map[string]string{}
+	}
+	annotations[runtimev1.OkToDeleteAnnotation] = ""
+	obj.SetAnnotations(annotations)
+
+	if err := patchHelper.Patch(ctx, obj); err != nil {
+		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: obj})
+	}
+
+	return nil
+}
+
 func addToCommaSeparatedList(list string, items ...string) string {
 	set := sets.NewString(strings.Split(list, ",")...)
 	set.Insert(items...)

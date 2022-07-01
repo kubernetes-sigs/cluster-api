@@ -454,7 +454,7 @@ APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 apidiff: $(GO_APIDIFF) ## Check for API differences
 	$(GO_APIDIFF) $(APIDIFF_OLD_COMMIT) --print-compatible
 
-ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions
+ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions capi-book-summary
 
 .PHONY: verify
 verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
@@ -484,6 +484,10 @@ verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion 
 .PHONY: verify-doctoc
 verify-doctoc:
 	./hack/verify-doctoc.sh
+
+.PHONY: verify-capi-book-summary
+verify-capi-book-summary:
+	./hack/verify-capi-book-summary.sh
 
 .PHONY: verify-boilerplate
 verify-boilerplate: ## Verify boilerplate text exists in each file

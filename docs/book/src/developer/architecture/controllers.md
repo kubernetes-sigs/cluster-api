@@ -16,6 +16,8 @@ Documentation for the CAPI controllers can be found at:
   - [MachinePool](./controllers/machine-pool.md)
  - ClusterClass
   - [Cluster Topology](./controllers/cluster-topology.md)
+- AddOns
+   - [ClusterResourceSet](./controllers/cluster-resource-set.md)
 
 
 <!-- links -->

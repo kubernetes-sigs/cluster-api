@@ -155,6 +155,7 @@ func main() {
 		setupLog.Error(err, "error adding handler")
 		os.Exit(1)
 	}
+
 	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
 		Hook:           runtimehooksv1.AfterControlPlaneInitialized,
 		Name:           "after-control-plane-initialized",
@@ -165,6 +166,7 @@ func main() {
 		setupLog.Error(err, "error adding handler")
 		os.Exit(1)
 	}
+
 	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
 		Hook:           runtimehooksv1.BeforeClusterUpgrade,
 		Name:           "before-cluster-upgrade",
@@ -186,6 +188,7 @@ func main() {
 		setupLog.Error(err, "error adding handler")
 		os.Exit(1)
 	}
+
 	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
 		Hook:           runtimehooksv1.AfterClusterUpgrade,
 		Name:           "after-cluster-upgrade",
@@ -197,7 +200,18 @@ func main() {
 		os.Exit(1)
 	}
 
-	setupLog.Info("Starting Runtime Extension server", "version", version.Get().String())
+	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:           runtimehooksv1.BeforeClusterDelete,
+		Name:           "before-cluster-delete",
+		HandlerFunc:    lifecycleHandler.DoBeforeClusterDelete,
+		TimeoutSeconds: pointer.Int32(5),
+		FailurePolicy:  toPtr(runtimehooksv1.FailurePolicyFail),
+	}); err != nil {
+		setupLog.Error(err, "error adding handler")
+		os.Exit(1)
+	}
+
+	setupLog.Info("starting RuntimeExtension", "version", version.Get().String())
 	if err := webhookServer.Start(ctx); err != nil {
 		setupLog.Error(err, "error running webhook server")
 		os.Exit(1)

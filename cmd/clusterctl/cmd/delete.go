@@ -39,7 +39,7 @@ var dd = &deleteOptions{}
 
 var deleteCmd = &cobra.Command{
 	Use:   "delete [providers]",
-	Short: "Delete one or more providers from the management cluster.",
+	Short: "Delete one or more providers from the management cluster",
 	Long: LongDesc(`
 		Delete one or more providers from the management cluster.`),
 

@@ -51,7 +51,7 @@ var cro = &configRepositoriesOptions{}
 var configRepositoryCmd = &cobra.Command{
 	Use:   "repositories",
 	Args:  cobra.NoArgs,
-	Short: "Display the list of providers and their repository configurations.",
+	Short: "Display the list of providers and their repository configurations",
 	Long: LongDesc(`
 		Display the list of providers and their repository configurations.
 

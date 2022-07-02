@@ -22,7 +22,7 @@ import (
 
 var describeCmd = &cobra.Command{
 	Use:   "describe",
-	Short: "Describe workload clusters.",
+	Short: "Describe workload clusters",
 	Long:  `Describe the status of workload clusters.`,
 }
 

@@ -360,7 +360,7 @@ The initial plan is to add cluster-api-state-metrics as an experimental feature 
 ## Implementation History
 
 - [x] 03/02/2022: Proposed idea in an issue or [community meeting]
-- [x] 03/15/2022: [Compile a Google Doc] following the CAEP template
+- [x] 03/15/2022: Compile a Google Doc following the CAEP template
 - [x] 03/16/2022: Present proposal at a [community meeting]
 - [x] 03/16/2022: First round of feedback from community
 - [x] 04/11/2022: Open proposal PR
@@ -385,5 +385,4 @@ The initial plan is to add cluster-api-state-metrics as an experimental feature 
 [machine phases]: https://github.com/kubernetes-sigs/cluster-api/blob/main/api/v1beta1/machine_phase_types.go
 [cluster phases]: https://github.com/kubernetes-sigs/cluster-api/blob/main/api/v1beta1/cluster_phase_types.go
 [machinedeployment phases]: https://github.com/kubernetes-sigs/cluster-api/blob/07c0a4809361927b15cde2747b34142b7c7ead15/api/v1beta1/machinedeployment_types.go#L222-L224
-[Compile a Google Doc]: https://docs.google.com/document/d/1vY19lIfUYi68NkPuvnlcfxVUp2LiX2VfQVhsBzES7rE/edit?usp=sharing
 [community meeting]: https://docs.google.com/document/d/1ushaVqAKYnZ2VN_aa3GyKlS4kEd6bSug13xaXOakAQI

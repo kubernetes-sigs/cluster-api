@@ -150,7 +150,7 @@ func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input Wait
 			}
 		}
 		return count > 0, nil
-	}, intervals...).Should(BeTrue())
+	}, intervals...).Should(BeTrue(), "No Control Plane machines came into existence. ")
 }
 
 // WaitForControlPlaneToBeReadyInput is the input for WaitForControlPlaneToBeReady.

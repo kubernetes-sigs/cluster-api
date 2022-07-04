@@ -150,7 +150,7 @@ type DeleteClusterInput struct {
 	Cluster *clusterv1.Cluster
 }
 
-// DeleteCluster deletes the cluster and waits for everything the cluster owned to actually be gone.
+// DeleteCluster deletes the cluster.
 func DeleteCluster(ctx context.Context, input DeleteClusterInput) {
 	By(fmt.Sprintf("Deleting cluster %s", input.Cluster.GetName()))
 	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())

@@ -1,10 +1,11 @@
 # Repository Layout
 
-This page covers the repository structure and details about the directories in CAPI.
+This page covers the repository structure and details about the directories in Cluster API.
 
 ```
-projectapi
-└───api 
+cluster-api
+└───.github
+└───api
 └───bootstrap
 └───cmd
 │   │   clusterctl
@@ -17,14 +18,22 @@ projectapi
 └───feature
 └───hack
 └───internal
+└───logos
 └───scripts
 └───test
+└───third_party
 └───util
 └───version
 └───webhooks
 └───main.go
 └───Makefile
 ```
+
+### Github
+
+[~/.github](https://github.com/kubernetes-sigs/cluster-api/tree/main/.github)
+
+Contains GitHub workflow configuration and templates for Pull requests, bug reports etc.
 
 ### API
 
@@ -93,6 +102,10 @@ This folder contains reconciler types which provide access to CAPI controllers p
 
 This folder is a place for proposals, developer release guidelines and the Cluster API book.
 
+[~/logos](https://github.com/kubernetes-sigs/cluster-api/tree/main/logos)
+
+Cluster API related logos and artwork
+
 ### Tools
 
 [~/hack](https://github.com/kubernetes-sigs/cluster-api/tree/main/hack)
@@ -102,6 +115,10 @@ This folder has scripts used for building, testing and developer workflow.
 [~/scripts](https://github.com/kubernetes-sigs/cluster-api/tree/main/scripts)
 
 This folder consists of CI scripts related to setup, build and e2e tests. These are mostly called by CI jobs.
+
+[~/third_party](https://github.com/kubernetes-sigs/cluster-api/tree/main/third_party)
+
+This folder is used to copy code from other projects in-tree.
 
 ### Util, Feature and Errors
 

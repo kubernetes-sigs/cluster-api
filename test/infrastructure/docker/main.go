@@ -185,9 +185,33 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	log := ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")
+	tracker, err := remote.NewClusterCacheTracker(
+		mgr,
+		remote.ClusterCacheTrackerOptions{
+			Log:     &log,
+			Indexes: remote.DefaultIndexes,
+		},
+	)
+	if err != nil {
+		setupLog.Error(err, "unable to create cluster cache tracker")
+		os.Exit(1)
+	}
+
+	if err := (&remote.ClusterCacheReconciler{
+		Client:  mgr.GetClient(),
+		Tracker: tracker,
+	}).SetupWithManager(ctx, mgr, controller.Options{
+		MaxConcurrentReconciles: concurrency,
+	}); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
+		os.Exit(1)
+	}
+
 	if err := (&controllers.DockerMachineReconciler{
 		Client:           mgr.GetClient(),
 		ContainerRuntime: runtimeClient,
+		Tracker:          tracker,
 	}).SetupWithManager(ctx, mgr, controller.Options{
 		MaxConcurrentReconciles: concurrency,
 	}); err != nil {
@@ -207,9 +231,8 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		if err := (&expcontrollers.DockerMachinePoolReconciler{
 			Client:           mgr.GetClient(),
 			ContainerRuntime: runtimeClient,
-		}).SetupWithManager(ctx, mgr, controller.Options{
-			MaxConcurrentReconciles: concurrency,
-		}); err != nil {
+			Tracker:          tracker,
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: concurrency}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "DockerMachinePool")
 			os.Exit(1)
 		}

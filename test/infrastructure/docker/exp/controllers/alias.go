@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	dockermachinepoolcontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/internal/controllers"
 )
@@ -34,6 +35,7 @@ type DockerMachinePoolReconciler struct {
 	Client           client.Client
 	Scheme           *runtime.Scheme
 	ContainerRuntime container.Runtime
+	Tracker          *remote.ClusterCacheTracker
 }
 
 // SetupWithManager will add watches for this controller.
@@ -42,5 +44,6 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 		Client:           r.Client,
 		Scheme:           r.Scheme,
 		ContainerRuntime: r.ContainerRuntime,
+		Tracker:          r.Tracker,
 	}).SetupWithManager(ctx, mgr, options)
 }

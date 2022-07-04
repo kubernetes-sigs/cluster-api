@@ -28,8 +28,11 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	apimachinerytypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 
@@ -42,6 +45,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning/cloudinit"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning/ignition"
 	clusterapicontainer "sigs.k8s.io/cluster-api/util/container"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 const (
@@ -381,7 +385,7 @@ func (m *Machine) CheckForBootstrapSuccess(ctx context.Context) error {
 }
 
 // SetNodeProviderID sets the docker provider ID for the kubernetes node.
-func (m *Machine) SetNodeProviderID(ctx context.Context) error {
+func (m *Machine) SetNodeProviderID(ctx context.Context, c client.Client) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	kubectlNode, err := m.getKubectlNode(ctx)
@@ -392,20 +396,21 @@ func (m *Machine) SetNodeProviderID(ctx context.Context) error {
 		return errors.Wrapf(ContainerNotRunningError{Name: kubectlNode.Name}, "unable to set NodeProviderID")
 	}
 
+	node := &corev1.Node{}
+	if err = c.Get(ctx, apimachinerytypes.NamespacedName{Name: m.ContainerName()}, node); err != nil {
+		return errors.Wrap(err, "failed to retrieve node")
+	}
+
 	log.Info("Setting Kubernetes node providerID")
-	patch := fmt.Sprintf(`{"spec": {"providerID": %q}}`, m.ProviderID())
-	cmd := kubectlNode.Commander.Command(
-		"kubectl",
-		"--kubeconfig", "/etc/kubernetes/kubelet.conf",
-		"patch",
-		"node", m.ContainerName(),
-		"--patch", patch,
-	)
-	lines, err := cmd.RunLoggingOutputOnFail(ctx)
+
+	patchHelper, err := patch.NewHelper(node, c)
 	if err != nil {
-		for _, line := range lines {
-			log.Info(line)
-		}
+		return err
+	}
+
+	node.Spec.ProviderID = m.ProviderID()
+
+	if err = patchHelper.Patch(ctx, node); err != nil {
 		return errors.Wrap(err, "failed update providerID")
 	}
 

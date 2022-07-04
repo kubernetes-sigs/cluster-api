@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"reflect"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
@@ -30,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 // TwoWaysPatchHelper helps with a patch that yields the modified document when applied to the original document.
@@ -73,7 +73,7 @@ func NewTwoWaysPatchHelper(original, modified client.Object, c client.Client, op
 	// In case we are creating an object, we extend the set of allowed fields adding apiVersion, Kind
 	// metadata.name, metadata.namespace (who are required by the API server) and metadata.ownerReferences
 	// that gets set to avoid orphaned objects.
-	if isNil(original) {
+	if util.IsNil(original) {
 		helperOptions.allowedPaths = append(helperOptions.allowedPaths,
 			contract.Path{"apiVersion"},
 			contract.Path{"kind"},
@@ -89,7 +89,7 @@ func NewTwoWaysPatchHelper(original, modified client.Object, c client.Client, op
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to marshal original object to json")
 	}
-	if isNil(original) {
+	if util.IsNil(original) {
 		originalJSON = []byte("{}")
 	}
 
@@ -210,7 +210,7 @@ func (h *TwoWaysPatchHelper) Patch(ctx context.Context) error {
 	}
 	log := ctrl.LoggerFrom(ctx)
 
-	if isNil(h.original) {
+	if util.IsNil(h.original) {
 		modifiedMap := make(map[string]interface{})
 		if err := json.Unmarshal(h.patch, &modifiedMap); err != nil {
 			return errors.Wrap(err, "failed to unmarshal two way merge patch")
@@ -225,15 +225,4 @@ func (h *TwoWaysPatchHelper) Patch(ctx context.Context) error {
 	// Note: deepcopy before patching in order to avoid modifications to the original object.
 	log.V(5).Info("Patching object", "Patch", string(h.patch))
 	return h.client.Patch(ctx, h.original.DeepCopyObject().(client.Object), client.RawPatch(types.MergePatchType, h.patch))
-}
-
-func isNil(i interface{}) bool {
-	if i == nil {
-		return true
-	}
-	switch reflect.TypeOf(i).Kind() {
-	case reflect.Ptr, reflect.Map, reflect.Array, reflect.Chan, reflect.Slice:
-		return reflect.ValueOf(i).IsValid() && reflect.ValueOf(i).IsNil()
-	}
-	return false
 }

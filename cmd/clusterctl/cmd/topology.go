@@ -22,6 +22,6 @@ import (
 
 var topologyCmd = &cobra.Command{
 	Use:   "topology",
-	Short: "Commands for ClusterClass based clusters.",
+	Short: "Commands for ClusterClass based clusters",
 	Long:  `Commands for ClusterClass based clusters.`,
 }

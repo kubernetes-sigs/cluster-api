@@ -70,7 +70,7 @@ var dc = &describeClusterOptions{}
 
 var describeClusterClusterCmd = &cobra.Command{
 	Use:   "cluster",
-	Short: "Describe workload clusters.",
+	Short: "Describe workload clusters",
 	Long: LongDesc(`
 		Provide an "at glance" view of a Cluster API cluster designed to help the user in quickly
 		understanding if there are problems and where.

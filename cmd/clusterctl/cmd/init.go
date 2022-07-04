@@ -42,7 +42,7 @@ var initOpts = &initOptions{}
 
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize a management cluster.",
+	Short: "Initialize a management cluster",
 	Long: LongDesc(`
 		Initialize a management cluster.
 

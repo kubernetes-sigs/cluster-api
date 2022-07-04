@@ -22,7 +22,7 @@ import (
 
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Display clusterctl configuration.",
+	Short: "Display clusterctl configuration",
 	Long:  `Display clusterctl configuration.`,
 }
 

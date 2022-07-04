@@ -47,7 +47,7 @@ var tp = &topologyPlanOptions{}
 
 var topologyPlanCmd = &cobra.Command{
 	Use:   "plan",
-	Short: "List the changes to clusters that use managed topologies for a given input.",
+	Short: "List the changes to clusters that use managed topologies for a given input",
 	Long: LongDesc(`
 		Provide the list of objects that would be created, modified and deleted when an input file is applied.
 		The input can be a file with a new/modified cluster, new/modified ClusterClass, new/modified templates.

@@ -39,7 +39,7 @@ var gpo = &generateProvidersOptions{}
 var generateProviderCmd = &cobra.Command{
 	Use:   "provider",
 	Args:  cobra.NoArgs,
-	Short: "Generate templates for provider components.",
+	Short: "Generate templates for provider components",
 	Long: LongDesc(`
 		Generate templates for provider components.
 

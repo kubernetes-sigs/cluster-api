@@ -22,7 +22,7 @@ import (
 
 var alphaCmd = &cobra.Command{
 	Use:   "alpha",
-	Short: "Commands for features in alpha.",
+	Short: "Commands for features in alpha",
 	Long:  `These commands correspond to alpha features in clusterctl.`,
 }
 

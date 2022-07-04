@@ -19,7 +19,6 @@ package patch
 import (
 	"context"
 	"encoding/json"
-	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -33,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -51,8 +51,8 @@ type Helper struct {
 // NewHelper returns an initialized Helper.
 func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 	// Return early if the object is nil.
-	if err := checkNilObject(obj); err != nil {
-		return nil, err
+	if util.IsNil(obj) {
+		return nil, errors.New("helper could not be created: object is nil")
 	}
 
 	// Get the GroupVersionKind of the object,
@@ -83,8 +83,8 @@ func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 // Patch will attempt to patch the given object, including its status.
 func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) error {
 	// Return early if the object is nil.
-	if err := checkNilObject(obj); err != nil {
-		return err
+	if util.IsNil(obj) {
+		return errors.New("Patch could not be completed: object is nil")
 	}
 
 	// Get the GroupVersionKind of the object that we want to patch.
@@ -197,10 +197,13 @@ func (h *Helper) patchStatusConditions(ctx context.Context, obj client.Object, f
 	}
 
 	// Store the diff from the before/after object, and return early if there are no changes.
-	diff := conditions.NewPatch(
+	diff, err := conditions.NewPatch(
 		before,
 		after,
 	)
+	if err != nil {
+		return errors.Wrapf(err, "object can not be patched")
+	}
 	if diff.IsZero() {
 		return nil
 	}
@@ -297,13 +300,4 @@ func (h *Helper) calculateChanges(after client.Object) (map[string]bool, error) 
 		res[key] = true
 	}
 	return res, nil
-}
-
-func checkNilObject(obj client.Object) error {
-	// If you're wondering why we need reflection to do this check, see https://golang.org/doc/faq#nil_error.
-	// TODO(vincepri): Remove this check and let it panic if used improperly in a future minor release.
-	if obj == nil || (reflect.ValueOf(obj).IsValid() && reflect.ValueOf(obj).IsNil()) {
-		return errors.Errorf("expected non-nil object")
-	}
-	return nil
 }

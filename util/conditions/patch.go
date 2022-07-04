@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 // Patch defines a list of operations to change a list of conditions into another.
@@ -49,9 +50,16 @@ const (
 	RemoveConditionPatch PatchOperationType = "Remove"
 )
 
-// NewPatch returns the list of Patch required to align source conditions to after conditions.
-func NewPatch(before Getter, after Getter) Patch {
+// NewPatch returns the Patch required to align source conditions to after conditions.
+func NewPatch(before Getter, after Getter) (Patch, error) {
 	var patch Patch
+
+	if util.IsNil(before) {
+		return nil, errors.New("error creating patch: before object is nil")
+	}
+	if util.IsNil(after) {
+		return nil, errors.New("error creating patch: after object is nil")
+	}
 
 	// Identify AddCondition and ModifyCondition changes.
 	targetConditions := after.GetConditions()
@@ -77,7 +85,7 @@ func NewPatch(before Getter, after Getter) Patch {
 			patch = append(patch, PatchOperation{Op: RemoveConditionPatch, Before: &baseCondition})
 		}
 	}
-	return patch
+	return patch, nil
 }
 
 // applyOptions allows to set strategies for patch apply.
@@ -116,8 +124,12 @@ func WithForceOverwrite(v bool) ApplyOption {
 // Apply executes a three-way merge of a list of Patch.
 // When merge conflicts are detected (latest deviated from before in an incompatible way), an error is returned.
 func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
-	if len(p) == 0 {
+	if p.IsZero() {
 		return nil
+	}
+
+	if util.IsNil(latest) {
+		return errors.New("error patching conditions: latest object was nil")
 	}
 
 	applyOpt := &applyOptions{}
@@ -195,7 +207,10 @@ func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
 	return nil
 }
 
-// IsZero returns true if the patch has no changes.
+// IsZero returns true if the patch is nil or has no changes.
 func (p Patch) IsZero() bool {
+	if p == nil {
+		return true
+	}
 	return len(p) == 0
 }

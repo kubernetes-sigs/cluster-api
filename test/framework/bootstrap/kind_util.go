@@ -134,6 +134,7 @@ func LoadImagesToKindCluster(ctx context.Context, input LoadImagesToKindClusterI
 }
 
 // LoadImage will put a local image onto the kind node.
+// If the image doesn't exist locally we will attempt to pull it remotely.
 func loadImage(ctx context.Context, cluster, image string) error {
 	// Save the image into a tar
 	dir, err := os.MkdirTemp("", "image-tar")
@@ -147,7 +148,21 @@ func loadImage(ctx context.Context, cluster, image string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to access container runtime")
 	}
-
+	// in the nominal E2E scenario images have been locally built and added to cache
+	exists, err := containerRuntime.ImageExistsLocally(ctx, image)
+	if err != nil {
+		return errors.Wrapf(err, "error listing local image %s", image)
+	}
+	// in some scenarios we refer to a real reference image which may not have been pre-downloaded
+	if !exists {
+		log.Logf("Image %s not present in local container image cache, will pull", image)
+		err := containerRuntime.PullContainerImage(ctx, image)
+		if err != nil {
+			return errors.Wrapf(err, "error pulling image %q", image)
+		}
+	} else {
+		log.Logf("Image %s is present in local container image cache", image)
+	}
 	err = containerRuntime.SaveContainerImage(ctx, image, imageTarPath)
 	if err != nil {
 		return errors.Wrapf(err, "error saving image %q to %q", image, imageTarPath)

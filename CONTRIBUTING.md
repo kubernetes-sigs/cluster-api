@@ -174,14 +174,21 @@ When submitting the PR remember to label it with the 📖 (:book:) icon.
 
 ## Releases
 
-Cluster API uses [GitHub milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) to track releases. Issues in a release milestone have been prioritized and accepted for the release. However, these issues are not committed to the release, unless they are marked as `kind/release-blocking`. Getting them into the release is dependent on someone in the community getting assigned to the issue and completing the work.
-
 - Minor versions CAN be planned and scheduled for each quarter, or sooner if necessary.
   - Each minor version is preceded with one or more planning session.
   - Planning consists of one or more backlog grooming meetings, roadmap amendments,
     and CAEP proposal reviews.
-- Patch versions CAN be planned and scheduled each month for each of the currently supported series (usually N and N-1).
-- Code freeze is in effect 72 hours (3 days) before a release.
+  - Cluster API uses [GitHub milestones](https://github.com/kubernetes-sigs/cluster-api/milestones) to track work
+    for minor releases. 
+  - Adding an issue to a milestone provides forward visibility on what the next release will be, so, as soon as there
+    is the intent to work on an issue for a specific target release, contributors are expected to work with maintainers to 
+    set the milestone on the issue so it will be tracked for the release (note: only major features/bug fixes specifically
+    targeting a release must be tracked; everything else will simply merge when ready without additional toil). 
+  - Before adding an issue to a release milestone, maintainers must ensure that the issue have been triaged and
+    there is an assignee who expressed the intent to complete the work before the release date.
+  - An issue being in the milestone doesn't guarantee inclusion in the release; this depends on the work being
+    completed before the release code freeze target date.
+  - Code freeze is in effect at least 72 hours (3 days) before a major/minor release.
   - Maintainers should communicate the code freeze date at a community meeting preceding the code freeze date.
   - Only critical bug fixes may be merged in between freeze & release.
     - Each bug MUST be associated with an open issue and properly triaged.
@@ -189,8 +196,8 @@ Cluster API uses [GitHub milestones](https://github.com/kubernetes-sigs/cluster-
       - First approver should `/approve` and `/hold`.
       - Second approver should `/approve` and `/hold cancel`.
   - [E2E Test grid](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi%20e2e%20tests) SHOULD be green before cutting a release.
+- Patch versions CAN be planned and scheduled each month for supported minor releases.
 - Dates in a release are approximations and always subject to change.
-- `Next` milestone is for work that has been triaged, but not prioritized/accepted for any release.
 
 ## Proposal process (CAEP)
 
@@ -259,7 +266,16 @@ process.
 
 ## Features and bugs
 
-Open [issues](https://github.com/kubernetes-sigs/cluster-api/issues/new/choose) to report bugs, or minor features.
+Open [issues](https://github.com/kubernetes-sigs/cluster-api/issues/new/choose) to report bugs, or discuss minor feature implementation.
+
+Each new issue will be automatically labeled as `needs-triage`; after being triaged by the maintainers the label 
+will be removed and replaced by one of the following:
+
+- `triage/accepted`: Indicates an issue or PR is ready to be actively worked on.
+- `triage/duplicate`: Indicates an issue is a duplicate of another open issue. 
+- `triage/needs-information`: Indicates an issue needs more information in order to work on it. 
+- `triage/not-reproducible`: Indicates an issue can not be reproduced as described. 
+- `triage/unresolved`: Indicates an issue that can not or will not be resolved. 
 
 For big feature, API and contract amendments, we follow the CAEP process as outlined below.
 

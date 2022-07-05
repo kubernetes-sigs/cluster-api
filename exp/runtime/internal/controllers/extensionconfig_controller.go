@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -151,6 +152,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// Register the ExtensionConfig if it was found and patched without error.
+	log.Info("Registering ExtensionConfig information into registry")
 	if err = r.RuntimeClient.Register(discoveredExtensionConfig); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to register ExtensionConfig %s/%s", extensionConfig.Namespace, extensionConfig.Name)
 	}
@@ -175,7 +177,9 @@ func patchExtensionConfig(ctx context.Context, client client.Client, original, m
 
 // reconcileDelete will remove the ExtensionConfig from the registry on deletion of the object. Note this is a best
 // effort deletion that may not catch all cases.
-func (r *Reconciler) reconcileDelete(_ context.Context, extensionConfig *runtimev1.ExtensionConfig) (ctrl.Result, error) {
+func (r *Reconciler) reconcileDelete(ctx context.Context, extensionConfig *runtimev1.ExtensionConfig) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Unregistering ExtensionConfig information from registry")
 	if err := r.RuntimeClient.Unregister(extensionConfig); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to unregister %s", tlog.KObj{Obj: extensionConfig})
 	}
@@ -224,11 +228,15 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 // Note: This was implemented to behave similar to the cert-manager cainjector.
 // We couldn't use the cert-manager cainjector because it doesn't work with CustomResources.
 func reconcileCABundle(ctx context.Context, client client.Client, config *runtimev1.ExtensionConfig) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	secretNameRaw, ok := config.Annotations[runtimev1.InjectCAFromSecretAnnotation]
 	if !ok {
 		return nil
 	}
 	secretName := splitNamespacedName(secretNameRaw)
+
+	log.Info(fmt.Sprintf("Injecting CA Bundle into ExtensionConfig from secret %q", secretNameRaw))
 
 	if secretName.Namespace == "" || secretName.Name == "" {
 		return errors.Errorf("failed to reconcile caBundle: secret name %q must be in the form <namespace>/<name>", secretNameRaw)

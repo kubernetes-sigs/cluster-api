@@ -147,8 +147,8 @@ and
 ### Edit the manifests
 
 ```bash
-$EDITOR config/manager/manager_image_patch.yaml
-$EDITOR test/infrastructure/docker/config/manager/manager_image_patch.yaml
+$EDITOR config/default/manager_image_patch.yaml
+$EDITOR test/infrastructure/docker/config/default/manager_image_patch.yaml
 ```
 
 In both cases, change the `- image:` url to the digest URL mentioned above:
@@ -169,7 +169,7 @@ spec:
 
 ### Apply the manifests
 ```bash
-kustomize build config/ | ./hack/tools/bin/envsubst | kubectl apply -f -
+kustomize build config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
 ```
 ```bash
 namespace/capi-system configured
@@ -186,7 +186,7 @@ clusterrolebinding.rbac.authorization.k8s.io/capi-manager-rolebinding configured
 deployment.apps/capi-controller-manager created
 ```
 ```bash
-kustomize build test/infrastructure/docker/config | ./hack/tools/bin/envsubst | kubectl apply -f -
+kustomize build test/infrastructure/docker/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
 ```
 ```bash
 namespace/capd-system configured

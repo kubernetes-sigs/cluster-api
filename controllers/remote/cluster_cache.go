@@ -169,13 +169,13 @@ func (t *ClusterCacheTracker) getClusterAccessor(ctx context.Context, cluster cl
 	}
 
 	// We are the one who needs to initialize it.
-	log.V(4).Info("creating new cluster accessor")
+	log.V(4).Info("Creating new cluster accessor")
 	a, err := t.newClusterAccessor(ctx, cluster, indexes...)
 	if err != nil {
 		log.V(4).Info("error creating new cluster accessor")
 		return nil, errors.Wrap(err, "error creating client and cache for remote cluster")
 	}
-	log.V(4).Info("storing new cluster accessor")
+	log.V(4).Info("Storing new cluster accessor")
 	storeAccessor(a)
 	return a, nil
 }

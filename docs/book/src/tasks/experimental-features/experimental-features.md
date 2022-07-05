@@ -78,7 +78,7 @@ kubectl describe -n capi-system deployment.apps/capi-controller-manager
 * [ClusterResourceSet](./cluster-resource-set.md)
 * [ClusterClass](./cluster-class/index.md)
 * [Ignition Bootstrap configuration](./ignition.md)
-* [Runtime SDK](./runtime-sdk.md)
+* [Runtime SDK](runtime-sdk/index.md)
 
 **Warning**: Experimental features are unreliable, i.e., some may one day be promoted to the main repository, or they may be modified arbitrarily or even disappear altogether.
 In short, they are not subject to any compatibility or deprecation promise.

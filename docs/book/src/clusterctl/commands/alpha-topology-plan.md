@@ -24,7 +24,7 @@ the input should have all the objects needed.
 
 <aside class="note">
 
-<h1>Limitations</h1>
+<h1>Limitations: Server Side Apply</h1>
 
 The topology controllers uses [Server Side Apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/)
 to support use cases where other controllers are co-authoring the same objects, but this kind of interactions can't be recreated
@@ -40,6 +40,14 @@ More specifically:
 - DryRun doesn't consider existing metadata.managedFields, and this can lead to false negatives when topology dry run
   is simulating a change where a field is dropped from a template (DryRun always preserve dropped fields, like 
   server side apply when the field has more than one manager).
+
+</aside>
+
+<aside class="note">
+
+<h1>Limitations: RuntimeSDK</h1>
+
+Please note that `clusterctl` doesn't support Runtime SDK yet. This means that ClusterClasses with external patches are not yet supported.
 
 </aside>
 

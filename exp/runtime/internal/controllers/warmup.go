@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -89,6 +90,8 @@ func (r *warmupRunnable) Start(ctx context.Context) error {
 // warmupRegistry attempts to discover all existing ExtensionConfigs and patch their status with discovered Handlers.
 // It warms up the registry by passing it the up-to-date list of ExtensionConfigs.
 func warmupRegistry(ctx context.Context, client client.Client, reader client.Reader, runtimeClient runtimeclient.Client) error {
+	log := ctrl.LoggerFrom(ctx)
+
 	var errs []error
 
 	extensionConfigList := runtimev1.ExtensionConfigList{}
@@ -99,6 +102,9 @@ func warmupRegistry(ctx context.Context, client client.Client, reader client.Rea
 	for i := range extensionConfigList.Items {
 		extensionConfig := &extensionConfigList.Items[i]
 		original := extensionConfig.DeepCopy()
+
+		log := log.WithValues("extensionConfig", klog.KObj(extensionConfig), "name", extensionConfig.Name, "namespace", extensionConfig.Namespace)
+		ctx := ctrl.LoggerInto(ctx, log)
 
 		// Inject CABundle from secret if annotation is set. Otherwise https calls may fail.
 		if err := reconcileCABundle(ctx, client, extensionConfig); err != nil {
@@ -127,6 +133,8 @@ func warmupRegistry(ctx context.Context, client client.Client, reader client.Rea
 	if err := runtimeClient.WarmUp(&extensionConfigList); err != nil {
 		return err
 	}
+
+	log.Info("The extension registry is warmed up")
 
 	return nil
 }

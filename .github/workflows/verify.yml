@@ -1,6 +1,11 @@
+name: verify
+
 on:
   pull_request_target:
     types: [opened, edited, synchronize, reopened]
+
+permissions:
+  checks: write # Allow access to checks to write check runs.
 
 jobs:
   verify:

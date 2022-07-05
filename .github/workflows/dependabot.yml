@@ -9,6 +9,9 @@ on:
       - dependabot/**
   workflow_dispatch:
 
+permissions:
+  contents: write # Allow to update the PR.
+
 jobs:
   build:
     name: Build

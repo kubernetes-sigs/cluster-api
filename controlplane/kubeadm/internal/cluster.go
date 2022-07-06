@@ -116,6 +116,17 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 		return nil, err
 	}
 
+	clientConfig, err := m.Tracker.GetRESTConfig(ctx, clusterKey)
+	if err != nil {
+		return nil, err
+	}
+
+	// Make sure we use the same CA and Host as the client.
+	// Note: This has to be done to be able to communicate directly on self-hosted clusters.
+	restConfig.CAData = clientConfig.CAData
+	restConfig.CAFile = clientConfig.CAFile
+	restConfig.Host = clientConfig.Host
+
 	// Retrieves the etcd CA key Pair
 	crtData, keyData, err := m.getEtcdCAKeyPair(ctx, clusterKey)
 	if err != nil {

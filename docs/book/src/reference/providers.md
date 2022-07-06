@@ -34,6 +34,7 @@ updated info about which API version they are supporting.
 - [Equinix Metal (formerly Packet)](https://github.com/kubernetes-sigs/cluster-api-provider-packet)
 - [Sidero](https://github.com/siderolabs/sidero)
 - [Tencent Cloud](https://github.com/TencentCloud/cluster-api-provider-tencent)
+- [VMware Cloud Director](https://github.com/vmware/cluster-api-provider-cloud-director)  
 - [vSphere](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
 - [Microvm](https://github.com/weaveworks-liquidmetal/cluster-api-provider-microvm)
 

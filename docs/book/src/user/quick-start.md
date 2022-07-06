@@ -202,7 +202,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Metal3,Nutanix,Kubevirt,OCI,OpenStack,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Metal3,Nutanix,Kubevirt,OCI,OpenStack,VCD,vSphere"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases].
@@ -458,6 +458,17 @@ Please follow the Cluster API Provider for [Oracle Cloud Infrastructure (OCI) Ge
 ```bash
 # Initialize the management cluster
 clusterctl init --infrastructure openstack
+```
+
+{{#/tab }}
+{{#tab VCD}}
+
+Please follow the Cluster API Provider for [Cloud Director Getting Started Guide](https://github.com/vmware/cluster-api-provider-cloud-director/blob/main/README.md)
+
+EXP_CLUSTER_RESOURCE_SET: "true"
+```bash
+# Initialize the management cluster
+clusterctl init --infrastructure vcd
 ```
 
 {{#/tab }}
@@ -830,6 +841,18 @@ export OPENSTACK_EXTERNAL_NETWORK_ID=<external network ID>
 ```
 
 A full configuration reference can be found in [configuration.md](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/book/src/clusteropenstack/configuration.md).
+
+{{#/tab }}
+{{#tab VCD}}
+
+A ClusterAPI compatible image must be available in your VCD catalog. For instructions on how to build and upload a compatible image
+see [CAPVCD](https://github.com/vmware/cluster-api-provider-cloud-director)
+
+To see all required VCD environment variables execute:
+```bash
+clusterctl generate cluster --infrastructure vcd --list-variables capi-quickstart
+``
+
 
 {{#/tab }}
 {{#tab vSphere}}

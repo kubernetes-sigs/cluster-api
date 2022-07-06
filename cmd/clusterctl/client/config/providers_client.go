@@ -35,26 +35,27 @@ const (
 
 // Infra providers.
 const (
-	AWSProviderName        = "aws"
-	AzureProviderName      = "azure"
-	BYOHProviderName       = "byoh"
-	CloudStackProviderName = "cloudstack"
-	DockerProviderName     = "docker"
-	DOProviderName         = "digitalocean"
-	GCPProviderName        = "gcp"
-	HetznerProviderName    = "hetzner"
-	IBMCloudProviderName   = "ibmcloud"
-	Metal3ProviderName     = "metal3"
-	NestedProviderName     = "nested"
-	NutanixProviderName    = "nutanix"
-	OCIProviderName        = "oci"
-	OpenStackProviderName  = "openstack"
-	PacketProviderName     = "packet"
-	SideroProviderName     = "sidero"
-	VSphereProviderName    = "vsphere"
-	MAASProviderName       = "maas"
-	KubevirtProviderName   = "kubevirt"
-	VclusterProviderName   = "vcluster"
+	AWSProviderName            = "aws"
+	AzureProviderName          = "azure"
+	BYOHProviderName           = "byoh"
+	CloudStackProviderName     = "cloudstack"
+	DockerProviderName         = "docker"
+	DOProviderName             = "digitalocean"
+	GCPProviderName            = "gcp"
+	HetznerProviderName        = "hetzner"
+	IBMCloudProviderName       = "ibmcloud"
+	Metal3ProviderName         = "metal3"
+	NestedProviderName         = "nested"
+	NutanixProviderName        = "nutanix"
+	OCIProviderName            = "oci"
+	OpenStackProviderName      = "openstack"
+	PacketProviderName         = "packet"
+	SideroProviderName         = "sidero"
+	VCloudDirectorProviderName = "vcd"
+	VSphereProviderName        = "vsphere"
+	MAASProviderName           = "maas"
+	KubevirtProviderName       = "kubevirt"
+	VclusterProviderName       = "vcluster"
 )
 
 // Bootstrap providers.
@@ -176,6 +177,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         SideroProviderName,
 			url:          "https://github.com/siderolabs/sidero/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         VCloudDirectorProviderName,
+			url:          "https://github.com/vmware/cluster-api-provider-cloud-director/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

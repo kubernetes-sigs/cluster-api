@@ -104,7 +104,7 @@ if [[ "$${KUBERNETES_VERSION}" != "" ]]; then
   fi
   IMAGE_REGISTRY_PREFIX=registry.k8s.io
   # Kubernetes builds from 1.20 through 1.24 are tagged with k8s.gcr.io
-  if [[ "$${CI_VERSION}" =~ ^v1\.(1[0-9]|2[0-4])[\.[0-9]+ ]]; then
+  if [[ "$${KUBERNETES_VERSION}" =~ ^v1\.(1[0-9]|2[0-4])[\.[0-9]+ ]]; then
     IMAGE_REGISTRY_PREFIX=k8s.gcr.io
   fi
   for CI_CONTAINER in "$${CONTAINERS_TO_TEST[@]}"; do

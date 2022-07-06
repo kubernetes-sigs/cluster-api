@@ -76,7 +76,7 @@ func (r *ClusterCacheReconciler) Reconcile(ctx context.Context, req reconcile.Re
 
 	log.V(2).Info("Cluster no longer exists")
 
-	r.Tracker.deleteAccessor(req.NamespacedName)
+	r.Tracker.deleteAccessor(ctx, req.NamespacedName)
 
 	return reconcile.Result{}, nil
 }

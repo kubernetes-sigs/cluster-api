@@ -440,7 +440,7 @@ func kustomizeTask(path, out string) taskFunction {
 	}
 }
 
-// providerTask generates a task for creating the component yal for a provider and saving the output on a file.
+// providerTask generates a task for creating the component yaml for a provider and saving the output on a file.
 // NOTE: This task has several sub steps including running kustomize, envsubst, fixing components for debugging,
 // and adding the Provider resource mimicking what clusterctl init does.
 func providerTask(name, path string, ts *tiltSettings) taskFunction {
@@ -672,7 +672,7 @@ func getProviderObj(prefix string, objs []unstructured.Unstructured) (*unstructu
 		},
 		ProviderName: providerName,
 		Type:         providerType,
-		Version:      "v1.2.99",
+		Version:      "v1.3.99",
 	}
 
 	providerObj := &unstructured.Unstructured{}

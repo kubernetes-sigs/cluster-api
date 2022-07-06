@@ -126,6 +126,23 @@ func (h *Handler) DoAfterClusterUpgrade(ctx context.Context, request *runtimehoo
 	}
 }
 
+// DoBeforeClusterDelete implements the BeforeClusterDelete hook.
+func (h *Handler) DoBeforeClusterDelete(ctx context.Context, request *runtimehooksv1.BeforeClusterDeleteRequest, response *runtimehooksv1.BeforeClusterDeleteResponse) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("BeforeClusterDelete is called")
+	cluster := request.Cluster
+
+	if err := h.readResponseFromConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterDelete, response); err != nil {
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+		return
+	}
+	if err := h.recordCallInConfigMap(ctx, cluster.Name, cluster.Namespace, runtimehooksv1.BeforeClusterDelete, response); err != nil {
+		response.Status = runtimehooksv1.ResponseStatusFailure
+		response.Message = err.Error()
+	}
+}
+
 func (h *Handler) readResponseFromConfigMap(ctx context.Context, name, namespace string, hook runtimecatalog.Hook, response runtimehooksv1.ResponseObject) error {
 	hookName := runtimecatalog.HookName(hook)
 	configMap := &corev1.ConfigMap{}

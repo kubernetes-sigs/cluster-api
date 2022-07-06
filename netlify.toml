@@ -25,3 +25,9 @@
     to = "http://main.cluster-api.sigs.k8s.io/:splat"
     status = 301
     force = true
+
+[[headers]]
+    for = "/tasks/experimental-features/runtime-sdk/runtime-sdk-openapi.yaml"
+    [headers.values]
+        Access-Control-Allow-Origin = "*"
+        Access-Control-Allow-Methods = "*"

@@ -5,7 +5,16 @@ The `clusterctl generate cluster` command returns a YAML template for creating a
 For example
 
 ```bash
-clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 --control-plane-machine-count=3 --worker-machine-count=3 > my-cluster.yaml
+export AWS_REGION=us-east-1
+export AWS_SSH_KEY_NAME=default
+export AWS_CONTROL_PLANE_MACHINE_TYPE=t3.large
+export AWS_NODE_MACHINE_TYPE=t3.large
+clusterctl generate cluster capi-quickstart \
+  --kubernetes-version v1.24.0 \
+  --control-plane-machine-count=3 \
+  --worker-machine-count=3 \
+  --infrastructure aws:v1.4.1 \
+  > my-cluster.yaml
 ```
 
 Generates a YAML file named `my-cluster.yaml` with a predefined list of Cluster API objects; Cluster, Machines,
@@ -21,23 +30,27 @@ kubectl apply -f my-cluster.yaml
 
 ### Selecting the infrastructure provider to use
 
-The `clusterctl generate cluster` command uses smart defaults in order to simplify the user experience; in the example above,
+The `clusterctl generate cluster` command uses smart defaults in order to simplify the user experience. In the example below,
 it detects that there is only an `aws` infrastructure provider in the current management cluster and so it automatically
 selects a cluster template from the `aws` provider's repository.
+
+```bash
+clusterctl generate cluster my-cluster --kubernetes-version v1.24.0 > my-cluster.yaml
+```
 
 In case there is more than one infrastructure provider, the following syntax can be used to select which infrastructure
 provider to use for the workload cluster:
 
 ```bash
-clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
+clusterctl generate cluster my-cluster --kubernetes-version v1.24.0 \
     --infrastructure aws > my-cluster.yaml
 ```
 
 or
 
 ```bash
-clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
-    --infrastructure aws:v0.4.1 > my-cluster.yaml
+clusterctl generate cluster my-cluster --kubernetes-version v1.24.0 \
+    --infrastructure aws:v1.4.1 > my-cluster.yaml
 ```
 
 ### Flavors
@@ -46,7 +59,7 @@ The infrastructure provider authors can provide different types of cluster templ
 to specify which flavor to use; e.g.
 
 ```bash
-clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
+clusterctl generate cluster my-cluster --kubernetes-version v1.24.0 \
     --flavor high-availability > my-cluster.yaml
 ```
 
@@ -62,7 +75,7 @@ for cluster templates can be used as well:
 Use the `--from-config-map` flag to read cluster templates stored in a Kubernetes ConfigMap; e.g.
 
 ```bash
-clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
+clusterctl generate cluster my-cluster --kubernetes-version v1.24.0 \
     --from-config-map my-templates > my-cluster.yaml
 ```
 
@@ -74,14 +87,14 @@ Also following flags are available `--from-config-map-namespace` (defaults to cu
 Use the `--from` flag to read cluster templates stored in a GitHub repository or in a local file system folder; e.g.
 
 ```bash
-clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
+clusterctl generate cluster my-cluster --kubernetes-version v1.24.0 \
    --from https://github.com/my-org/my-repository/blob/main/my-template.yaml > my-cluster.yaml
 ```
 
 or
 
 ```bash
-clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
+clusterctl generate cluster my-cluster --kubernetes-version v1.24.0 \
    --from ~/my-template.yaml > my-cluster.yaml
 ```
 

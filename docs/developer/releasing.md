@@ -21,12 +21,20 @@ Images are built by the [post push images job](https://testgrid.k8s.io/sig-clust
    - `export GITHUB_TOKEN=<your GH token>`
    - `make promote-images`
 
+*Note*: `kpromo` uses `git@github.com:...` as remote to push the branch for the PR. If you don't have `ssh` set up you can configure 
+        git to use `https` instead via `git config --global url."https://github.com/".insteadOf git@github.com:`.
+
 This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPI maintainers.
 
 ## Release in GitHub
 
 1. Review the draft release on GitHub. Pay close attention to the `## :question: Sort these by hand` section, as it contains items that need to be manually sorted.
 1. Publish the release
+
+## Homebrew
+
+1. Publish `clusterctl` to Homebrew by bumping the version in [clusterctl.rb](https://github.com/Homebrew/homebrew-core/blob/master/Formula/clusterctl.rb).
+   For an example please see: [PR: clusterctl 1.1.5](https://github.com/Homebrew/homebrew-core/pull/105075/files).
 
 ### Versioning
 

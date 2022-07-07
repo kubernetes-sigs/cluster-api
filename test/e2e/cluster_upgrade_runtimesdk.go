@@ -488,7 +488,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, namespace, clu
 	Eventually(func() bool {
 		return blockingCondition()
 	}, intervals...).Should(BeFalse(),
-		fmt.Sprintf("ClusterTopology reconcile did proceed as expected when calling %s", hookName))
+		fmt.Sprintf("ClusterTopology reconcile did not proceed as expected when calling %s", hookName))
 }
 
 // clusterConditionShowsHookBlocking checks if the TopologyReconciled condition message contains both the hook name and hookFailedMessage.

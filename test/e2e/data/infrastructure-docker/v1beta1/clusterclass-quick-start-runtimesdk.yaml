@@ -34,27 +34,19 @@ spec:
             name: quick-start-default-worker-machinetemplate
   variables:
   - name: lbImageRepository
-    required: true
+    required: false
     schema:
       openAPIV3Schema:
         type: string
         default: kindest
-  - name: etcdImageTag
+  - name: imageRepository
     required: true
     schema:
       openAPIV3Schema:
         type: string
-        default: ""
-        example: "3.5.3-0"
-        description: "etcdImageTag sets the tag for the etcd image."
-  - name: coreDNSImageTag
-    required: true
-    schema:
-      openAPIV3Schema:
-        type: string
-        default: ""
-        example: "v1.8.5"
-        description: "coreDNSImageTag sets the tag for the coreDNS image."
+        default: "k8s.gcr.io"
+        example: "k8s.gcr.io"
+        description: "imageRepository sets the container registry to pull images from. If empty, `k8s.gcr.io` will be used by default."
   - name: kubeadmControlPlaneMaxSurge
     required: false
     schema:
@@ -68,114 +60,6 @@ spec:
     external:
       generateExtension: generate-patches.k8s-upgrade-with-runtimesdk
       validateExtension: validate-topology.k8s-upgrade-with-runtimesdk
-  # We have to pin the cgroupDriver to cgroupfs for Kubernetes < v1.24 because kind does not support systemd for those versions, but kubeadm >= 1.21 defaults to systemd.
-  - name: cgroupDriver-controlPlane
-    description: |
-      Sets the cgroupDriver to cgroupfs if a Kubernetes version < v1.24 is referenced.
-      This is required because kind and the node images do not support the default
-      systemd cgroupDriver for kubernetes < v1.24.
-    enabledIf: '{{ semverCompare "<= v1.23" .builtin.controlPlane.version }}'
-    definitions:
-    - selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-        kind: KubeadmControlPlaneTemplate
-        matchResources:
-          controlPlane: true
-      jsonPatches:
-      - op: add
-        path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/cgroup-driver"
-        value: cgroupfs
-      - op: add
-        path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cgroup-driver"
-        value: cgroupfs
-  - name: cgroupDriver-machineDeployment
-    description: |
-      Sets the cgroupDriver to cgroupfs if a Kubernetes version < v1.24 is referenced.
-      This is required because kind and the node images do not support the default
-      systemd cgroupDriver for kubernetes < v1.24.
-    enabledIf: '{{ semverCompare "<= v1.23" .builtin.machineDeployment.version }}'
-    definitions:
-    - selector:
-        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-        kind: KubeadmConfigTemplate
-        matchResources:
-          machineDeploymentClass:
-            names:
-            - default-worker
-      jsonPatches:
-      - op: add
-        path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cgroup-driver"
-        value: cgroupfs
-  - name: etcdImageTag
-    description: "Sets tag to use for the etcd image in the KubeadmControlPlane."
-    definitions:
-    - selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-        kind: KubeadmControlPlaneTemplate
-        matchResources:
-          controlPlane: true
-      jsonPatches:
-      - op: add
-        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/etcd"
-        valueFrom:
-          template: |
-            local:
-              imageTag: {{ .etcdImageTag }}
-  - name: coreDNSImageTag
-    description: "Sets tag to use for the etcd image in the KubeadmControlPlane."
-    definitions:
-    - selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-        kind: KubeadmControlPlaneTemplate
-        matchResources:
-          controlPlane: true
-      jsonPatches:
-      - op: add
-        path: "/spec/template/spec/kubeadmConfigSpec/clusterConfiguration/dns"
-        valueFrom:
-          template: |
-            imageTag: {{ .coreDNSImageTag }}
-  - name: customImage
-    description: "Sets the container image that is used for running dockerMachines for the controlPlane and default-worker machineDeployments."
-    definitions:
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: DockerMachineTemplate
-        matchResources:
-          machineDeploymentClass:
-            names:
-            - default-worker
-      jsonPatches:
-      - op: add
-        path: "/spec/template/spec/customImage"
-        valueFrom:
-          template: |
-            kindest/node:{{ .builtin.machineDeployment.version | replace "+" "_" }}
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: DockerMachineTemplate
-        matchResources:
-          controlPlane: true
-      jsonPatches:
-      - op: add
-        path: "/spec/template/spec/customImage"
-        valueFrom:
-          template: |
-            kindest/node:{{ .builtin.controlPlane.version | replace "+" "_" }}
-  - name: kubeadmControlPlaneMaxSurge
-    description: "Sets the maxSurge value used for rolloutStrategy in the KubeadmControlPlane."
-    enabledIf: '{{ ne .kubeadmControlPlaneMaxSurge "" }}'
-    definitions:
-    - selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-        kind: KubeadmControlPlaneTemplate
-        matchResources:
-          controlPlane: true
-      jsonPatches:
-      - op: add
-        path: /spec/template/spec/rolloutStrategy/rollingUpdate/maxSurge
-        valueFrom:
-          template: "{{ .kubeadmControlPlaneMaxSurge }}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate

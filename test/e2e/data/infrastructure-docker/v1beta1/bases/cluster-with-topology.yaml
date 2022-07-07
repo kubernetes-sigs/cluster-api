@@ -27,9 +27,9 @@ spec:
         replicas: ${WORKER_MACHINE_COUNT}
         failureDomain: fd4
     variables:
+      # We set an empty value to use the default tag kubeadm init is using.
     - name: etcdImageTag
-      # We set an empty value to use the default tag kubeadm init is using.
       value: ""
-    - name: coreDNSImageTag
       # We set an empty value to use the default tag kubeadm init is using.
+    - name: coreDNSImageTag
       value: ""

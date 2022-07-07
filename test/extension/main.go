@@ -28,11 +28,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/server"
@@ -57,6 +60,8 @@ var (
 
 func init() {
 	_ = infrav1.AddToScheme(scheme)
+	_ = controlplanev1.AddToScheme(scheme)
+	_ = bootstrapv1.AddToScheme(scheme)
 
 	// Register the RuntimeHook types into the catalog.
 	_ = runtimehooksv1.AddToCatalog(catalog)
@@ -113,6 +118,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Add the scheme with registered types to the topologyMutationHandler
 	topologyMutationHandler := topologymutation.NewHandler(scheme)
 
 	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{

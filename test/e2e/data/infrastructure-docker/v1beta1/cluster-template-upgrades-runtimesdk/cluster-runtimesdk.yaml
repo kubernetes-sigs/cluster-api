@@ -3,6 +3,29 @@ kind: Cluster
 metadata:
   name: '${CLUSTER_NAME}'
   namespace: default
+  labels:
+    cni: "${CLUSTER_NAME}-crs-0"
 spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ['${DOCKER_SERVICE_CIDRS}']
+    pods:
+      cidrBlocks: ['${DOCKER_POD_CIDRS}']
+    serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
   topology:
     class: "quick-start-runtimesdk"
+    version: "${KUBERNETES_VERSION}"
+    controlPlane:
+      metadata: {}
+      nodeDeletionTimeout: "30s"
+      replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+    workers:
+      machineDeployments:
+        - class: "default-worker"
+          name: "md-0"
+          nodeDeletionTimeout: "30s"
+          replicas: ${WORKER_MACHINE_COUNT}
+          failureDomain: fd4
+    variables:
+      - name: kubeadmControlPlaneMaxSurge
+        value: "1"

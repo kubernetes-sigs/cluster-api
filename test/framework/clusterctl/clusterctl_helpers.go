@@ -186,6 +186,7 @@ type ApplyClusterTemplateAndWaitInput struct {
 	WaitForMachinePools          []interface{}
 	Args                         []string // extra args to be used during `kubectl apply`
 	PreWaitForCluster            func()
+	PostMachinesProvisioned      func()
 	ControlPlaneWaiters
 }
 
@@ -327,6 +328,11 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		Lister:  input.ClusterProxy.GetClient(),
 		Cluster: result.Cluster,
 	}, input.WaitForMachinePools...)
+
+	if input.PostMachinesProvisioned != nil {
+		log.Logf("Calling PostMachinesProvisioned")
+		input.PostMachinesProvisioned()
+	}
 }
 
 // setDefaults sets the default values for ApplyClusterTemplateAndWaitInput if not set.

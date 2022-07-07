@@ -324,7 +324,7 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 
 	log.V(1).Info("Pausing the source cluster classes")
 	if err := setClusterClassPause(o.fromProxy, clusterClasses, true, o.dryRun); err != nil {
-		return errors.Wrap(err, "error pausing cluser classes")
+		return errors.Wrap(err, "error pausing cluster classes")
 	}
 
 	// Ensure all the expected target namespaces are in place before creating objects.
@@ -384,7 +384,7 @@ func (o *objectMover) backup(graph *objectGraph, directory string) error {
 
 	log.V(1).Info("Pausing the source cluster classes")
 	if err := setClusterClassPause(o.fromProxy, clusterClasses, true, o.dryRun); err != nil {
-		return errors.Wrap(err, "error pausing cluser classes")
+		return errors.Wrap(err, "error pausing cluster classes")
 	}
 
 	// Define the move sequence by processing the ownerReference chain, so we ensure that a Kubernetes object is moved only after its owners.

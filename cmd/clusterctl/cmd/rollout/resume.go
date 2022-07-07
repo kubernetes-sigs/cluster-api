@@ -37,11 +37,14 @@ var (
 	resumeLong = templates.LongDesc(`
 		Resume a paused cluster-api resource
 
-	        Paused resources will not be reconciled by a controller. By resuming a resource, we allow it to be reconciled again. Currently only MachineDeployments support being resumed.`)
+	        Paused resources will not be reconciled by a controller. By resuming a resource, we allow it to be reconciled again. Currently only MachineDeployments and KubeadmControlPlanes support being resumed.`)
 
 	resumeExample = templates.Examples(`
 		# Resume an already paused machinedeployment
-		clusterctl alpha rollout resume machinedeployment/my-md-0`)
+		clusterctl alpha rollout resume machinedeployment/my-md-0
+
+		# Resume a kubeadmcontrolplane
+		clusterctl alpha rollout resume kubeadmcontrolplane/my-kcp`)
 )
 
 // NewCmdRolloutResume returns a Command instance for 'rollout resume' sub command.

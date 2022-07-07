@@ -17,15 +17,13 @@ limitations under the License.
 package alpha
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
 // ObjectRestarter will issue a restart on the specified cluster-api resource.
@@ -42,14 +40,22 @@ func (r *rollout) ObjectRestarter(proxy cluster.Proxy, ref corev1.ObjectReferenc
 		if err := setRestartedAtAnnotation(proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
+	case KubeadmControlPlane:
+		kcp, err := getKubeadmControlPlane(proxy, ref.Name, ref.Namespace)
+		if err != nil || kcp == nil {
+			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
+		}
+		if annotations.HasPaused(kcp.GetObjectMeta()) {
+			return errors.Errorf("can't restart paused KubeadmControlPlane (remove annotation 'cluster.x-k8s.io/paused' first): %v/%v", ref.Kind, ref.Name)
+		}
+		if kcp.Spec.RolloutAfter != nil && kcp.Spec.RolloutAfter.After(time.Now()) {
+			return errors.Errorf("can't update KubeadmControlPlane (remove 'spec.rolloutAfter' first): %v/%v", ref.Kind, ref.Name)
+		}
+		if err := setRolloutAfter(proxy, ref.Name, ref.Namespace); err != nil {
+			return err
+		}
 	default:
 		return errors.Errorf("Invalid resource type %v. Valid values: %v", ref.Kind, validResourceTypes)
 	}
 	return nil
-}
-
-// setRestartedAtAnnotation sets the restartedAt annotation in the MachineDeployment's spec.template.objectmeta.
-func setRestartedAtAnnotation(proxy cluster.Proxy, name, namespace string) error {
-	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/restartedAt\":\"%v\"}}}}}", time.Now().Format(time.RFC3339))))
-	return patchMachineDeployment(proxy, name, namespace, patch)
 }

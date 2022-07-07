@@ -22,10 +22,17 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
-// MachineDeployment is a resource type.
-const MachineDeployment = "machinedeployment"
+const (
+	// MachineDeployment is a resource type.
+	MachineDeployment = "machinedeployment"
+	// KubeadmControlPlane is a resource type.
+	KubeadmControlPlane = "kubeadmcontrolplane"
+)
 
-var validResourceTypes = []string{MachineDeployment}
+var validResourceTypes = []string{
+	MachineDeployment,
+	KubeadmControlPlane,
+}
 
 // Rollout defines the behavior of a rollout implementation.
 type Rollout interface {

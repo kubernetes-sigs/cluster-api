@@ -71,8 +71,26 @@ documentation](https://docs.tilt.dev/api.html#api.default_registry) for more det
 **enable_providers** (Array[]String, default=['docker']): A list of the providers to enable. See [available providers](#available-providers)
 for more details.
 
+**template_dirs** (Map{String: Array[]String}, default={"docker": [
+"./test/infrastructure/docker/templates"]}): A map of providers to directories containing cluster templates. An example of the field is given below. See [Deploying a workload cluster](#deploying-a-workload-cluster) for how this is used.
+
+```yaml
+template_dirs:
+  docker:
+  - ./test/infrastructure/docker/templates
+  - <other-template-dir>
+  azure:
+  - <azure-template-dir>
+  aws:
+  - <aws-template-dir>
+  gcp:
+  - <gcp-template-dir>
+```
+
 **kustomize_substitutions** (Map{String: String}, default={}): An optional map of substitutions for `${}`-style placeholders in the
-provider's yaml. **Note**: When running E2E tests locally using an existing cluster managed by Tilt, the following substitutions are required for successful tests:
+provider's yaml. These substitutions are also used when deploying cluster templates. See [Deploying a workload cluster](#deploying-a-workload-cluster).
+
+**Note**: When running E2E tests locally using an existing cluster managed by Tilt, the following substitutions are required for successful tests:
 ```yaml
 kustomize_substitutions:
   CLUSTER_TOPOLOGY: "true"
@@ -258,7 +276,27 @@ create a cluster. There are [example worker cluster
 configs](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker/examples) available.
 These can be customized for your specific needs.
 
-<aside class="note">
+### Deploying a workload cluster
+
+After your kind management cluster is up and running with Tilt, you can deploy a workload clusters in the Tilt web UI based off of YAML templates from specified directories. By default, templates are read from `./test/infrastructure/docker/templates`.
+
+These deployment resources are found in the Tilt web UI under the label grouping `<provider>-cluster-templates` and `<provider>-clusterclasses` for each specified provider, i.e. `docker-cluster-templates` and `docker-clusterclasses`.
+
+The `<provider>-cluster-templates` category contains cluster templates, you can create a cluster by clicking "Create cluster" or the clockwise arrow icon ⟳. Note that each time a cluster template is deployed, it deploys a new workload cluster in addition to the existing ones. To delete all clusters based off of a template, click on "Delete \<cluster-template\> cluster," and click on "Delete all workload clusters" to delete all workload clusters.
+
+The `<provider>-clusterclasses` category contains ClusterClass definitions and you can create them by clicking on the "Create clusterclass" or the clockwise arrow icon ⟳ and delete them by clicking on "Delete clusterclass".
+
+Variables in a cluster template are substituted with values from `kustomize_substitutions` in `tilt-settings.yaml`. The default substitutions are:
+
+```yaml
+kustomize_substitutions:
+  NAMESPACE: default
+  KUBERNETES_VERSION: v1.24.0
+  CONTROL_PLANE_MACHINE_COUNT: 1
+  WORKER_MACHINE_COUNT: 3
+```
+
+Lastly, cluster template directories can be specified from the `template_dirs` field in `tilt-settings.yaml`. See [tilt-settings fields](#tilt-settings-fields) for an example.
 
 <h1>Use of clusterctl</h1>
 

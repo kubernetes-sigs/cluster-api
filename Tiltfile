@@ -1,6 +1,13 @@
 # -*- mode: Python -*-
 
-load("ext://uibutton", "cmd_button", "text_input")
+envsubst_cmd = "./hack/tools/bin/envsubst"
+clusterctl_cmd = "./bin/clusterctl"
+kubectl_cmd = "kubectl"
+
+if str(local("command -v " + kubectl_cmd + " || true", quiet = True)) == "":
+    fail("Required command '" + kubectl_cmd + "' not found in PATH")
+
+load("ext://uibutton", "cmd_button", "location", "text_input")
 
 # set defaults
 version_settings(True, ">=0.22.2")
@@ -107,6 +114,9 @@ COPY --from=tilt-helper /usr/bin/kubectl /usr/bin/kubectl
         "label": "CAPD",
     },
 }
+
+def ensure_clusterctl():
+    local("make clusterctl")
 
 # Reads a provider's tilt-provider.json file and merges it into the providers map.
 # A list of dictionaries is also supported by enclosing it in brackets []
@@ -388,9 +398,109 @@ def prepare_all():
     )
     local(cmd, env = settings.get("kustomize_substitutions", {}))
 
+# create cluster template resources from cluster-template files in the templates directory
+def cluster_templates():
+    substitutions = settings.get("kustomize_substitutions", {})
+
+    template_dirs = settings.get("template_dirs", {
+        "docker": ["./test/infrastructure/docker/templates"],
+    })
+
+    for provider, provider_dirs in template_dirs.items():
+        for template_dir in provider_dirs:
+            template_list = [filename for filename in listdir(template_dir) if os.path.basename(filename).endswith("yaml")]
+            for filename in template_list:
+                deploy_templates(filename, provider, substitutions)
+
+def deploy_templates(filename, provider, substitutions):
+    # validate filename exists
+    if not os.path.exists(filename):
+        fail(filename + " not found")
+
+    os.environ["NAMESPACE"] = substitutions.get("NAMESPACE", "default")
+    os.environ["KUBERNETES_VERSION"] = substitutions.get("KUBERNETES_VERSION", "v1.24.0")
+    os.environ["CONTROL_PLANE_MACHINE_COUNT"] = substitutions.get("CONTROL_PLANE_MACHINE_COUNT", "1")
+    os.environ["WORKER_MACHINE_COUNT"] = substitutions.get("WORKER_MACHINE_COUNT", "3")
+
+    basename = os.path.basename(filename)
+    if basename.endswith(".yaml"):
+        if basename.startswith("clusterclass-"):
+            template_name = basename.replace("clusterclass-", "").replace(".yaml", "")
+            deploy_clusterclass(template_name, provider, filename)
+        elif basename.startswith("cluster-template-"):
+            clusterclass_name = basename.replace("cluster-template-", "").replace(".yaml", "")
+            deploy_cluster_template(clusterclass_name, provider, filename)
+
+def deploy_clusterclass(clusterclass_name, provider, filename):
+    apply_clusterclass_cmd = "cat " + filename + " | " + envsubst_cmd + " | " + kubectl_cmd + " apply -f - && echo \"ClusterClass created from\'" + filename + "\', don't forget to delete\n\""
+    delete_clusterclass_cmd = kubectl_cmd + " delete clusterclass " + clusterclass_name + ' --ignore-not-found=true; echo "\n"'
+
+    local_resource(
+        name = clusterclass_name,
+        cmd = ["bash", "-c", apply_clusterclass_cmd],
+        auto_init = False,
+        trigger_mode = TRIGGER_MODE_MANUAL,
+        labels = [provider + "-clusterclasses"],
+    )
+
+    cmd_button(
+        clusterclass_name + ":apply",
+        argv = ["bash", "-c", apply_clusterclass_cmd],
+        resource = clusterclass_name,
+        icon_name = "note_add",
+        text = "Apply ClusterClass",
+    )
+
+    cmd_button(
+        clusterclass_name + ":delete",
+        argv = ["bash", "-c", delete_clusterclass_cmd],
+        resource = clusterclass_name,
+        icon_name = "delete_forever",
+        text = "Delete ClusterClass",
+    )
+
+def deploy_cluster_template(template_name, provider, filename):
+    apply_cluster_template_cmd = "CLUSTER_NAME=" + template_name + "-$RANDOM; " + clusterctl_cmd + " generate cluster $CLUSTER_NAME --from " + filename + " | " + kubectl_cmd + " apply -f - && echo \"Cluster '$CLUSTER_NAME' created, don't forget to delete\n\""
+
+    delete_clusters_cmd = 'DELETED=$(echo "$(bash -c "' + kubectl_cmd + ' get clusters --no-headers -o custom-columns=":metadata.name"")" | grep -E "^' + template_name + '-[[:digit:]]{1,5}$"); if [ -z "$DELETED" ]; then echo "Nothing to delete for cluster template ' + template_name + '"; else echo "Deleting clusters:\n$DELETED\n"; echo $DELETED | xargs -L1 ' + kubectl_cmd + ' delete cluster; fi; echo "\n"'
+
+    local_resource(
+        name = template_name,
+        cmd = ["bash", "-c", apply_cluster_template_cmd],
+        auto_init = False,
+        trigger_mode = TRIGGER_MODE_MANUAL,
+        labels = [provider + "-cluster-templates"],
+    )
+
+    cmd_button(
+        template_name + ":apply",
+        argv = ["bash", "-c", apply_cluster_template_cmd],
+        resource = template_name,
+        icon_name = "add_box",
+        text = "Create `" + template_name + "` cluster",
+    )
+
+    cmd_button(
+        template_name + ":delete",
+        argv = ["bash", "-c", delete_clusters_cmd],
+        resource = template_name,
+        icon_name = "delete_forever",
+        text = "Delete `" + template_name + "` clusters",
+    )
+
+    cmd_button(
+        template_name + ":delete-all",
+        argv = ["bash", "-c", kubectl_cmd + " delete clusters --all --wait=false"],
+        resource = template_name,
+        icon_name = "delete_sweep",
+        text = "Delete all workload clusters",
+    )
+
 ##############################
 # Actual work happens here
 ##############################
+
+ensure_clusterctl()
 
 include_user_tilt_files()
 
@@ -403,3 +513,5 @@ deploy_provider_crds()
 deploy_observability()
 
 enable_providers()
+
+cluster_templates()

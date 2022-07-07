@@ -19,6 +19,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -88,7 +89,12 @@ var generateClusterClusterCmd = &cobra.Command{
 		# Prints the list of variables required by the yaml file for creating workload cluster.
 		clusterctl generate cluster my-cluster --list-variables`),
 
-	Args: cobra.ExactArgs(1),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 1 {
+			return errors.New("please specify a cluster name")
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runGenerateClusterTemplate(cmd, args[0])
 	},

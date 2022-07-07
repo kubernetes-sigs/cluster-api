@@ -117,6 +117,15 @@ const (
 	// An external controller must fulfill the contract of the InfraCluster resource.
 	// External infrastructure providers should ensure that the annotation, once set, cannot be removed.
 	ManagedByAnnotation = "cluster.x-k8s.io/managed-by"
+
+	// TopologyDryRunAnnotation is an annotation that gets set on objects by the topology controller
+	// only during a server side dry run apply operation. It is used for validating
+	// update webhooks for objects which get updated by template rotation (e.g. InfrastructureMachineTemplate).
+	// When the annotation is set and the admission request is a dry run, the webhook should
+	// deny validation due to immutability. By that the request will succeed (without
+	// any changes to the actual object because it is a dry run) and the topology controller
+	// will receive the resulting object.
+	TopologyDryRunAnnotation = "topology.cluster.x-k8s.io/dry-run"
 )
 
 const (

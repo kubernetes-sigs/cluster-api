@@ -23,7 +23,7 @@ import (
 )
 
 // PatchHelperFactoryFunc defines a func that returns a new PatchHelper.
-type PatchHelperFactoryFunc func(original, modified client.Object, opts ...HelperOption) (PatchHelper, error)
+type PatchHelperFactoryFunc func(ctx context.Context, original, modified client.Object, opts ...HelperOption) (PatchHelper, error)
 
 // PatchHelper define the behavior for component responsible for managing  patches for Kubernetes objects
 // owned by the topology controller.

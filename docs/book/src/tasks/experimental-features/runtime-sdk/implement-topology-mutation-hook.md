@@ -125,7 +125,7 @@ items:
   patch: <JSON-patch>
 ```
 
-For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/proposals/images/topology-mutation-hook/runtime-sdk-openapi.yaml).
+For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
 
 We are considering to introduce a library to facilitate development of External Patch Extensions. It would provide capabilities like:
 * Accessing builtin variables
@@ -179,4 +179,12 @@ status: Success # or Failure
 message: "error message if status == Failure"
 ```
 
-For additional details, refer to the [Draft OpenAPI spec](https://editor.swagger.io/?url=https://raw.githubusercontent.com/kubernetes-sigs/cluster-api/main/docs/proposals/images/topology-mutation-hook/runtime-sdk-openapi.yaml).
+For additional details, you can see the full schema in <button onclick="openSwaggerUI()">Swagger UI</button>.
+
+<script>
+// openSwaggerUI calculates the absolute URL of the RuntimeSDK YAML file and opens Swagger UI.
+function openSwaggerUI() {
+  var schemaURL = new URL("runtime-sdk-openapi.yaml", document.baseURI).href
+  window.open("https://editor.swagger.io/?url=" + schemaURL)
+}
+</script>

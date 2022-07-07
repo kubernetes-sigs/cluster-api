@@ -248,7 +248,8 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		return ctrl.Result{}, errors.Wrap(err, "failed to list machines")
 	}
 
-	// Filter out irrelevant machines (deleting/mismatch labels) and claim orphaned machines.
+	// Filter out irrelevant machines (i.e. IsControlledBy something else) and claim orphaned machines.
+	// Machines in deleted state are deliberately not excluded https://github.com/kubernetes-sigs/cluster-api/pull/3434.
 	filteredMachines := make([]*clusterv1.Machine, 0, len(allMachines.Items))
 	for idx := range allMachines.Items {
 		machine := &allMachines.Items[idx]

@@ -18,285 +18,149 @@ package structuredmerge
 
 import (
 	"encoding/json"
-	"fmt"
-	"reflect"
-	"strings"
 
+	jsonpatch "github.com/evanphx/json-patch/v5"
+	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
 )
 
-// getTopologyManagedFields returns metadata.managedFields entry tracking
-// server side apply operations for the topology controller.
-func getTopologyManagedFields(original client.Object) map[string]interface{} {
-	r := map[string]interface{}{}
-
-	for _, m := range original.GetManagedFields() {
-		if m.Operation == metav1.ManagedFieldsOperationApply &&
-			m.Manager == TopologyManagerName &&
-			m.APIVersion == original.GetObjectKind().GroupVersionKind().GroupVersion().String() {
-			// NOTE: API server ensures this is a valid json.
-			err := json.Unmarshal(m.FieldsV1.Raw, &r)
-			if err != nil {
-				continue
-			}
-			break
-		}
-	}
-	return r
+type dryRunSSAPatchInput struct {
+	client client.Client
+	// originalUnstructured contains the current state of the object
+	originalUnstructured *unstructured.Unstructured
+	// dryRunUnstructured contains the intended changes to the object and will be used to
+	// compare to the originalUnstructured object afterwards.
+	dryRunUnstructured *unstructured.Unstructured
+	// helperOptions contains the helper options for filtering the intent.
+	helperOptions *HelperOptions
 }
 
-// dryRunPatch determine if the intent defined in the modified object is going to trigger
-// an actual change when running server side apply, and if this change might impact the object spec or not.
-// NOTE: This func checks if:
-// - something previously managed is missing from intent (a field has been deleted from modified)
-// - the value for a field previously managed is changing in the intent (a field has been changed in modified)
-// - the intent contains something not previously managed (a field has been added to modified).
-func dryRunPatch(ctx *dryRunInput) (hasChanges, hasSpecChanges bool) {
-	// If the func is processing a modified element of type map
-	if modifiedMap, ok := ctx.modified.(map[string]interface{}); ok {
-		// NOTE: ignoring the error in case the element wasn't in original.
-		originalMap, _ := ctx.original.(map[string]interface{})
-
-		// Process mapType/structType = granular, previously not empty.
-		// NOTE: mapType/structType = atomic is managed like scalar values down in the func;
-		// a map is atomic when the corresponding FieldV1 doesn't have info for the nested fields.
-		if len(ctx.fieldsV1) > 0 {
-			// Process all the fields the modified map
-			keys := sets.NewString()
-			hasChanges, hasSpecChanges = false, false
-			for field, fieldValue := range modifiedMap {
-				// Skip apiVersion, kind, metadata.name and metadata.namespace which are required field for a
-				// server side apply intent but not tracked into metadata.managedFields, otherwise they will be
-				// considered as a new field added to modified because not previously managed.
-				if len(ctx.path) == 0 && (field == "apiVersion" || field == "kind") {
-					continue
-				}
-				if len(ctx.path) == 1 && ctx.path[0] == "metadata" && (field == "name" || field == "namespace") {
-					continue
-				}
-
-				keys.Insert(field)
-
-				// If this isn't the root of the object and there are already changes detected, it is possible
-				// to skip processing sibling fields.
-				if len(ctx.path) > 0 && hasChanges {
-					continue
-				}
-
-				// Compute the field path.
-				fieldPath := ctx.path.Append(field)
-
-				// Get the managed field for this key.
-				// NOTE: ignoring the conversion error that could happen when modified has a field not previously managed
-				fieldV1, _ := ctx.fieldsV1[fmt.Sprintf("f:%s", field)].(map[string]interface{})
-
-				// Get the original value.
-				fieldOriginalValue := originalMap[field]
-
-				// Check for changes in the field value.
-				fieldHasChanges, fieldHasSpecChanges := dryRunPatch(&dryRunInput{
-					path:     fieldPath,
-					fieldsV1: fieldV1,
-					modified: fieldValue,
-					original: fieldOriginalValue,
-				})
-				hasChanges = hasChanges || fieldHasChanges
-				hasSpecChanges = hasSpecChanges || fieldHasSpecChanges
-			}
-
-			// Process all the fields the corresponding managed field to identify fields previously managed being
-			// dropped from modified.
-			for fieldV1 := range ctx.fieldsV1 {
-				// Drops "." as it represent the parent field.
-				if fieldV1 == "." {
-					continue
-				}
-				field := strings.TrimPrefix(fieldV1, "f:")
-				if !keys.Has(field) {
-					fieldPath := ctx.path.Append(field)
-					return pathToResult(fieldPath)
-				}
-			}
-			return
-		}
+// dryRunSSAPatch uses server side apply dry run to determine if the operation is going to change the actual object.
+func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, bool, error) {
+	// For dry run we use the same options as for the intent but with adding metadata.managedFields
+	// to ensure that changes to ownership are detected.
+	dryRunHelperOptions := &HelperOptions{
+		allowedPaths: append(dryRunCtx.helperOptions.allowedPaths, []string{"metadata", "managedFields"}),
+		ignorePaths:  dryRunCtx.helperOptions.ignorePaths,
 	}
 
-	// If the func is processing a modified element of type list
-	if modifiedList, ok := ctx.modified.([]interface{}); ok {
-		// NOTE: ignoring the error in case the element wasn't in original.
-		originalList, _ := ctx.original.([]interface{})
-
-		// Process listType = map/set, previously not empty.
-		// NOTE: listType = map/set but previously empty is managed like scalar values down in the func.
-		if len(ctx.fieldsV1) != 0 {
-			// If the number of items is changed from the previous reconcile it is already clear that
-			// something is changed without checking all the items.
-			// NOTE: this assumes the root of the object isn't a list, which is true for all the K8s objects.
-			if len(modifiedList) != len(ctx.fieldsV1) || len(modifiedList) != len(originalList) {
-				return pathToResult(ctx.path)
-			}
-
-			// Otherwise, check the item in the list one by one.
-
-			// if the list is a listMap
-			if isListMap(ctx.fieldsV1) {
-				for itemKeys, itemFieldsV1 := range ctx.fieldsV1 {
-					// Get the keys for the current item.
-					keys := getFieldV1Keys(itemKeys)
-
-					// Get the corresponding original and modified item.
-					modifiedItem := getItemWithKeys(modifiedList, keys)
-					originalItem := getItemWithKeys(originalList, keys)
-
-					// Get the managed field for this item.
-					// NOTE: ignoring conversion failures because itemFieldsV1 are always of this type.
-					fieldV1Map, _ := itemFieldsV1.(map[string]interface{})
-
-					// Check for changes in the item value.
-					itemHasChanges, itemHasSpecChanges := dryRunPatch(&dryRunInput{
-						path:     ctx.path,
-						fieldsV1: fieldV1Map,
-						modified: modifiedItem,
-						original: originalItem,
-					})
-					hasChanges = hasChanges || itemHasChanges
-					hasSpecChanges = hasSpecChanges || itemHasSpecChanges
-
-					// If there are already changes detected, it is possible to skip processing other items.
-					if hasChanges {
-						break
-					}
-				}
-				return
-			}
-
-			if isListSet(ctx.fieldsV1) {
-				s := sets.NewString()
-				for v := range ctx.fieldsV1 {
-					s.Insert(strings.TrimPrefix(v, "v:"))
-				}
-
-				for _, v := range modifiedList {
-					// NOTE: ignoring this error because API server ensures the keys in listMap are scalars value.
-					vString, _ := v.(string)
-					if !s.Has(vString) {
-						return pathToResult(ctx.path)
-					}
-				}
-				return
-			}
-		}
-
-		// NOTE: listType = atomic is managed like scalar values down in the func;
-		// a list is atomic when the corresponding FieldV1 doesn't have info for the list items.
+	// Add TopologyDryRunAnnotation to notify validation webhooks to skip immutability checks.
+	if err := unstructured.SetNestedField(dryRunCtx.dryRunUnstructured.Object, "", "metadata", "annotations", clusterv1.TopologyDryRunAnnotation); err != nil {
+		return false, false, errors.Wrap(err, "failed to add topology dry-run annotation")
 	}
 
-	// Otherwise, the func is processing scalar or atomic values.
-
-	// Check if the field has been added (it wasn't managed before).
-	// NOTE: This prevents false positive when handling metadata, because it is required to have metadata.name and metadata.namespace
-	// in modified, but they are not tracked as managed field.
-	notManagedBefore := ctx.fieldsV1 == nil
-	if len(ctx.path) == 1 && ctx.path[0] == "metadata" {
-		notManagedBefore = false
+	// Do a server-side apply dry-run request to get the updated object.
+	err := dryRunCtx.client.Patch(ctx, dryRunCtx.dryRunUnstructured, client.Apply, client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
+	if err != nil {
+		// This catches errors like metadata.uid changes.
+		return false, false, errors.Wrap(err, "failed to request dry-run server side apply")
 	}
 
-	// Check if the field value is changed.
-	// NOTE: it is required to use reflect.DeepEqual because in case of atomic map or lists the value is not a scalar value.
-	valueChanged := !reflect.DeepEqual(ctx.modified, ctx.original)
-
-	if notManagedBefore || valueChanged {
-		return pathToResult(ctx.path)
+	// Cleanup the dryRunUnstructured object to remove the added TopologyDryRunAnnotation
+	// and remove the affected managedFields  for `manager=capi-topology` which would
+	// otherwise show the additional field ownership for the annotation we added and
+	// the changed managedField timestamp.
+	if err := cleanupTopologyDryRunAnnotation(dryRunCtx.dryRunUnstructured); err != nil {
+		return false, false, errors.Wrap(err, "failed to filter topology dry-run annotation on dryRunUnstructured")
 	}
-	return false, false
-}
-
-type dryRunInput struct {
-	// the path of the field being processed.
-	path contract.Path
-	// fieldsV1 for the current path.
-	fieldsV1 map[string]interface{}
-
-	// the original and the modified value for the current path.
-	modified interface{}
-	original interface{}
-}
-
-// pathToResult determine if a change in a path impact the spec.
-// We assume there is always a change when this call is called; additionally
-// we determine the change impacts spec when the path is the root of the object
-// or the path starts with spec.
-func pathToResult(p contract.Path) (hasChanges, hasSpecChanges bool) {
-	return true, len(p) == 0 || (len(p) > 0 && p[0] == "spec")
-}
-
-// getFieldV1Keys returns the keys for a listMap item in metadata.managedFields;
-// e.g. given the `"k:{\"field1\":\"id1\"}": {...}` item in a ListMap it returns {field1:id1}.
-func getFieldV1Keys(v string) map[string]string {
-	keys := map[string]string{}
-	keysJSON := strings.TrimPrefix(v, "k:")
-	// NOTE: ignoring this error because API server ensures this is a valid yaml.
-	_ = json.Unmarshal([]byte(keysJSON), &keys)
-	return keys
-}
-
-// getItemKeys returns the keys value pairs for an item in the list.
-// e.g. given keys {field1:id1} and values `"{field1:id2, foo:foo}"` it returns {field1:id2}.
-// NOTE: keys comes for managedFields, while values comes from the actual object.
-func getItemKeys(keys map[string]string, values map[string]interface{}) map[string]string {
-	keyValues := map[string]string{}
-	for k := range keys {
-		if v, ok := values[k]; ok {
-			// NOTE: API server ensures the keys in listMap are scalars value.
-			vString, ok := v.(string)
-			if !ok {
-				continue
-			}
-			keyValues[k] = vString
-		}
+	// Also run the function for the originalUnstructured to remove the managedField
+	// timestamp for `manager=capi-topology`.
+	if err := cleanupTopologyDryRunAnnotation(dryRunCtx.originalUnstructured); err != nil {
+		return false, false, errors.Wrap(err, "failed to filter topology dry-run annotation on originalUnstructured")
 	}
-	return keyValues
+
+	// Drop the other fields which are not part of our intent.
+	filterObject(dryRunCtx.dryRunUnstructured, dryRunHelperOptions)
+	filterObject(dryRunCtx.originalUnstructured, dryRunHelperOptions)
+
+	// Compare the output of dry run to the original object.
+	originalJSON, err := json.Marshal(dryRunCtx.originalUnstructured)
+	if err != nil {
+		return false, false, err
+	}
+	dryRunJSON, err := json.Marshal(dryRunCtx.dryRunUnstructured)
+	if err != nil {
+		return false, false, err
+	}
+
+	rawDiff, err := jsonpatch.CreateMergePatch(originalJSON, dryRunJSON)
+	if err != nil {
+		return false, false, err
+	}
+
+	// Determine if there are changes to the spec and object.
+	diff := &unstructured.Unstructured{}
+	if err := json.Unmarshal(rawDiff, &diff.Object); err != nil {
+		return false, false, err
+	}
+
+	hasChanges := len(diff.Object) > 0
+	_, hasSpecChanges := diff.Object["spec"]
+
+	return hasChanges, hasSpecChanges, nil
 }
 
-// getItemWithKeys return the item in the list with the given keys or nil if any.
-// e.g. given l `"[{field1:id1, foo:foo}, {field1:id2, bar:bar}]"` and keys {field1:id1} it returns {field1:id1, foo:foo}.
-func getItemWithKeys(l []interface{}, keys map[string]string) map[string]interface{} {
-	for _, i := range l {
-		// NOTE: API server ensures the item in a listMap is a map.
-		iMap, ok := i.(map[string]interface{})
-		if !ok {
+// cleanupTopologyDryRunAnnotation adjusts the obj to remove the topology.cluster.x-k8s.io/dry-run
+// annotation as well as the field ownership reference in managedFields. It does
+// also remove the timestamp of the managedField for `manager=capi-topology` because
+// it is expected to change due to the additional annotation.
+func cleanupTopologyDryRunAnnotation(obj *unstructured.Unstructured) error {
+	// Filter the topology.cluster.x-k8s.io/dry-run annotation as well as leftover empty maps.
+	filterIntent(&filterIntentInput{
+		path:  contract.Path{},
+		value: obj.Object,
+		shouldFilter: isIgnorePath([]contract.Path{
+			{"metadata", "annotations", clusterv1.TopologyDryRunAnnotation},
+		}),
+	})
+
+	// Adjust the managed field for Manager=TopologyManagerName, Subresource="", Operation="Apply"
+	managedFields := obj.GetManagedFields()
+	for i, managedField := range managedFields {
+		if managedField.Manager != TopologyManagerName {
 			continue
 		}
-		iKeys := getItemKeys(keys, iMap)
-		if reflect.DeepEqual(iKeys, keys) {
-			return iMap
+		if managedField.Subresource != "" {
+			continue
 		}
+		if managedField.Operation != metav1.ManagedFieldsOperationApply {
+			continue
+		}
+
+		// Unset the managedField timestamp because managedFields are treated as atomic map.
+		managedField.Time = nil
+
+		// Unmarshal the managed fields into a map[string]interface{}
+		fieldsV1 := map[string]interface{}{}
+		if err := json.Unmarshal(managedField.FieldsV1.Raw, &fieldsV1); err != nil {
+			return errors.Wrap(err, "failed to unmarshal managed fields")
+		}
+
+		// Filter out the annotation ownership as well as leftover empty maps.
+		filterIntent(&filterIntentInput{
+			path:  contract.Path{},
+			value: fieldsV1,
+			shouldFilter: isIgnorePath([]contract.Path{
+				{"f:metadata", "f:annotations", "f:" + clusterv1.TopologyDryRunAnnotation},
+			}),
+		})
+
+		fieldsV1Raw, err := json.Marshal(fieldsV1)
+		if err != nil {
+			return errors.Wrap(err, "failed to marshal managed fields")
+		}
+		managedField.FieldsV1.Raw = fieldsV1Raw
+
+		// Replace the modified managedField entry at the slice.
+		managedFields[i] = managedField
+		obj.SetManagedFields(managedFields)
 	}
+
 	return nil
-}
-
-// isListMap returns true if the fieldsV1 value represent a listMap.
-// NOTE: a listMap has elements in the form of `"k:{...}": {...}`.
-func isListMap(fieldsV1 map[string]interface{}) bool {
-	for k := range fieldsV1 {
-		if strings.HasPrefix(k, "k:") {
-			return true
-		}
-	}
-	return false
-}
-
-// isListSet returns true if the fieldsV1 value represent a listSet.
-// NOTE: a listMap has elements in the form of `"v:..": {}`.
-func isListSet(fieldsV1 map[string]interface{}) bool {
-	for k := range fieldsV1 {
-		if strings.HasPrefix(k, "v:") {
-			return true
-		}
-	}
-	return false
 }

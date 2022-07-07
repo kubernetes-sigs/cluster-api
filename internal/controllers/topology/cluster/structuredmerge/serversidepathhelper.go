@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -42,7 +41,7 @@ type serverSidePatchHelper struct {
 }
 
 // NewServerSidePatchHelper returns a new PatchHelper using server side apply.
-func NewServerSidePatchHelper(original, modified client.Object, c client.Client, opts ...HelperOption) (PatchHelper, error) {
+func NewServerSidePatchHelper(ctx context.Context, original, modified client.Object, c client.Client, opts ...HelperOption) (PatchHelper, error) {
 	// Create helperOptions for filtering the original and modified objects to the desired intent.
 	helperOptions := newHelperOptions(modified, opts...)
 
@@ -63,12 +62,10 @@ func NewServerSidePatchHelper(original, modified client.Object, c client.Client,
 
 		// If the object has been created with previous custom approach for tracking managed fields, cleanup the object.
 		if _, ok := original.GetAnnotations()[clusterv1.ClusterTopologyManagedFieldsAnnotation]; ok {
-			if err := cleanupLegacyManagedFields(originalUnstructured, c); err != nil {
+			if err := cleanupLegacyManagedFields(ctx, originalUnstructured, c); err != nil {
 				return nil, errors.Wrap(err, "failed to cleanup legacy managed fields from original object")
 			}
 		}
-
-		filterObject(originalUnstructured, helperOptions)
 	}
 
 	modifiedUnstructured := &unstructured.Unstructured{}
@@ -80,6 +77,9 @@ func NewServerSidePatchHelper(original, modified client.Object, c client.Client,
 			return nil, errors.Wrap(err, "failed to convert modified object to Unstructured")
 		}
 	}
+
+	// Filter the modifiedUnstructured object to only contain changes intendet to be done.
+	// The originalUnstructured object will be filtered in dryRunSSAPatch using other options.
 	filterObject(modifiedUnstructured, helperOptions)
 
 	// Carry over uid to match the intent to:
@@ -97,12 +97,16 @@ func NewServerSidePatchHelper(original, modified client.Object, c client.Client,
 	case util.IsNil(original):
 		hasChanges, hasSpecChanges = true, true
 	default:
-		hasChanges, hasSpecChanges = dryRunPatch(&dryRunInput{
-			path:     contract.Path{},
-			fieldsV1: getTopologyManagedFields(original),
-			original: originalUnstructured.Object,
-			modified: modifiedUnstructured.Object,
+		var err error
+		hasChanges, hasSpecChanges, err = dryRunSSAPatch(ctx, &dryRunSSAPatchInput{
+			client:               c,
+			originalUnstructured: originalUnstructured,
+			dryRunUnstructured:   modifiedUnstructured.DeepCopy(),
+			helperOptions:        helperOptions,
 		})
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &serverSidePatchHelper{
@@ -144,7 +148,7 @@ func (h *serverSidePatchHelper) Patch(ctx context.Context) error {
 // cleanupLegacyManagedFields cleanups managed field management in place before introducing SSA.
 // NOTE: this operation can trigger a machine rollout, but this is considered acceptable given that ClusterClass is still alpha
 // and SSA adoption align the topology controller with K8s recommended solution for many controllers authoring the same object.
-func cleanupLegacyManagedFields(obj *unstructured.Unstructured, c client.Client) error {
+func cleanupLegacyManagedFields(ctx context.Context, obj *unstructured.Unstructured, c client.Client) error {
 	base := obj.DeepCopyObject().(*unstructured.Unstructured)
 
 	// Remove the topology.cluster.x-k8s.io/managed-field-paths annotation
@@ -190,5 +194,5 @@ func cleanupLegacyManagedFields(obj *unstructured.Unstructured, c client.Client)
 
 	obj.SetManagedFields(managedFields)
 
-	return c.Patch(context.TODO(), obj, client.MergeFrom(base))
+	return c.Patch(ctx, obj, client.MergeFrom(base))
 }

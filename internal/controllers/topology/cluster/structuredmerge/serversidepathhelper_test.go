@@ -73,7 +73,6 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(p0.HasChanges()).To(BeTrue())
 		g.Expect(p0.HasSpecChanges()).To(BeTrue())
 	})
-
 	t.Run("When creating an object using server side apply, it should track managed fields for the topology controller", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -104,7 +103,6 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(controlPlaneEndpointFieldV1).To(HaveKey("f:host")) // topology controller should express opinions on spec.controlPlaneEndpoint.host.
 		g.Expect(controlPlaneEndpointFieldV1).To(HaveKey("f:port")) // topology controller should express opinions on spec.controlPlaneEndpoint.port.
 	})
-
 	t.Run("Server side apply patch helper detects no changes", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -236,6 +234,9 @@ func TestServerSideApply(t *testing.T) {
 		obj := obj.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(obj), obj)).To(Succeed())
 
+		// Store object before another controller applies changes.
+		original := obj.DeepCopy()
+
 		// Create a patch helper like we do/recommend doing in the controllers and use it to apply some changes.
 		p, err := patch.NewHelper(obj, env.Client)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -246,6 +247,17 @@ func TestServerSideApply(t *testing.T) {
 		g.Expect(unstructured.SetNestedField(obj.Object, true, "status", "ready")).To(Succeed())    // Required field
 
 		g.Expect(p.Patch(ctx, obj)).To(Succeed())
+
+		// Verify that the topology controller detects no changes after another controller changed fields.
+		// Note: We verify here that the ServerSidePatchHelper ignores changes in managed fields of other controllers.
+		//       There's also a change in .spec.bar that is intentionally not ignored by the controller, we have to ignore
+		//       it here to be able to verify that managed field changes are ignored. This is the same situation as when
+		//       other controllers update .status (that is ignored) and the ServerSidePatchHelper then ignores the corresponding
+		//       managed field changes.
+		p0, err := NewServerSidePatchHelper(ctx, original, original, env.GetClient(), IgnorePaths{{"spec", "foo"}, {"spec", "bar"}})
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(p0.HasChanges()).To(BeFalse())
+		g.Expect(p0.HasSpecChanges()).To(BeFalse())
 	})
 
 	t.Run("Topology controller reconcile again with no changes on topology managed fields", func(t *testing.T) {

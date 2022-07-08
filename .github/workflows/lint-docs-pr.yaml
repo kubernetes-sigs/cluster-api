@@ -1,4 +1,4 @@
-name: Check Markdown links
+name: Check PR Markdown links
 
 on:
   pull_request:
@@ -18,3 +18,4 @@ jobs:
     - uses: gaurav-nelson/github-action-markdown-link-check@v1
       with:
         config-file: .markdownlinkcheck.json
+        check-modified-files-only: 'yes'

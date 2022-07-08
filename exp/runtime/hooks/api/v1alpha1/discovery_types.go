@@ -91,9 +91,14 @@ func Discovery(*DiscoveryRequest, *DiscoveryResponse) {}
 
 func init() {
 	catalogBuilder.RegisterHook(Discovery, &runtimecatalog.HookMeta{
-		Tags:        []string{"Discovery"},
-		Summary:     "Discovery hook",
-		Description: "Discovery hook discovers the supported hooks of a RuntimeExtension",
-		Singleton:   true,
+		Tags:    []string{"Discovery"},
+		Summary: "Cluster API Runtime will call this hook when an ExtensionConfig is reconciled",
+		Description: "Cluster API Runtime will call this hook when an ExtensionConfig is reconciled. " +
+			"Runtime Extension implementers must use this hook to inform the Cluster API runtime about all the handlers " +
+			"that are defined in an external component implementing Runtime Extensions.\n" +
+			"\n" +
+			"Notes:\n" +
+			"- When using Runtime SDK utils, a handler for this hook is automatically generated",
+		Singleton: true,
 	})
 }

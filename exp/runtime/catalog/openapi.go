@@ -37,8 +37,15 @@ func (c *Catalog) OpenAPI(version string) (*spec3.OpenAPI, error) {
 		Version: "3.0.0",
 		Info: &spec.Info{
 			InfoProps: spec.InfoProps{
-				Description: "Open API specification for Cluster API Runtime SDK",
-				Title:       "Cluster API - Runtime SDK",
+				Description: "This document defines the Open API specification of the services that Cluster API runtime is going " +
+					"to call while managing the Cluster's lifecycle.\n" +
+					"\n" +
+					"Services described in this specification are also referred to as Runtime Hooks, given that they allow " +
+					"external components to hook-in the cluster's lifecycle. The corresponding components implementing handlers " +
+					"for Runtime Hooks calls are referred to as Runtime Extensions.\n" +
+					"\n" +
+					"More information is available in the [Cluster API book](https://cluster-api.sigs.k8s.io/).",
+				Title: "Cluster API - Runtime SDK",
 				License: &spec.License{
 					Name: "Apache 2.0",
 					URL:  "http://www.apache.org/licenses/LICENSE-2.0.html",
@@ -88,9 +95,10 @@ func addHookAndTypesToOpenAPI(openAPI *spec3.OpenAPI, c *Catalog, gvh GroupVersi
 		path = GVHToPath(gvh, "{name}")
 		operation.Parameters = append(operation.Parameters, &spec3.Parameter{
 			ParameterProps: spec3.ParameterProps{
-				Name:     "name",
-				In:       "path",
-				Required: true,
+				Name:        "name",
+				In:          "path",
+				Description: "The handler name. Handlers for the same hook within a single external component implementing Runtime Extensions must have different names",
+				Required:    true,
 				Schema: &spec.Schema{
 					SchemaProps: spec.SchemaProps{
 						Type: []string{"string"},
@@ -131,7 +139,7 @@ func addHookAndTypesToOpenAPI(openAPI *spec3.OpenAPI, c *Catalog, gvh GroupVersi
 	responseTypeName := typeName(responseType, responseGVK)
 	operation.Responses.StatusCodeResponses[http.StatusOK] = &spec3.Response{
 		ResponseProps: spec3.ResponseProps{
-			Description: "OK",
+			Description: "Status code 200 indicates that the request has been processed successfully. Runtime Extension authors must use fields in the response like e.g. status and message to return processing outcomes.",
 			Content:     createContent(responseTypeName),
 		},
 	}

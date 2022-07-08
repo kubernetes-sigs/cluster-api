@@ -175,14 +175,26 @@ func ValidateTopology(*ValidateTopologyRequest, *ValidateTopologyResponse) {}
 
 func init() {
 	catalogBuilder.RegisterHook(GeneratePatches, &runtimecatalog.HookMeta{
-		Tags:        []string{"Topology Mutation Hook"},
-		Summary:     "GeneratePatches generates patches during topology reconciliation for the entire Cluster topology.",
-		Description: "A GeneratePatches call generates patches for the entire Cluster topology. Accordingly the request contains all templates, the global variables and the template-specific variables. The response contains generated patches.",
+		Tags:    []string{"Topology Mutation Hook"},
+		Summary: "Cluster API Runtime will call this hook when a Cluster's topology is being computed",
+		Description: "Cluster API Runtime will call this hook when a Cluster's topology is being computed " +
+			"during each topology controller reconcile loop. More specifically, this hook will be called " +
+			"while computing patches to be applied on top of templates derived from the Cluster's ClusterClass.\n" +
+			"\n" +
+			"Notes:\n" +
+			"- The call's request contains all templates, the global variables and the template-specific variables required to compute patches\n" +
+			"- The response must contain generated patches",
 	})
 
 	catalogBuilder.RegisterHook(ValidateTopology, &runtimecatalog.HookMeta{
-		Tags:        []string{"Topology Mutation Hook"},
-		Summary:     "ValidateTopology validates the Cluster topology after all patches have been applied.",
-		Description: "A ValidateTopology call validates the Cluster topology after all patches have been applied. The request contains all templates of the Cluster topology, the global variables and the template-specific variables. The response contains the result of the validation.",
+		Tags:    []string{"Topology Mutation Hook"},
+		Summary: "Cluster API Runtime will call this hook after a Cluster's topology has been computed",
+		Description: "Cluster API Runtime will call this hook after a Cluster's topology has been computed " +
+			"during each topology controller reconcile loop. More specifically, this hook will be called " +
+			"after all patches have been applied to the templates derived from the Cluster's ClusterClass.\n" +
+			"\n" +
+			"Notes:\n" +
+			"- The call's request contains all templates, the global variables and the template-specific variables used while computing patches\n" +
+			"- The response must contain the result of the validation",
 	})
 }

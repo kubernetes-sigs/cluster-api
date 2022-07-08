@@ -65,6 +65,7 @@ type describeClusterOptions struct {
 	disableNoEcho           bool
 	grouping                bool
 	disableGrouping         bool
+	color                   bool
 }
 
 var dc = &describeClusterOptions{}
@@ -135,6 +136,7 @@ func init() {
 		"Disable grouping machines when ready condition has the same Status, Severity and Reason.")
 	_ = describeClusterClusterCmd.Flags().MarkDeprecated("disable-grouping",
 		"use --grouping instead.")
+	describeClusterClusterCmd.Flags().BoolVarP(&dc.color, "color", "c", false, "Enable color output, even when stdout is not a tty.")
 
 	// completions
 	describeClusterClusterCmd.ValidArgsFunction = resourceNameCompletionFunc(
@@ -168,6 +170,10 @@ func runDescribeCluster(name string) error {
 	})
 	if err != nil {
 		return err
+	}
+
+	if dc.color {
+		color.NoColor = false
 	}
 
 	printObjectTree(tree)

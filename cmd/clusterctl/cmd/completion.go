@@ -22,6 +22,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -82,7 +83,12 @@ var (
 		Short:   "Output shell completion code for the specified shell (bash or zsh)",
 		Long:    LongDesc(completionLong),
 		Example: completionExample,
-		Args:    cobra.ExactArgs(1),
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return errors.New("please specify a shell")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runCompletion(os.Stdout, cmd, args[0])
 		},

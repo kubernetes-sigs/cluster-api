@@ -18,7 +18,6 @@ updated info about which API version they are supporting.
 - [CloudStack](https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack)
 - [Metal3](https://github.com/metal3-io/cluster-api-provider-metal3)
 - [DigitalOcean](https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean)
-- [Exoscale](https://github.com/exoscale/cluster-api-provider-exoscale)
 - [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp)
 - [Hetzner](https://github.com/syself/cluster-api-provider-hetzner)
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)

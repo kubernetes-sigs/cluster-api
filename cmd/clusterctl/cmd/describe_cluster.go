@@ -26,6 +26,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/gobuffalo/flect"
 	"github.com/olekukonko/tablewriter"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/duration"
@@ -94,7 +95,12 @@ var describeClusterClusterCmd = &cobra.Command{
         # e.g. show the infrastructure machine objects, no matter if the current state is already reported by the machine's Ready condition.
 		clusterctl describe cluster test-1 --disable-no-echo`),
 
-	Args: cobra.ExactArgs(1),
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) != 1 {
+			return errors.New("please specify a cluster name")
+		}
+		return nil
+	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runDescribeCluster(args[0])
 	},

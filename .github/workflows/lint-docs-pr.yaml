@@ -19,3 +19,4 @@ jobs:
       with:
         config-file: .markdownlinkcheck.json
         check-modified-files-only: 'yes'
+        base-branch: main

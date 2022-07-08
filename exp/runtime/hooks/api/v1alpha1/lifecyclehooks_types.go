@@ -180,38 +180,77 @@ func BeforeClusterDelete(*BeforeClusterDeleteRequest, *BeforeClusterDeleteRespon
 
 func init() {
 	catalogBuilder.RegisterHook(BeforeClusterCreate, &runtimecatalog.HookMeta{
-		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called before Cluster topology is created.",
-		Description: "This blocking hook is called after the Cluster is created by the user and immediately before all the objects which are part of a Cluster topology are going to be created.",
+		Tags:    []string{"Lifecycle Hooks"},
+		Summary: "Cluster API Runtime will call this hook before a Cluster's topology is created",
+		Description: "Cluster API Runtime will call this hook after the Cluster is created by the user and immediately before " +
+			"all the objects which are part of a Cluster's topology are going to be created.\n" +
+			"\n" +
+			"Notes:\n" +
+			"- This hook will be called only for Clusters with a managed topology\n" +
+			"- The call's request contains the Cluster object\n" +
+			"- This is a blocking hook; Runtime Extension implementers can use this hook to execute\n" +
+			"tasks before the objects which are part of a Cluster's topology are created",
 	})
 
 	catalogBuilder.RegisterHook(AfterControlPlaneInitialized, &runtimecatalog.HookMeta{
-		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called after the Control Plane is initialized for the first time.",
-		Description: "This non-blocking hook is called after the Control Plane for the Cluster is reachable for the first time.",
+		Tags:    []string{"Lifecycle Hooks"},
+		Summary: "Cluster API Runtime will call this hook after the control plane is reachable for the first time",
+		Description: "Cluster API Runtime will call this hook after the control plane for the Cluster is reachable for the first time.\n" +
+			"\n" +
+			"Notes:\n" +
+			"- This hook will be called only for Clusters with a managed topology\n" +
+			"- This is a non-blocking hook",
 	})
 
 	catalogBuilder.RegisterHook(BeforeClusterUpgrade, &runtimecatalog.HookMeta{
-		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called before the Cluster is upgraded.",
-		Description: "This blocking hook is called after the Cluster object has been updated with a new spec.topology.version by the user, and immediately before the new version is propagated to the Control Plane.",
+		Tags:    []string{"Lifecycle Hooks"},
+		Summary: "Cluster API Runtime will call this hook before the Cluster is upgraded",
+		Description: "Cluster API Runtime will call this hook after the Cluster object has been updated with a new spec.topology.version by the user, " +
+			"and immediately before the new version is propagated to the control plane.\n" +
+			"\n" +
+			"Notes:\n" +
+			"- This hook will be called only for Clusters with a managed topology\n" +
+			"- The call's request contains the Cluster object, the current Kubernetes version and the Kubernetes version we are upgrading to\n" +
+			"- This is a blocking hook; Runtime Extension implementers can use this hook to execute " +
+			"tasks before the new version is propagated to the control plane",
 	})
 
 	catalogBuilder.RegisterHook(AfterControlPlaneUpgrade, &runtimecatalog.HookMeta{
-		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called after the Control Plane is upgraded.",
-		Description: "This blocking hook is called after the Control Plane has been upgraded to the version specified in spec.topology.version, and immediately before the new version is propagated to the MachineDeployments.",
+		Tags:    []string{"Lifecycle Hooks"},
+		Summary: "Cluster API Runtime will call this hook after the control plane is upgraded",
+		Description: "Cluster API Runtime will call this hook after the a cluster's control plane has been upgraded to the version specified " +
+			"in spec.topology.version, and immediately before the new version is going to be propagated to the MachineDeployments. " +
+			"A control plane upgrade is completed when all the machines in the control plane have been upgraded.\n" +
+			"\n" +
+			"Notes:\n" +
+			"- This hook will be called only for Clusters with a managed topology\n" +
+			"- The call's request contains the Cluster object and the Kubernetes version we upgraded to\n" +
+			"- This is a blocking hook; Runtime Extension implementers can use this hook to execute " +
+			"tasks before the new version is propagated to the MachineDeployments",
 	})
 
 	catalogBuilder.RegisterHook(AfterClusterUpgrade, &runtimecatalog.HookMeta{
-		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called after the Cluster is upgraded.",
-		Description: "This non-blocking hook is called after the Cluster, Control Plane and MachineDeployments have been upgraded to the version specified in spec.topology.version.",
+		Tags:    []string{"Lifecycle Hooks"},
+		Summary: "Cluster API Runtime will call this hook after a Cluster is upgraded",
+		Description: "Cluster API Runtime will call this hook after a Cluster has been upgraded to the version specified " +
+			"in spec.topology.version. An upgrade is completed when all control plane and MachineDeployment's Machines have been upgraded.\n" +
+			"\n" +
+			"Notes:\n" +
+			"- This hook will be called only for Clusters with a managed topology\n" +
+			"- The call's request contains the Cluster object and the Kubernetes version we upgraded to \n" +
+			"- This is a non-blocking hook",
 	})
 
 	catalogBuilder.RegisterHook(BeforeClusterDelete, &runtimecatalog.HookMeta{
-		Tags:        []string{"Lifecycle Hooks"},
-		Summary:     "Called before the Cluster is deleted.",
-		Description: "This blocking hook is called after the Cluster deletion has been triggered by the user, and immediately before objects of the Cluster are going to be deleted.",
+		Tags:    []string{"Lifecycle Hooks"},
+		Summary: "Cluster API Runtime will call this hook before the Cluster is deleted",
+		Description: "Cluster API Runtime will call this hook after the Cluster deletion has been triggered by the user, " +
+			"and immediately before objects of the Cluster are going to be deleted.\n" +
+			"\n" +
+			"Notes:\n" +
+			"- This hook will be called only for Clusters with a managed topology\n" +
+			"- The call's request contains the Cluster object \n" +
+			"- This is a blocking hook; Runtime Extension implementers can use this hook  to execute " +
+			"tasks before objects of the Cluster are deleted",
 	})
 }

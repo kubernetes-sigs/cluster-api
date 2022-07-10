@@ -17,6 +17,11 @@
 # Build the manager binary
 # Run this with docker build --build-arg builder_image=<golang:x.y.z>
 ARG builder_image
+
+# Ignore Hadolint rule "Always tag the version of an image explicitly."
+# It's an invalid finding since the image is explicitly set in the Makefile.
+# https://github.com/hadolint/hadolint/wiki/DL3006
+# hadolint ignore=DL3006
 FROM ${builder_image} as builder
 WORKDIR /workspace
 

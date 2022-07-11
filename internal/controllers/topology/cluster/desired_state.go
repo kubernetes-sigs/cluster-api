@@ -453,7 +453,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		return nil, errors.Errorf("MachineDeployment class %s not found in %s", className, tlog.KObj{Obj: s.Blueprint.ClusterClass})
 	}
 
-	// Compute the boostrap template.
+	// Compute the bootstrap template.
 	currentMachineDeployment := s.Current.MachineDeployments[machineDeploymentTopology.Name]
 	var currentBootstrapTemplateRef *corev1.ObjectReference
 	if currentMachineDeployment != nil && currentMachineDeployment.BootstrapTemplate != nil {

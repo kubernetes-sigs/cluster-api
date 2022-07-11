@@ -181,7 +181,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.
 		return ctrl.Result{}, nil
 	}
 
-	// If the Boostrap ref is nil (and so the machine should use user generated data secret), return.
+	// If the Bootstrap ref is nil (and so the machine should use user generated data secret), return.
 	if m.Spec.Bootstrap.ConfigRef == nil {
 		return ctrl.Result{}, nil
 	}

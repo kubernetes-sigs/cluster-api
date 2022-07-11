@@ -212,7 +212,7 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 		conditions.WithConditions(
 			// Infrastructure problems should take precedence over all the other conditions
 			clusterv1.InfrastructureReadyCondition,
-			// Boostrap comes after, but it is relevant only during initial machine provisioning.
+			// Bootstrap comes after, but it is relevant only during initial machine provisioning.
 			clusterv1.BootstrapReadyCondition,
 			// MHC reported condition should take precedence over the remediation progress
 			clusterv1.MachineHealthCheckSucceededCondition,

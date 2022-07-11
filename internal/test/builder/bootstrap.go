@@ -27,12 +27,12 @@ var (
 
 	// GenericBootstrapConfigKind is the Kind for the GenericBootstrapConfig.
 	GenericBootstrapConfigKind = "GenericBootstrapConfig"
-	// GenericBootstrapConfigCRD is a generic boostrap CRD.
+	// GenericBootstrapConfigCRD is a generic bootstrap CRD.
 	GenericBootstrapConfigCRD = untypedCRD(BootstrapGroupVersion.WithKind(GenericBootstrapConfigKind))
 
-	// GenericBootstrapConfigTemplateKind is the Kind for the GenericBoostrapConfigTemplate.
+	// GenericBootstrapConfigTemplateKind is the Kind for the GenericBootstrapConfigTemplate.
 	GenericBootstrapConfigTemplateKind = "GenericBootstrapConfigTemplate"
-	// GenericBootstrapConfigTemplateCRD is a generic boostrap template CRD.
+	// GenericBootstrapConfigTemplateCRD is a generic bootstrap template CRD.
 	GenericBootstrapConfigTemplateCRD = untypedCRD(BootstrapGroupVersion.WithKind(GenericBootstrapConfigTemplateKind))
 
 	// TODO: drop generic CRDs in favour of typed test CRDs.

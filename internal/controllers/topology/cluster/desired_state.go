@@ -31,6 +31,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -257,6 +258,7 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 // The version is calculated using the state of the current machine deployments, the current control plane
 // and the version defined in the topology.
 func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Scope) (string, error) {
+	log := tlog.LoggerFrom(ctx)
 	desiredVersion := s.Blueprint.Topology.Version
 	// If we are creating the control plane object (current control plane is nil), use version from topology.
 	if s.Current.ControlPlane == nil || s.Current.ControlPlane.Object == nil {
@@ -334,6 +336,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 				// change the UpgradeTracker accordingly, otherwise the hook call is completed and we
 				// can remove this hook from the list of pending-hooks.
 				if hookResponse.RetryAfterSeconds != 0 {
+					log.Infof("MachineDeployments upgrade to version %q are blocked by %q hook", desiredVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade))
 					s.UpgradeTracker.MachineDeployments.HoldUpgrades(true)
 				} else {
 					if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
@@ -383,6 +386,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 		s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, hookResponse)
 		if hookResponse.RetryAfterSeconds != 0 {
 			// Cannot pickup the new version right now. Need to try again later.
+			log.Infof("Cluster upgrade to version %q is blocked by %q hook", desiredVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade))
 			return *currentVersion, nil
 		}
 

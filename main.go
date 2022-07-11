@@ -54,6 +54,8 @@ import (
 	expv1alpha4 "sigs.k8s.io/cluster-api/exp/api/v1alpha4"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	expcontrollers "sigs.k8s.io/cluster-api/exp/controllers"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimecontrollers "sigs.k8s.io/cluster-api/exp/runtime/controllers"
@@ -114,6 +116,8 @@ func init() {
 	_ = addonsv1.AddToScheme(scheme)
 
 	_ = runtimev1.AddToScheme(scheme)
+
+	_ = ipamv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 
 	// Register the RuntimeHook types into the catalog.
@@ -517,6 +521,18 @@ func setupWebhooks(mgr ctrl.Manager) {
 	// new objects if the feature flag is disabled.
 	if err := (&runtimewebhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "ExtensionConfig")
+		os.Exit(1)
+	}
+
+	if err := (&expipamwebhooks.IPAddress{
+		// We are using GetAPIReader here to avoid caching all IPAddressClaims
+		Client: mgr.GetAPIReader(),
+	}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "IPAddress")
+		os.Exit(1)
+	}
+	if err := (&expipamwebhooks.IPAddressClaim{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "IPAddressClaim")
 		os.Exit(1)
 	}
 }

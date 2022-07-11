@@ -54,6 +54,8 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	ipamv1 "sigs.k8s.io/cluster-api/exp/ipam/api/v1alpha1"
+	expipamwebhooks "sigs.k8s.io/cluster-api/exp/ipam/webhooks"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
@@ -82,6 +84,7 @@ func init() {
 	utilruntime.Must(controlplanev1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(admissionv1.AddToScheme(scheme.Scheme))
 	utilruntime.Must(runtimev1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(ipamv1.AddToScheme(scheme.Scheme))
 }
 
 // RunInput is the input for Run.
@@ -278,6 +281,12 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	}
 	if err := (&runtimewebhooks.ExtensionConfig{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for extensionconfig: %+v", err)
+	}
+	if err := (&expipamwebhooks.IPAddress{}).SetupWebhookWithManager(mgr); err != nil {
+		klog.Fatalf("unable to create webhook for ipaddress: %v", err)
+	}
+	if err := (&expipamwebhooks.IPAddressClaim{}).SetupWebhookWithManager(mgr); err != nil {
+		klog.Fatalf("unable to create webhook for ipaddressclaim: %v", err)
 	}
 
 	return &Environment{

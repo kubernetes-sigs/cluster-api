@@ -27,7 +27,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func Test_cleanupTopologyDryRunAnnotation(t *testing.T) {
+func Test_cleanupManagedFieldsAndAnnotation(t *testing.T) {
 	rawManagedFieldWithAnnotation := `{"f:metadata":{"f:annotations":{"f:topology.cluster.x-k8s.io/dry-run":{}}}}`
 	rawManagedFieldWithAnnotationSpecLabels := `{"f:metadata":{"f:annotations":{"f:topology.cluster.x-k8s.io/dry-run":{}},"f:labels":{}},"f:spec":{"f:foo":{}}}`
 	rawManagedFieldWithSpecLabels := `{"f:metadata":{"f:labels":{}},"f:spec":{"f:foo":{}}}`
@@ -53,33 +53,30 @@ func Test_cleanupTopologyDryRunAnnotation(t *testing.T) {
 				Build(),
 		},
 		{
-			name: "managedFields: manager does not match",
+			name: "managedFields: should drop managed fields of other manager",
 			obj: newObjectBuilder().
 				WithManagedFieldsEntry("other", "", metav1.ManagedFieldsOperationApply, []byte(`{}`), nil).
 				Build(),
 			wantErr: false,
 			want: newObjectBuilder().
-				WithManagedFieldsEntry("other", "", metav1.ManagedFieldsOperationApply, []byte(`{}`), nil).
 				Build(),
 		},
 		{
-			name: "managedFields: subresource does not match",
+			name: "managedFields: should drop managed fields of a subresource",
 			obj: newObjectBuilder().
 				WithManagedFieldsEntry(TopologyManagerName, "status", metav1.ManagedFieldsOperationApply, []byte(`{}`), nil).
 				Build(),
 			wantErr: false,
 			want: newObjectBuilder().
-				WithManagedFieldsEntry(TopologyManagerName, "status", metav1.ManagedFieldsOperationApply, []byte(`{}`), nil).
 				Build(),
 		},
 		{
-			name: "managedFields: operation does not match",
+			name: "managedFields: should drop managed fields of another operation",
 			obj: newObjectBuilder().
 				WithManagedFieldsEntry(TopologyManagerName, "", metav1.ManagedFieldsOperationUpdate, []byte(`{}`), nil).
 				Build(),
 			wantErr: false,
 			want: newObjectBuilder().
-				WithManagedFieldsEntry(TopologyManagerName, "", metav1.ManagedFieldsOperationUpdate, []byte(`{}`), nil).
 				Build(),
 		},
 		{
@@ -93,7 +90,7 @@ func Test_cleanupTopologyDryRunAnnotation(t *testing.T) {
 				Build(),
 		},
 		{
-			name: "managedFields: cleanup the managed field entry but preserve other ownership",
+			name: "managedFields: cleanup the managed field entry and preserve other ownership",
 			obj: newObjectBuilder().
 				WithManagedFieldsEntry(TopologyManagerName, "", metav1.ManagedFieldsOperationApply, []byte(rawManagedFieldWithAnnotationSpecLabels), nil).
 				Build(),
@@ -117,8 +114,8 @@ func Test_cleanupTopologyDryRunAnnotation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			if err := cleanupTopologyDryRunAnnotation(tt.obj); (err != nil) != tt.wantErr {
-				t.Errorf("cleanupTopologyDryRunAnnotation() error = %v, wantErr %v", err, tt.wantErr)
+			if err := cleanupManagedFieldsAndAnnotation(tt.obj); (err != nil) != tt.wantErr {
+				t.Errorf("cleanupManagedFieldsAndAnnotation() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			if tt.want != nil {
 				g.Expect(tt.obj).To(BeEquivalentTo(tt.want))
@@ -132,7 +129,13 @@ type objectBuilder struct {
 }
 
 func newObjectBuilder() objectBuilder {
-	return objectBuilder{&unstructured.Unstructured{Object: map[string]interface{}{}}}
+	u := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	u.SetName("test")
+	u.SetNamespace("default")
+
+	return objectBuilder{
+		u: u,
+	}
 }
 
 func (b objectBuilder) DeepCopy() objectBuilder {
@@ -140,6 +143,12 @@ func (b objectBuilder) DeepCopy() objectBuilder {
 }
 
 func (b objectBuilder) Build() *unstructured.Unstructured {
+	// Setting an empty managed field array if no managed field is set so there is
+	// no difference between an object which never had a managed field and one from
+	// which all managed field entries were removed.
+	if b.u.GetManagedFields() == nil {
+		b.u.SetManagedFields([]metav1.ManagedFieldsEntry{})
+	}
 	return b.u.DeepCopy()
 }
 

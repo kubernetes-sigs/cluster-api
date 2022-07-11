@@ -63,15 +63,26 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	}
 
 	// Cleanup the dryRunUnstructured object to remove the added TopologyDryRunAnnotation
-	// and remove the affected managedFields  for `manager=capi-topology` which would
+	// and remove the affected managedFields for `manager=capi-topology` which would
 	// otherwise show the additional field ownership for the annotation we added and
 	// the changed managedField timestamp.
-	if err := cleanupTopologyDryRunAnnotation(dryRunCtx.dryRunUnstructured); err != nil {
+	// We also drop managedFields of other managers as we don't care about if other managers
+	// made changes to the object. We only want to trigger a ServerSideApply if we would make
+	// changes to the object.
+	// Please note that if other managers made changes to fields that we care about and thus ownership changed,
+	// this would affect our managed fields as well and we would still detect it by diffing our managed fields.
+	if err := cleanupManagedFieldsAndAnnotation(dryRunCtx.dryRunUnstructured); err != nil {
 		return false, false, errors.Wrap(err, "failed to filter topology dry-run annotation on dryRunUnstructured")
 	}
+
 	// Also run the function for the originalUnstructured to remove the managedField
 	// timestamp for `manager=capi-topology`.
-	if err := cleanupTopologyDryRunAnnotation(dryRunCtx.originalUnstructured); err != nil {
+	// We also drop managedFields of other managers as we don't care about if other managers
+	// made changes to the object. We only want to trigger a ServerSideApply if we would make
+	// changes to the object.
+	// Please note that if other managers made changes to fields that we care about and thus ownership changed,
+	// this would affect our managed fields as well and we would still detect it by diffing our managed fields.
+	if err := cleanupManagedFieldsAndAnnotation(dryRunCtx.originalUnstructured); err != nil {
 		return false, false, errors.Wrap(err, "failed to filter topology dry-run annotation on originalUnstructured")
 	}
 
@@ -106,11 +117,11 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	return hasChanges, hasSpecChanges, nil
 }
 
-// cleanupTopologyDryRunAnnotation adjusts the obj to remove the topology.cluster.x-k8s.io/dry-run
+// cleanupManagedFieldsAndAnnotation adjusts the obj to remove the topology.cluster.x-k8s.io/dry-run
 // annotation as well as the field ownership reference in managedFields. It does
 // also remove the timestamp of the managedField for `manager=capi-topology` because
 // it is expected to change due to the additional annotation.
-func cleanupTopologyDryRunAnnotation(obj *unstructured.Unstructured) error {
+func cleanupManagedFieldsAndAnnotation(obj *unstructured.Unstructured) error {
 	// Filter the topology.cluster.x-k8s.io/dry-run annotation as well as leftover empty maps.
 	filterIntent(&filterIntentInput{
 		path:  contract.Path{},
@@ -120,9 +131,11 @@ func cleanupTopologyDryRunAnnotation(obj *unstructured.Unstructured) error {
 		}),
 	})
 
-	// Adjust the managed field for Manager=TopologyManagerName, Subresource="", Operation="Apply"
-	managedFields := obj.GetManagedFields()
-	for i, managedField := range managedFields {
+	// Adjust the managed field for Manager=TopologyManagerName, Subresource="", Operation="Apply" and
+	// drop managed fields of other controllers.
+	oldManagedFields := obj.GetManagedFields()
+	newManagedFields := []metav1.ManagedFieldsEntry{}
+	for _, managedField := range oldManagedFields {
 		if managedField.Manager != TopologyManagerName {
 			continue
 		}
@@ -157,10 +170,10 @@ func cleanupTopologyDryRunAnnotation(obj *unstructured.Unstructured) error {
 		}
 		managedField.FieldsV1.Raw = fieldsV1Raw
 
-		// Replace the modified managedField entry at the slice.
-		managedFields[i] = managedField
-		obj.SetManagedFields(managedFields)
+		newManagedFields = append(newManagedFields, managedField)
 	}
+
+	obj.SetManagedFields(newManagedFields)
 
 	return nil
 }

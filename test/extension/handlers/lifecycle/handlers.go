@@ -153,6 +153,10 @@ func (h *Handler) readResponseFromConfigMap(ctx context.Context, name, namespace
 	if err := yaml.Unmarshal([]byte(configMap.Data[hookName+"-preloadedResponse"]), response); err != nil {
 		return errors.Wrapf(err, "failed to read %q response information from ConfigMap", hook)
 	}
+	if r, ok := response.(runtimehooksv1.RetryResponseObject); ok {
+		log := ctrl.LoggerFrom(ctx)
+		log.Info(fmt.Sprintf("%s response is %s. retry: %v", hookName, r.GetStatus(), r.GetRetryAfterSeconds()))
+	}
 	return nil
 }
 
@@ -163,10 +167,15 @@ func (h *Handler) recordCallInConfigMap(ctx context.Context, name, namespace str
 	if err := h.Client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: configMapName}, configMap); err != nil {
 		return errors.Wrapf(err, "failed to read the ConfigMap %s/%s", namespace, configMapName)
 	}
-
-	// Patch the actualResponseStatus with the returned value
-	patch := client.RawPatch(types.MergePatchType,
-		[]byte(fmt.Sprintf(`{"data":{"%s-actualResponseStatus":"%s"}}`, hookName, response.GetStatus()))) //nolint:gocritic
+	var patch client.Patch
+	if r, ok := response.(runtimehooksv1.RetryResponseObject); ok {
+		patch = client.RawPatch(types.MergePatchType,
+			[]byte(fmt.Sprintf(`{"data":{"%s-actualResponseStatus": "Status: %s, RetryAfterSeconds: %v"}}`, hookName, r.GetStatus(), r.GetRetryAfterSeconds())))
+	} else {
+		// Patch the actualResponseStatus with the returned value
+		patch = client.RawPatch(types.MergePatchType,
+			[]byte(fmt.Sprintf(`{"data":{"%s-actualResponseStatus":"%s"}}`, hookName, response.GetStatus()))) //nolint:gocritic
+	}
 	if err := h.Client.Patch(ctx, configMap, patch); err != nil {
 		return errors.Wrapf(err, "failed to update the ConfigMap %s/%s", namespace, configMapName)
 	}

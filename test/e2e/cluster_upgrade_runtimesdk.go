@@ -27,6 +27,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -147,6 +148,20 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
 			responsesConfigMap(clusterName, namespace))).
 			To(Succeed(), "Failed to create the responses configMap")
+
+		By("Wait for test extension deployment to be availabel")
+		framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
+			Getter:     input.BootstrapClusterProxy.GetClient(),
+			Deployment: &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "test-extension", Namespace: namespace.Name}},
+		})
+
+		By("Watch Deployment logs of test extension")
+		framework.WatchDeploymentLogs(ctx, framework.WatchDeploymentLogsInput{
+			GetLister:  input.BootstrapClusterProxy.GetClient(),
+			ClientSet:  input.BootstrapClusterProxy.GetClientSet(),
+			Deployment: &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "test-extension", Namespace: namespace.Name}},
+			LogPath:    filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName(), "logs", namespace.Name),
+		})
 
 		By("Creating a workload cluster")
 

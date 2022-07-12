@@ -128,20 +128,26 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 		KubernetesVersion: input.KubernetesUpgradeVersion,
 	}, input.WaitForKubeProxyUpgrade...)
 
-	log.Logf("Waiting for CoreDNS to have the upgraded image tag")
-	WaitForDNSUpgrade(ctx, WaitForDNSUpgradeInput{
-		Getter:     workloadClient,
-		DNSVersion: input.DNSImageTag,
-	}, input.WaitForDNSUpgrade...)
+	// Wait for the CoreDNS upgrade if the DNSImageTag is set.
+	if input.DNSImageTag != "" {
+		log.Logf("Waiting for CoreDNS to have the upgraded image tag")
+		WaitForDNSUpgrade(ctx, WaitForDNSUpgradeInput{
+			Getter:     workloadClient,
+			DNSVersion: input.DNSImageTag,
+		}, input.WaitForDNSUpgrade...)
+	}
 
-	log.Logf("Waiting for etcd to have the upgraded image tag")
-	lblSelector, err := labels.Parse("component=etcd")
-	Expect(err).ToNot(HaveOccurred())
-	WaitForPodListCondition(ctx, WaitForPodListConditionInput{
-		Lister:      workloadClient,
-		ListOptions: &client.ListOptions{LabelSelector: lblSelector},
-		Condition:   EtcdImageTagCondition(input.EtcdImageTag, int(*input.ControlPlane.Spec.Replicas)),
-	}, input.WaitForEtcdUpgrade...)
+	// Wait for the etcd upgrade if the EtcdImageTag is set.
+	if input.EtcdImageTag != "" {
+		log.Logf("Waiting for etcd to have the upgraded image tag")
+		lblSelector, err := labels.Parse("component=etcd")
+		Expect(err).ToNot(HaveOccurred())
+		WaitForPodListCondition(ctx, WaitForPodListConditionInput{
+			Lister:      workloadClient,
+			ListOptions: &client.ListOptions{LabelSelector: lblSelector},
+			Condition:   EtcdImageTagCondition(input.EtcdImageTag, int(*input.ControlPlane.Spec.Replicas)),
+		}, input.WaitForEtcdUpgrade...)
+	}
 
 	// Once the ControlPlane is upgraded we can run PreWaitForMachineDeploymentToBeUpgraded.
 	// Note: This can e.g. be used to verify the AfterControlPlaneUpgrade lifecycle hook is executed

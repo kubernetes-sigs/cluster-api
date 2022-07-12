@@ -97,7 +97,7 @@ func addHookAndTypesToOpenAPI(openAPI *spec3.OpenAPI, c *Catalog, gvh GroupVersi
 			ParameterProps: spec3.ParameterProps{
 				Name:        "name",
 				In:          "path",
-				Description: "The handler name. Handlers for the same hook within a single external component implementing Runtime Extensions must have different names",
+				Description: "The handler name. Handlers within a single external component implementing Runtime Extensions must have different names",
 				Required:    true,
 				Schema: &spec.Schema{
 					SchemaProps: spec.SchemaProps{

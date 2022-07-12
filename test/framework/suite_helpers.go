@@ -17,15 +17,11 @@ limitations under the License.
 package framework
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
-
-	"github.com/onsi/ginkgo/config"
-	"github.com/onsi/ginkgo/reporters"
 
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 )
@@ -74,14 +70,6 @@ func ResolveArtifactsDirectory(input string) string {
 	rootDir := strings.TrimSpace(string(out))
 
 	return path.Join(rootDir, "_artifacts")
-}
-
-// CreateJUnitReporterForProw sets up Ginkgo to create JUnit outputs compatible
-// with Prow.
-func CreateJUnitReporterForProw(artifactsDirectory string) *reporters.JUnitReporter {
-	junitPath := filepath.Join(artifactsDirectory, fmt.Sprintf("junit.e2e_suite.%d.xml", config.GinkgoConfig.ParallelNode))
-
-	return reporters.NewJUnitReporter(junitPath)
 }
 
 // CompleteCommand prints a command before running it. Acts as a helper function.

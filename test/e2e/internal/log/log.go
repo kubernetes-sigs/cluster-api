@@ -19,7 +19,7 @@ package log
 import (
 	"fmt"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 )
 
 func Logf(format string, a ...interface{}) {

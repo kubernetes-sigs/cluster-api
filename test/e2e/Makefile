@@ -37,10 +37,10 @@ help:  ## Display this help
 TOOLS_DIR := $(REPO_ROOT)/hack/tools
 BIN_DIR := bin
 TOOLS_BIN_DIR := $(TOOLS_DIR)/$(BIN_DIR)
-GINGKO_VER := v1.16.5
+GINGKO_VER := v2.1.4
 GINKGO_BIN := ginkgo
 GINKGO := $(abspath $(TOOLS_BIN_DIR)/$(GINKGO_BIN)-$(GINGKO_VER))
-GINKGO_PKG := github.com/onsi/ginkgo/ginkgo
+GINKGO_PKG := github.com/onsi/ginkgo/v2/ginkgo
 GO_INSTALL := $(REPO_ROOT)/scripts/go_install.sh
 KUSTOMIZE_BIN := kustomize
 KUSTOMIZE_VER := $(shell grep "^KUSTOMIZE_VER" $(REPO_ROOT)/Makefile | awk '{print $$NF}')
@@ -111,10 +111,10 @@ test-extension-deployment: $(KUSTOMIZE) ## Generate deployment for test extensio
 ## Testing
 ## --------------------------------------
 
-GINKGO_FOCUS  ?=
+GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
-GINKGO_NODES  ?= 1
-E2E_CONF_FILE  ?= ${REPO_ROOT}/test/e2e/config/docker.yaml
+GINKGO_NODES ?= 1
+E2E_CONF_FILE ?= ${REPO_ROOT}/test/e2e/config/docker.yaml
 ARTIFACTS ?= ${REPO_ROOT}/_artifacts
 SKIP_RESOURCE_CLEANUP ?= false
 USE_EXISTING_CLUSTER ?= false
@@ -127,7 +127,7 @@ endif
 
 .PHONY: run
 run: $(GINKGO) cluster-templates test-extension-deployment ## Run the end-to-end tests
-	$(GINKGO) -v -trace -tags=e2e -focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) -nodes=$(GINKGO_NODES) --noColor=$(GINKGO_NOCOLOR) $(GINKGO_ARGS) . -- \
+	$(GINKGO) -v --trace --tags=e2e --focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) --nodes=$(GINKGO_NODES) --no-color=$(GINKGO_NOCOLOR) --output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" $(GINKGO_ARGS) . -- \
 	    -e2e.artifacts-folder="$(ARTIFACTS)" \
 	    -e2e.config="$(E2E_CONF_FILE)" \
 	    -e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) -e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)

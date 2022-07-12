@@ -53,7 +53,7 @@ kind:prepullAdditionalImages
 # Configure e2e tests
 export GINKGO_NODES=3
 export GINKGO_NOCOLOR=true
-export GINKGO_ARGS="--failFast" # Other ginkgo args that need to be appended to the command.
+export GINKGO_ARGS="--fail-fast" # Other ginkgo args that need to be appended to the command.
 export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker.yaml"
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export SKIP_RESOURCE_CLEANUP=false

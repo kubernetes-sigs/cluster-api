@@ -23,7 +23,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/pkg/errors"
 )
 
@@ -35,10 +35,6 @@ func Byf(format string, a ...interface{}) {
 	ginkgo.By(fmt.Sprintf(format, a...))
 }
 
-type writerRedirecter interface {
-	AndRedirectTo(writer io.Writer)
-}
-
 // EnableFileLogging enables additional file logging.
 // Logs are written to the given path with timestamps.
 func EnableFileLogging(path string) (io.WriteCloser, error) {
@@ -47,12 +43,7 @@ func EnableFileLogging(path string) (io.WriteCloser, error) {
 		return nil, errors.Wrapf(err, "failed to create fileWriter")
 	}
 
-	ginkgoWriter, ok := ginkgo.GinkgoWriter.(writerRedirecter)
-	if !ok {
-		return nil, errors.Errorf("GinkgoWriter does not have an AndRedirectTo method")
-	}
-
-	ginkgoWriter.AndRedirectTo(w)
+	ginkgo.GinkgoWriter.TeeTo(w)
 
 	return w, nil
 }

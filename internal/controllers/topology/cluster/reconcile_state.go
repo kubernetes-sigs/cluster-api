@@ -166,12 +166,18 @@ func hasOwnerReferenceFrom(obj, owner client.Object) bool {
 // reconcileInfrastructureCluster reconciles the desired state of the InfrastructureCluster object.
 func (r *Reconciler) reconcileInfrastructureCluster(ctx context.Context, s *scope.Scope) error {
 	ctx, _ = tlog.LoggerFrom(ctx).WithObject(s.Desired.InfrastructureCluster).Into(ctx)
+
+	ignorePaths, err := contract.InfrastructureCluster().IgnorePaths(s.Desired.InfrastructureCluster)
+	if err != nil {
+		return errors.Wrap(err, "failed to calculate ignore paths")
+	}
+
 	return r.reconcileReferencedObject(ctx, reconcileReferencedObjectInput{
 		cluster: s.Current.Cluster,
 		current: s.Current.InfrastructureCluster,
 		desired: s.Desired.InfrastructureCluster,
 		opts: []mergepatch.HelperOption{
-			mergepatch.IgnorePaths(contract.InfrastructureCluster().IgnorePaths()),
+			mergepatch.IgnorePaths(ignorePaths),
 		},
 	})
 }

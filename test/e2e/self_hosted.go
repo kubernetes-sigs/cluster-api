@@ -219,7 +219,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				Namespace:            selfHostedNamespace.Name,
 			})
 
-			log.Logf("Waiting for the cluster to be reconciled after moving back to booststrap")
+			log.Logf("Waiting for the cluster to be reconciled after moving back to bootstrap")
 			clusterResources.Cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 				Getter:    input.BootstrapClusterProxy.GetClient(),
 				Namespace: namespace.Name,

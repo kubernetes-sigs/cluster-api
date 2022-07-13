@@ -8,16 +8,22 @@ quick start with Cluster API. It automates fetching the YAML files defining [pro
 Additionally it encodes a set of best practices in managing providers, that helps the user in avoiding
 mis-configurations or in managing day 2 operations such as upgrades.
 
-* use [`clusterctl init`](commands/init.md) to install Cluster API providers
-* use [`clusterctl upgrade`](commands/upgrade.md) to upgrade Cluster API providers
-* use [`clusterctl delete`](commands/delete.md) to delete Cluster API providers
+Below you can find a list of main clusterctl commands:
 
-* use [`clusterctl generate cluster`](commands/generate-cluster.md) to spec out workload clusters
-* use [`clusterctl generate yaml`](commands/generate-yaml.md) to process yaml
-* use [`clusterctl get kubeconfig`](commands/get-kubeconfig.md) to get the kubeconfig of an existing workload cluster.
-  using clusterctl's internal yaml processor.
-* use [`clusterctl move`](commands/move.md) to migrate objects defining a workload clusters (e.g. Cluster, Machines) from a management cluster to another management cluster
-* use [`clusterctl alpha rollout`](commands/alpha-rollout.md) to rollout Cluster API resources such as MachineDeployments. Note that this is currently an alpha level feature. 
+* [`clusterctl init`](commands/init.md) Initialize a management cluster.
+* [`clusterctl upgrade plan`](commands/upgrade.md#upgrade-plan) Provide a list of recommended target versions for upgrading Cluster API providers in a management cluster.
+* [`clusterctl upgrade apply`](commands/upgrade.md#upgrade-apply) Apply new versions of Cluster API core and providers in a management cluster.
+* [`clusterctl delete`](commands/delete.md) Delete one or more providers from the management cluster.
+* [`clusterctl generate cluster`](commands/generate-cluster.md) Generate templates for creating workload clusters.
+* [`clusterctl generate yaml`](commands/generate-yaml.md) Process yaml using clusterctl's yaml processor.
+* [`clusterctl get kubeconfig`](commands/get-kubeconfig.md) Gets the kubeconfig file for accessing a workload cluster.
+* [`clusterctl move`](commands/move.md) Move Cluster API objects and all their dependencies between management clusters.
+* [`clusterctl alpha rollout`](commands/alpha-rollout.md) Manages the rollout of Cluster API resources. For example: MachineDeployments.
+
+For the full list of clusterctl commands please refer to [commands](commands/commands.md).
+
+# Installing clusterctl
+Instructions are available in the [Quick Start](../user/quick-start.md#install-clusterctl).
 
 <!-- links -->
 [management cluster]: ../reference/glossary.md#management-cluster

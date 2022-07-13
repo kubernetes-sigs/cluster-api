@@ -338,7 +338,7 @@ func validateRolloutStrategy(rolloutStrategy *RolloutStrategy, replicas *int32, 
 	ios1 := intstr.FromInt(1)
 	ios0 := intstr.FromInt(0)
 
-	if *rolloutStrategy.RollingUpdate.MaxSurge == ios0 && (replicas != nil && *replicas < int32(3)) {
+	if rolloutStrategy.RollingUpdate.MaxSurge.IntValue() == ios0.IntValue() && (replicas != nil && *replicas < int32(3)) {
 		allErrs = append(
 			allErrs,
 			field.Required(
@@ -348,7 +348,7 @@ func validateRolloutStrategy(rolloutStrategy *RolloutStrategy, replicas *int32, 
 		)
 	}
 
-	if *rolloutStrategy.RollingUpdate.MaxSurge != ios1 && *rolloutStrategy.RollingUpdate.MaxSurge != ios0 {
+	if rolloutStrategy.RollingUpdate.MaxSurge.IntValue() != ios1.IntValue() && rolloutStrategy.RollingUpdate.MaxSurge.IntValue() != ios0.IntValue() {
 		allErrs = append(
 			allErrs,
 			field.Required(

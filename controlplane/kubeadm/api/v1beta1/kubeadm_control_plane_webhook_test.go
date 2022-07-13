@@ -103,6 +103,10 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	invalidMaxSurge := valid.DeepCopy()
 	invalidMaxSurge.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = int32(3)
 
+	stringMaxSurge := valid.DeepCopy()
+	val := intstr.FromString("1")
+	stringMaxSurge.Spec.RolloutStrategy.RollingUpdate.MaxSurge = &val
+
 	invalidNamespace := valid.DeepCopy()
 	invalidNamespace.Spec.MachineTemplate.InfrastructureRef.Namespace = "bar"
 
@@ -204,6 +208,12 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			expectErr: true,
 			kcp:       invalidMaxSurge,
 		},
+		{
+			name:      "should succeed when maxSurge is a string",
+			expectErr: false,
+			kcp:       stringMaxSurge,
+		},
+
 		{
 			name:                  "should return error when Ignition configuration is invalid",
 			enableIgnitionFeature: true,

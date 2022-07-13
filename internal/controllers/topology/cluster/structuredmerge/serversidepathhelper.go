@@ -83,8 +83,13 @@ func NewServerSidePatchHelper(ctx context.Context, original, modified client.Obj
 	filterObject(modifiedUnstructured, helperOptions)
 
 	// Carry over uid to match the intent to:
-	// * create (uid==""): Setting no uid ensures an object gets created, not updated.
-	// * update (uid!=""): Setting an uid ensures an object which has the same uid gets updated.
+	// * create (uid==""):
+	//   * if object doesn't exist => create
+	//   * if object already exists => update
+	// * update (uid!=""):
+	//   * if object doesn't exist => fail
+	//   * if object already exists => update
+	//   * This allows us to enforce that an update doesn't create an object which has been deleted.
 	modifiedUnstructured.SetUID("")
 	if originalUnstructured != nil {
 		modifiedUnstructured.SetUID(originalUnstructured.GetUID())

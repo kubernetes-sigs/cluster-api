@@ -98,19 +98,15 @@ func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) e
 	// creating InfrastructureCluster/ControlPlane objects and updating the Cluster with the
 	// references to above objects.
 	if s.Current.InfrastructureCluster == nil || s.Current.ControlPlane.Object == nil {
-		// Note: we are using Patch instead of create for ensuring consistency in managedFields for the entire controller
-		// but in this case it isn't strictly necessary given that we are not using server side apply for modifying the
-		// object afterwards.
-		helper, err := r.patchHelperFactory(ctx, nil, shim)
-		if err != nil {
-			return errors.Wrap(err, "failed to create the patch helper for the cluster shim object")
-		}
-		if err := helper.Patch(ctx); err != nil {
-			return errors.Wrap(err, "failed to create the cluster shim object")
-		}
-
-		if err := r.APIReader.Get(ctx, client.ObjectKeyFromObject(shim), shim); err != nil {
-			return errors.Wrap(err, "get shim after creation")
+		// Given that the cluster shim is a temporary object which is only modified
+		// by this controller, it is not necessary to use the SSA patch helper.
+		if err := r.Client.Create(ctx, shim); err != nil {
+			if !apierrors.IsAlreadyExists(err) {
+				return errors.Wrap(err, "failed to create the cluster shim object")
+			}
+			if err := r.Client.Get(ctx, client.ObjectKeyFromObject(shim), shim); err != nil {
+				return errors.Wrapf(err, "failed to read the cluster shim object")
+			}
 		}
 
 		// Enforce type meta back given that it gets blanked out by Get.
@@ -656,7 +652,7 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 	// If there is no current object, create it.
 	if in.current == nil {
 		log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
-		helper, err := r.patchHelperFactory(ctx, nil, in.desired)
+		helper, err := r.patchHelperFactory(ctx, nil, in.desired, structuredmerge.IgnorePaths(in.ignorePaths))
 		if err != nil {
 			return errors.Wrap(createErrorWithoutObjectName(err, in.desired), "failed to create patch helper")
 		}

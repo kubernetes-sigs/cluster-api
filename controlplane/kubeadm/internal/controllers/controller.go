@@ -382,13 +382,6 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return ctrl.Result{}, errors.Wrap(err, "failed to set role and role binding for kubeadm")
 	}
 
-	// Update kube-proxy daemonset.
-	if err := workloadCluster.UpdateKubeProxyImageInfo(ctx, kcp); err != nil {
-		log.Error(err, "failed to update kube-proxy daemonset")
-		return ctrl.Result{}, err
-	}
-
-	// Update CoreDNS deployment.
 	// We intentionally only parse major/minor/patch so that the subsequent code
 	// also already applies to beta versions of new releases.
 	parsedVersion, err := version.ParseMajorMinorPatchTolerant(kcp.Spec.Version)
@@ -396,6 +389,13 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kcp.Spec.Version)
 	}
 
+	// Update kube-proxy daemonset.
+	if err := workloadCluster.UpdateKubeProxyImageInfo(ctx, kcp, parsedVersion); err != nil {
+		log.Error(err, "failed to update kube-proxy daemonset")
+		return ctrl.Result{}, err
+	}
+
+	// Update CoreDNS deployment.
 	if err := workloadCluster.UpdateCoreDNS(ctx, kcp, parsedVersion); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to update CoreDNS deployment")
 	}

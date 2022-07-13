@@ -25,9 +25,6 @@ spec:
         replicas: ${WORKER_MACHINE_COUNT}
         failureDomain: fd4
     variables:
-    # The imageRepository variable is defaulted by the Cluster webhook.
-    #- name: imageRepository
-    #  value: k8s.gcr.io
     - name: etcdImageTag
       # We set an empty value to use the default tag kubeadm init is using.
       value: ""

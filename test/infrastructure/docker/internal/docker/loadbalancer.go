@@ -27,7 +27,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker/types"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/third_party/forked/loadbalancer"
 )
@@ -88,11 +88,11 @@ func getLoadBalancerImage(dockerCluster *infrav1.DockerCluster) string {
 	imageTag := loadbalancer.DefaultImageTag
 
 	if dockerCluster != nil {
-		if dockerCluster.Spec.LoadBalancer.ImageRepository != "" {
-			imageRepo = dockerCluster.Spec.LoadBalancer.ImageRepository
+		if dockerCluster.Spec.LoadBalancer.NewImageRepository != "" {
+			imageRepo = dockerCluster.Spec.LoadBalancer.NewImageRepository
 		}
-		if dockerCluster.Spec.LoadBalancer.ImageTag != "" {
-			imageTag = dockerCluster.Spec.LoadBalancer.ImageTag
+		if dockerCluster.Spec.LoadBalancer.NewField != "" {
+			imageTag = dockerCluster.Spec.LoadBalancer.NewField
 		}
 	}
 

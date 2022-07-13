@@ -47,11 +47,13 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1alpha3 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha3"
 	infrav1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1alpha4"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/controllers"
 	infraexpv1alpha3 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha3"
 	infraexpv1alpha4 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1alpha4"
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
+	infraexpv1beta1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
 	expcontrollers "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/controllers"
 )
 
@@ -75,9 +77,11 @@ func init() {
 	_ = scheme.AddToScheme(myscheme)
 	_ = infrav1alpha3.AddToScheme(myscheme)
 	_ = infrav1alpha4.AddToScheme(myscheme)
+	_ = infrav1beta1.AddToScheme(myscheme)
 	_ = infrav1.AddToScheme(myscheme)
 	_ = infraexpv1alpha3.AddToScheme(myscheme)
 	_ = infraexpv1alpha4.AddToScheme(myscheme)
+	_ = infraexpv1beta1.AddToScheme(myscheme)
 	_ = infraexpv1.AddToScheme(myscheme)
 	_ = clusterv1.AddToScheme(myscheme)
 	_ = expv1.AddToScheme(myscheme)

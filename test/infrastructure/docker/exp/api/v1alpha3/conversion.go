@@ -19,29 +19,29 @@ package v1alpha3
 import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
+	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta2"
 )
 
 func (src *DockerMachinePool) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infraexpv1.DockerMachinePool)
 
-	return Convert_v1alpha3_DockerMachinePool_To_v1beta1_DockerMachinePool(src, dst, nil)
+	return Convert_v1alpha3_DockerMachinePool_To_v1beta2_DockerMachinePool(src, dst, nil)
 }
 
 func (dst *DockerMachinePool) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infraexpv1.DockerMachinePool)
 
-	return Convert_v1beta1_DockerMachinePool_To_v1alpha3_DockerMachinePool(src, dst, nil)
+	return Convert_v1beta2_DockerMachinePool_To_v1alpha3_DockerMachinePool(src, dst, nil)
 }
 
 func (src *DockerMachinePoolList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infraexpv1.DockerMachinePoolList)
 
-	return Convert_v1alpha3_DockerMachinePoolList_To_v1beta1_DockerMachinePoolList(src, dst, nil)
+	return Convert_v1alpha3_DockerMachinePoolList_To_v1beta2_DockerMachinePoolList(src, dst, nil)
 }
 
 func (dst *DockerMachinePoolList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infraexpv1.DockerMachinePoolList)
 
-	return Convert_v1beta1_DockerMachinePoolList_To_v1alpha3_DockerMachinePoolList(src, dst, nil)
+	return Convert_v1beta2_DockerMachinePoolList_To_v1alpha3_DockerMachinePoolList(src, dst, nil)
 }

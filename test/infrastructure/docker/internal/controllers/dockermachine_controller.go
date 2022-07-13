@@ -38,7 +38,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -244,7 +244,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	if !externalMachine.Exists() {
 		// NOTE: FailureDomains don't mean much in CAPD since it's all local, but we are setting a label on
 		// each container, so we can check placement.
-		if err := externalMachine.Create(ctx, dockerMachine.Spec.CustomImage, role, machine.Spec.Version, docker.FailureDomainLabel(machine.Spec.FailureDomain), dockerMachine.Spec.ExtraMounts); err != nil {
+		if err := externalMachine.Create(ctx, dockerMachine.Spec.NewCustomImage, role, machine.Spec.Version, docker.FailureDomainLabel(machine.Spec.FailureDomain), dockerMachine.Spec.ExtraMounts); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to create worker DockerMachine")
 		}
 	}

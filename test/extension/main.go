@@ -42,7 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/exp/runtime/server"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/lifecycle"
 	"sigs.k8s.io/cluster-api/test/extension/handlers/topologymutation"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/version"
 )
 

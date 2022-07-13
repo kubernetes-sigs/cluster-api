@@ -1,0 +1,26 @@
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  kubeadmConfigSpec:
+    format: ignition
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    spec:
+      format: ignition
+      ignition:
+        containerLinuxConfig:
+          additionalConfig: |
+            storage:
+              files:
+                - path: /opt/foo
+                  filesystem: root
+                  contents:
+                    inline: Howdy!
+                  mode: 0644

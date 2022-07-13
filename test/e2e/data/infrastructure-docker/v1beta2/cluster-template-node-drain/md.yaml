@@ -1,0 +1,8 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachineDeployment
+metadata:
+  name: "${CLUSTER_NAME}-md-0"
+spec:
+  template:
+    spec:
+      nodeDrainTimeout: "${NODE_DRAIN_TIMEOUT}"

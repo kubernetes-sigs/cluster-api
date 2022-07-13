@@ -1,0 +1,22 @@
+---
+kind: KubeadmControlPlane
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: "${CLUSTER_NAME}-control-plane"
+spec:
+  kubeadmConfigSpec:
+    clusterConfiguration:
+      apiServer:
+        # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
+        certSANs: [localhost, "::", "::1", host.docker.internal]
+    initConfiguration:
+      localAPIEndpoint:
+        advertiseAddress: '::'
+        bindPort: 6443
+      nodeRegistration:
+        kubeletExtraArgs:
+          node-ip: "::"
+    joinConfiguration:
+      nodeRegistration:
+        kubeletExtraArgs:
+          node-ip: "::"

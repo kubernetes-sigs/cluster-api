@@ -36,7 +36,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	patchvariables "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -183,7 +183,7 @@ func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav
 		return errors.Wrap(err, "could not set DockerClusterTemplate loadBalancer imageRepository")
 	}
 	if found {
-		dockerClusterTemplate.Spec.Template.Spec.LoadBalancer.ImageRepository = lbImageRepo
+		dockerClusterTemplate.Spec.Template.Spec.LoadBalancer.NewImageRepository = lbImageRepo
 	}
 	return nil
 }
@@ -256,7 +256,7 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 		}
 		customImage := fmt.Sprintf("kindest/node:%s", strings.ReplaceAll(cpVersion, "+", "_"))
 		log.Info(fmt.Sprintf("Setting MachineDeployment custom image to %q", customImage))
-		dockerMachineTemplate.Spec.Template.Spec.CustomImage = customImage
+		dockerMachineTemplate.Spec.Template.Spec.NewCustomImage = customImage
 		// return early if we have successfully patched a control plane dockerMachineTemplate
 		return nil
 	}
@@ -273,7 +273,7 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 		}
 		customImage := fmt.Sprintf("kindest/node:%s", strings.ReplaceAll(mdVersion, "+", "_"))
 		log.Info(fmt.Sprintf("Setting MachineDeployment customImage to %q", customImage))
-		dockerMachineTemplate.Spec.Template.Spec.CustomImage = customImage
+		dockerMachineTemplate.Spec.Template.Spec.NewCustomImage = customImage
 		return nil
 	}
 	// If the Docker Machine didn't have variables for either a control plane or a machineDeployment return an error.

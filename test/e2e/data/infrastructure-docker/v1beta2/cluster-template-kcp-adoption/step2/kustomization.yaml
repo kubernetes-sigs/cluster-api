@@ -1,0 +1,6 @@
+commonLabels:
+  kcp-adoption.step2: ""
+
+bases:
+  - ../../bases/cluster-with-kcp.yaml
+

@@ -96,7 +96,6 @@ type APIEndpoint struct {
 
 // +kubebuilder:resource:path=dockerclusters,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
-// +kubebuilder:storageversion
 // +kubebuilder:object:root=true
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".metadata.labels['cluster\\.x-k8s\\.io/cluster-name']",description="Cluster"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerCluster"

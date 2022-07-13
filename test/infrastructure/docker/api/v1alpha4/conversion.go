@@ -20,38 +20,38 @@ import (
 	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerCluster)
 
-	return Convert_v1alpha4_DockerCluster_To_v1beta1_DockerCluster(src, dst, nil)
+	return Convert_v1alpha4_DockerCluster_To_v1beta2_DockerCluster(src, dst, nil)
 }
 
 func (dst *DockerCluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerCluster)
 
-	return Convert_v1beta1_DockerCluster_To_v1alpha4_DockerCluster(src, dst, nil)
+	return Convert_v1beta2_DockerCluster_To_v1alpha4_DockerCluster(src, dst, nil)
 }
 
 func (src *DockerClusterList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerClusterList)
 
-	return Convert_v1alpha4_DockerClusterList_To_v1beta1_DockerClusterList(src, dst, nil)
+	return Convert_v1alpha4_DockerClusterList_To_v1beta2_DockerClusterList(src, dst, nil)
 }
 
 func (dst *DockerClusterList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerClusterList)
 
-	return Convert_v1beta1_DockerClusterList_To_v1alpha4_DockerClusterList(src, dst, nil)
+	return Convert_v1beta2_DockerClusterList_To_v1alpha4_DockerClusterList(src, dst, nil)
 }
 
 func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerClusterTemplate)
 
-	if err := Convert_v1alpha4_DockerClusterTemplate_To_v1beta1_DockerClusterTemplate(src, dst, nil); err != nil {
+	if err := Convert_v1alpha4_DockerClusterTemplate_To_v1beta2_DockerClusterTemplate(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -69,7 +69,7 @@ func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *DockerClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerClusterTemplate)
 
-	if err := Convert_v1beta1_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_DockerClusterTemplate_To_v1alpha4_DockerClusterTemplate(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -84,43 +84,43 @@ func (dst *DockerClusterTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DockerClusterTemplateList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerClusterTemplateList)
 
-	return Convert_v1alpha4_DockerClusterTemplateList_To_v1beta1_DockerClusterTemplateList(src, dst, nil)
+	return Convert_v1alpha4_DockerClusterTemplateList_To_v1beta2_DockerClusterTemplateList(src, dst, nil)
 }
 
 func (dst *DockerClusterTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerClusterTemplateList)
 
-	return Convert_v1beta1_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList(src, dst, nil)
+	return Convert_v1beta2_DockerClusterTemplateList_To_v1alpha4_DockerClusterTemplateList(src, dst, nil)
 }
 
 func (src *DockerMachine) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerMachine)
 
-	return Convert_v1alpha4_DockerMachine_To_v1beta1_DockerMachine(src, dst, nil)
+	return Convert_v1alpha4_DockerMachine_To_v1beta2_DockerMachine(src, dst, nil)
 }
 
 func (dst *DockerMachine) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerMachine)
 
-	return Convert_v1beta1_DockerMachine_To_v1alpha4_DockerMachine(src, dst, nil)
+	return Convert_v1beta2_DockerMachine_To_v1alpha4_DockerMachine(src, dst, nil)
 }
 
 func (src *DockerMachineList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerMachineList)
 
-	return Convert_v1alpha4_DockerMachineList_To_v1beta1_DockerMachineList(src, dst, nil)
+	return Convert_v1alpha4_DockerMachineList_To_v1beta2_DockerMachineList(src, dst, nil)
 }
 
 func (dst *DockerMachineList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerMachineList)
 
-	return Convert_v1beta1_DockerMachineList_To_v1alpha4_DockerMachineList(src, dst, nil)
+	return Convert_v1beta2_DockerMachineList_To_v1alpha4_DockerMachineList(src, dst, nil)
 }
 
 func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerMachineTemplate)
 
-	if err := Convert_v1alpha4_DockerMachineTemplate_To_v1beta1_DockerMachineTemplate(src, dst, nil); err != nil {
+	if err := Convert_v1alpha4_DockerMachineTemplate_To_v1beta2_DockerMachineTemplate(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -138,7 +138,7 @@ func (src *DockerMachineTemplate) ConvertTo(dstRaw conversion.Hub) error {
 func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerMachineTemplate)
 
-	if err := Convert_v1beta1_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(src, dst, nil); err != nil {
+	if err := Convert_v1beta2_DockerMachineTemplate_To_v1alpha4_DockerMachineTemplate(src, dst, nil); err != nil {
 		return err
 	}
 
@@ -153,21 +153,57 @@ func (dst *DockerMachineTemplate) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *DockerMachineTemplateList) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerMachineTemplateList)
 
-	return Convert_v1alpha4_DockerMachineTemplateList_To_v1beta1_DockerMachineTemplateList(src, dst, nil)
+	return Convert_v1alpha4_DockerMachineTemplateList_To_v1beta2_DockerMachineTemplateList(src, dst, nil)
 }
 
 func (dst *DockerMachineTemplateList) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerMachineTemplateList)
 
-	return Convert_v1beta1_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList(src, dst, nil)
+	return Convert_v1beta2_DockerMachineTemplateList_To_v1alpha4_DockerMachineTemplateList(src, dst, nil)
 }
 
-func Convert_v1beta1_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(in *infrav1.DockerClusterTemplateResource, out *DockerClusterTemplateResource, s apiconversion.Scope) error {
-	// NOTE: custom conversion func is required because spec.template.metadata has been added in v1beta1.
-	return autoConvert_v1beta1_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(in, out, s)
+func Convert_v1beta2_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(in *infrav1.DockerClusterTemplateResource, out *DockerClusterTemplateResource, s apiconversion.Scope) error {
+	// NOTE: custom conversion func is required because spec.template.metadata has been added in v1beta2.
+	return autoConvert_v1beta2_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemplateResource(in, out, s)
 }
 
-func Convert_v1beta1_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(in *infrav1.DockerMachineTemplateResource, out *DockerMachineTemplateResource, s apiconversion.Scope) error {
-	// NOTE: custom conversion func is required because spec.template.metadata has been added in v1beta1.
-	return autoConvert_v1beta1_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(in, out, s)
+func Convert_v1beta2_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(in *infrav1.DockerMachineTemplateResource, out *DockerMachineTemplateResource, s apiconversion.Scope) error {
+	// NOTE: custom conversion func is required because spec.template.metadata has been added in v1beta2.
+	return autoConvert_v1beta2_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(in, out, s)
+}
+
+// Convert_v1alpha4_DockerMachineSpec_To_v1beta2_DockerMachineSpec is an autogenerated conversion function.
+func Convert_v1alpha4_DockerMachineSpec_To_v1beta2_DockerMachineSpec(in *DockerMachineSpec, out *infrav1.DockerMachineSpec, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha4_DockerMachineSpec_To_v1beta2_DockerMachineSpec(in, out, s); err != nil {
+		return err
+	}
+	out.NewCustomImage = in.CustomImage
+	return nil
+}
+
+// Convert_v1beta2_DockerMachineSpec_To_v1alpha4_DockerMachineSpec is an autogenerated conversion function.
+func Convert_v1beta2_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(in *infrav1.DockerMachineSpec, out *DockerMachineSpec, s apiconversion.Scope) error {
+	if err := autoConvert_v1beta2_DockerMachineSpec_To_v1alpha4_DockerMachineSpec(in, out, s); err != nil {
+		return err
+	}
+	out.CustomImage = in.NewCustomImage
+	return nil
+}
+
+// Convert_v1alpha4_ImageMeta_To_v1beta2_ImageMeta is an autogenerated conversion function.
+func Convert_v1alpha4_ImageMeta_To_v1beta2_ImageMeta(in *ImageMeta, out *infrav1.ImageMeta, s apiconversion.Scope) error {
+	if err := autoConvert_v1alpha4_ImageMeta_To_v1beta2_ImageMeta(in, out, s); err != nil {
+		return err
+	}
+	out.NewImageRepository = in.ImageRepository
+	return nil
+}
+
+// Convert_v1beta2_ImageMeta_To_v1alpha4_ImageMeta is an autogenerated conversion function.
+func Convert_v1beta2_ImageMeta_To_v1alpha4_ImageMeta(in *infrav1.ImageMeta, out *ImageMeta, s apiconversion.Scope) error {
+	if err := autoConvert_v1beta2_ImageMeta_To_v1alpha4_ImageMeta(in, out, s); err != nil {
+		return err
+	}
+	out.ImageRepository = in.NewImageRepository
+	return nil
 }

@@ -19,7 +19,7 @@ package v1alpha3
 import (
 	"testing"
 
-	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta2"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 

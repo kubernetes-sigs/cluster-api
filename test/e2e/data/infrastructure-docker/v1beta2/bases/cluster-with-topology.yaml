@@ -1,0 +1,36 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+  namespace: default
+  labels:
+    cni: "${CLUSTER_NAME}-crs-0"
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ['${DOCKER_SERVICE_CIDRS}']
+    pods:
+      cidrBlocks: ['${DOCKER_POD_CIDRS}']
+    serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
+  topology:
+    class: "quick-start"
+    version: "${KUBERNETES_VERSION}"
+    controlPlane:
+      metadata: {}
+      replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+    workers:
+      machineDeployments:
+      - class: "default-worker"
+        name: "md-0"
+        replicas: ${WORKER_MACHINE_COUNT}
+        failureDomain: fd4
+    variables:
+    # The imageRepository variable is defaulted by the Cluster webhook.
+    #- name: imageRepository
+    #  value: k8s.gcr.io
+    - name: etcdImageTag
+      # We set an empty value to use the default tag kubeadm init is using.
+      value: ""
+    - name: coreDNSImageTag
+      # We set an empty value to use the default tag kubeadm init is using.
+      value: ""

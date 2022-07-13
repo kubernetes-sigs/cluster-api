@@ -1,0 +1,6 @@
+resources:
+  - ../cluster-template-upgrades
+  - ./mp-cgroupfs.yaml
+
+patches:
+- ./mp-default-cgroupfs.yaml

@@ -82,6 +82,14 @@ var (
 	// NOTE: The following assumes that kubeadm version equals to Kubernetes version.
 	minVerUnversionedKubeletConfig = semver.MustParse("1.24.0")
 
+	// minKubernetesVersionImageRegistryMigration is first kubernetes version where
+	// the default image registry is registry.k8s.io instead of k8s.gcr.io.
+	minKubernetesVersionImageRegistryMigration = semver.MustParse("1.25.0")
+
+	// nextKubernetesVersionImageRegistryMigration is the next minor version after
+	// the default image registry changed to registry.k8s.io.
+	nextKubernetesVersionImageRegistryMigration = semver.MustParse("1.26.0")
+
 	// ErrControlPlaneMinNodes signals that a cluster doesn't meet the minimum required nodes
 	// to remove an etcd member.
 	ErrControlPlaneMinNodes = errors.New("cluster has fewer than 2 control plane nodes; removing an etcd member is not supported")
@@ -108,7 +116,7 @@ type WorkloadCluster interface {
 	UpdateControllerManagerInKubeadmConfigMap(ctx context.Context, controllerManager bootstrapv1.ControlPlaneComponent, version semver.Version) error
 	UpdateSchedulerInKubeadmConfigMap(ctx context.Context, scheduler bootstrapv1.ControlPlaneComponent, version semver.Version) error
 	UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error
-	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error
+	UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, version semver.Version) error
 	UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, version semver.Version) error
 	RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error
 	RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine, version semver.Version) error
@@ -475,7 +483,7 @@ func staticPodName(component, nodeName string) string {
 }
 
 // UpdateKubeProxyImageInfo updates kube-proxy image in the kube-proxy DaemonSet.
-func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane) error {
+func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, version semver.Version) error {
 	// Return early if we've been asked to skip kube-proxy upgrades entirely.
 	if _, ok := kcp.Annotations[controlplanev1.SkipKubeProxyAnnotation]; ok {
 		return nil
@@ -500,9 +508,11 @@ func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlpla
 	if err != nil {
 		return err
 	}
-	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil &&
-		kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository != "" {
-		newImageName, err = containerutil.ModifyImageRepository(newImageName, kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository)
+
+	// Modify the image repository if a value was explicitly set or an upgrade is required.
+	imageRepository := ImageRepositoryFromClusterConfig(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration, version)
+	if imageRepository != "" {
+		newImageName, err = containerutil.ModifyImageRepository(newImageName, imageRepository)
 		if err != nil {
 			return err
 		}
@@ -544,4 +554,29 @@ func yamlToUnstructured(rawYAML []byte) (*unstructured.Unstructured, error) {
 	unst := &unstructured.Unstructured{}
 	err := yaml.Unmarshal(rawYAML, unst)
 	return unst, err
+}
+
+// ImageRepositoryFromClusterConfig returns the image repository to use. It returns:
+// * clusterConfig.ImageRepository if set.
+// * "registry.k8s.io" if v1.25 <= version < v1.26 to migrate to the new registry
+// * "" otherwise.
+// Beginning with kubernetes v1.25, the default registry for kubernetes is registry.k8s.io
+// instead of k8s.gcr.io which is why references should get migrated when upgrading to v1.25.
+// The migration follows the behavior of `kubeadm upgrade`.
+func ImageRepositoryFromClusterConfig(clusterConfig *bootstrapv1.ClusterConfiguration, kubernetesVersion semver.Version) string {
+	// If ImageRepository is explicitly specified, return early.
+	if clusterConfig != nil &&
+		clusterConfig.ImageRepository != "" {
+		return clusterConfig.ImageRepository
+	}
+
+	// If v1.25 <= version < v1.26 return the default Kubernetes image repository to
+	// migrate to the new location and not cause changes else.
+	if kubernetesVersion.GTE(minKubernetesVersionImageRegistryMigration) &&
+		kubernetesVersion.LT(nextKubernetesVersionImageRegistryMigration) {
+		return kubernetesImageRepository
+	}
+
+	// Use defaulting or current values otherwise.
+	return ""
 }

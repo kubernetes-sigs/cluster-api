@@ -34,6 +34,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/version"
 	"sigs.k8s.io/cluster-api/util/yaml"
 )
 
@@ -177,6 +178,16 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 				}},
 		},
 		{
+			name:        "does update image repository to new default registry for v1.25 updates",
+			ds:          newKubeProxyDSWithImage("k8s.gcr.io/kube-proxy:v1.24.0"),
+			expectErr:   false,
+			expectImage: "registry.k8s.io/kube-proxy:v1.25.0-alpha.1",
+			KCP: &controlplanev1.KubeadmControlPlane{
+				Spec: controlplanev1.KubeadmControlPlaneSpec{
+					Version: "v1.25.0-alpha.1",
+				}},
+		},
+		{
 			name:      "returns error if image repository is invalid",
 			ds:        newKubeProxyDS(),
 			expectErr: true,
@@ -218,7 +229,9 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 			w := &Workload{
 				Client: fakeClient,
 			}
-			err := w.UpdateKubeProxyImageInfo(ctx, tt.KCP)
+			kubernetesVersion, err := version.ParseMajorMinorPatchTolerant(tt.KCP.Spec.Version)
+			gs.Expect(err).ToNot(HaveOccurred())
+			err = w.UpdateKubeProxyImageInfo(ctx, tt.KCP, kubernetesVersion)
 			if tt.expectErr {
 				gs.Expect(err).To(HaveOccurred())
 			} else {

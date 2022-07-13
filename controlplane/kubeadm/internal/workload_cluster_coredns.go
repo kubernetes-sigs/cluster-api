@@ -47,9 +47,11 @@ const (
 	coreDNSVolumeKey       = "config-volume"
 	coreDNSClusterRoleName = "system:coredns"
 
-	kubernetesImageRepository = "k8s.gcr.io"
-	oldCoreDNSImageName       = "coredns"
-	coreDNSImageName          = "coredns/coredns"
+	// kubernetesImageRepository is the default Kubernetes image repository for build artifacts.
+	kubernetesImageRepository    = "registry.k8s.io"
+	oldKubernetesImageRepository = "k8s.gcr.io"
+	oldCoreDNSImageName          = "coredns"
+	coreDNSImageName             = "coredns/coredns"
 )
 
 var (
@@ -115,7 +117,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 	clusterConfig := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration
 
 	// Get the CoreDNS info needed for the upgrade.
-	info, err := w.getCoreDNSInfo(ctx, clusterConfig)
+	info, err := w.getCoreDNSInfo(ctx, clusterConfig, version)
 	if err != nil {
 		// Return early if we get a not found error, this can happen if any of the CoreDNS components
 		// cannot be found, e.g. configmap, deployment.
@@ -156,7 +158,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 }
 
 // getCoreDNSInfo returns all necessary coredns based information.
-func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv1.ClusterConfiguration) (*coreDNSInfo, error) {
+func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv1.ClusterConfiguration, version semver.Version) (*coreDNSInfo, error) {
 	// Get the coredns configmap and corefile.
 	key := ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}
 	cm, err := w.getConfigMap(ctx, key)
@@ -193,8 +195,17 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 
 	// Handle imageRepository.
 	toImageRepository := parsedImage.Repository
-	if clusterConfig.ImageRepository != "" {
-		toImageRepository = strings.TrimSuffix(clusterConfig.ImageRepository, "/")
+	// Overwrite the image repository if a value was explicitly set or an upgrade is required.
+	if imageRegistryRepository := ImageRepositoryFromClusterConfig(clusterConfig, version); imageRegistryRepository != "" {
+		if imageRegistryRepository == kubernetesImageRepository {
+			// Only patch to KubernetesImageRepository if oldKubernetesImageRepository is set as prefix.
+			if strings.HasPrefix(toImageRepository, oldKubernetesImageRepository) {
+				// Ensure to keep the repository subpaths when patching from oldKubernetesImageRepository to new KubernetesImageRepository.
+				toImageRepository = strings.TrimSuffix(imageRegistryRepository+strings.TrimPrefix(toImageRepository, oldKubernetesImageRepository), "/")
+			}
+		} else {
+			toImageRepository = strings.TrimSuffix(imageRegistryRepository, "/")
+		}
 	}
 	if clusterConfig.DNS.ImageRepository != "" {
 		toImageRepository = strings.TrimSuffix(clusterConfig.DNS.ImageRepository, "/")
@@ -219,7 +230,8 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 
 	// Handle the renaming of the upstream image from "k8s.gcr.io/coredns" to "k8s.gcr.io/coredns/coredns"
 	toImageName := parsedImage.Name
-	if toImageRepository == kubernetesImageRepository && toImageName == oldCoreDNSImageName && targetMajorMinorPatch.GTE(semver.MustParse("1.8.0")) {
+	if (toImageRepository == oldKubernetesImageRepository || toImageRepository == kubernetesImageRepository) &&
+		toImageName == oldCoreDNSImageName && targetMajorMinorPatch.GTE(semver.MustParse("1.8.0")) {
 		toImageName = coreDNSImageName
 	}
 
@@ -429,10 +441,9 @@ func validateCoreDNSImageTag(fromTag, toTag string) error {
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse CoreDNS target version %q", toTag)
 	}
-	// make sure that the version we're upgrading to is greater than the current one,
-	// or if they're the same version, the raw tags should be different (e.g. allow from `v1.17.4-somevendor.0` to `v1.17.4-somevendor.1`).
-	if x := from.Compare(to); x > 0 || (x == 0 && fromTag == toTag) {
-		return fmt.Errorf("toVersion %q must be greater than fromVersion %q", toTag, fromTag)
+	// make sure that the version we're upgrading to is greater or equal to the current one,
+	if x := from.Compare(to); x > 0 {
+		return fmt.Errorf("toVersion %q must be greater than or equal to fromVersion %q", toTag, fromTag)
 	}
 	// check if the from version is even in the list of coredns versions
 	if _, ok := migration.Versions[fmt.Sprintf("%d.%d.%d", from.Major, from.Minor, from.Patch)]; !ok {

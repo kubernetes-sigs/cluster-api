@@ -55,7 +55,7 @@ var generateClusterClusterCmd = &cobra.Command{
 		Generate templates for creating workload clusters.
 
 		clusterctl ships with a list of known providers; if necessary, edit
-		$HOME/.cluster-api/clusterctl.yaml to add new provider or to customize existing ones.
+		$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml to add new provider or to customize existing ones.
 
 		Each provider configuration links to a repository; clusterctl uses this information
 		to fetch templates when creating a new cluster.`),
@@ -112,7 +112,7 @@ func init() {
 	generateClusterClusterCmd.Flags().StringVarP(&gc.targetNamespace, "target-namespace", "n", "",
 		"The namespace to use for the workload cluster. If unspecified, the current namespace will be used.")
 	generateClusterClusterCmd.Flags().StringVar(&gc.kubernetesVersion, "kubernetes-version", "",
-		"The Kubernetes version to use for the workload cluster. If unspecified, the value from OS environment variables or the .cluster-api/clusterctl.yaml config file will be used.")
+		"The Kubernetes version to use for the workload cluster. If unspecified, the value from OS environment variables or the $XDG_CONFIG_HOME/cluster-api/clusterctl.yaml config file will be used.")
 	generateClusterClusterCmd.Flags().Int64Var(&gc.controlPlaneMachineCount, "control-plane-machine-count", 1,
 		"The number of control plane machines for the workload cluster.")
 	generateClusterClusterCmd.Flags().Int64Var(&gc.workerMachineCount, "worker-machine-count", 0,

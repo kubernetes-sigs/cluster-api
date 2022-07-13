@@ -66,7 +66,7 @@ cmd/clusterctl/hack/create-local-repository.py
 ```
 
 The script reads from the source folders for the providers you want to install, builds the providers' assets,
-and places them in a local repository folder located under `$HOME/.cluster-api/dev-repository/`.
+and places them in a local repository folder located under `$XDG_CONFIG_HOME/cluster-api/dev-repository/`.
 Additionally, the command output provides you the `clusterctl init` command with all the necessary flags.
 The output should be similar to:
 
@@ -83,7 +83,7 @@ clusterctl init \
    --config ~/.cluster-api/dev-repository/config.yaml
 ```
 
-As you might notice, the command is using the `$HOME/.cluster-api/dev-repository/config.yaml` config file,
+As you might notice, the command is using the `$XDG_CONFIG_HOME/cluster-api/dev-repository/config.yaml` config file,
 containing all the required setting to make clusterctl use the local repository.
 
 <aside class="note warning">

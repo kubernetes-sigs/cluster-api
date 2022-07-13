@@ -40,53 +40,53 @@
 
 from __future__ import unicode_literals
 
+import errno
 import json
-import subprocess
 import os
+import subprocess
 from distutils.dir_util import copy_tree
 from distutils.file_util import copy_file
-import errno
-import sys
 
 settings = {}
 
 providers = {
-      'cluster-api': {
-              'componentsFile': 'core-components.yaml',
-              'nextVersion': 'v1.5.99',
-              'type': 'CoreProvider',
-      },
-      'bootstrap-kubeadm': {
-            'componentsFile': 'bootstrap-components.yaml',
-            'nextVersion': 'v1.5.99',
-            'type': 'BootstrapProvider',
-            'configFolder': 'bootstrap/kubeadm/config/default',
-      },
-      'control-plane-kubeadm': {
-            'componentsFile': 'control-plane-components.yaml',
-            'nextVersion': 'v1.5.99',
-            'type': 'ControlPlaneProvider',
-            'configFolder': 'controlplane/kubeadm/config/default',
-      },
-      'infrastructure-docker': {
-          'componentsFile': 'infrastructure-components.yaml',
-          'nextVersion': 'v1.5.99',
-          'type': 'InfrastructureProvider',
-          'configFolder': 'test/infrastructure/docker/config/default',
-      },
-      'infrastructure-in-memory': {
+    'cluster-api': {
+        'componentsFile': 'core-components.yaml',
+        'nextVersion': 'v1.5.99',
+        'type': 'CoreProvider',
+    },
+    'bootstrap-kubeadm': {
+        'componentsFile': 'bootstrap-components.yaml',
+        'nextVersion': 'v1.5.99',
+        'type': 'BootstrapProvider',
+        'configFolder': 'bootstrap/kubeadm/config/default',
+    },
+    'control-plane-kubeadm': {
+        'componentsFile': 'control-plane-components.yaml',
+        'nextVersion': 'v1.5.99',
+        'type': 'ControlPlaneProvider',
+        'configFolder': 'controlplane/kubeadm/config/default',
+    },
+    'infrastructure-docker': {
+        'componentsFile': 'infrastructure-components.yaml',
+        'nextVersion': 'v1.5.99',
+        'type': 'InfrastructureProvider',
+        'configFolder': 'test/infrastructure/docker/config/default',
+    },
+    'infrastructure-in-memory': {
           'componentsFile': 'infrastructure-components.yaml',
           'nextVersion': 'v1.5.99',
           'type': 'InfrastructureProvider',
           'configFolder': 'test/infrastructure/inmemory/config/default',
       },
       'runtime-extension-test': {
-          'componentsFile': 'runtime-extension-components.yaml',
-          'nextVersion': 'v1.5.99',
-          'type': 'RuntimeExtensionProvider',
-          'configFolder': 'test/extension/config/default',
-      },
+        'componentsFile': 'runtime-extension-components.yaml',
+        'nextVersion': 'v1.5.99',
+        'type': 'RuntimeExtensionProvider',
+        'configFolder': 'test/extension/config/default',
+    },
 }
+
 
 def load_settings():
     global settings
@@ -94,6 +94,7 @@ def load_settings():
         settings = json.load(open('clusterctl-settings.json'))
     except  Exception as e:
         raise Exception('failed to load clusterctl-settings.json: {}'.format(e))
+
 
 def load_providers():
     provider_repos = settings.get('provider_repos', [])
@@ -108,26 +109,31 @@ def load_providers():
         except  Exception as e:
             raise Exception('failed to load clusterctl-settings.json from repo {}: {}'.format(repo, e))
 
+
 def execCmd(args):
     try:
         out = subprocess.Popen(args,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.STDOUT)
 
         stdout, stderr = out.communicate()
         if stderr is not None:
             raise Exception('stderr contains: \n{}'.format(stderr))
 
         return stdout
-    except  Exception as e:
+    except Exception as e:
         raise Exception('failed to run {}: {}'.format(args, e))
 
-def get_home():
-    return os.path.expanduser('~')
 
 def get_repository_folder():
-    home = get_home()
-    return os.path.join(home, '.cluster-api', 'dev-repository')
+    config_dir = os.getenv("XDG_CONFIG_HOME", "")
+    if config_dir == "":
+        home_dir = os.getenv("HOME", "")
+        if home_dir == "":
+            raise Exception('HOME variable is not set')
+        config_dir = os.path.join(home_dir, ".config")
+    return os.path.join(config_dir, 'cluster-api', 'dev-repository')
+
 
 def write_local_repository(provider, version, components_file, components_yaml, metadata_file):
     try:
@@ -155,6 +161,7 @@ def write_local_repository(provider, version, components_file, components_yaml, 
     except Exception as e:
         raise Exception('failed to write {} to {}: {}'.format(components_file, provider_folder, e))
 
+
 def create_local_repositories():
     providerList = settings.get('providers', [])
     assert providerList is not None, 'invalid configuration: please define the list of providers to override'
@@ -162,30 +169,37 @@ def create_local_repositories():
 
     for provider in providerList:
         p = providers.get(provider)
-        assert p is not None, 'invalid configuration: please specify the configuration for the {} provider'.format(provider)
+        assert p is not None, 'invalid configuration: please specify the configuration for the {} provider'.format(
+            provider)
 
         repo = p.get('repo', '.')
         config_folder = p.get('configFolder', 'config/default')
-        metadata_file = repo+'/metadata.yaml'
+        metadata_file = repo + '/metadata.yaml'
 
         next_version = p.get('nextVersion')
-        assert next_version is not None, 'invalid configuration for provider {}: please provide nextVersion value'.format(provider)
+        assert next_version is not None, 'invalid configuration for provider {}: please provide nextVersion value'.format(
+            provider)
 
         name, type = splitNameAndType(provider)
-        assert name is not None, 'invalid configuration for provider {}: please use a valid provider label'.format(provider)
+        assert name is not None, 'invalid configuration for provider {}: please use a valid provider label'.format(
+            provider)
 
         components_file = p.get('componentsFile')
-        assert components_file is not None, 'invalid configuration for provider {}: please provide componentsFile value'.format(provider)
+        assert components_file is not None, 'invalid configuration for provider {}: please provide componentsFile value'.format(
+            provider)
 
         execCmd(['make', 'kustomize'])
         components_yaml = execCmd(['./hack/tools/bin/kustomize', 'build', os.path.join(repo, config_folder)])
-        components_path = write_local_repository(provider, next_version, components_file, components_yaml, metadata_file)
+        components_path = write_local_repository(provider, next_version, components_file, components_yaml,
+                                                 metadata_file)
 
         yield name, type, next_version, components_path
+
 
 def injectLatest(path):
     head, tail = os.path.split(path)
     return '{}/latest/{}'.format(head, tail)
+
 
 def create_dev_config(repos):
     yaml = "providers:\n"
@@ -205,6 +219,7 @@ def create_dev_config(repos):
     except Exception as e:
         raise Exception('failed to write {}: {}'.format(config_path, e))
 
+
 def splitNameAndType(provider):
     if provider == 'cluster-api':
         return 'cluster-api', 'CoreProvider'
@@ -222,26 +237,34 @@ def splitNameAndType(provider):
         return provider[len('addon-'):], 'AddonProvider'
     return None, None
 
+
 def CoreProviderFlag():
     return '--core'
+
 
 def BootstrapProviderFlag():
     return '--bootstrap'
 
+
 def ControlPlaneProviderFlag():
     return '--control-plane'
+
 
 def InfrastructureProviderFlag():
     return '--infrastructure'
 
+
 def IPAMProviderFlag():
     return '--ipam'
+
 
 def RuntimeExtensionProviderFlag():
     return '--runtime-extension'
 
+
 def AddonProviderFlag():
     return '--addon'
+
 
 def type_to_flag(type):
     switcher = {
@@ -256,19 +279,21 @@ def type_to_flag(type):
     func = switcher.get(type, lambda: 'Invalid type')
     return func()
 
+
 def print_instructions(repos):
     providerList = settings.get('providers', [])
-    print ('clusterctl local overrides generated from local repositories for the {} providers.'.format(', '.join(providerList)))
-    print ('in order to use them, please run:')
+    print('clusterctl local overrides generated from local repositories for the {} providers.'.format(
+        ', '.join(providerList)))
+    print('in order to use them, please run:')
     print
     cmd = "clusterctl init \\\n"
     for name, type, next_version, components_path in repos:
         cmd += "   {} {}:{} \\\n".format(type_to_flag(type), name, next_version)
     cmd += "   --config ~/.cluster-api/dev-repository/config.yaml"
-    print (cmd)
+    print(cmd)
     print
     if 'infrastructure-docker' in providerList:
-        print ('please check the documentation for additional steps required for using the docker provider')
+        print('please check the documentation for additional steps required for using the docker provider')
         print
     if 'infrastructure-in-memory' in providerList:
         print ('please check the documentation for additional steps required for using the in-memory provider')

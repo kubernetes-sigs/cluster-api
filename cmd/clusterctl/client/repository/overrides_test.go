@@ -21,8 +21,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/adrg/xdg"
 	. "github.com/onsi/gomega"
-	"k8s.io/client-go/util/homedir"
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -30,6 +30,9 @@ import (
 )
 
 func TestOverrides(t *testing.T) {
+	configDirectory, err := xdg.ConfigFile(config.ConfigFolderXDG)
+	NewWithT(t).Expect(err).To(BeNil())
+
 	tests := []struct {
 		name            string
 		configVarClient config.VariablesClient
@@ -39,17 +42,17 @@ func TestOverrides(t *testing.T) {
 		{
 			name:            "returns default overrides path if no config provided",
 			configVarClient: test.NewFakeVariableClient(),
-			expectedPath:    filepath.Join(homedir.HomeDir(), config.ConfigFolder, overrideFolder, "infrastructure-myinfra", "v1.0.1", "infra-comp.yaml"),
+			expectedPath:    filepath.Join(configDirectory, overrideFolder, "infrastructure-myinfra", "v1.0.1", "infra-comp.yaml"),
 		},
 		{
 			name:            "returns default overrides path if config variable is empty",
 			configVarClient: test.NewFakeVariableClient().WithVar(overrideFolderKey, ""),
-			expectedPath:    filepath.Join(homedir.HomeDir(), config.ConfigFolder, overrideFolder, "infrastructure-myinfra", "v1.0.1", "infra-comp.yaml"),
+			expectedPath:    filepath.Join(configDirectory, overrideFolder, "infrastructure-myinfra", "v1.0.1", "infra-comp.yaml"),
 		},
 		{
 			name:            "returns default overrides path if config variable is whitespace",
 			configVarClient: test.NewFakeVariableClient().WithVar(overrideFolderKey, "   "),
-			expectedPath:    filepath.Join(homedir.HomeDir(), config.ConfigFolder, overrideFolder, "infrastructure-myinfra", "v1.0.1", "infra-comp.yaml"),
+			expectedPath:    filepath.Join(configDirectory, overrideFolder, "infrastructure-myinfra", "v1.0.1", "infra-comp.yaml"),
 		},
 		{
 			name:            "uses overrides folder from the config variables",
@@ -86,7 +89,9 @@ func TestOverrides(t *testing.T) {
 				filePath:              "infra-comp.yaml",
 			})
 
-			g.Expect(override.Path()).To(Equal(tt.expectedPath))
+			overridePath, err := override.Path()
+			g.Expect(err).To(BeNil())
+			g.Expect(overridePath).To(Equal(tt.expectedPath))
 		})
 	}
 }

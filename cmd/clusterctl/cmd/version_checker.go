@@ -25,11 +25,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/adrg/xdg"
 	"github.com/blang/semver"
 	"github.com/google/go-github/v48/github"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
-	"k8s.io/client-go/util/homedir"
 	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -51,7 +51,7 @@ type versionChecker struct {
 
 // newVersionChecker returns a versionChecker. Its behavior has been inspired
 // by https://github.com/cli/cli.
-func newVersionChecker(vc config.VariablesClient) *versionChecker {
+func newVersionChecker(vc config.VariablesClient) (*versionChecker, error) {
 	var client *github.Client
 	token, err := vc.Get("GITHUB_TOKEN")
 	if err == nil {
@@ -64,11 +64,16 @@ func newVersionChecker(vc config.VariablesClient) *versionChecker {
 		client = github.NewClient(nil)
 	}
 
+	configDirectory, err := xdg.ConfigFile(config.ConfigFolderXDG)
+	if err != nil {
+		return nil, err
+	}
+
 	return &versionChecker{
-		versionFilePath: filepath.Join(homedir.HomeDir(), config.ConfigFolder, "version.yaml"),
+		versionFilePath: filepath.Join(configDirectory, "version.yaml"),
 		cliVersion:      version.Get,
 		githubClient:    client,
-	}
+	}, nil
 }
 
 // ReleaseInfo stores information about the release.
@@ -87,7 +92,7 @@ type VersionState struct {
 // latest available release for CAPI
 // (https://github.com/kubernetes-sigs/cluster-api). It gets the latest
 // release from github at most once during a 24 hour period and caches the
-// state by default in $HOME/.cluster-api/state.yaml. If the clusterctl
+// state by default in $XDG_CONFIG_HOME/cluster-api/state.yaml. If the clusterctl
 // version is the same or greater it returns nothing.
 func (v *versionChecker) Check() (string, error) {
 	log := logf.Log

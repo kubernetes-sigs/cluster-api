@@ -1,0 +1,188 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: quick-start
+  namespace: default
+spec:
+  controlPlane:
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: quick-start-control-plane
+      namespace: default
+    machineInfrastructure:
+      ref:
+        kind: DockerMachineTemplate
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        name: quick-start-control-plane
+        namespace: default
+    machineHealthCheck:
+      unhealthyConditions:
+      - type: Ready
+        status: Unknown
+        timeout: 334s
+      - type: Ready
+        status: "False"
+        timeout: 310s
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerClusterTemplate
+      name: quick-start-my-cluster
+      namespace: default
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerClusterTemplate
+metadata:
+  name: quick-start-my-cluster
+  namespace: default
+spec:
+  template:
+    spec:
+      subnets1: []
+      #- topologyField: value
+      subnets2: []
+      #- topologyField: value
+      subnets3: []
+      #- topologyField: value
+      #  uuid: uuid-1
+      subnets4:
+      - topologyField: value
+---
+kind: KubeadmControlPlaneTemplate
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: quick-start-control-plane
+  namespace: default
+spec:
+  template:
+    spec:
+      machineTemplate:
+        nodeDrainTimeout: 1s
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          controllerManager:
+            extraArgs: { enable-hostpath-provisioner: 'true' }
+          apiServer:
+            # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
+            certSANs: [ localhost, 127.0.0.1, 0.0.0.0, host.docker.internal ]
+        initConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+              cgroup-driver: cgroupfs
+              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+        joinConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+              cgroup-driver: cgroupfs
+              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+---
+kind: KubeadmControlPlaneTemplate
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: quick-start-control-plane-2
+  namespace: default
+spec:
+  template:
+    spec:
+      machineTemplate:
+        nodeDrainTimeout: 1s
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          apiServer:
+            # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
+            certSANs: [ localhost, 127.0.0.1, 0.0.0.0, host.docker.internal ]
+        initConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+              cgroup-driver: cgroupfs
+              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+        joinConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+              cgroup-driver: cgroupfs
+              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+---
+kind: KubeadmControlPlaneTemplate
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+metadata:
+  name: quick-start-control-plane-3
+  namespace: default
+spec:
+  template:
+    spec:
+      machineTemplate:
+        nodeDrainTimeout: 1s
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          controllerManager:
+            extraArgs: null
+          apiServer:
+            # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
+            certSANs: [ localhost, 127.0.0.1, 0.0.0.0, host.docker.internal ]
+        initConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+              cgroup-driver: cgroupfs
+              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+        joinConfiguration:
+          nodeRegistration:
+            criSocket: /var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+              # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+              cgroup-driver: cgroupfs
+              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: quick-start-control-plane
+  namespace: default
+spec:
+  template:
+    spec:
+      extraMounts:
+      - containerPath: "/var/run/docker.sock"
+        hostPath: "/var/run/docker.sock"
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachineTemplate
+metadata:
+  name: quick-start-docker-worker-machinetemplate
+  namespace: default
+spec:
+  template:
+    spec: { }
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: "quick-start-docker-worker-bootstraptemplate"
+  namespace: default
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            # We have to pin the cgroupDriver to cgroupfs as kubeadm >=1.21 defaults to systemd
+            # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
+            cgroup-driver: cgroupfs
+            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+

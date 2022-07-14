@@ -19,6 +19,8 @@ package main
 import (
 	"context"
 	"flag"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"math/rand"
 	"net/http"
 	"os"
@@ -69,6 +71,7 @@ var (
 )
 
 func init() {
+	myscheme.AddKnownTypes(schema.GroupVersion{Group: "meta.k8s.io", Version: "v1"}, &metav1.UpdateOptions{})
 	_ = scheme.AddToScheme(myscheme)
 	_ = infrav1alpha3.AddToScheme(myscheme)
 	_ = infrav1alpha4.AddToScheme(myscheme)

@@ -38,7 +38,7 @@ func TestDockerClusterTemplateValidationFeatureGateEnabled(t *testing.T) {
 			},
 			Spec: DockerClusterTemplateSpec{
 				Template: DockerClusterTemplateResource{
-					Spec: DockerClusterSpec{},
+					Spec: DockerClusterTemplateNewSpec{},
 				},
 			},
 		}
@@ -57,7 +57,7 @@ func TestDockerClusterTemplateValidationFeatureGateDisabled(t *testing.T) {
 			},
 			Spec: DockerClusterTemplateSpec{
 				Template: DockerClusterTemplateResource{
-					Spec: DockerClusterSpec{},
+					Spec: DockerClusterTemplateNewSpec{},
 				},
 			},
 		}

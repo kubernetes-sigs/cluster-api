@@ -86,6 +86,20 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	for i, _ := range dockerCluster.Spec.Subnets1 {
+		dockerCluster.Spec.Subnets1[i].DockerClusterField = "value"
+	}
+	for i, _ := range dockerCluster.Spec.Subnets2 {
+		dockerCluster.Spec.Subnets2[i].DockerClusterField = "value"
+	}
+	for i, _ := range dockerCluster.Spec.Subnets3 {
+		dockerCluster.Spec.Subnets3[i].DockerClusterField = "value"
+	}
+	for i, _ := range dockerCluster.Spec.Subnets4 {
+		dockerCluster.Spec.Subnets4[i].DockerClusterField = "value"
+	}
+
 	// Always attempt to Patch the DockerCluster object and status after each reconciliation.
 	defer func() {
 		if err := patchDockerCluster(ctx, patchHelper, dockerCluster); err != nil {

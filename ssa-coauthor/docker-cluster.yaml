@@ -1,0 +1,19 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: "my-cluster"
+  namespace: default
+  labels:
+    cni: "my-cluster-crs-0"
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ['10.128.0.0/12']
+    pods:
+      cidrBlocks: ['192.168.0.0/16']
+    serviceDomain: 'cluster.local'
+  topology:
+    class: "quick-start"
+    version: "v1.22.2"
+    controlPlane:
+      replicas: 1

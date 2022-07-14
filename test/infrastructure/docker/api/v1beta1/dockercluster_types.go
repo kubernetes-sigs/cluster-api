@@ -47,6 +47,74 @@ type DockerClusterSpec struct {
 	// LoadBalancer allows defining configurations for the cluster load balancer.
 	// +optional
 	LoadBalancer DockerLoadBalancer `json:"loadBalancer,omitempty"`
+
+	Subnets1 DockerClusterSubnets1 `json:"subnets1,omitempty"`
+	Subnets2 DockerClusterSubnets2 `json:"subnets2,omitempty"`
+	Subnets3 DockerClusterSubnets3 `json:"subnets3,omitempty"`
+	Subnets4 DockerClusterSubnets4 `json:"subnets4,omitempty"`
+}
+
+// DockerClusterSubnets1 .
+// +listType=map
+// +listMapKey=uuid
+type DockerClusterSubnets1 []DockerClusterSubnets1Spec
+
+// DockerClusterSubnets1Spec .
+type DockerClusterSubnets1Spec struct {
+	// +kubebuilder:default="dummy"
+	UUID *string `json:"uuid,omitempty"`
+
+	// ID defines a unique identifier to reference this resource.
+	ID string `json:"id,omitempty"`
+
+	TopologyField      string `json:"topologyField,omitempty"`
+	DockerClusterField string `json:"dockerClusterField,omitempty"`
+}
+
+// DockerClusterSubnets2 .
+// +listType=map
+// +listMapKey=uuid
+type DockerClusterSubnets2 []DockerClusterSubnets1Spec
+
+// DockerClusterSubnets2Spec .
+type DockerClusterSubnets2Spec struct {
+	// +kubebuilder:default="dummy"
+	UUID *string `json:"uuid,omitempty"`
+
+	// ID defines a unique identifier to reference this resource.
+	ID string `json:"id,omitempty"`
+
+	TopologyField      string `json:"topologyField,omitempty"`
+	DockerClusterField string `json:"dockerClusterField,omitempty"`
+}
+
+// DockerClusterSubnets3 .
+// +listType=map
+// +listMapKey=uuid
+type DockerClusterSubnets3 []DockerClusterSubnets1Spec
+
+// DockerClusterSubnets3Spec .
+type DockerClusterSubnets3Spec struct {
+	// +kubebuilder:default="dummy"
+	UUID *string `json:"uuid,omitempty"`
+
+	// ID defines a unique identifier to reference this resource.
+	ID string `json:"id,omitempty"`
+
+	TopologyField      string `json:"topologyField,omitempty"`
+	DockerClusterField string `json:"dockerClusterField,omitempty"`
+}
+
+// DockerClusterSubnets4 .
+type DockerClusterSubnets4 []DockerClusterSubnets4Spec
+
+// DockerClusterSubnets4Spec .
+type DockerClusterSubnets4Spec struct {
+	// ID defines a unique identifier to reference this resource.
+	ID string `json:"id,omitempty"`
+
+	TopologyField      string `json:"topologyField,omitempty"`
+	DockerClusterField string `json:"dockerClusterField,omitempty"`
 }
 
 // DockerLoadBalancer allows defining configurations for the cluster load balancer.

@@ -167,7 +167,8 @@ spec:
                         type: object
                     type: object
                   spec:
-                    description: DockerClusterSpec defines the desired state of DockerCluster.
+                    description: DockerClusterTemplateNewSpec defines the desired
+                      state of DockerCluster.
                     properties:
                       controlPlaneEndpoint:
                         description: ControlPlaneEndpoint represents the endpoint
@@ -225,6 +226,79 @@ spec:
                               be used instead.
                             type: string
                         type: object
+                      subnets1:
+                        description: DockerClusterTemplateSubnets1 .
+                        items:
+                          description: DockerClusterTemplateSubnets1Spec .
+                          properties:
+                            dockerClusterField:
+                              type: string
+                            id:
+                              description: ID defines a unique identifier to reference
+                                this resource.
+                              type: string
+                            topologyField:
+                              type: string
+                            uuid:
+                              default: dummy
+                              type: string
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - uuid
+                        x-kubernetes-list-type: map
+                      subnets2:
+                        description: DockerClusterTemplateSubnets2 .
+                        items:
+                          description: DockerClusterTemplateSubnets2Spec .
+                          properties:
+                            dockerClusterField:
+                              type: string
+                            id:
+                              description: ID defines a unique identifier to reference
+                                this resource.
+                              type: string
+                            topologyField:
+                              type: string
+                          type: object
+                        type: array
+                      subnets3:
+                        description: DockerClusterTemplateSubnets3 .
+                        items:
+                          description: DockerClusterTemplateSubnets3Spec .
+                          properties:
+                            dockerClusterField:
+                              type: string
+                            id:
+                              description: ID defines a unique identifier to reference
+                                this resource.
+                              type: string
+                            topologyField:
+                              type: string
+                            uuid:
+                              type: string
+                          required:
+                          - uuid
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - uuid
+                        x-kubernetes-list-type: map
+                      subnets4:
+                        description: DockerClusterTemplateSubnets4 .
+                        items:
+                          description: DockerClusterTemplateSubnets4Spec .
+                          properties:
+                            dockerClusterField:
+                              type: string
+                            id:
+                              description: ID defines a unique identifier to reference
+                                this resource.
+                              type: string
+                            topologyField:
+                              type: string
+                          type: object
+                        type: array
                     type: object
                 required:
                 - spec

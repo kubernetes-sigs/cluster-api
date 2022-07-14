@@ -390,6 +390,84 @@ spec:
                       image. if not set, "v20210715-a6da3463" will be used instead.
                     type: string
                 type: object
+              subnets1:
+                description: DockerClusterSubnets1 .
+                items:
+                  description: DockerClusterSubnets1Spec .
+                  properties:
+                    dockerClusterField:
+                      type: string
+                    id:
+                      description: ID defines a unique identifier to reference this
+                        resource.
+                      type: string
+                    topologyField:
+                      type: string
+                    uuid:
+                      default: dummy
+                      type: string
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - uuid
+                x-kubernetes-list-type: map
+              subnets2:
+                description: DockerClusterSubnets2 .
+                items:
+                  description: DockerClusterSubnets1Spec .
+                  properties:
+                    dockerClusterField:
+                      type: string
+                    id:
+                      description: ID defines a unique identifier to reference this
+                        resource.
+                      type: string
+                    topologyField:
+                      type: string
+                    uuid:
+                      default: dummy
+                      type: string
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - uuid
+                x-kubernetes-list-type: map
+              subnets3:
+                description: DockerClusterSubnets3 .
+                items:
+                  description: DockerClusterSubnets1Spec .
+                  properties:
+                    dockerClusterField:
+                      type: string
+                    id:
+                      description: ID defines a unique identifier to reference this
+                        resource.
+                      type: string
+                    topologyField:
+                      type: string
+                    uuid:
+                      default: dummy
+                      type: string
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - uuid
+                x-kubernetes-list-type: map
+              subnets4:
+                description: DockerClusterSubnets4 .
+                items:
+                  description: DockerClusterSubnets4Spec .
+                  properties:
+                    dockerClusterField:
+                      type: string
+                    id:
+                      description: ID defines a unique identifier to reference this
+                        resource.
+                      type: string
+                    topologyField:
+                      type: string
+                  type: object
+                type: array
             type: object
           status:
             description: DockerClusterStatus defines the observed state of DockerCluster.

@@ -18,11 +18,12 @@ package v1beta1
 
 import (
 	"fmt"
-	"reflect"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/uuid"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/utils/pointer"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -43,7 +44,15 @@ var _ webhook.Defaulter = &DockerClusterTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (r *DockerClusterTemplate) Default() {
-	defaultDockerClusterSpec(&r.Spec.Template.Spec)
+	defaultDockerClusterTemplateSpec(&r.Spec.Template.Spec)
+}
+
+func defaultDockerClusterTemplateSpec(s *DockerClusterTemplateNewSpec) {
+	for i, _ := range s.Subnets1 {
+		if s.Subnets1[i].UUID == nil || *s.Subnets1[i].UUID == "dummy" {
+			s.Subnets1[i].UUID = pointer.String(string(uuid.NewUUID()))
+		}
+	}
 }
 
 // +kubebuilder:webhook:verbs=create;update,path=/validate-infrastructure-cluster-x-k8s-io-v1beta1-dockerclustertemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=infrastructure.cluster.x-k8s.io,resources=dockerclustertemplates,versions=v1beta1,name=validation.dockerclustertemplate.infrastructure.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
@@ -61,10 +70,10 @@ func (r *DockerClusterTemplate) ValidateCreate() error {
 		)
 	}
 
-	allErrs := validateDockerClusterSpec(r.Spec.Template.Spec)
-	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), r.Name, allErrs)
-	}
+	//allErrs := validateDockerClusterSpec(r.Spec.Template.Spec)
+	//if len(allErrs) > 0 {
+	//	return apierrors.NewInvalid(GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), r.Name, allErrs)
+	//}
 	return nil
 }
 

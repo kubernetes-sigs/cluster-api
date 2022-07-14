@@ -171,3 +171,16 @@ func Convert_v1beta1_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemp
 	// NOTE: custom conversion func is required because spec.template.metadata has been added in v1beta1.
 	return autoConvert_v1beta1_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(in, out, s)
 }
+
+func Convert_v1beta1_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(in *infrav1.DockerClusterSpec, out *DockerClusterSpec, s apiconversion.Scope) error {
+	// NOTE: custom conversion func is required because spec.template.metadata has been added in v1beta1.
+	return autoConvert_v1beta1_DockerClusterSpec_To_v1alpha4_DockerClusterSpec(in, out, s)
+}
+
+func Convert_v1beta1_DockerClusterTemplateNewSpec_To_v1alpha4_DockerClusterSpec(in *infrav1.DockerClusterTemplateNewSpec, out *DockerClusterSpec, s apiconversion.Scope) error {
+	return nil
+}
+
+func Convert_v1alpha4_DockerClusterSpec_To_v1beta1_DockerClusterTemplateNewSpec(in *DockerClusterSpec, out *infrav1.DockerClusterTemplateNewSpec, s apiconversion.Scope) error {
+	return nil
+}

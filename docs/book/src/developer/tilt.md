@@ -173,7 +173,7 @@ kustomize_substitutions:
 {{#/tabs }}
 
 **deploy_observability** ([string], default=[]): If set, installs on the dev cluster one of more observability
-tools. Supported values are `grafana`, `loki`, `promtail` and/or `prometheus` (Note: the UI for `grafana` and `prometheus` will be accessible via a link in the tilt console).
+tools. Supported values are `grafana`, `loki`, `visualizer`, `promtail` and/or `prometheus` (Note: the UI for `grafana`, `prometheus`, and `visualizer` will be accessible via a link in the tilt console).
 Important! This feature requires the `helm` command to be available in the user's path.
 
 **debug** (Map{string: Map} default{}): A map of named configurations for the provider. The key is the name of the provider.

@@ -354,6 +354,15 @@ def deploy_observability():
         k8s_yaml(read_file("./.tiltbuild/yaml/prometheus.observability.yaml"), allow_duplicates = True)
         k8s_resource(workload = "prometheus-server", new_name = "prometheus", port_forwards = "9090", extra_pod_selectors = [{"app": "prometheus"}], labels = ["observability"])
 
+    if "visualizer" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/visualizer.observability.yaml"), allow_duplicates = True)
+        k8s_resource(
+            workload = "capi-visualizer",
+            new_name = "visualizer",
+            port_forwards = [port_forward(local_port = 8000, container_port = 8081, name = "View visualization")],
+            labels = ["observability"],
+        )
+
 def prepare_all():
     allow_k8s_arg = ""
     if settings.get("allowed_contexts"):

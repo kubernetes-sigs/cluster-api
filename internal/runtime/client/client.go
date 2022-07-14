@@ -369,7 +369,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	}
 
 	if retryResponse, ok := response.(runtimehooksv1.RetryResponseObject); ok && retryResponse.GetRetryAfterSeconds() != 0 {
-		log.Info(fmt.Sprintf("extension handler returned blocking response with retryAfterSeconds of %q", retryResponse.GetRetryAfterSeconds()))
+		log.Info(fmt.Sprintf("extension handler returned blocking response with retryAfterSeconds of %d", retryResponse.GetRetryAfterSeconds()))
 	} else {
 		log.Info("extension handler returned success response")
 	}

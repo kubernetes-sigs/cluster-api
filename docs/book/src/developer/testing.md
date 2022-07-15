@@ -48,6 +48,22 @@ Kubernetes objects and waiting for the controllers to take action. See the [quic
 
 Also in case of integration tests, considerations about [mocking external APIs](#mocking-external-apis) and usage of [generic providers](#generic-providers) apply. 
 
+## Fuzzing tests
+
+Fuzzing tests automatically inject randomly generated inputs, often invalid or with unexpected values, into functions to discover vulnerabilities. 
+
+Two different types of fuzzing are currently being used on the Cluster API repository:
+
+### Fuzz testing for API conversion
+
+Cluster API uses Kubernetes' conversion-gen to automate the generation of functions to convert our API objects between versions. These conversion functions are tested using the [FuzzTestFunc util in our conversion utils package](https://github.com/kubernetes-sigs/cluster-api/blob/1ec0cd6174f1b860dc466db587241ea7edea0b9f/util/conversion/conversion.go#L194).
+For more information about these conversions see the API conversion code walkthrough in our [video walkthrough series](./guide.md#videos-explaining-capi-architecture-and-code-walkthroughs).
+
+### OSS-Fuzz continuous fuzzing
+
+Parts of the CAPI code base are continuously fuzzed through the [OSS-Fuzz project](https://github.com/google/oss-fuzz). Issues found in these fuzzing tests are reported to Cluster API maintainers and surfaced in issues on the repo for resolution.
+To read more about the integration of Cluster API with OSS Fuzz see [the 2022 Cluster API Fuzzing Report](https://github.com/kubernetes/sig-security/blob/main/sig-security-assessments/cluster-api/capi_2022_fuzzing.pdf).
+
 ## Test maintainability
 
 Tests are an integral part of the project codebase.

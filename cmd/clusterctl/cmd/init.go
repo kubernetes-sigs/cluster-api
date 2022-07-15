@@ -95,13 +95,13 @@ func init() {
 	initCmd.Flags().StringVar(&initOpts.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 	initCmd.Flags().StringVar(&initOpts.coreProvider, "core", "",
-		"Core provider version (e.g. cluster-api:v0.3.0) to add to the management cluster. If unspecified, Cluster API's latest release is used.")
+		"Core provider version (e.g. cluster-api:v1.1.5) to add to the management cluster. If unspecified, Cluster API's latest release is used.")
 	initCmd.Flags().StringSliceVarP(&initOpts.infrastructureProviders, "infrastructure", "i", nil,
 		"Infrastructure providers and versions (e.g. aws:v0.5.0) to add to the management cluster.")
 	initCmd.Flags().StringSliceVarP(&initOpts.bootstrapProviders, "bootstrap", "b", nil,
-		"Bootstrap providers and versions (e.g. kubeadm:v0.3.0) to add to the management cluster. If unspecified, Kubeadm bootstrap provider's latest release is used.")
+		"Bootstrap providers and versions (e.g. kubeadm:v1.1.5) to add to the management cluster. If unspecified, Kubeadm bootstrap provider's latest release is used.")
 	initCmd.Flags().StringSliceVarP(&initOpts.controlPlaneProviders, "control-plane", "c", nil,
-		"Control plane providers and versions (e.g. kubeadm:v0.3.0) to add to the management cluster. If unspecified, the Kubeadm control plane provider's latest release is used.")
+		"Control plane providers and versions (e.g. kubeadm:v1.1.5) to add to the management cluster. If unspecified, the Kubeadm control plane provider's latest release is used.")
 	initCmd.Flags().StringVarP(&initOpts.targetNamespace, "target-namespace", "n", "",
 		"The target namespace where the providers should be deployed. If unspecified, the provider components' default namespace is used.")
 	initCmd.Flags().BoolVar(&initOpts.waitProviders, "wait-providers", false,

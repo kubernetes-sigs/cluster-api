@@ -70,13 +70,13 @@ func init() {
 		"The API Version of Cluster API (contract, e.g. v1alpha4) the management cluster should upgrade to")
 
 	upgradeApplyCmd.Flags().StringVar(&ua.coreProvider, "core", "",
-		"Core provider instance version (e.g. capi-system/cluster-api:v0.3.0) to upgrade to. This flag can be used as alternative to --contract.")
+		"Core provider instance version (e.g. capi-system/cluster-api:v1.1.5) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().StringSliceVarP(&ua.infrastructureProviders, "infrastructure", "i", nil,
 		"Infrastructure providers instance and versions (e.g. capa-system/aws:v0.5.0) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().StringSliceVarP(&ua.bootstrapProviders, "bootstrap", "b", nil,
-		"Bootstrap providers instance and versions (e.g. capi-kubeadm-bootstrap-system/kubeadm:v0.3.0) to upgrade to. This flag can be used as alternative to --contract.")
+		"Bootstrap providers instance and versions (e.g. capi-kubeadm-bootstrap-system/kubeadm:v1.1.5) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().StringSliceVarP(&ua.controlPlaneProviders, "control-plane", "c", nil,
-		"ControlPlane providers instance and versions (e.g. capi-kubeadm-control-plane-system/kubeadm:v0.3.0) to upgrade to. This flag can be used as alternative to --contract.")
+		"ControlPlane providers instance and versions (e.g. capi-kubeadm-control-plane-system/kubeadm:v1.1.5) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().BoolVar(&ua.waitProviders, "wait-providers", false,
 		"Wait for providers to be upgraded.")
 	upgradeApplyCmd.Flags().IntVar(&ua.waitProviderTimeout, "wait-provider-timeout", 5*60,

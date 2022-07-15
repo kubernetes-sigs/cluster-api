@@ -120,13 +120,13 @@ For example,
 
 ```
 ├── bootstrap-kubeadm
-│   └── v0.3.0
+│   └── v1.1.5
 │       └── bootstrap-components.yaml
 ├── cluster-api
-│   └── v0.3.0
+│   └── v1.1.5
 │       └── core-components.yaml
 ├── control-plane-kubeadm
-│   └── v0.3.0
+│   └── v1.1.5
 │       └── control-plane-components.yaml
 └── infrastructure-aws
     └── v0.5.0

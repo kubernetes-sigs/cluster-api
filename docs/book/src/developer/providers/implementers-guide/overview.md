@@ -37,16 +37,8 @@ KUBECTL_VERSION=$(curl -sfL https://dl.k8s.io/release/stable.txt)
 curl -fLO https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl
 
 # Install kustomize
-OS_TYPE=linux
-FILE=kustomize_*_${OS_TYPE}_amd64.tar.gz
-curl -sf https://api.github.com/repos/kubernetes-sigs/kustomize/releases/latest |\
-  grep browser_download |\
-  grep ${OS_TYPE} |\
-  cut -d '"' -f 4 |\
-  xargs curl -f -O -L
-tar zxvf $FILE; rm -f $FILE
-sudo mv kustomize /usr/local/bin/kustomize
-sudo chmod u+x /usr/local/bin/kustomize
+curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
+chmod +x ./kustomize && sudo mv ./kustomize /usr/local/bin/kustomize
 ```
 
 {{#/tab }}
@@ -54,16 +46,8 @@ sudo chmod u+x /usr/local/bin/kustomize
 
 ```bash
 # Install Kubebuilder
-os=$(go env GOOS)
-arch=$(go env GOARCH)
-
-# download kubebuilder and extract it to tmp
-curl -sL https://go.kubebuilder.io/dl/2.1.0/${os}/${arch} | tar -xz -C /tmp/
-
-# move to a long-term location and put it on your path
-# (you'll need to set the KUBEBUILDER_ASSETS env var if you put it somewhere else)
-sudo mv /tmp/kubebuilder_2.1.0_${os}_${arch} /usr/local/kubebuilder
-export PATH=$PATH:/usr/local/kubebuilder/bin
+curl -sLo kubebuilder https://go.kubebuilder.io/dl/latest/$(go env GOOS)/$(go env GOARCH)
+chmod +x ./kubebuilder && sudo mv ./kubebuilder /usr/local/bin/kubebuilder
 ```
 
 [kubebuilder-book]: https://book.kubebuilder.io/

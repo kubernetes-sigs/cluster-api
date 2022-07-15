@@ -31,6 +31,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/discovery"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -296,7 +299,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		// Get the workloadCluster before the management cluster is upgraded to make sure that the upgrade did not trigger
 		// any unexpected rollouts.
-		preUpgradeMachineList := &clusterv1alpha3.MachineList{}
+		preUpgradeMachineList := &unstructured.UnstructuredList{}
+		preUpgradeMachineList.SetGroupVersionKind(clusterv1alpha3.GroupVersion.WithKind("MachineList"))
 		err = managementClusterProxy.GetClient().List(
 			ctx,
 			preUpgradeMachineList,
@@ -322,7 +326,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		// After the upgrade check that there were no unexpected rollouts.
 		Consistently(func() bool {
-			postUpgradeMachineList := &clusterv1.MachineList{}
+			postUpgradeMachineList := &unstructured.UnstructuredList{}
+			postUpgradeMachineList.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineList"))
 			err = managementClusterProxy.GetClient().List(
 				ctx,
 				postUpgradeMachineList,
@@ -330,7 +335,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				client.MatchingLabels{clusterv1.ClusterLabelName: workLoadClusterName},
 			)
 			Expect(err).NotTo(HaveOccurred())
-			return machinesMatch(preUpgradeMachineList, postUpgradeMachineList)
+			return matchUnstructuredLists(preUpgradeMachineList, postUpgradeMachineList)
 		}, "3m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
 
 		// After upgrading we are sure the version is the latest version of the API,
@@ -577,23 +582,23 @@ func waitForClusterDeletedV1alpha4(ctx context.Context, input waitForClusterDele
 	}, intervals...).Should(BeTrue())
 }
 
-func machinesMatch(oldMachineList *clusterv1alpha3.MachineList, newMachineList *clusterv1.MachineList) bool {
-	if len(oldMachineList.Items) != len(newMachineList.Items) {
+func matchUnstructuredLists(l1 *unstructured.UnstructuredList, l2 *unstructured.UnstructuredList) bool {
+	if l1 == nil && l2 == nil {
+		return true
+	}
+	if l1 == nil || l2 == nil {
 		return false
 	}
-
-	// Every machine from the old list should be present in the new list
-	for _, oldMachine := range oldMachineList.Items {
-		found := false
-		for _, newMachine := range newMachineList.Items {
-			if oldMachine.Name == newMachine.Name && oldMachine.Namespace == newMachine.Namespace {
-				found = true
-				break
-			}
-		}
-		if !found {
-			return false
-		}
+	if len(l1.Items) != len(l2.Items) {
+		return false
 	}
-	return true
+	s1 := sets.NewString()
+	for _, i := range l1.Items {
+		s1.Insert(types.NamespacedName{Namespace: i.GetNamespace(), Name: i.GetName()}.String())
+	}
+	s2 := sets.NewString()
+	for _, i := range l2.Items {
+		s2.Insert(types.NamespacedName{Namespace: i.GetNamespace(), Name: i.GetName()}.String())
+	}
+	return s1.Equal(s2)
 }

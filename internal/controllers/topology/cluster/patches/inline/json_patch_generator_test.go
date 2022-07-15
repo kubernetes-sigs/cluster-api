@@ -618,6 +618,170 @@ func TestMatchesSelector(t *testing.T) {
 			match: true,
 		},
 		{
+			name: "Match all MD BootstrapTemplate",
+			req: &runtimehooksv1.GeneratePatchesRequestItem{
+				Object: runtime.RawExtension{
+					Object: &unstructured.Unstructured{
+						Object: map[string]interface{}{
+							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"kind":       "BootstrapTemplate",
+						},
+					},
+				},
+				HolderReference: runtimehooksv1.HolderReference{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "MachineDeployment",
+					Name:       "my-md-0",
+					Namespace:  "default",
+					FieldPath:  "spec.template.spec.bootstrap.configRef",
+				},
+			},
+			templateVariables: map[string]apiextensionsv1.JSON{
+				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"classA"}}`)},
+			},
+			selector: clusterv1.PatchSelector{
+				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				Kind:       "BootstrapTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+						Names: []string{"*"},
+					},
+				},
+			},
+			match: true,
+		},
+		{
+			name: "Glob match MD BootstrapTemplate with <string>-*",
+			req: &runtimehooksv1.GeneratePatchesRequestItem{
+				Object: runtime.RawExtension{
+					Object: &unstructured.Unstructured{
+						Object: map[string]interface{}{
+							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"kind":       "BootstrapTemplate",
+						},
+					},
+				},
+				HolderReference: runtimehooksv1.HolderReference{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "MachineDeployment",
+					Name:       "my-md-0",
+					Namespace:  "default",
+					FieldPath:  "spec.template.spec.bootstrap.configRef",
+				},
+			},
+			templateVariables: map[string]apiextensionsv1.JSON{
+				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"class-A"}}`)},
+			},
+			selector: clusterv1.PatchSelector{
+				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				Kind:       "BootstrapTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+						Names: []string{"class-*"},
+					},
+				},
+			},
+			match: true,
+		},
+		{
+			name: "Glob match MD BootstrapTemplate with *-<string>",
+			req: &runtimehooksv1.GeneratePatchesRequestItem{
+				Object: runtime.RawExtension{
+					Object: &unstructured.Unstructured{
+						Object: map[string]interface{}{
+							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"kind":       "BootstrapTemplate",
+						},
+					},
+				},
+				HolderReference: runtimehooksv1.HolderReference{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "MachineDeployment",
+					Name:       "my-md-0",
+					Namespace:  "default",
+					FieldPath:  "spec.template.spec.bootstrap.configRef",
+				},
+			},
+			templateVariables: map[string]apiextensionsv1.JSON{
+				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"class-A"}}`)},
+			},
+			selector: clusterv1.PatchSelector{
+				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				Kind:       "BootstrapTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+						Names: []string{"*-A"},
+					},
+				},
+			},
+			match: true,
+		},
+
+		{
+			name: "Don't match BootstrapTemplate, .matchResources.machineDeploymentClass.names is empty",
+			req: &runtimehooksv1.GeneratePatchesRequestItem{
+				Object: runtime.RawExtension{
+					Object: &unstructured.Unstructured{
+						Object: map[string]interface{}{
+							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"kind":       "BootstrapTemplate",
+						},
+					},
+				},
+				HolderReference: runtimehooksv1.HolderReference{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "MachineDeployment",
+					Name:       "my-md-0",
+					Namespace:  "default",
+					FieldPath:  "spec.template.spec.bootstrap.configRef",
+				},
+			},
+			templateVariables: map[string]apiextensionsv1.JSON{
+				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"classA"}}`)},
+			},
+			selector: clusterv1.PatchSelector{
+				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				Kind:       "BootstrapTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+						Names: []string{},
+					},
+				},
+			},
+			match: false,
+		},
+		{
+			name: "Do not match BootstrapTemplate, .matchResources.machineDeploymentClass is set to nil",
+			req: &runtimehooksv1.GeneratePatchesRequestItem{
+				Object: runtime.RawExtension{
+					Object: &unstructured.Unstructured{
+						Object: map[string]interface{}{
+							"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+							"kind":       "BootstrapTemplate",
+						},
+					},
+				},
+				HolderReference: runtimehooksv1.HolderReference{
+					APIVersion: clusterv1.GroupVersion.String(),
+					Kind:       "MachineDeployment",
+					Name:       "my-md-0",
+					Namespace:  "default",
+					FieldPath:  "spec.template.spec.bootstrap.configRef",
+				},
+			},
+			templateVariables: map[string]apiextensionsv1.JSON{
+				"builtin": {Raw: []byte(`{"machineDeployment":{"class":"classA"}}`)},
+			},
+			selector: clusterv1.PatchSelector{
+				APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				Kind:       "BootstrapTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachineDeploymentClass: nil,
+				},
+			},
+			match: false,
+		},
+		{
 			name: "Don't match BootstrapTemplate, .matchResources.machineDeploymentClass not set",
 			req: &runtimehooksv1.GeneratePatchesRequestItem{
 				Object: runtime.RawExtension{

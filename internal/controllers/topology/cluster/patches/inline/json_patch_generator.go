@@ -25,7 +25,7 @@ import (
 	"strings"
 	"text/template"
 
-	sprig "github.com/Masterminds/sprig/v3"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -170,7 +170,14 @@ func matchesSelector(req *runtimehooksv1.GeneratePatchesRequestItem, templateVar
 				// If templateMDClass matches one of the configured MachineDeploymentClasses.
 				for _, mdClass := range selector.MatchResources.MachineDeploymentClass.Names {
 					// We have to quote mdClass as templateMDClassJSON is a JSON string (e.g. "default-worker").
-					if string(templateMDClassJSON.Raw) == strconv.Quote(mdClass) {
+					if mdClass == "*" || string(templateMDClassJSON.Raw) == strconv.Quote(mdClass) {
+						return true
+					}
+					unquoted, _ := strconv.Unquote(string(templateMDClassJSON.Raw))
+					if strings.HasPrefix(mdClass, "*") && strings.HasSuffix(unquoted, strings.TrimPrefix(mdClass, "*")) {
+						return true
+					}
+					if strings.HasSuffix(mdClass, "*") && strings.HasPrefix(unquoted, strings.TrimSuffix(mdClass, "*")) {
 						return true
 					}
 				}

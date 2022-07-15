@@ -371,7 +371,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 			)
 
 			if machine.Spec.Bootstrap.ConfigRef != nil {
-				bootstrapRef, err = external.CloneTemplate(ctx, &external.CloneTemplateInput{
+				bootstrapRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
 					Client:      r.Client,
 					TemplateRef: machine.Spec.Bootstrap.ConfigRef,
 					Namespace:   machine.Namespace,
@@ -392,7 +392,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 				machine.Spec.Bootstrap.ConfigRef = bootstrapRef
 			}
 
-			infraRef, err = external.CloneTemplate(ctx, &external.CloneTemplateInput{
+			infraRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
 				Client:      r.Client,
 				TemplateRef: &machine.Spec.InfrastructureRef,
 				Namespace:   machine.Namespace,

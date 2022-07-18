@@ -97,6 +97,7 @@ type KubeadmConfigSpec struct {
 	//
 	// For more information, refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
 	// +optional
+	// Deprecated: This experimental fix is no longer needed and this field will be removed in a future release.
 	UseExperimentalRetryJoin bool `json:"useExperimentalRetryJoin,omitempty"`
 
 	// Ignition contains Ignition specific configuration.

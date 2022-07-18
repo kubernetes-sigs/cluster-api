@@ -31,6 +31,16 @@ This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8
 1. Review the draft release on GitHub. Pay close attention to the `## :question: Sort these by hand` section, as it contains items that need to be manually sorted.
 1. Publish the release
 
+## Update Netlify for Cluster API book
+
+_Note: Only requried for new major and minor releases._
+
+Get someone with Netlify access to do the following:
+
+1. Trigger `renew certificate` on Netlify UI.
+1. Change production branch on Netlify UI to the newest release branch.
+1. Trigger a re-deploy on Netlify UI for book to point to the new release-branch.
+
 ## Homebrew
 
 1. Publish `clusterctl` to Homebrew by bumping the version in [clusterctl.rb](https://github.com/Homebrew/homebrew-core/blob/master/Formula/clusterctl.rb).

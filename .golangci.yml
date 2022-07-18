@@ -43,6 +43,28 @@ linters:
   - whitespace
 
 linters-settings:
+  revive:
+    rules:
+      - name: context-keys-type
+        disabled: true
+      - name: errorf
+        disabled: true
+      - name: time-naming
+        disabled: true
+      - name: unexported-return
+        disabled: true
+      - name: unhandled-error
+        disabled: true
+      - name: var-declaration
+        disabled: true
+      - name: modifies-value-receiver
+        disabled: true
+      - name: range-val-address
+        disabled: true
+      - name: string-of-int
+        disabled: true
+      - name: time-equal
+        disabled: true
   godot:
     #   declarations - for top level declaration comments (default);
     #   toplevel     - for top level comments;

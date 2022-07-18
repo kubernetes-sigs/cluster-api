@@ -62,7 +62,7 @@ func (t *requestItemBuilder) WithHolder(object client.Object, fieldPath string) 
 }
 
 // uuidGenerator is defined as a package variable to enable changing it during testing.
-var uuidGenerator func() types.UID = uuid.NewUUID
+var uuidGenerator = uuid.NewUUID
 
 // Build builds a GeneratePatchesRequestItem.
 func (t *requestItemBuilder) Build() (*runtimehooksv1.GeneratePatchesRequestItem, error) {

@@ -426,6 +426,9 @@ def deploy_templates(filename, provider, substitutions):
     if not os.path.exists(filename):
         fail(filename + " not found")
 
+    for name, value in substitutions.items():
+        os.environ[name] = value
+
     os.environ["NAMESPACE"] = substitutions.get("NAMESPACE", "default")
     os.environ["KUBERNETES_VERSION"] = substitutions.get("KUBERNETES_VERSION", "v1.24.0")
     os.environ["CONTROL_PLANE_MACHINE_COUNT"] = substitutions.get("CONTROL_PLANE_MACHINE_COUNT", "1")

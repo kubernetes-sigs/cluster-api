@@ -97,13 +97,13 @@ type ApplyUpgradeOptions struct {
 	// a more granular control on upgrade, use CoreProvider, BootstrapProviders, ControlPlaneProviders, InfrastructureProviders.
 	Contract string
 
-	// CoreProvider instance and version (e.g. capi-system/cluster-api:v0.3.0) to upgrade to. This field can be used as alternative to Contract.
+	// CoreProvider instance and version (e.g. capi-system/cluster-api:v1.1.5) to upgrade to. This field can be used as alternative to Contract.
 	CoreProvider string
 
-	// BootstrapProviders instance and versions (e.g. capi-kubeadm-bootstrap-system/kubeadm:v0.3.0) to upgrade to. This field can be used as alternative to Contract.
+	// BootstrapProviders instance and versions (e.g. capi-kubeadm-bootstrap-system/kubeadm:v1.1.5) to upgrade to. This field can be used as alternative to Contract.
 	BootstrapProviders []string
 
-	// ControlPlaneProviders instance and versions (e.g. capi-kubeadm-control-plane-system/kubeadm:v0.3.0) to upgrade to. This field can be used as alternative to Contract.
+	// ControlPlaneProviders instance and versions (e.g. capi-kubeadm-control-plane-system/kubeadm:v1.1.5) to upgrade to. This field can be used as alternative to Contract.
 	ControlPlaneProviders []string
 
 	// InfrastructureProviders instance and versions (e.g. capa-system/aws:v0.5.0) to upgrade to. This field can be used as alternative to Contract.

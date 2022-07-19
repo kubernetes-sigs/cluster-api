@@ -95,13 +95,13 @@ func init() {
 		"Forces the deletion of the provider's CRDs (and of all the related objects)")
 
 	deleteCmd.Flags().StringVar(&dd.coreProvider, "core", "",
-		"Core provider version (e.g. cluster-api:v0.3.0) to delete from the management cluster")
+		"Core provider version (e.g. cluster-api:v1.1.5) to delete from the management cluster")
 	deleteCmd.Flags().StringSliceVarP(&dd.infrastructureProviders, "infrastructure", "i", nil,
 		"Infrastructure providers and versions (e.g. aws:v0.5.0) to delete from the management cluster")
 	deleteCmd.Flags().StringSliceVarP(&dd.bootstrapProviders, "bootstrap", "b", nil,
-		"Bootstrap providers and versions (e.g. kubeadm:v0.3.0) to delete from the management cluster")
+		"Bootstrap providers and versions (e.g. kubeadm:v1.1.5) to delete from the management cluster")
 	deleteCmd.Flags().StringSliceVarP(&dd.controlPlaneProviders, "control-plane", "c", nil,
-		"ControlPlane providers and versions (e.g. kubeadm:v0.3.0) to delete from the management cluster")
+		"ControlPlane providers and versions (e.g. kubeadm:v1.1.5) to delete from the management cluster")
 
 	deleteCmd.Flags().BoolVar(&dd.deleteAll, "all", false,
 		"Force deletion of all the providers")

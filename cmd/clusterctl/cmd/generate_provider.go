@@ -75,13 +75,13 @@ var generateProviderCmd = &cobra.Command{
 
 func init() {
 	generateProviderCmd.Flags().StringVar(&gpo.coreProvider, "core", "",
-		"Core provider and version (e.g. cluster-api:v0.3.0)")
+		"Core provider and version (e.g. cluster-api:v1.1.5)")
 	generateProviderCmd.Flags().StringVarP(&gpo.infrastructureProvider, "infrastructure", "i", "",
 		"Infrastructure provider and version (e.g. aws:v0.5.0)")
 	generateProviderCmd.Flags().StringVarP(&gpo.bootstrapProvider, "bootstrap", "b", "",
-		"Bootstrap provider and version (e.g. kubeadm:v0.3.0)")
+		"Bootstrap provider and version (e.g. kubeadm:v1.1.5)")
 	generateProviderCmd.Flags().StringVarP(&gpo.controlPlaneProvider, "control-plane", "c", "",
-		"ControlPlane provider and version (e.g. kubeadm:v0.3.0)")
+		"ControlPlane provider and version (e.g. kubeadm:v1.1.5)")
 	generateProviderCmd.Flags().StringVarP(&gpo.targetNamespace, "target-namespace", "n", "",
 		"The target namespace where the provider should be deployed. If unspecified, the components default namespace is used.")
 	generateProviderCmd.Flags().BoolVar(&gpo.textOutput, "describe", false,

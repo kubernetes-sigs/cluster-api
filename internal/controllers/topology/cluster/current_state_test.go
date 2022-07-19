@@ -57,8 +57,14 @@ func TestGetCurrentState(t *testing.T) {
 	// ControlPlane and ControlPlaneInfrastructureMachineTemplate objects.
 	controlPlaneInfrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfraTemplate").
 		Build()
+	controlPlaneInfrastructureMachineTemplate.SetLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""})
+	controlPlaneInfrastructureMachineTemplateNotTopologyOwned := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfraTemplate").
+		Build()
 	controlPlaneTemplateWithInfrastructureMachine := builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cpTemplateWithInfra1").
 		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
+		Build()
+	controlPlaneTemplateWithInfrastructureMachineNotTopologyOwned := builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cpTemplateWithInfra1").
+		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplateNotTopologyOwned).
 		Build()
 	controlPlane := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
 		Build()
@@ -67,7 +73,9 @@ func TestGetCurrentState(t *testing.T) {
 		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
 		Build()
 	controlPlaneWithInfra.SetLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""})
-
+	controlPlaneWithInfraNotTopologyOwned := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
+		WithInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplateNotTopologyOwned).
+		Build()
 	controlPlaneNotTopologyOwned := builder.ControlPlane(metav1.NamespaceDefault, "cp1").
 		Build()
 
@@ -75,6 +83,10 @@ func TestGetCurrentState(t *testing.T) {
 	clusterClassWithControlPlaneInfra := builder.ClusterClass(metav1.NamespaceDefault, "class1").
 		WithControlPlaneTemplate(controlPlaneTemplateWithInfrastructureMachine).
 		WithControlPlaneInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplate).
+		Build()
+	clusterClassWithControlPlaneInfraNotTopologyOwned := builder.ClusterClass(metav1.NamespaceDefault, "class1").
+		WithControlPlaneTemplate(controlPlaneTemplateWithInfrastructureMachineNotTopologyOwned).
+		WithControlPlaneInfrastructureMachineTemplate(controlPlaneInfrastructureMachineTemplateNotTopologyOwned).
 		Build()
 	clusterClassWithNoControlPlaneInfra := builder.ClusterClass(metav1.NamespaceDefault, "class2").
 		Build()
@@ -84,8 +96,10 @@ func TestGetCurrentState(t *testing.T) {
 
 	machineDeploymentInfrastructure := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").
 		Build()
+	machineDeploymentInfrastructure.SetLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""})
 	machineDeploymentBootstrap := builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").
 		Build()
+	machineDeploymentBootstrap.SetLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""})
 
 	machineDeployment := builder.MachineDeployment(metav1.NamespaceDefault, "md1").
 		WithLabels(map[string]string{
@@ -311,6 +325,19 @@ func TestGetCurrentState(t *testing.T) {
 				MachineDeployments: map[string]*scope.MachineDeploymentState{
 					"md1": {Object: machineDeployment, BootstrapTemplate: machineDeploymentBootstrap, InfrastructureMachineTemplate: machineDeploymentInfrastructure}},
 			},
+		},
+		{
+			name: "Fails if the ControlPlane references an InfrastructureMachineTemplate that is not topology owned",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				// No InfrastructureCluster!
+				WithControlPlane(controlPlaneWithInfraNotTopologyOwned).
+				Build(),
+			class: clusterClassWithControlPlaneInfraNotTopologyOwned,
+			objects: []client.Object{
+				controlPlaneWithInfraNotTopologyOwned,
+				controlPlaneInfrastructureMachineTemplateNotTopologyOwned,
+			},
+			wantErr: true,
 		},
 		{
 			name: "Fails if the ControlPlane references an InfrastructureMachineTemplate that does not exist",

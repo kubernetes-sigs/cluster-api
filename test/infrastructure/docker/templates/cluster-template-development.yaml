@@ -17,7 +17,7 @@ spec:
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     variables:
     - name: imageRepository
-      value: "k8s.gcr.io"
+      value: ""
     - name: etcdImageTag
       value: ""
     - name: coreDNSImageTag

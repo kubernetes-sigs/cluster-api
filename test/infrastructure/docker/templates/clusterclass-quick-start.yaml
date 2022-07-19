@@ -38,9 +38,9 @@ spec:
     schema:
       openAPIV3Schema:
         type: string
-        default: "k8s.gcr.io"
-        example: "k8s.gcr.io"
-        description: "imageRepository sets the container registry to pull images from. If empty, `k8s.gcr.io` will be used by default."
+        default: ""
+        example: "registry.k8s.io"
+        description: "imageRepository sets the container registry to pull images from. If empty, nothing will be set and the from of kubeadm will be used."
   - name: etcdImageTag
     required: true
     schema:
@@ -82,6 +82,7 @@ spec:
   patches:
   - name: imageRepository
     description: "Sets the imageRepository used for the KubeadmControlPlane."
+    enabledIf: '{{ ne .imageRepository "" }}'
     definitions:
     - selector:
         apiVersion: controlplane.cluster.x-k8s.io/v1beta1

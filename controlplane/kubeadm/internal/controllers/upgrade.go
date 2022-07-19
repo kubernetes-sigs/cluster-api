@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
+	"sigs.k8s.io/cluster-api/util/version"
 )
 
 func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
@@ -75,7 +76,15 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	}
 
 	if kcp.Spec.KubeadmConfigSpec.ClusterConfiguration != nil {
-		imageRepository := kcp.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository
+		// We intentionally only parse major/minor/patch so that the subsequent code
+		// also already applies to beta versions of new releases.
+		parsedVersionTolerant, err := version.ParseMajorMinorPatchTolerant(kcp.Spec.Version)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kcp.Spec.Version)
+		}
+		// Get the imageRepository or the correct value if nothing is set and a migration is necessary.
+		imageRepository := internal.ImageRepositoryFromClusterConfig(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration, parsedVersionTolerant)
+
 		if err := workloadCluster.UpdateImageRepositoryInKubeadmConfigMap(ctx, imageRepository, parsedVersion); err != nil {
 			return ctrl.Result{}, errors.Wrap(err, "failed to update the image repository in the kubeadm config map")
 		}

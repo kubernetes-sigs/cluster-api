@@ -1,5 +1,66 @@
 # Troubleshooting
 
+## Troubleshooting Quick Start with Docker (CAPD)
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+If you've run the Quick Start before ensure that you've [cleaned up](./quick-start.md#clean-up) all resources before trying it again. Check `docker ps` to ensure there are no running containers left before beginning the Quick Start.
+
+</aside>
+
+This guide assumes you've completed the [apply the workload cluster](./quick-start.md#apply-the-workload-cluster) section of the Quick Start using Docker.
+
+When running `clusterctl describe cluster capi-quickstart` to verify the created resources, we expect the output to be similar to this (**note: this is before installing the Calico CNI**).
+
+```shell
+NAME                                                           READY  SEVERITY  REASON                       SINCE  MESSAGE
+Cluster/capi-quickstart                                        True                                          46m
+├─ClusterInfrastructure - DockerCluster/capi-quickstart-94r9d  True                                          48m
+├─ControlPlane - KubeadmControlPlane/capi-quickstart-6487w     True                                          46m
+│ └─3 Machines...                                              True                                          47m    See capi-quickstart-6487w-d5lkp, capi-quickstart-6487w-mpmkq, ...
+└─Workers
+  └─MachineDeployment/capi-quickstart-md-0-d6dn6               False  Warning   WaitingForAvailableMachines  48m    Minimum availability requires 3 replicas, current 0 available
+    └─3 Machines...                                            True                                          47m    See capi-quickstart-md-0-d6dn6-584ff97cb7-kr7bj, capi-quickstart-md-0-d6dn6-584ff97cb7-s6cbf, ...
+```
+
+Machines should be started, but Workers are not because Calico isn't installed yet. You should be able to see the containers running with `docker ps --all` and they should not be restarting.
+
+If you notice Machines are failing to start/restarting your output might look similar to this:
+
+```shell
+clusterctl describe cluster capi-quickstart
+NAME                                                           READY  SEVERITY  REASON                       SINCE  MESSAGE
+Cluster/capi-quickstart                                        False  Warning   ScalingUp                    57s    Scaling up control plane to 3 replicas (actual 2)
+├─ClusterInfrastructure - DockerCluster/capi-quickstart-n5w87  True                                          110s
+├─ControlPlane - KubeadmControlPlane/capi-quickstart-6587k     False  Warning   ScalingUp                    57s    Scaling up control plane to 3 replicas (actual 2)
+│ ├─Machine/capi-quickstart-6587k-fgc6m                        True                                          81s
+│ └─Machine/capi-quickstart-6587k-xtvnz                        False  Warning   BootstrapFailed              52s    1 of 2 completed
+└─Workers
+  └─MachineDeployment/capi-quickstart-md-0-5whtj               False  Warning   WaitingForAvailableMachines  110s   Minimum availability requires 3 replicas, current 0 available
+    └─3 Machines...                                            False  Info      Bootstrapping                77s    See capi-quickstart-md-0-5whtj-5d8c9746c9-f8sw8, capi-quickstart-md-0-5whtj-5d8c9746c9-hzxc2, ...
+```
+
+In the example above we can see that the Machine `capi-quickstart-6587k-xtvnz` has failed to start. The reason provided is `BootstrapFailed`. 
+
+To investigate why a machine fails to start you can inspect the conditions of the objects using `clusterctl describe --show-conditions all cluster capi-quickstart`. You can get more detailed information about the status of the machines using `kubectl describe machines`.
+
+To inspect the underlying infrastructure - in this case docker containers acting as Machines - you can access the logs using `docker logs <MACHINE-NAME>`. For example:
+
+```shell
+docker logs capi-quickstart-6587k-xtvnz
+(...)
+Failed to create control group inotify object: Too many open files
+Failed to allocate manager object: Too many open files
+[!!!!!!] Failed to allocate manager object.
+Exiting PID 1...
+```
+
+To resolve this specific error please read [Cluster API with Docker  - "too many open files"](#cluster-api-with-docker----too-many-open-files).
+
+
+
 ## Node bootstrap failures when using CABPK with cloud-init
 
 Failures during Node bootstrapping can have a lot of different causes. For example, Cluster API resources might be 
@@ -52,7 +113,7 @@ provisioning might be stuck:
     * Run [docker system df](https://docs.docker.com/engine/reference/commandline/system_df/) to inspect the disk space consumed by Docker resources.
     * Run [docker system prune --volumes](https://docs.docker.com/engine/reference/commandline/system_prune/) to prune dangling images, containers, volumes and networks.
 
-
+   
 ## Cluster API with Docker  - "too many open files"
 When creating many nodes using Cluster API and Docker infrastructure, either by creating large Clusters or a number of small Clusters, the OS may run into inotify limits which prevent new nodes from being provisioned.
 If the error  `Failed to create inotify object: Too many open files` is present in the logs of the Docker Infrastructure provider this limit is being hit.

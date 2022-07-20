@@ -47,7 +47,11 @@ a target [management cluster] on the selected [infrastructure provider].
 
    **Minimum [kind] supported version**: v0.14.0
 
-   Note for macOS users: you may need to [increase the memory available](https://docs.docker.com/docker-for-mac/#resources) for containers (recommend 6Gb for CAPD).
+   **Help with common issues can be found in the [Troubleshooting Guide](./troubleshooting.md).**
+
+   Note for macOS users: you may need to [increase the memory available](https://docs.docker.com/docker-for-mac/#resources) for containers (recommend 6 GB for CAPD).
+
+   Note for Linux users: you may need to [increase `ulimit` and `inotify` when using Docker (CAPD)](./troubleshooting.md#cluster-api-with-docker----too-many-open-files).
 
    </aside>
 

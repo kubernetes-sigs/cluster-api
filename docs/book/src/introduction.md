@@ -6,7 +6,7 @@ Started by the Kubernetes Special Interest Group (SIG) [Cluster Lifecycle](https
 
 ## Getting started
 
-* [Quick start](./user/quick-start.md)
+* [Quick Start](./user/quick-start.md)
 * [Concepts](./user/concepts.md)
 * [Developer guide](./developer/guide.md)
 * [Contributing](./CONTRIBUTING.md)

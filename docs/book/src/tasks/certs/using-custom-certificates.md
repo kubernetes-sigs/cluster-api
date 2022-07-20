@@ -12,7 +12,7 @@ Each certificate must be stored in a single secret named one of:
 | *[cluster name]***-sa**  | Key Pair | openssl genrsa -out tls.key 2048 && openssl rsa -in tls.key -pubout -out tls.crt |
 
 
-<aside class="note warn">
+<aside class="note warning">
 
 <h1>CA Key Age</h1>
 

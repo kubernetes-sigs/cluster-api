@@ -77,6 +77,9 @@ Cluster API Provider vSphere
 ### CAPVC
 Cluster API Provider vcluster
 
+### CAPVCD
+Cluster API Provider VMware Cloud Director
+
 ### CAPZ
 Cluster API Provider Azure
 

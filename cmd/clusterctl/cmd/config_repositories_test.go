@@ -126,6 +126,7 @@ oci                 InfrastructureProvider   https://github.com/oracle/cluster-a
 openstack           InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/        infrastructure-components.yaml
 packet              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-packet/releases/latest/           infrastructure-components.yaml
 sidero              InfrastructureProvider   https://github.com/siderolabs/sidero/releases/latest/                                     infrastructure-components.yaml
+vcd                 InfrastructureProvider   https://github.com/vmware/cluster-api-provider-cloud-director/releases/latest/            infrastructure-components.yaml
 vcluster            InfrastructureProvider   https://github.com/loft-sh/cluster-api-provider-vcluster/releases/latest/                 infrastructure-components.yaml
 vsphere             InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/          infrastructure-components.yaml
 `
@@ -234,6 +235,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: sidero
   ProviderType: InfrastructureProvider
   URL: https://github.com/siderolabs/sidero/releases/latest/
+- File: infrastructure-components.yaml
+  Name: vcd
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/vmware/cluster-api-provider-cloud-director/releases/latest/
 - File: infrastructure-components.yaml
   Name: vcluster
   ProviderType: InfrastructureProvider

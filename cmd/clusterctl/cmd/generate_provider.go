@@ -107,7 +107,7 @@ func runGenerateProviderComponents() error {
 		SkipTemplateProcess: gpo.raw || gpo.textOutput,
 	}
 
-	components, err := c.GetProviderComponents(providerName, providerType, options)
+	components, err := c.GenerateProvider(providerName, providerType, options)
 	if err != nil {
 		return err
 	}

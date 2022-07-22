@@ -254,6 +254,7 @@ providers.
 |CAPP          | cluster.x-k8s.io/provider=infrastructure-packet        |
 |CAPV          | cluster.x-k8s.io/provider=infrastructure-vsphere       |
 |CAPVC         | cluster.x-k8s.io/provider=infrastructure-vcluster      |
+|CAPVCD        | cluster.x-k8s.io/provider=infrastructure-vcd           |
 |CAPX          | cluster.x-k8s.io/provider=infrastructure-nutanix       |
 |CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure         |
 

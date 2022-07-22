@@ -66,6 +66,22 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				ProviderID: "azure://westus2/id-node-4",
 			},
 		},
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "azure-nodepool1-0",
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "azure://westus2/id-nodepool1/0",
+			},
+		},
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "azure-nodepool2-0",
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "azure://westus2/id-nodepool2/0",
+			},
+		},
 	}
 
 	client := fake.NewClientBuilder().WithObjects(nodeList...).Build()
@@ -135,6 +151,25 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				references: []corev1.ObjectReference{},
 				available:  0,
 				ready:      0,
+			},
+		},
+		{
+			name:           "valid provider id with non-unique instance id, valid azure node",
+			providerIDList: []string{"azure://westus2/id-nodepool1/0"},
+			expected: &getNodeReferencesResult{
+				references: []corev1.ObjectReference{
+					{Name: "azure-nodepool1-0"},
+				},
+			},
+		},
+		{
+			name:           "valid provider ids with same instance ids, valid azure nodes",
+			providerIDList: []string{"azure://westus2/id-nodepool1/0", "azure://westus2/id-nodepool2/0"},
+			expected: &getNodeReferencesResult{
+				references: []corev1.ObjectReference{
+					{Name: "azure-nodepool1-0"},
+					{Name: "azure-nodepool2-0"},
+				},
 			},
 		},
 	}

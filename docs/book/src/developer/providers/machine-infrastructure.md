@@ -15,7 +15,10 @@ A machine infrastructure provider must define an API type for "infrastructure ma
 4. Must have the standard Kubernetes "type metadata" and "object metadata"
 5. Must have a `spec` field with the following:
     1. Required fields:
-        1. `providerID` (string): the identifier for the provider's machine instance
+        1. `providerID` (string): the identifier for the provider's machine instance. This field is expected to match the value set by the KCM cloud provider in the Nodes.
+           The Machine controller bubbles it up to the Machine CR, and it's used to find the matching Node.
+           Any other consumers can use the providerID as the source of truth to match both Machines and Nodes.
+            
     2. Optional fields:
         1. `failureDomain` (string): the string identifier of the failure domain the instance is running in for the
            purposes of backwards compatibility and migrating to the v1alpha3 FailureDomain support (where FailureDomain

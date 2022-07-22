@@ -1,6 +1,6 @@
 # Metadata propagation
 Cluster API controllers implement consistent metadata (labels & annotations) propagation across the core API resources.
-This behaviour tries to be consistent with kubernetes apps/v1 Deployment and ReplicaSet.
+This behaviour tries to be consistent with Kubernetes apps/v1 Deployment and ReplicaSet.
 New providers should behave accordingly fitting within the following pattern: 
 
 ## KubeadmControlPlane
@@ -30,4 +30,4 @@ Top-level labels and annotations do not propagate at all.
 
 Template labels and annotations propagate to Machines, InfraMachines and BootstrapConfigs.
 - `.spec.template.metadata.labels` => `Machine.labels`, `InfraMachine.labels`, `BootstrapConfig.labels`
-- `.spec.template.metadata.annotations` => `Machine.annotations`, `InfraMachine.annotations`, `BootstrapConfig.labels`
+- `.spec.template.metadata.annotations` => `Machine.annotations`, `InfraMachine.annotations`, `BootstrapConfig.annotations`

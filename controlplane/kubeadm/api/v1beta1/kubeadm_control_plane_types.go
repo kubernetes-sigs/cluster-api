@@ -70,10 +70,14 @@ type KubeadmControlPlaneSpec struct {
 	// to use for initializing and joining machines to the control plane.
 	KubeadmConfigSpec bootstrapv1.KubeadmConfigSpec `json:"kubeadmConfigSpec"`
 
+	// RolloutBefore is a field to indicate a rollout should be performed
+	// if the specified criteria is met.
+	// +optional
+	RolloutBefore *RolloutBefore `json:"rolloutBefore,omitempty"`
+
 	// RolloutAfter is a field to indicate a rollout should be performed
 	// after the specified time even if no changes have been made to the
 	// KubeadmControlPlane.
-	//
 	// +optional
 	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
 
@@ -107,6 +111,14 @@ type KubeadmControlPlaneMachineTemplate struct {
 	// If no value is provided, the default value for this property of the Machine resource will be used.
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+}
+
+// RolloutBefore describes when a rollout should be performed on the KCP machines.
+type RolloutBefore struct {
+	// CertificatesExpiryDays indicates a rollout needs to be performed if the
+	// certificates of the machine will expire within the specified days.
+	// +optional
+	CertificatesExpiryDays *int32 `json:"certificatesExpiryDays,omitempty"`
 }
 
 // RolloutStrategy describes how to replace existing machines

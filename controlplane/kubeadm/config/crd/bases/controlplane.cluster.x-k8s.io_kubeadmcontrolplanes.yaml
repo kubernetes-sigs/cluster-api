@@ -3592,6 +3592,17 @@ spec:
                   made to the KubeadmControlPlane.
                 format: date-time
                 type: string
+              rolloutBefore:
+                description: RolloutBefore is a field to indicate a rollout should
+                  be performed if the specified criteria is met.
+                properties:
+                  certificatesExpiryDays:
+                    description: CertificatesExpiryDays indicates a rollout needs
+                      to be performed if the certificates of the machine will expire
+                      within the specified days.
+                    format: int32
+                    type: integer
+                type: object
               rolloutStrategy:
                 default:
                   rollingUpdate:

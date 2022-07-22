@@ -128,6 +128,8 @@ const (
 	ignition             = "ignition"
 )
 
+const minimumCertificatesExpiryDays = 7
+
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
 func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 	// add a * to indicate everything beneath is ok.
@@ -313,7 +315,24 @@ func validateKubeadmControlPlaneSpec(s KubeadmControlPlaneSpec, namespace string
 		allErrs = append(allErrs, field.Invalid(pathPrefix.Child("version"), s.Version, "must be a valid semantic version"))
 	}
 
+	allErrs = append(allErrs, validateRolloutBefore(s.RolloutBefore, pathPrefix.Child("rolloutBefore"))...)
 	allErrs = append(allErrs, validateRolloutStrategy(s.RolloutStrategy, s.Replicas, pathPrefix.Child("rolloutStrategy"))...)
+
+	return allErrs
+}
+
+func validateRolloutBefore(rolloutBefore *RolloutBefore, pathPrefix *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+
+	if rolloutBefore == nil {
+		return allErrs
+	}
+
+	if rolloutBefore.CertificatesExpiryDays != nil {
+		if *rolloutBefore.CertificatesExpiryDays < minimumCertificatesExpiryDays {
+			allErrs = append(allErrs, field.Invalid(pathPrefix.Child("certificatesExpiryDays"), *rolloutBefore.CertificatesExpiryDays, fmt.Sprintf("must be greater than or equal to %v", minimumCertificatesExpiryDays)))
+		}
+	}
 
 	return allErrs
 }

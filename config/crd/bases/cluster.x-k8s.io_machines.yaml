@@ -956,6 +956,11 @@ spec:
               bootstrapReady:
                 description: BootstrapReady is the state of the bootstrap provider.
                 type: boolean
+              certificatesExpiryDate:
+                description: CertificatesExpiryDate is the expiry date of the machine
+                  certificates. This value is only set for control plane machines.
+                format: date-time
+                type: string
               conditions:
                 description: Conditions defines current service state of the Machine.
                 items:

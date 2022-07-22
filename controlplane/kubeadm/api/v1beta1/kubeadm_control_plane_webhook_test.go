@@ -140,6 +140,11 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	invalidCoreDNSVersion := valid.DeepCopy()
 	invalidCoreDNSVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.DNS.ImageTag = "v1.7" // not a valid semantic version
 
+	invalidRolloutBeforeCertificateExpiryDays := valid.DeepCopy()
+	invalidRolloutBeforeCertificateExpiryDays.Spec.RolloutBefore = &RolloutBefore{
+		CertificatesExpiryDays: pointer.Int32(5), // less than minimum
+	}
+
 	invalidIgnitionConfiguration := valid.DeepCopy()
 	invalidIgnitionConfiguration.Spec.KubeadmConfigSpec.Ignition = &bootstrapv1.IgnitionSpec{}
 
@@ -212,6 +217,11 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			name:      "should succeed when maxSurge is a string",
 			expectErr: false,
 			kcp:       stringMaxSurge,
+		},
+		{
+			name:      "should return error when given an invalid rolloutBefore.certificatesExpiryDays value",
+			expectErr: true,
+			kcp:       invalidRolloutBeforeCertificateExpiryDays,
 		},
 
 		{
@@ -609,6 +619,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	disableNTPServers := before.DeepCopy()
 	disableNTPServers.Spec.KubeadmConfigSpec.NTP.Enabled = pointer.BoolPtr(false)
 
+	invalidRolloutBeforeCertificateExpiryDays := before.DeepCopy()
+	invalidRolloutBeforeCertificateExpiryDays.Spec.RolloutBefore = &RolloutBefore{
+		CertificatesExpiryDays: pointer.Int32(5), // less than minimum
+	}
+
 	invalidIgnitionConfiguration := before.DeepCopy()
 	invalidIgnitionConfiguration.Spec.KubeadmConfigSpec.Ignition = &bootstrapv1.IgnitionSpec{}
 
@@ -954,6 +969,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    before,
 			kcp:       updateJoinConfigurationPatches,
+		},
+		{
+			name:      "should return error when rolloutBefore.certificatesExpiryDays is invalid",
+			expectErr: true,
+			before:    before,
+			kcp:       invalidRolloutBeforeCertificateExpiryDays,
 		},
 		{
 			name:                  "should return error when Ignition configuration is invalid",

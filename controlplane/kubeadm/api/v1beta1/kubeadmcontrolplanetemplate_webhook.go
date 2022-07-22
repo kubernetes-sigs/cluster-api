@@ -102,5 +102,10 @@ func (r *KubeadmControlPlaneTemplate) ValidateDelete() error {
 // validateKubeadmControlPlaneTemplateResourceSpec is a copy of validateKubeadmControlPlaneSpec which
 // only validates the fields in KubeadmControlPlaneTemplateResourceSpec we care about.
 func validateKubeadmControlPlaneTemplateResourceSpec(s KubeadmControlPlaneTemplateResourceSpec, pathPrefix *field.Path) field.ErrorList {
-	return validateRolloutStrategy(s.RolloutStrategy, nil, pathPrefix.Child("rolloutStrategy"))
+	allErrs := field.ErrorList{}
+
+	allErrs = append(allErrs, validateRolloutBefore(s.RolloutBefore, pathPrefix.Child("rolloutBefore"))...)
+	allErrs = append(allErrs, validateRolloutStrategy(s.RolloutStrategy, nil, pathPrefix.Child("rolloutStrategy"))...)
+
+	return allErrs
 }

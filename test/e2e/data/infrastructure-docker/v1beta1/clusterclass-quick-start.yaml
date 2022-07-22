@@ -230,6 +230,8 @@ metadata:
 spec:
   template:
     spec:
+      rolloutBefore:
+        certificatesExpiryDays: 21
       machineTemplate:
         nodeDrainTimeout: 1s
       kubeadmConfigSpec:

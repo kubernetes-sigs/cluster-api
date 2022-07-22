@@ -67,6 +67,7 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.MachineTemplate.NodeDeletionTimeout
+	dst.Spec.RolloutBefore = restored.Spec.RolloutBefore
 
 	return nil
 }
@@ -139,6 +140,8 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	} else if restored.Spec.Template.Spec.MachineTemplate != nil {
 		dst.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeout = restored.Spec.Template.Spec.MachineTemplate.NodeDeletionTimeout
 	}
+
+	dst.Spec.Template.Spec.RolloutBefore = restored.Spec.Template.Spec.RolloutBefore
 
 	return nil
 }
@@ -225,4 +228,9 @@ func Convert_v1beta1_KubeadmControlPlaneTemplateResourceSpec_To_v1alpha4_Kubeadm
 func Convert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmControlPlaneMachineTemplate(in *controlplanev1.KubeadmControlPlaneMachineTemplate, out *KubeadmControlPlaneMachineTemplate, s apiconversion.Scope) error {
 	// .NodeDrainTimeout was added in v1beta1.
 	return autoConvert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmControlPlaneMachineTemplate(in, out, s)
+}
+
+func Convert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, scope apiconversion.Scope) error {
+	// .RolloutBefore was added in v1beta1.
+	return autoConvert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in, out, scope)
 }

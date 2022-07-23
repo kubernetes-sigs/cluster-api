@@ -73,18 +73,18 @@ So it would be good to add support for provisioning the etcd cluster too, so the
 
 - Define a contract for adding pluggable etcd providers
   - Define the responsibilities of an etcd provider, along with the required services and API types it should add.
-  - Extend the contract for control plane providers and infrastructure providers in order to properly handle external etcd clusters managed by pluggable etcd providers.
   - User should be able to create and manage a Kubernetes cluster that uses external etcd topology in a declarative way. The CAPI controllers will deploy the etcd cluster first and then use that as input to the workload cluster, without requiring any user intervention.
   - There will be a 1:1 mapping between the external etcd cluster and the workload cluster.
   - An etcd provider should support etcd clusters of any size (odd numbers only), including single member etcd clusters for testing purposes. But the documentation should specify the recommended cluster size for production use cases to range between 3 and 7.
-- Provide a first implementation of this pluggable etcd provider using [etcdadm](https://github.com/kubernetes-sigs/etcdadm).
+- Provide a first implementation of this pluggable etcd provider using [etcdadm](https://github.com/kubernetes-sigs/etcdadm) that integrates with the Kubeadm Control Plane provider.
   - The etcdadm based provider will utilize the existing Machine objects to represent etcd members for convenience instead of adding a new machine type for etcd.
   - Support the following etcd cluster management actions: scale up and scale down, etcd member replacement and etcd version upgrades.
 
 
-### Non-Goals
-- The first iteration will use IP addresses/hostnames as etcd cluster endpoints. It can not configure static endpoint(s) till the Load Balancer provider is available.
-- API changes such as adding new fields within existing control plane providers. For instance, if a user chooses KubeadmControlPlane provider as the control plane provider, we will utilize the existing external etcd endpoints field from the KubeadmConfigSpec for KCP instead of adding new fields.
+### Non-Goals/Future work
+- The first iteration will use IP addresses/hostnames as etcd cluster endpoints. It can not configure static endpoint(s) till the Load Balancer provider is available. Replace IP addresses/hostnames with static endpoints once the Load Balancer provider is available, or explore using kube-vip for this use case.
+- Modifying the control plane provider contract. The first pass will introduce an external etcd provider that only works with the KubeadmControlPlane provider. A separate proposal would include some API changes to the control plane contract to make this work with any control plane provider.
+- Adding a new API type to represent etcd Machine object. This first iteration will reuse the existing Machine object to represent an etcd machine.
 - This is not to be used for etcd-as-a-service. The etcd clusters created by an etcd provider within CAPI will only be used by the kube-apiserver of a target workload cluster.
 - Etcd cluster snapshots will need its own separate KEP. It should include details about how to take a snapshot, if `etcdctl snapshot save` command is used then how to collect the snapshots from the etcd machines and an integration with a storage provider to save those snapshots. This first iteration will not have a snapshot mechanism implemented. Users can still take snapshots by manually running the `etcdctl snapshot save` command and we can document those steps.
 
@@ -93,7 +93,7 @@ So it would be good to add support for provisioning the etcd cluster too, so the
 ### User Stories
 
 - As an end user, I want to be able to create a Kubernetes cluster that uses external etcd topology using CAPI with a single step.
-- On creating the required CRs in CAPI along with the new etcd provider specific CRs, CAPI controllers should provision an etcd cluster, and provide that as input to the workload cluster, without requiring any intervention from me as an end user.
+- On creating the required CRs in CAPI along with the new etcd provider specific CRs, the external etcd provider should provision the etcd cluster first, and provide that as input to the workload cluster, without requiring any intervention from me as an end user.
 - As an end user, I should be able to use the etcd provider CRs to specify etcd cluster size during creation and specify/modify etcd version. CAPI controllers should modify and manage the etcd clusters accordingly.
 
 ### Implementation Details/Notes/Constraints
@@ -124,6 +124,7 @@ type EtcdadmClusterSpec struct {
     EtcdadmConfigSpec etcdbp.EtcdadmConfigSpec `json:"etcdadmConfigSpec"`
 }
 
+// EtcdadmClusterStatus is the current state of the EtcdadmCluster
 type EtcdadmClusterStatus struct {
     // Total number of non-terminated machines targeted by this etcd cluster
     // (their labels match the selector).
@@ -172,6 +173,7 @@ type EtcdadmConfig struct {
     Status EtcdadmConfigStatus `json:"status,omitempty"`
 }
 
+// EtcdadmConfigSpec defines the desired state of a single etcd machine represented by the EtcdadmConfig object
 type EtcdadmConfigSpec struct {
     // +optional
     Version string `json:"version,omitempty"`
@@ -193,7 +195,7 @@ type EtcdadmConfigSpec struct {
     PostEtcdadmCommands []string `json:"postEtcdadmCommands,omitempty"`
 }
 
-
+// EtcdadmConfigStatus shows the current state of a single etcd machine represented by the EtcdadmConfig object
 type EtcdadmConfigStatus struct {
     DataSecretName *string `json:"dataSecretName,omitempty"`
 
@@ -262,8 +264,8 @@ Each etcd provider should add a new API type to manage the etcd cluster lifecycl
     - CreationComplete: To be set to true once all etcd members pass healthcheck after initial cluster creation.
     - Endpoints: A comma separated string containing all etcd members endpoints.
 
-###### Contract between etcd provider and control plane provider
-- Control plane providers should check for the presence of the paused annotation (`cluster.x-k8s.io/paused`), and not continue provisioning if it is set. Out of the existing control plane provider, the KubeadmControlPlane controller does that.
+###### Contract between etcd provider and Kubeadm Control Plane Provider (KCP)
+- KCP should wait for the external etcd cluster to be ready before it starts provisioning the control plane. This is required because the control plane component kube-apiserver needs to know the etcd server endpoints to connect with, and the etcd endpoints need to be healthy. This can be achieved by the etcd provider pausing KCP by applying the paused annotation (`cluster.x-k8s.io/paused`).
 - Control plane providers should check for the presence of `Cluster.Spec.ManagedExternalEtcdRef` field. This check should happen after the control plane is no longer paused, and before the provider starts provisioning the control plane.
 - The control plane provider should "Get" the CR referred by the cluster.spec.ManagedExternalEtcdRef and check its status.Endpoints field. 
   - This field will be a comma separated list of etcd endpoints. 

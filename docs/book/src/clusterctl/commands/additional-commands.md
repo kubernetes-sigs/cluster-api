@@ -22,3 +22,7 @@ or in the provided directory.
 # clusterctl version
 
 Print clusterctl version.
+
+# clusterctl init list-images
+
+Lists the container images required for initializing the management cluster.

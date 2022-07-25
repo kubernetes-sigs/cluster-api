@@ -698,9 +698,13 @@ release: clean-release ## Build and push container images using the latest git t
 	# Set the manifest image to the production bucket.
 	$(MAKE) manifest-modification REGISTRY=$(PROD_REGISTRY)
 	## Build the manifests
-	$(MAKE) release-manifests clean-release-git
+	$(MAKE) release-manifests
+	# Set the development manifest image to the staging bucket.
+	$(MAKE) manifest-modification-dev REGISTRY=$(STAGING_REGISTRY)
 	## Build the development manifests
-	$(MAKE) release-manifests-dev clean-release-git
+	$(MAKE) release-manifests-dev
+	## Clean the git artifacts modified in the release process
+	$(MAKE) clean-release-git
 
 .PHONY: manifest-modification
 manifest-modification: # Set the manifest images to the staging/production bucket.
@@ -713,13 +717,17 @@ manifest-modification: # Set the manifest images to the staging/production bucke
 	$(MAKE) set-manifest-image \
 		MANIFEST_IMG=$(REGISTRY)/$(KUBEADM_CONTROL_PLANE_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
-	$(MAKE) set-manifest-image \
-		MANIFEST_IMG=$(REGISTRY)/$(CAPD_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
-		TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
+
+.PHONE: manifest-modification-dev
+manifest-modification-dev: # Set the manifest images to the staging bucket.
+	$(MAKE) set-manifest-image \
+		MANIFEST_IMG=$(REGISTRY)/$(CAPD_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
+		TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
+
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) $(RUNTIME_OPENAPI_GEN) ## Build the manifests to publish with a release

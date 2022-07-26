@@ -31,7 +31,7 @@
 
 FROM maven:3-jdk-8
 
-RUN apt-get update && apt-get install -y --no-install-recommends graphviz fonts-symbola fonts-wqy-zenhei && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends graphviz=2.42.2-5 fonts-symbola=2.60-1.1 fonts-wqy-zenhei=0.9.45-8 && rm -rf /var/lib/apt/lists/*
 RUN wget -O /plantuml.jar http://sourceforge.net/projects/plantuml/files/plantuml.1.2019.6.jar/download
 
 # By default, java writes a 'hsperfdata_<username>' directory in the work dir.

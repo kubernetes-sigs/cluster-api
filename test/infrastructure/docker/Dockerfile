@@ -16,6 +16,11 @@
 
 # Run this with docker build --build-arg builder_image=<golang:x.y.z>
 ARG builder_image
+
+# Ignore Hadolint rule "Always tag the version of an image explicitly."
+# It's an invalid finding since the image is explicitly set in the Makefile.
+# https://github.com/hadolint/hadolint/wiki/DL3006
+# hadolint ignore=DL3006
 FROM ${builder_image} as builder
 
 # Run this with docker build --build-arg goproxy=$(go env GOPROXY) to override the goproxy
@@ -58,6 +63,10 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -trimpath -a -o /workspace/manager main.go
 
 # NOTE: CAPD can't use non-root because docker requires access to the docker socket
+
+# Ignore Hadolint rule "Using latest is prone to errors if the image will ever update. Pin the version explicitly to a release tag."
+# https://github.com/hadolint/hadolint/wiki/DL3007
+# hadolint ignore=DL3007
 FROM gcr.io/distroless/static:latest
 
 WORKDIR /

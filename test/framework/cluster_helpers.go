@@ -43,7 +43,7 @@ func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...i
 	By("creating an InfrastructureCluster resource")
 	Eventually(func() error {
 		return input.Creator.Create(ctx, input.InfraCluster)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to create InfrastructureCluster %s/%s", input.InfraCluster.GetNamespace(), input.InfraCluster.GetName())
 
 	// This call happens in an eventually because of a race condition with the
 	// webhook server. If the latter isn't fully online then this call will
@@ -55,7 +55,7 @@ func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...i
 			return err
 		}
 		return nil
-	}, intervals...).Should(Succeed())
+	}, intervals...).Should(Succeed(), "Failed to create Cluster %s/%s", input.Cluster.Namespace, input.Cluster.Name)
 }
 
 // GetAllClustersByNamespaceInput is the input for GetAllClustersByNamespace.
@@ -118,7 +118,7 @@ func PatchClusterLabel(ctx context.Context, input PatchClusterLabelInput) {
 	input.Cluster.SetLabels(input.Labels)
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.Cluster)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch label to cluster %s/%s", input.Cluster.Namespace, input.Cluster.Name)
 }
 
 // WaitForClusterToProvisionInput is the input for WaitForClusterToProvision.
@@ -140,7 +140,7 @@ func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvis
 			return "", err
 		}
 		return cluster.Status.Phase, nil
-	}, intervals...).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)))
+	}, intervals...).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)), "Timed out waiting for Cluster %s/%s to provision", input.Cluster.GetNamespace(), input.Cluster.GetName())
 	return cluster
 }
 

@@ -475,12 +475,12 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, namespace, clu
 	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: clusterName + "-hookresponses", Namespace: namespace}}
 	Eventually(func() error {
 		return c.Get(ctx, util.ObjectKey(configMap), configMap)
-	}).Should(Succeed())
+	}).Should(Succeed(), "Failed to get ConfigMap %s/%s", namespace, configMap.Name)
 	patch := client.RawPatch(types.MergePatchType,
 		[]byte(fmt.Sprintf(`{"data":{"%s-preloadedResponse":%s}}`, hookName, "\"{\\\"Status\\\": \\\"Success\\\"}\"")))
 	Eventually(func() error {
 		return c.Patch(ctx, configMap, patch)
-	}).Should(Succeed())
+	}).Should(Succeed(), "Failed to set %s response to Status:Success to unblock the reconciliation", hookName)
 
 	// Expect the Hook to pass, setting the blockingCondition to false before the timeout ends.
 	Eventually(func() bool {

@@ -122,7 +122,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				return nil
 			}
 			return errors.New("cluster object not yet reconciled")
-		}, "1m", "5s").Should(Succeed())
+		}, "1m", "5s").Should(Succeed(), "Failed to get the Cluster %s/%s", cluster.Namespace, cluster.Name)
 
 		if isDockerCluster {
 			Expect(bootstrap.LoadImagesToKindCluster(ctx, bootstrap.LoadImagesToKindClusterInput{

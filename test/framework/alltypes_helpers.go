@@ -171,7 +171,7 @@ func CreateRelatedResources(ctx context.Context, input CreateRelatedResourcesInp
 		Byf("creating a/an %s resource", obj.GetObjectKind().GroupVersionKind())
 		Eventually(func() error {
 			return input.Creator.Create(ctx, obj)
-		}, intervals...).Should(Succeed())
+		}, intervals...).Should(Succeed(), "failed to create %s", obj.GetObjectKind().GroupVersionKind())
 	}
 }
 

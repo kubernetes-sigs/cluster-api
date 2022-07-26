@@ -48,17 +48,17 @@ func CreateMachineDeployment(ctx context.Context, input CreateMachineDeploymentI
 	By("creating a core MachineDeployment resource")
 	Eventually(func() error {
 		return input.Creator.Create(ctx, input.MachineDeployment)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to create MachineDeployment %s/%s", input.MachineDeployment.Namespace, input.MachineDeployment.Name)
 
 	By("creating a BootstrapConfigTemplate resource")
 	Eventually(func() error {
 		return input.Creator.Create(ctx, input.BootstrapConfigTemplate)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to create BootstrapConfigTemplate %s/%s", input.BootstrapConfigTemplate.GetNamespace(), input.BootstrapConfigTemplate.GetName())
 
 	By("creating an InfrastructureMachineTemplate resource")
 	Eventually(func() error {
 		return input.Creator.Create(ctx, input.InfraMachineTemplate)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to create InfrastructureMachineTemplate %s/%s", input.InfraMachineTemplate.GetNamespace(), input.InfraMachineTemplate.GetName())
 }
 
 // GetMachineDeploymentsByClusterInput is the input for GetMachineDeploymentsByCluster.
@@ -127,7 +127,7 @@ func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMach
 			}
 		}
 		return count, nil
-	}, intervals...).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)))
+	}, intervals...).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)), "Timed out waiting for %d nodes to be created for MachineDeployment %s/%s", int(*input.MachineDeployment.Spec.Replicas), input.MachineDeployment.Namespace, input.MachineDeployment.Name)
 }
 
 // AssertMachineDeploymentFailureDomainsInput is the input for AssertMachineDeploymentFailureDomains.
@@ -153,7 +153,7 @@ func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMach
 	ms := &clusterv1.MachineSetList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap))
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineSets for Cluster %s/%s", input.Cluster.Namespace, input.Cluster.Name)
 
 	for _, machineSet := range ms.Items {
 		machineSetFD := pointer.StringDeref(machineSet.Spec.Template.Spec.FailureDomain, "<None>")
@@ -165,7 +165,7 @@ func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMach
 		machines := &clusterv1.MachineList{}
 		Eventually(func() error {
 			return input.Lister.List(ctx, machines, client.InNamespace(machineSet.Namespace), client.MatchingLabels(selectorMap))
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list Machines for Cluster %s/%s", input.Cluster.Namespace, input.Cluster.Name)
 
 		for _, machine := range machines.Items {
 			machineFD := pointer.StringDeref(machine.Spec.FailureDomain, "<None>")
@@ -239,7 +239,7 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 		}
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, deployment)
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch Kubernetes version on MachineDeployment %s/%s", deployment.Namespace, deployment.Name)
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded from %s to %s",
 			deployment.Namespace, deployment.Name, *oldVersion, input.UpgradeVersion)
@@ -322,7 +322,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 		}
 		Eventually(func() error {
 			return mgmtClient.Get(ctx, key, infraObj)
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get infra object %s/%s for MachineDeployment %s/%s", key.Namespace, key.Name, deployment.Namespace, deployment.Name)
 
 		// Creates a new infra object
 		newInfraObj := infraObj
@@ -331,7 +331,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 		newInfraObj.SetResourceVersion("")
 		Eventually(func() error {
 			return mgmtClient.Create(ctx, newInfraObj)
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to create new infrastructure object %s/%s for MachineDeployment %s/%s", infraRef.Namespace, infraRef.Name, deployment.Namespace, deployment.Name)
 
 		// Patch the new infra object's ref to the machine deployment
 		patchHelper, err := patch.NewHelper(deployment, mgmtClient)
@@ -340,7 +340,7 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 		deployment.Spec.Template.Spec.InfrastructureRef = infraRef
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, deployment)
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch new infrastructure ref to MachineDeployment %s/%s", deployment.Namespace, deployment.Name)
 
 		log.Logf("Waiting for rolling upgrade to start.")
 		WaitForMachineDeploymentRollingUpgradeToStart(ctx, WaitForMachineDeploymentRollingUpgradeToStartInput{
@@ -384,7 +384,7 @@ func ScaleAndWaitMachineDeployment(ctx context.Context, input ScaleAndWaitMachin
 	input.MachineDeployment.Spec.Replicas = pointer.Int32Ptr(input.Replicas)
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.MachineDeployment)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to scale machine deployment %s/%s", input.MachineDeployment.Namespace, input.MachineDeployment.Name)
 
 	log.Logf("Waiting for correct number of replicas to exist")
 	Eventually(func() (int, error) {
@@ -418,5 +418,5 @@ func ScaleAndWaitMachineDeployment(ctx context.Context, input ScaleAndWaitMachin
 			return -1, errors.New("Machine count does not match existing nodes count")
 		}
 		return nodeRefCount, nil
-	}, input.WaitForMachineDeployments...).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)))
+	}, input.WaitForMachineDeployments...).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)), "Timed out waiting for machine deployment %s/%s to have %d replicas", input.MachineDeployment.Namespace, input.MachineDeployment.Name, *input.MachineDeployment.Spec.Replicas)
 }

@@ -147,7 +147,7 @@ func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForC
 			return 0, errors.New("old nodes remain")
 		}
 		return upgraded, nil
-	}, intervals...).Should(Equal(input.MachineCount))
+	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all control-plane machines in Cluster %s/%s to be upgraded to kubernetes version %s", input.Cluster.Namespace, input.Cluster.Name, input.KubernetesUpgradeVersion)
 }
 
 // WaitForMachineDeploymentMachinesToBeUpgradedInput is the input for WaitForMachineDeploymentMachinesToBeUpgraded.
@@ -187,7 +187,7 @@ func WaitForMachineDeploymentMachinesToBeUpgraded(ctx context.Context, input Wai
 			return 0, errors.New("old nodes remain")
 		}
 		return upgraded, nil
-	}, intervals...).Should(Equal(input.MachineCount))
+	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all MachineDeployment %s/%s Machines to be upgraded to kubernetes version %s", input.MachineDeployment.Namespace, input.MachineDeployment.Name, input.KubernetesUpgradeVersion)
 }
 
 // PatchNodeConditionInput is the input for PatchNodeCondition.
@@ -211,13 +211,13 @@ func PatchNodeCondition(ctx context.Context, input PatchNodeConditionInput) {
 	node := &corev1.Node{}
 	Eventually(func() error {
 		return input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: input.Machine.Status.NodeRef.Name, Namespace: input.Machine.Status.NodeRef.Namespace}, node)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get node %s", input.Machine.Status.NodeRef.Name)
 	patchHelper, err := patch.NewHelper(node, input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient())
 	Expect(err).ToNot(HaveOccurred())
 	node.Status.Conditions = append(node.Status.Conditions, input.NodeCondition)
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, node)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch node %s", input.Machine.Status.NodeRef.Name)
 }
 
 // MachineStatusCheck is a type that operates a status check on a Machine.

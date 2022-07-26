@@ -33,7 +33,6 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/policy/v1beta1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
@@ -311,24 +310,8 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 	Expect(input.DeploymentName).ToNot(BeNil(), "Need a deployment name in DeployUnevictablePod")
 	Expect(input.Namespace).ToNot(BeNil(), "Need a namespace in DeployUnevictablePod")
 	Expect(input.WorkloadClusterProxy).ToNot(BeNil(), "Need a workloadClusterProxy in DeployUnevictablePod")
-	workloadClient := input.WorkloadClusterProxy.GetClientSet()
 
-	log.Logf("Check if namespace %s exists", input.Namespace)
-	Eventually(func() error {
-		_, err := workloadClient.CoreV1().Namespaces().Get(ctx, input.Namespace, metav1.GetOptions{})
-		if err != nil {
-			if apierrors.IsNotFound(err) {
-				_, errCreateNamespace := workloadClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: input.Namespace,
-					},
-				}, metav1.CreateOptions{})
-				return errCreateNamespace
-			}
-			return err
-		}
-		return nil
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	EnsureNamespace(ctx, input.WorkloadClusterProxy.GetClient(), input.Namespace)
 
 	workloadDeployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -366,13 +349,14 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 			},
 		},
 	}
+	workloadClient := input.WorkloadClusterProxy.GetClientSet()
 	if input.ControlPlane != nil {
 		var serverVersion *version.Info
 		Eventually(func() error {
 			var err error
 			serverVersion, err = workloadClient.ServerVersion()
 			return err
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "failed to get server version")
 
 		// Use the control-plane label for Kubernetes version >= v1.20.0.
 		if utilversion.MustParseGeneric(serverVersion.String()).AtLeast(utilversion.MustParseGeneric("v1.20.0")) {
@@ -445,7 +429,7 @@ func AddDeploymentToWorkloadCluster(ctx context.Context, input AddDeploymentToWo
 			return nil
 		}
 		return fmt.Errorf("deployment %s in namespace %s not successfully created in workload cluster: %v", input.Deployment.Name, input.Namespace, err)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to create deployment %s/%s in workload cluster", input.Namespace, input.Deployment.Name)
 }
 
 type AddPodDisruptionBudgetInput struct {

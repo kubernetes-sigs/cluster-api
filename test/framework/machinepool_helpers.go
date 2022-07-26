@@ -87,7 +87,7 @@ func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoo
 		}
 
 		return int(input.MachinePool.Status.ReadyReplicas), nil
-	}, intervals...).Should(Equal(int(*input.MachinePool.Spec.Replicas)))
+	}, intervals...).Should(Equal(int(*input.MachinePool.Spec.Replicas)), "Timed out waiting for %v ready replicas for MachinePool %s/%s", *input.MachinePool.Spec.Replicas, input.MachinePool.Namespace, input.MachinePool.Name)
 }
 
 // DiscoveryAndWaitForMachinePoolsInput is the input type for DiscoveryAndWaitForMachinePools.
@@ -168,7 +168,7 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, mp)
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch the new Kubernetes version to Machine Pool %s/%s", mp.Namespace, mp.Name)
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachinePool %s/%s to be upgraded from %s to %s",
 			mp.Namespace, mp.Name, *oldVersion, input.UpgradeVersion)
@@ -207,7 +207,7 @@ func ScaleMachinePoolAndWait(ctx context.Context, input ScaleMachinePoolAndWaitI
 		mp.Spec.Replicas = &input.Replicas
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, mp)
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch MachinePool %s/%s", mp.Namespace, mp.Name)
 	}
 
 	for _, mp := range input.MachinePools {
@@ -264,7 +264,7 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 		}
 
 		return matches, nil
-	}, intervals...).Should(Equal(input.MachineCount))
+	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all MachinePool %s/%s instances to be upgraded to Kubernetes version %s", input.MachinePool.Namespace, input.MachinePool.Name, input.KubernetesUpgradeVersion)
 }
 
 // GetMachinesPoolInstancesInput is the input for GetMachinesPoolInstances.

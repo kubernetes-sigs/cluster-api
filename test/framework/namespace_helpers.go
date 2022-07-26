@@ -61,7 +61,7 @@ func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals 
 	log.Logf("Creating namespace %s", input.Name)
 	Eventually(func() error {
 		return input.Creator.Create(ctx, ns)
-	}, intervals...).Should(Succeed())
+	}, intervals...).Should(Succeed(), "Failed to create namespace %s", input.Name)
 
 	return ns
 }
@@ -79,9 +79,7 @@ func EnsureNamespace(ctx context.Context, mgmt client.Client, namespace string) 
 		}
 		Eventually(func() error {
 			return mgmt.Create(ctx, ns)
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
-	} else {
-		Fail(err.Error())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to create namespace %q", namespace)
 	}
 }
 
@@ -104,7 +102,7 @@ func DeleteNamespace(ctx context.Context, input DeleteNamespaceInput, intervals 
 	log.Logf("Deleting namespace %s", input.Name)
 	Eventually(func() error {
 		return input.Deleter.Delete(ctx, ns)
-	}, intervals...).Should(Succeed())
+	}, intervals...).Should(Succeed(), "Failed to delete namespace %s", input.Name)
 }
 
 // WatchNamespaceEventsInput is the input type for WatchNamespaceEvents.

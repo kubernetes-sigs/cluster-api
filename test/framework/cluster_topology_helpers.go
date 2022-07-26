@@ -102,7 +102,7 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 	}
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.Cluster)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch Cluster topology %s/%s with version %s", input.Cluster.Namespace, input.Cluster.Name, input.KubernetesUpgradeVersion)
 
 	// Once we have patched the Kubernetes Cluster we can run PreWaitForControlPlaneToBeUpgraded.
 	// Note: This can e.g. be used to verify the BeforeClusterUpgrade lifecycle hook is executed

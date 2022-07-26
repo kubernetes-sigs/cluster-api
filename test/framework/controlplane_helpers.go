@@ -49,7 +49,7 @@ func CreateKubeadmControlPlane(ctx context.Context, input CreateKubeadmControlPl
 	By("creating the machine template")
 	Eventually(func() error {
 		return input.Creator.Create(ctx, input.MachineTemplate)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to create MachineTemplate %s", input.MachineTemplate.GetName())
 
 	By("creating a KubeadmControlPlane")
 	Eventually(func() error {
@@ -58,7 +58,7 @@ func CreateKubeadmControlPlane(ctx context.Context, input CreateKubeadmControlPl
 			log.Logf("Failed to create the KubeadmControlPlane: %+v", err)
 		}
 		return err
-	}, intervals...).Should(Succeed())
+	}, intervals...).Should(Succeed(), "Failed to create the KubeadmControlPlane %s/%s", input.ControlPlane.Namespace, input.ControlPlane.Name)
 }
 
 // GetKubeadmControlPlaneByClusterInput is the input for GetKubeadmControlPlaneByCluster.
@@ -113,7 +113,7 @@ func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitFo
 			}
 		}
 		return count, nil
-	}, intervals...).Should(Equal(int(*input.ControlPlane.Spec.Replicas)))
+	}, intervals...).Should(Equal(int(*input.ControlPlane.Spec.Replicas)), "Timed out waiting for %d control plane machines to exist", int(*input.ControlPlane.Spec.Replicas))
 }
 
 // WaitForOneKubeadmControlPlaneMachineToExistInput is the input for WaitForKubeadmControlPlaneMachinesToExist.
@@ -242,7 +242,7 @@ func DiscoveryAndWaitForControlPlaneInitialized(ctx context.Context, input Disco
 			Namespace:   input.Cluster.Namespace,
 		})
 		g.Expect(controlPlane).ToNot(BeNil())
-	}, "10s", "1s").Should(Succeed())
+	}, "10s", "1s").Should(Succeed(), "Couldn't get the control plane for the cluster %q", input.Cluster.Name)
 
 	log.Logf("Waiting for the first control plane machine managed by %s/%s to be provisioned", controlPlane.Namespace, controlPlane.Name)
 	WaitForOneKubeadmControlPlaneMachineToExist(ctx, WaitForOneKubeadmControlPlaneMachineToExistInput{
@@ -339,7 +339,7 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.ControlPlane)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch the new kubernetes version to KCP %s/%s", input.ControlPlane.Namespace, input.ControlPlane.Name)
 
 	log.Logf("Waiting for control-plane machines to have the upgraded kubernetes version")
 	WaitForControlPlaneMachinesToBeUpgraded(ctx, WaitForControlPlaneMachinesToBeUpgradedInput{
@@ -401,7 +401,7 @@ func ScaleAndWaitControlPlane(ctx context.Context, input ScaleAndWaitControlPlan
 	log.Logf("Scaling controlplane %s/%s from %v to %v replicas", input.ControlPlane.Namespace, input.ControlPlane.Name, scaleBefore, input.Replicas)
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.ControlPlane)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to scale controlplane %s/%s from %v to %v replicas", input.ControlPlane.Namespace, input.ControlPlane.Name, scaleBefore, input.Replicas)
 
 	log.Logf("Waiting for correct number of replicas to exist")
 	Eventually(func() (int, error) {
@@ -428,5 +428,5 @@ func ScaleAndWaitControlPlane(ctx context.Context, input ScaleAndWaitControlPlan
 			return -1, errors.New("Machine count does not match existing nodes count")
 		}
 		return nodeRefCount, nil
-	}, input.WaitForControlPlane...).Should(Equal(int(input.Replicas)))
+	}, input.WaitForControlPlane...).Should(Equal(int(input.Replicas)), "Timed out waiting for %d replicas to exist for control-plane %s/%s", int(input.Replicas), input.ControlPlane.Namespace, input.ControlPlane.Name)
 }

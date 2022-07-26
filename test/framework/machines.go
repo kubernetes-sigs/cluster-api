@@ -54,7 +54,7 @@ func WaitForClusterMachineNodeRefs(ctx context.Context, input WaitForClusterMach
 			}
 		}
 		return
-	}, intervals...).Should(Equal(len(machines.Items)))
+	}, intervals...).Should(Equal(len(machines.Items)), "Timed out waiting for %d nodes to exist", len(machines.Items))
 }
 
 type WaitForClusterMachinesReadyInput struct {
@@ -90,5 +90,5 @@ func WaitForClusterMachinesReady(ctx context.Context, input WaitForClusterMachin
 			}
 		}
 		return
-	}, intervals...).Should(Equal(len(machines.Items)))
+	}, intervals...).Should(Equal(len(machines.Items)), "Timed out waiting for %d nodes to be ready", len(machines.Items))
 }

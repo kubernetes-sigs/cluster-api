@@ -28,6 +28,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -185,6 +186,128 @@ func TestClusterCacheTracker(t *testing.T) {
 			t.Log("Ensuring no additional watch notifications arrive")
 			g.Consistently(c.ch).ShouldNot(Receive())
 		})
+	})
+
+	t.Run("runningOnWorkloadCluster", func(t *testing.T) {
+		tests := []struct {
+			name                      string
+			currentControllerMetadata *metav1.ObjectMeta
+			clusterObjects            []client.Object
+			expected                  bool
+		}{
+			{
+				name: "should return true if the controller is running on the workload cluster",
+				currentControllerMetadata: &metav1.ObjectMeta{
+					Name:      "controller-pod",
+					Namespace: "controller-pod-namespace",
+					UID:       types.UID("controller-pod-uid"),
+				},
+				clusterObjects: []client.Object{
+					&corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "controller-pod",
+							Namespace: "controller-pod-namespace",
+							UID:       types.UID("controller-pod-uid"),
+						},
+					},
+				},
+				expected: true,
+			},
+			{
+				name: "should return false if the controller is not running on the workload cluster: name mismatch",
+				currentControllerMetadata: &metav1.ObjectMeta{
+					Name:      "controller-pod",
+					Namespace: "controller-pod-namespace",
+					UID:       types.UID("controller-pod-uid"),
+				},
+				clusterObjects: []client.Object{
+					&corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "controller-pod-mismatch",
+							Namespace: "controller-pod-namespace",
+							UID:       types.UID("controller-pod-uid"),
+						},
+					},
+				},
+				expected: false,
+			},
+			{
+				name: "should return false if the controller is not running on the workload cluster: namespace mismatch",
+				currentControllerMetadata: &metav1.ObjectMeta{
+					Name:      "controller-pod",
+					Namespace: "controller-pod-namespace",
+					UID:       types.UID("controller-pod-uid"),
+				},
+				clusterObjects: []client.Object{
+					&corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "controller-pod",
+							Namespace: "controller-pod-namespace-mismatch",
+							UID:       types.UID("controller-pod-uid"),
+						},
+					},
+				},
+				expected: false,
+			},
+			{
+				name: "should return false if the controller is not running on the workload cluster: uid mismatch",
+				currentControllerMetadata: &metav1.ObjectMeta{
+					Name:      "controller-pod",
+					Namespace: "controller-pod-namespace",
+					UID:       types.UID("controller-pod-uid"),
+				},
+				clusterObjects: []client.Object{
+					&corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "controller-pod",
+							Namespace: "controller-pod-namespace",
+							UID:       types.UID("controller-pod-uid-mismatch"),
+						},
+					},
+				},
+				expected: false,
+			},
+			{
+				name: "should return false if the controller is not running on the workload cluster: no pod in cluster",
+				currentControllerMetadata: &metav1.ObjectMeta{
+					Name:      "controller-pod",
+					Namespace: "controller-pod-namespace",
+					UID:       types.UID("controller-pod-uid"),
+				},
+				clusterObjects: []client.Object{},
+				expected:       false,
+			},
+			{
+				name:                      "should return false if the controller is not running on the workload cluster: no controller metadata",
+				currentControllerMetadata: nil,
+				clusterObjects: []client.Object{
+					&corev1.Pod{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "controller-pod",
+							Namespace: "controller-pod-namespace",
+							UID:       types.UID("controller-pod-uid"),
+						},
+					},
+				},
+				expected: false,
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				g := NewWithT(t)
+
+				c := fake.NewClientBuilder().WithObjects(tt.clusterObjects...).Build()
+
+				cct := &ClusterCacheTracker{
+					controllerPodMetadata: tt.currentControllerMetadata,
+				}
+
+				found, err := cct.runningOnWorkloadCluster(ctx, c, client.ObjectKey{Name: "test-cluster", Namespace: "test-namespace"})
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(found).To(Equal(tt.expected))
+			})
+		}
 	})
 }
 

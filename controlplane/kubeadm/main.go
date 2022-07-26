@@ -218,7 +218,9 @@ func setupChecks(mgr ctrl.Manager) {
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	// Set up a ClusterCacheTracker to provide to controllers
 	// requiring a connection to a remote cluster
+	log := ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")
 	tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{
+		Log:     &log,
 		Indexes: remote.DefaultIndexes,
 		ClientUncachedObjects: []client.Object{
 			&corev1.ConfigMap{},

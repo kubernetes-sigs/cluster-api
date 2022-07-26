@@ -65,6 +65,7 @@ type ClusterctlUpgradeSpecInput struct {
 	// provider contract to use to initialise the secondary management cluster, e.g. `v1alpha3`
 	InitWithProvidersContract string
 	SkipCleanup               bool
+	ControlPlaneWaiters       clusterctl.ControlPlaneWaiters
 	PreInit                   func(managementClusterProxy framework.ClusterProxy)
 	PreUpgrade                func(managementClusterProxy framework.ClusterProxy)
 	PostUpgrade               func(managementClusterProxy framework.ClusterProxy)
@@ -163,6 +164,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),
 			},
+			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),

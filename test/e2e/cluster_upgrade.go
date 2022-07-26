@@ -41,6 +41,7 @@ type ClusterUpgradeConformanceSpecInput struct {
 	ArtifactFolder        string
 	SkipCleanup           bool
 	SkipConformanceTests  bool
+	ControlPlaneWaiters   clusterctl.ControlPlaneWaiters
 
 	// ControlPlaneMachineCount is used in `config cluster` to configure the count of the control plane machines used in the test.
 	// Default is 1.
@@ -131,6 +132,7 @@ func ClusterUpgradeConformanceSpec(ctx context.Context, inputGetter func() Clust
 				ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneMachineCount),
 				WorkerMachineCount:       pointer.Int64Ptr(workerMachineCount),
 			},
+			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),

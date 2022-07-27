@@ -26,8 +26,9 @@ import (
 
 // WorkloadCluster has methods for fetching kubeconfig of workload cluster from management cluster.
 type WorkloadCluster interface {
-	// GetKubeconfig returns the kubeconfig of the workload cluster.
+	// GetKubeconfig returns the system kubeconfig of the workload cluster.
 	GetKubeconfig(workloadClusterName string, namespace string) (string, error)
+	// GetUserKubeconfig returns the user specific kubeconfig of the workload cluster.
 	GetUserKubeconfig(workloadClusterName string, namespace string) (string, error)
 }
 

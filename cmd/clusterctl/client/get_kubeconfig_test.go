@@ -96,7 +96,7 @@ func Test_clusterctlClient_GetKubeconfig(t *testing.T) {
 			name: "returns the system kubeconfig when GetKubeconfigOptions.UserKubeconfig is set to false",
 			client: func() *fakeClient {
 				clusterClient := newFakeCluster(kubeconfig, configClient).
-					WithObjs(append(objects, getKubeconfigSecret(false, clusterName))...)
+					WithObjs(append(objects, getKubeconfigSecret(false, clusterName), getKubeconfigSecret(true, clusterName))...)
 				return newFakeClient(configClient).WithCluster(clusterClient)
 			}(),
 			options: GetKubeconfigOptions{
@@ -120,7 +120,7 @@ func Test_clusterctlClient_GetKubeconfig(t *testing.T) {
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(config).To(BeEquivalentTo(tt.want))
+			g.Expect(config).To(Equal(tt.want))
 		})
 	}
 }

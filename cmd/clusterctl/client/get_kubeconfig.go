@@ -65,6 +65,8 @@ func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, 
 	if !options.UserKubeconfig {
 		return clusterClient.WorkloadCluster().GetKubeconfig(options.WorkloadClusterName, options.Namespace)
 	}
+
+	// fetch the workload cluster's user kubeconfig
 	kubeconfig, err := clusterClient.WorkloadCluster().GetUserKubeconfig(options.WorkloadClusterName, options.Namespace)
 	if err != nil {
 		// fallback on the system kubeconfig

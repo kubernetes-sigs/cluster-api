@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -113,6 +114,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
+	ctrl.LoggerInto(ctx, log.WithValues("cluster", klog.KObj(cluster)))
+
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, cluster) {
 		log.Info("Reconciliation is paused for this object")
@@ -179,7 +182,7 @@ func patchCluster(ctx context.Context, patchHelper *patch.Helper, cluster *clust
 
 // reconcile handles cluster reconciliation.
 func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+	log := ctrl.LoggerFrom(ctx)
 
 	if cluster.Spec.Topology != nil {
 		if cluster.Spec.ControlPlaneRef == nil || cluster.Spec.InfrastructureRef == nil {

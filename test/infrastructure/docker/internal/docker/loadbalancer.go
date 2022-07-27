@@ -107,7 +107,7 @@ func (s *LoadBalancer) containerName() string {
 // Create creates a docker container hosting a load balancer for the cluster.
 func (s *LoadBalancer) Create(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
-	log = log.WithValues("cluster", s.name, "ipFamily", s.ipFamily)
+	log = log.WithValues("ipFamily", s.ipFamily, "loadbalancer", s.name)
 
 	listenAddr := "0.0.0.0"
 	if s.ipFamily == clusterv1.IPv6IPFamily {

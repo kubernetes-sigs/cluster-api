@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -101,7 +102,7 @@ type Scope struct {
 // SetupWithManager sets up the reconciler with the Manager.
 func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.KubeadmInitLock == nil {
-		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(ctrl.LoggerFrom(ctx).WithName("init-locker"), mgr.GetClient())
+		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(mgr.GetClient())
 	}
 	if r.remoteClientGetter == nil {
 		r.remoteClientGetter = remote.NewClusterClient
@@ -172,7 +173,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if configOwner == nil {
 		return ctrl.Result{}, nil
 	}
-	log = log.WithValues("kind", configOwner.GetKind(), "version", configOwner.GetResourceVersion(), "name", configOwner.GetName())
+	log = log.WithValues(configOwner.LowerCamelCaseKind(), klog.KRef(configOwner.GetNamespace(), configOwner.GetName()), "resourceVersion", configOwner.GetResourceVersion())
 
 	// Lookup the cluster the config owner is associated with
 	cluster, err := util.GetClusterByName(ctx, r.Client, configOwner.GetNamespace(), configOwner.ClusterName())
@@ -189,6 +190,8 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Error(err, "Could not get cluster with metadata")
 		return ctrl.Result{}, err
 	}
+
+	ctx = ctrl.LoggerInto(ctx, log.WithValues("cluster", klog.KObj(cluster)))
 
 	if annotations.IsPaused(cluster, config) {
 		log.Info("Reconciliation is paused for this object")
@@ -321,14 +324,14 @@ func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Co
 		return ctrl.Result{}, err
 	}
 	if shouldRotate {
-		log.V(2).Info("Creating new bootstrap token")
+		log.Info("Creating new bootstrap token, the existing one should be rotated")
 		token, err := createToken(ctx, remoteClient, r.TokenTTL)
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create new bootstrap token")
 		}
 
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = token
-		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken", "Token", token)
+		log.V(3).Info("Altering JoinConfiguration.Discovery.BootstrapToken.Token")
 
 		// update the bootstrap data
 		return r.joinWorker(ctx, scope)
@@ -378,7 +381,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		}
 	}()
 
-	scope.Info("Creating BootstrapData for the init control plane")
+	scope.Info("Creating BootstrapData for the first control plane")
 
 	// Nb. in this case JoinConfiguration should not be defined by users, but in case of misconfigurations, CABPK simply ignore it
 
@@ -495,6 +498,8 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 }
 
 func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) (ctrl.Result, error) {
+	scope.Info("Creating BootstrapData for the worker node")
+
 	certificates := secret.NewCertificatesForWorker(scope.Config.Spec.JoinConfiguration.CACertPath)
 	err := certificates.Lookup(
 		ctx,
@@ -533,8 +538,6 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	if scope.Config.Spec.JoinConfiguration.ControlPlane != nil {
 		return ctrl.Result{}, errors.New("Machine is a Worker, but JoinConfiguration.ControlPlane is set in the KubeadmConfig object")
 	}
-
-	scope.Info("Creating BootstrapData for the worker node")
 
 	verbosityFlag := ""
 	if scope.Config.Spec.Verbosity != nil {
@@ -592,6 +595,8 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 }
 
 func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *Scope) (ctrl.Result, error) {
+	scope.Info("Creating BootstrapData for the joining control plane")
+
 	if !scope.ConfigOwner.IsControlPlaneMachine() {
 		return ctrl.Result{}, fmt.Errorf("%s is not a valid control plane kind, only Machine is supported", scope.ConfigOwner.GetKind())
 	}
@@ -634,8 +639,6 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		scope.Error(err, "Failed to marshal join configuration")
 		return ctrl.Result{}, err
 	}
-
-	scope.Info("Creating BootstrapData for the join control plane")
 
 	verbosityFlag := ""
 	if scope.Config.Spec.Verbosity != nil {
@@ -889,7 +892,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 
 		apiServerEndpoint = cluster.Spec.ControlPlaneEndpoint.String()
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint = apiServerEndpoint
-		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken", "APIServerEndpoint", apiServerEndpoint)
+		log.V(3).Info("Altering JoinConfiguration.Discovery.BootstrapToken.APIServerEndpoint", "APIServerEndpoint", apiServerEndpoint)
 	}
 
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
@@ -905,7 +908,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 		}
 
 		config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token = token
-		log.Info("Altering JoinConfiguration.Discovery.BootstrapToken")
+		log.V(3).Info("Altering JoinConfiguration.Discovery.BootstrapToken.Token")
 	}
 
 	// If the BootstrapToken does not contain any CACertHashes then force skip CA Verification
@@ -927,39 +930,39 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(ctx context.Co
 	// then use Cluster's ControlPlaneEndpoint as a control plane endpoint for the Kubernetes cluster.
 	if config.Spec.ClusterConfiguration.ControlPlaneEndpoint == "" && cluster.Spec.ControlPlaneEndpoint.IsValid() {
 		config.Spec.ClusterConfiguration.ControlPlaneEndpoint = cluster.Spec.ControlPlaneEndpoint.String()
-		log.Info("Altering ClusterConfiguration", "ControlPlaneEndpoint", config.Spec.ClusterConfiguration.ControlPlaneEndpoint)
+		log.V(3).Info("Altering ClusterConfiguration.ControlPlaneEndpoint", "ControlPlaneEndpoint", config.Spec.ClusterConfiguration.ControlPlaneEndpoint)
 	}
 
 	// If there are no ClusterName defined in ClusterConfiguration, use Cluster.Name
 	if config.Spec.ClusterConfiguration.ClusterName == "" {
 		config.Spec.ClusterConfiguration.ClusterName = cluster.Name
-		log.Info("Altering ClusterConfiguration", "ClusterName", config.Spec.ClusterConfiguration.ClusterName)
+		log.V(3).Info("Altering ClusterConfiguration.ClusterName", "ClusterName", config.Spec.ClusterConfiguration.ClusterName)
 	}
 
 	// If there are no Network settings defined in ClusterConfiguration, use ClusterNetwork settings, if defined
 	if cluster.Spec.ClusterNetwork != nil {
 		if config.Spec.ClusterConfiguration.Networking.DNSDomain == "" && cluster.Spec.ClusterNetwork.ServiceDomain != "" {
 			config.Spec.ClusterConfiguration.Networking.DNSDomain = cluster.Spec.ClusterNetwork.ServiceDomain
-			log.Info("Altering ClusterConfiguration", "DNSDomain", config.Spec.ClusterConfiguration.Networking.DNSDomain)
+			log.V(3).Info("Altering ClusterConfiguration.Networking.DNSDomain", "DNSDomain", config.Spec.ClusterConfiguration.Networking.DNSDomain)
 		}
 		if config.Spec.ClusterConfiguration.Networking.ServiceSubnet == "" &&
 			cluster.Spec.ClusterNetwork.Services != nil &&
 			len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
 			config.Spec.ClusterConfiguration.Networking.ServiceSubnet = cluster.Spec.ClusterNetwork.Services.String()
-			log.Info("Altering ClusterConfiguration", "ServiceSubnet", config.Spec.ClusterConfiguration.Networking.ServiceSubnet)
+			log.V(3).Info("Altering ClusterConfiguration.Networking.ServiceSubnet", "ServiceSubnet", config.Spec.ClusterConfiguration.Networking.ServiceSubnet)
 		}
 		if config.Spec.ClusterConfiguration.Networking.PodSubnet == "" &&
 			cluster.Spec.ClusterNetwork.Pods != nil &&
 			len(cluster.Spec.ClusterNetwork.Pods.CIDRBlocks) > 0 {
 			config.Spec.ClusterConfiguration.Networking.PodSubnet = cluster.Spec.ClusterNetwork.Pods.String()
-			log.Info("Altering ClusterConfiguration", "PodSubnet", config.Spec.ClusterConfiguration.Networking.PodSubnet)
+			log.V(3).Info("Altering ClusterConfiguration.Networking.PodSubnet", "PodSubnet", config.Spec.ClusterConfiguration.Networking.PodSubnet)
 		}
 	}
 
 	// If there are no KubernetesVersion settings defined in ClusterConfiguration, use Version from machine, if defined
 	if config.Spec.ClusterConfiguration.KubernetesVersion == "" && machine.Spec.Version != nil {
 		config.Spec.ClusterConfiguration.KubernetesVersion = *machine.Spec.Version
-		log.Info("Altering ClusterConfiguration", "KubernetesVersion", config.Spec.ClusterConfiguration.KubernetesVersion)
+		log.V(3).Info("Altering ClusterConfiguration.KubernetesVersion", "KubernetesVersion", config.Spec.ClusterConfiguration.KubernetesVersion)
 	}
 }
 
@@ -998,7 +1001,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrapf(err, "failed to create bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}
-		log.Info("bootstrap data secret for KubeadmConfig already exists, updating", "secret", secret.Name, "KubeadmConfig", scope.Config.Name)
+		log.Info("bootstrap data secret for KubeadmConfig already exists, updating", "secret", klog.KObj(secret))
 		if err := r.Client.Update(ctx, secret); err != nil {
 			return errors.Wrapf(err, "failed to update bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}

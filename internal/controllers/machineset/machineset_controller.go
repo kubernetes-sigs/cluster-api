@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -134,6 +135,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	log = log.WithValues("cluster", klog.KObj(cluster))
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, machineSet) {
@@ -253,6 +257,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	filteredMachines := make([]*clusterv1.Machine, 0, len(allMachines.Items))
 	for idx := range allMachines.Items {
 		machine := &allMachines.Items[idx]
+		log.WithValues("machine", klog.KObj(machine))
 		if shouldExcludeMachine(machineSet, machine) {
 			continue
 		}
@@ -260,11 +265,11 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
 		if metav1.GetControllerOf(machine) == nil {
 			if err := r.adoptOrphan(ctx, machineSet, machine); err != nil {
-				log.Error(err, "Failed to adopt Machine", "machine", machine.Name)
+				log.Error(err, "Failed to adopt Machine")
 				r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt Machine %q: %v", machine.Name, err)
 				continue
 			}
-			log.Info("Adopted Machine", "machine", machine.Name)
+			log.Info("Adopted Machine")
 			r.recorder.Eventf(machineSet, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted Machine %q", machine.Name)
 		}
 
@@ -273,13 +278,14 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 	var errs []error
 	for _, machine := range filteredMachines {
+		log.WithValues("machine", klog.KObj(machine))
 		// filteredMachines contains machines in deleting status to calculate correct status.
 		// skip remediation for those in deleting status.
 		if !machine.DeletionTimestamp.IsZero() {
 			continue
 		}
 		if conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition) {
-			log.Info("Deleting unhealthy machine", "machine", machine.GetName())
+			log.Info("Deleting unhealthy machine")
 			patch := client.MergeFrom(machine.DeepCopy())
 			if err := r.Client.Delete(ctx, machine); err != nil {
 				errs = append(errs, errors.Wrap(err, "failed to delete"))
@@ -363,6 +369,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 				i+1, diff, *(ms.Spec.Replicas), len(machines)))
 
 			machine := r.getNewMachine(ms)
+			log.WithValues("machine", klog.KObj(machine))
 
 			// Clone and set the infrastructure and bootstrap references.
 			var (
@@ -413,7 +420,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 			machine.Spec.InfrastructureRef = *infraRef
 
 			if err := r.Client.Create(ctx, machine); err != nil {
-				log.Error(err, "Unable to create Machine", "machine", machine.Name)
+				log.Error(err, "Unable to create Machine")
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine %q: %v", machine.Name, err)
 				errs = append(errs, err)
 				conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.MachineCreationFailedReason,
@@ -452,13 +459,14 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 		var errs []error
 		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
 		for _, machine := range machinesToDelete {
+			log.WithValues("machine", klog.KObj(machine))
 			if err := r.Client.Delete(ctx, machine); err != nil {
-				log.Error(err, "Unable to delete Machine", "machine", machine.Name)
+				log.Error(err, "Unable to delete Machine")
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedDelete", "Failed to delete machine %q: %v", machine.Name, err)
 				errs = append(errs, err)
 				continue
 			}
-			log.Info("Deleted machine", "machine", machine.Name)
+			log.Info("Deleted machine")
 			r.recorder.Eventf(ms, corev1.EventTypeNormal, "SuccessfulDelete", "Deleted machine %q", machine.Name)
 		}
 
@@ -565,15 +573,16 @@ func (r *Reconciler) waitForMachineDeletion(ctx context.Context, machineList []*
 // MachineToMachineSets is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for MachineSets that might adopt an orphaned Machine.
 func (r *Reconciler) MachineToMachineSets(o client.Object) []ctrl.Request {
-	ctx := context.Background()
-	// This won't log unless the global logger is set
-	log := ctrl.LoggerFrom(ctx, "object", client.ObjectKeyFromObject(o))
 	result := []ctrl.Request{}
 
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
 	}
+
+	// This won't log unless the global logger is set
+	ctx := context.Background()
+	log := ctrl.LoggerFrom(ctx, "machine", klog.KObj(m))
 
 	// Check if the controller reference is already set and
 	// return an empty result when one is found.
@@ -651,12 +660,14 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 	templateLabel := labels.Set(ms.Spec.Template.Labels).AsSelectorPreValidated()
 
 	for _, machine := range filteredMachines {
+		log = log.WithValues("machine", klog.KObj(machine))
+
 		if templateLabel.Matches(labels.Set(machine.Labels)) {
 			fullyLabeledReplicasCount++
 		}
 
 		if machine.Status.NodeRef == nil {
-			log.V(2).Info("Unable to retrieve Node status, missing NodeRef", "machine", machine.Name)
+			log.V(2).Info("Unable to retrieve Node status, missing NodeRef")
 			continue
 		}
 
@@ -690,7 +701,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 		newStatus.ObservedGeneration = ms.Generation
 		newStatus.DeepCopyInto(&ms.Status)
 
-		log.V(4).Info(fmt.Sprintf("Updating status for %v: %s/%s, ", ms.Kind, ms.Namespace, ms.Name) +
+		log.V(4).Info("Updating status: " +
 			fmt.Sprintf("replicas %d->%d (need %d), ", ms.Status.Replicas, newStatus.Replicas, desiredReplicas) +
 			fmt.Sprintf("fullyLabeledReplicas %d->%d, ", ms.Status.FullyLabeledReplicas, newStatus.FullyLabeledReplicas) +
 			fmt.Sprintf("readyReplicas %d->%d, ", ms.Status.ReadyReplicas, newStatus.ReadyReplicas) +

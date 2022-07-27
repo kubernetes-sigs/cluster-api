@@ -75,7 +75,7 @@ func MachinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind, log logr.Lo
 		// Return early if the GroupKind doesn't match what we expect.
 		infraGK := ref.GroupVersionKind().GroupKind()
 		if gk != infraGK {
-			log.V(4).Info("infra kind doesn't match filter group kind", infraGK.String())
+			log.V(4).Info("infra kind doesn't match filter group kind", "infrastructureGroupKind", infraGK.String())
 			return nil
 		}
 

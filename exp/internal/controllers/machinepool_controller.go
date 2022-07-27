@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -116,7 +117,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, mp.ObjectMeta.Namespace, mp.Spec.ClusterName)
 	if err != nil {
-		log.Error(err, "Failed to get Cluster %s for MachinePool.", mp.Spec.ClusterName)
+		log.Error(err, "Failed to get Cluster for MachinePool.", "machinePool", klog.KObj(mp), "cluster", klog.KRef(mp.ObjectMeta.Namespace, mp.Spec.ClusterName))
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machinepool %q in namespace %q",
 			mp.Spec.ClusterName, mp.Name, mp.Namespace)
 	}

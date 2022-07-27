@@ -22,6 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -84,15 +85,16 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 	totalReplicas := mdutil.GetReplicaCountForMachineSets(allMSs)
 	scaleDownAmount := totalReplicas - *deployment.Spec.Replicas
 	for _, oldMS := range oldMSs {
+		log = log.WithValues("machineSet", klog.KObj(oldMS))
 		if oldMS.Spec.Replicas == nil || *oldMS.Spec.Replicas <= 0 {
-			log.V(4).Info("fully scaled down", "MachineSet", oldMS.Name)
+			log.V(4).Info("fully scaled down")
 			continue
 		}
 		if oldMS.Annotations == nil {
 			oldMS.Annotations = map[string]string{}
 		}
 		if _, ok := oldMS.Annotations[clusterv1.DisableMachineCreate]; !ok {
-			log.V(4).Info("setting annotation on old MachineSet to disable machine creation", "MachineSet", oldMS.Name)
+			log.V(4).Info("setting annotation on old MachineSet to disable machine creation")
 			patchHelper, err := patch.NewHelper(oldMS, r.Client)
 			if err != nil {
 				return err
@@ -107,7 +109,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 			log.V(4).Error(err, "failed to convert MachineSet %q label selector to a map", oldMS.Name)
 			continue
 		}
-		log.V(4).Info("Fetching Machines associated with MachineSet", "MachineSet", oldMS.Name)
+		log.V(4).Info("Fetching Machines associated with MachineSet")
 		// Get all Machines linked to this MachineSet.
 		allMachinesInOldMS := &clusterv1.MachineList{}
 		if err := r.Client.List(ctx,
@@ -128,19 +130,20 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 			log.V(4).Error(errors.Errorf("unexpected negative scale down amount: %d", machineSetScaleDownAmountDueToMachineDeletion), fmt.Sprintf("Error reconciling MachineSet %s", oldMS.Name))
 		}
 		scaleDownAmount -= machineSetScaleDownAmountDueToMachineDeletion
-		log.V(4).Info("Adjusting replica count for deleted machines", "replicaCount", oldMS.Name, "replicas", updatedReplicaCount)
-		log.V(4).Info("Scaling down", "MachineSet", oldMS.Name, "replicas", updatedReplicaCount)
+		log.V(4).Info("Adjusting replica count for deleted machines", "oldReplicas", oldMS.Spec.Replicas, "newReplicas", updatedReplicaCount)
+		log.V(4).Info("Scaling down", "replicas", updatedReplicaCount)
 		if err := r.scaleMachineSet(ctx, oldMS, updatedReplicaCount, deployment); err != nil {
 			return err
 		}
 	}
 	log.V(4).Info("Finished reconcile of Old MachineSets to account for deleted machines. Now analyzing if there's more potential to scale down")
 	for _, oldMS := range oldMSs {
+		log = log.WithValues("machineSet", klog.KObj(oldMS))
 		if scaleDownAmount <= 0 {
 			break
 		}
 		if oldMS.Spec.Replicas == nil || *oldMS.Spec.Replicas <= 0 {
-			log.V(4).Info("Fully scaled down", "MachineSet", oldMS.Name)
+			log.V(4).Info("Fully scaled down")
 			continue
 		}
 		updatedReplicaCount := *oldMS.Spec.Replicas
@@ -151,7 +154,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 			scaleDownAmount -= updatedReplicaCount
 			updatedReplicaCount = 0
 		}
-		log.V(4).Info("Scaling down", "MachineSet", oldMS.Name, "replicas", updatedReplicaCount)
+		log.V(4).Info("Scaling down", "replicas", updatedReplicaCount)
 		if err := r.scaleMachineSet(ctx, oldMS, updatedReplicaCount, deployment); err != nil {
 			return err
 		}
@@ -163,10 +166,11 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 // reconcileNewMachineSetOnDelete handles reconciliation of the latest MachineSet associated with the MachineDeployment in the OnDelete MachineDeploymentStrategyType.
 func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
 	// logic same as reconcile logic for RollingUpdate
-	log := ctrl.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx, "machineSet", klog.KObj(newMS))
+
 	if newMS.Annotations != nil {
 		if _, ok := newMS.Annotations[clusterv1.DisableMachineCreate]; ok {
-			log.V(4).Info("removing annotation on latest MachineSet to enable machine creation", "MachineSet", newMS.Name)
+			log.V(4).Info("removing annotation on latest MachineSet to enable machine creation")
 			patchHelper, err := patch.NewHelper(newMS, r.Client)
 			if err != nil {
 				return err

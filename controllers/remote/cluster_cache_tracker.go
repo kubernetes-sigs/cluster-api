@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -335,9 +336,7 @@ func (t *ClusterCacheTracker) createClient(config *rest.Config, cluster client.O
 }
 
 // deleteAccessor stops a clusterAccessor's cache and removes the clusterAccessor from the tracker.
-func (t *ClusterCacheTracker) deleteAccessor(ctx context.Context, cluster client.ObjectKey) {
-	log := ctrl.LoggerFrom(ctx)
-
+func (t *ClusterCacheTracker) deleteAccessor(_ context.Context, cluster client.ObjectKey) {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
@@ -346,11 +345,11 @@ func (t *ClusterCacheTracker) deleteAccessor(ctx context.Context, cluster client
 		return
 	}
 
-	log.V(2).Info("Deleting clusterAccessor", "cluster", cluster.String())
-
-	log.V(4).Info("Stopping cache", "cluster", cluster.String())
+	log := t.log.WithValues("cluster", klog.KRef(cluster.Namespace, cluster.Name))
+	log.V(2).Info("Deleting clusterAccessor")
+	log.V(4).Info("Stopping cache")
 	a.cache.Stop()
-	log.V(4).Info("Cache stopped", "cluster", cluster.String())
+	log.V(4).Info("Cache stopped")
 
 	delete(t.clusterAccessors, cluster)
 }
@@ -397,8 +396,7 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 	}
 
 	if a.watches.Has(input.Name) {
-		log := ctrl.LoggerFrom(ctx)
-		log.V(6).Info("Watch already exists", "namespace", input.Cluster.Namespace, "cluster", input.Cluster.Name, "name", input.Name)
+		t.log.V(6).Info("Watch already exists", "namespace", klog.KRef(input.Cluster.Namespace, ""), "cluster", klog.KRef(input.Cluster.Namespace, input.Cluster.Name), "name", input.Name)
 		return nil
 	}
 
@@ -501,10 +499,9 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 	// An error returned implies the health check has failed a sufficient number of
 	// times for the cluster to be considered unhealthy
 	// NB. we are ignoring ErrWaitTimeout because this error happens when the channel is close, that in this case
-	// happens when the cache is explicitly stopped.
+	// happens when the cache is explicitly stopped.F
 	if err != nil && err != wait.ErrWaitTimeout {
-		log := ctrl.LoggerFrom(ctx)
-		log.Error(err, "Error health checking cluster", "cluster", in.cluster.String())
+		t.log.Error(err, "Error health checking cluster", "cluster", klog.KRef(in.cluster.Namespace, in.cluster.Name))
 		t.deleteAccessor(ctx, in.cluster)
 	}
 }

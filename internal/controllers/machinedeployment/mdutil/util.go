@@ -33,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/integer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -168,7 +169,7 @@ func getMaxReplicasAnnotation(ms *clusterv1.MachineSet, logger logr.Logger) (int
 }
 
 func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger logr.Logger) (int32, bool) {
-	logger = logger.WithValues("machineset", ms.Name, "annotationKey", annotationKey)
+	logger = logger.WithValues("machineSet", klog.KObj(ms))
 
 	annotationValue, ok := ms.Annotations[annotationKey]
 	if !ok {
@@ -176,7 +177,7 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 	}
 	intValue, err := strconv.ParseInt(annotationValue, 10, 32)
 	if err != nil {
-		logger.V(2).Info("Cannot convert the value to integer", "annotationValue", annotationValue)
+		logger.V(2).Info(fmt.Sprintf("Cannot convert annotation %q with value %q to integer", annotationKey, annotationValue))
 		return int32(0), false
 	}
 	return int32(intValue), true
@@ -185,7 +186,7 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 // SetNewMachineSetAnnotations sets new machine set's annotations appropriately by updating its revision and
 // copying required deployment annotations to it; it returns true if machine set's annotation is changed.
 func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS *clusterv1.MachineSet, newRevision string, exists bool, logger logr.Logger) bool {
-	logger = logger.WithValues("machineset", newMS.Name)
+	logger = logger.WithValues("machineSet", klog.KObj(newMS))
 
 	// First, copy deployment's annotations (except for apply and revision annotations)
 	annotationChanged := copyDeploymentAnnotationsToMachineSet(deployment, newMS)

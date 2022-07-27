@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -118,10 +119,16 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
+	log = log.WithValues("machineDeployment", klog.KObj(deployment))
+	ctx = ctrl.LoggerInto(ctx, log)
+
 	cluster, err := util.GetClusterByName(ctx, r.Client, deployment.Namespace, deployment.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	log = log.WithValues("cluster", klog.KObj(cluster))
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, deployment) {
@@ -257,33 +264,33 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 	filtered := make([]*clusterv1.MachineSet, 0, len(machineSets.Items))
 	for idx := range machineSets.Items {
 		ms := &machineSets.Items[idx]
-
+		log.WithValues("machineSet", klog.KObj(ms))
 		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 		if err != nil {
-			log.Error(err, "Skipping MachineSet, failed to get label selector from spec selector", "machineset", ms.Name)
+			log.Error(err, "Skipping MachineSet, failed to get label selector from spec selector")
 			continue
 		}
 
 		// If a MachineDeployment with a nil or empty selector creeps in, it should match nothing, not everything.
 		if selector.Empty() {
-			log.Info("Skipping MachineSet as the selector is empty", "machineset", ms.Name)
+			log.Info("Skipping MachineSet as the selector is empty")
 			continue
 		}
 
 		// Skip this MachineSet unless either selector matches or it has a controller ref pointing to this MachineDeployment
 		if !selector.Matches(labels.Set(ms.Labels)) && !metav1.IsControlledBy(ms, d) {
-			log.V(4).Info("Skipping MachineSet, label mismatch", "machineset", ms.Name)
+			log.V(4).Info("Skipping MachineSet, label mismatch")
 			continue
 		}
 
 		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
 		if metav1.GetControllerOf(ms) == nil {
 			if err := r.adoptOrphan(ctx, d, ms); err != nil {
-				log.Error(err, "Failed to adopt MachineSet into MachineDeployment", "machineset", ms.Name)
+				log.Error(err, "Failed to adopt MachineSet into MachineDeployment")
 				r.recorder.Eventf(d, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt MachineSet %q: %v", ms.Name, err)
 				continue
 			}
-			log.Info("Adopted MachineSet into MachineDeployment", "machineset", ms.Name)
+			log.Info("Adopted MachineSet into MachineDeployment")
 			r.recorder.Eventf(d, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted MachineSet %q", ms.Name)
 		}
 

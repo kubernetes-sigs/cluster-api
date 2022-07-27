@@ -540,7 +540,7 @@ func setClusterPause(proxy Proxy, clusters []*node, value bool, dryRun bool) err
 	setClusterPauseBackoff := newWriteBackoff()
 	for i := range clusters {
 		cluster := clusters[i]
-		log.V(5).Info("Set Cluster.Spec.Paused", "Paused", value, "Cluster", cluster.identity.Name, "Namespace", cluster.identity.Namespace)
+		log.V(5).Info("Set Cluster.Spec.Paused", "paused", value, "cluster", cluster.identity.Name, "namespace", cluster.identity.Namespace)
 
 		// Nb. The operation is wrapped in a retry loop to make setClusterPause more resilient to unexpected conditions.
 		if err := retryWithExponentialBackoff(setClusterPauseBackoff, func() error {

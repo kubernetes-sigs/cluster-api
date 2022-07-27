@@ -38,6 +38,7 @@ import (
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/version"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -61,7 +62,7 @@ type WaitForDeploymentsAvailableInput struct {
 // all the desired replicas are in place.
 // This can be used to check if Cluster API controllers installed in the management cluster are working.
 func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAvailableInput, intervals ...interface{}) {
-	Byf("Waiting for deployment %s/%s to be available", input.Deployment.GetNamespace(), input.Deployment.GetName())
+	Byf("Waiting for deployment %s to be available", klog.KObj(input.Deployment))
 	deployment := &appsv1.Deployment{}
 	Eventually(func() bool {
 		key := client.ObjectKey{
@@ -83,8 +84,8 @@ func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAv
 // DescribeFailedDeployment returns detailed output to help debug a deployment failure in e2e.
 func DescribeFailedDeployment(input WaitForDeploymentsAvailableInput, deployment *appsv1.Deployment) string {
 	b := strings.Builder{}
-	b.WriteString(fmt.Sprintf("Deployment %s/%s failed to get status.Available = True condition",
-		input.Deployment.GetNamespace(), input.Deployment.GetName()))
+	b.WriteString(fmt.Sprintf("Deployment %s failed to get status.Available = True condition",
+		klog.KObj(input.Deployment)))
 	if deployment == nil {
 		b.WriteString("\nDeployment: nil\n")
 	} else {
@@ -126,17 +127,17 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 	key := client.ObjectKeyFromObject(input.Deployment)
 	Eventually(func() error {
 		return input.GetLister.Get(ctx, key, deployment)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get deployment %s", klog.KObj(input.Deployment))
 
 	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
-	Expect(err).NotTo(HaveOccurred(), "Failed to Pods selector for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	Expect(err).NotTo(HaveOccurred(), "Failed to Pods selector for deployment %s", klog.KObj(input.Deployment))
 
 	pods := &corev1.PodList{}
-	Expect(input.GetLister.List(ctx, pods, client.InNamespace(input.Deployment.Namespace), client.MatchingLabels(selector))).To(Succeed(), "Failed to list Pods for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	Expect(input.GetLister.List(ctx, pods, client.InNamespace(input.Deployment.Namespace), client.MatchingLabels(selector))).To(Succeed(), "Failed to list Pods for deployment %s", klog.KObj(input.Deployment))
 
 	for _, pod := range pods.Items {
 		for _, container := range deployment.Spec.Template.Spec.Containers {
-			log.Logf("Creating log watcher for controller %s/%s, pod %s, container %s", input.Deployment.Namespace, input.Deployment.Name, pod.Name, container.Name)
+			log.Logf("Creating log watcher for controller %s, pod %s, container %s", klog.KObj(input.Deployment), pod.Name, container.Name)
 
 			// Create log metadata file.
 			logMetadataFile := filepath.Clean(path.Join(input.LogPath, input.Deployment.Name, pod.Name, container.Name+"-log-metadata.json"))
@@ -174,7 +175,7 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 				podLogs, err := input.ClientSet.CoreV1().Pods(input.Deployment.Namespace).GetLogs(pod.Name, opts).Stream(ctx)
 				if err != nil {
 					// Failing to stream logs should not cause the test to fail
-					log.Logf("Error starting logs stream for pod %s/%s, container %s: %v", input.Deployment.Namespace, pod.Name, container.Name, err)
+					log.Logf("Error starting logs stream for pod %s, container %s: %v", klog.KRef(pod.Namespace, pod.Name), container.Name, err)
 					return
 				}
 				defer podLogs.Close()
@@ -184,7 +185,7 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 				_, err = out.ReadFrom(podLogs)
 				if err != nil && err != io.ErrUnexpectedEOF {
 					// Failing to stream logs should not cause the test to fail
-					log.Logf("Got error while streaming logs for pod %s/%s, container %s: %v", input.Deployment.Namespace, pod.Name, container.Name, err)
+					log.Logf("Got error while streaming logs for pod %s, container %s: %v", klog.KRef(pod.Namespace, pod.Name), container.Name, err)
 				}
 			}(pod, container)
 		}
@@ -210,15 +211,15 @@ func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
 	key := client.ObjectKeyFromObject(input.Deployment)
 	Eventually(func() error {
 		return input.GetLister.Get(ctx, key, deployment)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get deployment %s", klog.KObj(input.Deployment))
 
 	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
-	Expect(err).NotTo(HaveOccurred(), "Failed to Pods selector for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	Expect(err).NotTo(HaveOccurred(), "Failed to Pods selector for deployment %s", klog.KObj(input.Deployment))
 
 	pods := &corev1.PodList{}
 	Eventually(func() error {
 		return input.GetLister.List(ctx, pods, client.InNamespace(input.Deployment.Namespace), client.MatchingLabels(selector))
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list Pods for deployment %s/%s", input.Deployment.Namespace, input.Deployment.Name)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list Pods for deployment %s", klog.KObj(input.Deployment))
 
 	go func() {
 		defer GinkgoRecover()
@@ -251,13 +252,13 @@ func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPa
 
 		if err != nil {
 			// Failing to dump metrics should not cause the test to fail
-			data = []byte(fmt.Sprintf("Error retrieving metrics for pod %s/%s: %v\n%s", pod.Namespace, pod.Name, err, string(data)))
+			data = []byte(fmt.Sprintf("Error retrieving metrics for pod %s: %v\n%s", klog.KRef(pod.Namespace, pod.Name), err, string(data)))
 			metricsFile = path.Join(metricsDir, "metrics-error.txt")
 		}
 
 		if err := os.WriteFile(metricsFile, data, 0600); err != nil {
 			// Failing to dump metrics should not cause the test to fail
-			log.Logf("Error writing metrics for pod %s/%s: %v", pod.Namespace, pod.Name, err)
+			log.Logf("Error writing metrics for pod %s: %v", klog.KRef(pod.Namespace, pod.Name), err)
 		}
 	}
 }
@@ -428,8 +429,8 @@ func AddDeploymentToWorkloadCluster(ctx context.Context, input AddDeploymentToWo
 		if result != nil && err == nil {
 			return nil
 		}
-		return fmt.Errorf("deployment %s in namespace %s not successfully created in workload cluster: %v", input.Deployment.Name, input.Namespace, err)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to create deployment %s/%s in workload cluster", input.Namespace, input.Deployment.Name)
+		return fmt.Errorf("deployment %s not successfully created in workload cluster: %v", klog.KObj(input.Deployment), err)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to create deployment %s in workload cluster", klog.KObj(input.Deployment))
 }
 
 type AddPodDisruptionBudgetInput struct {

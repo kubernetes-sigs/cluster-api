@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
@@ -148,7 +149,7 @@ func (h *Handler) readResponseFromConfigMap(ctx context.Context, name, namespace
 	configMap := &corev1.ConfigMap{}
 	configMapName := name + "-hookresponses"
 	if err := h.Client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: configMapName}, configMap); err != nil {
-		return errors.Wrapf(err, "failed to read the ConfigMap %s/%s", namespace, configMapName)
+		return errors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(namespace, configMapName))
 	}
 	if err := yaml.Unmarshal([]byte(configMap.Data[hookName+"-preloadedResponse"]), response); err != nil {
 		return errors.Wrapf(err, "failed to read %q response information from ConfigMap", hook)
@@ -165,7 +166,7 @@ func (h *Handler) recordCallInConfigMap(ctx context.Context, name, namespace str
 	configMap := &corev1.ConfigMap{}
 	configMapName := name + "-hookresponses"
 	if err := h.Client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: configMapName}, configMap); err != nil {
-		return errors.Wrapf(err, "failed to read the ConfigMap %s/%s", namespace, configMapName)
+		return errors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(namespace, configMapName))
 	}
 	var patch client.Patch
 	if r, ok := response.(runtimehooksv1.RetryResponseObject); ok {
@@ -177,7 +178,7 @@ func (h *Handler) recordCallInConfigMap(ctx context.Context, name, namespace str
 			[]byte(fmt.Sprintf(`{"data":{"%s-actualResponseStatus":"%s"}}`, hookName, response.GetStatus()))) //nolint:gocritic
 	}
 	if err := h.Client.Patch(ctx, configMap, patch); err != nil {
-		return errors.Wrapf(err, "failed to update the ConfigMap %s/%s", namespace, configMapName)
+		return errors.Wrapf(err, "failed to update the ConfigMap %s", klog.KRef(namespace, configMapName))
 	}
 	return nil
 }

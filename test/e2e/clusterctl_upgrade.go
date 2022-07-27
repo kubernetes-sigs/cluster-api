@@ -32,6 +32,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/discovery"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -390,7 +391,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					log.Logf("Management Cluster does not appear to support CAPI resources.")
 				}
 
-				Byf("Deleting cluster %s/%s", testNamespace.Name, managementClusterName)
+				Byf("Deleting cluster %s", klog.KRef(testNamespace.Name, managementClusterName))
 				framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
 					Client:    managementClusterProxy.GetClient(),
 					Namespace: testNamespace.Name,
@@ -456,7 +457,7 @@ func deleteAllClustersAndWaitV1alpha3(ctx context.Context, input framework.Delet
 	}
 
 	for _, c := range clusters {
-		log.Logf("Waiting for the Cluster %s/%s to be deleted", c.Namespace, c.Name)
+		log.Logf("Waiting for the Cluster %s to be deleted", klog.KObj(c))
 		waitForClusterDeletedV1alpha3(ctx, waitForClusterDeletedV1alpha3Input{
 			Getter:  input.Client,
 			Cluster: c,
@@ -526,7 +527,7 @@ func deleteAllClustersAndWaitV1alpha4(ctx context.Context, input framework.Delet
 	}
 
 	for _, c := range clusters {
-		log.Logf("Waiting for the Cluster %s/%s to be deleted", c.Namespace, c.Name)
+		log.Logf("Waiting for the Cluster %s to be deleted", klog.KObj(c))
 		waitForClusterDeletedV1alpha4(ctx, waitForClusterDeletedV1alpha4Input{
 			Getter:  input.Client,
 			Cluster: c,

@@ -1245,7 +1245,7 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"external.cluster.x-k8s.io/v1beta1, Kind=GenericClusterExternalObject, /externalObject1": {
+				"external.cluster.x-k8s.io/v1beta1, Kind=GenericClusterExternalObject, externalObject1": {
 					forceMove: true,
 					isGlobal:  true,
 				},
@@ -1310,14 +1310,14 @@ var objectGraphsTests = []struct {
 		},
 		want: wantGraph{
 			nodes: map[string]wantGraphItem{
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, /infra1-identity": {
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, infra1-identity": {
 					isGlobal:           true,
 					forceMove:          true,
 					forceMoveHierarchy: true,
 				},
 				"/v1, Kind=Secret, infra1-system/infra1-identity-credentials": {
 					owners: []string{
-						"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, /infra1-identity",
+						"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, infra1-identity",
 					},
 				},
 			},
@@ -2288,8 +2288,8 @@ func Test_objectGraph_setGlobalIdentityTenants(t *testing.T) {
 					Objs(),
 			},
 			wantIdentity: map[string][]string{ // wantCRDs is a map[ClusterResourceSet.UID] --> list of UIDs
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, /infra1-identity": {
-					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, /infra1-identity", // the global identity should be tenant of itself
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, infra1-identity": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, infra1-identity", // the global identity should be tenant of itself
 					"/v1, Kind=Secret, infra1-system/infra1-identity-credentials",
 				},
 			},

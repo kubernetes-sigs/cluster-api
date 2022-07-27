@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -122,7 +123,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				return nil
 			}
 			return errors.New("cluster object not yet reconciled")
-		}, "1m", "5s").Should(Succeed(), "Failed to get the Cluster %s/%s", cluster.Namespace, cluster.Name)
+		}, "1m", "5s").Should(Succeed(), "Failed to get the Cluster %s", klog.KObj(cluster))
 
 		if isDockerCluster {
 			Expect(bootstrap.LoadImagesToKindCluster(ctx, bootstrap.LoadImagesToKindClusterInput{

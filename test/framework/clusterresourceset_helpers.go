@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -62,7 +63,7 @@ func GetClusterResourceSetBindingByCluster(ctx context.Context, input GetCluster
 	binding := &addonsv1.ClusterResourceSetBinding{}
 	Eventually(func() error {
 		return input.Getter.Get(ctx, client.ObjectKey{Namespace: input.Namespace, Name: input.ClusterName}, binding)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list ClusterResourceSetBinding objects for Cluster %s/%s", input.Namespace, input.ClusterName)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list ClusterResourceSetBinding objects for Cluster %s", klog.KRef(input.Namespace, input.ClusterName))
 	return binding
 }
 

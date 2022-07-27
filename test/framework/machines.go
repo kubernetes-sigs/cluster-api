@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -41,7 +42,7 @@ func WaitForClusterMachineNodeRefs(ctx context.Context, input WaitForClusterMach
 
 	Eventually(func() error {
 		return input.GetLister.List(ctx, machines, byClusterOptions(input.Cluster.Name, input.Cluster.Namespace)...)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Cluster machines %s/%s", input.Cluster.Namespace, input.Cluster.Name)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Cluster machines %s", klog.KObj(input.Cluster))
 	Eventually(func() (count int, err error) {
 		for _, m := range machines.Items {
 			machine := &clusterv1.Machine{}
@@ -69,7 +70,7 @@ func WaitForClusterMachinesReady(ctx context.Context, input WaitForClusterMachin
 
 	Eventually(func() error {
 		return input.GetLister.List(ctx, machines, byClusterOptions(input.Cluster.Name, input.Cluster.Namespace)...)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Cluster machines %s/%s", input.Cluster.Namespace, input.Cluster.Name)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Cluster Machines %s", klog.KObj(input.Cluster))
 	Eventually(func() (count int, err error) {
 		for _, m := range machines.Items {
 			machine := &clusterv1.Machine{}

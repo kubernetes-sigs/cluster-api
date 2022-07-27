@@ -32,6 +32,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -337,7 +338,7 @@ func checkLifecycleHookResponses(ctx context.Context, c client.Client, namespace
 	for hookName, expectedResponse := range expectedHookResponses {
 		actualResponse, ok := responseData[hookName+"-actualResponseStatus"]
 		if !ok {
-			return errors.Errorf("hook %s call not recorded in configMap %s/%s", hookName, namespace, clusterName+"-hookresponses")
+			return errors.Errorf("hook %s call not recorded in configMap %s", hookName, klog.KRef(namespace, clusterName+"-hookresponses"))
 		}
 		if expectedResponse != "" && expectedResponse != actualResponse {
 			return errors.Errorf("hook %s was expected to be %s in configMap got %s", hookName, expectedResponse, actualResponse)
@@ -351,7 +352,7 @@ func checkLifecycleHooksCalledAtLeastOnce(ctx context.Context, c client.Client, 
 	responseData := getLifecycleHookResponsesFromConfigMap(ctx, c, namespace, clusterName)
 	for _, hookName := range expectedHooks {
 		if _, ok := responseData[hookName+"-actualResponseStatus"]; !ok {
-			return errors.Errorf("hook %s call not recorded in configMap %s/%s", hookName, namespace, clusterName+"-hookresponses")
+			return errors.Errorf("hook %s call not recorded in configMap %s", hookName, klog.KRef(namespace, clusterName+"-hookresponses"))
 		}
 	}
 	return nil
@@ -475,7 +476,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, namespace, clu
 	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: clusterName + "-hookresponses", Namespace: namespace}}
 	Eventually(func() error {
 		return c.Get(ctx, util.ObjectKey(configMap), configMap)
-	}).Should(Succeed(), "Failed to get ConfigMap %s/%s", namespace, configMap.Name)
+	}).Should(Succeed(), "Failed to get ConfigMap %s", klog.KObj(configMap))
 	patch := client.RawPatch(types.MergePatchType,
 		[]byte(fmt.Sprintf(`{"data":{"%s-preloadedResponse":%s}}`, hookName, "\"{\\\"Status\\\": \\\"Success\\\"}\"")))
 	Eventually(func() error {

@@ -518,8 +518,8 @@ metadata:
 			if err != nil {
 				return false
 			}
-			return len(binding.Spec.Bindings) == 2
-		}, timeout).Should(BeTrue())
+			return len(binding.Spec.Bindings) == 2 && len(binding.OwnerReferences) == 3
+		}, timeout).Should(BeTrue(), "Expected 2 ClusterResourceSets and 3 OwnerReferences")
 
 		t.Log("Verifying deleted CRS is deleted from ClusterResourceSetBinding")
 		// Delete one of the CRS instances and wait until it is removed from the binding list.
@@ -534,8 +534,8 @@ metadata:
 			if err != nil {
 				return false
 			}
-			return len(binding.Spec.Bindings) == 1
-		}, timeout).Should(BeTrue())
+			return len(binding.Spec.Bindings) == 1 && len(binding.OwnerReferences) == 2
+		}, timeout).Should(BeTrue(), "ClusterResourceSetBinding should have 1 ClusterResourceSet and 2 OwnerReferences")
 
 		t.Log("Verifying ClusterResourceSetBinding is deleted after deleting all matching CRS objects")
 		// Delete one of the CRS instances and wait until it is removed from the binding list.

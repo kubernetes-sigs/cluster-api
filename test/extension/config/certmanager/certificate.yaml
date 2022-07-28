@@ -12,11 +12,11 @@ kind: Certificate
 metadata:
   name: serving-cert  # this name should match the one appeared in kustomizeconfig.yaml
 spec:
-  # $(SERVICE_NAME) will be substituted by kustomize
-  # $(SERVICE_NAMESPACE) will be substituted on deployment
+  # $(TEST_EXTENSION_SERVICE_NAMESPACE) will be substituted by kustomize
+  # $(TEST_EXTENSION_SERVICE_NAMESPACE) will be substituted on deployment
   dnsNames:
-  - $(SERVICE_NAME).${SERVICE_NAMESPACE}.svc
-  - $(SERVICE_NAME).${SERVICE_NAMESPACE}.svc.cluster.local
+  - $(SERVICE_NAME).${TEST_EXTENSION_SERVICE_NAMESPACE}.svc
+  - $(SERVICE_NAME).${TEST_EXTENSION_SERVICE_NAMESPACE}.svc.cluster.local
   # for local testing.
   - localhost
   issuerRef:

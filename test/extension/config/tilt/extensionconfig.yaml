@@ -1,0 +1,18 @@
+apiVersion: runtime.cluster.x-k8s.io/v1alpha1
+kind: ExtensionConfig
+metadata:
+  annotations:
+    runtime.cluster.x-k8s.io/inject-ca-from-secret: default/webhook-service-cert
+  name: test-extension
+spec:
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: default
+      port: 443
+  namespaceSelector:
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: In
+      values:
+      - default

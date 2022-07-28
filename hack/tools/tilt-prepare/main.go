@@ -61,9 +61,8 @@ Example call for tilt up:
 */
 
 var (
-	rootPath      string
-	tiltBuildPath string
-
+	rootPath             string
+	tiltBuildPath        string
 	tiltSettingsFileFlag = pflag.String("tilt-settings-file", "./tilt-settings.yaml", "Path to a tilt-settings.(json|yaml) file")
 	toolsFlag            = pflag.StringSlice("tools", []string{}, "list of tools to be created; each value should correspond to a make target")
 )
@@ -74,8 +73,22 @@ type tiltSettings struct {
 	DeployCertManager   *bool                  `json:"deploy_cert_manager,omitempty"`
 	DeployObservability []string               `json:"deploy_observability,omitempty"`
 	EnableProviders     []string               `json:"enable_providers,omitempty"`
+	EnableAddons        []string               `json:"enable_addons,omitempty"`
 	AllowedContexts     []string               `json:"allowed_contexts,omitempty"`
 	ProviderRepos       []string               `json:"provider_repos,omitempty"`
+	AddonRepos          []string               `json:"addon_repos,omitempty"`
+}
+
+type addonSettings struct {
+	Name   string      `json:"name,omitempty"`
+	Config addonConfig `json:"config,omitempty"`
+}
+
+type addonConfig struct {
+	Image         string  `json:"image,omitempty"`
+	ContainerName string  `json:"container_name,omitempty"`
+	BinaryName    string  `json:"binary_name,omitempty"`
+	Context       *string `json:"context"`
 }
 
 type providerSettings struct {
@@ -287,10 +300,70 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 		if !ok {
 			return errors.Errorf("failed to obtain path for the provider %s", providerName)
 		}
-		tasks[providerName] = providerTask(providerName, fmt.Sprintf("%s/config/default", path), ts)
+		tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", ts, fmt.Sprintf("%s/config/default", path), getProviderObj)
 	}
 
+	addonPaths := map[string]string{}
+	for _, repo := range ts.AddonRepos {
+		addonContexts, err := loadAddon(repo)
+		if err != nil {
+			return err
+		}
+		for name, path := range addonContexts {
+			addonPaths[name] = path
+		}
+	}
+
+	// Add an addon task for each repo defined using enableAddons in the tilt-settings file.
+	for _, name := range ts.EnableAddons {
+		if name == "test-extension" {
+			tasks[name] = workloadTask(name, "addon", "extension", "extension", ts, fmt.Sprintf("%s/config/default", "./test/extension"), nil)
+			continue
+		}
+		path, ok := addonPaths[name]
+		if !ok {
+			return errors.Errorf("failed to obtain path for the addon %s", name)
+		}
+		as, err := readAddonSettings(path)
+		if err != nil {
+			return err
+		}
+		tasks[as.Name] = workloadTask(name, "addon", "extension", as.Config.ContainerName, ts, fmt.Sprintf("%s/config/default", path), nil)
+	}
 	return runTaskGroup(ctx, "resources", tasks)
+}
+
+func readAddonSettings(path string) (*addonSettings, error) {
+	path, err := checkWorkloadFileFormat(path, "addon")
+	if err != nil {
+		return nil, err
+	}
+	content, err := os.ReadFile(path) //nolint:gosec
+	if err != nil {
+		return nil, err
+	}
+	as := &addonSettings{}
+	if err := yaml.Unmarshal(content, as); err != nil {
+		return nil, errors.Wrap(err, "failed to unmarshal tilt-addons content")
+	}
+	return as, nil
+}
+
+func loadAddon(repo string) (map[string]string, error) {
+	var contextPath string
+	addonData, err := readAddonSettings(repo)
+	if err != nil {
+		return nil, err
+	}
+	addonContexts := map[string]string{}
+	if addonData.Config.Context != nil {
+		contextPath = repo + "/" + *addonData.Config.Context
+	} else {
+		contextPath = repo
+	}
+	addonContexts[addonData.Name] = contextPath
+
+	return addonContexts, nil
 }
 
 func loadProviders(r string) (map[string]string, error) {
@@ -313,7 +386,7 @@ func loadProviders(r string) (map[string]string, error) {
 }
 
 func readProviderSettings(path string) ([]providerSettings, error) {
-	path, err := checkProviderFileFormat(path)
+	path, err := checkWorkloadFileFormat(path, "provider")
 	if err != nil {
 		return nil, err
 	}
@@ -339,14 +412,14 @@ func readProviderSettings(path string) ([]providerSettings, error) {
 	return ps, nil
 }
 
-func checkProviderFileFormat(path string) (string, error) {
-	if _, err := os.Stat(path + "/tilt-provider.yaml"); err == nil {
-		return path + "/tilt-provider.yaml", nil
+func checkWorkloadFileFormat(path, workloadType string) (string, error) {
+	if _, err := os.Stat(path + fmt.Sprintf("/tilt-%s.yaml", workloadType)); err == nil {
+		return path + fmt.Sprintf("/tilt-%s.yaml", workloadType), nil
 	}
-	if _, err := os.Stat(path + "/tilt-provider.json"); err == nil {
-		return path + "/tilt-provider.json", nil
+	if _, err := os.Stat(path + fmt.Sprintf("/tilt-%s.json", workloadType)); err == nil {
+		return path + fmt.Sprintf("/tilt-%s.json", workloadType), nil
 	}
-	return "", fmt.Errorf("unable to find a tilt settings file under %s", path)
+	return "", fmt.Errorf("unable to find a tilt %s file under %s", workloadType, path)
 }
 
 type taskFunction func(ctx context.Context, prefix string, errors chan error)
@@ -520,17 +593,16 @@ func kustomizeTask(path, out string) taskFunction {
 		}
 
 		// TODO: consider if to preload images into kind, this will speed up components startup.
-
 		if err := writeIfChanged(prefix, filepath.Join(tiltBuildPath, "yaml", out), stdout.Bytes()); err != nil {
 			errCh <- err
 		}
 	}
 }
 
-// providerTask generates a task for creating the component yaml for a provider and saving the output on a file.
+// workloadTask generates a task for creating the component yaml for a workload and saving the output on a file.
 // NOTE: This task has several sub steps including running kustomize, envsubst, fixing components for debugging,
-// and adding the Provider resource mimicking what clusterctl init does.
-func providerTask(name, path string, ts *tiltSettings) taskFunction {
+// and adding the workload resource mimicking what clusterctl init does.
+func workloadTask(name, workloadType, binaryName, containerName string, ts *tiltSettings, path string, getAdditionalObjects func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
 		kustomizeCmd := exec.CommandContext(ctx, kustomizePath, "build", path)
 		var stdout1, stderr1 bytes.Buffer
@@ -558,17 +630,19 @@ func providerTask(name, path string, ts *tiltSettings) taskFunction {
 			errCh <- errors.Wrapf(err, "[%s] failed parse components yaml", prefix)
 			return
 		}
-		if err := prepareManagerDeployment(name, prefix, objs, ts); err != nil {
-			errCh <- err
-			return
-		}
 
-		providerObj, err := getProviderObj(prefix, objs)
-		if err != nil {
+		if err := prepareWorkload(name, prefix, binaryName, containerName, objs, ts); err != nil {
 			errCh <- err
 			return
 		}
-		objs = append(objs, *providerObj)
+		if getAdditionalObjects != nil {
+			additionalObjects, err := getAdditionalObjects(prefix, objs)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			objs = append(objs, *additionalObjects)
+		}
 
 		yaml, err := utilyaml.FromUnstructured(objs)
 		if err != nil {
@@ -576,7 +650,7 @@ func providerTask(name, path string, ts *tiltSettings) taskFunction {
 			return
 		}
 
-		if err := writeIfChanged(prefix, filepath.Join(tiltBuildPath, "yaml", fmt.Sprintf("%s.provider.yaml", name)), yaml); err != nil {
+		if err := writeIfChanged(prefix, filepath.Join(tiltBuildPath, "yaml", fmt.Sprintf("%s.%s.yaml", name, workloadType)), yaml); err != nil {
 			errCh <- err
 		}
 	}
@@ -612,23 +686,22 @@ func writeIfChanged(prefix string, path string, yaml []byte) error {
 	return nil
 }
 
-// prepareManagerDeployment sets the Command and Args for the manager container according to the given tiltSettings.
-// If there is a debug config given for the provider, we modify Command and Args to work nicely with the delve debugger.
-// If there are extra_args given for the provider, we append those to the ones that already exist in the deployment.
+// prepareWorkload sets the Command and Args for the manager container according to the given tiltSettings.
+// If there is a debug config given for the workload, we modify Command and Args to work nicely with the delve debugger.
+// If there are extra_args given for the workload, we append those to the ones that already exist in the deployment.
 // This has the affect that the appended ones will take precedence, as those are read last.
 // Finally, we modify the deployment to enable prometheus metrics scraping.
-func prepareManagerDeployment(name, prefix string, objs []unstructured.Unstructured, ts *tiltSettings) error {
+
+func prepareWorkload(name, prefix, binaryName, containerName string, objs []unstructured.Unstructured, ts *tiltSettings) error {
 	return updateDeployment(prefix, objs, func(d *appsv1.Deployment) {
 		for j, container := range d.Spec.Template.Spec.Containers {
-			if container.Name != "manager" {
-				// as defined in clusterctl Provider Contract "Controllers & Watching namespace"
+			if container.Name != containerName {
 				continue
 			}
-
-			cmd := []string{"sh", "/start.sh", "/manager"}
+			cmd := []string{"sh", "/start.sh", "/" + binaryName}
 			args := append(container.Args, []string(ts.ExtraArgs[name])...)
 
-			// alter controller deployment for working nicely with delve debugger;
+			// alter deployment for working nicely with delve debugger;
 			// most specifically, configuring delve, starting the manager with profiling enabled, dropping liveness and
 			// readiness probes and disabling leader election.
 			if d, ok := ts.Debug[name]; ok {
@@ -641,7 +714,7 @@ func prepareManagerDeployment(name, prefix string, objs []unstructured.Unstructu
 					cmd = append(cmd, "--continue")
 				}
 
-				cmd = append(cmd, []string{"--", "/manager"}...)
+				cmd = append(cmd, []string{"--", "/" + binaryName}...)
 
 				if d.ProfilerPort != nil && *d.ProfilerPort > 0 {
 					args = append(args, []string{"--profiler-address=:6060"}...)
@@ -659,7 +732,6 @@ func prepareManagerDeployment(name, prefix string, objs []unstructured.Unstructu
 				container.LivenessProbe = nil
 				container.ReadinessProbe = nil
 			}
-
 			// alter the controller deployment for working nicely with prometheus metrics scraping. Specifically, the
 			// metrics endpoint is set to listen on all interfaces instead of only localhost, and another port is added
 			// to the container to expose the metrics endpoint.
@@ -677,9 +749,9 @@ func prepareManagerDeployment(name, prefix string, objs []unstructured.Unstructu
 				ContainerPort: 8080,
 				Protocol:      "TCP",
 			})
+
 			container.Command = cmd
 			container.Args = finalArgs
-
 			d.Spec.Template.Spec.Containers[j] = container
 		}
 	})

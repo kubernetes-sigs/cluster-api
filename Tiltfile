@@ -113,6 +113,22 @@ COPY --from=tilt-helper /usr/bin/kubectl /usr/bin/kubectl
     },
 }
 
+# Create a data structure to hold information about addons.
+addons = {
+    "test-extension": {
+        "context": "./test/extension",
+        "image": "gcr.io/k8s-staging-cluster-api/test-extension",
+        "container_name": "extension",
+        "live_reload_deps": ["main.go", "handlers"],
+        "label": "test-extension",
+        "resource_deps": ["capi_controller"],
+        "additional_resources": [
+            "config/tilt/extensionconfig.yaml",
+            "config/tilt/hookresponses-configmap.yaml",
+        ],
+    },
+}
+
 def ensure_clusterctl():
     local("make clusterctl")
 
@@ -128,6 +144,7 @@ def ensure_clusterctl():
 #         ]
 #     }
 # }
+
 def load_provider_tiltfiles():
     provider_repos = settings.get("provider_repos", [])
 
@@ -145,11 +162,30 @@ def load_provider_tiltfiles():
                 provider_config["context"] = repo + "/" + provider_config["context"]
             else:
                 provider_config["context"] = repo
-            if "kustomize_config" not in provider_config:
-                provider_config["kustomize_config"] = True
             if "go_main" not in provider_config:
                 provider_config["go_main"] = "main.go"
             providers[provider_name] = provider_config
+
+# load_addon_tiltfiles looks for tilt-addon.[yaml|json] files in the repositories listed in "addon_repos" in tilt settings and loads their config.
+def load_addon_tiltfiles():
+    addon_repos = settings.get("addon_repos", [])
+    for repo in addon_repos:
+        file = repo + "/tilt-addon.yaml" if os.path.exists(repo + "/tilt-addon.yaml") else repo + "/tilt-addon.json"
+        if not os.path.exists(file):
+            fail("Failed to load provider. No tilt-addon.{yaml|json} file found in " + repo)
+        addon_details = read_yaml(file, default = {})
+        if type(addon_details) != type([]):
+            addon_details = [addon_details]
+        for item in addon_details:
+            addon_name = item["name"]
+            addon_config = item["config"]
+            if "context" in addon_config:
+                addon_config["context"] = repo + "/" + addon_config["context"]
+            else:
+                addon_config["context"] = repo
+            if "go_main" not in addon_config:
+                addon_config["go_main"] = "main.go"
+            addons[addon_name] = addon_config
 
 tilt_helper_dockerfile_header = """
 # Tilt image
@@ -167,30 +203,12 @@ WORKDIR /
 COPY --from=tilt-helper /start.sh .
 COPY --from=tilt-helper /restart.sh .
 COPY --from=tilt-helper /go/bin/dlv .
-COPY manager .
+COPY $binary_name .
 """
 
-# Configures a provider by doing the following:
-#
-# 1. Enables a local_resource go build of the provider's manager binary
-# 2. Configures a docker build for the provider, with live updating of the manager binary
-# 3. Runs kustomize for the provider's config/default and applies it
-def enable_provider(name, debug):
-    p = providers.get(name)
-    context = p.get("context")
-    go_main = p.get("go_main", "main.go")
-    label = p.get("label", name)
-    debug_port = int(debug.get("port", 0))
-
-    # Prefix each live reload dependency with context. For example, for if the context is
-    # test/infra/docker and main.go is listed as a dep, the result is test/infra/docker/main.go. This adjustment is
-    # needed so Tilt can watch the correct paths for changes.
-    live_reload_deps = []
-    for d in p.get("live_reload_deps", []):
-        live_reload_deps.append(context + "/" + d)
-
-    # Set up a local_resource build of the provider's manager binary. The provider is expected to have a main.go in
-    # manager_build_path or the main.go must be provided via go_main option. The binary is written to .tiltbuild/bin/manager.
+def build_go_binary(context, reload_deps, debug, go_main, binary_name, label):
+    # Set up a local_resource build of a go binary. The target repo is expected to have a main.go in
+    # the context path or the main.go must be provided via go_main option. The binary is written to .tiltbuild/bin/{$binary_name}.
     # TODO @randomvariable: Race detector mode only currently works on x86-64 Linux.
     # Need to switch to building inside Docker when architecture is mismatched
     race_detector_enabled = debug.get("race_detector", False)
@@ -205,6 +223,7 @@ def enable_provider(name, debug):
         build_options = ""
         ldflags = "-extldflags \"-static\""
 
+    debug_port = int(debug.get("port", 0))
     if debug_port != 0:
         # disable optimisations and include line numbers when debugging
         gcflags = "all=-N -l"
@@ -215,14 +234,22 @@ def enable_provider(name, debug):
         cgo_enabled = cgo_enabled,
         arch = os_arch,
     )
-    build_cmd = "{build_env} go build {build_options} -gcflags '{gcflags}' -ldflags '{ldflags}' -o .tiltbuild/bin/manager {go_main}".format(
+
+    build_cmd = "{build_env} go build {build_options} -gcflags '{gcflags}' -ldflags '{ldflags}' -o .tiltbuild/bin/{binary_name} {go_main}".format(
         build_env = build_env,
         build_options = build_options,
         gcflags = gcflags,
         go_main = go_main,
         ldflags = ldflags,
+        binary_name = binary_name,
     )
 
+    # Prefix each live reload dependency with context. For example, for if the context is
+    # test/infra/docker and main.go is listed as a dep, the result is test/infra/docker/main.go. This adjustment is
+    # needed so Tilt can watch the correct paths for changes.
+    live_reload_deps = []
+    for d in reload_deps:
+        live_reload_deps.append(context + "/" + d)
     local_resource(
         label.lower() + "_binary",
         cmd = "cd {context};mkdir -p .tiltbuild/bin;{build_cmd}".format(
@@ -233,8 +260,8 @@ def enable_provider(name, debug):
         labels = [label, "ALL.binaries"],
     )
 
-    additional_docker_helper_commands = p.get("additional_docker_helper_commands", "")
-    additional_docker_build_commands = p.get("additional_docker_build_commands", "")
+def build_docker_image(image, context, binary_name, additional_docker_build_commands, additional_docker_helper_commands, port_forwards):
+    links = []
 
     dockerfile_contents = "\n".join([
         tilt_helper_dockerfile_header,
@@ -243,9 +270,26 @@ def enable_provider(name, debug):
         additional_docker_build_commands,
     ])
 
+    # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
+    # build into the container.
+    docker_build(
+        ref = image,
+        context = context + "/.tiltbuild/bin/",
+        dockerfile_contents = dockerfile_contents,
+        build_args = {"binary_name": binary_name},
+        target = "tilt",
+        only = binary_name,
+        live_update = [
+            sync(context + "/.tiltbuild/bin/" + binary_name, "/" + binary_name),
+            run("sh /restart.sh"),
+        ],
+    )
+
+def get_port_forwards(debug):
     port_forwards = []
     links = []
 
+    debug_port = int(debug.get("port", 0))
     if debug_port != 0:
         port_forwards.append(port_forward(debug_port, 30000))
 
@@ -259,22 +303,40 @@ def enable_provider(name, debug):
         port_forwards.append(port_forward(profiler_port, 6060))
         links.append(link("http://localhost:" + str(profiler_port) + "/debug/pprof", "profiler"))
 
-    # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
-    # build into the container.
-    docker_build(
-        ref = p.get("image"),
-        context = context + "/.tiltbuild/bin/",
-        dockerfile_contents = dockerfile_contents,
-        target = "tilt",
-        only = "manager",
-        live_update = [
-            sync(context + "/.tiltbuild/bin/manager", "/manager"),
-            run("sh /restart.sh"),
-        ],
+    return port_forwards, links
+
+# Configures a provider by doing the following:
+#
+# 1. Enables a local_resource go build of the provider's manager binary
+# 2. Configures a docker build for the provider, with live updating of the manager binary
+# 3. Runs kustomize for the provider's config/default and applies it
+def enable_provider(name, debug):
+    deployment_kind = "provider"
+    p = providers.get(name)
+    label = p.get("label")
+
+    port_forwards, links = get_port_forwards(debug)
+
+    build_go_binary(
+        context = p.get("context"),
+        reload_deps = p.get("live_reload_deps"),
+        debug = debug,
+        go_main = p.get("go_main", "main.go"),
+        binary_name = "manager",
+        label = label,
+    )
+
+    build_docker_image(
+        image = p.get("image"),
+        context = p.get("context"),
+        binary_name = "manager",
+        additional_docker_helper_commands = p.get("additional_docker_helper_commands", ""),
+        additional_docker_build_commands = p.get("additional_docker_build_commands", ""),
+        port_forwards = port_forwards,
     )
 
     if p.get("kustomize_config", True):
-        yaml = read_file("./.tiltbuild/yaml/{}.provider.yaml".format(name))
+        yaml = read_file("./.tiltbuild/yaml/{}.{}.yaml".format(name, deployment_kind))
         k8s_yaml(yaml)
         objs = decode_yaml_stream(yaml)
         k8s_resource(
@@ -287,6 +349,63 @@ def enable_provider(name, debug):
             resource_deps = ["provider_crd"],
         )
 
+# Configures an addon by doing the following:
+#
+# 1. Enables a local_resource go build of the addon's manager binary
+# 2. Configures a docker build for the addon, with live updating of the binary
+# 3. Runs kustomize for the addons's config/default and applies it
+def enable_addon(name, debug):
+    addon = addons.get(name)
+    deployment_kind = "addon"
+    label = addon.get("label")
+    port_forwards, links = get_port_forwards(debug)
+
+    build_go_binary(
+        context = addon.get("context"),
+        reload_deps = addon.get("live_reload_deps"),
+        debug = debug,
+        go_main = addon.get("go_main", "main.go"),
+        binary_name = "extension",
+        label = label,
+    )
+
+    build_docker_image(
+        image = addon.get("image"),
+        context = addon.get("context"),
+        binary_name = "extension",
+        additional_docker_helper_commands = addon.get("additional_docker_helper_commands", ""),
+        additional_docker_build_commands = addon.get("additional_docker_build_commands", ""),
+        port_forwards = port_forwards,
+    )
+
+    additional_objs = []
+    addon_resources = addon.get("additional_resources", [])
+    for resource in addon_resources:
+        k8s_yaml(addon.get("context") + "/" + resource)
+        additional_objs = additional_objs + decode_yaml_stream(read_file(addon.get("context") + "/" + resource))
+
+    if addon.get("kustomize_config", True):
+        yaml = read_file("./.tiltbuild/yaml/{}.{}.yaml".format(name, deployment_kind))
+        objs = decode_yaml_stream(yaml)
+        k8s_yaml(yaml)
+        k8s_resource(
+            workload = find_object_name(objs, "Deployment"),
+            new_name = label.lower() + "_addon",
+            labels = [label, "ALL.addons"],
+            port_forwards = port_forwards,
+            links = links,
+            objects = find_all_objects_names(additional_objs),
+            resource_deps = addon.get("resource_deps", {}),
+        )
+
+def enable_addons():
+    for name in get_addons():
+        enable_addon(name, settings.get("debug").get(name, {}))
+
+def get_addons():
+    user_enable_addons = settings.get("enable_addons", [])
+    return {k: "" for k in user_enable_addons}.keys()
+
 def find_object_name(objs, kind):
     for o in objs:
         if o["kind"] == kind:
@@ -298,6 +417,15 @@ def find_object_qualified_name(objs, kind):
         if o["kind"] == kind:
             return "{}:{}:{}".format(o["metadata"]["name"], kind, o["metadata"]["namespace"])
     return ""
+
+def find_all_objects_names(objs):
+    qualified_names = []
+    for o in objs:
+        if "namespace" in o["metadata"] and o["metadata"]["namespace"] != "":
+            qualified_names = qualified_names + ["{}:{}:{}".format(o["metadata"]["name"], o["kind"], o["metadata"]["namespace"])]
+        else:
+            qualified_names = qualified_names + ["{}:{}".format(o["metadata"]["name"], o["kind"])]
+    return qualified_names
 
 # Users may define their own Tilt customizations in tilt.d. This directory is excluded from git and these files will
 # not be checked in to version control.
@@ -503,6 +631,8 @@ include_user_tilt_files()
 
 load_provider_tiltfiles()
 
+load_addon_tiltfiles()
+
 prepare_all()
 
 deploy_provider_crds()
@@ -510,5 +640,7 @@ deploy_provider_crds()
 deploy_observability()
 
 enable_providers()
+
+enable_addons()
 
 cluster_templates()

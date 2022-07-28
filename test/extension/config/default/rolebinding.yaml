@@ -9,4 +9,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: test-extension
-    namespace: ${SERVICE_NAMESPACE}
+    namespace: ${TEST_EXTENSION_SERVICE_NAMESPACE}

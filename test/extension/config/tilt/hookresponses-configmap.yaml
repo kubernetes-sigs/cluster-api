@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-extension-hookresponses
+  namespace: default
+data:
+  AfterClusterUpgrade-preloadedResponse: '{"Status": "Success"}'
+  AfterControlPlaneInitialized-preloadedResponse: '{"Status": "Success"}'
+  AfterControlPlaneUpgrade-preloadedResponse: '{"Status": "Success", "RetryAfterSeconds":
+    5}'
+  BeforeClusterCreate-actualResponseStatus: 'Status: Success, RetryAfterSeconds: 5'
+  BeforeClusterCreate-preloadedResponse: '{"Status": "Success", "RetryAfterSeconds":
+    5}'
+  BeforeClusterDelete-preloadedResponse: '{"Status": "Success", "RetryAfterSeconds":
+    5}'
+  BeforeClusterUpgrade-preloadedResponse: '{"Status": "Success", "RetryAfterSeconds":
+    5}'

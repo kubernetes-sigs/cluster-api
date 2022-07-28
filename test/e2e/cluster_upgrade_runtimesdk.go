@@ -45,6 +45,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
+var hookResponsesConfigMapName = "test-extension-hookresponses"
+
 // clusterUpgradeWithRuntimeSDKSpecInput is the input for clusterUpgradeWithRuntimeSDKSpec.
 type clusterUpgradeWithRuntimeSDKSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
@@ -123,7 +125,6 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 		// Set up a Namespace where to host objects for this spec and create a watcher for the Namespace events.
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
 		clusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
-
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
@@ -147,7 +148,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 			To(Succeed(), "Failed to create the extension config")
 
 		Expect(input.BootstrapClusterProxy.GetClient().Create(ctx,
-			responsesConfigMap(clusterName, namespace))).
+			responsesConfigMap(namespace))).
 			To(Succeed(), "Failed to create the responses configMap")
 
 		By("Wait for test extension deployment to be availabel")
@@ -251,7 +252,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 
 		By("Checking all lifecycle hooks have been called")
 		// Assert that each hook has been called and returned "Success" during the test.
-		Expect(checkLifecycleHookResponses(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, clusterName, map[string]string{
+		Expect(checkLifecycleHookResponses(ctx, input.BootstrapClusterProxy.GetClient(), namespace.Name, map[string]string{
 			"BeforeClusterCreate":          "Status: Success, RetryAfterSeconds: 0",
 			"BeforeClusterUpgrade":         "Status: Success, RetryAfterSeconds: 0",
 			"BeforeClusterDelete":          "Status: Success, RetryAfterSeconds: 0",
@@ -310,10 +311,10 @@ func extensionConfig(specName string, namespace *corev1.Namespace) *runtimev1.Ex
 }
 
 // responsesConfigMap generates a ConfigMap with preloaded responses for the test extension.
-func responsesConfigMap(name string, namespace *corev1.Namespace) *corev1.ConfigMap {
+func responsesConfigMap(namespace *corev1.Namespace) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%s-hookresponses", name),
+			Name:      hookResponsesConfigMapName,
 			Namespace: namespace.Name,
 		},
 		// Set the initial preloadedResponses for each of the tested hooks.
@@ -333,12 +334,12 @@ func responsesConfigMap(name string, namespace *corev1.Namespace) *corev1.Config
 
 // Check that each hook in hooks has been called at least once by checking if its actualResponseStatus is in the hook response configmap.
 // If the provided hooks have both keys and values check that the values match those in the hook response configmap.
-func checkLifecycleHookResponses(ctx context.Context, c client.Client, namespace string, clusterName string, expectedHookResponses map[string]string) error {
-	responseData := getLifecycleHookResponsesFromConfigMap(ctx, c, namespace, clusterName)
+func checkLifecycleHookResponses(ctx context.Context, c client.Client, namespace string, expectedHookResponses map[string]string) error {
+	responseData := getLifecycleHookResponsesFromConfigMap(ctx, c, namespace)
 	for hookName, expectedResponse := range expectedHookResponses {
 		actualResponse, ok := responseData[hookName+"-actualResponseStatus"]
 		if !ok {
-			return errors.Errorf("hook %s call not recorded in configMap %s", hookName, klog.KRef(namespace, clusterName+"-hookresponses"))
+			return errors.Errorf("hook %s call not recorded in configMap %s/%s", hookName, namespace, hookResponsesConfigMapName)
 		}
 		if expectedResponse != "" && expectedResponse != actualResponse {
 			return errors.Errorf("hook %s was expected to be %s in configMap got %s", hookName, expectedResponse, actualResponse)
@@ -348,21 +349,20 @@ func checkLifecycleHookResponses(ctx context.Context, c client.Client, namespace
 }
 
 // Check that each hook in expectedHooks has been called at least once by checking if its actualResponseStatus is in the hook response configmap.
-func checkLifecycleHooksCalledAtLeastOnce(ctx context.Context, c client.Client, namespace string, clusterName string, expectedHooks []string) error {
-	responseData := getLifecycleHookResponsesFromConfigMap(ctx, c, namespace, clusterName)
+func checkLifecycleHooksCalledAtLeastOnce(ctx context.Context, c client.Client, namespace string, expectedHooks []string) error {
+	responseData := getLifecycleHookResponsesFromConfigMap(ctx, c, namespace)
 	for _, hookName := range expectedHooks {
 		if _, ok := responseData[hookName+"-actualResponseStatus"]; !ok {
-			return errors.Errorf("hook %s call not recorded in configMap %s", hookName, klog.KRef(namespace, clusterName+"-hookresponses"))
+			return errors.Errorf("hook %s call not recorded in configMap %s/%s", hookName, namespace, hookResponsesConfigMapName)
 		}
 	}
 	return nil
 }
 
-func getLifecycleHookResponsesFromConfigMap(ctx context.Context, c client.Client, namespace string, clusterName string) map[string]string {
+func getLifecycleHookResponsesFromConfigMap(ctx context.Context, c client.Client, namespace string) map[string]string {
 	configMap := &corev1.ConfigMap{}
-	configMapName := clusterName + "-hookresponses"
 	Eventually(func() error {
-		return c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: configMapName}, configMap)
+		return c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: hookResponsesConfigMapName}, configMap)
 	}).Should(Succeed(), "Failed to get the hook response configmap")
 	return configMap.Data
 }
@@ -449,7 +449,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, namespace, clu
 
 	// Check that the LifecycleHook has been called at least once and - when required - that the TopologyReconciled condition is a Failure.
 	Eventually(func() error {
-		if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, namespace, clusterName, []string{hookName}); err != nil {
+		if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, namespace, []string{hookName}); err != nil {
 			return err
 		}
 
@@ -474,7 +474,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, namespace, clu
 	// Patch the ConfigMap to set the hook response to "Success".
 	Byf("Setting %s response to Status:Success to unblock the reconciliation", hookName)
 
-	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: clusterName + "-hookresponses", Namespace: namespace}}
+	configMap := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Name: hookResponsesConfigMapName, Namespace: namespace}}
 	Eventually(func() error {
 		return c.Get(ctx, util.ObjectKey(configMap), configMap)
 	}).Should(Succeed(), "Failed to get ConfigMap %s", klog.KObj(configMap))

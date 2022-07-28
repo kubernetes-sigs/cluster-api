@@ -120,18 +120,11 @@ func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx 
 		if !apierrors.IsNotFound(err) {
 			return nil, err
 		}
-
 		clusterResourceSetBinding.Name = cluster.Name
 		clusterResourceSetBinding.Namespace = cluster.Namespace
-		clusterResourceSetBinding.OwnerReferences = util.EnsureOwnerRef(clusterResourceSetBinding.OwnerReferences, metav1.OwnerReference{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-			Name:       cluster.Name,
-			UID:        cluster.UID,
-		})
-		clusterResourceSetBinding.OwnerReferences = util.EnsureOwnerRef(clusterResourceSetBinding.OwnerReferences, *metav1.NewControllerRef(clusterResourceSet, clusterResourceSet.GroupVersionKind()))
-
+		clusterResourceSetBinding.OwnerReferences = ensureOwnerRefs(clusterResourceSetBinding, clusterResourceSet, cluster)
 		clusterResourceSetBinding.Spec.Bindings = []*addonsv1.ResourceSetBinding{}
+
 		if err := r.Client.Create(ctx, clusterResourceSetBinding); err != nil {
 			if apierrors.IsAlreadyExists(err) {
 				if err = r.Client.Get(ctx, clusterResourceSetBindingKey, clusterResourceSetBinding); err != nil {
@@ -142,8 +135,27 @@ func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx 
 			return nil, errors.Wrapf(err, "failed to create clusterResourceSetBinding for cluster: %s/%s", cluster.Namespace, cluster.Name)
 		}
 	}
-
 	return clusterResourceSetBinding, nil
+}
+
+// ensureOwnerRefs ensures Cluster and ClusterResourceSet owner references are set on the ClusterResourceSetBinding.
+func ensureOwnerRefs(clusterResourceSetBinding *addonsv1.ClusterResourceSetBinding, clusterResourceSet *addonsv1.ClusterResourceSet, cluster *clusterv1.Cluster) []metav1.OwnerReference {
+	ownerRefs := make([]metav1.OwnerReference, len(clusterResourceSetBinding.GetOwnerReferences()))
+	copy(ownerRefs, clusterResourceSetBinding.GetOwnerReferences())
+	ownerRefs = util.EnsureOwnerRef(ownerRefs, metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+	})
+	ownerRefs = util.EnsureOwnerRef(ownerRefs,
+		metav1.OwnerReference{
+			APIVersion: clusterResourceSet.GroupVersionKind().String(),
+			Kind:       clusterResourceSet.GroupVersionKind().Kind,
+			Name:       clusterResourceSet.Name,
+			UID:        clusterResourceSet.UID,
+		})
+	return ownerRefs
 }
 
 // getConfigMap retrieves any ConfigMap from the given name and namespace.

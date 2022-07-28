@@ -18,15 +18,19 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
+	"path/filepath"
+	"regexp"
 	"sort"
+	"strings"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/olekukonko/tablewriter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/exec"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
@@ -276,10 +280,13 @@ func writeOutputFiles(out *cluster.TopologyPlanOutput, outDir string) error {
 		}
 
 		// Calculate the diff and write to a file.
-		diff := cmp.Diff(m.Before, m.After)
 		diffFileName := fmt.Sprintf("%s_%s_%s.diff", m.After.GetKind(), m.After.GetNamespace(), m.After.GetName())
 		diffFilePath := path.Join(modifiedDir, diffFileName)
-		if err := os.WriteFile(diffFilePath, []byte(diff), 0600); err != nil {
+		diffFile, err := os.OpenFile(filepath.Clean(diffFilePath), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		if err != nil {
+			return errors.Wrapf(err, "unable to open file %q", diffFilePath)
+		}
+		if err := writeDiffToFile(filePathOriginal, filePathModified, diffFile); err != nil {
 			return errors.Wrapf(err, "failed to write diff to file %q", diffFilePath)
 		}
 	}
@@ -328,4 +335,52 @@ func addRow(table *tablewriter.Table, o *unstructured.Unstructured, action strin
 			{}, {}, {}, {actionColor},
 		},
 	)
+}
+
+// writeDiffToFile runs the detected diff program. `from` and `to` are the files to diff.
+// The implementation is highly inspired by kubectl's DiffProgram implementation:
+// ref: https://github.com/kubernetes/kubectl/blob/v0.24.3/pkg/cmd/diff/diff.go#L218
+func writeDiffToFile(from, to string, out io.Writer) error {
+	diff, cmd := getDiffCommand(from, to)
+	cmd.SetStdout(out)
+
+	if err := cmd.Run(); err != nil && !isDiffError(err) {
+		return errors.Wrapf(err, "failed to run %q", diff)
+	}
+	return nil
+}
+
+func getDiffCommand(args ...string) (string, exec.Cmd) {
+	diff := ""
+	if envDiff := os.Getenv("KUBECTL_EXTERNAL_DIFF"); envDiff != "" {
+		diffCommand := strings.Split(envDiff, " ")
+		diff = diffCommand[0]
+
+		if len(diffCommand) > 1 {
+			// Regex accepts: Alphanumeric (case-insensitive), dash and equal
+			isValidChar := regexp.MustCompile(`^[a-zA-Z0-9-=]+$`).MatchString
+			for i := 1; i < len(diffCommand); i++ {
+				if isValidChar(diffCommand[i]) {
+					args = append(args, diffCommand[i])
+				}
+			}
+		}
+	} else {
+		diff = "diff"
+		args = append([]string{"-u", "-N"}, args...)
+	}
+
+	cmd := exec.New().Command(diff, args...)
+
+	return diff, cmd
+}
+
+// diffError returns true if the status code is lower or equal to 1, false otherwise.
+// This makes use of the exit code of diff programs which is 0 for no diff, 1 for
+// modified and 2 for other errors.
+func isDiffError(err error) bool {
+	if err, ok := err.(exec.ExitError); ok && err.ExitStatus() <= 1 {
+		return true
+	}
+	return false
 }

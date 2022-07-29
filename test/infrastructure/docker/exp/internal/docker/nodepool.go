@@ -27,6 +27,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
@@ -356,7 +357,7 @@ func getBootstrapData(ctx context.Context, c client.Client, machinePool *expv1.M
 	s := &corev1.Secret{}
 	key := client.ObjectKey{Namespace: machinePool.GetNamespace(), Name: *machinePool.Spec.Template.Spec.Bootstrap.DataSecretName}
 	if err := c.Get(ctx, key, s); err != nil {
-		return "", "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachinePool instance %s/%s", machinePool.GetNamespace(), machinePool.GetName())
+		return "", "", errors.Wrapf(err, "failed to retrieve bootstrap data secret for DockerMachinePool instance %s", klog.KObj(machinePool))
 	}
 
 	value, ok := s.Data["value"]

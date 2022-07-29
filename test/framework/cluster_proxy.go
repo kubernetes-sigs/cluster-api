@@ -34,6 +34,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -253,14 +254,14 @@ func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace
 		var err error
 		machines, err = getMachinesInCluster(ctx, p.GetClient(), namespace, name)
 		return err
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get machines for the %s/%s cluster", namespace, name)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Machines for the Cluster %s", klog.KRef(namespace, name))
 
 	for i := range machines.Items {
 		m := &machines.Items[i]
 		err := p.logCollector.CollectMachineLog(ctx, p.GetClient(), m, path.Join(outputPath, "machines", m.GetName()))
 		if err != nil {
 			// NB. we are treating failures in collecting logs as a non blocking operation (best effort)
-			fmt.Printf("Failed to get logs for machine %s, cluster %s/%s: %v\n", m.GetName(), namespace, name, err)
+			fmt.Printf("Failed to get logs for Machine %s, Cluster %s: %v\n", m.GetName(), klog.KRef(namespace, name), err)
 		}
 	}
 
@@ -269,14 +270,14 @@ func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace
 		var err error
 		machinePools, err = getMachinePoolsInCluster(ctx, p.GetClient(), namespace, name)
 		return err
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get machine pools for the %s/%s cluster", namespace, name)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get MachinePools for Cluster %s", klog.KRef(namespace, name))
 
 	for i := range machinePools.Items {
 		mp := &machinePools.Items[i]
 		err := p.logCollector.CollectMachinePoolLog(ctx, p.GetClient(), mp, path.Join(outputPath, "machine-pools", mp.GetName()))
 		if err != nil {
 			// NB. we are treating failures in collecting logs as a non blocking operation (best effort)
-			fmt.Printf("Failed to get logs for machine pool %s, cluster %s/%s: %v\n", mp.GetName(), namespace, name, err)
+			fmt.Printf("Failed to get logs for MachinePool %s, Cluster %s: %v\n", mp.GetName(), klog.KRef(namespace, name), err)
 		}
 	}
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -54,7 +55,7 @@ func GetMachinePoolsByCluster(ctx context.Context, input GetMachinePoolsByCluste
 	mpList := &expv1.MachinePoolList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, mpList, byClusterOptions(input.ClusterName, input.Namespace)...)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachinePools object for Cluster %s/%s", input.Namespace, input.ClusterName)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachinePools object for Cluster %s", klog.KRef(input.Namespace, input.ClusterName))
 
 	mps := make([]*expv1.MachinePool, len(mpList.Items))
 	for i := range mpList.Items {
@@ -87,7 +88,7 @@ func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoo
 		}
 
 		return int(input.MachinePool.Status.ReadyReplicas), nil
-	}, intervals...).Should(Equal(int(*input.MachinePool.Spec.Replicas)))
+	}, intervals...).Should(Equal(int(*input.MachinePool.Spec.Replicas)), "Timed out waiting for %v ready replicas for MachinePool %s", *input.MachinePool.Spec.Replicas, klog.KObj(input.MachinePool))
 }
 
 // DiscoveryAndWaitForMachinePoolsInput is the input type for DiscoveryAndWaitForMachinePools.
@@ -139,7 +140,7 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 	mgmtClient := input.ClusterProxy.GetClient()
 	for i := range input.MachinePools {
 		mp := input.MachinePools[i]
-		log.Logf("Patching the new Kubernetes version to Machine Pool %s/%s", mp.Namespace, mp.Name)
+		log.Logf("Patching the new Kubernetes version to Machine Pool %s", klog.KObj(mp))
 		patchHelper, err := patch.NewHelper(mp, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 
@@ -168,10 +169,10 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, mp)
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch the new Kubernetes version to Machine Pool %s", klog.KObj(mp))
 
-		log.Logf("Waiting for Kubernetes versions of machines in MachinePool %s/%s to be upgraded from %s to %s",
-			mp.Namespace, mp.Name, *oldVersion, input.UpgradeVersion)
+		log.Logf("Waiting for Kubernetes versions of machines in MachinePool %s to be upgraded from %s to %s",
+			klog.KObj(mp), *oldVersion, input.UpgradeVersion)
 		WaitForMachinePoolInstancesToBeUpgraded(ctx, WaitForMachinePoolInstancesToBeUpgradedInput{
 			Getter:                   mgmtClient,
 			WorkloadClusterGetter:    input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient(),
@@ -200,14 +201,14 @@ func ScaleMachinePoolAndWait(ctx context.Context, input ScaleMachinePoolAndWaitI
 
 	mgmtClient := input.ClusterProxy.GetClient()
 	for _, mp := range input.MachinePools {
-		log.Logf("Patching the replica count in Machine Pool %s/%s", mp.Namespace, mp.Name)
+		log.Logf("Patching the replica count in Machine Pool %s", klog.KObj(mp))
 		patchHelper, err := patch.NewHelper(mp, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 
 		mp.Spec.Replicas = &input.Replicas
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, mp)
-		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch MachinePool %s", klog.KObj(mp))
 	}
 
 	for _, mp := range input.MachinePools {
@@ -264,7 +265,7 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 		}
 
 		return matches, nil
-	}, intervals...).Should(Equal(input.MachineCount))
+	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all MachinePool %s instances to be upgraded to Kubernetes version %s", klog.KObj(input.MachinePool), input.KubernetesUpgradeVersion)
 }
 
 // GetMachinesPoolInstancesInput is the input for GetMachinesPoolInstances.

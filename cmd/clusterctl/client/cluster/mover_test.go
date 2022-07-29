@@ -557,7 +557,7 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ // group1
-				"external.cluster.x-k8s.io/v1beta1, Kind=GenericClusterExternalObject, /externalObject1",
+				"external.cluster.x-k8s.io/v1beta1, Kind=GenericClusterExternalObject, externalObject1",
 			},
 		},
 		wantErr: false,
@@ -591,7 +591,7 @@ var moveTests = []struct {
 		},
 		wantMoveGroups: [][]string{
 			{ // group 1
-				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, /infra1-identity",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericClusterInfrastructureIdentity, infra1-identity",
 			},
 			{ // group 2 (objects with ownerReferences in group 1)
 				// owned by Clusters

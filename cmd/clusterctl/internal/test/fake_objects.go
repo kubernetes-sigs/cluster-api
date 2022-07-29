@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -1302,9 +1303,9 @@ func SelectClusterObj(objs []client.Object, namespace, name string) *clusterv1.C
 func setUID(obj client.Object) {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {
-		panic(fmt.Sprintf("failde to get accessor for test object: %v", err))
+		panic(fmt.Sprintf("failed to get accessor for test object: %v", err))
 	}
-	uid := fmt.Sprintf("%s, %s/%s", obj.GetObjectKind().GroupVersionKind().String(), accessor.GetNamespace(), accessor.GetName())
+	uid := fmt.Sprintf("%s, %s", obj.GetObjectKind().GroupVersionKind().String(), klog.KObj(accessor))
 	accessor.SetUID(types.UID(uid))
 }
 

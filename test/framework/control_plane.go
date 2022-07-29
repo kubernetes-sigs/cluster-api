@@ -45,5 +45,5 @@ func WaitForControlPlaneToBeUpToDate(ctx context.Context, input WaitForControlPl
 			return 0, err
 		}
 		return controlplane.Status.UpdatedReplicas, nil
-	}, intervals...).Should(Equal(*input.ControlPlane.Spec.Replicas))
+	}, intervals...).Should(Equal(*input.ControlPlane.Spec.Replicas), "Timed waiting for all control plane replicas to be updated")
 }

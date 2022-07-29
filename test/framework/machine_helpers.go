@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -56,7 +57,7 @@ func GetMachinesByMachineDeployments(ctx context.Context, input GetMachinesByMac
 	machineList := &clusterv1.MachineList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, machineList, opts...)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineList object for Cluster %s/%s", input.Namespace, input.ClusterName)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineList object for Cluster %s", klog.KRef(input.Namespace, input.ClusterName))
 
 	return machineList.Items
 }
@@ -81,7 +82,7 @@ func GetMachinesByMachineHealthCheck(ctx context.Context, input GetMachinesByMac
 	machineList := &clusterv1.MachineList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, machineList, opts...)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineList object for Cluster %s/%s", input.MachineHealthCheck.Namespace, input.ClusterName)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineList object for Cluster %s", klog.KRef(input.MachineHealthCheck.Namespace, input.ClusterName))
 
 	return machineList.Items
 }
@@ -107,7 +108,7 @@ func GetControlPlaneMachinesByCluster(ctx context.Context, input GetControlPlane
 	machineList := &clusterv1.MachineList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, machineList, options...)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineList object for Cluster %s/%s", input.Namespace, input.ClusterName)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineList object for Cluster %s", klog.KRef(input.Namespace, input.ClusterName))
 
 	return machineList.Items
 }
@@ -147,7 +148,7 @@ func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForC
 			return 0, errors.New("old nodes remain")
 		}
 		return upgraded, nil
-	}, intervals...).Should(Equal(input.MachineCount))
+	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all control-plane machines in Cluster %s to be upgraded to kubernetes version %s", klog.KObj(input.Cluster), input.KubernetesUpgradeVersion)
 }
 
 // WaitForMachineDeploymentMachinesToBeUpgradedInput is the input for WaitForMachineDeploymentMachinesToBeUpgraded.
@@ -187,7 +188,7 @@ func WaitForMachineDeploymentMachinesToBeUpgraded(ctx context.Context, input Wai
 			return 0, errors.New("old nodes remain")
 		}
 		return upgraded, nil
-	}, intervals...).Should(Equal(input.MachineCount))
+	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all MachineDeployment %s Machines to be upgraded to kubernetes version %s", klog.KObj(&input.MachineDeployment), input.KubernetesUpgradeVersion)
 }
 
 // PatchNodeConditionInput is the input for PatchNodeCondition.
@@ -211,13 +212,13 @@ func PatchNodeCondition(ctx context.Context, input PatchNodeConditionInput) {
 	node := &corev1.Node{}
 	Eventually(func() error {
 		return input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient().Get(ctx, types.NamespacedName{Name: input.Machine.Status.NodeRef.Name, Namespace: input.Machine.Status.NodeRef.Namespace}, node)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get node %s", input.Machine.Status.NodeRef.Name)
 	patchHelper, err := patch.NewHelper(node, input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient())
 	Expect(err).ToNot(HaveOccurred())
 	node.Status.Conditions = append(node.Status.Conditions, input.NodeCondition)
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, node)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch node %s", input.Machine.Status.NodeRef.Name)
 }
 
 // MachineStatusCheck is a type that operates a status check on a Machine.
@@ -259,7 +260,7 @@ func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCh
 func MachineNodeRefCheck() MachineStatusCheck {
 	return func(machine *clusterv1.Machine) error {
 		if machine.Status.NodeRef == nil {
-			return errors.Errorf("NodeRef is not assigned to the machine %s/%s", machine.Namespace, machine.Name)
+			return errors.Errorf("NodeRef is not assigned to the machine %s", klog.KObj(machine))
 		}
 		return nil
 	}
@@ -269,7 +270,7 @@ func MachineNodeRefCheck() MachineStatusCheck {
 func MachinePhaseCheck(expectedPhase string) MachineStatusCheck {
 	return func(machine *clusterv1.Machine) error {
 		if machine.Status.Phase != expectedPhase {
-			return errors.Errorf("Machine %s/%s is not in phase %s", machine.Namespace, machine.Name, expectedPhase)
+			return errors.Errorf("Machine %s is not in phase %s", klog.KObj(machine), expectedPhase)
 		}
 		return nil
 	}

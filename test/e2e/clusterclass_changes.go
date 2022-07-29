@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -192,7 +193,7 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 
 	mgmtClient := input.ClusterProxy.GetClient()
 
-	log.Logf("Modifying the ControlPlaneTemplate of ClusterClass %s/%s", input.ClusterClass.Namespace, input.ClusterClass.Name)
+	log.Logf("Modifying the ControlPlaneTemplate of ClusterClass %s", klog.KObj(input.ClusterClass))
 
 	// Get ControlPlaneTemplate object.
 	controlPlaneTemplateRef := input.ClusterClass.Spec.ControlPlane.Ref
@@ -265,7 +266,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 			continue
 		}
 
-		log.Logf("Modifying the BootstrapConfigTemplate of MachineDeploymentClass %q of ClusterClass %s/%s", mdClass.Class, input.ClusterClass.Namespace, input.ClusterClass.Name)
+		log.Logf("Modifying the BootstrapConfigTemplate of MachineDeploymentClass %q of ClusterClass %s", mdClass.Class, klog.KObj(input.ClusterClass))
 
 		// Retrieve BootstrapConfigTemplate object.
 		bootstrapConfigTemplateRef := mdClass.Template.Bootstrap.Ref

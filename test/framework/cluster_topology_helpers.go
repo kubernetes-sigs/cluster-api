@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -52,7 +53,7 @@ func GetClusterClassByName(ctx context.Context, input GetClusterClassByNameInput
 	}
 	Eventually(func() error {
 		return input.Getter.Get(ctx, key, clusterClass)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get ClusterClass object %s/%s", input.Namespace, input.Name)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get ClusterClass object %s", klog.KRef(input.Namespace, input.Name))
 	return clusterClass
 }
 
@@ -102,7 +103,7 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 	}
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, input.Cluster)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed())
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch Cluster topology %s with version %s", klog.KObj(input.Cluster), input.KubernetesUpgradeVersion)
 
 	// Once we have patched the Kubernetes Cluster we can run PreWaitForControlPlaneToBeUpgraded.
 	// Note: This can e.g. be used to verify the BeforeClusterUpgrade lifecycle hook is executed
@@ -159,8 +160,8 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 
 	for _, deployment := range input.MachineDeployments {
 		if *deployment.Spec.Replicas > 0 {
-			log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s/%s to be upgraded to %s",
-				deployment.Namespace, deployment.Name, input.KubernetesUpgradeVersion)
+			log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s to be upgraded to %s",
+				klog.KObj(deployment), input.KubernetesUpgradeVersion)
 			WaitForMachineDeploymentMachinesToBeUpgraded(ctx, WaitForMachineDeploymentMachinesToBeUpgradedInput{
 				Lister:                   mgmtClient,
 				Cluster:                  input.Cluster,

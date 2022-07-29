@@ -20,6 +20,7 @@ feedback and suggestions.
             * [Owner References](#owner-references)
          * [The Cluster API contract](#the-cluster-api-contract)
          * [Logging](#logging)
+         * [Testing](#testing)
 
 ## Resources
 
@@ -119,7 +120,10 @@ This makes any change that can impact the Cluster API contract critical and usua
 
 ### Logging
 
-- For CAPI controllers see [Kubernetes logging conventions](https://git.k8s.io/community/contributors/devel/sig-instrumentation/logging.md).
+While developing controllers in Cluster API a key requirement is to add logging to observe the system and
+to help troubleshooting issues.
+
+- For CAPI controllers see TODO.
 - For clusterctl see [clusterctl logging conventions](https://github.com/kubernetes-sigs/cluster-api/blob/main/cmd/clusterctl/log/doc.go).
 
 ### Testing

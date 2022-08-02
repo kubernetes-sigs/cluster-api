@@ -56,6 +56,7 @@ const (
 	MAASProviderName           = "maas"
 	KubevirtProviderName       = "kubevirt"
 	VclusterProviderName       = "vcluster"
+	VirtinkProviderName        = "virtink"
 )
 
 // Bootstrap providers.
@@ -222,6 +223,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         VclusterProviderName,
 			url:          "https://github.com/loft-sh/cluster-api-provider-vcluster/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         VirtinkProviderName,
+			url:          "https://github.com/smartxworks/cluster-api-provider-virtink/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 

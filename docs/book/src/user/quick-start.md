@@ -206,7 +206,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Metal3,Nutanix,Kubevirt,OCI,OpenStack,VCD,vcluster,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Kubevirt,Metal3,Nutanix,OCI,OpenStack,VCD,vcluster,Virtink,vSphere"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases].
@@ -437,6 +437,11 @@ clusterctl init --infrastructure ibmcloud
 ```
 
 {{#/tab }}
+{{#tab Kubevirt}}
+
+Please visit the [Kubevirt project][Kubevirt provider].
+
+{{#/tab }}
 {{#tab Metal3}}
 
 Please visit the [Metal3 project][Metal3 provider].
@@ -445,11 +450,6 @@ Please visit the [Metal3 project][Metal3 provider].
 {{#tab Nutanix}}
 
 Please follow the Cluster API Provider for [Nutanix Getting Started Guide](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/blob/main/docs/getting_started.md)
-
-{{#/tab }}
-{{#tab Kubevirt}}
-
-Please visit the [Kubevirt project][Kubevirt provider].
 
 {{#/tab }}
 {{#tab OCI}}
@@ -483,6 +483,14 @@ clusterctl init --infrastructure vcluster
 ```
 
 Please follow the Cluster API Provider for [vcluster Quick Start Guide](https://github.com/loft-sh/cluster-api-provider-vcluster/blob/main/docs/quick-start.md)
+
+{{#/tab }}
+{{#tab Virtink}}
+
+```bash
+# Initialize the management cluster
+clusterctl init --infrastructure virtink
+```
 
 {{#/tab }}
 {{#tab vSphere}}
@@ -571,7 +579,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,Metal3,Nutanix,Kubevirt,OpenStack,VCD,vcluster,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,Kubevirt,Metal3,Nutanix,OpenStack,VCD,vcluster,Virtink,vSphere"}}
 {{#tab AWS}}
 
 ```bash
@@ -763,6 +771,17 @@ export IBMPOWERVS_NETWORK_NAME=<your-capi-network-name>
 Please visit the [IBM Cloud provider] for more information.
 
 {{#/tab }}
+{{#tab Kubevirt}}
+
+A ClusterAPI compatible image must be available in your Kubevirt image library. For instructions on how to build a compatible image
+see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html).
+
+To see all required Kubevirt environment variables execute:
+```bash
+clusterctl generate cluster --infrastructure kubevirt --list-variables capi-quickstart
+```
+
+{{#/tab }}
 {{#tab Metal3}}
 
 **Note**: If you are running CAPM3 release prior to v0.5.0, make sure to export the following
@@ -801,18 +820,6 @@ To see all required Nutanix environment variables execute:
 ```bash
 clusterctl generate cluster --infrastructure nutanix --list-variables capi-quickstart
 ```
-
-{{#/tab }}
-{{#tab Kubevirt}}
-
-A ClusterAPI compatible image must be available in your Kubevirt image library. For instructions on how to build a compatible image
-see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html).
-
-To see all required Kubevirt environment variables execute:
-```bash
-clusterctl generate cluster --infrastructure kubevirt --list-variables capi-quickstart
-```
-
 
 {{#/tab }}
 {{#tab OpenStack}}
@@ -878,6 +885,16 @@ export HELM_VALUES="service:\n  type: NodePort"
 ```
 
 Please see the [vcluster installation instructions](https://github.com/loft-sh/cluster-api-provider-vcluster#installation-instructions) for more details.
+
+{{#/tab }}
+{{#tab Virtink}}
+
+To see all required Virtink environment variables execute:
+```bash
+clusterctl generate cluster --infrastructure virtink --list-variables capi-quickstart
+```
+
+See the [Virtink provider](https://github.com/smartxworks/cluster-api-provider-virtink) document for more details.
 
 {{#/tab }}
 {{#tab vSphere}}

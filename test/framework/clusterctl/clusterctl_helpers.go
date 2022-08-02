@@ -107,7 +107,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 			GetLister:  client,
 			ClientSet:  input.ClusterProxy.GetClientSet(),
 			Deployment: deployment,
-			LogPath:    filepath.Join(input.LogFolder, "controllers"),
+			LogPath:    filepath.Join(input.LogFolder, "logs", deployment.GetNamespace()),
 		})
 
 		if !input.DisableMetricsCollection {
@@ -115,7 +115,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 				GetLister:   client,
 				ClientSet:   input.ClusterProxy.GetClientSet(),
 				Deployment:  deployment,
-				MetricsPath: filepath.Join(input.LogFolder, "controllers"),
+				MetricsPath: filepath.Join(input.LogFolder, "metrics", deployment.GetNamespace()),
 			})
 		}
 	}
@@ -163,14 +163,14 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 			GetLister:  client,
 			ClientSet:  input.ClusterProxy.GetClientSet(),
 			Deployment: deployment,
-			LogPath:    filepath.Join(input.LogFolder, "controllers"),
+			LogPath:    filepath.Join(input.LogFolder, "logs", deployment.GetNamespace()),
 		})
 
 		framework.WatchPodMetrics(ctx, framework.WatchPodMetricsInput{
 			GetLister:   client,
 			ClientSet:   input.ClusterProxy.GetClientSet(),
 			Deployment:  deployment,
-			MetricsPath: filepath.Join(input.LogFolder, "controllers"),
+			MetricsPath: filepath.Join(input.LogFolder, "metrics", deployment.GetNamespace()),
 		})
 	}
 }

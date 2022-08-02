@@ -37,6 +37,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/apimachinery/pkg/version"
+	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
@@ -96,10 +97,10 @@ func DescribeFailedDeployment(input WaitForDeploymentsAvailableInput, deployment
 
 // WatchDeploymentLogsInput is the input for WatchDeploymentLogs.
 type WatchDeploymentLogsInput struct {
-	GetLister  GetLister
-	ClientSet  *kubernetes.Clientset
-	Deployment *appsv1.Deployment
-	LogPath    string
+	GetListerWithWatch GetListerWithWatch
+	ClientSet          *kubernetes.Clientset
+	Deployment         *appsv1.Deployment
+	LogPath            string
 }
 
 // logMetadata contains metadata about the logs.
@@ -126,70 +127,102 @@ func WatchDeploymentLogs(ctx context.Context, input WatchDeploymentLogsInput) {
 	deployment := &appsv1.Deployment{}
 	key := client.ObjectKeyFromObject(input.Deployment)
 	Eventually(func() error {
-		return input.GetLister.Get(ctx, key, deployment)
+		return input.GetListerWithWatch.Get(ctx, key, deployment)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get deployment %s", klog.KObj(input.Deployment))
 
 	selector, err := metav1.LabelSelectorAsMap(deployment.Spec.Selector)
 	Expect(err).NotTo(HaveOccurred(), "Failed to Pods selector for deployment %s", klog.KObj(input.Deployment))
 
-	pods := &corev1.PodList{}
-	Expect(input.GetLister.List(ctx, pods, client.InNamespace(input.Deployment.Namespace), client.MatchingLabels(selector))).To(Succeed(), "Failed to list Pods for deployment %s", klog.KObj(input.Deployment))
+	podWatch, err := input.GetListerWithWatch.Watch(ctx, &corev1.PodList{}, client.MatchingLabels(selector))
+	Expect(err).To(Succeed(), "Failed to watch Pods for deployment %s", klog.KObj(input.Deployment))
 
-	for _, pod := range pods.Items {
-		for _, container := range deployment.Spec.Template.Spec.Containers {
-			log.Logf("Creating log watcher for controller %s, pod %s, container %s", klog.KObj(input.Deployment), pod.Name, container.Name)
-
-			// Create log metadata file.
-			logMetadataFile := filepath.Clean(path.Join(input.LogPath, input.Deployment.Name, pod.Name, container.Name+"-log-metadata.json"))
-			Expect(os.MkdirAll(filepath.Dir(logMetadataFile), 0750)).To(Succeed())
-
-			metadata := logMetadata{
-				Job:       input.Deployment.Namespace + "/" + input.Deployment.Name,
-				Namespace: input.Deployment.Namespace,
-				App:       input.Deployment.Name,
-				Pod:       pod.Name,
-				Container: container.Name,
-				NodeName:  pod.Spec.NodeName,
-				Stream:    "stderr",
+	// Start a go routine which watches the pods of the deployment and start to
+	// stream the logs of new running pods.
+	go func(podWatch watch.Interface) {
+		defer GinkgoRecover()
+		defer podWatch.Stop()
+		var event watch.Event
+		var ok bool
+		for {
+			event, ok = <-podWatch.ResultChan()
+			if !ok {
+				log.Logf("Channel for watch of pods for %s was closed.", klog.KObj(input.Deployment))
+				return
 			}
-			metadataBytes, err := json.Marshal(&metadata)
-			Expect(err).To(BeNil())
-			Expect(os.WriteFile(logMetadataFile, metadataBytes, 0600)).To(Succeed())
 
-			// Watch each container's logs in a goroutine so we can stream them all concurrently.
-			go func(pod corev1.Pod, container corev1.Container) {
-				defer GinkgoRecover()
+			pod, ok := event.Object.(*corev1.Pod)
+			if !ok {
+				log.Logf("Failed to assert runtime.Object to pod")
+				continue
+			}
 
-				logFile := filepath.Clean(path.Join(input.LogPath, input.Deployment.Name, pod.Name, container.Name+".log"))
-				Expect(os.MkdirAll(filepath.Dir(logFile), 0750)).To(Succeed())
+			// Only stream logs for running pods.
+			if pod.Status.Phase != corev1.PodRunning {
+				continue
+			}
 
-				f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-				Expect(err).NotTo(HaveOccurred())
-				defer f.Close()
+			for _, container := range pod.Spec.Containers {
+				log.Logf("Creating log watcher for deployment %s, pod %s, container %s", klog.KObj(input.Deployment), pod.Name, container.Name)
 
-				opts := &corev1.PodLogOptions{
+				// Create log metadata file.
+				logMetadataFile := filepath.Clean(path.Join(input.LogPath, input.Deployment.Name, pod.Name, container.Name+"-log-metadata.json"))
+				Expect(os.MkdirAll(filepath.Dir(logMetadataFile), 0750)).To(Succeed())
+
+				// Do not start the goroutine to stream the logs if we are already doing so.
+				// This is the case if the logMetadataFile already exists.
+				_, err := os.Stat(logMetadataFile)
+				if !os.IsNotExist(err) {
+					continue
+				}
+
+				metadata := logMetadata{
+					Job:       input.Deployment.Namespace + "/" + input.Deployment.Name,
+					Namespace: input.Deployment.Namespace,
+					App:       input.Deployment.Name,
+					Pod:       pod.Name,
 					Container: container.Name,
-					Follow:    true,
+					NodeName:  pod.Spec.NodeName,
+					Stream:    "stderr",
 				}
+				metadataBytes, err := json.Marshal(&metadata)
+				Expect(err).To(BeNil())
+				Expect(os.WriteFile(logMetadataFile, metadataBytes, 0600)).To(Succeed())
 
-				podLogs, err := input.ClientSet.CoreV1().Pods(input.Deployment.Namespace).GetLogs(pod.Name, opts).Stream(ctx)
-				if err != nil {
-					// Failing to stream logs should not cause the test to fail
-					log.Logf("Error starting logs stream for pod %s, container %s: %v", klog.KRef(pod.Namespace, pod.Name), container.Name, err)
-					return
-				}
-				defer podLogs.Close()
+				// Watch each container's logs in a goroutine so we can stream them all concurrently.
+				go func(pod corev1.Pod, container corev1.Container) {
+					defer GinkgoRecover()
 
-				out := bufio.NewWriter(f)
-				defer out.Flush()
-				_, err = out.ReadFrom(podLogs)
-				if err != nil && err != io.ErrUnexpectedEOF {
-					// Failing to stream logs should not cause the test to fail
-					log.Logf("Got error while streaming logs for pod %s, container %s: %v", klog.KRef(pod.Namespace, pod.Name), container.Name, err)
-				}
-			}(pod, container)
+					logFile := filepath.Clean(path.Join(input.LogPath, input.Deployment.Name, pod.Name, container.Name+".log"))
+					Expect(os.MkdirAll(filepath.Dir(logFile), 0750)).To(Succeed())
+
+					f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+					Expect(err).NotTo(HaveOccurred())
+					defer f.Close()
+
+					opts := &corev1.PodLogOptions{
+						Container: container.Name,
+						Follow:    true,
+					}
+
+					podLogs, err := input.ClientSet.CoreV1().Pods(pod.GetNamespace()).GetLogs(pod.Name, opts).Stream(ctx)
+					if err != nil {
+						// Failing to stream logs should not cause the test to fail
+						log.Logf("Error starting logs stream for pod %s, container %s: %v", klog.KRef(pod.Namespace, pod.Name), container.Name, err)
+						return
+					}
+					defer podLogs.Close()
+
+					out := bufio.NewWriter(f)
+					defer out.Flush()
+					_, err = out.ReadFrom(podLogs)
+					if err != nil && err != io.ErrUnexpectedEOF {
+						// Failing to stream logs should not cause the test to fail
+						log.Logf("Got error while streaming logs for pod %s, container %s: %v", klog.KRef(pod.Namespace, pod.Name), container.Name, err)
+					}
+				}(*pod, container)
+			}
 		}
-	}
+	}(podWatch)
 }
 
 type WatchPodMetricsInput struct {

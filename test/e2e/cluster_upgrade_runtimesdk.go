@@ -158,10 +158,10 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 
 		By("Watch Deployment logs of test extension")
 		framework.WatchDeploymentLogs(ctx, framework.WatchDeploymentLogsInput{
-			GetLister:  input.BootstrapClusterProxy.GetClient(),
-			ClientSet:  input.BootstrapClusterProxy.GetClientSet(),
-			Deployment: &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "test-extension", Namespace: namespace.Name}},
-			LogPath:    filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName(), "logs", namespace.Name),
+			GetListerWithWatch: input.BootstrapClusterProxy.GetClient(),
+			ClientSet:          input.BootstrapClusterProxy.GetClientSet(),
+			Deployment:         &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{Name: "test-extension", Namespace: namespace.Name}},
+			LogPath:            filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName(), "logs", namespace.Name),
 		})
 
 		By("Creating a workload cluster")

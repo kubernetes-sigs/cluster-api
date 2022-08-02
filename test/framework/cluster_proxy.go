@@ -64,7 +64,7 @@ type ClusterProxy interface {
 	GetScheme() *runtime.Scheme
 
 	// GetClient returns a controller-runtime client to the Kubernetes cluster.
-	GetClient() client.Client
+	GetClient() client.WithWatch
 
 	// GetClientSet returns a client-go client to the Kubernetes cluster.
 	GetClientSet() *kubernetes.Clientset
@@ -173,13 +173,13 @@ func (p *clusterProxy) GetScheme() *runtime.Scheme {
 }
 
 // GetClient returns a controller-runtime client for the cluster.
-func (p *clusterProxy) GetClient() client.Client {
+func (p *clusterProxy) GetClient() client.WithWatch {
 	config := p.GetRESTConfig()
 
-	var c client.Client
+	var c client.WithWatch
 	var newClientErr error
 	err := wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
-		c, newClientErr = client.New(config, client.Options{Scheme: p.scheme})
+		c, newClientErr = client.NewWithWatch(config, client.Options{Scheme: p.scheme})
 		if newClientErr != nil {
 			return false, nil //nolint:nilerr
 		}

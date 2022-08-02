@@ -19,6 +19,7 @@ package framework
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/watch"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -39,6 +40,11 @@ type Lister interface {
 	List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error
 }
 
+// Watcher can watch resources.
+type Watcher interface {
+	Watch(ctx context.Context, obj client.ObjectList, opts ...client.ListOption) (watch.Interface, error)
+}
+
 // Deleter can delete resources.
 type Deleter interface {
 	Delete(ctx context.Context, obj client.Object, opts ...client.DeleteOption) error
@@ -48,4 +54,11 @@ type Deleter interface {
 type GetLister interface {
 	Getter
 	Lister
+}
+
+// GetListerWithWatch can get, list and watch resources.
+type GetListerWithWatch interface {
+	Getter
+	Lister
+	Watcher
 }

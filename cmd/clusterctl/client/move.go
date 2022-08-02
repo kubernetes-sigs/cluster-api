@@ -19,6 +19,8 @@ package client
 import (
 	"os"
 
+	"github.com/pkg/errors"
+
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
@@ -36,11 +38,18 @@ type MoveOptions struct {
 	// namespace will be used.
 	Namespace string
 
-	// DryRun means the move action is a dry run, no real action will be performed
+	// FromDirectory apply configuration from directory.
+	FromDirectory string
+
+	// ToDirectory save configuration to directory.
+	ToDirectory string
+
+	// DryRun means the move action is a dry run, no real action will be performed.
 	DryRun bool
 }
 
 // BackupOptions holds options supported by backup.
+// Deprecated: This will be dropped in a future release. Please use MoveOptions.
 type BackupOptions struct {
 	// FromKubeconfig defines the kubeconfig to use for accessing the source management cluster. If empty,
 	// default rules for kubeconfig discovery will be used.
@@ -55,6 +64,7 @@ type BackupOptions struct {
 }
 
 // RestoreOptions holds options supported by restore.
+// Deprecated: This will be dropped in a future release. Please use MoveOptions.
 type RestoreOptions struct {
 	// FromKubeconfig defines the kubeconfig to use for accessing the target management cluster. If empty,
 	// default rules for kubeconfig discovery will be used.
@@ -65,67 +75,70 @@ type RestoreOptions struct {
 }
 
 func (c *clusterctlClient) Move(options MoveOptions) error {
+	// Both backup and restore makes no sense. It's a complete move.
+	if options.FromDirectory != "" && options.ToDirectory != "" {
+		return errors.Errorf("can't set both FromDirectory and ToDirectory")
+	}
+
+	if !options.DryRun &&
+		options.FromDirectory == "" &&
+		options.ToDirectory == "" &&
+		options.ToKubeconfig == (Kubeconfig{}) {
+		return errors.Errorf("at least one of FromDirectory, ToDirectory and ToKubeconfig must be set")
+	}
+
+	if options.ToDirectory != "" {
+		return c.toDirectory(options)
+	} else if options.FromDirectory != "" {
+		return c.fromDirectory(options)
+	} else {
+		return c.move(options)
+	}
+}
+
+func (c *clusterctlClient) move(options MoveOptions) error {
 	// Get the client for interacting with the source management cluster.
-	fromCluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.FromKubeconfig})
+	fromCluster, err := c.getClusterClient(options.FromKubeconfig)
 	if err != nil {
 		return err
 	}
 
-	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := fromCluster.ProviderInventory().CheckCAPIContract(); err != nil {
-		return err
-	}
-
-	// Ensures the custom resource definitions required by clusterctl are in place.
-	if err := fromCluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
-		return err
+	// If the option specifying the Namespace is empty, try to detect it.
+	if options.Namespace == "" {
+		currentNamespace, err := fromCluster.Proxy().CurrentNamespace()
+		if err != nil {
+			return err
+		}
+		options.Namespace = currentNamespace
 	}
 
 	var toCluster cluster.Client
 	if !options.DryRun {
 		// Get the client for interacting with the target management cluster.
-		toCluster, err = c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.ToKubeconfig})
-		if err != nil {
+		if toCluster, err = c.getClusterClient(options.ToKubeconfig); err != nil {
 			return err
 		}
-
-		// Ensure this command only runs against management clusters with the current Cluster API contract.
-		if err := toCluster.ProviderInventory().CheckCAPIContract(); err != nil {
-			return err
-		}
-
-		// Ensures the custom resource definitions required by clusterctl are in place
-		if err := toCluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
-			return err
-		}
-	}
-
-	// If the option specifying the Namespace is empty, try to detect it.
-	if options.Namespace == "" {
-		currentNamespace, err := fromCluster.Proxy().CurrentNamespace()
-		if err != nil {
-			return err
-		}
-		options.Namespace = currentNamespace
 	}
 
 	return fromCluster.ObjectMover().Move(options.Namespace, toCluster, options.DryRun)
 }
 
-func (c *clusterctlClient) Backup(options BackupOptions) error {
-	// Get the client for interacting with the source management cluster.
-	fromCluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.FromKubeconfig})
+func (c *clusterctlClient) fromDirectory(options MoveOptions) error {
+	toCluster, err := c.getClusterClient(options.ToKubeconfig)
 	if err != nil {
 		return err
 	}
 
-	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := fromCluster.ProviderInventory().CheckCAPIContract(); err != nil {
+	if _, err := os.Stat(options.FromDirectory); os.IsNotExist(err) {
 		return err
 	}
 
-	// Ensures the custom resource definitions required by clusterctl are in place.
-	if err := fromCluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+	return toCluster.ObjectMover().FromDirectory(toCluster, options.FromDirectory)
+}
+
+func (c *clusterctlClient) toDirectory(options MoveOptions) error {
+	fromCluster, err := c.getClusterClient(options.FromKubeconfig)
+	if err != nil {
 		return err
 	}
 
@@ -138,33 +151,44 @@ func (c *clusterctlClient) Backup(options BackupOptions) error {
 		options.Namespace = currentNamespace
 	}
 
-	if _, err := os.Stat(options.Directory); os.IsNotExist(err) {
+	if _, err := os.Stat(options.ToDirectory); os.IsNotExist(err) {
 		return err
 	}
 
-	return fromCluster.ObjectMover().Backup(options.Namespace, options.Directory)
+	return fromCluster.ObjectMover().ToDirectory(options.Namespace, options.ToDirectory)
 }
 
+// Deprecated: This will be dropped in a future release. Please use Move.
+func (c *clusterctlClient) Backup(options BackupOptions) error {
+	return c.Move(MoveOptions{
+		FromKubeconfig: options.FromKubeconfig,
+		ToDirectory:    options.Directory,
+		Namespace:      options.Namespace,
+	})
+}
+
+// Deprecated: This will be dropped in a future release. Please use Move.
 func (c *clusterctlClient) Restore(options RestoreOptions) error {
-	// Get the client for interacting with the source management cluster.
-	toCluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.ToKubeconfig})
+	return c.Move(MoveOptions{
+		ToKubeconfig:  options.ToKubeconfig,
+		FromDirectory: options.Directory,
+	})
+}
+
+func (c *clusterctlClient) getClusterClient(kubeconfig Kubeconfig) (cluster.Client, error) {
+	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: kubeconfig})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := toCluster.ProviderInventory().CheckCAPIContract(); err != nil {
-		return err
+	if err := cluster.ProviderInventory().CheckCAPIContract(); err != nil {
+		return nil, err
 	}
 
 	// Ensures the custom resource definitions required by clusterctl are in place.
-	if err := toCluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
-		return err
+	if err := cluster.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+		return nil, err
 	}
-
-	if _, err := os.Stat(options.Directory); os.IsNotExist(err) {
-		return err
-	}
-
-	return toCluster.ObjectMover().Restore(toCluster, options.Directory)
+	return cluster, nil
 }

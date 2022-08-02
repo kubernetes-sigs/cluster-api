@@ -45,6 +45,7 @@ var backupCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runBackup()
 	},
+	Deprecated: "use 'clusterctl move --to-directory' instead.",
 }
 
 func init() {
@@ -70,9 +71,9 @@ func runBackup() error {
 		return err
 	}
 
-	return c.Backup(client.BackupOptions{
+	return c.Move(client.MoveOptions{
 		FromKubeconfig: client.Kubeconfig{Path: buo.fromKubeconfig, Context: buo.fromKubeconfigContext},
 		Namespace:      buo.namespace,
-		Directory:      buo.directory,
+		ToDirectory:    buo.directory,
 	})
 }

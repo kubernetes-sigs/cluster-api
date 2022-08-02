@@ -29,6 +29,8 @@ type moveOptions struct {
 	toKubeconfig          string
 	toKubeconfigContext   string
 	namespace             string
+	fromDirectory         string
+	toDirectory           string
 	dryRun                bool
 }
 
@@ -44,7 +46,14 @@ var moveCmd = &cobra.Command{
 
 	Example: Examples(`
 		Move Cluster API objects and all dependencies between management clusters.
-		clusterctl move --to-kubeconfig=target-kubeconfig.yaml`),
+		clusterctl move --to-kubeconfig=target-kubeconfig.yaml
+
+		Write Cluster API objects and all dependencies from a management cluster to directory.
+		clusterctl move --to-directory /tmp/backup-directory
+
+		Read Cluster API objects and all dependencies from a directory into a management cluster.
+		clusterctl move --from-directory /tmp/backup-directory
+	`),
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runMove()
@@ -64,14 +73,24 @@ func init() {
 		"The namespace where the workload cluster is hosted. If unspecified, the current context's namespace is used.")
 	moveCmd.Flags().BoolVar(&mo.dryRun, "dry-run", false,
 		"Enable dry run, don't really perform the move actions")
+	moveCmd.Flags().StringVar(&mo.toDirectory, "to-directory", "",
+		"Write Cluster API objects and all dependencies from a management cluster to directory.")
+	moveCmd.Flags().StringVar(&mo.fromDirectory, "from-directory", "",
+		"Read Cluster API objects and all dependencies from a directory into a management cluster.")
+
+	moveCmd.MarkFlagsMutuallyExclusive("to-directory", "to-kubeconfig")
+	moveCmd.MarkFlagsMutuallyExclusive("from-directory", "to-directory")
+	moveCmd.MarkFlagsMutuallyExclusive("from-directory", "kubeconfig")
 
 	RootCmd.AddCommand(moveCmd)
 }
 
 func runMove() error {
-	// if no to kubeconfig provided and it's not a dry run, return error
-	if mo.toKubeconfig == "" && !mo.dryRun {
-		return errors.New("please specify a target cluster using the --to-kubeconfig flag")
+	if mo.toDirectory == "" &&
+		mo.fromDirectory == "" &&
+		mo.toKubeconfig == "" &&
+		!mo.dryRun {
+		return errors.New("please specify a target cluster using the --to-kubeconfig flag when not using --dry-run, --to-directory or --from-directory")
 	}
 
 	c, err := client.New(cfgFile)
@@ -82,6 +101,8 @@ func runMove() error {
 	return c.Move(client.MoveOptions{
 		FromKubeconfig: client.Kubeconfig{Path: mo.fromKubeconfig, Context: mo.fromKubeconfigContext},
 		ToKubeconfig:   client.Kubeconfig{Path: mo.toKubeconfig, Context: mo.toKubeconfigContext},
+		FromDirectory:  mo.fromDirectory,
+		ToDirectory:    mo.toDirectory,
 		Namespace:      mo.namespace,
 		DryRun:         mo.dryRun,
 	})

@@ -44,6 +44,7 @@ var restoreCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runRestore()
 	},
+	Deprecated: "use 'clusterctl move --from-directory' instead.",
 }
 
 func init() {
@@ -67,8 +68,8 @@ func runRestore() error {
 		return err
 	}
 
-	return c.Restore(client.RestoreOptions{
-		ToKubeconfig: client.Kubeconfig{Path: ro.toKubeconfig, Context: ro.toKubeconfigContext},
-		Directory:    ro.directory,
+	return c.Move(client.MoveOptions{
+		ToKubeconfig:  client.Kubeconfig{Path: ro.toKubeconfig, Context: ro.toKubeconfigContext},
+		FromDirectory: ro.directory,
 	})
 }

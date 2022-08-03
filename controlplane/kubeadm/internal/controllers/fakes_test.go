@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -69,7 +70,10 @@ type fakeWorkloadCluster struct {
 	EtcdMembersResult []string
 }
 
-func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, _ *clusterv1.Machine) error {
+func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
+	if leaderCandidate == nil {
+		return errors.New("leaderCandidate is nil")
+	}
 	return nil
 }
 

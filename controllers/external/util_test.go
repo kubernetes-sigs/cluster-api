@@ -97,7 +97,7 @@ func TestCloneTemplateResourceNotFound(t *testing.T) {
 	}
 
 	fakeClient := fake.NewClientBuilder().Build()
-	_, err := CloneTemplate(ctx, &CloneTemplateInput{
+	_, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: testResourceReference,
 		Namespace:   metav1.NamespaceDefault,
@@ -169,7 +169,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithObjects(template.DeepCopy()).Build()
 
-	ref, err := CloneTemplate(ctx, &CloneTemplateInput{
+	ref, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: templateRef.DeepCopy(),
 		Namespace:   metav1.NamespaceDefault,
@@ -261,7 +261,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithObjects(template.DeepCopy()).Build()
 
-	ref, err := CloneTemplate(ctx, &CloneTemplateInput{
+	ref, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: templateRef,
 		Namespace:   metav1.NamespaceDefault,
@@ -315,7 +315,7 @@ func TestCloneTemplateMissingSpecTemplate(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().WithObjects(template.DeepCopy()).Build()
 
-	_, err := CloneTemplate(ctx, &CloneTemplateInput{
+	_, err := CreateFromTemplate(ctx, &CreateFromTemplateInput{
 		Client:      fakeClient,
 		TemplateRef: templateRef,
 		Namespace:   metav1.NamespaceDefault,

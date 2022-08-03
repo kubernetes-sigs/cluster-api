@@ -167,7 +167,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 	}
 
 	// Clone the infrastructure template
-	infraRef, err := external.CloneTemplate(ctx, &external.CloneTemplateInput{
+	infraRef, err := external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
 		Client:      r.Client,
 		TemplateRef: &kcp.Spec.MachineTemplate.InfrastructureRef,
 		Namespace:   kcp.Namespace,

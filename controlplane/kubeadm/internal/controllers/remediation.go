@@ -23,6 +23,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -106,12 +107,12 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 	// Before starting remediation, run preflight checks in order to verify it is safe to remediate.
 	// If any of the following checks fails, we'll surface the reason in the MachineOwnerRemediated condition.
-
+	log.WithValues("Machine", klog.KObj(machineToBeRemediated))
 	desiredReplicas := int(*controlPlane.KCP.Spec.Replicas)
 
 	// The cluster MUST have more than one replica, because this is the smallest cluster size that allows any etcd failure tolerance.
 	if controlPlane.Machines.Len() <= 1 {
-		log.Info("A control plane machine needs remediation, but the number of current replicas is less or equal to 1. Skipping remediation", "UnhealthyMachine", machineToBeRemediated.Name, "Replicas", controlPlane.Machines.Len())
+		log.Info("A control plane machine needs remediation, but the number of current replicas is less or equal to 1. Skipping remediation", "Replicas", controlPlane.Machines.Len())
 		conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate if current replicas are less or equal to 1")
 		return ctrl.Result{}, nil
 	}
@@ -119,14 +120,14 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	// The number of replicas MUST be equal to or greater than the desired replicas. This rule ensures that when the cluster
 	// is missing replicas, we skip remediation and instead perform regular scale up/rollout operations first.
 	if controlPlane.Machines.Len() < desiredReplicas {
-		log.Info("A control plane machine needs remediation, but the current number of replicas is lower that expected. Skipping remediation", "UnhealthyMachine", machineToBeRemediated.Name, "Replicas", desiredReplicas, "CurrentReplicas", controlPlane.Machines.Len())
+		log.Info("A control plane machine needs remediation, but the current number of replicas is lower that expected. Skipping remediation", "Replicas", desiredReplicas, "CurrentReplicas", controlPlane.Machines.Len())
 		conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP waiting for having at least %d control plane machines before triggering remediation", desiredReplicas)
 		return ctrl.Result{}, nil
 	}
 
 	// The cluster MUST have no machines with a deletion timestamp. This rule prevents KCP taking actions while the cluster is in a transitional state.
 	if controlPlane.HasDeletingMachine() {
-		log.Info("A control plane machine needs remediation, but there are other control-plane machines being deleted. Skipping remediation", "UnhealthyMachine", machineToBeRemediated.Name)
+		log.Info("A control plane machine needs remediation, but there are other control-plane machines being deleted. Skipping remediation")
 		conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP waiting for control plane machine deletion to complete before triggering remediation")
 		return ctrl.Result{}, nil
 	}
@@ -140,7 +141,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 			return ctrl.Result{}, err
 		}
 		if !canSafelyRemediate {
-			log.Info("A control plane machine needs remediation, but removing this machine could result in etcd quorum loss. Skipping remediation", "UnhealthyMachine", machineToBeRemediated.Name)
+			log.Info("A control plane machine needs remediation, but removing this machine could result in etcd quorum loss. Skipping remediation")
 			conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate this machine because this could result in etcd loosing quorum")
 			return ctrl.Result{}, nil
 		}
@@ -155,12 +156,20 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	// If the machine that is about to be deleted is the etcd leader, move it to the newest member available.
 	if controlPlane.IsEtcdManaged() {
 		etcdLeaderCandidate := controlPlane.HealthyMachines().Newest()
+		if etcdLeaderCandidate == nil {
+			log.Info("A control plane machine needs remediation, but there is no healthy machine to forward etcd leadership to")
+			conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityWarning,
+				"A control plane machine needs remediation, but there is no healthy machine to forward etcd leadership to. Skipping remediation")
+			return ctrl.Result{}, nil
+		}
 		if err := workloadCluster.ForwardEtcdLeadership(ctx, machineToBeRemediated, etcdLeaderCandidate); err != nil {
-			log.Error(err, "Failed to move leadership to candidate machine", "candidate", etcdLeaderCandidate.Name)
+			log.Error(err, "Failed to move etcd leadership to candidate machine", "candidate", klog.KObj(etcdLeaderCandidate))
+			conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return ctrl.Result{}, err
 		}
 		if err := workloadCluster.RemoveEtcdMemberForMachine(ctx, machineToBeRemediated); err != nil {
 			log.Error(err, "Failed to remove etcd member for machine")
+			conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 			return ctrl.Result{}, err
 		}
 	}
@@ -180,7 +189,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete unhealthy machine %s", machineToBeRemediated.Name)
 	}
 
-	log.Info("Remediating unhealthy machine", "UnhealthyMachine", machineToBeRemediated.Name)
+	log.Info("Remediating unhealthy machine")
 	conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 	return ctrl.Result{Requeue: true}, nil
 }

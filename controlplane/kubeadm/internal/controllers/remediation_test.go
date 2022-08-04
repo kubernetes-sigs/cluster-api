@@ -391,6 +391,50 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(env.Cleanup(ctx, m1, m2, m3, m4)).To(Succeed())
 	})
+	t.Run("Remediation does not happen if no healthy Control Planes are available to become etcd leader", func(t *testing.T) {
+		g := NewWithT(t)
+
+		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed())
+		patchHelper, err := patch.NewHelper(m1, env.GetClient())
+		g.Expect(err).ToNot(HaveOccurred())
+		m1.ObjectMeta.Finalizers = []string{"wait-before-delete"}
+		g.Expect(patchHelper.Patch(ctx, m1))
+
+		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember())
+		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember())
+		m4 := createMachine(ctx, g, ns.Name, "m4-healthy-", withMachineHealthCheckFailed(), withHealthyEtcdMember())
+
+		controlPlane := &internal.ControlPlane{
+			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
+				Replicas: utilpointer.Int32Ptr(4),
+				Version:  "v1.19.1",
+			}},
+			Cluster:  &clusterv1.Cluster{},
+			Machines: collections.FromMachines(m1, m2, m3, m4),
+		}
+
+		r := &KubeadmControlPlaneReconciler{
+			Client:   env.GetClient(),
+			recorder: record.NewFakeRecorder(32),
+			managementCluster: &fakeManagementCluster{
+				Workload: fakeWorkloadCluster{
+					EtcdMembersResult: nodes(controlPlane.Machines),
+				},
+			},
+		}
+		_, err = r.reconcileUnhealthyMachines(context.TODO(), controlPlane)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityWarning,
+			"A control plane machine needs remediation, but there is no healthy machine to forward etcd leadership to. Skipping remediation")
+
+		patchHelper, err = patch.NewHelper(m1, env.GetClient())
+		g.Expect(err).ToNot(HaveOccurred())
+		m1.ObjectMeta.Finalizers = nil
+		g.Expect(patchHelper.Patch(ctx, m1))
+
+		g.Expect(env.Cleanup(ctx, m1, m2, m3, m4)).To(Succeed())
+	})
 }
 
 func TestCanSafelyRemoveEtcdMember(t *testing.T) {
@@ -432,6 +476,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		g.Expect(env.Cleanup(ctx, m1)).To(Succeed())
 	})
+
 	t.Run("Can safely remediate 2 machine CP without additional etcd member failures", func(t *testing.T) {
 		g := NewWithT(t)
 

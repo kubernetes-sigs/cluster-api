@@ -608,9 +608,14 @@ func IsNil(i interface{}) bool {
 // LowerCamelCaseKind mirrors how controller runtime formats the object's kind when used as a logging key
 // for the object being reconciled.
 func LowerCamelCaseKind(obj runtime.Object) string {
-	kind := obj.GetObjectKind().GroupVersionKind().Kind
-	if kind != "" {
-		return strings.ToLower(kind[:1]) + kind[1:]
+	return LowerCamelCase(obj.GetObjectKind().GroupVersionKind().Kind)
+}
+
+// LowerCamelCase mirrors how controller runtime formats the object's kind when used as a logging key
+// for the object being reconciled.
+func LowerCamelCase(s string) string {
+	if s != "" {
+		return strings.ToLower(s[:1]) + s[1:]
 	}
 	return ""
 }

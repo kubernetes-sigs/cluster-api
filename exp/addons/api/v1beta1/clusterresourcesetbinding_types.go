@@ -20,6 +20,8 @@ import (
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"sigs.k8s.io/cluster-api/util"
 )
 
 // ANCHOR: ResourceBinding
@@ -100,6 +102,11 @@ func (c *ClusterResourceSetBinding) DeleteBinding(clusterResourceSet *ClusterRes
 			break
 		}
 	}
+	clusterResourceSet.OwnerReferences = util.RemoveOwnerRef(c.OwnerReferences, metav1.OwnerReference{
+		APIVersion: clusterResourceSet.APIVersion,
+		Kind:       clusterResourceSet.Kind,
+		Name:       clusterResourceSet.Name,
+	})
 }
 
 // +kubebuilder:object:root=true

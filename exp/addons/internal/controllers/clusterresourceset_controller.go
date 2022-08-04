@@ -263,6 +263,8 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		}
 	}()
 
+	// Ensure that the owner references are set on the ClusterResourceSetBinding.
+	clusterResourceSetBinding.OwnerReferences = ensureOwnerRefs(clusterResourceSetBinding, clusterResourceSet, cluster)
 	errList := []error{}
 	resourceSetBinding := clusterResourceSetBinding.GetOrCreateBinding(clusterResourceSet)
 

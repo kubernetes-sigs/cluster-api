@@ -123,7 +123,7 @@ This makes any change that can impact the Cluster API contract critical and usua
 While developing controllers in Cluster API a key requirement is to add logging to observe the system and
 to help troubleshooting issues.
 
-- For CAPI controllers see TODO.
+- For CAPI controllers see [Cluster API logging conventions](https://cluster-api.sigs.k8s.io/developer/logging.html).
 - For clusterctl see [clusterctl logging conventions](https://github.com/kubernetes-sigs/cluster-api/blob/main/cmd/clusterctl/log/doc.go).
 
 ### Testing

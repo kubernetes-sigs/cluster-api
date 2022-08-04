@@ -53,6 +53,7 @@
 - [Developer Guide](./developer/guide.md)
     - [Repository Layout](./developer/repository-layout.md)
     - [Rapid iterative development with Tilt](./developer/tilt.md)
+    - [Logging](./developer/logging.md)
     - [Testing](./developer/testing.md)
     - [Developing E2E tests](./developer/e2e.md)
     - [Controllers](./developer/architecture/controllers.md)

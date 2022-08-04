@@ -278,15 +278,16 @@ These can be customized for your specific needs.
 
 ### Deploying a workload cluster
 
-After your kind management cluster is up and running with Tilt, you can deploy a workload clusters in the Tilt web UI based off of YAML templates from specified directories. By default, templates are read from `./test/infrastructure/docker/templates`.
+After your kind management cluster is up and running with Tilt, you can deploy a workload clusters in the Tilt web UI based off of YAML templates from the directories specified in
+the `template_dirs` field from the [tilt-settings.yaml](#tilt-settings-fields) file (default `./test/infrastructure/docker/templates`).
 
-These deployment resources are found in the Tilt web UI under the label grouping `<provider>-cluster-templates` and `<provider>-clusterclasses` for each specified provider, i.e. `docker-cluster-templates` and `docker-clusterclasses`.
+Templates should be named according to clusterctl conventions:
 
-The `<provider>-cluster-templates` category contains cluster templates, you can create a cluster by clicking "Create cluster" or the clockwise arrow icon ⟳. Note that each time a cluster template is deployed, it deploys a new workload cluster in addition to the existing ones. To delete all clusters based off of a template, click on "Delete \<cluster-template\> cluster," and click on "Delete all workload clusters" to delete all workload clusters.
+- template files must be named `cluster-template-{name}.yaml`; those files will be accessible in the Tilt web UI under the label grouping `{provider-label}.templates`, i.e. `CAPD.templates`.
+- cluster class files must be named `clusterclass-{name}.yaml`; those file will be accessible in the Tilt web UI under the label grouping `{provider-label}.clusterclasses`, i.e. `CAPD.clusterclasses`.
 
-The `<provider>-clusterclasses` category contains ClusterClass definitions and you can create them by clicking on the "Create clusterclass" or the clockwise arrow icon ⟳ and delete them by clicking on "Delete clusterclass".
-
-Variables in a cluster template are substituted with values from `kustomize_substitutions` in `tilt-settings.yaml`. The default substitutions are:
+By selecting one of those items in the Tilt web UI set of buttons will appear, allowing to create - with a dropdown for customizing variable substitutions - or delete clusters.
+Custom values for variable substitutions can be set using `kustomize_substitutions` in `tilt-settings.yaml`, e.g.
 
 ```yaml
 kustomize_substitutions:
@@ -295,8 +296,6 @@ kustomize_substitutions:
   CONTROL_PLANE_MACHINE_COUNT: 1
   WORKER_MACHINE_COUNT: 3
 ```
-
-Lastly, cluster template directories can be specified from the `template_dirs` field in `tilt-settings.yaml`. See [tilt-settings fields](#tilt-settings-fields) for an example.
 
 <h1>Use of clusterctl</h1>
 
@@ -307,8 +306,6 @@ some of the clusterctl commands like clusterctl config won't work.
 This limitation is an acceptable trade-off while executing fast dev-test iterations on controllers logic. If instead
 you are interested in testing clusterctl workflows, you should refer to the
 [clusterctl developer instructions](../clusterctl/developers.md).
-
-</aside>
 
 ## Available providers
 

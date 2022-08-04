@@ -411,45 +411,54 @@ def prepare_all():
 def cluster_templates():
     substitutions = settings.get("kustomize_substitutions", {})
 
+    # Ensure we have default values for a small set of well-known variables
+    substitutions["NAMESPACE"] = substitutions.get("NAMESPACE", "default")
+    substitutions["KUBERNETES_VERSION"] = substitutions.get("KUBERNETES_VERSION", "v1.24.0")
+    substitutions["CONTROL_PLANE_MACHINE_COUNT"] = substitutions.get("CONTROL_PLANE_MACHINE_COUNT", "1")
+    substitutions["WORKER_MACHINE_COUNT"] = substitutions.get("WORKER_MACHINE_COUNT", "3")
+
+    # Note: this is a workaround to pass env variables to cmd buttons while this is not supported natively like in local_resource
+    for name, value in substitutions.items():
+        os.environ[name] = value
+
     template_dirs = settings.get("template_dirs", {
         "docker": ["./test/infrastructure/docker/templates"],
     })
 
     for provider, provider_dirs in template_dirs.items():
+        p = providers.get(provider)
+        label = p.get("label", provider)
+
         for template_dir in provider_dirs:
             template_list = [filename for filename in listdir(template_dir) if os.path.basename(filename).endswith("yaml")]
             for filename in template_list:
-                deploy_templates(filename, provider, substitutions)
+                deploy_templates(filename, label, substitutions)
 
-def deploy_templates(filename, provider, substitutions):
+def deploy_templates(filename, label, substitutions):
     # validate filename exists
     if not os.path.exists(filename):
         fail(filename + " not found")
-
-    os.environ["NAMESPACE"] = substitutions.get("NAMESPACE", "default")
-    os.environ["KUBERNETES_VERSION"] = substitutions.get("KUBERNETES_VERSION", "v1.24.0")
-    os.environ["CONTROL_PLANE_MACHINE_COUNT"] = substitutions.get("CONTROL_PLANE_MACHINE_COUNT", "1")
-    os.environ["WORKER_MACHINE_COUNT"] = substitutions.get("WORKER_MACHINE_COUNT", "3")
 
     basename = os.path.basename(filename)
     if basename.endswith(".yaml"):
         if basename.startswith("clusterclass-"):
             template_name = basename.replace("clusterclass-", "").replace(".yaml", "")
-            deploy_clusterclass(template_name, provider, filename)
+            deploy_clusterclass(template_name, label, filename, substitutions)
         elif basename.startswith("cluster-template-"):
             clusterclass_name = basename.replace("cluster-template-", "").replace(".yaml", "")
-            deploy_cluster_template(clusterclass_name, provider, filename)
+            deploy_cluster_template(clusterclass_name, label, filename, substitutions)
 
-def deploy_clusterclass(clusterclass_name, provider, filename):
-    apply_clusterclass_cmd = "cat " + filename + " | " + envsubst_cmd + " | " + kubectl_cmd + " apply -f - && echo \"ClusterClass created from\'" + filename + "\', don't forget to delete\n\""
-    delete_clusterclass_cmd = kubectl_cmd + " delete clusterclass " + clusterclass_name + ' --ignore-not-found=true; echo "\n"'
+def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
+    apply_clusterclass_cmd = "cat " + filename + " | " + envsubst_cmd + " | " + kubectl_cmd + " apply --namespace=$NAMESPACE -f - && echo \"ClusterClass created from\'" + filename + "\', don't forget to delete\n\""
+    delete_clusterclass_cmd = kubectl_cmd + " --namespace=$NAMESPACE delete clusterclass " + clusterclass_name + ' --ignore-not-found=true; echo "\n"'
 
     local_resource(
         name = clusterclass_name,
         cmd = ["bash", "-c", apply_clusterclass_cmd],
+        env = substitutions,
         auto_init = False,
         trigger_mode = TRIGGER_MODE_MANUAL,
-        labels = [provider + "-clusterclasses"],
+        labels = [label + ".clusterclasses"],
     )
 
     cmd_button(
@@ -457,7 +466,10 @@ def deploy_clusterclass(clusterclass_name, provider, filename):
         argv = ["bash", "-c", apply_clusterclass_cmd],
         resource = clusterclass_name,
         icon_name = "note_add",
-        text = "Apply ClusterClass",
+        text = "Apply `" + clusterclass_name + "` ClusterClass",
+        inputs = [
+            text_input("NAMESPACE", default = substitutions.get("NAMESPACE")),
+        ],
     )
 
     cmd_button(
@@ -465,20 +477,23 @@ def deploy_clusterclass(clusterclass_name, provider, filename):
         argv = ["bash", "-c", delete_clusterclass_cmd],
         resource = clusterclass_name,
         icon_name = "delete_forever",
-        text = "Delete ClusterClass",
+        text = "Delete `" + clusterclass_name + "` ClusterClass",
+        inputs = [
+            text_input("NAMESPACE", default = substitutions.get("NAMESPACE")),
+        ],
     )
 
-def deploy_cluster_template(template_name, provider, filename):
-    apply_cluster_template_cmd = "CLUSTER_NAME=" + template_name + "-$RANDOM; " + clusterctl_cmd + " generate cluster $CLUSTER_NAME --from " + filename + " | " + kubectl_cmd + " apply -f - && echo \"Cluster '$CLUSTER_NAME' created, don't forget to delete\n\""
-
-    delete_clusters_cmd = 'DELETED=$(echo "$(bash -c "' + kubectl_cmd + ' get clusters --no-headers -o custom-columns=":metadata.name"")" | grep -E "^' + template_name + '-[[:digit:]]{1,5}$"); if [ -z "$DELETED" ]; then echo "Nothing to delete for cluster template ' + template_name + '"; else echo "Deleting clusters:\n$DELETED\n"; echo $DELETED | xargs -L1 ' + kubectl_cmd + ' delete cluster; fi; echo "\n"'
+def deploy_cluster_template(template_name, label, filename, substitutions):
+    apply_cluster_template_cmd = "CLUSTER_NAME=" + template_name + "-$RANDOM;" + clusterctl_cmd + " generate cluster $CLUSTER_NAME --from " + filename + " | " + kubectl_cmd + " apply -f - && echo \"Cluster '$CLUSTER_NAME' created, don't forget to delete\n\""
+    delete_clusters_cmd = 'DELETED=$(echo "$(bash -c "' + kubectl_cmd + ' --namespace=$NAMESPACE get clusters -A --no-headers -o custom-columns=":metadata.name"")" | grep -E "^' + template_name + '-[[:digit:]]{1,5}$"); if [ -z "$DELETED" ]; then echo "Nothing to delete for cluster template ' + template_name + '"; else echo "Deleting clusters:\n$DELETED\n"; echo $DELETED | xargs -L1 ' + kubectl_cmd + ' delete cluster; fi; echo "\n"'
 
     local_resource(
         name = template_name,
         cmd = ["bash", "-c", apply_cluster_template_cmd],
+        env = substitutions,
         auto_init = False,
         trigger_mode = TRIGGER_MODE_MANUAL,
-        labels = [provider + "-cluster-templates"],
+        labels = [label + ".templates"],
     )
 
     cmd_button(
@@ -487,6 +502,12 @@ def deploy_cluster_template(template_name, provider, filename):
         resource = template_name,
         icon_name = "add_box",
         text = "Create `" + template_name + "` cluster",
+        inputs = [
+            text_input("NAMESPACE", default = substitutions.get("NAMESPACE")),
+            text_input("KUBERNETES_VERSION", default = substitutions.get("KUBERNETES_VERSION")),
+            text_input("CONTROL_PLANE_MACHINE_COUNT", default = substitutions.get("CONTROL_PLANE_MACHINE_COUNT")),
+            text_input("WORKER_MACHINE_COUNT", default = substitutions.get("WORKER_MACHINE_COUNT")),
+        ],
     )
 
     cmd_button(
@@ -495,6 +516,9 @@ def deploy_cluster_template(template_name, provider, filename):
         resource = template_name,
         icon_name = "delete_forever",
         text = "Delete `" + template_name + "` clusters",
+        inputs = [
+            text_input("NAMESPACE", default = substitutions.get("NAMESPACE")),
+        ],
     )
 
     cmd_button(

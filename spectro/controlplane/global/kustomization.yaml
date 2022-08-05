@@ -1,4 +1,4 @@
-namespace: capi-kubeadm-control-plane-system
+namespace: capi-webhook-system
 
 namePrefix: capi-kubeadm-control-plane-
 

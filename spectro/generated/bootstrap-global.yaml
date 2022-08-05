@@ -6241,7 +6241,7 @@ spec:
         - --bootstrap-token-ttl=${KUBEADM_BOOTSTRAP_TOKEN_TTL:=15m}
         command:
         - /manager
-        image: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:main
+        image: gcr.io/spectro-dev-public/release/kubeadm-bootstrap-controller-amd64:20220805
         imagePullPolicy: Always
         livenessProbe:
           httpGet:

@@ -257,7 +257,7 @@ func main() {
 	// Setup the context that's going to be used in controllers and for the manager.
 	ctx := ctrl.SetupSignalHandler()
 
-	(mgr)
+	setupChecks(mgr)
 	setupIndexes(ctx, mgr)
 	setupReconcilers(ctx, mgr)
 	setupWebhooks(mgr)
@@ -270,7 +270,7 @@ func main() {
 	}
 }
 
-func setupChsetupChecksecks(mgr ctrl.Manager) {
+func setupChecks(mgr ctrl.Manager) {
 	if webhookPort == 0 {
 		setupLog.V(0).Info("webhook is disabled skipping webhook healthcheck setup")
 		return

@@ -25,7 +25,7 @@ spec:
         - --feature-gates=ClusterTopology=${CLUSTER_TOPOLOGY:=false},KubeadmBootstrapFormatIgnition=${EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION:=false}
         command:
         - /manager
-        image: gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller:main
+        image: gcr.io/spectro-dev-public/release/kubeadm-control-plane-controller-amd64:20220805
         imagePullPolicy: Always
         name: manager
       terminationGracePeriodSeconds: 10

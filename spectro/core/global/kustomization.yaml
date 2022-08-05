@@ -1,9 +1,13 @@
-namespace: capi-system
+namespace: capi-webhook-system
 
 namePrefix: capi-
 
 commonLabels:
   cluster.x-k8s.io/provider: "cluster-api"
+
+# added here and patched to have capi-webhook-system namespace crd
+resources:
+  - ../../../config/default/namespace.yaml
 
 bases:
 - ../../../config/crd

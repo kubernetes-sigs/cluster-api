@@ -29,7 +29,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/util/version"
 )
 
 func (m *MachinePool) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -145,11 +144,11 @@ func (m *MachinePool) validate(old *MachinePool) error {
 		)
 	}
 
-	if m.Spec.Template.Spec.Version != nil {
-		if !version.KubeSemver.MatchString(*m.Spec.Template.Spec.Version) {
-			allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), *m.Spec.Template.Spec.Version, "must be a valid semantic version"))
-		}
-	}
+	//if m.Spec.Template.Spec.Version != nil {
+	//	if !version.KubeSemver.MatchString(*m.Spec.Template.Spec.Version) {
+	//		allErrs = append(allErrs, field.Invalid(specPath.Child("template", "spec", "version"), *m.Spec.Template.Spec.Version, "must be a valid semantic version"))
+	//	}
+	//}
 
 	if len(allErrs) == 0 {
 		return nil

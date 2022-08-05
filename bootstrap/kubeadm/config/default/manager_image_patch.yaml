@@ -7,5 +7,5 @@ spec:
   template:
     spec:
       containers:
-        - image: gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller:main
+        - image: gcr.io/spectro-dev-public/release/kubeadm-bootstrap-controller-amd64:20220805
           name: manager

@@ -219,7 +219,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.
 
 	// If the bootstrap provider is not ready, requeue.
 	if !ready {
-		log.Info("Bootstrap provider is not ready, requeuing")
+		log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", util.LowerCamelCaseKind(bootstrapConfig), klog.KObj(bootstrapConfig))
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
@@ -230,8 +230,10 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.
 	} else if secretName == "" {
 		return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
-
 	m.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)
+	if !m.Status.BootstrapReady {
+		log.Info("Bootstrap provider generated data secret and reports status.ready", util.LowerCamelCaseKind(bootstrapConfig), klog.KObj(bootstrapConfig), "secret", klog.KRef(m.Namespace, secretName))
+	}
 	m.Status.BootstrapReady = true
 	return ctrl.Result{}, nil
 }
@@ -271,6 +273,9 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	if ready && !m.Status.InfrastructureReady {
+		log.Info("Infrastructure provider has completed machine infrastructure provisioning and reports status.ready", util.LowerCamelCaseKind(infraConfig), klog.KObj(infraConfig))
+	}
 	m.Status.InfrastructureReady = ready
 
 	// Report a summary of current status of the infrastructure object defined for this machine.
@@ -281,7 +286,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 
 	// If the infrastructure provider is not ready, return early.
 	if !ready {
-		log.Info("Infrastructure provider is not ready, requeuing")
+		log.Info("Waiting for infrastructure provider to create machine infrastructure and report status.ready", util.LowerCamelCaseKind(infraConfig), klog.KObj(infraConfig))
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 

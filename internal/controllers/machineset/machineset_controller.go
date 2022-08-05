@@ -425,7 +425,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 				errs = append(errs, err)
 				conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.MachineCreationFailedReason,
 					clusterv1.ConditionSeverityError, err.Error())
-
+				// FIXME: Test change.
 				// Try to cleanup the external objects if the Machine creation failed.
 				if err := r.Client.Delete(ctx, util.ObjectReferenceToUnstructured(*infraRef)); !apierrors.IsNotFound(err) {
 					log.Error(err, "Failed to cleanup infrastructure configuration object after Machine creation error")

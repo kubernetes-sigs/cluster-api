@@ -150,7 +150,7 @@ func ensureOwnerRefs(clusterResourceSetBinding *addonsv1.ClusterResourceSetBindi
 	})
 	ownerRefs = util.EnsureOwnerRef(ownerRefs,
 		metav1.OwnerReference{
-			APIVersion: clusterResourceSet.GroupVersionKind().String(),
+			APIVersion: clusterResourceSet.GroupVersionKind().GroupVersion().String(),
 			Kind:       clusterResourceSet.GroupVersionKind().Kind,
 			Name:       clusterResourceSet.Name,
 			UID:        clusterResourceSet.UID,

@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 )
 
 // KubectlApply shells out to kubectl apply.
@@ -29,7 +30,7 @@ func KubectlApply(ctx context.Context, kubeconfigPath string, resources []byte, 
 	aargs := append([]string{"apply", "--kubeconfig", kubeconfigPath, "-f", "-"}, args...)
 	rbytes := bytes.NewReader(resources)
 	applyCmd := NewCommand(
-		WithCommand("kubectl"),
+		WithCommand(kubectlPath()),
 		WithArgs(aargs...),
 		WithStdin(rbytes),
 	)
@@ -46,7 +47,7 @@ func KubectlApply(ctx context.Context, kubeconfigPath string, resources []byte, 
 func KubectlWait(ctx context.Context, kubeconfigPath string, args ...string) error {
 	wargs := append([]string{"wait", "--kubeconfig", kubeconfigPath}, args...)
 	wait := NewCommand(
-		WithCommand("kubectl"),
+		WithCommand(kubectlPath()),
 		WithArgs(wargs...),
 	)
 	_, stderr, err := wait.Run(ctx)
@@ -55,4 +56,11 @@ func KubectlWait(ctx context.Context, kubeconfigPath string, args ...string) err
 		return err
 	}
 	return nil
+}
+
+func kubectlPath() string {
+	if kubectlPath, ok := os.LookupEnv("CAPI_KUBECTL_PATH"); ok {
+		return kubectlPath
+	}
+	return "kubectl"
 }

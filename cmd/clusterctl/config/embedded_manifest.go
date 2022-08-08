@@ -19,7 +19,7 @@ package config
 
 import _ "embed"
 
-// ClusterctlAPIManifest contains the clustectl manifests in raw bytes format.
+// ClusterctlAPIManifest contains the clusterctl manifests in raw bytes format.
 //
 //go:embed manifest/clusterctl-api.yaml
 var ClusterctlAPIManifest []byte

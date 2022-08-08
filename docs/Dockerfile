@@ -14,21 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Recommended usage:
-#
-# - Run an ephemeral container
-# - Mount the current working directory into the container.
-# - Run the entrypoint as the user invoking docker run. Otherwise the output
-#   files will be owned by root, the default user.
-#
-# - Example:
-# docker run \
-# 	--rm \
-# 	--volume ${PWD}:/figures \
-# 	--user $(id --user):$(id --group) \
-# 	${IMAGE_TAG} \
-# 	-v /figures/*.plantuml
-
+# To generate diagrams run 'make diagrams' in the docs/ folder.
 FROM maven:3-jdk-8
 
 RUN apt-get update && apt-get install -y --no-install-recommends graphviz=2.42.2-5 fonts-symbola=2.60-1.1 fonts-wqy-zenhei=0.9.45-8 && rm -rf /var/lib/apt/lists/*

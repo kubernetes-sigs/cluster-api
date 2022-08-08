@@ -26,7 +26,7 @@ activate "API Server"
 "API Server" -> "Cluster Topology Controller":
 deactivate "API Server"
 
-group Compute desired State
+group #white Compute desired State
   "Cluster Topology Controller" -> "Cluster Topology Controller": Compute desired State
   loop Ordered list of Patches
     alt

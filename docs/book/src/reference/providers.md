@@ -30,7 +30,6 @@ updated info about which API version they are supporting.
 - [OCI](https://github.com/oracle/cluster-api-provider-oci)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
 - [Sidero](https://github.com/siderolabs/sidero)
-- [Tencent Cloud](https://github.com/TencentCloud/cluster-api-provider-tencent)
 - [vcluster](https://github.com/loft-sh/cluster-api-provider-vcluster)
 - [Virtink](https://github.com/smartxworks/cluster-api-provider-virtink)
 - [VMware Cloud Director](https://github.com/vmware/cluster-api-provider-cloud-director)  

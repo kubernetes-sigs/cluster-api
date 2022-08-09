@@ -59,7 +59,7 @@ const (
 
 const (
 	// ControlPlaneInitializedCondition reports if the cluster's control plane has been initialized such that the
-	// cluster's apiserver is reachable and at least one control plane Machine has a node reference. Once this
+	// cluster's apiserver is reachable or at least one control plane Machine has a node reference. Once this
 	// condition is marked true, its value is never changed. See the ControlPlaneReady condition for an indication of
 	// the current readiness of the cluster's control plane.
 	ControlPlaneInitializedCondition ConditionType = "ControlPlaneInitialized"

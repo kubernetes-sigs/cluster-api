@@ -134,6 +134,9 @@ func (p Patch) Apply(latest Setter, options ...ApplyOption) error {
 
 	applyOpt := &applyOptions{}
 	for _, o := range options {
+		if util.IsNil(o) {
+			return errors.New("error patching conditions: ApplyOption was nil")
+		}
 		o(applyOpt)
 	}
 

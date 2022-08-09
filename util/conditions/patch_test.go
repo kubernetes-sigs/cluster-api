@@ -283,6 +283,14 @@ func TestApply(t *testing.T) {
 			want:    conditionList(fooFalse), // after condition should be kept in case of error
 			wantErr: false,
 		},
+		{
+			name:    "Error when nil passed as an ApplyOption",
+			before:  getterWithConditions(fooTrue),
+			after:   getterWithConditions(fooFalse),
+			latest:  setterWithConditions(),
+			options: []ApplyOption{nil},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

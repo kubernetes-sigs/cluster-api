@@ -26,6 +26,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -81,6 +82,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 	It("Should pivot the bootstrap cluster to a self-hosted cluster", func() {
 		By("Creating a workload cluster")
 
+		workloadClusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
@@ -90,7 +92,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 				Flavor:                   input.Flavor,
 				Namespace:                namespace.Name,
-				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
+				ClusterName:              workloadClusterName,
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),
@@ -163,6 +165,18 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			return selfHostedClusterProxy.GetClient().Get(ctx, client.ObjectKey{Name: "kube-system"}, kubeSystem)
 		}, "5s", "100ms").Should(BeNil(), "Failed to assert self-hosted API server stability")
 
+		// Get the machines of the workloadCluster before it is moved to become self-hosted to make sure that the move did not trigger
+		// any unexpected rollouts.
+		preMoveMachineList := &unstructured.UnstructuredList{}
+		preMoveMachineList.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineList"))
+		err := input.BootstrapClusterProxy.GetClient().List(
+			ctx,
+			preMoveMachineList,
+			client.InNamespace(namespace.Name),
+			client.MatchingLabels{clusterv1.ClusterLabelName: workloadClusterName},
+		)
+		Expect(err).NotTo(HaveOccurred(), "Failed to list machines before move")
+
 		By("Moving the cluster to self hosted")
 		clusterctl.Move(ctx, clusterctl.MoveInput{
 			LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", "bootstrap"),
@@ -185,6 +199,20 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			Namespace:   selfHostedCluster.Namespace,
 		})
 		Expect(controlPlane).ToNot(BeNil())
+
+		// After the move check that there were no unexpected rollouts.
+		Consistently(func() bool {
+			postMoveMachineList := &unstructured.UnstructuredList{}
+			postMoveMachineList.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineList"))
+			err = selfHostedClusterProxy.GetClient().List(
+				ctx,
+				postMoveMachineList,
+				client.InNamespace(namespace.Name),
+				client.MatchingLabels{clusterv1.ClusterLabelName: workloadClusterName},
+			)
+			Expect(err).NotTo(HaveOccurred(), "Failed to list machines after move")
+			return matchUnstructuredLists(preMoveMachineList, postMoveMachineList)
+		}, "3m", "30s").Should(BeTrue(), "Machines should not roll out after move to self-hosted cluster")
 
 		By("PASSED!")
 	})

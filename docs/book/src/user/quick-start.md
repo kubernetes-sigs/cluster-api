@@ -169,14 +169,14 @@ clusterctl version
 Go to the working directory where you want clusterctl downloaded.
 
 Download the latest release; on Windows, type:
-```bash
-curl {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.2.x"}} -o clusterctl.exe
+```powershell
+curl.exe -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-windows-amd64.exe" version:"1.2.x"}} -o clusterctl.exe
 ```
 Append or prepend the path of that directory to the `PATH` environment variable.
 
 Test to ensure the version you installed is up-to-date:
-```bash
-clusterctl version
+```powershell
+clusterctl.exe version
 ```
 
 {{#/tab }}

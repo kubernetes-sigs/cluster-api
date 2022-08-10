@@ -17,7 +17,6 @@ limitations under the License.
 package cluster
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -315,7 +314,7 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
-		assertNestedField(g, obj, fmt.Sprintf("%q", duration), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
+		assertNestedField(g, obj, duration.String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().InfrastructureRef().Path()...)
 
 		// Ensure no ownership is added to generated ControlPlane.

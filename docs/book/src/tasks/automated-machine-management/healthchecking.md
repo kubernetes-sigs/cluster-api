@@ -158,7 +158,7 @@ This is useful for dynamically scaling clusters where the number of machines kee
 
 ## Skipping Remediation
 
-There are scenarios where remediation for a machine may be undesirable (eg. during cluster migration using `clustrctl move`). For such cases, MachineHealthCheck provides 2 mechanisms to skip machines for remediation.
+There are scenarios where remediation for a machine may be undesirable (eg. during cluster migration using `clusterctl move`). For such cases, MachineHealthCheck provides 2 mechanisms to skip machines for remediation.
 
 Implicit skipping when the resource is paused (using `cluster.x-k8s.io/paused` annotation):
 - When a cluster is paused, none of the machines in that cluster are considered for remediation.

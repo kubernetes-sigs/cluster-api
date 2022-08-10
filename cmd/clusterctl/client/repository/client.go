@@ -33,6 +33,11 @@ import (
 type Client interface {
 	config.Provider
 
+	// DefaultVersion returns the default provider version returned by a repository.
+	// In case the repository URL points to latest, this method returns the current latest version; in other cases
+	// it returns the version of the provider hosted in the repository.
+	DefaultVersion() string
+
 	// GetVersions return the list of versions that are available in a provider repository
 	GetVersions() ([]string, error)
 
@@ -61,6 +66,10 @@ type repositoryClient struct {
 
 // ensure repositoryClient implements Client.
 var _ Client = &repositoryClient{}
+
+func (c *repositoryClient) DefaultVersion() string {
+	return c.repository.DefaultVersion()
+}
 
 func (c *repositoryClient) GetVersions() ([]string, error) {
 	return c.repository.GetVersions()

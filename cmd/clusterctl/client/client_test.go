@@ -80,6 +80,10 @@ func (f fakeClient) GetProviderComponents(provider string, providerType clusterc
 	return f.internalClient.GetProviderComponents(provider, providerType, options)
 }
 
+func (f fakeClient) GenerateProvider(provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error) {
+	return f.internalClient.GenerateProvider(provider, providerType, options)
+}
+
 func (f fakeClient) GetClusterTemplate(options GetClusterTemplateOptions) (Template, error) {
 	return f.internalClient.GetClusterTemplate(options)
 }

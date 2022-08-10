@@ -804,22 +804,34 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 func createErrorWithoutObjectName(err error, obj client.Object) error {
 	var statusError *apierrors.StatusError
 	if errors.As(err, &statusError) {
+		var msg string
 		if statusError.Status().Details != nil {
 			var causes []string
 			for _, cause := range statusError.Status().Details.Causes {
 				causes = append(causes, fmt.Sprintf("%s: %s: %s", cause.Type, cause.Field, cause.Message))
 			}
-			var msg string
 			if len(causes) > 0 {
 				msg = fmt.Sprintf("failed to create %s.%s: %s", statusError.Status().Details.Kind, statusError.Status().Details.Group, strings.Join(causes, " "))
 			} else {
 				msg = fmt.Sprintf("failed to create %s.%s", statusError.Status().Details.Kind, statusError.Status().Details.Group)
 			}
-			// Replace the statusError message with the constructed message.
 			statusError.ErrStatus.Message = msg
 			return statusError
 		}
+
+		if statusError.Status().Message != "" {
+			if obj != nil {
+				msg = fmt.Sprintf("failed to create %s", obj.GetObjectKind().GroupVersionKind().GroupKind().String())
+			} else {
+				msg = "failed to create object"
+			}
+		}
+		statusError.ErrStatus.Message = msg
+		return statusError
 	}
 	// If this isn't a StatusError return a more generic error with the object details.
-	return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: obj})
+	if obj != nil {
+		return errors.Errorf("failed to create %s", obj.GetObjectKind().GroupVersionKind().GroupKind().String())
+	}
+	return errors.New("failed to create object")
 }

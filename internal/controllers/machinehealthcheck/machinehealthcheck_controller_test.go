@@ -53,7 +53,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 	ns, err := env.CreateNamespace(ctx, "test-mhc")
 	if err != nil {
 		t.Fatal(err)
-	}
+	}git
 	defer func() {
 		if err := env.Delete(ctx, ns); err != nil {
 			t.Fatal(err)

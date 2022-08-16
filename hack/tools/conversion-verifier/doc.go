@@ -17,9 +17,9 @@ limitations under the License.
 // This command line application runs verification steps for conversion types.
 //
 // The following checks are performed:
-// - For each API Kind and Group, only one storage version must exist.
-// - Each storage version type and its List counterpart, if there are multiple API versions,
-//   the type MUST have a Hub() method.
-// - For each type with multiple versions, that has a Hub() and storage version,
-//   the type MUST have ConvertFrom() and ConvertTo() methods.
+//   - For each API Kind and Group, only one storage version must exist.
+//   - Each storage version type and its List counterpart, if there are multiple API versions,
+//     the type MUST have a Hub() method.
+//   - For each type with multiple versions, that has a Hub() and storage version,
+//     the type MUST have ConvertFrom() and ConvertTo() methods.
 package main

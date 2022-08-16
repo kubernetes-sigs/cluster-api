@@ -36,11 +36,12 @@ import (
 )
 
 // TryAddDefaultSchemes tries to add the following schemes:
-//   * Kubernetes corev1
-//   * Kubernetes appsv1
-//   * CAPI core
-//   * Kubeadm Bootstrapper
-//   * Kubeadm ControlPlane
+//   - Kubernetes corev1
+//   - Kubernetes appsv1
+//   - CAPI core
+//   - Kubeadm Bootstrapper
+//   - Kubeadm ControlPlane
+//
 // Any error that occurs when trying to add the schemes is ignored.
 func TryAddDefaultSchemes(scheme *runtime.Scheme) {
 	// Add the core schemes.

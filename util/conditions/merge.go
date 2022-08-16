@@ -44,6 +44,7 @@ type localizedCondition struct {
 //   - P2 - Status=False, Severity=Info
 //   - P3 - Status=True
 //   - P4 - Status=Unknown
+//
 // 3. The group with highest priority is used to determine status, severity and other info of the target condition.
 //
 // Please note that the last operation includes also the task of computing the Reason and the Message for the target

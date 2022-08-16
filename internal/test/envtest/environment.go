@@ -99,10 +99,13 @@ type RunInput struct {
 
 // Run executes the tests of the given testing.M in a test environment.
 // Note: The environment will be created in this func and should not be created before. This func takes a *Environment
-//       because our tests require access to the *Environment. We use this field to make the created Environment available
-//       to the consumer.
+//
+//	because our tests require access to the *Environment. We use this field to make the created Environment available
+//	to the consumer.
+//
 // Note: Test environment creation can be skipped by setting the environment variable `CAPI_DISABLE_TEST_ENV`. This only
-//       makes sense when executing tests which don't require the test environment, e.g. tests using only the fake client.
+//
+//	makes sense when executing tests which don't require the test environment, e.g. tests using only the fake client.
 func Run(ctx context.Context, input RunInput) int {
 	if os.Getenv("CAPI_DISABLE_TEST_ENV") != "" {
 		return input.M.Run()

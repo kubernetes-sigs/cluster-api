@@ -115,16 +115,17 @@ type WatchNamespaceEventsInput struct {
 
 // WatchNamespaceEvents creates a watcher that streams namespace events into a file.
 // Example usage:
-//    ctx, cancelWatches := context.WithCancel(context.Background())
-//    go func() {
-//    	defer GinkgoRecover()
-//    	framework.WatchNamespaceEvents(ctx, framework.WatchNamespaceEventsInput{
-//    		ClientSet: clientSet,
-//    		Name: namespace.Name,
-//    		LogFolder:   logFolder,
-//    	})
-//    }()
-//    defer cancelWatches()
+//
+//	ctx, cancelWatches := context.WithCancel(context.Background())
+//	go func() {
+//		defer GinkgoRecover()
+//		framework.WatchNamespaceEvents(ctx, framework.WatchNamespaceEventsInput{
+//			ClientSet: clientSet,
+//			Name: namespace.Name,
+//			LogFolder:   logFolder,
+//		})
+//	}()
+//	defer cancelWatches()
 func WatchNamespaceEvents(ctx context.Context, input WatchNamespaceEventsInput) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WatchNamespaceEvents")
 	Expect(input.ClientSet).NotTo(BeNil(), "input.ClientSet is required for WatchNamespaceEvents")

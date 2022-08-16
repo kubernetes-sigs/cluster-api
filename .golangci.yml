@@ -142,9 +142,9 @@ linters-settings:
     allow-leading-space: false
     require-specific: true
   staticcheck:
-    go: "1.17"
+    go: "1.18"
   stylecheck:
-    go: "1.17"
+    go: "1.18"
   gosec:
     excludes:
     - G307 # Deferring unsafe method "Close" on type "\*os.File"

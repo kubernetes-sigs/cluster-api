@@ -388,7 +388,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 			},
 			InfrastructureRef: &corev1.ObjectReference{
 				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-				Kind:       "GenericInfrastructureMachine",
+				Kind:       "GenericInfrastructureCluster",
 				Name:       "test",
 			},
 		},
@@ -438,25 +438,32 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 			cluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster", Namespace: "test-namespace"}},
 		},
 		{
-			name:     "expect no failure domain if infra config does not have failure domain",
-			cluster:  cluster,
-			infraRef: generateInfraRef(false),
+			name:                 "expect no failure domain if infra config does not have failure domain",
+			cluster:              cluster.DeepCopy(),
+			infraRef:             generateInfraRef(false),
+			expectFailureDomains: clusterv1.FailureDomains{},
+		},
+		{
+			name:                 "expect cluster failure domain to be reset to empty if infra config does not have failure domain",
+			cluster:              clusterWithOldFailureDomain.DeepCopy(),
+			infraRef:             generateInfraRef(false),
+			expectFailureDomains: clusterv1.FailureDomains{},
 		},
 		{
 			name:                 "expect failure domain to remain same if infra config have same failure domain",
-			cluster:              cluster,
+			cluster:              cluster.DeepCopy(),
 			infraRef:             generateInfraRef(true),
 			expectFailureDomains: newFailureDomain,
 		},
 		{
-			name:                 "expect failure domain to be updated if infra config have update to failure domain",
-			cluster:              clusterWithNewFailureDomainUpdated,
+			name:                 "expect failure domain to be updated if infra config has updates to failure domain",
+			cluster:              clusterWithNewFailureDomainUpdated.DeepCopy(),
 			infraRef:             generateInfraRef(true),
 			expectFailureDomains: newFailureDomain,
 		},
 		{
 			name:                 "expect failure domain to be reset if infra config have different failure domain",
-			cluster:              clusterWithOldFailureDomain,
+			cluster:              clusterWithOldFailureDomain.DeepCopy(),
 			infraRef:             generateInfraRef(true),
 			expectFailureDomains: newFailureDomain,
 		},
@@ -466,7 +473,7 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			objs := []client.Object{builder.GenericInfrastructureMachineCRD.DeepCopy(), tt.cluster}
+			objs := []client.Object{builder.GenericInfrastructureClusterCRD.DeepCopy(), tt.cluster}
 			if tt.infraRef != nil {
 				objs = append(objs, &unstructured.Unstructured{Object: tt.infraRef})
 			}
@@ -477,19 +484,22 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 
 			_, err := r.reconcileInfrastructure(ctx, tt.cluster)
 			g.Expect(err).ToNot(HaveOccurred())
-			g.Expect(cluster.Status.FailureDomains).To(BeEquivalentTo(tt.expectFailureDomains))
+			g.Expect(tt.cluster.Status.FailureDomains).To(BeEquivalentTo(tt.expectFailureDomains))
 		})
 	}
 }
 
 func generateInfraRef(withFailureDomain bool) map[string]interface{} {
 	infraRef := map[string]interface{}{
-		"kind":       "GenericInfrastructureMachine",
+		"kind":       "GenericInfrastructureCluster",
 		"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
 		"metadata": map[string]interface{}{
 			"name":              "test",
 			"namespace":         "test-namespace",
 			"deletionTimestamp": "sometime",
+		},
+		"status": map[string]interface{}{
+			"ready": true,
 		},
 	}
 

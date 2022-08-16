@@ -46,3 +46,15 @@ func (webhook *ClusterClass) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Client: webhook.Client,
 	}).SetupWebhookWithManager(mgr)
 }
+
+// Machine implements a validation and defaulting webhook for Machine.
+type Machine struct {
+	Client client.Reader
+}
+
+// SetupWebhookWithManager sets up Machine webhooks.
+func (webhook *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.Machine{
+		Client: webhook.Client,
+	}).SetupWebhookWithManager(mgr)
+}

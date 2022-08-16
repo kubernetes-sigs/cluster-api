@@ -69,6 +69,10 @@ type InitOptions struct {
 	// SkipTemplateProcess allows for skipping the call to the template processor, including also variable replacement in the component YAML.
 	// NOTE this works only if the rawYaml is a valid yaml by itself, like e.g when using envsubst/the simple processor.
 	skipTemplateProcess bool
+
+	// IgnoreValidationErrors allows for skipping the validation of provider installs.
+	// NOTE this should only be used for development
+	IgnoreValidationErrors bool
 }
 
 // Init initializes a management cluster by adding the requested list of providers.
@@ -108,7 +112,10 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	// - There should be only one instance of the same provider.
 	// - All the providers must support the same API Version of Cluster API (contract)
 	if err := installer.Validate(); err != nil {
-		return nil, err
+		if !options.IgnoreValidationErrors {
+			return nil, err
+		}
+		log.Error(err, "Ignoring validation errors")
 	}
 
 	// Before installing the providers, ensure the cert-manager Webhook is in place.

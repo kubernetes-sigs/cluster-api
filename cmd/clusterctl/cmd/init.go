@@ -34,6 +34,7 @@ type initOptions struct {
 	infrastructureProviders []string
 	targetNamespace         string
 	listImages              bool
+	validate                bool
 	waitProviders           bool
 	waitProviderTimeout     int
 }
@@ -108,6 +109,8 @@ func init() {
 		"Wait for providers to be installed.")
 	initCmd.Flags().IntVar(&initOpts.waitProviderTimeout, "wait-provider-timeout", 5*60,
 		"Wait timeout per provider installation in seconds. This value is ignored if --wait-providers is false")
+	initCmd.Flags().BoolVar(&initOpts.validate, "validate", true,
+		"If true, clusterctl will validate that the deployments will succeed on the management cluster.")
 
 	// TODO: Move this to a sub-command or similar, it shouldn't really be a flag.
 	initCmd.Flags().BoolVar(&initOpts.listImages, "list-images", false,
@@ -132,6 +135,7 @@ func runInit() error {
 		LogUsageInstructions:    true,
 		WaitProviders:           initOpts.waitProviders,
 		WaitProviderTimeout:     time.Duration(initOpts.waitProviderTimeout) * time.Second,
+		IgnoreValidationErrors:  !initOpts.validate,
 	}
 
 	if initOpts.listImages {

@@ -265,7 +265,7 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 	// Start the cache!!!
 	go cache.Start(cacheCtx) //nolint:errcheck
 	if !cache.WaitForCacheSync(cacheCtx) {
-		return nil, fmt.Errorf("failed waiting for cache for remote cluster %v to sync: %w", cluster, err)
+		return nil, fmt.Errorf("failed waiting for cache for remote cluster %v to sync: %w", cluster, cacheCtx.Err())
 	}
 
 	// Start cluster healthcheck!!!

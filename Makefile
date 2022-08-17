@@ -59,6 +59,7 @@ TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
 E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
 CAPD_DIR := $(TEST_DIR)/infrastructure/docker
 GO_INSTALL := ./scripts/go_install.sh
+OBSERVABILITY_DIR := hack/observability
 
 export PATH := $(abspath $(TOOLS_BIN_DIR)):$(PATH)
 
@@ -209,7 +210,7 @@ ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane capd
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-*, generate-go-conversions-* and generate-go-openapi targets
-	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions generate-go-openapi
+	$(MAKE) generate-modules generate-manifests generate-go-deepcopy generate-go-conversions generate-go-openapi generate-metrics-config
 
 .PHONY: generate-manifests
 generate-manifests: $(addprefix generate-manifests-,$(ALL_GENERATE_MODULES)) ## Run all generate-manifests-* targets
@@ -433,6 +434,20 @@ generate-modules: ## Run go mod tidy to ensure modules are up to date
 	go mod tidy
 	cd $(TOOLS_DIR); go mod tidy
 	cd $(TEST_DIR); go mod tidy
+
+.PHONY: generate-metrics-config
+generate-metrics-config: $(ENVSUBST_BIN) ## Generate ./hack/observability/kube-state-metrics/crd-config.yaml
+	OUTPUT_FILE="${OBSERVABILITY_DIR}/kube-state-metrics/crd-config.yaml"; \
+	METRICS_DIR="${OBSERVABILITY_DIR}/kube-state-metrics/metrics"; \
+	echo "# This file was auto-generated via: make generate-metrics-config" > "$${OUTPUT_FILE}"; \
+	cat "$${METRICS_DIR}/header.yaml" >> "$${OUTPUT_FILE}"; \
+	for resource in cluster kubeadmcontrolplane machine machinedeployment machinehealthcheck machineset; do \
+		cat "$${METRICS_DIR}/$${resource}.yaml"; \
+		RESOURCE="$${resource}" ${ENVSUBST_BIN} < "$${METRICS_DIR}/common_metrics.yaml"; \
+		if [[ "$${resource}" != "cluster" ]]; then \
+			cat "$${METRICS_DIR}/owner_metric.yaml"; \
+		fi \
+	done >> "$${OUTPUT_FILE}"; \
 
 .PHONY: generate-diagrams
 generate-diagrams: ## Generate diagrams for *.plantuml files

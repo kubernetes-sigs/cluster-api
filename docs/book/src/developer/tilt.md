@@ -173,8 +173,19 @@ kustomize_substitutions:
 {{#/tabs }}
 
 **deploy_observability** ([string], default=[]): If set, installs on the dev cluster one of more observability
-tools. Supported values are `grafana`, `loki`, `visualizer`, `promtail` and/or `prometheus` (Note: the UI for `grafana`, `prometheus`, and `visualizer` will be accessible via a link in the tilt console).
+tools. 
 Important! This feature requires the `helm` command to be available in the user's path.
+
+Supported values are:
+
+  * `grafana`*: To create dashboards and query `loki` as well as `prometheus`.
+  * `kube-state-metrics`: For exposing metrics for kubernetes and CAPI resources to `prometheus`.
+  * `loki`: To receive and store logs.
+  * `prometheus`*: For collecting metrics from Kubernetes.
+  * `promtail`: For providing pod logs to `loki`.
+  * `visualizer`*: Visualize Cluster API resources for each cluster, provide quick access to the specs and status of any resource.
+
+\*: Note: the UI will be accessible via a link in the tilt console
 
 **debug** (Map{string: Map} default{}): A map of named configurations for the provider. The key is the name of the provider.
 

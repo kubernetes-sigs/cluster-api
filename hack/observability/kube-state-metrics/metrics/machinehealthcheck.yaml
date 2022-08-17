@@ -1,0 +1,43 @@
+  - groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: MachineHealthCheck
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - spec
+      - clusterName
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_machinehealthcheck
+    metrics:
+    - name: status_current_healthy
+      help: Current number of healthy machines.
+      each:
+        gauge:
+          path:
+          - status
+          - currentHealthy
+        type: Gauge
+    - name: status_expected_machines
+      help: Total number of pods counted by this machinehealthcheck.
+      each:
+        gauge:
+          path:
+          - status
+          - expectedMachines
+        type: Gauge
+    - name: status_remediations_allowed
+      help: Number of machine remediations that are currently allowed.
+      each:
+        gauge:
+          path:
+          - status
+          - remediationsAllowed
+        type: Gauge

@@ -1,0 +1,37 @@
+    - name: created
+      help: Unix creation timestamp.
+      each:
+        gauge:
+          path:
+          - metadata
+          - creationTimestamp
+        type: Gauge
+    - name: annotation_paused
+      help: Whether the ${RESOURCE} is paused and any of its resources will not be processed by the controllers.
+      each:
+        info:
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+          labelsFromPath:
+            paused_value: []
+        type: Info
+    - name: status_condition
+      help: The condition of a ${RESOURCE}.
+      each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - 'True'
+          - 'False'
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet

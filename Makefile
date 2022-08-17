@@ -824,7 +824,7 @@ release-capd-staging-nightly: ## Tag and push container images to the staging bu
 	echo $(NEW_RELEASE_ALIAS_TAG)
 	$(MAKE) release-capd-alias-tag TAG=$(RELEASE_ALIAS_TAG) RELEASE_ALIAS_TAG=$(NEW_RELEASE_ALIAS_TAG)
 	# Set the manifest image to the staging bucket.
-	$(MAKE) manifest-modification REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(NEW_RELEASE_ALIAS_TAG)
+	$(MAKE) manifest-modification-dev REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(NEW_RELEASE_ALIAS_TAG)
 	## Build the manifests
 	$(MAKE) release-manifests-dev
 	# Example manifest location: artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20210121/infrastructure-components.yaml

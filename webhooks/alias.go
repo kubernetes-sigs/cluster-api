@@ -58,3 +58,15 @@ func (webhook *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Client: webhook.Client,
 	}).SetupWebhookWithManager(mgr)
 }
+
+// MachineDeployment implements a validation and defaulting webhook for MachineDeployment.
+type MachineDeployment struct {
+	Client client.Reader
+}
+
+// SetupWebhookWithManager sets up MachineDeployment webhooks.
+func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.MachineDeployment{
+		Client: webhook.Client,
+	}).SetupWebhookWithManager(mgr)
+}

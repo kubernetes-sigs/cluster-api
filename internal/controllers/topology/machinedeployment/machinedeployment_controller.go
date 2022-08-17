@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -93,6 +94,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get MachineDeployment/%s", req.NamespacedName.Name)
 	}
+
+	log = log.WithValues("Cluster", klog.KRef(md.Namespace, md.Spec.ClusterName))
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, md.Namespace, md.Spec.ClusterName)
 	if err != nil {

@@ -42,7 +42,7 @@ func ClusterCreateInfraReady(logger logr.Logger) predicate.Funcs {
 				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.Object))
 				return false
 			}
-			log = log.WithValues("cluster", klog.KObj(c))
+			log = log.WithValues("Cluster", klog.KObj(c))
 
 			// Only need to trigger a reconcile if the Cluster.Status.InfrastructureReady is true
 			if c.Status.InfrastructureReady {
@@ -71,7 +71,7 @@ func ClusterCreateNotPaused(logger logr.Logger) predicate.Funcs {
 				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.Object))
 				return false
 			}
-			log = log.WithValues("cluster", klog.KObj(c))
+			log = log.WithValues("Cluster", klog.KObj(c))
 
 			// Only need to trigger a reconcile if the Cluster.Spec.Paused is false
 			if !c.Spec.Paused {
@@ -100,7 +100,7 @@ func ClusterUpdateInfraReady(logger logr.Logger) predicate.Funcs {
 				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
 				return false
 			}
-			log = log.WithValues("cluster", klog.KObj(oldCluster))
+			log = log.WithValues("Cluster", klog.KObj(oldCluster))
 
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
 
@@ -130,7 +130,7 @@ func ClusterUpdateUnpaused(logger logr.Logger) predicate.Funcs {
 				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
 				return false
 			}
-			log = log.WithValues("cluster", klog.KObj(oldCluster))
+			log = log.WithValues("Cluster", klog.KObj(oldCluster))
 
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
 
@@ -189,7 +189,7 @@ func ClusterControlPlaneInitialized(logger logr.Logger) predicate.Funcs {
 				log.V(4).Info("Expected Cluster", "type", fmt.Sprintf("%T", e.ObjectOld))
 				return false
 			}
-			log = log.WithValues("cluster", klog.KObj(oldCluster))
+			log = log.WithValues("Cluster", klog.KObj(oldCluster))
 
 			newCluster := e.ObjectNew.(*clusterv1.Cluster)
 
@@ -260,7 +260,7 @@ func processIfTopologyManaged(logger logr.Logger, object client.Object) bool {
 		return false
 	}
 
-	log := logger.WithValues("cluster", klog.KObj(cluster))
+	log := logger.WithValues("Cluster", klog.KObj(cluster))
 
 	if cluster.Spec.Topology != nil {
 		log.V(6).Info("Cluster has topology, allowing further processing")

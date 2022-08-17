@@ -89,7 +89,7 @@ func (r *Reconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
-	log := ctrl.LoggerFrom(ctx, "cluster", klog.KObj(cluster))
+	log := ctrl.LoggerFrom(ctx)
 
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, ref); err != nil {
 		return external.ReconcileOutput{}, err
@@ -98,7 +98,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			log.Info("could not find external ref, requeueing", "refGVK", ref.GroupVersionKind(), "refName", ref.Name, "machine", klog.KObj(m))
+			log.Info("could not find external ref, requeueing", "refGVK", ref.GroupVersionKind(), "refName", ref.Name, "Machine", klog.KObj(m))
 			return external.ReconcileOutput{RequeueAfter: externalReadyWait}, nil
 		}
 		return external.ReconcileOutput{}, err
@@ -219,7 +219,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.
 
 	// If the bootstrap provider is not ready, requeue.
 	if !ready {
-		log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", util.LowerCamelCaseKind(bootstrapConfig), klog.KObj(bootstrapConfig))
+		log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig))
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 
@@ -232,7 +232,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.
 	}
 	m.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)
 	if !m.Status.BootstrapReady {
-		log.Info("Bootstrap provider generated data secret and reports status.ready", util.LowerCamelCaseKind(bootstrapConfig), klog.KObj(bootstrapConfig), "secret", klog.KRef(m.Namespace, secretName))
+		log.Info("Bootstrap provider generated data secret and reports status.ready", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig), "secret", klog.KRef(m.Namespace, secretName))
 	}
 	m.Status.BootstrapReady = true
 	return ctrl.Result{}, nil
@@ -274,7 +274,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 		return ctrl.Result{}, err
 	}
 	if ready && !m.Status.InfrastructureReady {
-		log.Info("Infrastructure provider has completed machine infrastructure provisioning and reports status.ready", util.LowerCamelCaseKind(infraConfig), klog.KObj(infraConfig))
+		log.Info("Infrastructure provider has completed machine infrastructure provisioning and reports status.ready", infraConfig.GetKind(), klog.KObj(infraConfig))
 	}
 	m.Status.InfrastructureReady = ready
 
@@ -286,7 +286,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 
 	// If the infrastructure provider is not ready, return early.
 	if !ready {
-		log.Info("Waiting for infrastructure provider to create machine infrastructure and report status.ready", util.LowerCamelCaseKind(infraConfig), klog.KObj(infraConfig))
+		log.Info("Waiting for infrastructure provider to create machine infrastructure and report status.ready", infraConfig.GetKind(), klog.KObj(infraConfig))
 		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
 	}
 

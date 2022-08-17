@@ -23,7 +23,6 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -48,7 +47,7 @@ type getNodeReferencesResult struct {
 }
 
 func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "cluster", cluster.Name)
+	log := ctrl.LoggerFrom(ctx)
 	// Check that the MachinePool hasn't been deleted or in the process.
 	if !mp.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
@@ -59,14 +58,6 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 		conditions.MarkTrue(mp, expv1.ReplicasReadyCondition)
 		return ctrl.Result{}, nil
 	}
-
-	// Check that Cluster isn't nil.
-	if cluster == nil {
-		log.V(2).Info("MachinePool doesn't have a linked cluster, won't assign NodeRef")
-		return ctrl.Result{}, nil
-	}
-
-	log = log.WithValues("cluster", klog.KObj(cluster))
 
 	// Check that the MachinePool has valid ProviderIDList.
 	if len(mp.Spec.ProviderIDList) == 0 && (mp.Spec.Replicas == nil || *mp.Spec.Replicas != 0) {

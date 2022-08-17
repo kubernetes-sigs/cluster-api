@@ -345,7 +345,7 @@ func (t *ClusterCacheTracker) deleteAccessor(_ context.Context, cluster client.O
 		return
 	}
 
-	log := t.log.WithValues("cluster", klog.KRef(cluster.Namespace, cluster.Name))
+	log := t.log.WithValues("Cluster", klog.KRef(cluster.Namespace, cluster.Name))
 	log.V(2).Info("Deleting clusterAccessor")
 	log.V(4).Info("Stopping cache")
 	a.cache.Stop()
@@ -396,7 +396,7 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 	}
 
 	if a.watches.Has(input.Name) {
-		t.log.V(6).Info("Watch already exists", "namespace", klog.KRef(input.Cluster.Namespace, ""), "cluster", klog.KRef(input.Cluster.Namespace, input.Cluster.Name), "name", input.Name)
+		t.log.V(6).Info("Watch already exists", "Cluster", klog.KRef(input.Cluster.Namespace, input.Cluster.Name), "name", input.Name)
 		return nil
 	}
 
@@ -501,7 +501,7 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 	// NB. we are ignoring ErrWaitTimeout because this error happens when the channel is close, that in this case
 	// happens when the cache is explicitly stopped.F
 	if err != nil && err != wait.ErrWaitTimeout {
-		t.log.Error(err, "Error health checking cluster", "cluster", klog.KRef(in.cluster.Namespace, in.cluster.Name))
+		t.log.Error(err, "Error health checking cluster", "Cluster", klog.KRef(in.cluster.Namespace, in.cluster.Name))
 		t.deleteAccessor(ctx, in.cluster)
 	}
 }

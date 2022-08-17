@@ -173,7 +173,10 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	if configOwner == nil {
 		return ctrl.Result{}, nil
 	}
-	log = log.WithValues(configOwner.LowerCamelCaseKind(), klog.KRef(configOwner.GetNamespace(), configOwner.GetName()), "resourceVersion", configOwner.GetResourceVersion())
+	log = log.WithValues(configOwner.GetKind(), klog.KRef(configOwner.GetNamespace(), configOwner.GetName()), "resourceVersion", configOwner.GetResourceVersion())
+
+	log = log.WithValues("Cluster", klog.KRef(configOwner.GetNamespace(), configOwner.ClusterName()))
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Lookup the cluster the config owner is associated with
 	cluster, err := util.GetClusterByName(ctx, r.Client, configOwner.GetNamespace(), configOwner.ClusterName())
@@ -190,8 +193,6 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Error(err, "Could not get cluster with metadata")
 		return ctrl.Result{}, err
 	}
-
-	ctx = ctrl.LoggerInto(ctx, log.WithValues("cluster", klog.KObj(cluster)))
 
 	if annotations.IsPaused(cluster, config) {
 		log.Info("Reconciliation is paused for this object")
@@ -1001,7 +1002,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrapf(err, "failed to create bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}
-		log.Info("bootstrap data secret for KubeadmConfig already exists, updating", "secret", klog.KObj(secret))
+		log.Info("bootstrap data secret for KubeadmConfig already exists, updating", "Secret", klog.KObj(secret))
 		if err := r.Client.Update(ctx, secret); err != nil {
 			return errors.Wrapf(err, "failed to update bootstrap data secret for KubeadmConfig %s/%s", scope.Config.Namespace, scope.Config.Name)
 		}

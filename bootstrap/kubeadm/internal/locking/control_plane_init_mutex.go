@@ -51,7 +51,7 @@ func NewControlPlaneInitMutex(client client.Client) *ControlPlaneInitMutex {
 func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) bool {
 	sema := newSemaphore()
 	cmName := configMapName(cluster.Name)
-	log := ctrl.LoggerFrom(ctx, "configMap", klog.KRef(cluster.Namespace, cmName))
+	log := ctrl.LoggerFrom(ctx, "ConfigMap", klog.KRef(cluster.Namespace, cmName))
 	err := c.client.Get(ctx, client.ObjectKey{
 		Namespace: cluster.Namespace,
 		Name:      cmName,
@@ -113,7 +113,7 @@ func (c *ControlPlaneInitMutex) Lock(ctx context.Context, cluster *clusterv1.Clu
 func (c *ControlPlaneInitMutex) Unlock(ctx context.Context, cluster *clusterv1.Cluster) bool {
 	sema := newSemaphore()
 	cmName := configMapName(cluster.Name)
-	log := ctrl.LoggerFrom(ctx, "configMap", klog.KRef(cluster.Namespace, cmName))
+	log := ctrl.LoggerFrom(ctx, "ConfigMap", klog.KRef(cluster.Namespace, cmName))
 	err := c.client.Get(ctx, client.ObjectKey{
 		Namespace: cluster.Namespace,
 		Name:      cmName,

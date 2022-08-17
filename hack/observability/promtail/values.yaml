@@ -11,8 +11,8 @@ config:
     - json:
         expressions:
           controller:
-          cluster: join('/',[cluster.namespace,cluster.name])
-          machine: join('/',[machine.namespace,machine.name])
+          cluster: join('/',[Cluster.namespace,Cluster.name])
+          machine: join('/',[Machine.namespace,Machine.name])
     - labels:
         controller:
         cluster:

@@ -27,7 +27,7 @@ type MailgunClusterReconciler struct {
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=mailgunclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=mailgunclusters/status,verbs=get;update;patch
 
-func (r *MailgunClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *MailgunClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	_ = r.Log.WithValues("mailguncluster", req.NamespacedName)
 
@@ -86,7 +86,7 @@ Reconcile is only passed a name, not an object, so let's retrieve ours.
 Here's a naive example:
 
 ```
-func (r *MailgunClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *MailgunClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	_ = r.Log.WithValues("mailguncluster", req.NamespacedName)
 

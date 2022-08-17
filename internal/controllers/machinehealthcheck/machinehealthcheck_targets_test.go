@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -209,6 +210,7 @@ func TestHealthCheckTargets(t *testing.T) {
 
 	timeoutForMachineToHaveNode := 10 * time.Minute
 	disabledTimeoutForMachineToHaveNode := time.Duration(0)
+	timeoutForUnhealthyConditions := 5 * time.Minute
 
 	// Create a test MHC
 	testMHC := &clusterv1.MachineHealthCheck{
@@ -225,12 +227,12 @@ func TestHealthCheckTargets(t *testing.T) {
 				{
 					Type:    corev1.NodeReady,
 					Status:  corev1.ConditionUnknown,
-					Timeout: metav1.Duration{Duration: 5 * time.Minute},
+					Timeout: metav1.Duration{Duration: timeoutForUnhealthyConditions},
 				},
 				{
 					Type:    corev1.NodeReady,
 					Status:  corev1.ConditionFalse,
-					Timeout: metav1.Duration{Duration: 5 * time.Minute},
+					Timeout: metav1.Duration{Duration: timeoutForUnhealthyConditions},
 				},
 			},
 		},
@@ -249,6 +251,7 @@ func TestHealthCheckTargets(t *testing.T) {
 		Machine: testMachineCreated1200s,
 		Node:    nil,
 	}
+	nodeNotYetStartedTarget1200sCondition := newFailedHealthCheckCondition(clusterv1.NodeStartupTimeoutReason, "Node failed to report startup in %s", timeoutForMachineToHaveNode)
 
 	testMachineCreated400s := testMachine.DeepCopy()
 	nowMinus400s := metav1.NewTime(time.Now().Add(-400 * time.Second))
@@ -265,17 +268,18 @@ func TestHealthCheckTargets(t *testing.T) {
 	nodeGoneAway := healthCheckTarget{
 		Cluster:     cluster,
 		MHC:         testMHC,
-		Machine:     testMachine,
+		Machine:     testMachine.DeepCopy(),
 		Node:        &corev1.Node{},
 		nodeMissing: true,
 	}
+	nodeGoneAwayCondition := newFailedHealthCheckCondition(clusterv1.NodeNotFoundReason, "")
 
 	// Target for when the node has been in an unknown state for shorter than the timeout
 	testNodeUnknown200 := newTestUnhealthyNode("node1", corev1.NodeReady, corev1.ConditionUnknown, 200*time.Second)
 	nodeUnknown200 := healthCheckTarget{
 		Cluster:     cluster,
 		MHC:         testMHC,
-		Machine:     testMachine,
+		Machine:     testMachine.DeepCopy(),
 		Node:        testNodeUnknown200,
 		nodeMissing: false,
 	}
@@ -285,7 +289,7 @@ func TestHealthCheckTargets(t *testing.T) {
 	nodeUnknown100 := healthCheckTarget{
 		Cluster:     cluster,
 		MHC:         testMHC,
-		Machine:     testMachine,
+		Machine:     testMachine.DeepCopy(),
 		Node:        testNodeUnknown100,
 		nodeMissing: false,
 	}
@@ -295,10 +299,11 @@ func TestHealthCheckTargets(t *testing.T) {
 	nodeUnknown400 := healthCheckTarget{
 		Cluster:     cluster,
 		MHC:         testMHC,
-		Machine:     testMachine,
+		Machine:     testMachine.DeepCopy(),
 		Node:        testNodeUnknown400,
 		nodeMissing: false,
 	}
+	nodeUnknown400Condition := newFailedHealthCheckCondition(clusterv1.UnhealthyNodeConditionReason, "Condition Ready on node is reporting status Unknown for more than %s", timeoutForUnhealthyConditions)
 
 	// Target for when a node is healthy
 	testNodeHealthy := newTestNode("node1")
@@ -306,18 +311,43 @@ func TestHealthCheckTargets(t *testing.T) {
 	nodeHealthy := healthCheckTarget{
 		Cluster:     cluster,
 		MHC:         testMHC,
-		Machine:     testMachine,
+		Machine:     testMachine.DeepCopy(),
 		Node:        testNodeHealthy,
 		nodeMissing: false,
 	}
 
+	// Target for when the machine has a failure reason
+	failureReason := errors.UpdateMachineError
+	testMachineFailureReason := testMachine.DeepCopy()
+	testMachineFailureReason.Status.FailureReason = &failureReason
+	machineFailureReason := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHC,
+		Machine: testMachineFailureReason,
+		Node:    nil,
+	}
+	machineFailureReasonCondition := newFailedHealthCheckCondition(clusterv1.MachineHasFailureReason, "FailureReason: %s", failureReason)
+
+	// Target for when the machine has a failure message
+	failureMsg := "some failure message"
+	testMachineFailureMsg := testMachine.DeepCopy()
+	testMachineFailureMsg.Status.FailureMessage = &failureMsg
+	machineFailureMsg := healthCheckTarget{
+		Cluster: cluster,
+		MHC:     testMHC,
+		Machine: testMachineFailureMsg,
+		Node:    nil,
+	}
+	machineFailureMsgCondition := newFailedHealthCheckCondition(clusterv1.MachineHasFailureReason, "FailureMessage: %s", failureMsg)
+
 	testCases := []struct {
-		desc                        string
-		targets                     []healthCheckTarget
-		timeoutForMachineToHaveNode *time.Duration
-		expectedHealthy             []healthCheckTarget
-		expectedNeedsRemediation    []healthCheckTarget
-		expectedNextCheckTimes      []time.Duration
+		desc                              string
+		targets                           []healthCheckTarget
+		timeoutForMachineToHaveNode       *time.Duration
+		expectedHealthy                   []healthCheckTarget
+		expectedNeedsRemediation          []healthCheckTarget
+		expectedNeedsRemediationCondition []clusterv1.Condition
+		expectedNextCheckTimes            []time.Duration
 	}{
 		{
 			desc:                     "when the node has not yet started for shorter than the timeout",
@@ -327,18 +357,20 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNextCheckTimes:   []time.Duration{timeoutForMachineToHaveNode - 400*time.Second},
 		},
 		{
-			desc:                     "when the node has not yet started for longer than the timeout",
-			targets:                  []healthCheckTarget{nodeNotYetStartedTarget1200s},
-			expectedHealthy:          []healthCheckTarget{},
-			expectedNeedsRemediation: []healthCheckTarget{nodeNotYetStartedTarget1200s},
-			expectedNextCheckTimes:   []time.Duration{},
+			desc:                              "when the node has not yet started for longer than the timeout",
+			targets:                           []healthCheckTarget{nodeNotYetStartedTarget1200s},
+			expectedHealthy:                   []healthCheckTarget{},
+			expectedNeedsRemediation:          []healthCheckTarget{nodeNotYetStartedTarget1200s},
+			expectedNeedsRemediationCondition: []clusterv1.Condition{nodeNotYetStartedTarget1200sCondition},
+			expectedNextCheckTimes:            []time.Duration{},
 		},
 		{
-			desc:                     "when the node has gone away",
-			targets:                  []healthCheckTarget{nodeGoneAway},
-			expectedHealthy:          []healthCheckTarget{},
-			expectedNeedsRemediation: []healthCheckTarget{nodeGoneAway},
-			expectedNextCheckTimes:   []time.Duration{},
+			desc:                              "when the node has gone away",
+			targets:                           []healthCheckTarget{nodeGoneAway},
+			expectedHealthy:                   []healthCheckTarget{},
+			expectedNeedsRemediation:          []healthCheckTarget{nodeGoneAway},
+			expectedNeedsRemediationCondition: []clusterv1.Condition{nodeGoneAwayCondition},
+			expectedNextCheckTimes:            []time.Duration{},
 		},
 		{
 			desc:                     "when the node has been in an unknown state for shorter than the timeout",
@@ -348,11 +380,12 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNextCheckTimes:   []time.Duration{100 * time.Second},
 		},
 		{
-			desc:                     "when the node has been in an unknown state for longer than the timeout",
-			targets:                  []healthCheckTarget{nodeUnknown400},
-			expectedHealthy:          []healthCheckTarget{},
-			expectedNeedsRemediation: []healthCheckTarget{nodeUnknown400},
-			expectedNextCheckTimes:   []time.Duration{},
+			desc:                              "when the node has been in an unknown state for longer than the timeout",
+			targets:                           []healthCheckTarget{nodeUnknown400},
+			expectedHealthy:                   []healthCheckTarget{},
+			expectedNeedsRemediation:          []healthCheckTarget{nodeUnknown400},
+			expectedNeedsRemediationCondition: []clusterv1.Condition{nodeUnknown400Condition},
+			expectedNextCheckTimes:            []time.Duration{},
 		},
 		{
 			desc:                     "when the node is healthy",
@@ -362,11 +395,12 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedNextCheckTimes:   []time.Duration{},
 		},
 		{
-			desc:                     "with a mix of healthy and unhealthy nodes",
-			targets:                  []healthCheckTarget{nodeUnknown100, nodeUnknown200, nodeUnknown400, nodeHealthy},
-			expectedHealthy:          []healthCheckTarget{nodeHealthy},
-			expectedNeedsRemediation: []healthCheckTarget{nodeUnknown400},
-			expectedNextCheckTimes:   []time.Duration{200 * time.Second, 100 * time.Second},
+			desc:                              "with a mix of healthy and unhealthy nodes",
+			targets:                           []healthCheckTarget{nodeUnknown100, nodeUnknown200, nodeUnknown400, nodeHealthy},
+			expectedHealthy:                   []healthCheckTarget{nodeHealthy},
+			expectedNeedsRemediation:          []healthCheckTarget{nodeUnknown400},
+			expectedNeedsRemediationCondition: []clusterv1.Condition{nodeUnknown400Condition},
+			expectedNextCheckTimes:            []time.Duration{200 * time.Second, 100 * time.Second},
 		},
 		{
 			desc:                        "when the node has not started for a long time but the startup timeout is disabled",
@@ -375,6 +409,22 @@ func TestHealthCheckTargets(t *testing.T) {
 			expectedHealthy:             []healthCheckTarget{}, // The node is not healthy as it does not have a machine
 			expectedNeedsRemediation:    []healthCheckTarget{},
 			expectedNextCheckTimes:      []time.Duration{}, // We don't have a timeout so no way to know when to re-check
+		},
+		{
+			desc:                              "when the machine has a failure reason",
+			targets:                           []healthCheckTarget{machineFailureReason},
+			expectedHealthy:                   []healthCheckTarget{},
+			expectedNeedsRemediation:          []healthCheckTarget{machineFailureReason},
+			expectedNeedsRemediationCondition: []clusterv1.Condition{machineFailureReasonCondition},
+			expectedNextCheckTimes:            []time.Duration{},
+		},
+		{
+			desc:                              "when the machine has a failure message",
+			targets:                           []healthCheckTarget{machineFailureMsg},
+			expectedHealthy:                   []healthCheckTarget{},
+			expectedNeedsRemediation:          []healthCheckTarget{machineFailureMsg},
+			expectedNeedsRemediationCondition: []clusterv1.Condition{machineFailureMsgCondition},
+			expectedNextCheckTimes:            []time.Duration{},
 		},
 	}
 
@@ -405,9 +455,24 @@ func TestHealthCheckTargets(t *testing.T) {
 				return out
 			}
 
+			// Remove the last transition time of the given conditions. Used for comparison with expected conditions.
+			removeLastTransitionTimes := func(in clusterv1.Conditions) clusterv1.Conditions {
+				out := clusterv1.Conditions{}
+				for _, c := range in {
+					withoutTime := c.DeepCopy()
+					withoutTime.LastTransitionTime = metav1.Time{}
+					out = append(out, *withoutTime)
+				}
+				return out
+			}
+
 			gs.Expect(healthy).To(ConsistOf(tc.expectedHealthy))
 			gs.Expect(unhealthy).To(ConsistOf(tc.expectedNeedsRemediation))
 			gs.Expect(nextCheckTimes).To(WithTransform(roundDurations, ConsistOf(tc.expectedNextCheckTimes)))
+			for i, expectedMachineConditions := range tc.expectedNeedsRemediationCondition {
+				actualConditions := unhealthy[i].Machine.GetConditions()
+				gs.Expect(actualConditions).To(WithTransform(removeLastTransitionTimes, ContainElements(expectedMachineConditions)))
+			}
 		})
 	}
 }
@@ -476,4 +541,8 @@ func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, statu
 			},
 		},
 	}
+}
+
+func newFailedHealthCheckCondition(reason string, messageFormat string, messageArgs ...interface{}) clusterv1.Condition {
+	return *conditions.FalseCondition(clusterv1.MachineHealthCheckSucceededCondition, reason, clusterv1.ConditionSeverityWarning, messageFormat, messageArgs...)
 }

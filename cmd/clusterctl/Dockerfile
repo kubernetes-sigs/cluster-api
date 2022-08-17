@@ -17,6 +17,10 @@
 # Build the clusterctl binary
 # Run this with docker build --build-arg builder_image=<golang:x.y.z>
 ARG builder_image
+
+# Build architecture
+ARG ARCH
+
 FROM ${builder_image} as builder
 WORKDIR /workspace
 
@@ -55,7 +59,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     -o clusterctl ${package}
 
 # Production image
-FROM gcr.io/distroless/static:nonroot
+FROM --platform=${ARCH} gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/clusterctl .
 # Use uid of nonroot user (65532) because kubernetes expects numeric user when applying pod security policies

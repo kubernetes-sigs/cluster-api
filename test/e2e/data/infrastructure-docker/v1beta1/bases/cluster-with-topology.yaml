@@ -17,11 +17,13 @@ spec:
     version: "${KUBERNETES_VERSION}"
     controlPlane:
       metadata: {}
+      nodeDrainTimeout: "30s"
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     workers:
       machineDeployments:
       - class: "default-worker"
         name: "md-0"
+        nodeDrainTimeout: "30s"
         replicas: ${WORKER_MACHINE_COUNT}
         failureDomain: fd4
     variables:

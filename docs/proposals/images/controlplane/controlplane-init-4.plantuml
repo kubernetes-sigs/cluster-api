@@ -18,7 +18,7 @@ end box
 "Cluster API Cluster Controller"-> "Cluster API Cluster Controller":Cluster Controller Reconcile
 activate "Cluster API Cluster Controller"
 
-opt Cluster.Spec.ControlPlaneRef -> Status.Initialized is true
+opt #FFFFFFCC Cluster.Spec.ControlPlaneRef -> Status.Initialized is true
 
 "Cluster API Cluster Controller"-> "Cluster API Cluster Controller":Set Cluster.Status.ControlPlaneInitialized = true
 

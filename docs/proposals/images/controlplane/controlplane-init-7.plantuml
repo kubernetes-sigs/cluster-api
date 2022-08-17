@@ -38,7 +38,7 @@ note over "KubeadmControlPlane Controller": - ✅ Cluster.Status.InfrastructureR
 
 note over "KubeadmControlPlane Controller": - Process for selecting a Machine to delete is TBD
 
-opt KubeadmControlPlane.Spec.Replicas >= 1, all existing Machines "Ready", num Machines > Replicas
+opt #FFFFFFCC KubeadmControlPlane.Spec.Replicas >= 1, all existing Machines "Ready", num Machines > Replicas
 
 "KubeadmControlPlane Controller"->"Workload Cluster API Server": Remove etcd Member
 

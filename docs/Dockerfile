@@ -14,25 +14,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Recommended usage:
-#
-# - Run an ephemeral container
-# - Mount the current working directory into the container.
-# - Run the entrypoint as the user invoking docker run. Otherwise the output
-#   files will be owned by root, the default user.
-#
-# - Example:
-# docker run \
-# 	--rm \
-# 	--volume ${PWD}:/figures \
-# 	--user $(shell id --user):$(shell id --group) \
-# 	${IMAGE_TAG} \
-# 	-v /figures/*.plantuml
-
+# To generate diagrams run 'make diagrams' in the docs/ folder.
 FROM maven:3-jdk-8
 
-RUN apt-get update && apt-get install -y --no-install-recommends graphviz fonts-symbola fonts-wqy-zenhei && rm -rf /var/lib/apt/lists/*
-RUN wget -O /plantuml.jar http://sourceforge.net/projects/plantuml/files/plantuml.1.2019.6.jar/download
+RUN apt-get update && apt-get install -y --no-install-recommends graphviz=2.42.2-5 fonts-symbola=2.60-1.1 fonts-wqy-zenhei=0.9.45-8 && rm -rf /var/lib/apt/lists/*
+RUN wget -O /plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2022.6/plantuml-1.2022.6.jar
 
 # By default, java writes a 'hsperfdata_<username>' directory in the work dir.
 # This directory is not needed; to ensure it is not written, we set `-XX:-UsePerfData`

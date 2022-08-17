@@ -32,7 +32,7 @@ note over "KubeadmControlPlane Controller": - ✅ Cluster.Status.InfrastructureR
 "KubeadmControlPlane Controller"->"API Server": Get Machines matching label selector
 "KubeadmControlPlane Controller"<<--"API Server": Response
 
-opt KubeadmControlPlane.Spec.Replicas >= 1, all existing Machines "Ready", num Machines < Replicas
+opt #FFFFFFCC KubeadmControlPlane.Spec.Replicas >= 1, all existing Machines "Ready", num Machines < Replicas
 
 "KubeadmControlPlane Controller"->"API Server": Create KubeadmConfig from KubeadmControlPlane.Spec.KubeadmConfigSpec
 "KubeadmControlPlane Controller"<<--"API Server": Response

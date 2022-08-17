@@ -25,7 +25,7 @@ activate "Cluster API Machine Controller"
 
 note over "Cluster API Machine Controller": - ✅ Machine.Status.Phase is "Provisioned" \n- ✅ Machine.Spec.InfrastructureRef -> Status.Ready is true\n- ✅ Machine.Spec.InfrastructureRef -> Status.Addresses is not empty
 
-loop until timeout or Node's status is Ready
+loop #FFFFFFCC until timeout or Node's status is Ready
 "Cluster API Machine Controller"->"Workload Cluster API Server": Get Node
 "Cluster API Machine Controller"<<--"Workload Cluster API Server": Response
 note over "Cluster API Machine Controller":Loop conditions:\n- ✅ Node.Spec.ProviderID matches Machine.Spec.ProviderID\n- ✅ Node status is "Ready"

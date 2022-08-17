@@ -16,7 +16,7 @@ end box
 
 User -> "API Server" : Update Cluster object with\n""Cluster.Spec.Class""
 "API Server" --> "Cluster Controller": Existing Cluster
-opt Required only if Cluster.Spec.Class is set
+opt #FFFFFFCC Required only if Cluster.Spec.Class is set
   "Cluster Controller" -> "Cluster Controller": Fetches the InfrastructureCluster object\nset in Cluster.spec.infrastructureRef
   opt Update the InfrastructureCluster
     "Cluster Controller" -> "Cluster Controller": Updates InfrastructureCluster fields

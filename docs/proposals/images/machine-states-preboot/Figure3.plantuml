@@ -23,25 +23,25 @@ activate "Cluster API Machine Controller"
 
 note over "Cluster API Machine Controller": - ✅ Machine.Status.Phase is empty\n- ✅ Machine.Spec.Bootstrap.Data is <nil>\n- ✅ Machine.Spec.Bootstrap.ConfigRef is populated\n- ✅ Machine.Spec.Bootstrap.ConfigRef -> Status.Ready is false
 
-opt Required only if the object hasn't been seen before
+opt #FFFFFFCC Required only if the object hasn't been seen before
 "Cluster API Machine Controller"-> "Cluster API Machine Controller":Add watcher for \nMachine.Spec.Bootstrap.ConfigRef.Kind objects
 end
 
-opt Required only if the object hasn't been seen before
+opt #FFFFFFCC Required only if the object hasn't been seen before
 "Cluster API Machine Controller"-> "Cluster API Machine Controller":Add watcher for \nMachine.Spec.InfrastructureRef.Kind objects
 end
 
-opt Required only if the object hasn't been seen before
+opt #FFFFFFCC Required only if the object hasn't been seen before
 "Cluster API Machine Controller"-> "Cluster API Machine Controller":Add watcher for \nMachine.Spec.Bootstrap.ConfigRef.Kind objects
 end
 
-opt Required only if the object doesn't have a Machine owner reference
+opt #FFFFFFCC Required only if the object doesn't have a Machine owner reference
 "Cluster API Machine Controller"-> "Cluster API Machine Controller":Set Machine.Spec.Bootstrap.ConfigRef -> OwnerReferences[0] to Machine
 "Cluster API Machine Controller"->"API Server": Update KubeadmBootstrapConfig
 "Cluster API Machine Controller"<<--"API Server": Response
 end
 
-opt Required only if the object doesn't have a Machine owner reference
+opt #FFFFFFCC Required only if the object doesn't have a Machine owner reference
 "Cluster API Machine Controller"-> "Cluster API Machine Controller":Set Machine.Spec.InfrastructureRef -> OwnerReferences[0] to Machine
 "Cluster API Machine Controller"->"API Server": Update AWSInfrastructureConfig
 "Cluster API Machine Controller"<<--"API Server": Response

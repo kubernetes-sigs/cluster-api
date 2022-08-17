@@ -21,24 +21,24 @@ end box
 User -> "API Server" : Create Cluster Infrastructure
 "API Server" -->> "Infrastructure Controller": New Provider Infrastructure
 
-opt IF Infrastructure has no owner ref
+opt #FFFFFFCC IF Infrastructure has no owner ref
 "Infrastructure Controller"->"Infrastructure Controller": Do Nothing
 end
 
 User -> "API Server": Create Cluster
 "API Server" -->> "Cluster Controller": New Cluster
 "Cluster Controller" -> "API Server": Get Infrastructure
-opt Required Only if Infrastructure not seen before
+opt #FFFFFFCC Required Only if Infrastructure not seen before
 "Cluster Controller" -> "Cluster Controller": Add Watcher for Cluster.InfrastructureRef.Kind objects
 end
 
-opt Required Only if Infrastructure has no owner
+opt #FFFFFFCC Required Only if Infrastructure has no owner
 "Cluster Controller" -> "Cluster Controller": Set Infrastructure's owner to Cluster
 "Cluster Controller" -> "API Server": Update Infrastructure
 end
 
 "API Server" -->> "Infrastructure Controller": Infrastructure update
-opt Required only if Infrastructure has owner ref
+opt #FFFFFFCC Required only if Infrastructure has owner ref
 "Infrastructure Controller" -> "API Server": Get Cluster
 "Infrastructure Controller" -> "Infrastructure Controller": Provision infrastructure
 "Infrastructure Controller" -> "Infrastructure Controller": Set Infrastructure.Status.APIEndpoint
@@ -47,7 +47,7 @@ opt Required only if Infrastructure has owner ref
 end
 
 "API Server" -->> "Cluster Controller": Infrastructure Update
-opt Only required if Infrastructure.Status.Ready is true
+opt #FFFFFFCC Only required if Infrastructure.Status.Ready is true
 "Cluster Controller" -> "API Server": Get Cluster
 "Cluster Controller" -> "Cluster Controller": Set Cluster.Status.APIEndpoint = Infrastructure.Status.APIEndpoint
 "Cluster Controller" -> "Cluster Controller": Set Cluster.Status.InfrastructureReady true

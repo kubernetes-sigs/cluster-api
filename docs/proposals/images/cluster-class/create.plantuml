@@ -16,7 +16,7 @@ end box
 
 User -> "API Server" : Create Cluster object with\n""Cluster.Spec.Managed.Class""
 "API Server" --> "Cluster Controller": New Cluster
-opt Required only if Cluster.Spec.Managed.Class is set
+opt #FFFFFFCC Required only if Cluster.Spec.Managed.Class is set
 "Cluster Controller" --> "API Server": Creates the infrastructure cluster
 "Cluster Controller" -> "Cluster Controller": Checks for\nCluster.Spec.ControlPlaneRef
 opt Required only if Cluster.Spec.ControlPlaneRef is not set

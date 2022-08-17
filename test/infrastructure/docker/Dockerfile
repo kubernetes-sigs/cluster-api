@@ -17,6 +17,9 @@
 # Run this with docker build --build-arg builder_image=<golang:x.y.z>
 ARG builder_image
 
+# Build architecture
+ARG ARCH
+
 # Ignore Hadolint rule "Always tag the version of an image explicitly."
 # It's an invalid finding since the image is explicitly set in the Makefile.
 # https://github.com/hadolint/hadolint/wiki/DL3006
@@ -57,6 +60,9 @@ COPY . .
 # Essentially, change directories into CAPD
 WORKDIR /workspace/test/infrastructure/docker
 
+# Build
+ARG ARCH
+
 # Build the CAPD manager using the compiler cache folder
 RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
@@ -67,7 +73,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 # Ignore Hadolint rule "Using latest is prone to errors if the image will ever update. Pin the version explicitly to a release tag."
 # https://github.com/hadolint/hadolint/wiki/DL3007
 # hadolint ignore=DL3007
-FROM gcr.io/distroless/static:latest
+FROM --platform=${ARCH} gcr.io/distroless/static:latest
 
 WORKDIR /
 COPY --from=builder /workspace/manager .

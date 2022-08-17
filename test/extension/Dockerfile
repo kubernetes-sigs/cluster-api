@@ -18,6 +18,9 @@
 # Run this with docker build --build-arg builder_image=<golang:x.y.z>
 ARG builder_image
 
+# Build architecture
+ARG ARCH
+
 # Ignore Hadolint rule "Always tag the version of an image explicitly."
 # It's an invalid finding since the image is explicitly set in the Makefile.
 # https://github.com/hadolint/hadolint/wiki/DL3006
@@ -63,7 +66,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     -o /workspace/extension ${package}
 
 # Production image
-FROM gcr.io/distroless/static:nonroot
+FROM --platform=${ARCH} gcr.io/distroless/static:nonroot
 WORKDIR /
 COPY --from=builder /workspace/extension .
 # Use uid of nonroot user (65532) because kubernetes expects numeric user when applying pod security policies

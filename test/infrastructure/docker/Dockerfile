@@ -73,7 +73,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 # Ignore Hadolint rule "Using latest is prone to errors if the image will ever update. Pin the version explicitly to a release tag."
 # https://github.com/hadolint/hadolint/wiki/DL3007
 # hadolint ignore=DL3007
-FROM --platform=${ARCH} gcr.io/distroless/static:latest
+FROM gcr.io/distroless/static:latest-${ARCH}
 
 WORKDIR /
 COPY --from=builder /workspace/manager .

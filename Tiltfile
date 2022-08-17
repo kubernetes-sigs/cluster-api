@@ -364,45 +364,11 @@ def deploy_observability():
         )
 
 def prepare_all():
-    allow_k8s_arg = ""
-    if settings.get("allowed_contexts"):
-        if type(settings.get("allowed_contexts")) == "string":
-            allow_k8s_arg = "--allow-k8s-contexts={} ".format(settings.get("allowed_contexts"))
-        if type(settings.get("allowed_contexts")) == "list":
-            for context in settings.get("allowed_contexts"):
-                allow_k8s_arg = allow_k8s_arg + "--allow-k8s-contexts={} ".format(context)
-
     tools_arg = "--tools kustomize,envsubst "
-    cert_manager_arg = ""
-    if settings.get("deploy_cert_manager"):
-        cert_manager_arg = "--cert-manager "
-
-    # Note: we are creating clusterctl CRDs using kustomize (vs using clusterctl) because we want to create
-    # a dependency between these resources and provider resources.
-    kustomize_build_arg = "--kustomize-builds clusterctl.crd:./cmd/clusterctl/config/crd/ "
-    for tool in settings.get("deploy_observability", []):
-        kustomize_build_arg = kustomize_build_arg + "--kustomize-builds {tool}.observability:./hack/observability/{tool}/ ".format(tool = tool)
-    providers_arg = ""
-    for name in get_providers():
-        p = providers.get(name)
-        if p == None:
-            fail("Provider with name " + name + " not found")
-        if p.get("kustomize_config", True):
-            context = p.get("context")
-            debug = ""
-            providers_arg = providers_arg + "--providers {name}:{context} ".format(
-                name = name,
-                context = context,
-            )
-
     tilt_settings_file_arg = "--tilt-settings-file " + tilt_file
 
-    cmd = "make -B tilt-prepare && ./hack/tools/bin/tilt-prepare {allow_k8s_arg}{tools_arg}{cert_manager_arg}{kustomize_build_arg}{providers_arg}{tilt_settings_file_arg}".format(
-        allow_k8s_arg = allow_k8s_arg,
+    cmd = "make -B tilt-prepare && ./hack/tools/bin/tilt-prepare {tools_arg}{tilt_settings_file_arg}".format(
         tools_arg = tools_arg,
-        cert_manager_arg = cert_manager_arg,
-        kustomize_build_arg = kustomize_build_arg,
-        providers_arg = providers_arg,
         tilt_settings_file_arg = tilt_settings_file_arg,
     )
     local(cmd, env = settings.get("kustomize_substitutions", {}))

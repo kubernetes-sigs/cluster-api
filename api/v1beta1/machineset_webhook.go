@@ -31,19 +31,26 @@ import (
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
+// Deprecated: This file, including all public and private methods, will be removed in a future release.
+// The MachineSet webhook validation implementation and API can now be found in the webhooks package.
+
+// SetupWebhookWithManager sets up MachineSeMachineSet.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.MachineSet.SetupWebhookWithManager instead.
+// Note: We don't have to call this func for the conversion webhook as there is only a single conversion webhook instance
+// for all resources and we already register it through other types.
 func (m *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(m).
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1beta1-machineset,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinesets,versions=v1beta1,name=validation.machineset.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-machineset,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinesets,versions=v1beta1,name=default.machineset.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
-
 var _ webhook.Defaulter = &MachineSet{}
 var _ webhook.Validator = &MachineSet{}
 
 // Default sets default MachineSet field values.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.MachineSet.Default instead.
 func (m *MachineSet) Default() {
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
@@ -75,11 +82,15 @@ func (m *MachineSet) Default() {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.MachineSet.ValidateCreate instead.
 func (m *MachineSet) ValidateCreate() error {
 	return m.validate(nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.MachineSet.ValidateUpdate instead.
 func (m *MachineSet) ValidateUpdate(old runtime.Object) error {
 	oldMS, ok := old.(*MachineSet)
 	if !ok {
@@ -89,6 +100,8 @@ func (m *MachineSet) ValidateUpdate(old runtime.Object) error {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.MachineSet.ValidateDelete instead.
 func (m *MachineSet) ValidateDelete() error {
 	return nil
 }

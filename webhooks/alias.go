@@ -70,3 +70,15 @@ func (webhook *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) erro
 		Client: webhook.Client,
 	}).SetupWebhookWithManager(mgr)
 }
+
+// MachineSet implements a validation and defaulting webhook for MachineSet.
+type MachineSet struct {
+	Client client.Reader
+}
+
+// SetupWebhookWithManager sets up MachineSet webhooks.
+func (webhook *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.MachineSet{
+		Client: webhook.Client,
+	}).SetupWebhookWithManager(mgr)
+}

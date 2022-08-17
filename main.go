@@ -493,7 +493,7 @@ func setupWebhooks(mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
-	if err := (&clusterv1.MachineSet{}).SetupWebhookWithManager(mgr); err != nil {
+	if err := (&webhooks.MachineSet{Client: mgr.GetClient()}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "MachineSet")
 		os.Exit(1)
 	}

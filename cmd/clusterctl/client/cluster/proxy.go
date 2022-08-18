@@ -206,12 +206,12 @@ func (k *proxy) CheckClusterAvailable() error {
 // This is done to avoid errors when listing resources of providers which have already been deleted/scaled down to 0 replicas/with
 // malfunctioning webhooks.
 // For example:
-// * The AWS provider has already been deleted, but there are still cluster-wide resources of AWSClusterControllerIdentity.
-// * The AWSClusterControllerIdentity resources are still stored in an older version (e.g. v1alpha4, when the preferred
-//   version is v1beta1)
-// * If we now want to delete e.g. the kubeadm bootstrap provider, we cannot list AWSClusterControllerIdentity resources
-//   as the conversion would fail, because the AWS controller hosting the conversion webhook has already been deleted.
-// * Thus we exclude resources of other providers if we detect that ListResources is called to list resources of a provider.
+//   - The AWS provider has already been deleted, but there are still cluster-wide resources of AWSClusterControllerIdentity.
+//   - The AWSClusterControllerIdentity resources are still stored in an older version (e.g. v1alpha4, when the preferred
+//     version is v1beta1)
+//   - If we now want to delete e.g. the kubeadm bootstrap provider, we cannot list AWSClusterControllerIdentity resources
+//     as the conversion would fail, because the AWS controller hosting the conversion webhook has already been deleted.
+//   - Thus we exclude resources of other providers if we detect that ListResources is called to list resources of a provider.
 func (k *proxy) ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {
 	cs, err := k.newClientSet()
 	if err != nil {

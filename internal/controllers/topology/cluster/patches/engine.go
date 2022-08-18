@@ -56,10 +56,10 @@ type engine struct {
 
 // Apply applies patches to the desired state according to the patches from the ClusterClass, variables from the Cluster
 // and builtin variables.
-// * A GeneratePatchesRequest with all templates and global and template-specific variables is created.
-// * Then for all ClusterClassPatches of a ClusterClass, JSON or JSON merge patches are generated
-//   and successively applied to the templates in the GeneratePatchesRequest.
-// * Eventually the patched templates are used to update the specs of the desired objects.
+//   - A GeneratePatchesRequest with all templates and global and template-specific variables is created.
+//   - Then for all ClusterClassPatches of a ClusterClass, JSON or JSON merge patches are generated
+//     and successively applied to the templates in the GeneratePatchesRequest.
+//   - Eventually the patched templates are used to update the specs of the desired objects.
 func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, desired *scope.ClusterState) error {
 	// Return if there are no patches.
 	if len(blueprint.ClusterClass.Spec.Patches) == 0 {

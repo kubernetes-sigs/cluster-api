@@ -150,11 +150,11 @@ func copySlice(in []interface{}) []interface{} {
 
 // flatten returns a human readable/machine parsable text representing the LogEntry.
 // Most notable difference with the klog implementation are:
-// - The message is printed at the beginning of the line, without the Msg= variable name e.g.
-//   "Msg"="This is a message" --> This is a message
-// - Variables name are not quoted, eg.
-//   This is a message "Var1"="value" --> This is a message Var1="value"
-// - Variables are not sorted, thus allowing full control to the developer on the output.
+//   - The message is printed at the beginning of the line, without the Msg= variable name e.g.
+//     "Msg"="This is a message" --> This is a message
+//   - Variables name are not quoted, eg.
+//     This is a message "Var1"="value" --> This is a message Var1="value"
+//   - Variables are not sorted, thus allowing full control to the developer on the output.
 func flatten(entry logEntry) (string, error) {
 	var msgValue string
 	var errorValue error

@@ -257,9 +257,9 @@ func (t *topologyClient) validateInput(in *TopologyPlanInput) error {
 }
 
 // prepareInput does the following on the input objects:
-// - Set the target namespace on the objects if not set (this operation is generally done by kubectl)
-// - Prepare cluster objects so that the state of the cluster, if modified, correctly represents
-//   the expected changes.
+//   - Set the target namespace on the objects if not set (this operation is generally done by kubectl)
+//   - Prepare cluster objects so that the state of the cluster, if modified, correctly represents
+//     the expected changes.
 func (t *topologyClient) prepareInput(ctx context.Context, in *TopologyPlanInput, apiReader client.Reader) error {
 	if err := t.setMissingNamespaces(in.TargetNamespace, in.Objs); err != nil {
 		return errors.Wrap(err, "failed to set missing namespaces")
@@ -297,18 +297,20 @@ func (t *topologyClient) setMissingNamespaces(currentNamespace string, objs []*u
 }
 
 // prepareClusters does the following operations on each Cluster in the input.
-// - Check if the Cluster exists in the real apiserver.
-// - If the Cluster exists in the real apiserver we merge the object from the
-//   server with the object from the input. This final object correctly represents the
-//   modified cluster object.
-//   Note: We are using a simple 2-way merge to calculate the final object in this function
-//   to keep the function simple. In reality kubectl does a lot more. This function does not behave exactly
-//   the same way as kubectl does.
+//   - Check if the Cluster exists in the real apiserver.
+//   - If the Cluster exists in the real apiserver we merge the object from the
+//     server with the object from the input. This final object correctly represents the
+//     modified cluster object.
+//     Note: We are using a simple 2-way merge to calculate the final object in this function
+//     to keep the function simple. In reality kubectl does a lot more. This function does not behave exactly
+//     the same way as kubectl does.
+//
 // *Important note*: We do this above operation because the topology reconciler in a
-//   real run takes as input a cluster object from the apiserver that has merged spec of
-//   the changes in the input and the one stored in the server. For example: the cluster
-//   object in the input will not have cluster.spec.infrastructureRef and cluster.spec.controlPlaneRef
-//   but the merged object will have these fields set.
+//
+//	real run takes as input a cluster object from the apiserver that has merged spec of
+//	the changes in the input and the one stored in the server. For example: the cluster
+//	object in the input will not have cluster.spec.infrastructureRef and cluster.spec.controlPlaneRef
+//	but the merged object will have these fields set.
 func (t *topologyClient) prepareClusters(ctx context.Context, clusters []*unstructured.Unstructured, apiReader client.Reader) error {
 	if apiReader == nil {
 		// If there is no backing server there is nothing more to do here.

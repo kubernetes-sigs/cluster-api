@@ -192,10 +192,11 @@ type CompareOption func(*comparer)
 // - Identifiers with letters or hyphens are compared only for equality, otherwise, 2 is returned given
 // that it is not possible to identify if lower or greater (non-numeric identifiers could be random build
 // identifiers).
-//   -1 == a is less than b.
-//   0 == a is equal to b.
-//   1 == a is greater than b.
-//   2 == v is different than o (it is not possible to identify if lower or greater).
+//
+//	-1 == a is less than b.
+//	0 == a is equal to b.
+//	1 == a is greater than b.
+//	2 == v is different than o (it is not possible to identify if lower or greater).
 func WithBuildTags() CompareOption {
 	return func(c *comparer) {
 		c.buildTags = true

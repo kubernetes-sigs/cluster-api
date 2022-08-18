@@ -74,10 +74,13 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 // i.e. the templates would otherwise be orphaned after the MachineDeployment deletion completes.
 // Additional context:
 // * MachineDeployment deletion:
-//   * MachineDeployments are deleted and garbage collected first (without waiting until all MachineSets are also deleted).
-//   * After that, deletion of MachineSets is automatically triggered by Kubernetes based on owner references.
+//   - MachineDeployments are deleted and garbage collected first (without waiting until all MachineSets are also deleted).
+//   - After that, deletion of MachineSets is automatically triggered by Kubernetes based on owner references.
+//
 // Note: We assume templates are not reused by different MachineDeployments, which is only true for topology-owned
-//       MachineDeployments.
+//
+//	MachineDeployments.
+//
 // We don't have to set the finalizer, as it's already set during MachineDeployment creation
 // in the cluster topology controller.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

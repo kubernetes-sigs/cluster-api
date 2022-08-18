@@ -152,6 +152,7 @@ func ResourceHasFilterLabel(logger logr.Logger, labelValue string) predicate.Fun
 // This implements a common requirement for all cluster-api and provider controllers skip reconciliation when the paused
 // annotation is present for a resource.
 // Example use:
+//
 //	func (r *MyReconciler) SetupWithManager(mgr ctrl.Manager, options controller.Options) error {
 //		controller, err := ctrl.NewControllerManagedBy(mgr).
 //			For(&v1.MyType{}).

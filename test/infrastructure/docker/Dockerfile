@@ -65,7 +65,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} go build -trimpath -a -o /workspace/manager main.go
 
 # NOTE: CAPD can't use non-root because docker requires access to the docker socket
-FROM --platform=${ARCH} gcr.io/distroless/static:latest
+FROM gcr.io/distroless/static:latest-${ARCH}
 
 WORKDIR /
 COPY --from=builder /workspace/manager .

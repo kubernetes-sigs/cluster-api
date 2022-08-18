@@ -472,7 +472,7 @@ apidiff: $(GO_APIDIFF) ## Check for API differences
 ALL_VERIFY_CHECKS = doctoc boilerplate shellcheck tiltfile modules gen conversions capi-book-summary
 
 .PHONY: verify
-verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) ## Run all verify-* targets
+verify: $(addprefix verify-,$(ALL_VERIFY_CHECKS)) lint-dockerfiles ## Run all verify-* targets
 
 .PHONY: verify-modules
 verify-modules: generate-modules  ## Verify go modules are up to date

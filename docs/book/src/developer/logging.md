@@ -130,23 +130,25 @@ thorny parts of code. Over time, based on feedback from SRE/developers, more log
 
 ## Developing and testing logs
 
-We are continuously improving our [Tilt](tilt.md) setup allowing Cluster API developers to use logs and improve them as part of
-their development process.
- 
-Developers can deploy an entire log observability suite by simply setting the
-`deploy_observability` value in your [tilt-setting.yaml](tilt.md#create-a-tilt-settings-file).
+Our [Tilt](tilt.md) setup offers a batteries-included log suite based on [Promtail](https://grafana.com/docs/loki/latest/clients/promtail/), [Loki](https://grafana.com/docs/loki/latest/fundamentals/overview/) and [Grafana](https://grafana.com/docs/grafana/latest/explore/logs-integration/).
 
+We are working to continuously improving this experience, allowing Cluster API developers to use logs and improve them as part of their development process.
+
+For the best experience exploring the logs using Tilt:
+1. Set `--logging-format=json`. 
+2. Set a high log verbosity, e.g. `v=5`.
+3. Enable promtail, loki, and grafana under deploy_observability.
+
+A minimal example of a tilt-settings.yaml file that deploys a ready-to-use logging suite looks like:
 ```yaml
 deploy_observability:
-- promtail
-- loki
-- grafana
-```
-
-In order to test structured logging it is required to override some controller flags, and similar approach can be used 
-for increasing log verbosity, e.g.
-
-```yaml
+  - promtail
+  - loki
+  - grafana
+enable_providers:
+  - docker
+  - kubeadm-bootstrap
+  - kubeadm-control-plane
 extra_args:
   core:
     - "--logging-format=json"
@@ -161,9 +163,43 @@ extra_args:
     - "--v=5"
     - "--logging-format=json"
 ```
+The above options can be combined with other settings from our [Tilt](tilt.md) setup. Once Tilt is is up and running with these settings users will be able to browse logs using the Grafana Explore UI. 
 
-Over time, we would like to further improve this with the help of the community; feel free to open issues or propose
-ideas!
+This will normally be available on `localhost:3001`. To explore logs from Loki, open the Explore interface for the DataSource 'Loki'. [This link](http://localhost:3001/explore?datasource%22:%22Loki%22) should work as a shortcut with the default Tilt settings.
+
+### Example queries
+
+In the Log browser the following queries can be used to browse logs by controller, and by specific Cluster API objects. For example:
+```
+{app="capi-controller-manager"} | json 
+```
+Will return logs from the `capi-controller-manager` which are parsed in json. Passing the query through the json parser allows filtering by key-value pairs that are part of nested json objects. For example `.cluster.name` becomes `cluster_name`.
+
+```
+{app="capi-controller-manager"} | json | cluster_name="my-cluster"
+```
+Will return logs from the `capi-controller-manager` that are associated with the Cluster `my-cluster`.
+
+```
+{app="capi-controller-manager"} | json | cluster_name="my-cluster" reconcileID="6f6ad971-bdb6-4fa3-b803-xxxxxxxxxxxx"
+```
+
+Will return logs from the `capi-controller-manager`, associated with the Cluster `my-cluster` and the Reconcile ID `6f6ad971-bdb6-4fa3-b803-xxxxxxxxxxxx`. Each reconcile loop will have a unique Reconcile ID.
+
+```
+{app="capi-controller-manager"} | json | cluster_name="my-cluster" reconcileID="6f6ad971-bdb6-4fa3-b803-ef81c5c8f9d0" controller="cluster" | line_format "{{ .msg }}"
+```
+Will return logs from the `capi-controller-manager`, associated with the Cluster `my-cluster` and the Reconcile ID `6f6ad971-bdb6-4fa3-b803-xxxxxxxxxxxx` it further selects only those logs which come from the Cluster controller. It will then format the logs so only the message is displayed.
+
+```
+{app=~"capd-controller-manager|capi-kubeadm-bootstrap-controller-manager|capi-kubeadm-control-plane-controller-manager"} | json | cluster_name="my-cluster" machine_name="my-cluster-linux-worker-1" | line_format "{{.controller}} {{.msg}}"
+```
+
+Will return the logs from four CAPI providers - the Core provider, Kubeadm Control Plane provider, Kubeadm Bootstrap provider and the Docker infrastructure provider. It filters by the cluster name and the machine name and then formats the log lines to show just the source controller and the message. This allows us to correlate logs and see actions taken by each of these four providers related to the machine `my-cluster-linux-worker-1`.
+
+For more information on formatting and filtering logs using Grafana and Loki see:
+- [json parsing](https://grafana.com/docs/loki/latest/clients/promtail/stages/json/)
+- [log queries](https://grafana.com/docs/loki/latest/logql/log_queries/)
 
 ## What about providers
 Cluster API providers are developed by independent teams, and each team is free to define their own processes and
@@ -174,3 +210,4 @@ we encourage providers to adopt and contribute to the guidelines defined in this
 
 It is also worth noting that the foundational elements of the approach described in this document are easy to achieve
 by leveraging default Kubernetes tooling for logging.
+

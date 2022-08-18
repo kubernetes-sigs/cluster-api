@@ -21,6 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -48,7 +49,7 @@ func (r *Reconciler) reconcileInterruptibleNodeLabel(ctx context.Context, cluste
 	// Get interruptible instance status from the infrastructure provider.
 	interruptible, _, err := unstructured.NestedBool(infra.Object, "status", "interruptible")
 	if err != nil {
-		log.V(1).Error(err, "Failed to get interruptible status from infrastructure provider", "machinename", machine.Name)
+		log.V(1).Error(err, "Failed to get interruptible status from infrastructure provider", "Machine", klog.KObj(machine))
 		return ctrl.Result{}, nil
 	}
 	if !interruptible {

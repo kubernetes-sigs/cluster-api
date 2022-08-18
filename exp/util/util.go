@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -63,23 +64,23 @@ func GetMachinePoolByName(ctx context.Context, c client.Client, namespace, name 
 func MachinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind, log logr.Logger) handler.MapFunc {
 	log = log.WithValues("machine-pool-to-infra-map-func", gvk.String())
 	return func(o client.Object) []reconcile.Request {
-		log := log.WithValues("namespace", o.GetNamespace(), "name", o.GetName())
 		m, ok := o.(*expv1.MachinePool)
 		if !ok {
-			log.V(4).Info("not a machine pool")
+			log.V(4).Info("Not a machine pool", "Object", klog.KObj(o))
 			return nil
 		}
+		log := log.WithValues("MachinePool", klog.KObj(o))
 
 		gk := gvk.GroupKind()
 		ref := m.Spec.Template.Spec.InfrastructureRef
 		// Return early if the GroupKind doesn't match what we expect.
 		infraGK := ref.GroupVersionKind().GroupKind()
 		if gk != infraGK {
-			log.V(4).Info("infra kind doesn't match filter group kind", "infrastructureGroupKind", infraGK.String())
+			log.V(4).Info("Infra kind doesn't match filter group kind", "infrastructureGroupKind", infraGK.String())
 			return nil
 		}
 
-		log.V(4).Info("projecting object", "namespace", m.Namespace, "name", ref.Name)
+		log.V(4).Info("Projecting object")
 		return []reconcile.Request{
 			{
 				NamespacedName: client.ObjectKey{

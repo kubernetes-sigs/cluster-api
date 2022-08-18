@@ -103,7 +103,7 @@ func warmupRegistry(ctx context.Context, client client.Client, reader client.Rea
 		extensionConfig := &extensionConfigList.Items[i]
 		original := extensionConfig.DeepCopy()
 
-		log := log.WithValues("extensionConfig", klog.KObj(extensionConfig), "name", extensionConfig.Name, "namespace", extensionConfig.Namespace)
+		log := log.WithValues("ExtensionConfig", klog.KObj(extensionConfig))
 		ctx := ctrl.LoggerInto(ctx, log)
 
 		// Inject CABundle from secret if annotation is set. Otherwise https calls may fail.

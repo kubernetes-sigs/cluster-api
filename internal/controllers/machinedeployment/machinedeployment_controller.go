@@ -314,7 +314,7 @@ func (r *Reconciler) getMachineDeploymentsForMachineSet(ctx context.Context, ms 
 	log := ctrl.LoggerFrom(ctx)
 
 	if len(ms.Labels) == 0 {
-		log.V(2).Info("No MachineDeployments found for MachineSet because it has no labels", "machineset", ms.Name)
+		log.V(2).Info("No MachineDeployments found for MachineSet because it has no labels", "MachineSet", klog.KObj(ms))
 		return nil
 	}
 

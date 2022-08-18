@@ -819,7 +819,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneTopology(ref common.Re
 				Properties: map[string]spec.Schema{
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Metadata is the metadata applied to the machines of the ControlPlane. At runtime this metadata is merged with the corresponding metadata from the ClusterClass.\n\nThis field is supported if and only if the control plane provider template referenced in the ClusterClass is Machine based.",
+							Description: "Metadata is the metadata applied to ControlPlane and the machines of the ControlPlane. At runtime this metadata is merged with the corresponding metadata from the ClusterClass.\n\nThis field is supported if and only if the control plane provider template referenced in the ClusterClass is Machine based.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
 						},
@@ -1630,7 +1630,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentTopology(ref comm
 				Properties: map[string]spec.Schema{
 					"metadata": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Metadata is the metadata applied to the machines of the MachineDeployment. At runtime this metadata is merged with the corresponding metadata from the ClusterClass.",
+							Description: "Metadata is the metadata applied to the MachineDeployment and the machines of the MachineDeployment. At runtime this metadata is merged with the corresponding metadata from the ClusterClass.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"),
 						},

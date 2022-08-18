@@ -203,6 +203,13 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, 
 	return false, nil
 }
 
+// Metadata provides access to the metadata of a ControlPlane object.
+func (c *ControlPlaneContract) Metadata() *Metadata {
+	return &Metadata{
+		path: Path{"metadata"},
+	}
+}
+
 // ControlPlaneMachineTemplate provides a helper struct for working with MachineTemplate in ClusterClass.
 type ControlPlaneMachineTemplate struct{}
 

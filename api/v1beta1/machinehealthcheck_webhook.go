@@ -29,6 +29,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+// Deprecated: This file, including all public and private methods, will be removed in a future release.
+// The MachineHealthCheck webhook validation implementation and API can now be found in the webhooks package.
+
 var (
 	// DefaultNodeStartupTimeout is the time allowed for a node to start up.
 	// Can be made longer as part of spec if required for particular provider.
@@ -50,19 +53,23 @@ func SetMinNodeStartupTimeout(d metav1.Duration) {
 	minNodeStartupTimeout = d
 }
 
+// SetupWebhookWithManager sets up MachineHealthCheck webhooks.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.MachineHealthCheck.SetupWebhookWithManager instead.
+// Note: We don't have to call this func for the conversion webhook as there is only a single conversion webhook instance
+// for all resources and we already register it through other types.
 func (m *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(m).
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1beta1-machinehealthcheck,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinehealthchecks,versions=v1beta1,name=validation.machinehealthcheck.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-machinehealthcheck,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinehealthchecks,versions=v1beta1,name=default.machinehealthcheck.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
-
 var _ webhook.Defaulter = &MachineHealthCheck{}
 var _ webhook.Validator = &MachineHealthCheck{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.MachineHealthCheck.Default instead.
 func (m *MachineHealthCheck) Default() {
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
@@ -84,11 +91,14 @@ func (m *MachineHealthCheck) Default() {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
 func (m *MachineHealthCheck) ValidateCreate() error {
 	return m.validate(nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.MachineHealthCheck.ValidateUpdate instead.
 func (m *MachineHealthCheck) ValidateUpdate(old runtime.Object) error {
 	mhc, ok := old.(*MachineHealthCheck)
 	if !ok {
@@ -98,6 +108,8 @@ func (m *MachineHealthCheck) ValidateUpdate(old runtime.Object) error {
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.MachineHealthCheck.ValidateDelete instead.
 func (m *MachineHealthCheck) ValidateDelete() error {
 	return nil
 }

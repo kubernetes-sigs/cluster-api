@@ -82,3 +82,15 @@ func (webhook *MachineSet) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Client: webhook.Client,
 	}).SetupWebhookWithManager(mgr)
 }
+
+// MachineHealthCheck implements a validation and defaulting webhook for MachineHealthCheck.
+type MachineHealthCheck struct {
+	Client client.Reader
+}
+
+// SetupWebhookWithManager sets up MachineHealthCheck webhooks.
+func (webhook *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.MachineHealthCheck{
+		Client: webhook.Client,
+	}).SetupWebhookWithManager(mgr)
+}

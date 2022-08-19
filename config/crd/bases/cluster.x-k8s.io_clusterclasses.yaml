@@ -508,6 +508,7 @@ spec:
                           over MaxUnhealthy. Eg. "[3-5]" - This means that remediation
                           will be allowed only when: (a) there are at least 3 unhealthy
                           machines (and) (b) there are at most 5 unhealthy machines'
+                        pattern: ^\[[0-9]+-[0-9]+\]$
                         type: string
                     type: object
                   machineInfrastructure:
@@ -1094,6 +1095,7 @@ spec:
                                 This means that remediation will be allowed only when:
                                 (a) there are at least 3 unhealthy machines (and)
                                 (b) there are at most 5 unhealthy machines'
+                              pattern: ^\[[0-9]+-[0-9]+\]$
                               type: string
                           type: object
                         template:

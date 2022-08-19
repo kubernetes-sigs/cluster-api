@@ -183,10 +183,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			return
 		}
 		options := []patch.Option{
-			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			patch.WithOwnedConditions(
 				clusterv1.TopologyReconciledCondition,
-			}},
-			patch.WithForceOverwriteConditions{},
+			),
+			patch.WithForceOverwriteConditions(),
 		}
 		if err := patchHelper.Patch(ctx, cluster, options...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrap(err, "failed to patch cluster")})

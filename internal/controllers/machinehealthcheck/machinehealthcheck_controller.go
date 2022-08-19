@@ -160,7 +160,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{}
 		if reterr == nil {
-			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
+			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration())
 		}
 		if err := patchHelper.Patch(ctx, m, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})

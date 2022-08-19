@@ -184,12 +184,12 @@ func patchMachineSet(ctx context.Context, patchHelper *patch.Helper, machineSet 
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options = append(options,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions(
 			clusterv1.ReadyCondition,
 			clusterv1.MachinesCreatedCondition,
 			clusterv1.ResizedCondition,
 			clusterv1.MachinesReadyCondition,
-		}},
+		),
 	)
 	return patchHelper.Patch(ctx, machineSet, options...)
 }

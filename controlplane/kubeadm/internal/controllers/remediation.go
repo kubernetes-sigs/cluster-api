@@ -56,9 +56,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 			conditions.Delete(m, clusterv1.MachineOwnerRemediatedCondition)
 
-			if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+			if err := patchHelper.Patch(ctx, m, patch.WithOwnedConditions(
 				clusterv1.MachineOwnerRemediatedCondition,
-			}}); err != nil {
+			)); err != nil {
 				errList = append(errList, errors.Wrapf(err, "failed to patch machine %s", m.Name))
 			}
 		}
@@ -95,9 +95,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 	defer func() {
 		// Always attempt to Patch the Machine conditions after each reconcileUnhealthyMachines.
-		if err := patchHelper.Patch(ctx, machineToBeRemediated, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		if err := patchHelper.Patch(ctx, machineToBeRemediated, patch.WithOwnedConditions(
 			clusterv1.MachineOwnerRemediatedCondition,
-		}}); err != nil {
+		)); err != nil {
 			log.Error(err, "Failed to patch control plane Machine", "machine", machineToBeRemediated.Name)
 			if retErr == nil {
 				retErr = errors.Wrapf(err, "failed to patch control plane Machine %s", machineToBeRemediated.Name)

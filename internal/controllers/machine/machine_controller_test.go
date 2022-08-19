@@ -118,14 +118,14 @@ func TestWatches(t *testing.T) {
 	patchHelper, err := patch.NewHelper(infraMachine, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
-	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration())).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
-	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration())).To(Succeed())
 
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1704,20 +1704,20 @@ func TestNodeToMachine(t *testing.T) {
 	patchHelper, err := patch.NewHelper(infraMachine, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
-	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration())).To(Succeed())
 
 	// Patch infra randomMachine ready
 	patchHelper, err = patch.NewHelper(infraMachine2, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine2.Object, true, "status", "ready")).To(Succeed())
-	g.Expect(patchHelper.Patch(ctx, infraMachine2, patch.WithStatusObservedGeneration{})).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, infraMachine2, patch.WithStatusObservedGeneration())).To(Succeed())
 
 	// Patch bootstrap ready
 	patchHelper, err = patch.NewHelper(defaultBootstrap, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, true, "status", "ready")).To(Succeed())
 	g.Expect(unstructured.SetNestedField(defaultBootstrap.Object, "secretData", "status", "dataSecretName")).To(Succeed())
-	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration{})).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, defaultBootstrap, patch.WithStatusObservedGeneration())).To(Succeed())
 
 	expectedMachine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{

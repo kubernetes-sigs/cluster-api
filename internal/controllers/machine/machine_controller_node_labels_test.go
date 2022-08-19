@@ -108,7 +108,7 @@ func TestReconcileInterruptibleNodeLabel(t *testing.T) {
 	patchHelper, err := patch.NewHelper(infraMachine, env)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "interruptible")).To(Succeed())
-	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration{})).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, infraMachine, patch.WithStatusObservedGeneration())).To(Succeed())
 
 	defer func(do ...client.Object) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())

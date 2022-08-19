@@ -154,14 +154,14 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{}
 		if reterr == nil {
-			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
+			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration())
 			patchOpts = append(patchOpts,
-				patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+				patch.WithOwnedConditions(
 					clusterv1.ReadyCondition,
 					clusterv1.BootstrapReadyCondition,
 					clusterv1.InfrastructureReadyCondition,
 					expv1.ReplicasReadyCondition,
-				}},
+				),
 			)
 		}
 		if err := patchHelper.Patch(ctx, mp, patchOpts...); err != nil {

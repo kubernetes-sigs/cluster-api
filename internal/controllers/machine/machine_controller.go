@@ -180,7 +180,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{}
 		if reterr == nil {
-			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
+			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration())
 		}
 		if err := patchMachine(ctx, patchHelper, m, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
@@ -233,14 +233,14 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 	// Also, if requested, we are adding additional options like e.g. Patch ObservedGeneration when issuing the
 	// patch at the end of the reconcile loop.
 	options = append(options,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions(
 			clusterv1.ReadyCondition,
 			clusterv1.BootstrapReadyCondition,
 			clusterv1.InfrastructureReadyCondition,
 			clusterv1.DrainingSucceededCondition,
 			clusterv1.MachineHealthCheckSucceededCondition,
 			clusterv1.MachineOwnerRemediatedCondition,
-		}},
+		),
 	)
 
 	return patchHelper.Patch(ctx, machine, options...)

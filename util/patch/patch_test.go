@@ -435,7 +435,7 @@ func TestPatchHelper(t *testing.T) {
 				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 				t.Log("Patching the object")
-				g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions{Conditions: []clusterv1.ConditionType{clusterv1.ReadyCondition}})).To(Succeed())
+				g.Expect(patcher.Patch(ctx, obj, WithOwnedConditions(clusterv1.ReadyCondition))).To(Succeed())
 
 				t.Log("Validating the object has been updated")
 				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
@@ -484,7 +484,7 @@ func TestPatchHelper(t *testing.T) {
 				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
 
 				t.Log("Patching the object")
-				g.Expect(patcher.Patch(ctx, obj, WithForceOverwriteConditions{})).To(Succeed())
+				g.Expect(patcher.Patch(ctx, obj, WithForceOverwriteConditions())).To(Succeed())
 
 				t.Log("Validating the object has been updated")
 				readyBefore := conditions.Get(obj, clusterv1.ReadyCondition)
@@ -765,7 +765,7 @@ func TestPatchHelper(t *testing.T) {
 			obj.Spec.Replicas = pointer.Int32Ptr(10)
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration{})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration())).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -814,7 +814,7 @@ func TestPatchHelper(t *testing.T) {
 			}
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration{})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration())).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {
@@ -856,7 +856,7 @@ func TestPatchHelper(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			t.Log("Patching the object")
-			g.Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration{})).To(Succeed())
+			g.Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration())).To(Succeed())
 
 			t.Log("Validating the object has been updated")
 			g.Eventually(func() bool {

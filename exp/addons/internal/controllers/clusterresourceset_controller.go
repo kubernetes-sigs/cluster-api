@@ -127,7 +127,7 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	defer func() {
 		// Always attempt to Patch the ClusterResourceSet object and status after each reconciliation.
-		if err := patchHelper.Patch(ctx, clusterResourceSet, patch.WithStatusObservedGeneration{}); err != nil {
+		if err := patchHelper.Patch(ctx, clusterResourceSet, patch.WithStatusObservedGeneration()); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
 		}
 	}()

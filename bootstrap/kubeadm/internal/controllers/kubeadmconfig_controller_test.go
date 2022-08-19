@@ -1162,7 +1162,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	patchHelper, err := patch.NewHelper(workerMachinePool, myclient)
 	g.Expect(err).ShouldNot(HaveOccurred())
 	workerMachinePool.Status.InfrastructureReady = true
-	g.Expect(patchHelper.Patch(ctx, workerMachinePool, patch.WithStatusObservedGeneration{})).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, workerMachinePool, patch.WithStatusObservedGeneration())).To(Succeed())
 
 	<-time.After(1 * time.Second)
 
@@ -1194,7 +1194,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 			Name:      "node-0",
 		},
 	}
-	g.Expect(patchHelper.Patch(ctx, workerMachinePool, patch.WithStatusObservedGeneration{})).To(Succeed())
+	g.Expect(patchHelper.Patch(ctx, workerMachinePool, patch.WithStatusObservedGeneration())).To(Succeed())
 
 	<-time.After(1 * time.Second)
 

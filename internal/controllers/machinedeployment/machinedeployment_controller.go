@@ -144,7 +144,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{}
 		if reterr == nil {
-			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
+			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration())
 		}
 		if err := patchMachineDeployment(ctx, patchHelper, deployment, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})
@@ -175,10 +175,10 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, d *c
 
 	// Patch the object, ignoring conflicts on the conditions owned by this controller.
 	options = append(options,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions(
 			clusterv1.ReadyCondition,
 			clusterv1.MachineDeploymentAvailableCondition,
-		}},
+		),
 	)
 	return patchHelper.Patch(ctx, d, options...)
 }

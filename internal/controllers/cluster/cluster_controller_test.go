@@ -113,7 +113,7 @@ func TestClusterReconciler(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			cluster.Spec.InfrastructureRef = &corev1.ObjectReference{Name: "test"}
 			cluster.Spec.ControlPlaneRef = &corev1.ObjectReference{Name: "test-too"}
-			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
+			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration())).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
 
@@ -158,7 +158,7 @@ func TestClusterReconciler(t *testing.T) {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).NotTo(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
-			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
+			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration())).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
 
@@ -204,7 +204,7 @@ func TestClusterReconciler(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
 			cluster.Spec.InfrastructureRef = &corev1.ObjectReference{Name: "test"}
-			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
+			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration())).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
 
@@ -250,7 +250,7 @@ func TestClusterReconciler(t *testing.T) {
 			ph, err := patch.NewHelper(cluster, env)
 			g.Expect(err).NotTo(HaveOccurred())
 			cluster.SetFinalizers([]string{})
-			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
+			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration())).To(Succeed())
 			return true
 		}, timeout).Should(BeTrue())
 

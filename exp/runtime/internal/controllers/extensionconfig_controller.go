@@ -165,9 +165,9 @@ func patchExtensionConfig(ctx context.Context, client client.Client, original, m
 		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: modified})
 	}
 
-	options = append(options, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+	options = append(options, patch.WithOwnedConditions(
 		runtimev1.RuntimeExtensionDiscoveredCondition,
-	}})
+	))
 	err = patchHelper.Patch(ctx, modified, options...)
 	if err != nil {
 		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: modified})

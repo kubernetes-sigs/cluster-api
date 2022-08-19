@@ -165,7 +165,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		// patch and return right away instead of reusing the main defer,
 		// because the main defer may take too much time to get cluster status
 		// Patch ObservedGeneration only if the reconciliation completed successfully
-		patchOpts := []patch.Option{patch.WithStatusObservedGeneration{}}
+		patchOpts := []patch.Option{patch.WithStatusObservedGeneration()}
 		if err := patchHelper.Patch(ctx, kcp, patchOpts...); err != nil {
 			log.Error(err, "Failed to patch KubeadmControlPlane to add finalizer")
 			return ctrl.Result{}, err
@@ -228,7 +228,7 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 	return patchHelper.Patch(
 		ctx,
 		kcp,
-		patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+		patch.WithOwnedConditions(
 			controlplanev1.MachinesCreatedCondition,
 			clusterv1.ReadyCondition,
 			controlplanev1.MachinesSpecUpToDateCondition,
@@ -236,8 +236,8 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 			controlplanev1.MachinesReadyCondition,
 			controlplanev1.AvailableCondition,
 			controlplanev1.CertificatesAvailableCondition,
-		}},
-		patch.WithStatusObservedGeneration{},
+		),
+		patch.WithStatusObservedGeneration(),
 	)
 }
 

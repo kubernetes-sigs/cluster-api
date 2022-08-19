@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
-	"sigs.k8s.io/cluster-api/util"
 )
 
 // ConfigOwner provides a data interface for different config owner types.
@@ -122,12 +121,6 @@ func (co ConfigOwner) KubernetesVersion() string {
 		return ""
 	}
 	return version
-}
-
-// LowerCamelCaseKind mirrors how controller runtime formats the object's kind when used as a logging key
-// for the object being reconciled.
-func (co ConfigOwner) LowerCamelCaseKind() string {
-	return util.LowerCamelCaseKind(co.Unstructured)
 }
 
 // GetConfigOwner returns the Unstructured object owning the current resource.

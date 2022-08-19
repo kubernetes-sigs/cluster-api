@@ -30,6 +30,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -540,7 +541,7 @@ func setClusterPause(proxy Proxy, clusters []*node, value bool, dryRun bool) err
 	setClusterPauseBackoff := newWriteBackoff()
 	for i := range clusters {
 		cluster := clusters[i]
-		log.V(5).Info("Set Cluster.Spec.Paused", "paused", value, "cluster", cluster.identity.Name, "namespace", cluster.identity.Namespace)
+		log.V(5).Info("Set Cluster.Spec.Paused", "paused", value, "Cluster", klog.KRef(cluster.identity.Namespace, cluster.identity.Name))
 
 		// Nb. The operation is wrapped in a retry loop to make setClusterPause more resilient to unexpected conditions.
 		if err := retryWithExponentialBackoff(setClusterPauseBackoff, func() error {

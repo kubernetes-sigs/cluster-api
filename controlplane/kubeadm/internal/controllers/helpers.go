@@ -104,7 +104,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 
 func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster, configSecret *corev1.Secret, controllerOwnerRef metav1.OwnerReference) error {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Adopting KubeConfig secret created by v1alpha2 controllers", "secret", klog.KObj(configSecret))
+	log.Info("Adopting KubeConfig secret created by v1alpha2 controllers", "Secret", klog.KObj(configSecret))
 
 	patch, err := patch.NewHelper(configSecret, r.Client)
 	if err != nil {

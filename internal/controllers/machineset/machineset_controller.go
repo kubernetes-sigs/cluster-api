@@ -131,13 +131,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
+	log = log.WithValues("Cluster", klog.KRef(machineSet.ObjectMeta.Namespace, machineSet.Spec.ClusterName))
+	ctx = ctrl.LoggerInto(ctx, log)
+
 	cluster, err := util.GetClusterByName(ctx, r.Client, machineSet.ObjectMeta.Namespace, machineSet.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	log = log.WithValues("cluster", klog.KObj(cluster))
-	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, machineSet) {
@@ -257,7 +257,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	filteredMachines := make([]*clusterv1.Machine, 0, len(allMachines.Items))
 	for idx := range allMachines.Items {
 		machine := &allMachines.Items[idx]
-		log.WithValues("machine", klog.KObj(machine))
+		log = log.WithValues("Machine", klog.KObj(machine))
 		if shouldExcludeMachine(machineSet, machine) {
 			continue
 		}
@@ -278,7 +278,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 	var errs []error
 	for _, machine := range filteredMachines {
-		log.WithValues("machine", klog.KObj(machine))
+		log = log.WithValues("Machine", klog.KObj(machine))
 		// filteredMachines contains machines in deleting status to calculate correct status.
 		// skip remediation for those in deleting status.
 		if !machine.DeletionTimestamp.IsZero() {
@@ -369,7 +369,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 				i+1, diff, *(ms.Spec.Replicas), len(machines)))
 
 			machine := r.getNewMachine(ms)
-			log.WithValues("machine", klog.KObj(machine))
+			log = log.WithValues("Machine", klog.KObj(machine))
 
 			// Clone and set the infrastructure and bootstrap references.
 			var (
@@ -459,7 +459,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 		var errs []error
 		machinesToDelete := getMachinesToDeletePrioritized(machines, diff, deletePriorityFunc)
 		for _, machine := range machinesToDelete {
-			log.WithValues("machine", klog.KObj(machine))
+			log = log.WithValues("Machine", klog.KObj(machine))
 			if err := r.Client.Delete(ctx, machine); err != nil {
 				log.Error(err, "Unable to delete Machine")
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedDelete", "Failed to delete machine %q: %v", machine.Name, err)
@@ -582,7 +582,7 @@ func (r *Reconciler) MachineToMachineSets(o client.Object) []ctrl.Request {
 
 	// This won't log unless the global logger is set
 	ctx := context.Background()
-	log := ctrl.LoggerFrom(ctx, "machine", klog.KObj(m))
+	log := ctrl.LoggerFrom(ctx, "Machine", klog.KObj(m))
 
 	// Check if the controller reference is already set and
 	// return an empty result when one is found.

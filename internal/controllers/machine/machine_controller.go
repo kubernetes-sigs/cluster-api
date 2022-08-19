@@ -152,14 +152,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
+	log = log.WithValues("Cluster", klog.KRef(m.ObjectMeta.Namespace, m.Spec.ClusterName))
+	ctx = ctrl.LoggerInto(ctx, log)
+
 	cluster, err := util.GetClusterByName(ctx, r.Client, m.ObjectMeta.Namespace, m.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get cluster %q for machine %q in namespace %q",
 			m.Spec.ClusterName, m.Name, m.Namespace)
 	}
-
-	log = log.WithValues("cluster", klog.KObj(cluster))
-	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, m) {
@@ -301,7 +301,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 			if m.Status.NodeRef != nil {
 				nodeName = m.Status.NodeRef.Name
 			}
-			log.Info("Deleting Kubernetes Node associated with Machine is not allowed", "node", klog.KRef("", nodeName), "cause", err.Error())
+			log.Info("Deleting Kubernetes Node associated with Machine is not allowed", "Node", klog.KRef("", nodeName), "cause", err.Error())
 		default:
 			return ctrl.Result{}, errors.Wrapf(err, "failed to check if Kubernetes Node deletion is allowed")
 		}
@@ -323,7 +323,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 				return ctrl.Result{}, err
 			}
 
-			log.Info("Draining node", "node", klog.KRef("", m.Status.NodeRef.Name))
+			log.Info("Draining node", "Node", klog.KRef("", m.Status.NodeRef.Name))
 			// The DrainingSucceededCondition never exists before the node is drained for the first time,
 			// so its transition time can be used to record the first time draining.
 			// This `if` condition prevents the transition time to be changed more than once.
@@ -355,7 +355,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 					r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedWaitForVolumeDetach", "error wait for volume detach, node %q: %v", m.Status.NodeRef.Name, err)
 					return ctrl.Result{}, err
 				}
-				log.Info("Waiting for node volumes to be detached", "node", klog.KRef("", m.Status.NodeRef.Name))
+				log.Info("Waiting for node volumes to be detached", "Node", klog.KRef("", m.Status.NodeRef.Name))
 				return ctrl.Result{}, nil
 			}
 			conditions.MarkTrue(m, clusterv1.VolumeDetachSucceededCondition)
@@ -395,7 +395,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 	// We only delete the node after the underlying infrastructure is gone.
 	// https://github.com/kubernetes-sigs/cluster-api/issues/2565
 	if isDeleteNodeAllowed {
-		log.Info("Deleting node", "node", klog.KRef("", m.Status.NodeRef.Name))
+		log.Info("Deleting node", "Node", klog.KRef("", m.Status.NodeRef.Name))
 
 		var deleteNodeErr error
 		waitErr := wait.PollImmediate(2*time.Second, r.nodeDeletionRetryTimeout, func() (bool, error) {
@@ -405,7 +405,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 			return true, nil
 		})
 		if waitErr != nil {
-			log.Error(deleteNodeErr, "Timed out deleting node", "node", klog.KRef("", m.Status.NodeRef.Name))
+			log.Error(deleteNodeErr, "Timed out deleting node", "Node", klog.KRef("", m.Status.NodeRef.Name))
 			conditions.MarkFalse(m, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletionFailedReason, clusterv1.ConditionSeverityWarning, "")
 			r.recorder.Eventf(m, corev1.EventTypeWarning, "FailedDeleteNode", "error deleting Machine's node: %v", deleteNodeErr)
 
@@ -513,7 +513,7 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 }
 
 func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx, "node", klog.KRef("", nodeName))
+	log := ctrl.LoggerFrom(ctx, "Node", klog.KRef("", nodeName))
 
 	restConfig, err := remote.RESTConfig(ctx, controllerName, r.Client, util.ObjectKey(cluster))
 	if err != nil {
@@ -552,7 +552,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 				verbStr = "Evicted"
 			}
 			log.Info(fmt.Sprintf("%s pod from Node", verbStr),
-				"pod", klog.KObj(pod))
+				"Pod", klog.KObj(pod))
 		},
 		Out: writer{log.Info},
 		ErrOut: writer{func(msg string, keysAndValues ...interface{}) {
@@ -587,7 +587,7 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 // because if the node is deleted before detach success, then the underline VMDK will be deleted together with the Machine
 // so after node draining we need to check if all volumes are detached before deleting the node.
 func (r *Reconciler) shouldWaitForNodeVolumes(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (bool, error) {
-	log := ctrl.LoggerFrom(ctx, "node", klog.KRef("", nodeName))
+	log := ctrl.LoggerFrom(ctx, "Node", klog.KRef("", nodeName))
 
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {

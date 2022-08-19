@@ -328,7 +328,7 @@ func (r *Reconciler) scale(ctx context.Context, deployment *clusterv1.MachineDep
 		for i := range allMSs {
 			ms := allMSs[i]
 			if ms.Spec.Replicas == nil {
-				log.Info("Spec.Replicas for machine set is nil, this is unexpected.", "machineset", ms.Name)
+				log.Info("Spec.Replicas for machine set is nil, this is unexpected.", "MachineSet", ms.Name)
 				continue
 			}
 

@@ -28,7 +28,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util"
 )
 
 // LoggerFrom returns a logger with predefined values from a context.Context.
@@ -93,7 +92,7 @@ func (l *topologyReconcileLogger) WithObject(obj client.Object) Logger {
 				Group:    obj.GetObjectKind().GroupVersionKind().GroupKind().Group,
 				Resource: obj.GetObjectKind().GroupVersionKind().Kind,
 			},
-			util.LowerCamelCaseKind(obj), klog.KObj(obj),
+			obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj),
 		),
 	}
 }
@@ -108,7 +107,7 @@ func (l *topologyReconcileLogger) WithRef(ref *corev1.ObjectReference) Logger {
 				Group:    ref.GetObjectKind().GroupVersionKind().GroupKind().Group,
 				Resource: ref.GetObjectKind().GroupVersionKind().Kind,
 			},
-			util.LowerCamelCaseKind(ref), klog.KRef(ref.Namespace, ref.Name),
+			ref.GetObjectKind().GroupVersionKind().Kind, klog.KRef(ref.Namespace, ref.Name),
 		),
 	}
 }
@@ -118,8 +117,8 @@ func (l *topologyReconcileLogger) WithMachineDeployment(md *clusterv1.MachineDep
 	topologyName := md.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]
 	return &topologyReconcileLogger{
 		Logger: l.Logger.WithValues(
-			"machineDeployment", klog.KObj(md),
-			"machineDeploymentTopology", topologyName,
+			"MachineDeployment", klog.KObj(md),
+			"MachineDeploymentTopology", topologyName,
 		),
 	}
 }

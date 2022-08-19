@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -113,8 +112,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
-
-	ctrl.LoggerInto(ctx, log.WithValues("cluster", klog.KObj(cluster)))
 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, cluster) {

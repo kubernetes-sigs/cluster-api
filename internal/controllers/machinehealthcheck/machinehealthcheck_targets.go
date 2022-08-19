@@ -201,7 +201,7 @@ func (r *Reconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, 
 
 	targets := []healthCheckTarget{}
 	for k := range machines {
-		logger.WithValues("machine", klog.KObj(&machines[k]))
+		logger.WithValues("Machine", klog.KObj(&machines[k]))
 		skip, reason := shouldSkipRemediation(&machines[k])
 		if skip {
 			logger.Info("skipping remediation", "reason", reason)

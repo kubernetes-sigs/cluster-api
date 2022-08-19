@@ -119,16 +119,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	log = log.WithValues("machineDeployment", klog.KObj(deployment))
+	log = log.WithValues("Cluster", klog.KRef(deployment.Namespace, deployment.Spec.ClusterName))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	cluster, err := util.GetClusterByName(ctx, r.Client, deployment.Namespace, deployment.Spec.ClusterName)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	log = log.WithValues("cluster", klog.KObj(cluster))
-	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Return early if the object or Cluster is paused.
 	if annotations.IsPaused(cluster, deployment) {
@@ -264,7 +261,7 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 	filtered := make([]*clusterv1.MachineSet, 0, len(machineSets.Items))
 	for idx := range machineSets.Items {
 		ms := &machineSets.Items[idx]
-		log.WithValues("machineSet", klog.KObj(ms))
+		log.WithValues("MachineSet", klog.KObj(ms))
 		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 		if err != nil {
 			log.Error(err, "Skipping MachineSet, failed to get label selector from spec selector")

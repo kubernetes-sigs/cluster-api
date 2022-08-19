@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -81,7 +82,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("machine-pool", machinePool.Name)
+	log = log.WithValues("MachinePool", machinePool.Name)
 
 	// Fetch the Cluster.
 	cluster, err := util.GetClusterFromMetadata(ctx, r.Client, machinePool.ObjectMeta)
@@ -95,7 +96,8 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	log = log.WithValues("cluster", cluster.Name)
+	log = log.WithValues("Cluster", klog.KObj(cluster))
+	ctx = ctrl.LoggerInto(ctx, log)
 
 	// Initialize the patch helper
 	patchHelper, err := patch.NewHelper(dockerMachinePool, r.Client)

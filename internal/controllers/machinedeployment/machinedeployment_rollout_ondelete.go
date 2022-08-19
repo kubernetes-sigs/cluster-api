@@ -85,7 +85,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 	totalReplicas := mdutil.GetReplicaCountForMachineSets(allMSs)
 	scaleDownAmount := totalReplicas - *deployment.Spec.Replicas
 	for _, oldMS := range oldMSs {
-		log = log.WithValues("machineSet", klog.KObj(oldMS))
+		log = log.WithValues("MachineSet", klog.KObj(oldMS))
 		if oldMS.Spec.Replicas == nil || *oldMS.Spec.Replicas <= 0 {
 			log.V(4).Info("fully scaled down")
 			continue
@@ -138,7 +138,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 	}
 	log.V(4).Info("Finished reconcile of Old MachineSets to account for deleted machines. Now analyzing if there's more potential to scale down")
 	for _, oldMS := range oldMSs {
-		log = log.WithValues("machineSet", klog.KObj(oldMS))
+		log = log.WithValues("MachineSet", klog.KObj(oldMS))
 		if scaleDownAmount <= 0 {
 			break
 		}
@@ -166,7 +166,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 // reconcileNewMachineSetOnDelete handles reconciliation of the latest MachineSet associated with the MachineDeployment in the OnDelete MachineDeploymentStrategyType.
 func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
 	// logic same as reconcile logic for RollingUpdate
-	log := ctrl.LoggerFrom(ctx, "machineSet", klog.KObj(newMS))
+	log := ctrl.LoggerFrom(ctx, "MachineSet", klog.KObj(newMS))
 
 	if newMS.Annotations != nil {
 		if _, ok := newMS.Annotations[clusterv1.DisableMachineCreate]; ok {

@@ -77,9 +77,7 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 
 	// Create the webhook and add the fakeClient as its client.
 	webhook := &ClusterClass{Client: fakeClient}
-	tFunc := util.CustomDefaultValidateTest(ctx, in, webhook)
-
-	t.Run("for ClusterClass", tFunc)
+	t.Run("for ClusterClass", util.CustomDefaultValidateTest(ctx, in, webhook))
 
 	g := NewWithT(t)
 	g.Expect(webhook.Default(ctx, in)).To(Succeed())

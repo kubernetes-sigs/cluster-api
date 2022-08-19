@@ -53,13 +53,14 @@ type TwoWaysPatchHelper struct {
 // by the topology controller are going to be preserved without changes.
 // NOTE: TwoWaysPatch is considered a minimal viable replacement for server side apply during topology dry run, with
 // the following limitations:
-// - TwoWaysPatch doesn't consider OpenAPI schema extension like +ListMap this can lead to false positive when topology
-//   dry run is simulating a change to an existing slice
-//   (TwoWaysPatch always revert external changes, like server side apply when +ListMap=atomic).
-// - TwoWaysPatch doesn't consider existing metadata.managedFields, and this can lead to false negative when topology dry run
-//   is simulating a change to an existing object where the topology controller is dropping an opinion for a field
-//   (TwoWaysPatch always preserve dropped fields, like server side apply when the field has more than one manager).
-// - TwoWaysPatch doesn't generate metadata.managedFields as server side apply does.
+//   - TwoWaysPatch doesn't consider OpenAPI schema extension like +ListMap this can lead to false positive when topology
+//     dry run is simulating a change to an existing slice
+//     (TwoWaysPatch always revert external changes, like server side apply when +ListMap=atomic).
+//   - TwoWaysPatch doesn't consider existing metadata.managedFields, and this can lead to false negative when topology dry run
+//     is simulating a change to an existing object where the topology controller is dropping an opinion for a field
+//     (TwoWaysPatch always preserve dropped fields, like server side apply when the field has more than one manager).
+//   - TwoWaysPatch doesn't generate metadata.managedFields as server side apply does.
+//
 // NOTE: NewTwoWaysPatchHelper consider changes only in metadata.labels, metadata.annotation and spec; it also respects
 // the ignorePath option (same as the server side apply helper).
 func NewTwoWaysPatchHelper(original, modified client.Object, c client.Client, opts ...HelperOption) (*TwoWaysPatchHelper, error) {

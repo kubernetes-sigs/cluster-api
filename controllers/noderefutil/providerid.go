@@ -41,10 +41,10 @@ type ProviderID struct {
 }
 
 /*
-	- must start with at least one non-colon
-	- followed by ://
-	- followed by any number of characters
-	- must end with a non-slash
+- must start with at least one non-colon
+- followed by ://
+- followed by any number of characters
+- must end with a non-slash.
 */
 var providerIDRegex = regexp.MustCompile("^[^:]+://.*[^/]$")
 

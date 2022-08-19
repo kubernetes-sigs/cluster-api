@@ -308,24 +308,24 @@ func renderValueTemplate(valueTemplate string, variables map[string]apiextension
 // calculateTemplateData calculates data for the template, by converting
 // the variables to their Go types.
 // Example:
-// * Input:
-//   map[string]apiextensionsv1.JSON{
+//   - Input:
+//     map[string]apiextensionsv1.JSON{
 //     "builtin": {Raw: []byte(`{"cluster":{"name":"cluster-name"}}`},
 //     "integerVariable": {Raw: []byte("4")},
 //     "numberVariable": {Raw: []byte("2.5")},
 //     "booleanVariable": {Raw: []byte("true")},
-//   }
-// * Output:
-//   map[string]interface{}{
+//     }
+//   - Output:
+//     map[string]interface{}{
 //     "builtin": map[string]interface{}{
-//       "cluster": map[string]interface{}{
-//         "name": <string>"cluster-name"
-//       }
+//     "cluster": map[string]interface{}{
+//     "name": <string>"cluster-name"
+//     }
 //     },
 //     "integerVariable": <float64>4,
 //     "numberVariable": <float64>2.5,
 //     "booleanVariable": <bool>true,
-//   }
+//     }
 func calculateTemplateData(variables map[string]apiextensionsv1.JSON) (map[string]interface{}, error) {
 	res := make(map[string]interface{}, len(variables))
 

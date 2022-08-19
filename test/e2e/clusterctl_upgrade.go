@@ -102,10 +102,10 @@ type ClusterctlUpgradeSpecInput struct {
 //
 // The following commands are then added to preKubeadmCommands:
 //
-//   preKubeadmCommands:
-//   - mkdir -p /opt/cluster-api
-//   - aws s3 cp "s3://${S3_BUCKET}/${E2E_IMAGE_SHA}" /opt/cluster-api/image.tar
-//   - ctr -n k8s.io images import /opt/cluster-api/image.tar # The image must be imported into the k8s.io namespace
+//	preKubeadmCommands:
+//	- mkdir -p /opt/cluster-api
+//	- aws s3 cp "s3://${S3_BUCKET}/${E2E_IMAGE_SHA}" /opt/cluster-api/image.tar
+//	- ctr -n k8s.io images import /opt/cluster-api/image.tar # The image must be imported into the k8s.io namespace
 func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpgradeSpecInput) {
 	var (
 		specName = "clusterctl-upgrade"

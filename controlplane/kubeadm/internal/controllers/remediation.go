@@ -199,13 +199,13 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 //
 // The answer mostly depend on the existence of other failing members on top of the one being deleted, and according
 // to the etcd fault tolerance specification (see https://etcd.io/docs/v3.3/faq/#what-is-failure-tolerance):
-// - 3 CP cluster does not tolerate additional failing members on top of the one being deleted (the target
-//   cluster size after deletion is 2, fault tolerance 0)
-// - 5 CP cluster tolerates 1 additional failing members on top of the one being deleted (the target
-//   cluster size after deletion is 4, fault tolerance 1)
-// - 7 CP cluster tolerates 2 additional failing members on top of the one being deleted (the target
-//   cluster size after deletion is 6, fault tolerance 2)
-// - etc.
+//   - 3 CP cluster does not tolerate additional failing members on top of the one being deleted (the target
+//     cluster size after deletion is 2, fault tolerance 0)
+//   - 5 CP cluster tolerates 1 additional failing members on top of the one being deleted (the target
+//     cluster size after deletion is 4, fault tolerance 1)
+//   - 7 CP cluster tolerates 2 additional failing members on top of the one being deleted (the target
+//     cluster size after deletion is 6, fault tolerance 2)
+//   - etc.
 //
 // NOTE: this func assumes the list of members in sync with the list of machines/nodes, it is required to call reconcileEtcdMembers
 // ans well as reconcileControlPlaneConditions before this.

@@ -120,6 +120,22 @@ func TestParseImageName(t *testing.T) {
 			tag:       "",
 			wantError: true,
 		},
+		{
+			name:      "input with a docker.io/ image name",
+			input:     "docker.io/dev/kube-proxy:v1.99.99",
+			repo:      "docker.io/dev",
+			imageName: "kube-proxy",
+			tag:       "v1.99.99",
+			wantError: false,
+		},
+		{
+			name:      "input with a docker.io/ image name that is not canonical",
+			input:     "dev/kube-proxy:v1.99.99",
+			repo:      "dev",
+			imageName: "kube-proxy",
+			tag:       "v1.99.99",
+			wantError: true,
+		},
 	}
 	for _, tc := range testCases {
 		g := NewWithT(t)
@@ -216,5 +232,12 @@ func TestModifyImageTag(t *testing.T) {
 		res, err := ModifyImageTag(image, testTag)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(res).To(Equal("example.com/image:v1.17.4_build1"))
+	})
+	t.Run("should ensure image is a docker compatible tag with docker.io", func(t *testing.T) {
+		testTag := "v1.17.4+build1"
+		image := "docker.io/dev/image:1.17.3"
+		res, err := ModifyImageTag(image, testTag)
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(res).To(Equal("docker.io/dev/image:v1.17.4_build1"))
 	})
 }

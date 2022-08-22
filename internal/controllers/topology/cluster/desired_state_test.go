@@ -263,6 +263,7 @@ func TestComputeControlPlane(t *testing.T) {
 	replicas := int32(3)
 	duration := 10 * time.Second
 	nodeDrainTimeout := metav1.Duration{Duration: duration}
+	nodeDeletionTimeout := metav1.Duration{Duration: duration}
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster1",
@@ -276,8 +277,9 @@ func TestComputeControlPlane(t *testing.T) {
 						Labels:      map[string]string{"l2": ""},
 						Annotations: map[string]string{"a2": ""},
 					},
-					Replicas:         &replicas,
-					NodeDrainTimeout: &nodeDrainTimeout,
+					Replicas:            &replicas,
+					NodeDrainTimeout:    &nodeDrainTimeout,
+					NodeDeletionTimeout: &nodeDeletionTimeout,
 				},
 			},
 		},
@@ -315,6 +317,7 @@ func TestComputeControlPlane(t *testing.T) {
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
 		assertNestedField(g, obj, duration.String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
+		assertNestedField(g, obj, duration.String(), contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path()...)
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().InfrastructureRef().Path()...)
 
 		// Ensure no ownership is added to generated ControlPlane.
@@ -1318,15 +1321,17 @@ func TestComputeMachineDeployment(t *testing.T) {
 	replicas := int32(5)
 	failureDomain := "always-up-region"
 	nodeDrainTimeout := metav1.Duration{Duration: 10 * time.Second}
+	nodeDeletionTimeout := metav1.Duration{Duration: 10 * time.Second}
 	mdTopology := clusterv1.MachineDeploymentTopology{
 		Metadata: clusterv1.ObjectMeta{
 			Labels: map[string]string{"foo": "baz"},
 		},
-		Class:            "linux-worker",
-		Name:             "big-pool-of-machines",
-		Replicas:         &replicas,
-		FailureDomain:    &failureDomain,
-		NodeDrainTimeout: &nodeDrainTimeout,
+		Class:               "linux-worker",
+		Name:                "big-pool-of-machines",
+		Replicas:            &replicas,
+		FailureDomain:       &failureDomain,
+		NodeDrainTimeout:    &nodeDrainTimeout,
+		NodeDeletionTimeout: &nodeDeletionTimeout,
 	}
 
 	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {
@@ -1355,6 +1360,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.Replicas).To(Equal(replicas))
 		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(failureDomain))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeout).To(Equal(nodeDrainTimeout))
+		g.Expect(*actualMd.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(nodeDeletionTimeout))
 		g.Expect(actualMd.Spec.ClusterName).To(Equal("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("big-pool-of-machines"))

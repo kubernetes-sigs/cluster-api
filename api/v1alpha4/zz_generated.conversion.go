@@ -889,6 +889,7 @@ func autoConvert_v1beta1_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(i
 	}
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
 	return nil
 }
 
@@ -1242,6 +1243,7 @@ func autoConvert_v1beta1_MachineDeploymentTopology_To_v1alpha4_MachineDeployment
 	// WARNING: in.FailureDomain requires manual conversion: does not exist in peer-type
 	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
 	// WARNING: in.NodeDrainTimeout requires manual conversion: does not exist in peer-type
+	// WARNING: in.NodeDeletionTimeout requires manual conversion: does not exist in peer-type
 	// WARNING: in.Variables requires manual conversion: does not exist in peer-type
 	return nil
 }

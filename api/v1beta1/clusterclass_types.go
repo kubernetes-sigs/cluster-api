@@ -158,6 +158,7 @@ type MachineHealthCheckClass struct {
 	// (a) there are at least 3 unhealthy machines (and)
 	// (b) there are at most 5 unhealthy machines
 	// +optional
+	// +kubebuilder:validation:Pattern=^\[[0-9]+-[0-9]+\]$
 	UnhealthyRange *string `json:"unhealthyRange,omitempty"`
 
 	// Machines older than this duration without a node will be considered to have

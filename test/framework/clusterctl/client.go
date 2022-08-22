@@ -24,7 +24,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	clusterctlclient "sigs.k8s.io/cluster-api/cmd/clusterctl/client"

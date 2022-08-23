@@ -151,3 +151,95 @@ func TestAddAnnotations(t *testing.T) {
 		})
 	}
 }
+
+func TestHasTruthyAnnotationValue(t *testing.T) {
+	tests := []struct {
+		name          string
+		obj           metav1.Object
+		annotationKey string
+		expected      bool
+	}{
+		{
+			name: "annotation does not exist",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/some-other-annotation": "",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			annotationKey: "cluster.x-k8s.io/replicas-managed-by",
+			expected:      false,
+		},
+		{
+			name: "no val",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/replicas-managed-by": "",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			annotationKey: "cluster.x-k8s.io/replicas-managed-by",
+			expected:      true,
+		},
+		{
+			name: "annotation exists, true value",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/replicas-managed-by": "true",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			annotationKey: "cluster.x-k8s.io/replicas-managed-by",
+			expected:      true,
+		},
+		{
+			name: "annotation exists, random string value",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/replicas-managed-by": "foo",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			annotationKey: "cluster.x-k8s.io/replicas-managed-by",
+			expected:      true,
+		},
+		{
+			name: "annotation exists, false value",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/replicas-managed-by": "false",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			annotationKey: "cluster.x-k8s.io/replicas-managed-by",
+			expected:      false,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ret := hasTruthyAnnotationValue(tt.obj, tt.annotationKey)
+			if tt.expected {
+				g.Expect(ret).To(BeTrue())
+			} else {
+				g.Expect(ret).To(BeFalse())
+			}
+		})
+	}
+}

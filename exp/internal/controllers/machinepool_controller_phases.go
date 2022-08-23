@@ -67,14 +67,26 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseRunning)
 	}
 
-	// Set the phase to "scalingUp" if the infrastructure is scaling up.
+	// Set the appropriate phase in response to the MachinePool replica count being greater than the observed infrastructure replicas.
 	if mp.Status.InfrastructureReady && *mp.Spec.Replicas > mp.Status.ReadyReplicas {
-		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScalingUp)
+		// If we are being managed by an external autoscaler and can't predict scaling direction, set to "Scaling".
+		if annotations.ReplicasManagedByExternalAutoscaler(mp) {
+			mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScaling)
+		} else {
+			// Set the phase to "ScalingUp" if we are actively scaling the infrastructure out.
+			mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScalingUp)
+		}
 	}
 
-	// Set the phase to "scalingDown" if the infrastructure is scaling down.
+	// Set the appropriate phase in response to the MachinePool replica count being less than the observed infrastructure replicas.
 	if mp.Status.InfrastructureReady && *mp.Spec.Replicas < mp.Status.ReadyReplicas {
-		mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScalingDown)
+		// If we are being managed by an external autoscaler and can't predict scaling direction, set to "Scaling".
+		if annotations.ReplicasManagedByExternalAutoscaler(mp) {
+			mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScaling)
+		} else {
+			// Set the phase to "ScalingDown" if we are actively scaling the infrastructure in.
+			mp.Status.SetTypedPhase(expv1.MachinePoolPhaseScalingDown)
+		}
 	}
 
 	// Set the phase to "failed" if any of Status.FailureReason or Status.FailureMessage is not-nil.

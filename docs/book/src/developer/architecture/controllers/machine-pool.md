@@ -99,7 +99,7 @@ The `status` object **may** define several fields that do not affect functionali
 Example:
 ```yaml
 kind: MyMachinePool
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 spec:
     providerIDList:
       - cloud:////my-cloud-provider-id-0
@@ -107,6 +107,35 @@ spec:
 status:
     ready: true
 ```
+
+#### Externally Managed Autoscaler
+
+A provider may implement an InfrastructureMachinePool that is externally managed by an autoscaler. For example, if you are using a Managed Kubernetes provider, it may include its own autoscaler solution. To indicate this to Cluster API, you would decorate the MachinePool object with the following annotation:
+
+`"cluster.x-k8s.io/replicas-managed-by": ""`
+
+Cluster API treats the annotation as a "boolean", meaning that the presence of the annotation is sufficient to indicate external replica count management, with one exception: if the value is `"false"`, then that indicates to Cluster API that replica enforcement is nominal, and managed by Cluster API.
+
+Providers may choose to implement the `cluster.x-k8s.io/replicas-managed-by` annotation with different values (e.g., `external-autoscaler`, or `karpenter`) that may inform different provider-specific behaviors, but those values will have no effect upon Cluster API.
+
+The effect upon Cluster API of this annotation is that during autoscaling events (initiated externally, not by Cluster API), when more or fewer MachinePool replicas are observed compared to the `Spec.Replicas` configuration, it will update its `Status.Phase` property to the value of `"Scaling"`.
+
+Example:
+```yaml
+kind: MyMachinePool
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+spec:
+    providerIDList:
+      - cloud:////my-cloud-provider-id-0
+      - cloud:////my-cloud-provider-id-1
+      - cloud:////my-cloud-provider-id-2
+    replicas: 1
+status:
+    ready: true
+    phase: Scaling
+```
+
+It is the provider's responsibility to update Cluster API's `Spec.Replicas` property to the value observed in the underlying infra environment as it changes in response to external autoscaling behaviors. Once that is done, and the number of providerID items is equal to the `Spec.Replicas` property, the MachinePools's `Status.Phase` property will be set to `Running` by Cluster API.
 
 ### Secrets
 

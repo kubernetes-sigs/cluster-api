@@ -17,7 +17,7 @@ ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 TOOLS_DIR := $(realpath ../../hack/tools)
 TOOLS_BIN_DIR := $(TOOLS_DIR)/bin
 BIN_DIR := bin
-CRATE_INSTALL := $(realpath ../../third_party/japaric-trust/crate_install.sh)
+MDBOOK_INSTALL := $(realpath ../../scripts/ci-install-mdbook.sh)
 
 export PATH := $(TOOLS_BIN_DIR):$(PATH)
 
@@ -34,9 +34,10 @@ RELEASELINK := $(TOOLS_BIN_DIR)/mdbook-releaselink
 $(RELEASELINK): $(TOOLS_DIR)/go.mod
 	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/mdbook-releaselink ./mdbook/releaselink
 
-MDBOOK := $(TOOLS_BIN_DIR)/mdbook
+# Only set MDBOOK if it's not set as an environment variable
+MDBOOK ?= $(TOOLS_BIN_DIR)/mdbook
 $(MDBOOK):
-	$(CRATE_INSTALL) --git rust-lang/mdBook --tag v0.4.11 --to $(TOOLS_BIN_DIR) --force
+	$(MDBOOK_INSTALL) v0.4.11 $(TOOLS_BIN_DIR)
 
 RUNTIME_OPENAPI_GEN_BIN := runtime-openapi-gen
 RUNTIME_OPENAPI_GEN := $(abspath $(TOOLS_BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN))

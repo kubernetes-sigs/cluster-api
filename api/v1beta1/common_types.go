@@ -128,6 +128,12 @@ const (
 	// any changes to the actual object because it is a dry run) and the topology controller
 	// will receive the resulting object.
 	TopologyDryRunAnnotation = "topology.cluster.x-k8s.io/dry-run"
+
+	// ReplicasManagedByAnnotation is an annotation that indicates external (non-Cluster API) management of infra scaling.
+	// The practical effect of this is that the capi "replica" count should be passively derived from the number of observed infra machines,
+	// instead of being a source of truth for eventual consistency.
+	// This annotation can be used to inform MachinePool status during in-progress scaling scenarios.
+	ReplicasManagedByAnnotation = "cluster.x-k8s.io/replicas-managed-by"
 )
 
 const (

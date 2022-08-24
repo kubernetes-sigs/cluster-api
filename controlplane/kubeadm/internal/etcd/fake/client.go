@@ -23,7 +23,7 @@ import (
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
-type FakeEtcdClient struct { //nolint:revive
+type FakeEtcdClient struct {
 	AlarmResponse        *clientv3.AlarmResponse
 	EtcdEndpoints        []string
 	MemberListResponse   *clientv3.MemberListResponse

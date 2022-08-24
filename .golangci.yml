@@ -141,6 +141,10 @@ linters-settings:
     allow-unused: false
     allow-leading-space: false
     require-specific: true
+  revive:
+    rules:
+      - name: package-comments
+        disabled: true
   staticcheck:
     go: "1.18"
   stylecheck:
@@ -274,6 +278,4 @@ run:
   skip-files:
   - "zz_generated.*\\.go$"
   - "vendored_openapi\\.go$"
-  skip-dirs:
-  - third_party
   allow-parallel-runners: true

@@ -91,7 +91,7 @@ func main() {
 	if profilerAddress != "" {
 		klog.Infof("Profiler listening for requests at %s", profilerAddress)
 		go func() {
-			klog.Info(http.ListenAndServe(profilerAddress, nil))
+			klog.Info(http.ListenAndServe(profilerAddress, nil)) //#nosec Missing timeout
 		}()
 	}
 

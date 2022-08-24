@@ -47,7 +47,7 @@ type FakeProxy struct {
 }
 
 var (
-	FakeScheme = runtime.NewScheme() //nolint:revive
+	FakeScheme = runtime.NewScheme()
 )
 
 func init() {

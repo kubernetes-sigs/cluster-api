@@ -48,7 +48,7 @@ var (
 )
 
 func (r *Reconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
-	originalPhase := m.Status.Phase //nolint:ifshort // Cannot be inlined because m.Status.Phase might be changed before it is used in the if.
+	originalPhase := m.Status.Phase
 
 	// Set the phase to "pending" if nil.
 	if m.Status.Phase == "" {

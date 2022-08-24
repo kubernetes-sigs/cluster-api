@@ -17,6 +17,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// main is the main package for mdbook-releaselink.
 package main
 
 import (

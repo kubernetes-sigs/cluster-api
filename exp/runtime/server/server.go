@@ -175,8 +175,8 @@ func (s *Server) validateHandler(handler ExtensionHandler) error {
 	}
 
 	// Get hook and handler request and response types.
-	hookRequestType := hookFuncType.In(0)  //nolint:ifshort
-	hookResponseType := hookFuncType.In(1) //nolint:ifshort
+	hookRequestType := hookFuncType.In(0)
+	hookResponseType := hookFuncType.In(1)
 	handlerContextType := handlerFuncType.In(0)
 	handlerRequestType := handlerFuncType.In(1)
 	handlerResponseType := handlerFuncType.In(2)

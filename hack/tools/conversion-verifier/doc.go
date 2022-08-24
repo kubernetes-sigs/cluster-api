@@ -22,4 +22,6 @@ limitations under the License.
 //     the type MUST have a Hub() method.
 //   - For each type with multiple versions, that has a Hub() and storage version,
 //     the type MUST have ConvertFrom() and ConvertTo() methods.
+
+// main is the main package for the conversion-verifier.
 package main

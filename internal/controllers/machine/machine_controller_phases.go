@@ -232,7 +232,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.
 	}
 	m.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)
 	if !m.Status.BootstrapReady {
-		log.Info("Bootstrap provider generated data secret and reports status.ready", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig), "secret", klog.KRef(m.Namespace, secretName))
+		log.Info("Bootstrap provider generated data secret and reports status.ready", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig), "Secret", klog.KRef(m.Namespace, secretName))
 	}
 	m.Status.BootstrapReady = true
 	return ctrl.Result{}, nil

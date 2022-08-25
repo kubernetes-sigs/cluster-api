@@ -660,7 +660,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 	templateLabel := labels.Set(ms.Spec.Template.Labels).AsSelectorPreValidated()
 
 	for _, machine := range filteredMachines {
-		log = log.WithValues("machine", klog.KObj(machine))
+		log = log.WithValues("Machine", klog.KObj(machine))
 
 		if templateLabel.Matches(labels.Set(machine.Labels)) {
 			fullyLabeledReplicasCount++

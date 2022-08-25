@@ -29,6 +29,7 @@ import (
 	apirand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/util/retry"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -236,13 +237,13 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, d *clusterv1.MachineD
 
 		return nil, err
 	case err != nil:
-		log.Error(err, "Failed to create new machine set", "machineset", newMS.Name)
+		log.Error(err, "Failed to create new MachineSet", "MachineSet", klog.KObj(&newMS))
 		r.recorder.Eventf(d, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %q: %v", newMS.Name, err)
 		return nil, err
 	}
 
 	if !alreadyExists {
-		log.V(4).Info("Created new machine set", "machineset", createdMS.Name)
+		log.V(4).Info("Created new MachineSet", "MachineSet", klog.KObj(createdMS))
 		r.recorder.Eventf(d, corev1.EventTypeNormal, "SuccessfulCreate", "Created MachineSet %q", newMS.Name)
 	}
 

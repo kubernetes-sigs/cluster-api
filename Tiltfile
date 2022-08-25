@@ -13,7 +13,6 @@ load("ext://uibutton", "cmd_button", "location", "text_input")
 version_settings(True, ">=0.22.2")
 
 settings = {
-    "deploy_cert_manager": True,
     "enable_providers": ["docker"],
     "kind_cluster_name": os.getenv("CAPI_KIND_CLUSTER_NAME", "capi-test"),
     "debug": {},

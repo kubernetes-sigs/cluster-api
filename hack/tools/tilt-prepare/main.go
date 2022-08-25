@@ -70,7 +70,7 @@ var (
 type tiltSettings struct {
 	Debug               map[string]debugConfig `json:"debug,omitempty"`
 	ExtraArgs           map[string]extraArgs   `json:"extra_args,omitempty"`
-	DeployCertManager   bool                   `json:"deploy_cert_manager,omitempty"`
+	DeployCertManager   *bool                  `json:"deploy_cert_manager,omitempty"`
 	DeployObservability []string               `json:"deploy_observability,omitempty"`
 	EnableProviders     []string               `json:"enable_providers,omitempty"`
 	AllowedContexts     []string               `json:"allowed_contexts,omitempty"`
@@ -161,12 +161,16 @@ func readTiltSettings(path string) (*tiltSettings, error) {
 		return nil, errors.Wrap(err, "failed to unmarshal tilt-settings content")
 	}
 
-	setDebugDefaults(ts)
+	setDefaults(ts)
 	return ts, nil
 }
 
-// setDebugDefaults sets default values for debug related fields in tiltSettings.
-func setDebugDefaults(ts *tiltSettings) {
+// setDefaults sets default values for debug related fields in tiltSettings.
+func setDefaults(ts *tiltSettings) {
+	if ts.DeployCertManager == nil {
+		ts.DeployCertManager = pointer.BoolPtr(true)
+	}
+
 	for k := range ts.Debug {
 		p := ts.Debug[k]
 		if p.Continue == nil {
@@ -234,7 +238,7 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 	// If required, all the task to install cert manager.
 	// NOTE: strictly speaking cert-manager is not a resource, however it is a dependency for most of the actual resources
 	// and running this is the same task group of the kustomize/provider tasks gives the maximum benefits in terms of reducing the total elapsed time.
-	if ts.DeployCertManager {
+	if ts.DeployCertManager == nil || *ts.DeployCertManager {
 		tasks["cert-manager-cainjector"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-cainjector:%s", config.CertManagerDefaultVersion))
 		tasks["cert-manager-webhook"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-webhook:%s", config.CertManagerDefaultVersion))
 		tasks["cert-manager-controller"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-controller:%s", config.CertManagerDefaultVersion))

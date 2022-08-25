@@ -38,8 +38,8 @@ type fakeManagementCluster struct {
 	Reader       client.Reader
 }
 
-func (f *fakeManagementCluster) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-	return f.Reader.Get(ctx, key, obj)
+func (f *fakeManagementCluster) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	return f.Reader.Get(ctx, key, obj, opts...)
 }
 
 func (f *fakeManagementCluster) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {

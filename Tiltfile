@@ -55,7 +55,6 @@ providers = {
             "exp",
             "feature",
             "internal",
-            "third_party",
             "util",
             "webhooks",
         ],

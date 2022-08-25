@@ -21,7 +21,6 @@ cluster-api
 └───logos
 └───scripts
 └───test
-└───third_party
 └───util
 └───version
 └───webhooks
@@ -115,10 +114,6 @@ This folder has scripts used for building, testing and developer workflow.
 [~/scripts](https://github.com/kubernetes-sigs/cluster-api/tree/main/scripts)
 
 This folder consists of CI scripts related to setup, build and e2e tests. These are mostly called by CI jobs.
-
-[~/third_party](https://github.com/kubernetes-sigs/cluster-api/tree/main/third_party)
-
-This folder is used to copy code from other projects in-tree.
 
 ### Util, Feature and Errors
 

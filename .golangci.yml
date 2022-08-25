@@ -4,7 +4,6 @@ linters:
   - asciicheck
   - bodyclose
   - containedctx
-  - deadcode
   - depguard
   - dogsled
   - errcheck
@@ -19,7 +18,6 @@ linters:
   - gosec
   - gosimple
   - govet
-  - ifshort
   - importas
   - ineffassign
   - misspell
@@ -32,14 +30,12 @@ linters:
   - revive
   - rowserrcheck
   - staticcheck
-  - structcheck
   - stylecheck
   - thelper
   - typecheck
   - unconvert
   - unparam
   - unused
-  - varcheck
   - whitespace
 
 linters-settings:
@@ -51,9 +47,6 @@ linters-settings:
     exclude:
     - '^ \+.*'
     - '^ ANCHOR.*'
-  ifshort:
-    # Maximum length of variable declaration measured in number of characters, after which linter won't suggest using short syntax.
-    max-decl-chars: 50
   gci:
     local-prefixes: "sigs.k8s.io/cluster-api"
   importas:
@@ -215,13 +208,7 @@ issues:
   - linters:
     - gocritic
     text: "appendAssign: append result not assigned to the same slice"
-  # ifshort flags variables that are only used in the if-statement even though there is
-  # already a SimpleStmt being used in the if-statement in question.
-  - linters:
-    - ifshort
-    text: "variable .* is only used in the if-statement"
-    path: controllers/mdutil/util.go
-  # Disable linters for conversion
+ # Disable linters for conversion
   - linters:
     - staticcheck
     text: "SA1019: in.(.+) is deprecated"
@@ -251,15 +238,6 @@ issues:
     - typecheck
     text: import (".+") is a program, not an importable package
     path: ^tools\.go$
-  # TODO(sbueringer) Ignore ifshort false positive: https://github.com/esimonov/ifshort/issues/23
-  - linters:
-    - ifshort
-    text:  "variable 'isDeleteNodeAllowed' is only used in the if-statement.*"
-    path: ^internal/controllers/machine/machine_controller\.go$
-  - linters:
-    - ifshort
-    text: "variable 'kcpMachinesWithErrors' is only used in the if-statement.*"
-    path: ^controlplane/kubeadm/internal/workload_cluster_conditions\.go$
   # We don't care about defer in for loops in test files.
   - linters:
     - gocritic

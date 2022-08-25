@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// main is the main package for the Cluster API Core Provider.
 package main
 
 import (
@@ -216,9 +217,12 @@ func main() {
 	ctrl.SetLogger(klog.Background())
 
 	if profilerAddress != "" {
-		klog.Infof("Profiler listening for requests at %s", profilerAddress)
+		setupLog.Info(fmt.Sprintf("Profiler listening for requests at %s", profilerAddress))
 		go func() {
-			klog.Info(http.ListenAndServe(profilerAddress, nil))
+			srv := http.Server{Addr: profilerAddress, ReadHeaderTimeout: 2 * time.Second}
+			if err := srv.ListenAndServe(); err != nil {
+				setupLog.Error(err, "problem running profiler server")
+			}
 		}()
 	}
 

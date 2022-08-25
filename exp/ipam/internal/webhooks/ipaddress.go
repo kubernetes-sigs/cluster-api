@@ -19,10 +19,10 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"net/netip"
 	"reflect"
 
 	"github.com/pkg/errors"
-	"inet.af/netaddr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -88,7 +88,7 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 	allErrs := field.ErrorList{}
 	specPath := field.NewPath("spec")
 
-	addr, err := netaddr.ParseIP(ip.Spec.Address)
+	addr, err := netip.ParseAddr(ip.Spec.Address)
 	if err != nil {
 		allErrs = append(allErrs,
 			field.Invalid(
@@ -123,7 +123,7 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 			))
 	}
 
-	_, err = netaddr.ParseIP(ip.Spec.Gateway)
+	_, err = netip.ParseAddr(ip.Spec.Gateway)
 	if err != nil {
 		allErrs = append(allErrs,
 			field.Invalid(

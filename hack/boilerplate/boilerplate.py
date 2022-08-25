@@ -150,7 +150,7 @@ def file_passes(filename, refs, regexs):
 def file_extension(filename):
     return os.path.splitext(filename)[1].split(".")[-1].lower()
 
-skipped_dirs = ['third_party', 'tilt_modules', '_gopath', '_output', '.git', 'cluster/env.sh',
+skipped_dirs = ['tilt_modules', '_gopath', '_output', '.git', 'cluster/env.sh',
                 "vendor", "test/e2e/generated/bindata.go", "hack/boilerplate/test",
                 "staging/src/k8s.io/kubectl/pkg/generated/bindata.go"]
 

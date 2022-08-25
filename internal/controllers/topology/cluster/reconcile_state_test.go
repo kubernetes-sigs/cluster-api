@@ -25,6 +25,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -2722,54 +2723,6 @@ func TestReconciler_reconcileMachineHealthCheck(t *testing.T) {
 	}
 }
 
-func Test_createErrorWithoutObjectName(t *testing.T) {
-	originalError := &apierrors.StatusError{
-		ErrStatus: metav1.Status{
-			Status:  metav1.StatusFailure,
-			Code:    http.StatusUnprocessableEntity,
-			Reason:  metav1.StatusReasonInvalid,
-			Message: "DockerMachineTemplate.infrastructure.cluster.x-k8s.io \"docker-template-one\" is invalid: spec.template.spec.preLoadImages: Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
-			Details: &metav1.StatusDetails{
-				Group: "infrastructure.cluster.x-k8s.io",
-				Kind:  "DockerMachineTemplate",
-				Name:  "docker-template-one",
-				Causes: []metav1.StatusCause{
-					{
-						Type:    "FieldValueInvalid",
-						Message: "Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
-						Field:   "spec.template.spec.preLoadImages",
-					},
-				},
-			},
-		}}
-	wantError := &apierrors.StatusError{
-		ErrStatus: metav1.Status{
-			Status: metav1.StatusFailure,
-			Code:   http.StatusUnprocessableEntity,
-			Reason: metav1.StatusReasonInvalid,
-			// The only difference between the two objects should be in the Message section.
-			Message: "failed to create DockerMachineTemplate.infrastructure.cluster.x-k8s.io: FieldValueInvalid: spec.template.spec.preLoadImages: Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
-			Details: &metav1.StatusDetails{
-				Group: "infrastructure.cluster.x-k8s.io",
-				Kind:  "DockerMachineTemplate",
-				Name:  "docker-template-one",
-				Causes: []metav1.StatusCause{
-					{
-						Type:    "FieldValueInvalid",
-						Message: "Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
-						Field:   "spec.template.spec.preLoadImages",
-					},
-				},
-			},
-		},
-	}
-	t.Run("Transform a create error correctly", func(t *testing.T) {
-		g := NewWithT(t)
-		err := createErrorWithoutObjectName(originalError, nil)
-		g.Expect(err).To(Equal(wantError), cmp.Diff(err, wantError))
-	})
-}
-
 // prepareControlPlaneBluePrint deep-copies and returns the input scope and sets
 // the given namespace to all relevant objects.
 func prepareControlPlaneBluePrint(in *scope.ControlPlaneBlueprint, namespace string) *scope.ControlPlaneBlueprint {
@@ -2871,4 +2824,160 @@ func prepareCluster(in *clusterv1.Cluster, namespace string) *clusterv1.Cluster 
 		c.Spec.ControlPlaneRef.Namespace = namespace
 	}
 	return c
+}
+
+func Test_createErrorWithoutObjectName(t *testing.T) {
+	detailsError := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status:  metav1.StatusFailure,
+			Code:    http.StatusUnprocessableEntity,
+			Reason:  metav1.StatusReasonInvalid,
+			Message: "DockerMachineTemplate.infrastructure.cluster.x-k8s.io \"docker-template-one\" is invalid: spec.template.spec.preLoadImages: Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
+			Details: &metav1.StatusDetails{
+				Group: "infrastructure.cluster.x-k8s.io",
+				Kind:  "DockerMachineTemplate",
+				Name:  "docker-template-one",
+				Causes: []metav1.StatusCause{
+					{
+						Type:    "FieldValueInvalid",
+						Message: "Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
+						Field:   "spec.template.spec.preLoadImages",
+					},
+				},
+			},
+		},
+	}
+	expectedDetailsError := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status: metav1.StatusFailure,
+			Code:   http.StatusUnprocessableEntity,
+			Reason: metav1.StatusReasonInvalid,
+			// The only difference between the two objects should be in the Message section.
+			Message: "failed to create DockerMachineTemplate.infrastructure.cluster.x-k8s.io: FieldValueInvalid: spec.template.spec.preLoadImages: Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
+			Details: &metav1.StatusDetails{
+				Group: "infrastructure.cluster.x-k8s.io",
+				Kind:  "DockerMachineTemplate",
+				Name:  "docker-template-one",
+				Causes: []metav1.StatusCause{
+					{
+						Type:    "FieldValueInvalid",
+						Message: "Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
+						Field:   "spec.template.spec.preLoadImages",
+					},
+				},
+			},
+		},
+	}
+	NoCausesDetailsError := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status:  metav1.StatusFailure,
+			Code:    http.StatusUnprocessableEntity,
+			Reason:  metav1.StatusReasonInvalid,
+			Message: "DockerMachineTemplate.infrastructure.cluster.x-k8s.io \"docker-template-one\" is invalid: spec.template.spec.preLoadImages: Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
+			Details: &metav1.StatusDetails{
+				Group: "infrastructure.cluster.x-k8s.io",
+				Kind:  "DockerMachineTemplate",
+				Name:  "docker-template-one",
+			},
+		},
+	}
+	expectedNoCausesDetailsError := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status: metav1.StatusFailure,
+			Code:   http.StatusUnprocessableEntity,
+			Reason: metav1.StatusReasonInvalid,
+			// The only difference between the two objects should be in the Message section.
+			Message: "failed to create DockerMachineTemplate.infrastructure.cluster.x-k8s.io",
+			Details: &metav1.StatusDetails{
+				Group: "infrastructure.cluster.x-k8s.io",
+				Kind:  "DockerMachineTemplate",
+				Name:  "docker-template-one",
+			},
+		},
+	}
+	noDetailsError := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status:  metav1.StatusFailure,
+			Code:    http.StatusUnprocessableEntity,
+			Reason:  metav1.StatusReasonInvalid,
+			Message: "DockerMachineTemplate.infrastructure.cluster.x-k8s.io \"docker-template-one\" is invalid: spec.template.spec.preLoadImages: Invalid value: \"array\": spec.template.spec.preLoadImages in body must be of type string: \"array\"",
+		},
+	}
+	expectedNoDetailsError := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status: metav1.StatusFailure,
+			Code:   http.StatusUnprocessableEntity,
+			Reason: metav1.StatusReasonInvalid,
+			// The only difference between the two objects should be in the Message section.
+			Message: "failed to create TestControlPlane.controlplane.cluster.x-k8s.io",
+		},
+	}
+	expectedObjectNilError := &apierrors.StatusError{
+		ErrStatus: metav1.Status{
+			Status: metav1.StatusFailure,
+			Code:   http.StatusUnprocessableEntity,
+			Reason: metav1.StatusReasonInvalid,
+			// The only difference between the two objects should be in the Message section.
+			Message: "failed to create object",
+		},
+	}
+	nonStatusError := errors.New("an unexpected error with unknown information inside")
+	expectedNonStatusError := errors.New("failed to create TestControlPlane.controlplane.cluster.x-k8s.io")
+	expectedNilObjectNonStatusError := errors.New("failed to create object")
+	tests := []struct {
+		name     string
+		input    error
+		expected error
+		obj      client.Object
+	}{
+		{
+			name:     "Remove name from status error with details",
+			input:    detailsError,
+			expected: expectedDetailsError,
+			obj:      builder.TestControlPlane("default", "cp1").Build(),
+		},
+		{
+			name:     "Remove name from status error with details but no causes",
+			input:    NoCausesDetailsError,
+			expected: expectedNoCausesDetailsError,
+			obj:      builder.TestControlPlane("default", "cp1").Build(),
+		},
+		{
+			name:     "Remove name from status error with no details",
+			input:    noDetailsError,
+			expected: expectedNoDetailsError,
+			obj:      builder.TestControlPlane("default", "cp1").Build(),
+		},
+		{
+			name:     "Remove name from status error with nil object",
+			input:    noDetailsError,
+			expected: expectedObjectNilError,
+			obj:      nil,
+		},
+		{
+			name:     "Remove name from status error with nil object",
+			input:    noDetailsError,
+			expected: expectedObjectNilError,
+			obj:      nil,
+		},
+		{
+			name:     "Replace message of non status error",
+			input:    nonStatusError,
+			expected: expectedNonStatusError,
+			obj:      builder.TestControlPlane("default", "cp1").Build(),
+		},
+		{
+			name:     "Replace message of non status error with nil object",
+			input:    nonStatusError,
+			expected: expectedNilObjectNonStatusError,
+			obj:      nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			err := createErrorWithoutObjectName(tt.input, tt.obj)
+			g.Expect(err.Error()).To(Equal(tt.expected.Error()))
+		})
+	}
 }

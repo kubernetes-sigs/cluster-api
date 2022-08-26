@@ -99,7 +99,7 @@ func getLatestAPIVersionFromContract(metadata metav1.Object) (string, error) {
 	// If there is no label, return early without changing the reference.
 	supportedVersions, ok := labels[contract]
 	if !ok || supportedVersions == "" {
-		return "", errors.Errorf("cannot find any versions matching contract %q for GVK %v as contract version label(s) are either missing or empty", contract, metadata.GetName())
+		return "", errors.Errorf("cannot find any versions matching contract %q for CRD %v as contract version label(s) are either missing or empty (see https://cluster-api.sigs.k8s.io/developer/providers/contracts.html#api-version-labels)", contract, metadata.GetName())
 	}
 
 	// Pick the latest version in the slice and validate it.

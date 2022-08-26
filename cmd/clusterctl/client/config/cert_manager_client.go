@@ -32,9 +32,9 @@ const (
 	CertManagerDefaultVersion = "v1.10.0"
 
 	// CertManagerDefaultURL defines the default cert-manager repository url to be used by clusterctl.
-	// NOTE: At runtime /latest will be replaced with the CertManagerDefaultVersion or with the
+	// NOTE: At runtime CertManagerDefaultVersion may be replaced with the
 	// version defined by the user in the clusterctl configuration file.
-	CertManagerDefaultURL = "https://github.com/cert-manager/cert-manager/releases/latest/cert-manager.yaml"
+	CertManagerDefaultURL = "https://github.com/cert-manager/cert-manager/releases/" + CertManagerDefaultVersion + "/cert-manager.yaml"
 
 	// CertManagerDefaultTimeout defines the default cert-manager timeout to be used by clusterctl.
 	CertManagerDefaultTimeout = 10 * time.Minute

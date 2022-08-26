@@ -13,7 +13,8 @@ load("ext://uibutton", "cmd_button", "location", "text_input")
 version_settings(True, ">=0.22.2")
 
 settings = {
-    "enable_providers": ["docker"],
+    "enable_providers": [],
+    "deploy_core_provider": "true",
     "kind_cluster_name": os.getenv("CAPI_KIND_CLUSTER_NAME", "capi-test"),
     "debug": {},
 }
@@ -37,8 +38,6 @@ if settings.get("trigger_mode") == "manual":
 
 if settings.get("default_registry") != "":
     default_registry(settings.get("default_registry"))
-
-always_enable_providers = ["core"]
 
 providers = {
     "core": {
@@ -449,16 +448,20 @@ def enable_providers():
 
 def get_providers():
     user_enable_providers = settings.get("enable_providers", [])
-    return {k: "" for k in user_enable_providers + always_enable_providers}.keys()
+    other_providers = []
+    if settings.get("deploy_core_provider"):
+        other_providers.append("core")
+    return {k: "" for k in user_enable_providers + other_providers}.keys()
 
 def deploy_provider_crds():
     # NOTE: we are applying raw yaml for clusterctl resources (vs delegating this to clusterctl methods) because
     # it is required to control precedence between creating this CRDs and creating providers.
-    k8s_yaml(read_file("./.tiltbuild/yaml/clusterctl.crd.yaml"))
-    k8s_resource(
-        objects = ["providers.clusterctl.cluster.x-k8s.io:CustomResourceDefinition:default"],
-        new_name = "provider_crd",
-    )
+    if len(get_providers()) != 0:
+        k8s_yaml(read_file("./.tiltbuild/yaml/clusterctl.crd.yaml"))
+        k8s_resource(
+            objects = ["providers.clusterctl.cluster.x-k8s.io:CustomResourceDefinition:default"],
+            new_name = "provider_crd",
+        )
 
 def deploy_observability():
     if "promtail" in settings.get("deploy_observability", []):

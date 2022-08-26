@@ -73,6 +73,7 @@ type tiltSettings struct {
 	Debug               map[string]debugConfig `json:"debug,omitempty"`
 	ExtraArgs           map[string]extraArgs   `json:"extra_args,omitempty"`
 	DeployCertManager   *bool                  `json:"deploy_cert_manager,omitempty"`
+	DeployCoreProvider  *bool                  `json:"deploy_core_provider,omitempty"`
 	DeployObservability []string               `json:"deploy_observability,omitempty"`
 	EnableProviders     []string               `json:"enable_providers,omitempty"`
 	EnableAddons        []string               `json:"enable_addons,omitempty"`
@@ -185,7 +186,9 @@ func setDefaults(ts *tiltSettings) {
 	if ts.DeployCertManager == nil {
 		ts.DeployCertManager = pointer.BoolPtr(true)
 	}
-
+	if ts.DeployCoreProvider == nil {
+		ts.DeployCoreProvider = pointer.BoolPtr(true)
+	}
 	for k := range ts.Debug {
 		p := ts.Debug[k]
 		if p.Continue == nil {
@@ -294,6 +297,16 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 	if !enableCore {
 		ts.EnableProviders = append(ts.EnableProviders, "core")
 	}
+
+	fmt.Print(*ts.DeployCoreProvider)
+	if !*ts.DeployCoreProvider {
+		for i, provider := range ts.EnableProviders {
+			if provider == "core" {
+				ts.EnableProviders = append(ts.EnableProviders[:i], ts.EnableProviders[i+1:]...)
+			}
+		}
+	}
+	fmt.Print(ts.EnableProviders)
 
 	// Add the provider task for each of the enabled provider
 	for _, providerName := range ts.EnableProviders {

@@ -88,63 +88,35 @@ resources:
 You can now (hopefully) generate your yaml!
 
 ```bash
-kustomize build config/
-```
-
-## RBAC Role
-
-The default [RBAC role][role] contains permissions for accessing your cluster infrastructure CRDs, but not for accessing Cluster API resources.
-You'll need to add these to `config/rbac/role.yaml`
-
-[role]: https://kubernetes.io/docs/reference/access-authn-authz/rbac/
-
-```diff
-diff --git a/config/rbac/role.yaml b/config/rbac/role.yaml
-index e9352ce..29008db 100644
---- a/config/rbac/role.yaml
-+++ b/config/rbac/role.yaml
-@@ -6,6 +6,24 @@ metadata:
-   creationTimestamp: null
-   name: manager-role
- rules:
-+- apiGroups:
-+  - cluster.x-k8s.io
-+  resources:
-+  - clusters
-+  - clusters/status
-+  verbs:
-+  - get
-+  - list
-+  - watch
-+- apiGroups:
-+  - cluster.x-k8s.io
-+  resources:
-+  - machines
-+  - machines/status
-+  verbs:
-+  - get
-+  - list
-+  - watch
- - apiGroups:
-   - infrastructure.cluster.x-k8s.io
-   resources:
+kustomize build config/default
 ```
 
 ## EnvSubst
 
 _A tool like [direnv](https://direnv.net/) can be used to help manage environment variables._
 
-
 `kustomize` does not handle replacing those `${VARIABLES}` with actual values.
 For that, we use [`envsubst`][envsubst].
 
 You'll need to have those environment variables (`MAILGUN_API_KEY`, `MAILGUN_DOMAIN`, `MAILGUN_RECIPIENT`) in your environment when you generate the final yaml file.
 
-Then we call envsubst in line, like so:
+Change `Makefile` to include the call to `envsubst`:
 
-```bash
-kustomize build config/ | envsubst
+```diff
+-	$(KUSTOMIZE) build config/default | kubectl apply -f -
++	$(KUSTOMIZE) build config/default | envsubst | kubectl apply -f -
 ```
 
-[envsubst]: https://linux.die.net/man/1/envsubst
+To generate the manifests, call envsubst in line, like so:
 
+```bash
+kustomize build config/default | envsubst
+```
+
+Or to build and deploy the CRDs and manifests directly:
+
+```bash
+make install deploy
+```
+
+[envsubst]: https://github.com/drone/envsubst

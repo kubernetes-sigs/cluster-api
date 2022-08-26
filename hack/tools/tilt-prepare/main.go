@@ -800,6 +800,12 @@ func getProviderObj(prefix string, objs []unstructured.Unstructured) (*unstructu
 		break
 	}
 
+	if manifestLabel == "" {
+		return nil, errors.Errorf(
+			"Could not find any Namespace object with label %s and therefore failed to deduce provider name and type",
+			clusterv1.ProviderLabelName)
+	}
+
 	providerType := "CoreProvider"
 	providerName := manifestLabel
 	if strings.HasPrefix(manifestLabel, "infrastructure-") {

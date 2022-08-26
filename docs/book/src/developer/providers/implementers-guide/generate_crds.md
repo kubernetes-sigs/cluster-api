@@ -37,8 +37,8 @@ Here you will be asked if you want to generate resources and controllers.
 You'll want both of them:
 
 ```bash
-kubebuilder create api --group infrastructure --version v1alpha3 --kind MailgunCluster
-kubebuilder create api --group infrastructure --version v1alpha3 --kind MailgunMachine
+kubebuilder create api --group infrastructure --version v1alpha1 --kind MailgunCluster
+kubebuilder create api --group infrastructure --version v1alpha1 --kind MailgunMachine
 ```
 
 ```bash
@@ -47,6 +47,8 @@ y
 Create Controller under pkg/controller [y/n]?
 y
 ```
+
+The latest API version of Cluster API and the version of your provider do not need to be in sync. Instead, prefer choosing a version that matches the stability of the provider API and its backward compatibility guarantees.
 
 ### Add Status subresource
 
@@ -85,7 +87,7 @@ make manifests
 
 The cluster API CRDs should be further customized:
 
-- [Apply the contract version label to support conversions](../contracts.md#api-version-labels)
+- [Apply the contract version label to support conversions](../contracts.md#api-version-labels) (required to deploy _any_ custom resource of your provider)
 - [Ensure you are compliant with the clusterctl provider contract](../../../clusterctl/provider-contract.md#components-yaml)
 
 ### Commit your changes

@@ -230,7 +230,7 @@ type NodeRegistrationOptions struct {
 	// it will be defaulted to []v1.Taint{'node-role.kubernetes.io/master=""'}. If you don't want to taint your control-plane node, set this field to an
 	// empty slice, i.e. `taints: []` in the YAML file. This field is solely used for Node registration.
 	// +optional
-	Taints []corev1.Taint `json:"taints,omitempty"`
+	Taints []corev1.Taint `json:"taints"`
 
 	// KubeletExtraArgs passes through extra arguments to the kubelet. The arguments here are passed to the kubelet command line via the environment file
 	// kubeadm writes at runtime for the kubelet to source. This overrides the generic base-level configuration in the kubelet-config-1.X ConfigMap

@@ -181,6 +181,11 @@ Will return logs from the `capi-controller-manager` which are parsed in json. Pa
 Will return logs from the `capi-controller-manager` that are associated with the Cluster `my-cluster`.
 
 ```
+{app="capi-controller-manager"} | json | cluster_name="my-cluster" | v <= 2
+```
+Will return logs from the `capi-controller-manager` that are associated with the Cluster `my-cluster` with log level <= 2.
+
+```
 {app="capi-controller-manager"} | json | cluster_name="my-cluster" reconcileID="6f6ad971-bdb6-4fa3-b803-xxxxxxxxxxxx"
 ```
 

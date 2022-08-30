@@ -50,6 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -137,8 +138,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	// Fetch the Machine instance
 	m := &clusterv1.Machine{}
 	if err := r.Client.Get(ctx, req.NamespacedName, m); err != nil {
@@ -149,6 +148,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		}
 
 		// Error reading the object - requeue the request.
+		return ctrl.Result{}, err
+	}
+
+	// AddOwners adds the owners of Machine as k/v pairs to the logger.
+	// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
+	ctx, log, err := clog.AddOwners(ctx, r.Client, m)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 

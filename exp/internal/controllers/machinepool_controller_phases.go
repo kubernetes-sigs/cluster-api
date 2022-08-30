@@ -134,7 +134,7 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 	// Add watcher for external object, if there isn't one already.
 	_, loaded := r.externalWatchers.LoadOrStore(obj.GroupVersionKind().String(), struct{}{})
 	if !loaded && r.controller != nil {
-		log.Info("Adding watcher on external object", "gvk", obj.GroupVersionKind())
+		log.Info("Adding watcher on external object", "groupVersionKind", obj.GroupVersionKind())
 		err := r.controller.Watch(
 			&source.Kind{Type: obj},
 			&handler.EnqueueRequestForOwner{OwnerType: &expv1.MachinePool{}},

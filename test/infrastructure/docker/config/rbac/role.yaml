@@ -18,6 +18,7 @@ rules:
   resources:
   - clusters
   - machines
+  - machinesets
   verbs:
   - get
   - list

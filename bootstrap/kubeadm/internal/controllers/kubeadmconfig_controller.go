@@ -52,6 +52,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -74,7 +75,7 @@ type InitLocker interface {
 }
 
 // +kubebuilder:rbac:groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs;kubeadmconfigs/status;kubeadmconfigs/finalizers,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;machines;machines/status;machinepools;machinepools/status,verbs=get;list;watch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status;machinesets;machines;machines/status;machinepools;machinepools/status,verbs=get;list;watch
 // +kubebuilder:rbac:groups="",resources=secrets;events;configmaps,verbs=get;list;watch;create;update;patch;delete
 
 // KubeadmConfigReconciler reconciles a KubeadmConfig object.
@@ -157,6 +158,13 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			return ctrl.Result{}, nil
 		}
 		log.Error(err, "Failed to get config")
+		return ctrl.Result{}, err
+	}
+
+	// AddOwners adds the owners of KubeadmConfig as k/v pairs to the logger.
+	// Specifically, it will add KubeadmControlPlane, MachineSet and MachineDeployment.
+	ctx, log, err := clog.AddOwners(ctx, r.Client, config)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
 

@@ -8,7 +8,14 @@ updated info about which API version they are supporting.
 ## Bootstrap
 - [EKS](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/bootstrap/eks)
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm)
+- [MicroK8s](https://github.com/canonical/cluster-api-bootstrap-provider-microk8s)
 - [Talos](https://github.com/siderolabs/cluster-api-bootstrap-provider-talos)
+
+## Control Plane
+- [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/controlplane/kubeadm)
+- [MicroK8s](https://github.com/canonical/cluster-api-control-plane-provider-microk8s)
+- [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
+- [Talos](https://github.com/siderolabs/cluster-api-control-plane-provider-talos)
 
 ## Infrastructure
 - [AWS](https://cluster-api-aws.sigs.k8s.io/)

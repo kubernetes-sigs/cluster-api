@@ -61,15 +61,17 @@ const (
 
 // Bootstrap providers.
 const (
-	KubeadmBootstrapProviderName = "kubeadm"
-	TalosBootstrapProviderName   = "talos"
+	KubeadmBootstrapProviderName  = "kubeadm"
+	TalosBootstrapProviderName    = "talos"
+	MicroK8sBootstrapProviderName = "microk8s"
 )
 
 // ControlPlane providers.
 const (
-	KubeadmControlPlaneProviderName = "kubeadm"
-	TalosControlPlaneProviderName   = "talos"
-	NestedControlPlaneProviderName  = "nested"
+	KubeadmControlPlaneProviderName  = "kubeadm"
+	TalosControlPlaneProviderName    = "talos"
+	MicroK8sControlPlaneProviderName = "microk8s"
+	NestedControlPlaneProviderName   = "nested"
 )
 
 // Other.
@@ -242,6 +244,11 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/siderolabs/cluster-api-bootstrap-provider-talos/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
+		&provider{
+			name:         MicroK8sBootstrapProviderName,
+			url:          "https://github.com/canonical/cluster-api-bootstrap-provider-microk8s/releases/latest/bootstrap-components.yaml",
+			providerType: clusterctlv1.BootstrapProviderType,
+		},
 		// ControlPlane providers
 		&provider{
 			name:         KubeadmControlPlaneProviderName,
@@ -251,6 +258,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         TalosControlPlaneProviderName,
 			url:          "https://github.com/siderolabs/cluster-api-control-plane-provider-talos/releases/latest/control-plane-components.yaml",
+			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+		&provider{
+			name:         MicroK8sControlPlaneProviderName,
+			url:          "https://github.com/canonical/cluster-api-control-plane-provider-microk8s/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{

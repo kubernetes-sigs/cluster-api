@@ -9,6 +9,7 @@ updated info about which API version they are supporting.
 - [EKS](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/bootstrap/eks)
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm)
 - [Talos](https://github.com/siderolabs/cluster-api-bootstrap-provider-talos)
+- [MicroK8s](https://github.com/canonical/cluster-api-bootstrap-provider-microk8s)
 
 ## Infrastructure
 - [AWS](https://cluster-api-aws.sigs.k8s.io/)

@@ -47,7 +47,6 @@ func Test_runGetRepositories(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			if val == RepositoriesOutputText {
-                                fmt.Printf("%s vs %s\n", out, expectedOutputText)
 				g.Expect(string(out)).To(Equal(expectedOutputText))
 			} else if val == RepositoriesOutputYaml {
 				g.Expect(string(out)).To(Equal(expectedOutputYaml))

@@ -22,7 +22,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-        "fmt"
 
 	. "github.com/onsi/gomega"
 )

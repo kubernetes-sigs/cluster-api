@@ -34,3 +34,15 @@ func (v *KubeadmConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 		Client: v.Client,
 	}).SetupWebhookWithManager(mgr)
 }
+
+// KubeadmConfigTemplate implements a validation and defaulting webhook for KubeadmConfigTemplate.
+type KubeadmConfigTemplate struct {
+	Client client.Reader
+}
+
+// SetupWebhookWithManager sets up KubeadmConfigTemplate webhooks.
+func (v *KubeadmConfigTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
+	return (&webhooks.KubeadmConfigTemplate{
+		Client: v.Client,
+	}).SetupWebhookWithManager(mgr)
+}

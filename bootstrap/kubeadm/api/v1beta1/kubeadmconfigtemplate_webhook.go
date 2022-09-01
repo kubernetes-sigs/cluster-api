@@ -24,36 +24,47 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 )
 
+// Deprecated: This file, including all public and private methods, will be removed in a future release.
+// The KubeadmConfig webhook validation implementation and API can now be found in the webhooks package.
+
+// SetupWebhookWithManager sets up KubeadmConfigTemplate webhooks.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.KubeadmConfigTemplate.SetupWebhookWithManager instead.
+// Note: We don't have to call this func for the conversion webhook as there is only a single conversion webhook instance
+// for all resources and we already register it through other types.
 func (r *KubeadmConfigTemplate) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(r).
 		Complete()
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/mutate-bootstrap-cluster-x-k8s-io-v1beta1-kubeadmconfigtemplate,mutating=true,failurePolicy=fail,groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigtemplates,versions=v1beta1,name=default.kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
-
 var _ webhook.Defaulter = &KubeadmConfigTemplate{}
+var _ webhook.Validator = &KubeadmConfigTemplate{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.KubeadmConfigTemplate.Default instead.
 func (r *KubeadmConfigTemplate) Default() {
 	DefaultKubeadmConfigSpec(&r.Spec.Template.Spec)
 }
 
-// +kubebuilder:webhook:verbs=create;update,path=/validate-bootstrap-cluster-x-k8s-io-v1beta1-kubeadmconfigtemplate,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigtemplates,versions=v1beta1,name=validation.kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
-
-var _ webhook.Validator = &KubeadmConfigTemplate{}
-
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.KubeadmConfigTemplate.ValidateCreate instead.
 func (r *KubeadmConfigTemplate) ValidateCreate() error {
 	return r.Spec.validate(r.Name)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.KubeadmConfigTemplate.ValidateUpdate instead.
 func (r *KubeadmConfigTemplate) ValidateUpdate(old runtime.Object) error {
 	return r.Spec.validate(r.Name)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
+// Deprecated: This method is going to be removed in a next release.
+// Note: We're not using this method anymore and are using webhooks.KubeadmConfigTemplate.ValidateDelete instead.
 func (r *KubeadmConfigTemplate) ValidateDelete() error {
 	return nil
 }

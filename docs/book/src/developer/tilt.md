@@ -378,6 +378,55 @@ Set to `false` if your provider does not have a ./config folder or you do not wa
 in tilt version >= v0.22.2 (see https://blog.tilt.dev/2021/08/09/resource-grouping.html); as a convention,
 provider abbreviation should be used (CAPD, KCP etc.).
 
+
+### tilt-addon configuration
+The Cluster API Tilt environment can be used to deploy additional Go projects.
+An addon must supply a `tilt-addon.yaml` or `tilt-addon.json` file describing how to build it. Here is an example:
+
+```yaml
+name: test-extension
+config:
+  image: "gcr.io/k8s-staging-cluster-api/test-extension"
+  container_name: "extension"
+  live_reload_deps: ["main.go", "handlers",]
+  label: test-extension
+  resource_deps: ["capi_controller"]
+  additional_resources: [
+     "extensionconfig.yaml"
+  ]
+```
+
+The tilt-addon configuration has the following fields:
+
+**name**: the name of the extension. Must match the name listed in `enable-addons` in `tilt-settings.yaml`
+
+**image**: the image for this provider, as referenced in the kustomize files. This must match; otherwise, Tilt won't build it.
+
+**live_reload_deps**: a list of files/directories to watch. If any of them changes, Tilt rebuilds the manager binary for the provider and performs a live update of the running container.
+
+**additional_docker_helper_commands** (String, default=""): Additional commands to be run in the helper image docker build.
+
+**additional_docker_build_commands** (String, default=""): Additional commands to be appended to
+the dockerfile.
+
+**go_main** (String, default="main.go"): The go main file if not located at the root of the folder
+ 
+**container_name**: The name of the container tilt should target for deploying the binary.
+
+**label** (String, default=provider name): The label to be used to group provider components in the tilt UI
+in tilt version >= v0.22.2 (see https://blog.tilt.dev/2021/08/09/resource-grouping.html); as a convention,
+provider abbreviation should be used (CAPD, KCP etc.).
+
+**resource_deps**: Tilt resources that must be deployed before the addon is deployed.
+
+**additional_resources**: a list of Kubernetes yamls that will be deployed the cluster alongside the addon.
+
+The initial use case for addons in tilt is for developing Runtime Extensions. More information about developing a Runtime Extension with Tilt [can be found here](../tasks/experimental-features/runtime-sdk/deploy-runtime-extension.md#developing-runtime-extensions-with-tilt)
+
+Additionally, debug and extra args can be added to addons in the principle `tilt-settings.yaml` as described in exactly the same way it can be added to a provider.
+
+
+
 ## Customizing Tilt
 
 If you need to customize Tilt's behavior, you can create files in cluster-api's `tilt.d` directory. This file is ignored

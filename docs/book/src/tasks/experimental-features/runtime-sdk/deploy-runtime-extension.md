@@ -45,3 +45,80 @@ Alternative deployment methods can be used as long as the HTTPs endpoint is acce
 - deploying the HTTPS Server outside the Management Cluster.
 
 In those cases recommendations about availability and identity and access management still apply.
+
+## Developing Runtime Extensions with Tilt
+
+[The Cluster API Tilt environment](../../../developer/tilt.md) can be used to enable easier deployment and testing of Runtime Extensions in a dev workflow. The following steps for deploying an Extension can be automated with tilt:
+
+1. Enabling both the `CLUSTER_TOPOLOGY` and `EXP_RUNTIME_SDK` flags for Cluster API.
+2. Building a binary and Docker image for the Extension.
+3. Deploying Kubernetes manifests including Service, RBAC, Deployment,
+4. Deploying ExtensionConfig for registering a runtime extension.
+5. Enabling live debugging.
+
+The Test Extension is a Runtime Extension that's used for Cluster API end-to-end testing. It registers every available Hook - Patches and Lifecycle hooks and performs a number of patches on templates created for the Cluster.
+The test extension is built into the CAPI Tilt workflow, and can be enabled with b
+
+To deploy it with Tilt simply modify the tilt-settings.yaml to:
+
+```yaml
+default_registry: localhost:5000
+deploy_kind_cluster: false
+deploy_cert_manager: true
+enable_providers:
+  - docker
+  - kubeadm-bootstrap
+  - kubeadm-control-plane
+kustomize_substitutions:
+  EXP_CLUSTER_RESOURCE_SET: 'true'
+  EXP_MACHINE_POOL: 'true'
+  CLUSTER_TOPOLOGY: 'true'
+  EXP_RUNTIME_SDK: 'true'
+enable_addons:
+  - "test-extension"
+```
+The test extension will now be deployed. The deployment includes the ExtensionConfig required for registering the extension with Cluster API.
+
+The test extension implements Lifecycle hooks by reading the desired response directly from a configmap. This behaviour is part of the test extension implementation and is not shared by other runtime extensions.
+
+To deploy a Runtime Extension that's external to the CAPI repo, for example a Runtime Extension called `sample-extension`, the following is needed:
+1) `tilt-settings.yaml` must point to the `sample-extension` directory.
+2) `tilt-settings.yaml` must enable the `sample-extension`, similar to how the `test-extension` is enabled above.
+3) The `sample-extension` directory must contain a `tilt-addon.yaml` file.
+
+After making these changes the `tilt-settings.yaml` will look like the below:
+
+```yaml
+default_registry: localhost:5000
+deploy_kind_cluster: false
+deploy_cert_manager: true
+enable_providers:
+  - docker
+  - kubeadm-bootstrap
+  - kubeadm-control-plane
+kustomize_substitutions:
+  EXP_CLUSTER_RESOURCE_SET: 'true'
+  EXP_MACHINE_POOL: 'true'
+  CLUSTER_TOPOLOGY: 'true'
+  EXP_RUNTIME_SDK: 'true'
+addon_repos:
+  - "~/cluster-api-sample-runtime-extension"
+enable_addons:
+  - "test-extension"
+  - "sample-extension" 
+```
+
+Inside the `cluster-api-sample-runtime-extension` directory we will have a `tilt-addon.yaml` that looks like:
+
+```yaml
+name: sample-extension
+config:
+  image: "gcr.io/k8s-staging-cluster-api/sample-extension"
+  container_name: "extension"
+  live_reload_deps: ["main.go", "handlers",]
+  label: sample-extension
+  resource_deps: ["capi_controller"]
+  additional_resources: [
+     "extensionconfig.yaml"
+  ]
+```

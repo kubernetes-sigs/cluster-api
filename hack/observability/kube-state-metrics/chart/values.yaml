@@ -1,0 +1,77 @@
+image:
+  tag: v2.6.0
+  pullPolicy: IfNotPresent
+
+# Add the CR configuration from the config map.
+volumeMounts:
+ - mountPath: /etc/config
+   name: config-volume
+
+volumes:
+ - configMap:
+     name: kube-state-metrics-crd-config
+   name: config-volume
+
+extraArgs:
+- "--custom-resource-state-config-file=/etc/config/crd-config.yaml"
+
+rbac:
+  extraRules:
+  - apiGroups:
+    - cluster.x-k8s.io
+    resources:
+    - clusters
+    - machinedeployments
+    - machinesets
+    - machines
+    - machinehealthchecks
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - controlplane.cluster.x-k8s.io
+    resources:
+    - kubeadmcontrolplanes
+    verbs:
+    - get
+    - list
+    - watch
+
+collectors:
+  # CAPI CRs
+  - clusters
+  - machinedeployments
+  - machinesets
+  - machines
+  - machinehealthchecks
+  - kubeadmcontrolplanes
+  # We need to define all default collectors too, otherwise the helm chart does not include this resources in rbac
+  - certificatesigningrequests
+  - configmaps
+  - cronjobs
+  - daemonsets
+  - deployments
+  - endpoints
+  - horizontalpodautoscalers
+  - ingresses
+  - jobs
+  - limitranges
+  - mutatingwebhookconfigurations
+  - namespaces
+  - networkpolicies
+  - nodes
+  - persistentvolumeclaims
+  - persistentvolumes
+  - poddisruptionbudgets
+  - pods
+  - replicasets
+  - replicationcontrollers
+  - resourcequotas
+  - secrets
+  - services
+  - statefulsets
+  - storageclasses
+  - validatingwebhookconfigurations
+  - volumeattachments
+  # - verticalpodautoscalers # not a default resource, see also: https://github.com/kubernetes/kube-state-metrics#enabling-verticalpodautoscalers

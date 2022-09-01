@@ -1,0 +1,75 @@
+  - groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: Machine
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - spec
+      - clusterName
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_machine
+    metrics:
+    - name: info
+      help: Information about a machine.
+      each:
+        info:
+          labelsFromPath:
+            failure_domain:
+            - spec
+            - failureDomain
+            internal_ip:
+            - status
+            - addresses
+            - "[type=InternalIP]"
+            - address
+            provider_id:
+            - spec
+            - providerID
+            version:
+            - spec
+            - version
+            containerRuntimeVersion:
+            - status
+            - nodeInfo
+            - containerRuntimeVersion
+        type: Info
+    - name: status_noderef
+      help: Information about the node reference of a machine.
+      each:
+        info:
+          labelsFromPath:
+            node_name:
+            - status
+            - nodeRef
+            - name
+            node_uid:
+            - status
+            - nodeRef
+            - uid
+        type: Info
+    - name: status_phase
+      help: The machines current phase.
+      each:
+        stateSet:
+          labelName: phase
+          list:
+          - Pending
+          - Provisioning
+          - Provisioned
+          - Running
+          - Deleting
+          - Deleted
+          - Failed
+          - Unknown
+          path:
+          - status
+          - phase
+        type: StateSet

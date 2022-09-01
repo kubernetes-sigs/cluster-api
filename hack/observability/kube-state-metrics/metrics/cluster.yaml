@@ -1,0 +1,63 @@
+  - groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: Cluster
+      version: v1beta1
+    labelsFromPath:
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_cluster
+    metrics:
+    - name: info
+      help: Information about a cluster.
+      each:
+        info:
+          labelsFromPath:
+            topology_version:
+            - spec
+            - topology
+            - version
+            topology_class:
+            - spec
+            - topology
+            - class
+            control_plane_endpoint_host:
+            - spec
+            - controlPlaneEndpoint
+            - host
+            control_plane_endpoint_port:
+            - spec
+            - controlPlaneEndpoint
+            - port
+        type: Info
+    - name: spec_paused
+      help: Whether the cluster is paused and any of its resources will not be processed by the controllers.
+      each:
+        gauge:
+          nilIsZero: true
+          path:
+          - spec
+          - paused
+        type: Gauge
+    - name: status_phase
+      help: The clusters current phase.
+      each:
+        stateSet:
+          labelName: phase
+          list:
+          - Pending
+          - Provisioning
+          - Provisioned
+          - Deleting
+          - Failed
+          - Unknown
+          path:
+          - status
+          - phase
+        type: StateSet

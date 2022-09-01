@@ -1,0 +1,15 @@
+resources:
+  - ../namespace.yaml
+  # The kube-state-metrics helm chart will reference a configmap with name `kube-state-metrics-crd-config`.
+  # The configMapGenerator below will create the configmap and append a hash suffix calculated from its
+  # content to the name. Kustomize will append the suffix hash to all references in the helm chart, but
+  # only when the helm chart content is referenced in "resources".
+  # This would not work if the helm chart is configured in this file via the "helmCharts" option.
+  - ./chart
+
+namespace: observability
+
+configMapGenerator:
+- name: kube-state-metrics-crd-config
+  files:
+  - crd-config.yaml

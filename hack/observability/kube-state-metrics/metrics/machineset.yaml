@@ -1,0 +1,63 @@
+  - groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: MachineSet
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - spec
+      - clusterName
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_machineset
+    metrics:
+    - name: spec_replicas
+      help: The number of desired machines for a machineset.
+      each:
+        gauge:
+          path:
+          - spec
+          - replicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_available_replicas
+      help: The number of available replicas per machineset.
+      each:
+        gauge:
+          path:
+          - status
+          - availableReplicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_fully_labeled_replicas
+      help: The number of fully labeled replicas per machineset.
+      each:
+        gauge:
+          path:
+          - status
+          - fullyLabeledReplicas
+        type: Gauge
+    - name: status_ready_replicas
+      help: The number of ready replicas per machineset.
+      each:
+        gauge:
+          path:
+          - status
+          - readyReplicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_replicas
+      help: The number of replicas per machineset.
+      each:
+        gauge:
+          path:
+          - status
+          - replicas
+          nilIsZero: true
+        type: Gauge

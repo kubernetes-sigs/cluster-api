@@ -1,0 +1,6 @@
+helmCharts:
+  - name: kube-state-metrics
+    repo: https://prometheus-community.github.io/helm-charts
+    namespace: observability
+    releaseName: kube-state-metrics
+    valuesFile: values.yaml

@@ -1,0 +1,84 @@
+  - groupVersionKind:
+      group: controlplane.cluster.x-k8s.io
+      kind: KubeadmControlPlane
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - ownerReferences
+      - '[kind=Cluster]'
+      - name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_kubeadmcontrolplane
+    metrics:
+    - name: info
+      help: Information about a kubeadmcontrolplane.
+      each:
+        info:
+          labelsFromPath:
+            version:
+            - spec
+            - version
+        type: Info
+    - name: status_replicas
+      help: The number of replicas per kubeadmcontrolplane.
+      each:
+        gauge:
+          path:
+          - status
+          - replicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_replicas_ready
+      help: The number of ready replicas per kubeadmcontrolplane.
+      each:
+        gauge:
+          path:
+          - status
+          - readyReplicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_replicas_unavailable
+      help: The number of unavailable replicas per kubeadmcontrolplane.
+      each:
+        gauge:
+          path:
+          - status
+          - unavailableReplicas
+          nilIsZero: true
+        type: Gauge
+    - name: status_replicas_updated
+      help: The number of updated replicas per kubeadmcontrolplane.
+      each:
+        gauge:
+          path:
+          - status
+          - updatedReplicas
+          nilIsZero: true
+        type: Gauge
+    - name: spec_replicas
+      help: The number of desired machines for a kubeadmcontrolplane.
+      each:
+        gauge:
+          path:
+          - spec
+          - replicas
+        type: Gauge
+    - name: spec_strategy_rollingupdate_max_surge
+      help: Maximum number of replicas that can be scheduled above the desired number of replicas during a rolling update of a kubeadmcontrolplane.
+      each:
+        gauge:
+          path:
+          - spec
+          - rolloutStrategy
+          - rollingUpdate
+          - maxSurge
+        type: Gauge

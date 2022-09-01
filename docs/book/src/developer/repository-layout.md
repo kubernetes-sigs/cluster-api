@@ -116,7 +116,7 @@ This folder has scripts used for building, testing and developer workflow.
 
 This folder consists of CI scripts related to setup, build and e2e tests. These are mostly called by CI jobs.
 
-[~/third_party](https://github.com/kubernetes-sigs/cluster-api/tree/main/third_party)
+[~/third_party](https://github.com/kubernetes-sigs/cluster-api/tree/release-1.2/third_party)
 
 This folder is used to copy code from other projects in-tree.
 

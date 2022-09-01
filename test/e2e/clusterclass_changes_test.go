@@ -44,6 +44,21 @@ var _ = Describe("When testing ClusterClass changes [ClusterClass]", func() {
 			ModifyMachineDeploymentBootstrapConfigTemplateFields: map[string]interface{}{
 				"spec.template.spec.verbosity": int64(4),
 			},
+			// ModifyMachineDeploymentInfrastructureMachineTemplateFields are the fields which will be set on the
+			// InfrastructureMachineTemplate of all MachineDeploymentClasses of the ClusterClass after the initial Cluster creation.
+			// The test verifies that these fields are rolled out to the MachineDeployments.
+			ModifyMachineDeploymentInfrastructureMachineTemplateFields: map[string]interface{}{
+				"spec.template.spec.extraMounts": []interface{}{
+					map[string]interface{}{
+						"containerPath": "/var/run/docker.sock",
+						"hostPath":      "/var/run/docker.sock",
+					},
+					map[string]interface{}{
+						"containerPath": "/tmp",
+						"hostPath":      "/tmp",
+					},
+				},
+			},
 		}
 	})
 })

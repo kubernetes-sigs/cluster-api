@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -70,19 +71,32 @@ type ClusterClassChangesSpecInput struct {
 	//   "spec.template.spec.path.to.field": <value>,
 	// }
 	ModifyMachineDeploymentBootstrapConfigTemplateFields map[string]interface{}
+
+	// ModifyMachineDeploymentInfrastructureMachineTemplateFields are the fields which will be set on the
+	// InfrastructureMachineTemplate of all MachineDeploymentClasses of the ClusterClass after the initial Cluster creation.
+	// The test verifies that these fields are rolled out to the MachineDeployments.
+	// NOTE: The fields are configured in the following format:
+	// map[string]interface{}{
+	//   "spec.template.spec.path.to.field": <value>,
+	// }
+	ModifyMachineDeploymentInfrastructureMachineTemplateFields map[string]interface{}
 }
 
 // ClusterClassChangesSpec implements a test that verifies that ClusterClass changes are rolled out successfully.
 // Thus, the test consists of the following steps:
-// * Deploy Cluster using a ClusterClass and wait until it is fully provisioned.
-// * Modify the ControlPlaneTemplate of the ClusterClass by setting ModifyControlPlaneFields
-//   and wait until the change has been rolled out to the ControlPlane of the Cluster.
-// * Modify the BootstrapTemplate of all MachineDeploymentClasses of the ClusterClass by setting
-//   ModifyMachineDeploymentBootstrapConfigTemplateFields and wait until the change has been rolled out
-//   to the MachineDeployments of the Cluster.
-// * Rebase the Cluster to a copy of the ClusterClass which has an additional worker label set. Then wait
-//   until the change has been rolled out to the MachineDeployments of the Cluster and verify the ControlPlane
-//   has not been changed.
+//   - Deploy Cluster using a ClusterClass and wait until it is fully provisioned.
+//   - Modify the ControlPlaneTemplate of the ClusterClass by setting ModifyControlPlaneFields
+//     and wait until the change has been rolled out to the ControlPlane of the Cluster.
+//   - Modify the BootstrapTemplate of all MachineDeploymentClasses of the ClusterClass by setting
+//     ModifyMachineDeploymentBootstrapConfigTemplateFields and wait until the change has been rolled out
+//     to the MachineDeployments of the Cluster.
+//   - Modify the InfrastructureMachineTemplate of all MachineDeploymentClasses of the ClusterClass by setting
+//     ModifyMachineDeploymentInfrastructureMachineTemplateFields and wait until the change has been rolled out
+//     to the MachineDeployments of the Cluster.
+//   - Rebase the Cluster to a copy of the ClusterClass which has an additional worker label set. Then wait
+//     until the change has been rolled out to the MachineDeployments of the Cluster and verify the ControlPlane
+//     has not been changed.
+//
 // NOTE: The ClusterClass can be changed in many ways (as documented in the ClusterClass Operations doc).
 // This test verifies a subset of the possible operations and aims to test the most complicated rollouts
 // (template changes, label propagation, rebase), everything else will be covered by unit or integration tests.
@@ -108,7 +122,6 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.GetVariable(KubernetesVersion)))
 		Expect(input.ModifyControlPlaneFields).ToNot(BeEmpty(), "Invalid argument. input.ModifyControlPlaneFields can't be empty when calling %s spec", specName)
-		Expect(input.ModifyMachineDeploymentBootstrapConfigTemplateFields).ToNot(BeEmpty(), "Invalid argument. input.ModifyMachineDeploymentBootstrapConfigTemplateFields can't be empty when calling %s spec", specName)
 
 		// Set up a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
@@ -152,7 +165,8 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 			ClusterClass:                        clusterResources.ClusterClass,
 			Cluster:                             clusterResources.Cluster,
 			ModifyBootstrapConfigTemplateFields: input.ModifyMachineDeploymentBootstrapConfigTemplateFields,
-			WaitForMachineDeployments:           input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			ModifyInfrastructureMachineTemplateFields: input.ModifyMachineDeploymentInfrastructureMachineTemplateFields,
+			WaitForMachineDeployments:                 input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		})
 
 		By("Rebasing the Cluster to a ClusterClass with a modified label for MachineDeployments and wait for changes to be applied to the MachineDeployment objects")
@@ -241,11 +255,12 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 
 // modifyMachineDeploymentViaClusterClassAndWaitInput is the input type for modifyMachineDeploymentViaClusterClassAndWait.
 type modifyMachineDeploymentViaClusterClassAndWaitInput struct {
-	ClusterProxy                        framework.ClusterProxy
-	ClusterClass                        *clusterv1.ClusterClass
-	Cluster                             *clusterv1.Cluster
-	ModifyBootstrapConfigTemplateFields map[string]interface{}
-	WaitForMachineDeployments           []interface{}
+	ClusterProxy                              framework.ClusterProxy
+	ClusterClass                              *clusterv1.ClusterClass
+	Cluster                                   *clusterv1.Cluster
+	ModifyBootstrapConfigTemplateFields       map[string]interface{}
+	ModifyInfrastructureMachineTemplateFields map[string]interface{}
+	WaitForMachineDeployments                 []interface{}
 }
 
 // modifyMachineDeploymentViaClusterClassAndWait modifies the BootstrapConfigTemplate of MachineDeploymentClasses of a ClusterClass
@@ -271,7 +286,6 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 		bootstrapConfigTemplateRef := mdClass.Template.Bootstrap.Ref
 		bootstrapConfigTemplate, err := external.Get(ctx, mgmtClient, bootstrapConfigTemplateRef, input.Cluster.Namespace)
 		Expect(err).ToNot(HaveOccurred())
-
 		// Create a new BootstrapConfigTemplate object with a new name and ModifyBootstrapConfigTemplateFields set.
 		newBootstrapConfigTemplate := bootstrapConfigTemplate.DeepCopy()
 		newBootstrapConfigTemplateName := fmt.Sprintf("%s-%s", bootstrapConfigTemplateRef.Name, util.RandomString(6))
@@ -282,10 +296,25 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 		}
 		Expect(mgmtClient.Create(ctx, newBootstrapConfigTemplate)).To(Succeed())
 
+		// Retrieve InfrastructureMachineTemplate object.
+		infrastructureMachineTemplateRef := mdClass.Template.Infrastructure.Ref
+		infrastructureMachineTemplate, err := external.Get(ctx, mgmtClient, infrastructureMachineTemplateRef, input.Cluster.Namespace)
+		Expect(err).ToNot(HaveOccurred())
+		// Create a new InfrastructureMachineTemplate object with a new name and ModifyInfrastructureMachineTemplateFields set.
+		newInfrastructureMachineTemplate := infrastructureMachineTemplate.DeepCopy()
+		newInfrastructureMachineTemplateName := fmt.Sprintf("%s-%s", infrastructureMachineTemplateRef.Name, util.RandomString(6))
+		newInfrastructureMachineTemplate.SetName(newInfrastructureMachineTemplateName)
+		newInfrastructureMachineTemplate.SetResourceVersion("")
+		for fieldPath, value := range input.ModifyInfrastructureMachineTemplateFields {
+			Expect(unstructured.SetNestedField(newInfrastructureMachineTemplate.Object, value, strings.Split(fieldPath, ".")...)).To(Succeed())
+		}
+		Expect(mgmtClient.Create(ctx, newInfrastructureMachineTemplate)).To(Succeed())
+
 		// Patch the BootstrapConfigTemplate ref of the MachineDeploymentClass to reference the new BootstrapConfigTemplate.
 		patchHelper, err := patch.NewHelper(input.ClusterClass, mgmtClient)
 		Expect(err).ToNot(HaveOccurred())
 		bootstrapConfigTemplateRef.Name = newBootstrapConfigTemplateName
+		infrastructureMachineTemplateRef.Name = newInfrastructureMachineTemplateName
 		Expect(patchHelper.Patch(ctx, input.ClusterClass)).To(Succeed())
 
 		log.Logf("Waiting for MachineDeployment rollout for MachineDeploymentClass %q to complete.", mdClass.Class)
@@ -320,7 +349,23 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 					if err != nil || !ok {
 						return errors.Errorf("failed to get field %q", fieldPath)
 					}
-					if currentValue != expectedValue {
+					if !reflect.DeepEqual(currentValue, expectedValue) {
+						return errors.Errorf("field %q should be equal to %q, but is %q", fieldPath, expectedValue, currentValue)
+					}
+				}
+
+				// Get the corresponding InfrastructureMachineTemplate.
+				infrastructureMachineTemplateRef := md.Spec.Template.Spec.InfrastructureRef
+				infrastructureMachineTemplate, err := external.Get(ctx, mgmtClient, &infrastructureMachineTemplateRef, input.Cluster.Namespace)
+				Expect(err).ToNot(HaveOccurred())
+
+				// Verify that ModifyInfrastructureMachineTemplateFields have been set.
+				for fieldPath, expectedValue := range input.ModifyInfrastructureMachineTemplateFields {
+					currentValue, ok, err := unstructured.NestedFieldNoCopy(infrastructureMachineTemplate.Object, strings.Split(fieldPath, ".")...)
+					if err != nil || !ok {
+						return errors.Errorf("failed to get field %q", fieldPath)
+					}
+					if !reflect.DeepEqual(currentValue, expectedValue) {
 						return errors.Errorf("field %q should be equal to %q, but is %q", fieldPath, expectedValue, currentValue)
 					}
 				}

@@ -14,25 +14,25 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package v1beta1
+package webhooks
 
 import (
+	"context"
 	"fmt"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 )
 
-// Deprecated: This file, including all public and private methods, will be removed in a future release.
-// The KubeadmConfig webhook validation implementation and API can now be found in the webhooks package.
-
 var (
-	cannotUseWithIgnition                            = fmt.Sprintf("not supported when spec.format is set to %q", Ignition)
+	cannotUseWithIgnition                            = fmt.Sprintf("not supported when spec.format is set to %q", bootstrapv1.Ignition)
 	conflictingFileSourceMsg                         = "only one of content or contentFrom may be specified for a single file"
 	conflictingUserSourceMsg                         = "only one of passwd or passwdFrom may be specified for a single user"
 	kubeadmBootstrapFormatIgnitionFeatureDisabledMsg = "can be set only if the KubeadmBootstrapFormatIgnition feature gate is enabled"
@@ -41,78 +41,87 @@ var (
 	pathConflictMsg                                  = "path property must be unique among all files"
 )
 
-// SetupWebhookWithManager sets up KubeadmConfig webhooks.
-// Deprecated: This method is going to be removed in a next release.
-// Note: We're not using this method anymore and are using webhooks.KubeadmConfig.SetupWebhookWithManager instead.
-// Note: We don't have to call this func for the conversion webhook as there is only a single conversion webhook instance
-// for all resources and we already register it through other types.
-func (c *KubeadmConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
+func (webhook *KubeadmConfig) SetupWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(c).
+		For(&bootstrapv1.KubeadmConfig{}).
+		WithDefaulter(webhook).
+		WithValidator(webhook).
 		Complete()
 }
 
-var _ webhook.Defaulter = &KubeadmConfig{}
-var _ webhook.Validator = &KubeadmConfig{}
+// +kubebuilder:webhook:verbs=create;update,path=/mutate-bootstrap-cluster-x-k8s-io-v1beta1-kubeadmconfig,mutating=true,failurePolicy=fail,groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs,versions=v1beta1,name=default.kubeadmconfig.bootstrap.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
+// +kubebuilder:webhook:verbs=create;update,path=/validate-bootstrap-cluster-x-k8s-io-v1beta1-kubeadmconfig,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=bootstrap.cluster.x-k8s.io,resources=kubeadmconfigs,versions=v1beta1,name=validation.kubeadmconfig.bootstrap.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-// Default implements webhook.Defaulter so a webhook will be registered for the type.
-// Deprecated: This method is going to be removed in a next release.
-// Note: We're not using this method anymore and are using webhooks.KubeadmConfig.Default instead.
-func (c *KubeadmConfig) Default() {
-	DefaultKubeadmConfigSpec(&c.Spec)
+// KubeadmConfig implements a validating and defaulting webhook for KubeadmConfig.
+type KubeadmConfig struct {
+	Client client.Reader
 }
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-// Deprecated: This method is going to be removed in a next release.
-// Note: We're not using this method anymore and are using webhooks.KubeadmConfig.ValidateCreate instead.
-func (c *KubeadmConfig) ValidateCreate() error {
-	return c.Spec.validate(c.Name)
-}
+var _ webhook.CustomDefaulter = &KubeadmConfig{}
+var _ webhook.CustomValidator = &KubeadmConfig{}
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-// Deprecated: This method is going to be removed in a next release.
-// Note: We're not using this method anymore and are using webhooks.KubeadmConfig.ValidateUpdate instead.
-func (c *KubeadmConfig) ValidateUpdate(old runtime.Object) error {
-	return c.Spec.validate(c.Name)
-}
+// Default implements webhook.CustomDefaulter so a webhook will be registered for the type.
+func (webhook *KubeadmConfig) Default(_ context.Context, obj runtime.Object) error {
+	config, ok := obj.(*bootstrapv1.KubeadmConfig)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmConfig but got a %T", obj))
+	}
+	bootstrapv1.DefaultKubeadmConfigSpec(&config.Spec)
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-// Deprecated: This method is going to be removed in a next release.
-// Note: We're not using this method anymore and are using webhooks.KubeadmConfig.ValidateDelete instead.
-func (c *KubeadmConfig) ValidateDelete() error {
 	return nil
 }
 
-func (c *KubeadmConfigSpec) validate(name string) error {
-	allErrs := c.Validate(field.NewPath("spec"))
+// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
+func (webhook *KubeadmConfig) ValidateCreate(_ context.Context, obj runtime.Object) error {
+	config, ok := obj.(*bootstrapv1.KubeadmConfig)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmConfig but got a %T", obj))
+	}
+	return webhook.validate(config)
+}
+
+// ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type.
+func (webhook *KubeadmConfig) ValidateUpdate(_ context.Context, _, newObj runtime.Object) error {
+	config, ok := newObj.(*bootstrapv1.KubeadmConfig)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a KubeadmConfig but got a %T", newObj))
+	}
+	return webhook.validate(config)
+}
+
+// ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
+func (webhook *KubeadmConfig) ValidateDelete(_ context.Context, _ runtime.Object) error {
+	return nil
+}
+
+func (webhook *KubeadmConfig) validate(config *bootstrapv1.KubeadmConfig) error {
+	allErrs := ValidateKubeadmConfigSpec(&config.Spec, field.NewPath("spec"))
 
 	if len(allErrs) == 0 {
 		return nil
 	}
 
-	return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmConfig").GroupKind(), name, allErrs)
+	return apierrors.NewInvalid(bootstrapv1.GroupVersion.WithKind("KubeadmConfig").GroupKind(), config.Name, allErrs)
 }
 
-// Validate ensures the KubeadmConfigSpec is valid.
-// Deprecated: This method is going to be removed in a next release.
-// Note: We're not using this method anymore and are using webhooks.KubeadmConfig.ValidateKubeadmConfigSpec instead.
-func (c *KubeadmConfigSpec) Validate(pathPrefix *field.Path) field.ErrorList {
+// ValidateKubeadmConfigSpec ensures the KubeadmConfigSpec is valid.
+func ValidateKubeadmConfigSpec(spec *bootstrapv1.KubeadmConfigSpec, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	allErrs = append(allErrs, c.validateFiles(pathPrefix)...)
-	allErrs = append(allErrs, c.validateUsers(pathPrefix)...)
-	allErrs = append(allErrs, c.validateIgnition(pathPrefix)...)
+	allErrs = append(allErrs, validateFiles(spec, pathPrefix)...)
+	allErrs = append(allErrs, validateUsers(spec, pathPrefix)...)
+	allErrs = append(allErrs, validateIgnition(spec, pathPrefix)...)
 
 	return allErrs
 }
 
-func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorList {
+func validateFiles(spec *bootstrapv1.KubeadmConfigSpec, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	knownPaths := map[string]struct{}{}
 
-	for i := range c.Files {
-		file := c.Files[i]
+	for i := range spec.Files {
+		file := spec.Files[i]
 		if file.Content != "" && file.ContentFrom != nil {
 			allErrs = append(
 				allErrs,
@@ -163,11 +172,11 @@ func (c *KubeadmConfigSpec) validateFiles(pathPrefix *field.Path) field.ErrorLis
 	return allErrs
 }
 
-func (c *KubeadmConfigSpec) validateUsers(pathPrefix *field.Path) field.ErrorList {
+func validateUsers(spec *bootstrapv1.KubeadmConfigSpec, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	for i := range c.Users {
-		user := c.Users[i]
+	for i := range spec.Users {
+		user := spec.Users[i]
 		if user.Passwd != nil && user.PasswdFrom != nil {
 			allErrs = append(
 				allErrs,
@@ -206,16 +215,16 @@ func (c *KubeadmConfigSpec) validateUsers(pathPrefix *field.Path) field.ErrorLis
 	return allErrs
 }
 
-func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.ErrorList {
+func validateIgnition(spec *bootstrapv1.KubeadmConfigSpec, pathPrefix *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
 	if !feature.Gates.Enabled(feature.KubeadmBootstrapFormatIgnition) {
-		if c.Format == Ignition {
+		if spec.Format == bootstrapv1.Ignition {
 			allErrs = append(allErrs, field.Forbidden(
 				pathPrefix.Child("format"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))
 		}
 
-		if c.Ignition != nil {
+		if spec.Ignition != nil {
 			allErrs = append(allErrs, field.Forbidden(
 				pathPrefix.Child("ignition"), kubeadmBootstrapFormatIgnitionFeatureDisabledMsg))
 		}
@@ -223,14 +232,14 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 		return allErrs
 	}
 
-	if c.Format != Ignition {
-		if c.Ignition != nil {
+	if spec.Format != bootstrapv1.Ignition {
+		if spec.Ignition != nil {
 			allErrs = append(
 				allErrs,
 				field.Invalid(
 					pathPrefix.Child("format"),
-					c.Format,
-					fmt.Sprintf("must be set to %q if spec.ignition is set", Ignition),
+					spec.Format,
+					fmt.Sprintf("must be set to %q if spec.ignition is set", bootstrapv1.Ignition),
 				),
 			)
 		}
@@ -238,7 +247,7 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 		return allErrs
 	}
 
-	for i, user := range c.Users {
+	for i, user := range spec.Users {
 		if user.Inactive != nil && *user.Inactive {
 			allErrs = append(
 				allErrs,
@@ -250,7 +259,7 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 		}
 	}
 
-	if c.UseExperimentalRetryJoin {
+	if spec.UseExperimentalRetryJoin {
 		allErrs = append(
 			allErrs,
 			field.Forbidden(
@@ -260,8 +269,8 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 		)
 	}
 
-	for i, file := range c.Files {
-		if file.Encoding == Gzip || file.Encoding == GzipBase64 {
+	for i, file := range spec.Files {
+		if file.Encoding == bootstrapv1.Gzip || file.Encoding == bootstrapv1.GzipBase64 {
 			allErrs = append(
 				allErrs,
 				field.Forbidden(
@@ -272,11 +281,11 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 		}
 	}
 
-	if c.DiskSetup == nil {
+	if spec.DiskSetup == nil {
 		return allErrs
 	}
 
-	for i, partition := range c.DiskSetup.Partitions {
+	for i, partition := range spec.DiskSetup.Partitions {
 		if partition.TableType != nil && *partition.TableType != "gpt" {
 			allErrs = append(
 				allErrs,
@@ -286,14 +295,14 @@ func (c *KubeadmConfigSpec) validateIgnition(pathPrefix *field.Path) field.Error
 					fmt.Sprintf(
 						"only partition type %q is supported when spec.format is set to %q",
 						"gpt",
-						Ignition,
+						bootstrapv1.Ignition,
 					),
 				),
 			)
 		}
 	}
 
-	for i, fs := range c.DiskSetup.Filesystems {
+	for i, fs := range spec.DiskSetup.Filesystems {
 		if fs.ReplaceFS != nil {
 			allErrs = append(
 				allErrs,

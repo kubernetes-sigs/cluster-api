@@ -105,6 +105,13 @@ type KubeadmConfigSpec struct {
 	Ignition *IgnitionSpec `json:"ignition,omitempty"`
 }
 
+// DefaultKubeadmConfigSpec defaults a KubeadmConfigSpec.
+func DefaultKubeadmConfigSpec(r *KubeadmConfigSpec) {
+	if r.Format == "" {
+		r.Format = CloudConfig
+	}
+}
+
 // IgnitionSpec contains Ignition specific configuration.
 type IgnitionSpec struct {
 	// ContainerLinuxConfig contains CLC specific configuration.

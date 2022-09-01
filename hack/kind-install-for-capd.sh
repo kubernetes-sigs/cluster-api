@@ -26,7 +26,12 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-NAME=${CAPI_KIND_CLUSTER_NAME:-"capi-test"}
+KIND_CLUSTER_NAME=${CAPI_KIND_CLUSTER_NAME:-"capi-test"}
+
+if [[ "$(kind get clusters)" =~ .*"${KIND_CLUSTER_NAME}".* ]]; then
+  echo "kind cluster already exists, moving on"
+  exit 0
+fi
 
 # create registry container unless it already exists
 reg_name='kind-registry'
@@ -39,7 +44,7 @@ if [ "${running}" != 'true' ]; then
 fi
 
 # create a cluster with the local registry enabled in containerd
-cat <<EOF | kind create cluster --name="$NAME"  --config=-
+cat <<EOF | kind create cluster --name="$KIND_CLUSTER_NAME"  --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:

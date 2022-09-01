@@ -26,6 +26,11 @@
     status = 301
     force = true
 
+[[redirects]]
+    from = "/docs/*"
+    to = "/:splat"
+    status = 301
+
 [[headers]]
     for = "/tasks/experimental-features/runtime-sdk/runtime-sdk-openapi.yaml"
     [headers.values]

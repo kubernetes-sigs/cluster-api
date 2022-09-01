@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,8 +13,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-
-// main is the main package for the Cluster API Core Provider.
 package main
 
 import (
@@ -217,12 +215,9 @@ func main() {
 	ctrl.SetLogger(klog.Background())
 
 	if profilerAddress != "" {
-		setupLog.Info(fmt.Sprintf("Profiler listening for requests at %s", profilerAddress))
+		klog.Infof("Profiler listening for requests at %s", profilerAddress)
 		go func() {
-			srv := http.Server{Addr: profilerAddress, ReadHeaderTimeout: 2 * time.Second}
-			if err := srv.ListenAndServe(); err != nil {
-				setupLog.Error(err, "problem running profiler server")
-			}
+			klog.Info(http.ListenAndServe(profilerAddress, nil))
 		}()
 	}
 
@@ -313,15 +308,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create cluster cache tracker")
 		os.Exit(1)
 	}
-	if err := (&remote.ClusterCacheReconciler{
-		Client:           mgr.GetClient(),
-		Tracker:          tracker,
-		WatchFilterValue: watchFilterValue,
-	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
-		os.Exit(1)
-	}
-
 	var runtimeClient runtimeclient.Client
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
 		// This is the creation of the runtimeClient for the controllers, embedding a shared catalog and registry instance.

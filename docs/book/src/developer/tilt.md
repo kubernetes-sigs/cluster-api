@@ -8,7 +8,7 @@ workflow that offers easy deployments and rapid iterative builds.
 ## Prerequisites
 
 1. [Docker](https://docs.docker.com/install/): v19.03 or newer
-1. [kind](https://kind.sigs.k8s.io): v0.9 or newer
+1. [kind](https://kind.sigs.k8s.io): v0.15 or newer
 1. [Tilt](https://docs.tilt.dev/install.html): v0.22.2 or newer
 1. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
 1. [envsubst](https://github.com/drone/envsubst): provided via `make envsubst`
@@ -303,7 +303,7 @@ Custom values for variable substitutions can be set using `kustomize_substitutio
 ```yaml
 kustomize_substitutions:
   NAMESPACE: default
-  KUBERNETES_VERSION: v1.24.0
+  KUBERNETES_VERSION: v1.25.0
   CONTROL_PLANE_MACHINE_COUNT: 1
   WORKER_MACHINE_COUNT: 3
 ```

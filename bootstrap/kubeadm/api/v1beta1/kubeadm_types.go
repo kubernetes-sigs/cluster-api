@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -214,6 +215,7 @@ type APIEndpoint struct {
 }
 
 // NodeRegistrationOptions holds fields that relate to registering a new control-plane or node to the cluster, either via "kubeadm init" or "kubeadm join".
+// Note: The NodeRegistrationOptions struct has to be kept in sync with the structs in MarshalJSON.
 type NodeRegistrationOptions struct {
 
 	// Name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
@@ -241,6 +243,49 @@ type NodeRegistrationOptions struct {
 	// IgnorePreflightErrors provides a slice of pre-flight errors to be ignored when the current node is registered.
 	// +optional
 	IgnorePreflightErrors []string `json:"ignorePreflightErrors,omitempty"`
+}
+
+// MarshalJSON marshals NodeRegistrationOptions in a way that an empty slice in Taints is preserved.
+// Taints are then rendered as:
+// * nil => omitted from the marshalled JSON
+// * [] => rendered as empty array (`[]`)
+// * [regular-array] => rendered as usual
+// We have to do this as the regular Golang JSON marshalling would just omit
+// the empty slice (xref: https://github.com/golang/go/issues/22480).
+// Note: We can't re-use the original struct as that would lead to an infinite recursion.
+// Note: The structs in this func have to be kept in sync with the NodeRegistrationOptions struct.
+func (n *NodeRegistrationOptions) MarshalJSON() ([]byte, error) {
+	// Marshal an empty Taints slice array without omitempty so it's preserved.
+	if n.Taints != nil && len(n.Taints) == 0 {
+		return json.Marshal(struct {
+			Name                  string            `json:"name,omitempty"`
+			CRISocket             string            `json:"criSocket,omitempty"`
+			Taints                []corev1.Taint    `json:"taints"`
+			KubeletExtraArgs      map[string]string `json:"kubeletExtraArgs,omitempty"`
+			IgnorePreflightErrors []string          `json:"ignorePreflightErrors,omitempty"`
+		}{
+			Name:                  n.Name,
+			CRISocket:             n.CRISocket,
+			Taints:                n.Taints,
+			KubeletExtraArgs:      n.KubeletExtraArgs,
+			IgnorePreflightErrors: n.IgnorePreflightErrors,
+		})
+	}
+
+	// If Taints is nil or not empty we can use omitempty.
+	return json.Marshal(struct {
+		Name                  string            `json:"name,omitempty"`
+		CRISocket             string            `json:"criSocket,omitempty"`
+		Taints                []corev1.Taint    `json:"taints,omitempty"`
+		KubeletExtraArgs      map[string]string `json:"kubeletExtraArgs,omitempty"`
+		IgnorePreflightErrors []string          `json:"ignorePreflightErrors,omitempty"`
+	}{
+		Name:                  n.Name,
+		CRISocket:             n.CRISocket,
+		Taints:                n.Taints,
+		KubeletExtraArgs:      n.KubeletExtraArgs,
+		IgnorePreflightErrors: n.IgnorePreflightErrors,
+	})
 }
 
 // Networking contains elements describing cluster's networking configuration.

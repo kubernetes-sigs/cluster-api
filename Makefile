@@ -748,7 +748,7 @@ manifest-modification: # Set the manifest images to the staging/production bucke
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_pull_policy.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
 
-.PHONE: manifest-modification-dev
+.PHONY: manifest-modification-dev
 manifest-modification-dev: # Set the manifest images to the staging bucket.
 	$(MAKE) set-manifest-image \
 		MANIFEST_IMG=$(REGISTRY)/$(CAPD_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \

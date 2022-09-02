@@ -2,18 +2,19 @@
 
 config:
   # publish data to loki
-  lokiAddress: http://loki:3100/loki/api/v1/push
+  clients:
+    - url: http://loki:3100/loki/api/v1/push
 
   snippets:
     pipelineStages:
-    # Parse cluster and machine to make them available as labels.
-    - cri: { }
-    - json:
-        expressions:
+      # Parse cluster and machine to make them available as labels.
+      - cri: {}
+      - json:
+          expressions:
+            controller:
+            cluster: join('/',[Cluster.namespace,Cluster.name])
+            machine: join('/',[Machine.namespace,Machine.name])
+      - labels:
           controller:
-          cluster: join('/',[Cluster.namespace,Cluster.name])
-          machine: join('/',[Machine.namespace,Machine.name])
-    - labels:
-        controller:
-        cluster:
-        machine:
+          cluster:
+          machine:

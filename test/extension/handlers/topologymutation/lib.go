@@ -19,6 +19,7 @@ package topologymutation
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	"gomodules.xyz/jsonpatch/v2"
@@ -30,7 +31,7 @@ import (
 )
 
 // walkTemplates walks through all templates of a GeneratePatchesRequest and calls the mutateFunc.
-func walkTemplates(decoder runtime.Decoder, req *runtimehooksv1.GeneratePatchesRequest, resp *runtimehooksv1.GeneratePatchesResponse, mutateFunc func(obj runtime.Object, variables map[string]apiextensionsv1.JSON) error) {
+func walkTemplates(decoder runtime.Decoder, req *runtimehooksv1.GeneratePatchesRequest, resp *runtimehooksv1.GeneratePatchesResponse, mutateFunc func(obj runtime.Object, variables map[string]apiextensionsv1.JSON, holderRef runtimehooksv1.HolderReference) error) {
 	globalVariables := patchvariables.ToMap(req.Variables)
 
 	for _, requestItem := range req.Items {
@@ -49,7 +50,7 @@ func walkTemplates(decoder runtime.Decoder, req *runtimehooksv1.GeneratePatchesR
 
 		original := obj.DeepCopyObject()
 
-		if err := mutateFunc(obj, templateVariables); err != nil {
+		if err := mutateFunc(obj, templateVariables, requestItem.HolderReference); err != nil {
 			resp.Status = runtimehooksv1.ResponseStatusFailure
 			resp.Message = err.Error()
 			return
@@ -97,4 +98,30 @@ func createPatch(original, modified runtime.Object) ([]byte, error) {
 	}
 
 	return patchBytes, nil
+}
+
+// logRef is used to correctly render a reference with GroupVersionKind, Namespace and Name for both JSON and text logging.
+type logRef struct {
+	Group     string `json:"group,omitempty"`
+	Version   string `json:"version,omitempty"`
+	Kind      string `json:"kind,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Name      string `json:"name,omitempty"`
+}
+
+func (l logRef) String() string {
+	var parts []string
+	for _, s := range []string{l.Group, l.Version, l.Kind, l.Namespace, l.Name} {
+		if strings.TrimSpace(s) != "" {
+			parts = append(parts, s)
+		}
+	}
+	return strings.Join(parts, "/")
+}
+
+// MarshalLog ensures that loggers with support for structured output will log
+// as a struct by removing the String method via a custom type.
+func (l logRef) MarshalLog() interface{} {
+	type logRefWithoutStringFunc logRef
+	return logRefWithoutStringFunc(l)
 }

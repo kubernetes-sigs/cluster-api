@@ -17,6 +17,7 @@ limitations under the License.
 package variables
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -46,7 +47,7 @@ func GetVariableValue(variables map[string]apiextensionsv1.JSON, variablePath st
 	// Get the variable.
 	value, ok := variables[variableNameSegment.path]
 	if !ok {
-		return nil, errors.Errorf("variable %q does not exist", variableName)
+		return nil, notFoundError{reason: notFoundReason, message: fmt.Sprintf("variable %q does not exist", variableName)}
 	}
 
 	// Return the value, if variablePath points to a top-level variable, i.e. hos no relativePath and no
@@ -88,7 +89,7 @@ func GetVariableValue(variables map[string]apiextensionsv1.JSON, variablePath st
 
 		// Return if the variable does not exist.
 		if !variable.Exists(pathSegment.path) {
-			return nil, errors.Errorf("variable %q does not exist: failed to lookup segment %q", variablePath, pathSegment.path)
+			return nil, notFoundError{reason: notFoundReason, message: fmt.Sprintf("variable %q does not exist: failed to lookup segment %q", variablePath, pathSegment.path)}
 		}
 
 		// Get the variable from the variable object.

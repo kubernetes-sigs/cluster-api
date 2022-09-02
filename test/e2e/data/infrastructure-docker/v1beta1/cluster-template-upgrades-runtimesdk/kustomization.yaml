@@ -1,5 +1,4 @@
 resources:
-- ../cluster-template-upgrades
-
-patches:
-- ./cluster-runtimesdk.yaml
+  - ../bases/crs.yaml
+  - ../bases/mp.yaml
+  - ./cluster-runtimesdk.yaml

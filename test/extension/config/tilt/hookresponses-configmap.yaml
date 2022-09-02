@@ -6,11 +6,7 @@ metadata:
 data:
   AfterClusterUpgrade-preloadedResponse: '{"Status": "Success"}'
   AfterControlPlaneInitialized-preloadedResponse: '{"Status": "Success"}'
-  AfterControlPlaneUpgrade-preloadedResponse: '{"Status": "Success", "RetryAfterSeconds":
-    5}'
-  BeforeClusterCreate-preloadedResponse: '{"Status": "Success", "RetryAfterSeconds":
-    5}'
-  BeforeClusterDelete-preloadedResponse: '{"Status": "Success", "RetryAfterSeconds":
-    5}'
-  BeforeClusterUpgrade-preloadedResponse: '{"Status": "Success", "RetryAfterSeconds":
-    5}'
+  AfterControlPlaneUpgrade-preloadedResponse: '{"Status": "Success"}'
+  BeforeClusterCreate-preloadedResponse: '{"Status": "Success"}'
+  BeforeClusterDelete-preloadedResponse: '{"Status": "Success"}'
+  BeforeClusterUpgrade-preloadedResponse: '{"Status": "Success"}'

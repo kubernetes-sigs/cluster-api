@@ -3,7 +3,7 @@ resources:
 
 helmCharts:
   - name: cluster-api-visualizer
-    repo: https://raw.githubusercontent.com/Jont828/cluster-api-visualizer/main/helm/repo
+    repo: https://jont828.github.io/cluster-api-visualizer/charts
     releaseName: visualizer
     namespace: observability
     valuesFile: values.yaml

@@ -78,12 +78,7 @@ var initCmd = &cobra.Command{
 		clusterctl init --infrastructure=aws,vsphere
 
 		# Initialize a management cluster with a custom target namespace for the provider resources.
-		clusterctl init --infrastructure aws --target-namespace foo
-
-		# Lists the container images required for initializing the management cluster.
-		#
-		# Note: This command is a dry-run; it won't perform any action other than printing to screen.
-		clusterctl init --infrastructure aws --list-images`),
+		clusterctl init --infrastructure aws --target-namespace foo`),
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runInit()
@@ -91,17 +86,17 @@ var initCmd = &cobra.Command{
 }
 
 func init() {
-	initCmd.Flags().StringVar(&initOpts.kubeconfig, "kubeconfig", "",
+	initCmd.PersistentFlags().StringVar(&initOpts.kubeconfig, "kubeconfig", "",
 		"Path to the kubeconfig for the management cluster. If unspecified, default discovery rules apply.")
-	initCmd.Flags().StringVar(&initOpts.kubeconfigContext, "kubeconfig-context", "",
+	initCmd.PersistentFlags().StringVar(&initOpts.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
-	initCmd.Flags().StringVar(&initOpts.coreProvider, "core", "",
+	initCmd.PersistentFlags().StringVar(&initOpts.coreProvider, "core", "",
 		"Core provider version (e.g. cluster-api:v1.1.5) to add to the management cluster. If unspecified, Cluster API's latest release is used.")
-	initCmd.Flags().StringSliceVarP(&initOpts.infrastructureProviders, "infrastructure", "i", nil,
+	initCmd.PersistentFlags().StringSliceVarP(&initOpts.infrastructureProviders, "infrastructure", "i", nil,
 		"Infrastructure providers and versions (e.g. aws:v0.5.0) to add to the management cluster.")
-	initCmd.Flags().StringSliceVarP(&initOpts.bootstrapProviders, "bootstrap", "b", nil,
+	initCmd.PersistentFlags().StringSliceVarP(&initOpts.bootstrapProviders, "bootstrap", "b", nil,
 		"Bootstrap providers and versions (e.g. kubeadm:v1.1.5) to add to the management cluster. If unspecified, Kubeadm bootstrap provider's latest release is used.")
-	initCmd.Flags().StringSliceVarP(&initOpts.controlPlaneProviders, "control-plane", "c", nil,
+	initCmd.PersistentFlags().StringSliceVarP(&initOpts.controlPlaneProviders, "control-plane", "c", nil,
 		"Control plane providers and versions (e.g. kubeadm:v1.1.5) to add to the management cluster. If unspecified, the Kubeadm control plane provider's latest release is used.")
 	initCmd.Flags().StringVarP(&initOpts.targetNamespace, "target-namespace", "n", "",
 		"The target namespace where the providers should be deployed. If unspecified, the provider components' default namespace is used.")
@@ -112,10 +107,11 @@ func init() {
 	initCmd.Flags().BoolVar(&initOpts.validate, "validate", true,
 		"If true, clusterctl will validate that the deployments will succeed on the management cluster.")
 
-	// TODO: Move this to a sub-command or similar, it shouldn't really be a flag.
 	initCmd.Flags().BoolVar(&initOpts.listImages, "list-images", false,
 		"Lists the container images required for initializing the management cluster (without actually installing the providers)")
+	_ = initCmd.Flags().MarkDeprecated("list-images", "use 'clusterctl init list-images' instead.")
 
+	initCmd.AddCommand(initListImagesCmd)
 	RootCmd.AddCommand(initCmd)
 }
 

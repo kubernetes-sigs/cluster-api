@@ -23,9 +23,67 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 )
 
-func TestMarshalJSON(t *testing.T) {
+func TestNodeRegistrationOptionsMarshalJSON(t *testing.T) {
+	var tests = []struct {
+		name     string
+		opts     NodeRegistrationOptions
+		expected string
+	}{
+		{
+			name: "marshal nil taints",
+			opts: NodeRegistrationOptions{
+				Name:                  "node-1",
+				CRISocket:             "unix:///var/run/containerd/containerd.sock",
+				Taints:                nil,
+				KubeletExtraArgs:      map[string]string{"abc": "def"},
+				IgnorePreflightErrors: []string{"ignore-1"},
+			},
+			expected: `{"name":"node-1","criSocket":"unix:///var/run/containerd/containerd.sock","kubeletExtraArgs":{"abc":"def"},"ignorePreflightErrors":["ignore-1"]}`,
+		},
+		{
+			name: "marshal empty taints",
+			opts: NodeRegistrationOptions{
+				Name:                  "node-1",
+				CRISocket:             "unix:///var/run/containerd/containerd.sock",
+				Taints:                []corev1.Taint{},
+				KubeletExtraArgs:      map[string]string{"abc": "def"},
+				IgnorePreflightErrors: []string{"ignore-1"},
+			},
+			expected: `{"name":"node-1","criSocket":"unix:///var/run/containerd/containerd.sock","taints":[],"kubeletExtraArgs":{"abc":"def"},"ignorePreflightErrors":["ignore-1"]}`,
+		},
+		{
+			name: "marshal regular taints",
+			opts: NodeRegistrationOptions{
+				Name:      "node-1",
+				CRISocket: "unix:///var/run/containerd/containerd.sock",
+				Taints: []corev1.Taint{
+					{
+						Key:    "key",
+						Value:  "value",
+						Effect: "effect",
+					},
+				},
+				KubeletExtraArgs:      map[string]string{"abc": "def"},
+				IgnorePreflightErrors: []string{"ignore-1"},
+			},
+			expected: `{"name":"node-1","criSocket":"unix:///var/run/containerd/containerd.sock","taints":[{"key":"key","value":"value","effect":"effect"}],"kubeletExtraArgs":{"abc":"def"},"ignorePreflightErrors":["ignore-1"]}`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			b, err := tt.opts.MarshalJSON()
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(string(b)).To(Equal(tt.expected))
+		})
+	}
+}
+
+func TestBootstrapTokenStringMarshalJSON(t *testing.T) {
 	var tests = []struct {
 		bts      BootstrapTokenString
 		expected string
@@ -45,7 +103,7 @@ func TestMarshalJSON(t *testing.T) {
 	}
 }
 
-func TestUnmarshalJSON(t *testing.T) {
+func TestBootstrapTokenStringUnmarshalJSON(t *testing.T) {
 	var tests = []struct {
 		input         string
 		bts           *BootstrapTokenString
@@ -76,7 +134,7 @@ func TestUnmarshalJSON(t *testing.T) {
 	}
 }
 
-func TestJSONRoundtrip(t *testing.T) {
+func TestBootstrapTokenStringJSONRoundtrip(t *testing.T) {
 	var tests = []struct {
 		input string
 		bts   *BootstrapTokenString
@@ -130,7 +188,7 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 	return nil
 }
 
-func TestTokenFromIDAndSecret(t *testing.T) {
+func TestBootstrapTokenStringTokenFromIDAndSecret(t *testing.T) {
 	var tests = []struct {
 		bts      BootstrapTokenString
 		expected string

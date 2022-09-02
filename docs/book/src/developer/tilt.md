@@ -273,12 +273,12 @@ With this config, the respective managers will be invoked with:
 manager --logging-format=json
 ```
 
-### Run Tilt!
+### Create a kind cluster and run Tilt!
 
-To launch your development environment, run
+To create a pre-configured kind cluster (if you have not already done so) and launch your development environment, run
 
 ```bash
-tilt up
+make tilt-up
 ```
 
 This will open the command-line HUD as well as a web browser interface. You can monitor Tilt's status in either
@@ -307,6 +307,22 @@ kustomize_substitutions:
   CONTROL_PLANE_MACHINE_COUNT: 1
   WORKER_MACHINE_COUNT: 3
 ```
+
+### Cleaning up your kind cluster and development environment
+
+After stopping Tilt, you can clean up your kind cluster and development environment by running
+
+```bash
+make clean-kind
+```
+
+To remove all generated files, run
+
+```bash
+make clean
+```
+
+Note that you must run `make clean` or `make clean-charts` to fetch new versions of charts deployed using `deploy_observability` in `tilt-settings.yaml`.
 
 <h1>Use of clusterctl</h1>
 

@@ -434,7 +434,7 @@ func (r *Reconciler) isNodeDrainAllowed(m *clusterv1.Machine) bool {
 }
 
 func (r *Reconciler) nodeDrainTimeoutExceeded(machine *clusterv1.Machine) bool {
-	// if the NodeDrainTineout type is not set by user
+	// if the NodeDrainTimeout type is not set by user
 	if machine.Spec.NodeDrainTimeout == nil || machine.Spec.NodeDrainTimeout.Seconds() <= 0 {
 		return false
 	}

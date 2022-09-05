@@ -42,6 +42,7 @@ rules:
   - machinepools/status
   - machines
   - machines/status
+  - machinesets
   verbs:
   - get
   - list

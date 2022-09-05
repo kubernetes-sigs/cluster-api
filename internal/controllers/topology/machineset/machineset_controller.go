@@ -33,6 +33,7 @@ import (
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	clog "sigs.k8s.io/cluster-api/util/log"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -86,8 +87,6 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 // We don't have to set the finalizer, as it's already set during MachineSet creation
 // in the MachineSet controller.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	// Fetch the MachineSet instance.
 	ms := &clusterv1.MachineSet{}
 	if err := r.Client.Get(ctx, req.NamespacedName, ms); err != nil {
@@ -97,6 +96,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get MachineSet/%s", req.NamespacedName.Name)
+	}
+
+	// AddOwners adds the owners of MachineSet as k/v pairs to the logger.
+	// Specifically, it will add MachineDeployment.
+	ctx, log, err := clog.AddOwners(ctx, r.Client, ms)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	log = log.WithValues("Cluster", klog.KRef(ms.Namespace, ms.Spec.ClusterName))

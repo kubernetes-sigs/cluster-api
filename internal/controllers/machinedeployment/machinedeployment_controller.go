@@ -185,7 +185,6 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, d *c
 
 func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, d *clusterv1.MachineDeployment) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
-	log.V(4).Info("Reconcile MachineDeployment")
 
 	// Reconcile and retrieve the Cluster object.
 	if d.Labels == nil {
@@ -221,6 +220,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		}
 	}
 
+	// Get all MachineSets linked to this MachineDeployment
 	msList, err := r.getMachineSetsForDeployment(ctx, d)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -242,6 +242,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	}
 
 	if d.Spec.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
+		log.Info(fmt.Sprintf("MachineDeployment %s strategy type is set to: %s", d.Name, d.Spec.Strategy.Type))
 		return ctrl.Result{}, r.rolloutOnDelete(ctx, d, msList)
 	}
 
@@ -255,13 +256,13 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 	// List all MachineSets to find those we own but that no longer match our selector.
 	machineSets := &clusterv1.MachineSetList{}
 	if err := r.Client.List(ctx, machineSets, client.InNamespace(d.Namespace)); err != nil {
-		return nil, err
+		return nil, errors.Wrapf(err, "failed to list MachineSets")
 	}
 
 	filtered := make([]*clusterv1.MachineSet, 0, len(machineSets.Items))
 	for idx := range machineSets.Items {
 		ms := &machineSets.Items[idx]
-		log.WithValues("MachineSet", klog.KObj(ms))
+		log = log.WithValues("MachineSet", klog.KObj(ms))
 		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 		if err != nil {
 			log.Error(err, "Skipping MachineSet, failed to get label selector from spec selector")
@@ -270,18 +271,19 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 
 		// If a MachineDeployment with a nil or empty selector creeps in, it should match nothing, not everything.
 		if selector.Empty() {
-			log.Info("Skipping MachineSet as the selector is empty")
+			log.V(5).Info("Skipping MachineSet as the selector is empty")
 			continue
 		}
 
 		// Skip this MachineSet unless either selector matches or it has a controller ref pointing to this MachineDeployment
 		if !selector.Matches(labels.Set(ms.Labels)) && !metav1.IsControlledBy(ms, d) {
-			log.V(4).Info("Skipping MachineSet, label mismatch")
+			log.V(5).Info("Skipping MachineSet, label mismatch")
 			continue
 		}
 
 		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
 		if metav1.GetControllerOf(ms) == nil {
+			log.Info(fmt.Sprintf("Adopting MachineSet %q into MachineDeployment %q", ms.Name, d.Name))
 			if err := r.adoptOrphan(ctx, d, ms); err != nil {
 				log.Error(err, "Failed to adopt MachineSet into MachineDeployment")
 				r.recorder.Eventf(d, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt MachineSet %q: %v", ms.Name, err)
@@ -292,6 +294,7 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 		}
 
 		if !metav1.IsControlledBy(ms, d) {
+			log.V(5).Info("Skipping MachineSet, controller ref does not match MachineDeployment")
 			continue
 		}
 
@@ -314,10 +317,11 @@ func (r *Reconciler) getMachineDeploymentsForMachineSet(ctx context.Context, ms 
 	log := ctrl.LoggerFrom(ctx)
 
 	if len(ms.Labels) == 0 {
-		log.V(2).Info("No MachineDeployments found for MachineSet because it has no labels", "MachineSet", klog.KObj(ms))
+		log.V(4).Info("Unable to get MachineDeployments, MachineSet does not have any labels", "MachineSet", klog.KObj(ms))
 		return nil
 	}
 
+	// List all MachineDeployments to find those we own but that no longer match our selector.
 	dList := &clusterv1.MachineDeploymentList{}
 	if err := r.Client.List(ctx, dList, client.InNamespace(ms.Namespace)); err != nil {
 		log.Error(err, "Failed to list MachineDeployments")
@@ -326,6 +330,8 @@ func (r *Reconciler) getMachineDeploymentsForMachineSet(ctx context.Context, ms 
 
 	deployments := make([]*clusterv1.MachineDeployment, 0, len(dList.Items))
 	for idx, d := range dList.Items {
+		d := d
+		log = log.WithValues("MachineDeployment", klog.KObj(&d))
 		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
 		if err != nil {
 			continue

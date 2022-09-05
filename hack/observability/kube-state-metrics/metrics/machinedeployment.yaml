@@ -87,6 +87,15 @@
           - availableReplicas
           nilIsZero: true
         type: Gauge
+    - name: status_replicas_ready
+      help: The number of ready replicas per machinedeployment.
+      each:
+        gauge:
+          path:
+          - status
+          - readyReplicas
+          nilIsZero: true
+        type: Gauge
     - name: status_replicas_unavailable
       help: The number of unavailable replicas per machinedeployment.
       each:

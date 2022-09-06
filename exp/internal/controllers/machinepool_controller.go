@@ -138,6 +138,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	defer func() {
+		r.reconcileFailure(mp)
 		r.reconcilePhase(mp)
 		// TODO(jpang): add support for metrics.
 

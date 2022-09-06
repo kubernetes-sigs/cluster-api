@@ -174,6 +174,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	defer func() {
+		r.reconcileFailure(ctx, m)
 		r.reconcilePhase(ctx, m)
 
 		// Always attempt to patch the object and status after each reconciliation.

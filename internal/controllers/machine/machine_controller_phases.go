@@ -47,6 +47,17 @@ var (
 	externalReadyWait = 30 * time.Second
 )
 
+func (r *Reconciler) reconcileFailure(_ context.Context, m *clusterv1.Machine) {
+	switch {
+	case !m.Status.BootstrapReady:
+		return
+	case !m.Status.InfrastructureReady:
+		return
+	}
+	m.Status.FailureReason = nil
+	m.Status.FailureMessage = nil
+}
+
 func (r *Reconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
 	originalPhase := m.Status.Phase
 
@@ -254,6 +265,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 			m.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.InvalidConfigurationMachineError)
 			m.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
 				m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
+			m.Status.InfrastructureReady = false
 			return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q, requeueing", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
 		}
 		return ctrl.Result{RequeueAfter: infraReconcileResult.RequeueAfter}, nil

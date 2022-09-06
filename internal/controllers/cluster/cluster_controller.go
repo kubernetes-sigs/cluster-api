@@ -126,6 +126,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	defer func() {
+		r.reconcileFailure(ctx, cluster)
 		// Always reconcile the Status.Phase field.
 		r.reconcilePhase(ctx, cluster)
 

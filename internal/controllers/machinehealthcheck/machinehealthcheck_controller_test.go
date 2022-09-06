@@ -43,7 +43,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
-	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -2420,7 +2419,12 @@ func createMachinesWithNodes(
 		// NB. Status cannot be set during object creation so we need to patch
 		// it separately.
 		infraMachinePatch := client.MergeFrom(infraMachine.DeepCopy())
-		g.Expect(unstructured.SetNestedField(infraMachine.Object, true, "status", "ready")).To(Succeed())
+		infraReady := (o.failureReason == "" && o.failureMessage == "")
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, infraReady, "status", "ready")).To(Succeed())
+		if !infraReady {
+			g.Expect(unstructured.SetNestedField(infraMachine.Object, o.failureReason, "status", "failureReason")).To(Succeed())
+			g.Expect(unstructured.SetNestedField(infraMachine.Object, o.failureMessage, "status", "failureMessage")).To(Succeed())
+		}
 		g.Expect(env.Status().Patch(ctx, infraMachine, infraMachinePatch)).To(Succeed())
 
 		machine.Spec.InfrastructureRef = corev1.ObjectReference{
@@ -2481,14 +2485,6 @@ func createMachinesWithNodes(
 			machine.Status.NodeRef = &corev1.ObjectReference{
 				Name: node.Name,
 			}
-		}
-
-		if o.failureReason != "" {
-			failureReason := capierrors.MachineStatusError(o.failureReason)
-			machine.Status.FailureReason = &failureReason
-		}
-		if o.failureMessage != "" {
-			machine.Status.FailureMessage = pointer.StringPtr(o.failureMessage)
 		}
 
 		// Adding one second to ensure there is a difference from the

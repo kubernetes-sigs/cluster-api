@@ -37,6 +37,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -44,6 +45,96 @@ import (
 
 func init() {
 	externalReadyWait = 1 * time.Second
+}
+
+func TestReconcileMachineFailure(t *testing.T) {
+	defaultCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-cluster",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	defaultMachine := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine-test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.MachineControlPlaneLabelName: "",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: defaultCluster.Name,
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+					Kind:       "GenericBootstrapConfig",
+					Name:       "bootstrap-config1",
+				},
+			},
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "GenericInfrastructureMachine",
+				Name:       "infra-config1",
+			},
+		},
+	}
+
+	fakeFailureReason := (*capierrors.MachineStatusError)(pointer.String("some failure reason"))
+	fakeFailureMessage := pointer.String("some failure message")
+
+	testCases := []struct {
+		name                string
+		bootstrapReady      bool
+		infrastructureReady bool
+		expectFailureClean  bool
+	}{
+		{
+			"Should keep failureReason & failureMessage when bootstrap is not ready",
+			false, true, false,
+		},
+		{
+			"Should keep failureReason & failureMessage when infrastructure is not ready",
+			true, false, false,
+		},
+		{
+			"Should clean failureReason & failureMessage when bootstrap and infrastructure is ready",
+			true, true, true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			machine := defaultMachine.DeepCopy()
+
+			machine.Status.BootstrapReady = tc.bootstrapReady
+			machine.Status.InfrastructureReady = tc.infrastructureReady
+			// Set fake failureReason & failureMessage as if generated in previous reconciling loop
+			machine.Status.FailureReason = fakeFailureReason
+			machine.Status.FailureMessage = fakeFailureMessage
+
+			cl := fake.NewClientBuilder().
+				WithScheme(scheme.Scheme).
+				WithObjects(defaultCluster,
+					machine,
+				).Build()
+			r := &Reconciler{
+				Client:  cl,
+				Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			}
+
+			r.reconcileFailure(ctx, machine)
+			if tc.expectFailureClean {
+				g.Expect(machine.Status.FailureReason).To(BeNil())
+				g.Expect(machine.Status.FailureMessage).To(BeNil())
+			} else {
+				g.Expect(machine.Status.FailureReason).To(Equal(fakeFailureReason))
+				g.Expect(machine.Status.FailureMessage).To(Equal(fakeFailureMessage))
+			}
+		})
+	}
 }
 
 func TestReconcileMachinePhases(t *testing.T) {
@@ -1023,7 +1114,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			expectResult: ctrl.Result{},
 			expectError:  true,
 			expected: func(g *WithT, m *clusterv1.Machine) {
-				g.Expect(m.Status.InfrastructureReady).To(BeTrue())
+				g.Expect(m.Status.InfrastructureReady).To(BeFalse())
 				g.Expect(m.Status.FailureMessage).NotTo(BeNil())
 				g.Expect(m.Status.FailureReason).NotTo(BeNil())
 				g.Expect(m.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseFailed))

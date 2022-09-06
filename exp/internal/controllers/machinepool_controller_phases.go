@@ -46,6 +46,17 @@ var (
 	externalReadyWait = 30 * time.Second
 )
 
+func (r *MachinePoolReconciler) reconcileFailure(mp *expv1.MachinePool) {
+	switch {
+	case !mp.Status.BootstrapReady:
+		return
+	case !mp.Status.InfrastructureReady:
+		return
+	}
+	mp.Status.FailureReason = nil
+	mp.Status.FailureMessage = nil
+}
+
 func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 	// Set the phase to "pending" if nil.
 	if mp.Status.Phase == "" {

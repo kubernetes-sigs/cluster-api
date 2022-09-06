@@ -41,6 +41,17 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
+func (r *Reconciler) reconcileFailure(_ context.Context, cluster *clusterv1.Cluster) {
+	switch {
+	case !cluster.Status.ControlPlaneReady:
+		return
+	case !cluster.Status.InfrastructureReady:
+		return
+	}
+	cluster.Status.FailureReason = nil
+	cluster.Status.FailureMessage = nil
+}
+
 func (r *Reconciler) reconcilePhase(_ context.Context, cluster *clusterv1.Cluster) {
 	if cluster.Status.Phase == "" {
 		cluster.Status.SetTypedPhase(clusterv1.ClusterPhasePending)

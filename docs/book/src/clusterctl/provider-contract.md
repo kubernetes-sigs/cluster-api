@@ -236,7 +236,9 @@ providers.
 |--------------|--------------------------------------------------------|
 |CAPI          | cluster.x-k8s.io/provider=cluster-api                  |
 |CABPK         | cluster.x-k8s.io/provider=bootstrap-kubeadm            |
+|CABPM         | cluster.x-k8s.io/provider=bootstrap-microk8s           |
 |CACPK         | cluster.x-k8s.io/provider=control-plane-kubeadm        |
+|CACPM         | cluster.x-k8s.io/provider=control-plane-microk8s       |
 |CACPN         | cluster.x-k8s.io/provider=control-plane-nested         |
 |CAPA          | cluster.x-k8s.io/provider=infrastructure-aws           |
 |CAPB          | cluster.x-k8s.io/provider=infrastructure-byoh          |

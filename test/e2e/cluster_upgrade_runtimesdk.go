@@ -282,9 +282,8 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 func extensionConfig(specName string, namespace *corev1.Namespace) *runtimev1.ExtensionConfig {
 	return &runtimev1.ExtensionConfig{
 		ObjectMeta: metav1.ObjectMeta{
-			// FIXME(sbueringer): use constant name for now as we have to be able to reference it in the ClusterClass.
-			// Random generate later on again when Yuvaraj's PR has split up the cluster lifecycle.
-			//Name: fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
+			// Note: We have to use a constant name here as we have to be able to reference it in the ClusterClass
+			// when configuring external patches.
 			Name: specName,
 			Annotations: map[string]string{
 				runtimev1.InjectCAFromSecretAnnotation: fmt.Sprintf("%s/webhook-service-cert", namespace.Name),

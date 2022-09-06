@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/util/labels"
 )
 
@@ -75,7 +76,7 @@ func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scop
 func (r *Reconciler) getCurrentInfrastructureClusterState(ctx context.Context, cluster *clusterv1.Cluster) (*unstructured.Unstructured, error) {
 	infra, err := r.getReference(ctx, cluster.Spec.InfrastructureRef)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s", tlog.KRef{Ref: cluster.Spec.InfrastructureRef})
+		return nil, errors.Wrapf(err, "failed to read %s", klog.KRef(cluster.Spec.InfrastructureRef.Namespace, cluster.Spec.InfrastructureRef.Name))
 	}
 	// check that the referenced object has the ClusterTopologyOwnedLabel label.
 	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
@@ -96,7 +97,7 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, cluster *c
 	// Get the control plane object.
 	res.Object, err = r.getReference(ctx, cluster.Spec.ControlPlaneRef)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to read %s", tlog.KRef{Ref: cluster.Spec.ControlPlaneRef})
+		return nil, errors.Wrapf(err, "failed to read %s", klog.KRef(cluster.Spec.ControlPlaneRef.Namespace, cluster.Spec.ControlPlaneRef.Name))
 	}
 	// check that the referenced object has the ClusterTopologyOwnedLabel label.
 	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not

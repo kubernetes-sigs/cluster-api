@@ -30,6 +30,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	"k8s.io/klog/v2"
 )
 
 // GetMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
@@ -97,13 +98,13 @@ func DeleteTemplateIfUnused(ctx context.Context, c client.Client, templatesInUse
 
 	// If the template is still in use, do nothing.
 	if templatesInUse[refID] {
-		log.V(3).Infof("Not deleting %s, because it's still in use", tlog.KRef{Ref: ref})
+		log.V(3).Infof("Not deleting %s, because it's still in use", klog.KRef(ref.Namespace, ref.Name))
 		return nil
 	}
 
-	log.Infof("Deleting %s", tlog.KRef{Ref: ref})
+	log.Infof("Deleting %s", klog.KRef(ref.Namespace, ref.Name))
 	if err := external.Delete(ctx, c, ref); err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to delete %s", tlog.KRef{Ref: ref})
+		return errors.Wrapf(err, "failed to delete %s", klog.KRef(ref.Namespace, ref.Name))
 	}
 	return nil
 }

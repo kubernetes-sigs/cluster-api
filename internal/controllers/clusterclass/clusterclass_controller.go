@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -157,7 +158,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *cluste
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, ref); err != nil {
-		return errors.Wrapf(err, "failed to update reference API contract of %s", tlog.KRef{Ref: ref})
+		return errors.Wrapf(err, "failed to update reference API contract of %s", klog.KRef(ref.Namespace, ref.Name))
 	}
 
 	// If we dont need to set the ownerReference then return early.

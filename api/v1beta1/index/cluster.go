@@ -21,8 +21,8 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -34,7 +34,7 @@ const (
 
 // ByClusterClassName adds the cluster class name  index to the
 // managers cache.
-func ByClusterClassName(ctx context.Context, mgr ctrl.Manager) error {
+func ByClusterClassName(ctx context.Context, mgr manager.Manager) error {
 	if err := mgr.GetCache().IndexField(ctx, &clusterv1.Cluster{},
 		ClusterClassNameField,
 		clusterByClassName,

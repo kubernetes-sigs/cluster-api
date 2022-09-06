@@ -20,13 +20,13 @@ package index
 import (
 	"context"
 
-	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"sigs.k8s.io/cluster-api/feature"
 )
 
 // AddDefaultIndexes registers the default list of indexes.
-func AddDefaultIndexes(ctx context.Context, mgr ctrl.Manager) error {
+func AddDefaultIndexes(ctx context.Context, mgr manager.Manager) error {
 	if err := ByMachineNode(ctx, mgr); err != nil {
 		return err
 	}

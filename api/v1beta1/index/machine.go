@@ -22,8 +22,8 @@ import (
 
 	"github.com/pkg/errors"
 	"k8s.io/utils/pointer"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
@@ -40,7 +40,7 @@ const (
 
 // ByMachineNode adds the machine node name index to the
 // managers cache.
-func ByMachineNode(ctx context.Context, mgr ctrl.Manager) error {
+func ByMachineNode(ctx context.Context, mgr manager.Manager) error {
 	if err := mgr.GetCache().IndexField(ctx, &clusterv1.Machine{},
 		MachineNodeNameField,
 		machineByNodeName,
@@ -64,7 +64,7 @@ func machineByNodeName(o client.Object) []string {
 
 // ByMachineProviderID adds the machine providerID index to the
 // managers cache.
-func ByMachineProviderID(ctx context.Context, mgr ctrl.Manager) error {
+func ByMachineProviderID(ctx context.Context, mgr manager.Manager) error {
 	if err := mgr.GetCache().IndexField(ctx, &clusterv1.Machine{},
 		MachineProviderIDField,
 		machineByProviderID,

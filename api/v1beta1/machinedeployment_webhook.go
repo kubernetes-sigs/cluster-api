@@ -27,14 +27,15 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/pointer"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
-func (m *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
+func (m *MachineDeployment) SetupWebhookWithManager(mgr manager.Manager) error {
+	return builder.WebhookManagedBy(mgr).
 		For(m).
 		Complete()
 }

@@ -25,7 +25,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	"sigs.k8s.io/cluster-api/util/version"
@@ -33,8 +34,8 @@ import (
 
 const defaultNodeDeletionTimeout = 10 * time.Second
 
-func (m *Machine) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
+func (m *Machine) SetupWebhookWithManager(mgr manager.Manager) error {
+	return builder.WebhookManagedBy(mgr).
 		For(m).
 		Complete()
 }

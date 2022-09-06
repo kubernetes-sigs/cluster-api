@@ -509,7 +509,7 @@ def cluster_templates():
 
     # Ensure we have default values for a small set of well-known variables
     substitutions["NAMESPACE"] = substitutions.get("NAMESPACE", "default")
-    substitutions["KUBERNETES_VERSION"] = substitutions.get("KUBERNETES_VERSION", "v1.24.0")
+    substitutions["KUBERNETES_VERSION"] = substitutions.get("KUBERNETES_VERSION", "v1.25.0")
     substitutions["CONTROL_PLANE_MACHINE_COUNT"] = substitutions.get("CONTROL_PLANE_MACHINE_COUNT", "1")
     substitutions["WORKER_MACHINE_COUNT"] = substitutions.get("WORKER_MACHINE_COUNT", "3")
 

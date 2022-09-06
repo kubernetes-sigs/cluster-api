@@ -28,7 +28,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/util/labels"
 )
@@ -82,7 +81,7 @@ func (r *Reconciler) getCurrentInfrastructureClusterState(ctx context.Context, c
 	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
 	// owned by the topology.
 	if !labels.IsTopologyOwned(infra) {
-		return nil, fmt.Errorf("infra cluster object %s referenced from cluster %s is not topology owned", tlog.KObj{Obj: infra}, tlog.KObj{Obj: cluster})
+		return nil, fmt.Errorf("infra cluster object %s referenced from cluster %s is not topology owned", klog.KObj(infra), klog.KObj(cluster))
 	}
 	return infra, nil
 }
@@ -103,7 +102,7 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, cluster *c
 	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
 	// owned by the topology.
 	if !labels.IsTopologyOwned(res.Object) {
-		return nil, fmt.Errorf("control plane object %s referenced from cluster %s is not topology owned", tlog.KObj{Obj: res.Object}, tlog.KObj{Obj: cluster})
+		return nil, fmt.Errorf("control plane object %s referenced from cluster %s is not topology owned", klog.KObj(res.Object), klog.KObj(cluster))
 	}
 
 	// If the clusterClass does not mandate the controlPlane has infrastructureMachines, return.
@@ -114,17 +113,17 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, cluster *c
 	// Otherwise, get the control plane machine infrastructureMachine template.
 	machineInfrastructureRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(res.Object)
 	if err != nil {
-		return res, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate reference for %s", tlog.KObj{Obj: res.Object})
+		return res, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate reference for %s", klog.KObj(res.Object))
 	}
 	res.InfrastructureMachineTemplate, err = r.getReference(ctx, machineInfrastructureRef)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s", tlog.KObj{Obj: res.Object})
+		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s", klog.KObj(res.Object))
 	}
 	// check that the referenced object has the ClusterTopologyOwnedLabel label.
 	// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
 	// owned by the topology.
 	if !labels.IsTopologyOwned(res.InfrastructureMachineTemplate) {
-		return nil, fmt.Errorf("control plane InfrastructureMachineTemplate object %s referenced from cluster %s is not topology owned", tlog.KObj{Obj: res.InfrastructureMachineTemplate}, tlog.KObj{Obj: cluster})
+		return nil, fmt.Errorf("control plane InfrastructureMachineTemplate object %s referenced from cluster %s is not topology owned", klog.KObj(res.InfrastructureMachineTemplate), klog.KObj(cluster))
 	}
 
 	mhc := &clusterv1.MachineHealthCheck{}
@@ -134,7 +133,7 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, cluster *c
 		if apierrors.IsNotFound(err) {
 			return res, nil
 		}
-		return nil, errors.Wrapf(err, "failed to get MachineHealthCheck for %s", tlog.KObj{Obj: res.Object})
+		return nil, errors.Wrapf(err, "failed to get MachineHealthCheck for %s", klog.KObj(res.Object))
 	}
 	res.MachineHealthCheck = mhc
 	return res, nil
@@ -169,46 +168,46 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, clust
 		// from a well-defined label.
 		mdTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]
 		if !ok || mdTopologyName == "" {
-			return nil, fmt.Errorf("failed to find label %s in %s", clusterv1.ClusterTopologyMachineDeploymentLabelName, tlog.KObj{Obj: m})
+			return nil, fmt.Errorf("failed to find label %s in MachineDeployment %s", clusterv1.ClusterTopologyMachineDeploymentLabelName, klog.KObj(m))
 		}
 
 		// Make sure that the name of the MachineDeployment stays unique.
 		// If we've already have seen a MachineDeployment with the same name
 		// this is an error, probably caused from manual modifications or a race condition.
 		if _, ok := state[mdTopologyName]; ok {
-			return nil, fmt.Errorf("duplicate %s found for label %s: %s", tlog.KObj{Obj: m}, clusterv1.ClusterTopologyMachineDeploymentLabelName, mdTopologyName)
+			return nil, fmt.Errorf("duplicate MachineDeployment %s is found with label %s: %s", klog.KObj(m), clusterv1.ClusterTopologyMachineDeploymentLabelName, mdTopologyName)
 		}
 
 		// Gets the BootstrapTemplate
 		bootstrapRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
 		if bootstrapRef == nil {
-			return nil, fmt.Errorf("%s does not have a reference to a Bootstrap Config", tlog.KObj{Obj: m})
+			return nil, fmt.Errorf("MachineDeployment %s does not have a reference to a Bootstrap Config", klog.KObj(m))
 		}
 		b, err := r.getReference(ctx, bootstrapRef)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("%s Bootstrap reference could not be retrieved", tlog.KObj{Obj: m}))
+			return nil, errors.Wrap(err, fmt.Sprintf("Bootstrap reference could not be retrieved for MachineDeployment %s", klog.KObj(m)))
 		}
 		// check that the referenced object has the ClusterTopologyOwnedLabel label.
 		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
 		// owned by the topology.
 		if !labels.IsTopologyOwned(b) {
-			return nil, fmt.Errorf("BootstrapTemplate object %s referenced from MD %s is not topology owned", tlog.KObj{Obj: b}, tlog.KObj{Obj: m})
+			return nil, fmt.Errorf("BootstrapTemplate object %s referenced from MachineDeployment %s is not topology owned", klog.KObj(b), klog.KObj(m))
 		}
 
 		// Gets the InfrastructureMachineTemplate
 		infraRef := m.Spec.Template.Spec.InfrastructureRef
 		if infraRef.Name == "" {
-			return nil, fmt.Errorf("%s does not have a reference to a InfrastructureMachineTemplate", tlog.KObj{Obj: m})
+			return nil, fmt.Errorf("MachineDeployment %s does not have a reference to a InfrastructureMachineTemplate", klog.KObj(m))
 		}
 		infra, err := r.getReference(ctx, &infraRef)
 		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
+			return nil, errors.Wrap(err, fmt.Sprintf("Infrastructure reference could not be retrieved for MachineDeployment %s", klog.KObj(m)))
 		}
 		// check that the referenced object has the ClusterTopologyOwnedLabel label.
 		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
 		// owned by the topology.
 		if !labels.IsTopologyOwned(infra) {
-			return nil, fmt.Errorf("InfrastructureMachineTemplate object %s referenced from MD %s is not topology owned", tlog.KObj{Obj: infra}, tlog.KObj{Obj: m})
+			return nil, fmt.Errorf("InfrastructureMachineTemplate object %s referenced from MachineDeployment %s is not topology owned", klog.KObj(infra), klog.KObj(m))
 		}
 
 		// Gets the MachineHealthCheck.
@@ -220,7 +219,7 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, clust
 
 			// Each MachineDeployment isn't required to have a MachineHealthCheck. Ignore the error if it's of the type not found, but return any other error.
 			if !apierrors.IsNotFound(err) {
-				return nil, errors.Wrap(err, fmt.Sprintf("failed to get MachineHealthCheck for %s", tlog.KObj{Obj: m}))
+				return nil, errors.Wrap(err, fmt.Sprintf("failed to get MachineHealthCheck for MachineDeployment %s", klog.KObj(m)))
 			}
 		}
 

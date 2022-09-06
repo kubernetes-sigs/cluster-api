@@ -63,7 +63,7 @@ func CalculateTemplatesInUse(md *clusterv1.MachineDeployment, msList []*clusterv
 		bootstrapRef := ms.Spec.Template.Spec.Bootstrap.ConfigRef
 		infrastructureRef := &ms.Spec.Template.Spec.InfrastructureRef
 		if err := addTemplateRef(templatesInUse, bootstrapRef, infrastructureRef); err != nil {
-			return nil, errors.Wrapf(err, "failed to add templates of %s to templatesInUse", tlog.KObj{Obj: ms})
+			return nil, errors.Wrapf(err, "failed to add templates of %s to templatesInUse", klog.KObj(ms))
 		}
 	}
 
@@ -77,7 +77,7 @@ func CalculateTemplatesInUse(md *clusterv1.MachineDeployment, msList []*clusterv
 	bootstrapRef := md.Spec.Template.Spec.Bootstrap.ConfigRef
 	infrastructureRef := &md.Spec.Template.Spec.InfrastructureRef
 	if err := addTemplateRef(templatesInUse, bootstrapRef, infrastructureRef); err != nil {
-		return nil, errors.Wrapf(err, "failed to add templates of %s to templatesInUse", tlog.KObj{Obj: md})
+		return nil, errors.Wrapf(err, "failed to add templates of %s to templatesInUse", klog.KObj(md))
 	}
 	return templatesInUse, nil
 }

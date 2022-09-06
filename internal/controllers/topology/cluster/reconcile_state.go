@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/apiserver/pkg/storage/names"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -38,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/structuredmerge"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 )
 
@@ -52,8 +54,8 @@ const (
 // the entire reconcile operation will fail. This might be improved in the future if support for reconciling
 // subset of a topology will be implemented.
 func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
-	log := tlog.LoggerFrom(ctx)
-	log.Infof("Reconciling state for topology owned objects")
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Reconciling state for topology owned objects")
 
 	// Reconcile the Cluster shim, a temporary object used a mean to collect
 	// objects/templates that can be orphaned in case of errors during the
@@ -314,7 +316,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 
 		cpInfraRef, err := contract.ControlPlane().MachineTemplate().InfrastructureRef().Get(s.Desired.ControlPlane.Object)
 		if err != nil {
-			return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: s.Desired.ControlPlane.InfrastructureMachineTemplate})
+			return errors.Wrapf(err, "failed to reconcile %s", klog.KObj(s.Desired.ControlPlane.InfrastructureMachineTemplate))
 		}
 
 		// Create or update the MachineInfrastructureTemplate of the control plane.
@@ -333,7 +335,7 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 		// The controlPlaneObject.Spec.machineTemplate.infrastructureRef has to be updated in the desired object
 		err = contract.ControlPlane().MachineTemplate().InfrastructureRef().Set(s.Desired.ControlPlane.Object, refToUnstructured(cpInfraRef))
 		if err != nil {
-			return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: s.Desired.ControlPlane.Object})
+			return errors.Wrapf(err, "failed to reconcile %s", klog.KObj(s.Desired.ControlPlane.Object))
 		}
 	}
 
@@ -355,8 +357,8 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) 
 		if s.Current.ControlPlane.InfrastructureMachineTemplate.GetName() != s.Desired.ControlPlane.InfrastructureMachineTemplate.GetName() {
 			if err := r.Client.Delete(ctx, s.Current.ControlPlane.InfrastructureMachineTemplate); err != nil {
 				return errors.Wrapf(err, "failed to delete oldinfrastructure machine template %s of control plane %s",
-					tlog.KObj{Obj: s.Current.ControlPlane.InfrastructureMachineTemplate},
-					tlog.KObj{Obj: s.Current.ControlPlane.Object},
+					klog.KObj(s.Current.ControlPlane.InfrastructureMachineTemplate),
+					klog.KObj(s.Current.ControlPlane.Object),
 				)
 			}
 		}
@@ -379,28 +381,28 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 
 	// If a current MachineHealthCheck doesn't exist but there is a desired MachineHealthCheck attempt to create.
 	if current == nil && desired != nil {
-		log.Infof("Creating %s", tlog.KObj{Obj: desired})
+		log.Infof(fmt.Sprintf("Creating %s", klog.KObj(desired)))
 		helper, err := r.patchHelperFactory(ctx, nil, desired)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: desired})
+			return errors.Wrapf(err, "failed to create patch helper for %s", klog.KObj(desired))
 		}
 		if err := helper.Patch(ctx); err != nil {
-			return errors.Wrapf(err, "failed to create %s", tlog.KObj{Obj: desired})
+			return errors.Wrapf(err, "failed to create %s", klog.KObj(desired))
 		}
-		r.recorder.Eventf(desired, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: desired})
+		r.recorder.Eventf(desired, corev1.EventTypeNormal, createEventReason, "Created %q", klog.KObj(desired))
 		return nil
 	}
 
 	// If a current MachineHealthCheck exists but there is no desired MachineHealthCheck attempt to delete.
 	if current != nil && desired == nil {
-		log.Infof("Deleting %s", tlog.KObj{Obj: current})
+		log.Infof("Deleting %s", klog.KObj(current))
 		if err := r.Client.Delete(ctx, current); err != nil {
 			// If the object to be deleted is not found don't throw an error.
 			if !apierrors.IsNotFound(err) {
-				return errors.Wrapf(err, "failed to delete %s", tlog.KObj{Obj: current})
+				return errors.Wrapf(err, "failed to delete %s", klog.KObj(current))
 			}
 		}
-		r.recorder.Eventf(current, corev1.EventTypeNormal, deleteEventReason, "Deleted %q", tlog.KObj{Obj: current})
+		r.recorder.Eventf(current, corev1.EventTypeNormal, deleteEventReason, "Deleted %q", klog.KObj(current))
 		return nil
 	}
 
@@ -411,18 +413,18 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 	// expected to change MHC fields from the ClusterClass only.
 	patchHelper, err := r.patchHelperFactory(ctx, current, desired)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: current})
+		return errors.Wrapf(err, "failed to create patch helper for %s", klog.KObj(current))
 	}
 	if !patchHelper.HasChanges() {
-		log.V(3).Infof("No changes for %s", tlog.KObj{Obj: current})
+		log.V(3).Infof("No changes for %s", klog.KObj(current))
 		return nil
 	}
 
-	log.Infof("Patching %s", tlog.KObj{Obj: current})
+	log.Infof("Patching %s", klog.KObj(current))
 	if err := patchHelper.Patch(ctx); err != nil {
-		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: current})
+		return errors.Wrapf(err, "failed to patch %s", klog.KObj(current))
 	}
-	r.recorder.Eventf(current, corev1.EventTypeNormal, updateEventReason, "Updated %q", tlog.KObj{Obj: current})
+	r.recorder.Eventf(current, corev1.EventTypeNormal, updateEventReason, "Updated %q", klog.KObj(current))
 	return nil
 }
 
@@ -436,18 +438,18 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 	// Check differences between current and desired state, and eventually patch the current object.
 	patchHelper, err := r.patchHelperFactory(ctx, s.Current.Cluster, s.Desired.Cluster)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: s.Current.Cluster})
+		return errors.Wrapf(err, "failed to create patch helper for %s", klog.KObj(s.Current.Cluster))
 	}
 	if !patchHelper.HasChanges() {
-		log.V(3).Infof("No changes for %s", tlog.KObj{Obj: s.Current.Cluster})
+		log.V(3).Infof("No changes for %s", klog.KObj(s.Current.Cluster))
 		return nil
 	}
 
-	log.Infof("Patching %s", tlog.KObj{Obj: s.Current.Cluster})
+	log.Infof("Patching %s", klog.KObj(s.Current.Cluster))
 	if err := patchHelper.Patch(ctx); err != nil {
-		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: s.Current.Cluster})
+		return errors.Wrapf(err, "failed to patch %s", klog.KObj(s.Current.Cluster))
 	}
-	r.recorder.Eventf(s.Current.Cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q", tlog.KObj{Obj: s.Current.Cluster})
+	r.recorder.Eventf(s.Current.Cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q", klog.KObj(s.Current.Cluster))
 	return nil
 }
 
@@ -503,7 +505,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, cluster *clust
 	}
 
 	log = log.WithObject(md.Object)
-	log.Infof(fmt.Sprintf("Creating %s", tlog.KObj{Obj: md.Object}))
+	log.Infof(fmt.Sprintf("Creating %s", klog.KObj(md.Object)))
 	helper, err := r.patchHelperFactory(ctx, nil, md.Object)
 	if err != nil {
 		return createErrorWithoutObjectName(err, md.Object)
@@ -511,7 +513,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, cluster *clust
 	if err := helper.Patch(ctx); err != nil {
 		return createErrorWithoutObjectName(err, md.Object)
 	}
-	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: md.Object})
+	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created %q", klog.KObj(md.Object))
 
 	// If the MachineDeployment has defined a MachineHealthCheck reconcile it.
 	if md.MachineHealthCheck != nil {
@@ -535,7 +537,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, cluster *clust
 		templateNamePrefix:   infrastructureMachineTemplateNamePrefix(cluster.Name, mdTopologyName),
 		compatibilityChecker: check.ObjectsAreCompatible,
 	}); err != nil {
-		return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: currentMD.Object})
+		return errors.Wrapf(err, "failed to reconcile %s", klog.KObj(currentMD.Object))
 	}
 
 	bootstrapCtx, _ := log.WithObject(desiredMD.BootstrapTemplate).Into(ctx)
@@ -547,7 +549,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, cluster *clust
 		templateNamePrefix:   bootstrapTemplateNamePrefix(cluster.Name, mdTopologyName),
 		compatibilityChecker: check.ObjectsAreInTheSameNamespace,
 	}); err != nil {
-		return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: currentMD.Object})
+		return errors.Wrapf(err, "failed to reconcile %s", klog.KObj(currentMD.Object))
 	}
 
 	// Patch MachineHealthCheck for the MachineDeployment.
@@ -561,18 +563,18 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, cluster *clust
 	log = log.WithObject(desiredMD.Object)
 	patchHelper, err := r.patchHelperFactory(ctx, currentMD.Object, desiredMD.Object)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: currentMD.Object})
+		return errors.Wrapf(err, "failed to create patch helper for %s", klog.KObj(currentMD.Object))
 	}
 	if !patchHelper.HasChanges() {
-		log.V(3).Infof("No changes for %s", tlog.KObj{Obj: currentMD.Object})
+		log.V(3).Infof("No changes for %s", klog.KObj(currentMD.Object))
 		return nil
 	}
 
-	log.Infof("Patching %s", tlog.KObj{Obj: currentMD.Object})
+	log.Infof("Patching %s", klog.KObj(currentMD.Object))
 	if err := patchHelper.Patch(ctx); err != nil {
-		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: currentMD.Object})
+		return errors.Wrapf(err, "failed to patch %s", klog.KObj(currentMD.Object))
 	}
-	r.recorder.Eventf(cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q%s", tlog.KObj{Obj: currentMD.Object}, logMachineDeploymentVersionChange(currentMD.Object, desiredMD.Object))
+	r.recorder.Eventf(cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q%s", klog.KObj(currentMD.Object), logMachineDeploymentVersionChange(currentMD.Object, desiredMD.Object))
 
 	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.
 	return nil
@@ -599,11 +601,11 @@ func (r *Reconciler) deleteMachineDeployment(ctx context.Context, cluster *clust
 			return err
 		}
 	}
-	log.Infof("Deleting %s", tlog.KObj{Obj: md.Object})
+	log.Infof("Deleting %s", klog.KObj(md.Object))
 	if err := r.Client.Delete(ctx, md.Object); err != nil && !apierrors.IsNotFound(err) {
-		return errors.Wrapf(err, "failed to delete %s", tlog.KObj{Obj: md.Object})
+		return errors.Wrapf(err, "failed to delete %s", klog.KObj(md.Object))
 	}
-	r.recorder.Eventf(cluster, corev1.EventTypeNormal, deleteEventReason, "Deleted %q", tlog.KObj{Obj: md.Object})
+	r.recorder.Eventf(cluster, corev1.EventTypeNormal, deleteEventReason, "Deleted %q", klog.KObj(md.Object))
 	return nil
 }
 
@@ -647,11 +649,11 @@ type reconcileReferencedObjectInput struct {
 // NOTE: After a referenced object is created it is assumed that the reference should
 // never change (only the content of the object can eventually change). Thus, we are checking for strict compatibility.
 func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcileReferencedObjectInput) error {
-	log := tlog.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx)
 
 	// If there is no current object, create it.
 	if in.current == nil {
-		log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
+		log.Info(fmt.Sprintf("Creating %s", klog.KObj(in.desired)))
 		helper, err := r.patchHelperFactory(ctx, nil, in.desired, structuredmerge.IgnorePaths(in.ignorePaths))
 		if err != nil {
 			return errors.Wrap(createErrorWithoutObjectName(err, in.desired), "failed to create patch helper")
@@ -659,7 +661,7 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 		if err := helper.Patch(ctx); err != nil {
 			return createErrorWithoutObjectName(err, in.desired)
 		}
-		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: in.desired})
+		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q", klog.KObj(in.desired))
 		return nil
 	}
 
@@ -671,18 +673,18 @@ func (r *Reconciler) reconcileReferencedObject(ctx context.Context, in reconcile
 	// Check differences between current and desired state, and eventually patch the current object.
 	patchHelper, err := r.patchHelperFactory(ctx, in.current, in.desired, structuredmerge.IgnorePaths(in.ignorePaths))
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: in.current})
+		return errors.Wrapf(err, "failed to create patch helper for %s", klog.KObj(in.current))
 	}
 	if !patchHelper.HasChanges() {
-		log.V(3).Infof("No changes for %s", tlog.KObj{Obj: in.desired})
+		log.V(3).Info(fmt.Sprintf("No changes for %s", klog.KObj(in.desired)))
 		return nil
 	}
 
-	log.Infof("Patching %s", tlog.KObj{Obj: in.desired})
+	log.Info(fmt.Sprintf("Patching %s", klog.KObj(in.desired)))
 	if err := patchHelper.Patch(ctx); err != nil {
-		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: in.current})
+		return errors.Wrapf(err, "failed to patch %s", klog.KObj(in.current))
 	}
-	r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q%s", tlog.KObj{Obj: in.desired}, logUnstructuredVersionChange(in.current, in.desired, in.versionGetter))
+	r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q%s", klog.KObj(in.desired), logUnstructuredVersionChange(in.current, in.desired, in.versionGetter))
 	return nil
 }
 
@@ -724,11 +726,11 @@ type reconcileReferencedTemplateInput struct {
 // can be executed afterwards.
 // NOTE: This func has a side effect in case of template rotation, changing both the desired object and the object reference.
 func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconcileReferencedTemplateInput) error {
-	log := tlog.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx)
 
 	// If there is no current object, create the desired object.
 	if in.current == nil {
-		log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
+		log.Info(fmt.Sprintf("Creating %s", klog.KObj(in.desired)))
 		helper, err := r.patchHelperFactory(ctx, nil, in.desired)
 		if err != nil {
 			return errors.Wrap(createErrorWithoutObjectName(err, in.desired), "failed to create patch helper")
@@ -736,7 +738,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 		if err := helper.Patch(ctx); err != nil {
 			return createErrorWithoutObjectName(err, in.desired)
 		}
-		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: in.desired})
+		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q", klog.KObj(in.desired))
 		return nil
 	}
 
@@ -752,23 +754,23 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	// Check differences between current and desired objects, and if there are changes eventually start the template rotation.
 	patchHelper, err := r.patchHelperFactory(ctx, in.current, in.desired)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: in.current})
+		return errors.Wrapf(err, "failed to create patch helper for %s", klog.KObj(in.current))
 	}
 
 	// Return if no changes are detected.
 	if !patchHelper.HasChanges() {
-		log.V(3).Infof("No changes for %s", tlog.KObj{Obj: in.desired})
+		log.V(3).Info(fmt.Sprintf("No changes for %s", klog.KObj(in.desired)))
 		return nil
 	}
 
 	// If there are no changes in the spec, and thus only changes in metadata, instead of doing a full template
 	// rotation we patch the object in place. This avoids recreating machines.
 	if !patchHelper.HasSpecChanges() {
-		log.Infof("Patching %s", tlog.KObj{Obj: in.desired})
+		log.Info(fmt.Sprintf("Patching %s", klog.KObj(in.desired)))
 		if err := patchHelper.Patch(ctx); err != nil {
-			return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: in.desired})
+			return errors.Wrapf(err, "failed to patch %s", klog.KObj(in.desired))
 		}
-		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q (metadata changes)", tlog.KObj{Obj: in.desired})
+		r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q (metadata changes)", klog.KObj(in.desired))
 		return nil
 	}
 
@@ -779,8 +781,8 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	newName := names.SimpleNameGenerator.GenerateName(in.templateNamePrefix)
 	in.desired.SetName(newName)
 
-	log.Infof("Rotating %s, new name %s", tlog.KObj{Obj: in.current}, newName)
-	log.Infof("Creating %s", tlog.KObj{Obj: in.desired})
+	log.Info(fmt.Sprintf("Rotating %s, new name %s", klog.KObj(in.current), newName))
+	log.Info(fmt.Sprintf("Creating %s", klog.KObj(in.desired)))
 	helper, err := r.patchHelperFactory(ctx, nil, in.desired)
 	if err != nil {
 		return errors.Wrap(createErrorWithoutObjectName(err, in.desired), "failed to create patch helper")
@@ -788,7 +790,7 @@ func (r *Reconciler) reconcileReferencedTemplate(ctx context.Context, in reconci
 	if err := helper.Patch(ctx); err != nil {
 		return createErrorWithoutObjectName(err, in.desired)
 	}
-	r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q as a replacement for %q (template rotation)", tlog.KObj{Obj: in.desired}, in.ref.Name)
+	r.recorder.Eventf(in.cluster, corev1.EventTypeNormal, createEventReason, "Created %q as a replacement for %q (template rotation)", klog.KObj(in.desired), in.ref.Name)
 
 	// Update the reference with the new name.
 	// NOTE: Updating the object hosting reference to the template is executed outside this func.

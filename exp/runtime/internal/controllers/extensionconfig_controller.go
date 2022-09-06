@@ -36,7 +36,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
+	"k8s.io/klog/v2"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -162,7 +162,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func patchExtensionConfig(ctx context.Context, client client.Client, original, modified *runtimev1.ExtensionConfig, options ...patch.Option) error {
 	patchHelper, err := patch.NewHelper(original, client)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: modified})
+		return errors.Wrapf(err, "failed to create patch helper for %s", klog.KObj(modified))
 	}
 
 	options = append(options, patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
@@ -170,7 +170,7 @@ func patchExtensionConfig(ctx context.Context, client client.Client, original, m
 	}})
 	err = patchHelper.Patch(ctx, modified, options...)
 	if err != nil {
-		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: modified})
+		return errors.Wrapf(err, "failed to patch %s", klog.KObj(modified))
 	}
 	return nil
 }
@@ -181,7 +181,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, extensionConfig *runti
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Unregistering ExtensionConfig information from registry")
 	if err := r.RuntimeClient.Unregister(extensionConfig); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to unregister %s", tlog.KObj{Obj: extensionConfig})
+		return ctrl.Result{}, errors.Wrapf(err, "failed to unregister %s", klog.KObj(extensionConfig))
 	}
 	return ctrl.Result{}, nil
 }
@@ -217,7 +217,7 @@ func discoverExtensionConfig(ctx context.Context, runtimeClient runtimeclient.Cl
 	if err != nil {
 		modifiedExtensionConfig := extensionConfig.DeepCopy()
 		conditions.MarkFalse(modifiedExtensionConfig, runtimev1.RuntimeExtensionDiscoveredCondition, runtimev1.DiscoveryFailedReason, clusterv1.ConditionSeverityError, "error in discovery: %v", err)
-		return modifiedExtensionConfig, errors.Wrapf(err, "failed to discover %s", tlog.KObj{Obj: extensionConfig})
+		return modifiedExtensionConfig, errors.Wrapf(err, "failed to discover %s", klog.KObj(extensionConfig))
 	}
 
 	conditions.MarkTrue(discoveredExtension, runtimev1.RuntimeExtensionDiscoveredCondition)

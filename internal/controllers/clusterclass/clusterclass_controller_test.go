@@ -28,7 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
@@ -242,7 +242,7 @@ func assertHasOwnerReference(obj client.Object, ownerRef metav1.OwnerReference) 
 		}
 	}
 	if !found {
-		return fmt.Errorf("object %s does not have OwnerReference %s", tlog.KObj{Obj: obj}, &ownerRef)
+		return fmt.Errorf("object %s does not have OwnerReference %s", klog.KObj(obj), &ownerRef)
 	}
 	return nil
 }

@@ -32,7 +32,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
@@ -102,7 +101,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		if err := patchHelper.Patch(ctx, clusterClass); err != nil {
 			reterr = kerrors.NewAggregate([]error{
 				reterr,
-				errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: clusterClass})},
+				errors.Wrapf(err, "failed to patch %s", klog.KObj(clusterClass))},
 			)
 		}
 	}()
@@ -183,17 +182,17 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *cluste
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(obj, r.Client)
 	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: obj})
+		return errors.Wrapf(err, "failed to create patch helper for %s", klog.KObj(obj))
 	}
 
 	// Set external object ControllerReference to the ClusterClass.
 	if err := controllerutil.SetOwnerReference(clusterClass, obj, r.Client.Scheme()); err != nil {
-		return errors.Wrapf(err, "failed to set cluster class owner reference for %s", tlog.KObj{Obj: obj})
+		return errors.Wrapf(err, "failed to set cluster class owner reference for %s", klog.KObj(obj))
 	}
 
 	// Patch the external object.
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return errors.Wrapf(err, "failed to patch object %s", tlog.KObj{Obj: obj})
+		return errors.Wrapf(err, "failed to patch object %s", klog.KObj(obj))
 	}
 
 	return nil

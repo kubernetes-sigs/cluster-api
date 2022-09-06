@@ -29,7 +29,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/machineset"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -139,11 +138,11 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineD
 	// Delete unused templates.
 	ref := md.Spec.Template.Spec.Bootstrap.ConfigRef
 	if err := machineset.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to delete bootstrap template for %s", tlog.KObj{Obj: md})
+		return ctrl.Result{}, errors.Wrapf(err, "failed to delete bootstrap template for %s", klog.KObj(md))
 	}
 	ref = &md.Spec.Template.Spec.InfrastructureRef
 	if err := machineset.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to delete infrastructure template for %s", tlog.KObj{Obj: md})
+		return ctrl.Result{}, errors.Wrapf(err, "failed to delete infrastructure template for %s", klog.KObj(md))
 	}
 
 	// If the MachineDeployment has a MachineHealthCheck delete it.
@@ -154,12 +153,12 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineD
 	// Remove the finalizer so the MachineDeployment can be garbage collected by Kubernetes.
 	patchHelper, err := patch.NewHelper(md, r.Client)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: md})
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch helper for %s", klog.KObj(md))
 	}
 
 	controllerutil.RemoveFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)
 	if err := patchHelper.Patch(ctx, md); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: md})
+		return ctrl.Result{}, errors.Wrapf(err, "failed to patch %s", klog.KObj(md))
 	}
 	return ctrl.Result{}, nil
 }
@@ -176,7 +175,7 @@ func (r *Reconciler) deleteMachineHealthCheckForMachineDeployment(ctx context.Co
 		if apierrors.IsNotFound(err) {
 			return nil
 		}
-		return errors.Wrapf(err, "failed to delete %s", tlog.KObj{Obj: mhc})
+		return errors.Wrapf(err, "failed to delete %s", klog.KObj(mhc))
 	}
 	return nil
 }

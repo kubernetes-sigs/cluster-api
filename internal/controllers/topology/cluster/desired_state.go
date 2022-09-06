@@ -28,6 +28,7 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -37,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/hooks"
-	tlog "sigs.k8s.io/cluster-api/internal/log"
+	"k8s.io/klog/v2"
 )
 
 // computeDesiredState computes the desired state of the cluster topology.
@@ -265,7 +266,7 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 // The version is calculated using the state of the current machine deployments, the current control plane
 // and the version defined in the topology.
 func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Scope) (string, error) {
-	log := tlog.LoggerFrom(ctx)
+	log := ctrl.LoggerFrom(ctx)
 	desiredVersion := s.Blueprint.Topology.Version
 	// If we are creating the control plane object (current control plane is nil), use version from topology.
 	if s.Current.ControlPlane == nil || s.Current.ControlPlane.Object == nil {
@@ -343,7 +344,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 				// change the UpgradeTracker accordingly, otherwise the hook call is completed and we
 				// can remove this hook from the list of pending-hooks.
 				if hookResponse.RetryAfterSeconds != 0 {
-					log.Infof("MachineDeployments upgrade to version %q are blocked by %q hook", desiredVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade))
+					log.Info(fmt.Sprintf("MachineDeployments upgrade to version %q are blocked by %q hook", desiredVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade)))
 					s.UpgradeTracker.MachineDeployments.HoldUpgrades(true)
 				} else {
 					if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
@@ -393,7 +394,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 		s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, hookResponse)
 		if hookResponse.RetryAfterSeconds != 0 {
 			// Cannot pickup the new version right now. Need to try again later.
-			log.Infof("Cluster upgrade to version %q is blocked by %q hook", desiredVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade))
+			log.Info(fmt.Sprintf("Cluster upgrade to version %q is blocked by %q hook", desiredVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade)))
 			return *currentVersion, nil
 		}
 
@@ -461,7 +462,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	className := machineDeploymentTopology.Class
 	machineDeploymentBlueprint, ok := s.Blueprint.MachineDeployments[className]
 	if !ok {
-		return nil, errors.Errorf("MachineDeployment class %s not found in %s", className, tlog.KObj{Obj: s.Blueprint.ClusterClass})
+		return nil, errors.Errorf("MachineDeployment class %s not found in %s", className, klog.KObj(s.Blueprint.ClusterClass))
 	}
 
 	// Compute the bootstrap template.

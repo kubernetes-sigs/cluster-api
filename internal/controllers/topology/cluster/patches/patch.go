@@ -29,6 +29,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/internal/contract"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	"k8s.io/klog/v2"
 )
 
 // PatchOption represents an option for the patchObject and patchTemplate funcs.
@@ -93,13 +94,13 @@ func patchUnstructured(ctx context.Context, original, modified *unstructured.Uns
 		destSpecPath:     destSpecPath,
 		fieldsToPreserve: patchOptions.preserveFields,
 	}); err != nil {
-		return errors.Wrapf(err, "failed to apply patch to %s", tlog.KObj{Obj: original})
+		return errors.Wrapf(err, "failed to apply patch to %s", klog.KObj(original))
 	}
 
 	// Calculate diff.
 	diff, err := calculateDiff(original, patched)
 	if err != nil {
-		return errors.Wrapf(err, "failed to apply patch to %s: failed to calculate diff", tlog.KObj{Obj: original})
+		return errors.Wrapf(err, "failed to apply patch to %s: failed to calculate diff", klog.KObj(original))
 	}
 
 	// Return if there is no diff.
@@ -185,7 +186,7 @@ func copySpec(in copySpecInput) error {
 			// Continue if the field does not exist in src. fieldsToPreserve don't have to exist.
 			continue
 		} else if err != nil {
-			return errors.Wrapf(err, "failed to get field %q from %s", strings.Join(field, "."), tlog.KObj{Obj: in.dest})
+			return errors.Wrapf(err, "failed to get field %q from %s", strings.Join(field, "."), klog.KObj(in.dest))
 		}
 		preservedFields[strings.Join(field, ".")] = value
 	}
@@ -193,20 +194,20 @@ func copySpec(in copySpecInput) error {
 	// Get spec from src.
 	srcSpec, found, err := unstructured.NestedFieldNoCopy(in.src.Object, strings.Split(in.srcSpecPath, ".")...)
 	if !found {
-		return errors.Errorf("missing field %q in %s", in.srcSpecPath, tlog.KObj{Obj: in.src})
+		return errors.Errorf("missing field %q in %s", in.srcSpecPath, klog.KObj(in.src))
 	} else if err != nil {
-		return errors.Wrapf(err, "failed to get field %q from %s", in.srcSpecPath, tlog.KObj{Obj: in.src})
+		return errors.Wrapf(err, "failed to get field %q from %s", in.srcSpecPath, klog.KObj(in.src))
 	}
 
 	// Set spec in dest.
 	if err := unstructured.SetNestedField(in.dest.Object, srcSpec, strings.Split(in.destSpecPath, ".")...); err != nil {
-		return errors.Wrapf(err, "failed to set field %q on %s", in.destSpecPath, tlog.KObj{Obj: in.dest})
+		return errors.Wrapf(err, "failed to set field %q on %s", in.destSpecPath, klog.KObj(in.dest))
 	}
 
 	// Restore preserved fields.
 	for path, value := range preservedFields {
 		if err := unstructured.SetNestedField(in.dest.Object, value, strings.Split(path, ".")...); err != nil {
-			return errors.Wrapf(err, "failed to set field %q on %s", path, tlog.KObj{Obj: in.dest})
+			return errors.Wrapf(err, "failed to set field %q on %s", path, klog.KObj(in.dest))
 		}
 	}
 	return nil

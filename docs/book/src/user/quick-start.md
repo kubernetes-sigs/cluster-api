@@ -948,7 +948,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 ```bash
 clusterctl generate cluster capi-quickstart --flavor development \
-  --kubernetes-version v1.24.0 \
+  --kubernetes-version v1.25.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -960,7 +960,7 @@ clusterctl generate cluster capi-quickstart --flavor development \
 ```bash
 export CLUSTER_NAME=kind
 export CLUSTER_NAMESPACE=vcluster
-export KUBERNETES_VERSION=1.23.4
+export KUBERNETES_VERSION=1.25.0
 export HELM_VALUES="service:\n  type: NodePort"
 
 kubectl create namespace ${CLUSTER_NAMESPACE}
@@ -975,7 +975,7 @@ clusterctl generate cluster ${CLUSTER_NAME} \
 
 ```bash
 clusterctl generate cluster capi-quickstart \
-  --kubernetes-version v1.24.0 \
+  --kubernetes-version v1.25.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1034,8 +1034,8 @@ kubectl get kubeadmcontrolplane
 You should see an output is similar to this:
 
 ```bash
-NAME                            INITIALIZED   API SERVER AVAILABLE   VERSION   REPLICAS   READY   UPDATED   UNAVAILABLE
-capi-quickstart-control-plane   true                                 v1.24.0   3                  3         3
+NAME                    CLUSTER           INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE    VERSION
+capi-quickstart-g2trk   capi-quickstart   true                                 3                  3         3             4m7s   v1.25.0
 ```
 
 <aside class="note warning">
@@ -1091,7 +1091,7 @@ Calico not required for vcluster.
 
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig \
-  apply -f https://docs.projectcalico.org/v3.21/manifests/calico.yaml
+  apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.24.1/manifests/calico.yaml
 ```
 
 After a short while, our nodes should be running and in `Ready` state,
@@ -1099,6 +1099,15 @@ let's check the status using `kubectl get nodes`:
 
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
+```
+```bash
+NAME                                          STATUS   ROLES           AGE   VERSION
+capi-quickstart-g2trk-9xrjv                   Ready    control-plane   12m   v1.25.0
+capi-quickstart-g2trk-bmm9v                   Ready    control-plane   11m   v1.25.0
+capi-quickstart-g2trk-hvs9q                   Ready    control-plane   13m   v1.25.0
+capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          12m   v1.25.0
+capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          12m   v1.25.0
+capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          12m   v1.25.0
 ```
 
 {{#/tab }}

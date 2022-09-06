@@ -32,6 +32,7 @@ import (
 	. "github.com/onsi/gomega"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	policyv1 "k8s.io/api/policy/v1"
 	"k8s.io/api/policy/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -365,6 +366,7 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 			},
 		},
 	}
+
 	if input.ControlPlane != nil {
 		var serverVersion *version.Info
 		Eventually(func() error {
@@ -397,33 +399,72 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 		Deployment: workloadDeployment,
 	})
 
-	budget := &v1beta1.PodDisruptionBudget{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "PodDisruptionBudget",
-			APIVersion: "policy/v1beta1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      input.DeploymentName,
-			Namespace: input.Namespace,
-		},
-		Spec: v1beta1.PodDisruptionBudgetSpec{
-			Selector: &metav1.LabelSelector{
-				MatchLabels: map[string]string{
-					"app": "nonstop",
+	// TODO(oscr): Remove when Kubernetes 1.20 support is dropped.
+	serverVersion, err := workloadClient.ServerVersion()
+	Expect(err).ToNot(HaveOccurred(), "Failed to get Kubernetes version for workload")
+
+	// If Kubernetes < 1.21.0 we need to use PDB from v1beta1
+	if utilversion.MustParseGeneric(serverVersion.String()).LessThan(utilversion.MustParseGeneric("v1.21.0")) {
+		budgetV1Beta1 := &v1beta1.PodDisruptionBudget{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "PodDisruptionBudget",
+				APIVersion: "policy/v1beta1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      input.DeploymentName,
+				Namespace: input.Namespace,
+			},
+			Spec: v1beta1.PodDisruptionBudgetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app": "nonstop",
+					},
+				},
+				MaxUnavailable: &intstr.IntOrString{
+					Type:   intstr.Int,
+					IntVal: 1,
+					StrVal: "1",
 				},
 			},
-			MaxUnavailable: &intstr.IntOrString{
-				Type:   intstr.Int,
-				IntVal: 1,
-				StrVal: "1",
+		}
+
+		AddPodDisruptionBudgetV1Beta1(ctx, AddPodDisruptionBudgetInputV1Beta1{
+			Namespace: input.Namespace,
+			ClientSet: workloadClient,
+			Budget:    budgetV1Beta1,
+		})
+
+		// If Kubernetes >= 1.21.0 then we need to use PDB from v1
+	} else {
+		budget := &policyv1.PodDisruptionBudget{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "PodDisruptionBudget",
+				APIVersion: "policy/v1",
 			},
-		},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      input.DeploymentName,
+				Namespace: input.Namespace,
+			},
+			Spec: policyv1.PodDisruptionBudgetSpec{
+				Selector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						"app": "nonstop",
+					},
+				},
+				MaxUnavailable: &intstr.IntOrString{
+					Type:   intstr.Int,
+					IntVal: 1,
+					StrVal: "1",
+				},
+			},
+		}
+
+		AddPodDisruptionBudget(ctx, AddPodDisruptionBudgetInput{
+			Namespace: input.Namespace,
+			ClientSet: workloadClient,
+			Budget:    budget,
+		})
 	}
-	AddPodDisruptionBudget(ctx, AddPodDisruptionBudgetInput{
-		Namespace: input.Namespace,
-		ClientSet: workloadClient,
-		Budget:    budget,
-	})
 
 	WaitForDeploymentsAvailable(ctx, WaitForDeploymentsAvailableInput{
 		Getter:     input.WorkloadClusterProxy.GetClient(),
@@ -449,11 +490,29 @@ func AddDeploymentToWorkloadCluster(ctx context.Context, input AddDeploymentToWo
 
 type AddPodDisruptionBudgetInput struct {
 	ClientSet *kubernetes.Clientset
-	Budget    *v1beta1.PodDisruptionBudget
+	Budget    *policyv1.PodDisruptionBudget
 	Namespace string
 }
 
 func AddPodDisruptionBudget(ctx context.Context, input AddPodDisruptionBudgetInput) {
+	Eventually(func() error {
+		budget, err := input.ClientSet.PolicyV1().PodDisruptionBudgets(input.Namespace).Create(ctx, input.Budget, metav1.CreateOptions{})
+		if budget != nil && err == nil {
+			return nil
+		}
+		return fmt.Errorf("podDisruptionBudget needs to be successfully deployed: %v", err)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "podDisruptionBudget needs to be successfully deployed")
+}
+
+// TODO(oscr): Delete below when Kubernetes 1.20 support is dropped.
+
+type AddPodDisruptionBudgetInputV1Beta1 struct {
+	ClientSet *kubernetes.Clientset
+	Budget    *v1beta1.PodDisruptionBudget
+	Namespace string
+}
+
+func AddPodDisruptionBudgetV1Beta1(ctx context.Context, input AddPodDisruptionBudgetInputV1Beta1) {
 	Eventually(func() error {
 		budget, err := input.ClientSet.PolicyV1beta1().PodDisruptionBudgets(input.Namespace).Create(ctx, input.Budget, metav1.CreateOptions{})
 		if budget != nil && err == nil {

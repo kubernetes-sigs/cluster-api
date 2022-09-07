@@ -7,3 +7,4 @@ helmCharts:
     releaseName: visualizer
     namespace: observability
     valuesFile: values.yaml
+    version: 1.0.0

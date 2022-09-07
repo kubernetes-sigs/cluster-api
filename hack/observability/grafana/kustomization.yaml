@@ -7,3 +7,4 @@ helmCharts:
     releaseName: grafana
     namespace: observability
     valuesFile: values.yaml
+    version: 6.35.0

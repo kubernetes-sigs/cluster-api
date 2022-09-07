@@ -4,6 +4,9 @@ config:
   # publish data to loki
   clients:
     - url: http://loki:3100/loki/api/v1/push
+      # We have to set the tenant_id/OrgID to push logs to Loki
+      # otherwise we get an auth error.
+      tenant_id: 1
 
   snippets:
     pipelineStages:

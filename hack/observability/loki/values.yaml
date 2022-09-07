@@ -1,10 +1,45 @@
 # Placeholder for loki chart configuration, see https://github.com/grafana/helm-charts/tree/main/charts/loki
-
-# Set high ingestion limits so log-push can push logs without hitting the rate limits:
-# Push response: status: "429 Too Many Requests", body: "Ingestion rate limit exceeded for user fake (limit:
-# 4194304 bytes/sec) while attempting to ingest '1000' lines totaling '755293' bytes, reduce log volume or
-# contact your Loki administrator to see if the limit can be increased"
-config:
+# This configuration is necessary to deploy Loki in the
+# "Single Binary" mode.
+loki:
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: 'filesystem'
+  rulerConfig:
+    storage:
+      type: local
+  # Set high ingestion limits so log-push can push logs without hitting the rate limits:
+  # Push response: status: "429 Too Many Requests", body: "Ingestion rate limit exceeded for user fake (limit:
+  # 4194304 bytes/sec) while attempting to ingest '1000' lines totaling '755293' bytes, reduce log volume or
+  # contact your Loki administrator to see if the limit can be increased"
   limits_config:
     ingestion_rate_mb: 1024
     ingestion_burst_size_mb: 1024
+singleBinary:
+  replicas: 1
+
+# We are disabling basically everything because we just want
+# Loki and no additional monitoring.
+monitoring:
+  dashboards:
+    # -- If enabled, create configmap with dashboards for monitoring Loki
+    enabled: false
+  rules:
+    # -- If enabled, create PrometheusRule resource with Loki recording rules
+    enabled: false
+  alerts:
+    # -- If enabled, create PrometheusRule resource with Loki alerting rules
+    enabled: false
+  serviceMonitor:
+    # -- If enabled, ServiceMonitor resources for Prometheus Operator are created
+    enabled: false
+  selfMonitoring:
+    enabled: false
+    grafanaAgent:
+      installOperator: false
+  lokiCanary:
+    enabled: false
+
+test:
+  enabled: false

@@ -403,11 +403,11 @@ def deploy_provider_crds():
 def deploy_observability():
     if "promtail" in settings.get("deploy_observability", []):
         k8s_yaml(read_file("./.tiltbuild/yaml/promtail.observability.yaml"), allow_duplicates = True)
-        k8s_resource(workload = "promtail", extra_pod_selectors = [{"app": "promtail"}], labels = ["observability"], resource_deps = ["loki"])
+        k8s_resource(workload = "promtail", extra_pod_selectors = [{"app": "promtail"}], labels = ["observability"], resource_deps = ["loki"], objects = ["promtail:serviceaccount"])
 
     if "loki" in settings.get("deploy_observability", []):
         k8s_yaml(read_file("./.tiltbuild/yaml/loki.observability.yaml"), allow_duplicates = True)
-        k8s_resource(workload = "loki", port_forwards = "3100", extra_pod_selectors = [{"app": "loki"}], labels = ["observability"])
+        k8s_resource(workload = "loki", port_forwards = "3100", extra_pod_selectors = [{"app": "loki"}], labels = ["observability"], objects = ["loki:serviceaccount"])
 
         cmd_button(
             "loki:import logs",
@@ -426,11 +426,11 @@ def deploy_observability():
 
     if "prometheus" in settings.get("deploy_observability", []):
         k8s_yaml(read_file("./.tiltbuild/yaml/prometheus.observability.yaml"), allow_duplicates = True)
-        k8s_resource(workload = "prometheus-server", new_name = "prometheus", port_forwards = "9090", extra_pod_selectors = [{"app": "prometheus"}], labels = ["observability"])
+        k8s_resource(workload = "prometheus-server", new_name = "prometheus", port_forwards = "9090", extra_pod_selectors = [{"app": "prometheus"}], labels = ["observability"], objects = ["prometheus-server:serviceaccount"])
 
     if "kube-state-metrics" in settings.get("deploy_observability", []):
         k8s_yaml(read_file("./.tiltbuild/yaml/kube-state-metrics.observability.yaml"), allow_duplicates = True)
-        k8s_resource(workload = "kube-state-metrics", new_name = "kube-state-metrics", extra_pod_selectors = [{"app": "kube-state-metrics"}], labels = ["observability"])
+        k8s_resource(workload = "kube-state-metrics", new_name = "kube-state-metrics", extra_pod_selectors = [{"app": "kube-state-metrics"}], labels = ["observability"], objects = ["kube-state-metrics:serviceaccount"])
 
     if "visualizer" in settings.get("deploy_observability", []):
         k8s_yaml(read_file("./.tiltbuild/yaml/visualizer.observability.yaml"), allow_duplicates = True)
@@ -439,6 +439,7 @@ def deploy_observability():
             new_name = "visualizer",
             port_forwards = [port_forward(local_port = 8000, container_port = 8081, name = "View visualization")],
             labels = ["observability"],
+            objects = ["capi-visualizer:serviceaccount"],
         )
 
 def prepare_all():

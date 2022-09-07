@@ -55,6 +55,7 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
@@ -149,6 +150,10 @@ func init() {
 // This tool aims to speed up tilt startup time by running in parallel a set of task
 // preparing everything is required for tilt up.
 func main() {
+	// Set clusterctl logger with a log level of 5.
+	// This makes it easier to see what clusterctl is doing and to debug it.
+	logf.SetLogger(logf.NewLogger(logf.WithThreshold(pointer.Int(5))))
+
 	klog.Infof("[main] started\n")
 	start := time.Now()
 

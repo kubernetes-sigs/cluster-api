@@ -129,9 +129,6 @@ addons = {
     },
 }
 
-def ensure_clusterctl():
-    local("make clusterctl")
-
 # Reads a provider's tilt-provider.json file and merges it into the providers map.
 # A list of dictionaries is also supported by enclosing it in brackets []
 # An example file looks like this:
@@ -494,7 +491,7 @@ def deploy_observability():
         )
 
 def prepare_all():
-    tools_arg = "--tools kustomize,envsubst "
+    tools_arg = "--tools kustomize,envsubst,clusterctl "
     tilt_settings_file_arg = "--tilt-settings-file " + tilt_file
 
     cmd = "make -B tilt-prepare && ./hack/tools/bin/tilt-prepare {tools_arg}{tilt_settings_file_arg}".format(
@@ -628,8 +625,6 @@ def deploy_cluster_template(template_name, label, filename, substitutions):
 ##############################
 # Actual work happens here
 ##############################
-
-ensure_clusterctl()
 
 include_user_tilt_files()
 

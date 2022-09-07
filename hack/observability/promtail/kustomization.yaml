@@ -7,3 +7,4 @@ helmCharts:
     releaseName: promtail
     namespace: observability
     valuesFile: values.yaml
+    version: 6.3.0

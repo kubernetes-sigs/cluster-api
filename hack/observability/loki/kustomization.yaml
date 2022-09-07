@@ -7,3 +7,4 @@ helmCharts:
     releaseName: loki
     namespace: observability
     valuesFile: values.yaml
+    version: 2.16.0

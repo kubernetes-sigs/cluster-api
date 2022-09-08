@@ -29,3 +29,8 @@ datasources:
 # Disable grafana test framework
 testFramework:
   enabled: false
+
+# Disable PSP because PSPs have been dropped with
+# Kubernetes v1.25
+rbac:
+  pspEnabled: false

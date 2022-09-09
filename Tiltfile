@@ -155,6 +155,8 @@ def load_provider_tiltfiles():
         for item in provider_details:
             provider_name = item["name"]
             provider_config = item["config"]
+            if "label" in item:
+                provider_config["label"] = item.get("label")
             if "context" in provider_config:
                 provider_config["context"] = repo + "/" + provider_config["context"]
             else:

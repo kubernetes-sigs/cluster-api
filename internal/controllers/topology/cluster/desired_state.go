@@ -112,11 +112,16 @@ func computeInfrastructureCluster(_ context.Context, s *scope.Scope) (*unstructu
 	cluster := s.Current.Cluster
 	currentRef := cluster.Spec.InfrastructureRef
 
+	labels := map[string]string{}
+	labels[clusterv1.ClusterLabelName] = cluster.Name
+	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
+
 	infrastructureCluster, err := templateToObject(templateToInput{
 		template:              template,
 		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
 		namePrefix:            fmt.Sprintf("%s-", cluster.Name),
+		labels:                labels,
 		currentObjectRef:      currentRef,
 		// Note: It is not possible to add an ownerRef to Cluster at this stage, otherwise the provisioning
 		// of the infrastructure cluster starts no matter of the object being actually referenced by the Cluster itself.
@@ -181,16 +186,23 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 	topologyMetadata := s.Blueprint.Topology.ControlPlane.Metadata
 	clusterClassMetadata := s.Blueprint.ClusterClass.Spec.ControlPlane.Metadata
 
-	machineLabels := mergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels)
-	machineAnnotations := mergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations)
+	controlPlaneLabels := mergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels)
+	controlPlaneAnnotations := mergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations)
+
+	// Add the cluster-name and the topology owned labels, so they are propagated down to Machines.
+	if controlPlaneLabels == nil {
+		controlPlaneLabels = map[string]string{}
+	}
+	controlPlaneLabels[clusterv1.ClusterLabelName] = cluster.Name
+	controlPlaneLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
 
 	controlPlane, err := templateToObject(templateToInput{
 		template:              template,
 		templateClonedFromRef: templateClonedFromRef,
 		cluster:               cluster,
 		namePrefix:            fmt.Sprintf("%s-", cluster.Name),
-		labels:                machineLabels,
-		annotations:           machineAnnotations,
+		labels:                controlPlaneLabels,
+		annotations:           controlPlaneAnnotations,
 		currentObjectRef:      currentRef,
 		// Note: It is not possible to add an ownerRef to Cluster at this stage, otherwise the provisioning
 		// of the ControlPlane starts no matter of the object being actually referenced by the Cluster itself.
@@ -215,16 +227,10 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 			return nil, errors.Wrap(err, "failed to spec.machineTemplate.infrastructureRef in the ControlPlane object")
 		}
 
-		// Add the cluster-name and the topology owned labels, so they are propagated down to Machines.
-		if machineLabels == nil {
-			machineLabels = map[string]string{}
-		}
-		machineLabels[clusterv1.ClusterLabelName] = cluster.Name
-		machineLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
 		if err := contract.ControlPlane().MachineTemplate().Metadata().Set(controlPlane,
 			&clusterv1.ObjectMeta{
-				Labels:      machineLabels,
-				Annotations: machineAnnotations,
+				Labels:      controlPlaneLabels,
+				Annotations: controlPlaneAnnotations,
 			}); err != nil {
 			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.metadata in the ControlPlane object")
 		}
@@ -517,8 +523,8 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	}
 
 	// Compute labels for MachineDeployment and Machines
-	machineLabels := mergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels)
-	machineAnnotations := mergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations)
+	machineDeploymentLabels := mergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels)
+	machineDeploymentAnnotations := mergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations)
 
 	// Compute the MachineDeployment object.
 	gv := clusterv1.GroupVersion
@@ -535,8 +541,8 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 			ClusterName: s.Current.Cluster.Name,
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
-					Labels:      machineLabels,
-					Annotations: machineAnnotations,
+					Labels:      machineDeploymentLabels,
+					Annotations: machineDeploymentAnnotations,
 				},
 				Spec: clusterv1.MachineSpec{
 					ClusterName:       s.Current.Cluster.Name,
@@ -570,10 +576,10 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	labels[clusterv1.ClusterLabelName] = s.Current.Cluster.Name
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 	labels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
-	desiredMachineDeploymentObj.SetLabels(mergeMap(labels, machineLabels))
+	desiredMachineDeploymentObj.SetLabels(mergeMap(labels, machineDeploymentLabels))
 
 	// Apply Annotations
-	desiredMachineDeploymentObj.SetAnnotations(machineAnnotations)
+	desiredMachineDeploymentObj.SetAnnotations(machineDeploymentAnnotations)
 
 	// Set the selector with the subset of labels identifying controlled machines.
 	// NOTE: this prevents the web hook to add cluster.x-k8s.io/deployment-name label, that is
@@ -731,14 +737,6 @@ type templateToInput struct {
 // of adding required labels (cluster, topology), annotations (clonedFrom)
 // and assigning a meaningful name (or reusing current reference name).
 func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
-	// NOTE: The cluster label is added at creation time so this object could be read by the ClusterTopology
-	// controller immediately after creation, even before other controllers are going to add the label (if missing).
-	labels := map[string]string{}
-	labels[clusterv1.ClusterLabelName] = in.cluster.Name
-	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
-
-	templateLabels := mergeMap(labels, in.labels)
-
 	// Generate the object from the template.
 	// NOTE: OwnerRef can't be set at this stage; other controllers are going to add OwnerReferences when
 	// the object is actually created.
@@ -746,7 +744,7 @@ func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
 		Template:    in.template,
 		TemplateRef: in.templateClonedFromRef,
 		Namespace:   in.cluster.Namespace,
-		Labels:      templateLabels,
+		Labels:      in.labels,
 		Annotations: in.annotations,
 		ClusterName: in.cluster.Name,
 		OwnerRef:    in.ownerRef,

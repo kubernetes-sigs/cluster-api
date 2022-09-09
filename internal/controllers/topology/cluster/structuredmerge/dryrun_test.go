@@ -25,11 +25,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func Test_cleanupManagedFieldsAndAnnotation(t *testing.T) {
-	rawManagedFieldWithAnnotation := `{"f:metadata":{"f:annotations":{"f:topology.cluster.x-k8s.io/dry-run":{}}}}`
-	rawManagedFieldWithAnnotationSpecLabels := `{"f:metadata":{"f:annotations":{"f:topology.cluster.x-k8s.io/dry-run":{}},"f:labels":{}},"f:spec":{"f:foo":{}}}`
+	rawManagedFieldWithAnnotation := `{"f:metadata":{"f:annotations":{"f:topology.cluster.x-k8s.io/dry-run":{},"f:cluster.x-k8s.io/conversion-data":{}}}}`
+	rawManagedFieldWithAnnotationSpecLabels := `{"f:metadata":{"f:annotations":{"f:topology.cluster.x-k8s.io/dry-run":{},"f:cluster.x-k8s.io/conversion-data":{}},"f:labels":{}},"f:spec":{"f:foo":{}}}`
 	rawManagedFieldWithSpecLabels := `{"f:metadata":{"f:labels":{}},"f:spec":{"f:foo":{}}}`
 
 	tests := []struct {
@@ -44,9 +45,18 @@ func Test_cleanupManagedFieldsAndAnnotation(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "filter out annotation",
+			name: "filter out dry-run annotation",
 			obj: newObjectBuilder().
 				WithAnnotation(clusterv1.TopologyDryRunAnnotation, "").
+				Build(),
+			wantErr: false,
+			want: newObjectBuilder().
+				Build(),
+		},
+		{
+			name: "filter out conversion annotation",
+			obj: newObjectBuilder().
+				WithAnnotation(conversion.DataAnnotation, "").
 				Build(),
 			wantErr: false,
 			want: newObjectBuilder().

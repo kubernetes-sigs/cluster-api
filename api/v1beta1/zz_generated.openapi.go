@@ -68,6 +68,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckList":                   schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckList(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckSpec":                   schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckSpec(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckStatus":                 schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckStatus(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckTopology":               schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckTopology(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineList":                              schema_sigsk8sio_cluster_api_api_v1beta1_MachineList(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineRollingUpdateDeployment":           schema_sigsk8sio_cluster_api_api_v1beta1_MachineRollingUpdateDeployment(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.MachineSet":                               schema_sigsk8sio_cluster_api_api_v1beta1_MachineSet(ref),
@@ -831,6 +832,12 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneTopology(ref common.Re
 							Format:      "int32",
 						},
 					},
+					"machineHealthCheck": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MachineHealthCheck allows to enable, disable and override the MachineHealthCheck configuration in the ClusterClass for this control plane.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckTopology"),
+						},
+					},
 					"nodeDrainTimeout": {
 						SchemaProps: spec.SchemaProps{
 							Description: "NodeDrainTimeout is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`",
@@ -847,7 +854,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ControlPlaneTopology(ref common.Re
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckTopology", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
 	}
 }
 
@@ -1671,6 +1678,12 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentTopology(ref comm
 							Format:      "int32",
 						},
 					},
+					"machineHealthCheck": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MachineHealthCheck allows to enable, disable and override the MachineHealthCheck configuration in the ClusterClass for this MachineDeployment.",
+							Ref:         ref("sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckTopology"),
+						},
+					},
 					"nodeDrainTimeout": {
 						SchemaProps: spec.SchemaProps{
 							Description: "NodeDrainTimeout is the total amount of time that the controller will spend on draining a node. The default value is 0, meaning that the node can be drained without any time limitations. NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`",
@@ -1694,7 +1707,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentTopology(ref comm
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentVariables", "sigs.k8s.io/cluster-api/api/v1beta1.MachineHealthCheckTopology", "sigs.k8s.io/cluster-api/api/v1beta1.ObjectMeta"},
 	}
 }
 
@@ -2021,6 +2034,67 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckStatus(ref commo
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/v1beta1.Condition"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckTopology(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "MachineHealthCheckTopology defines a MachineHealthCheck for a group of machines.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"enable": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Enable controls if a MachineHealthCheck should be created for the target machines.\n\nIf false: No MachineHealthCheck will be created.\n\nIf not set(default): A MachineHealthCheck will be created if it is defined here or\n in the associated ClusterClass. If no MachineHealthCheck is defined then none will be created.\n\nIf true: A MachineHealthCheck is guaranteed to be created. Cluster validation will block if `enable` is true and no MachineHealthCheck definition is available.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"unhealthyConditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "UnhealthyConditions contains a list of the conditions that determine whether a node is considered unhealthy. The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("sigs.k8s.io/cluster-api/api/v1beta1.UnhealthyCondition"),
+									},
+								},
+							},
+						},
+					},
+					"maxUnhealthy": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Any further remediation is only allowed if at most \"MaxUnhealthy\" machines selected by \"selector\" are not healthy.",
+							Ref:         ref("k8s.io/apimachinery/pkg/util/intstr.IntOrString"),
+						},
+					},
+					"unhealthyRange": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Any further remediation is only allowed if the number of machines selected by \"selector\" as not healthy is within the range of \"UnhealthyRange\". Takes precedence over MaxUnhealthy. Eg. \"[3-5]\" - This means that remediation will be allowed only when: (a) there are at least 3 unhealthy machines (and) (b) there are at most 5 unhealthy machines",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"nodeStartupTimeout": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Machines older than this duration without a node will be considered to have failed and will be remediated. If you wish to disable this feature, set the value explicitly to 0.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Duration"),
+						},
+					},
+					"remediationTemplate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "RemediationTemplate is a reference to a remediation template provided by an infrastructure provider.\n\nThis field is completely optional, when filled, the MachineHealthCheck controller creates a new object from the template referenced and hands off remediation of the machine to a controller that lives outside of Cluster API.",
+							Ref:         ref("k8s.io/api/core/v1.ObjectReference"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.ObjectReference", "k8s.io/apimachinery/pkg/apis/meta/v1.Duration", "k8s.io/apimachinery/pkg/util/intstr.IntOrString", "sigs.k8s.io/cluster-api/api/v1beta1.UnhealthyCondition"},
 	}
 }
 

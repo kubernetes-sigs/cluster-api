@@ -70,12 +70,12 @@ func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*
 
 	// Compute the desired state of the ControlPlane MachineHealthCheck if defined.
 	// The MachineHealthCheck will have the same name as the ControlPlane Object and a selector for the ControlPlane InfrastructureMachines.
-	if s.Blueprint.HasControlPlaneMachineHealthCheck() {
+	if s.Blueprint.IsControlPlaneMachineHealthCheckEnabled() {
 		desiredState.ControlPlane.MachineHealthCheck = computeMachineHealthCheck(
 			desiredState.ControlPlane.Object,
 			selectorForControlPlaneMHC(),
 			s.Current.Cluster.Name,
-			s.Blueprint.ControlPlane.MachineHealthCheck)
+			s.Blueprint.ControlPlaneMachineHealthCheckClass())
 	}
 
 	// Compute the desired state for the Cluster object adding a reference to the
@@ -596,13 +596,13 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	desiredMachineDeployment.Object = desiredMachineDeploymentObj
 
 	// If the ClusterClass defines a MachineHealthCheck for the MachineDeployment add it to the desired state.
-	if machineDeploymentBlueprint.MachineHealthCheck != nil {
+	if s.Blueprint.IsMachineDeploymentMachineHealthCheckEnabled(&machineDeploymentTopology) {
 		// Note: The MHC is going to use a selector that provides a minimal set of labels which are common to all MachineSets belonging to the MachineDeployment.
 		desiredMachineDeployment.MachineHealthCheck = computeMachineHealthCheck(
 			desiredMachineDeploymentObj,
 			selectorForMachineDeploymentMHC(desiredMachineDeploymentObj),
 			s.Current.Cluster.Name,
-			machineDeploymentBlueprint.MachineHealthCheck)
+			s.Blueprint.MachineDeploymentMachineHealthCheckClass(&machineDeploymentTopology))
 	}
 	return desiredMachineDeployment, nil
 }

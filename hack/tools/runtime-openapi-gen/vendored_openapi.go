@@ -3,6 +3,7 @@ package main
 import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/kube-openapi/pkg/common"
 	"k8s.io/kube-openapi/pkg/validation/spec"
 )
@@ -13,6 +14,7 @@ import (
 // Prior art: https://github.com/kubernetes-sigs/controller-tools/blob/master/pkg/crd/known_types.go.
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
+		"k8s.io/api/core/v1.ObjectReference":                            schema_k8sio_api_core_v1_ObjectReference(ref),
 		"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1.JSON": schema_pkg_apis_apiextensions_v1_JSON(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.Duration":                 schema_pkg_apis_meta_v1_Duration(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.FieldsV1":                 schema_pkg_apis_meta_v1_FieldsV1(ref),
@@ -21,7 +23,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/apimachinery/pkg/apis/meta/v1.OwnerReference":           schema_pkg_apis_meta_v1_OwnerReference(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.Time":                     schema_pkg_apis_meta_v1_Time(ref),
 		"k8s.io/apimachinery/pkg/runtime.RawExtension":                  schema_k8sio_apimachinery_pkg_runtime_RawExtension(ref),
-		"k8s.io/api/core/v1.ObjectReference":                            schema_k8sio_api_core_v1_ObjectReference(ref),
+		"k8s.io/apimachinery/pkg/util/intstr.IntOrString":               schema_apimachinery_pkg_util_intstr_IntOrString(ref),
 	}
 }
 
@@ -452,4 +454,24 @@ func schema_k8sio_api_core_v1_ObjectReference(ref common.ReferenceCallback) comm
 			},
 		},
 	}
+}
+
+func schema_apimachinery_pkg_util_intstr_IntOrString(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.EmbedOpenAPIDefinitionIntoV2Extension(common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "IntOrString is a type that can hold an int32 or a string.  When used in JSON or YAML marshalling and unmarshalling, it produces or consumes the inner type.  This allows you to have, for example, a JSON field that can accept a name or number.",
+				OneOf:       common.GenerateOpenAPIV3OneOfSchema(intstr.IntOrString{}.OpenAPIV3OneOfTypes()),
+				Format:      intstr.IntOrString{}.OpenAPISchemaFormat(),
+			},
+		},
+	}, common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "IntOrString is a type that can hold an int32 or a string.  When used in JSON or YAML marshalling and unmarshalling, it produces or consumes the inner type.  This allows you to have, for example, a JSON field that can accept a name or number.",
+				Type:        intstr.IntOrString{}.OpenAPISchemaType(),
+				Format:      intstr.IntOrString{}.OpenAPISchemaFormat(),
+			},
+		},
+	})
 }

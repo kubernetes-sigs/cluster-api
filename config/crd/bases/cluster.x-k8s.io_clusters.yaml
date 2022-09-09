@@ -837,6 +837,119 @@ spec:
                   controlPlane:
                     description: ControlPlane describes the cluster control plane.
                     properties:
+                      machineHealthCheck:
+                        description: MachineHealthCheck allows to enable, disable
+                          and override the MachineHealthCheck configuration in the
+                          ClusterClass for this control plane.
+                        properties:
+                          enable:
+                            description: "Enable controls if a MachineHealthCheck
+                              should be created for the target machines. \n If false:
+                              No MachineHealthCheck will be created. \n If not set(default):
+                              A MachineHealthCheck will be created if it is defined
+                              here or in the associated ClusterClass. If no MachineHealthCheck
+                              is defined then none will be created. \n If true: A
+                              MachineHealthCheck is guaranteed to be created. Cluster
+                              validation will block if `enable` is true and no MachineHealthCheck
+                              definition is available."
+                            type: boolean
+                          maxUnhealthy:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            description: Any further remediation is only allowed if
+                              at most "MaxUnhealthy" machines selected by "selector"
+                              are not healthy.
+                            x-kubernetes-int-or-string: true
+                          nodeStartupTimeout:
+                            description: Machines older than this duration without
+                              a node will be considered to have failed and will be
+                              remediated. If you wish to disable this feature, set
+                              the value explicitly to 0.
+                            type: string
+                          remediationTemplate:
+                            description: "RemediationTemplate is a reference to a
+                              remediation template provided by an infrastructure provider.
+                              \n This field is completely optional, when filled, the
+                              MachineHealthCheck controller creates a new object from
+                              the template referenced and hands off remediation of
+                              the machine to a controller that lives outside of Cluster
+                              API."
+                            properties:
+                              apiVersion:
+                                description: API version of the referent.
+                                type: string
+                              fieldPath:
+                                description: 'If referring to a piece of an object
+                                  instead of an entire object, this string should
+                                  contain a valid JSON/Go field access statement,
+                                  such as desiredState.manifest.containers[2]. For
+                                  example, if the object reference is to a container
+                                  within a pod, this would take on a value like: "spec.containers{name}"
+                                  (where "name" refers to the name of the container
+                                  that triggered the event) or if no container name
+                                  is specified "spec.containers[2]" (container with
+                                  index 2 in this pod). This syntax is chosen only
+                                  to have some well-defined way of referencing a part
+                                  of an object. TODO: this design is not final and
+                                  this field is subject to change in the future.'
+                                type: string
+                              kind:
+                                description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                type: string
+                              name:
+                                description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                type: string
+                              namespace:
+                                description: 'Namespace of the referent. More info:
+                                  https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                type: string
+                              resourceVersion:
+                                description: 'Specific resourceVersion to which this
+                                  reference is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                type: string
+                              uid:
+                                description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                type: string
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          unhealthyConditions:
+                            description: UnhealthyConditions contains a list of the
+                              conditions that determine whether a node is considered
+                              unhealthy. The conditions are combined in a logical
+                              OR, i.e. if any of the conditions is met, the node is
+                              unhealthy.
+                            items:
+                              description: UnhealthyCondition represents a Node condition
+                                type and value with a timeout specified as a duration.  When
+                                the named condition has been in the given status for
+                                at least the timeout value, a node is considered unhealthy.
+                              properties:
+                                status:
+                                  minLength: 1
+                                  type: string
+                                timeout:
+                                  type: string
+                                type:
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - status
+                              - timeout
+                              - type
+                              type: object
+                            type: array
+                          unhealthyRange:
+                            description: 'Any further remediation is only allowed
+                              if the number of machines selected by "selector" as
+                              not healthy is within the range of "UnhealthyRange".
+                              Takes precedence over MaxUnhealthy. Eg. "[3-5]" - This
+                              means that remediation will be allowed only when: (a)
+                              there are at least 3 unhealthy machines (and) (b) there
+                              are at most 5 unhealthy machines'
+                            pattern: ^\[[0-9]+-[0-9]+\]$
+                            type: string
+                        type: object
                       metadata:
                         description: "Metadata is the metadata applied to the machines
                           of the ControlPlane. At runtime this metadata is merged
@@ -946,6 +1059,128 @@ spec:
                                 machines will be created in. Must match a key in the
                                 FailureDomains map stored on the cluster object.
                               type: string
+                            machineHealthCheck:
+                              description: MachineHealthCheck allows to enable, disable
+                                and override the MachineHealthCheck configuration
+                                in the ClusterClass for this MachineDeployment.
+                              properties:
+                                enable:
+                                  description: "Enable controls if a MachineHealthCheck
+                                    should be created for the target machines. \n
+                                    If false: No MachineHealthCheck will be created.
+                                    \n If not set(default): A MachineHealthCheck will
+                                    be created if it is defined here or in the associated
+                                    ClusterClass. If no MachineHealthCheck is defined
+                                    then none will be created. \n If true: A MachineHealthCheck
+                                    is guaranteed to be created. Cluster validation
+                                    will block if `enable` is true and no MachineHealthCheck
+                                    definition is available."
+                                  type: boolean
+                                maxUnhealthy:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: Any further remediation is only allowed
+                                    if at most "MaxUnhealthy" machines selected by
+                                    "selector" are not healthy.
+                                  x-kubernetes-int-or-string: true
+                                nodeStartupTimeout:
+                                  description: Machines older than this duration without
+                                    a node will be considered to have failed and will
+                                    be remediated. If you wish to disable this feature,
+                                    set the value explicitly to 0.
+                                  type: string
+                                remediationTemplate:
+                                  description: "RemediationTemplate is a reference
+                                    to a remediation template provided by an infrastructure
+                                    provider. \n This field is completely optional,
+                                    when filled, the MachineHealthCheck controller
+                                    creates a new object from the template referenced
+                                    and hands off remediation of the machine to a
+                                    controller that lives outside of Cluster API."
+                                  properties:
+                                    apiVersion:
+                                      description: API version of the referent.
+                                      type: string
+                                    fieldPath:
+                                      description: 'If referring to a piece of an
+                                        object instead of an entire object, this string
+                                        should contain a valid JSON/Go field access
+                                        statement, such as desiredState.manifest.containers[2].
+                                        For example, if the object reference is to
+                                        a container within a pod, this would take
+                                        on a value like: "spec.containers{name}" (where
+                                        "name" refers to the name of the container
+                                        that triggered the event) or if no container
+                                        name is specified "spec.containers[2]" (container
+                                        with index 2 in this pod). This syntax is
+                                        chosen only to have some well-defined way
+                                        of referencing a part of an object. TODO:
+                                        this design is not final and this field is
+                                        subject to change in the future.'
+                                      type: string
+                                    kind:
+                                      description: 'Kind of the referent. More info:
+                                        https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                      type: string
+                                    name:
+                                      description: 'Name of the referent. More info:
+                                        https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                      type: string
+                                    namespace:
+                                      description: 'Namespace of the referent. More
+                                        info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                      type: string
+                                    resourceVersion:
+                                      description: 'Specific resourceVersion to which
+                                        this reference is made, if any. More info:
+                                        https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                      type: string
+                                    uid:
+                                      description: 'UID of the referent. More info:
+                                        https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                      type: string
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                                unhealthyConditions:
+                                  description: UnhealthyConditions contains a list
+                                    of the conditions that determine whether a node
+                                    is considered unhealthy. The conditions are combined
+                                    in a logical OR, i.e. if any of the conditions
+                                    is met, the node is unhealthy.
+                                  items:
+                                    description: UnhealthyCondition represents a Node
+                                      condition type and value with a timeout specified
+                                      as a duration.  When the named condition has
+                                      been in the given status for at least the timeout
+                                      value, a node is considered unhealthy.
+                                    properties:
+                                      status:
+                                        minLength: 1
+                                        type: string
+                                      timeout:
+                                        type: string
+                                      type:
+                                        minLength: 1
+                                        type: string
+                                    required:
+                                    - status
+                                    - timeout
+                                    - type
+                                    type: object
+                                  type: array
+                                unhealthyRange:
+                                  description: 'Any further remediation is only allowed
+                                    if the number of machines selected by "selector"
+                                    as not healthy is within the range of "UnhealthyRange".
+                                    Takes precedence over MaxUnhealthy. Eg. "[3-5]"
+                                    - This means that remediation will be allowed
+                                    only when: (a) there are at least 3 unhealthy
+                                    machines (and) (b) there are at most 5 unhealthy
+                                    machines'
+                                  pattern: ^\[[0-9]+-[0-9]+\]$
+                                  type: string
+                              type: object
                             metadata:
                               description: Metadata is the metadata applied to the
                                 machines of the MachineDeployment. At runtime this

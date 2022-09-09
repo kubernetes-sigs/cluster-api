@@ -111,6 +111,7 @@ type ClusterTopologyBuilder struct {
 	workers              *clusterv1.WorkersTopology
 	version              string
 	controlPlaneReplicas int32
+	controlPlaneMHC      *clusterv1.MachineHealthCheckTopology
 	variables            []clusterv1.ClusterVariable
 }
 
@@ -139,6 +140,12 @@ func (c *ClusterTopologyBuilder) WithControlPlaneReplicas(replicas int32) *Clust
 	return c
 }
 
+// WithControlPlaneMachineHealthCheck adds MachineHealthCheckTopology used as the MachineHealthCheck value.
+func (c *ClusterTopologyBuilder) WithControlPlaneMachineHealthCheck(mhc *clusterv1.MachineHealthCheckTopology) *ClusterTopologyBuilder {
+	c.controlPlaneMHC = mhc
+	return c
+}
+
 // WithMachineDeployment passes the full MachineDeploymentTopology and adds it to an existing list in the ClusterTopologyBuilder.
 func (c *ClusterTopologyBuilder) WithMachineDeployment(mdc clusterv1.MachineDeploymentTopology) *ClusterTopologyBuilder {
 	c.workers.MachineDeployments = append(c.workers.MachineDeployments, mdc)
@@ -158,7 +165,8 @@ func (c *ClusterTopologyBuilder) Build() *clusterv1.Topology {
 		Workers: c.workers,
 		Version: c.version,
 		ControlPlane: clusterv1.ControlPlaneTopology{
-			Replicas: &c.controlPlaneReplicas,
+			Replicas:           &c.controlPlaneReplicas,
+			MachineHealthCheck: c.controlPlaneMHC,
 		},
 		Variables: c.variables,
 	}
@@ -169,6 +177,7 @@ type MachineDeploymentTopologyBuilder struct {
 	class     string
 	name      string
 	replicas  *int32
+	mhc       *clusterv1.MachineHealthCheckTopology
 	variables []clusterv1.ClusterVariable
 }
 
@@ -197,12 +206,19 @@ func (m *MachineDeploymentTopologyBuilder) WithVariables(variables ...clusterv1.
 	return m
 }
 
+// WithMachineHealthCheck adds MachineHealthCheckTopology used as the MachineHealthCheck value.
+func (m *MachineDeploymentTopologyBuilder) WithMachineHealthCheck(mhc *clusterv1.MachineHealthCheckTopology) *MachineDeploymentTopologyBuilder {
+	m.mhc = mhc
+	return m
+}
+
 // Build returns a testable MachineDeploymentTopology with any values passed to the builder.
 func (m *MachineDeploymentTopologyBuilder) Build() clusterv1.MachineDeploymentTopology {
 	md := clusterv1.MachineDeploymentTopology{
-		Class:    m.class,
-		Name:     m.name,
-		Replicas: m.replicas,
+		Class:              m.class,
+		Name:               m.name,
+		Replicas:           m.replicas,
+		MachineHealthCheck: m.mhc,
 	}
 
 	if len(m.variables) > 0 {

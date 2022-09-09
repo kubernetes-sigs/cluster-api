@@ -43,6 +43,10 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 		}
 		dst.Spec.Topology.Variables = restored.Spec.Topology.Variables
 
+		if restored.Spec.Topology.ControlPlane.MachineHealthCheck != nil {
+			dst.Spec.Topology.ControlPlane.MachineHealthCheck = restored.Spec.Topology.ControlPlane.MachineHealthCheck
+		}
+
 		if restored.Spec.Topology.ControlPlane.NodeDrainTimeout != nil {
 			dst.Spec.Topology.ControlPlane.NodeDrainTimeout = restored.Spec.Topology.ControlPlane.NodeDrainTimeout
 		}
@@ -60,6 +64,7 @@ func (src *Cluster) ConvertTo(dstRaw conversion.Hub) error {
 				dst.Spec.Topology.Workers.MachineDeployments[i].Variables = restored.Spec.Topology.Workers.MachineDeployments[i].Variables
 				dst.Spec.Topology.Workers.MachineDeployments[i].NodeDrainTimeout = restored.Spec.Topology.Workers.MachineDeployments[i].NodeDrainTimeout
 				dst.Spec.Topology.Workers.MachineDeployments[i].NodeDeletionTimeout = restored.Spec.Topology.Workers.MachineDeployments[i].NodeDeletionTimeout
+				dst.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck = restored.Spec.Topology.Workers.MachineDeployments[i].MachineHealthCheck
 			}
 		}
 	}

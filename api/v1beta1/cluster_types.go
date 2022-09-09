@@ -116,6 +116,11 @@ type ControlPlaneTopology struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
+	// MachineHealthCheck allows to enable, disable and override
+	// the MachineHealthCheck configuration in the ClusterClass for this control plane.
+	// +optional
+	MachineHealthCheck *MachineHealthCheckTopology `json:"machineHealthCheck,omitempty"`
+
 	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
@@ -167,6 +172,11 @@ type MachineDeploymentTopology struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
+	// MachineHealthCheck allows to enable, disable and override
+	// the MachineHealthCheck configuration in the ClusterClass for this MachineDeployment.
+	// +optional
+	MachineHealthCheck *MachineHealthCheckTopology `json:"machineHealthCheck,omitempty"`
+
 	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
 	// The default value is 0, meaning that the node can be drained without any time limitations.
 	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
@@ -182,6 +192,25 @@ type MachineDeploymentTopology struct {
 	// Variables can be used to customize the MachineDeployment through patches.
 	// +optional
 	Variables *MachineDeploymentVariables `json:"variables,omitempty"`
+}
+
+// MachineHealthCheckTopology defines a MachineHealthCheck for a group of machines.
+type MachineHealthCheckTopology struct {
+	// Enable controls if a MachineHealthCheck should be created for the target machines.
+	//
+	// If false: No MachineHealthCheck will be created.
+	//
+	// If not set(default): A MachineHealthCheck will be created if it is defined here or
+	//  in the associated ClusterClass. If no MachineHealthCheck is defined then none will be created.
+	//
+	// If true: A MachineHealthCheck is guaranteed to be created. Cluster validation will
+	// block if `enable` is true and no MachineHealthCheck definition is available.
+	// +optional
+	Enable *bool `json:"enable,omitempty"`
+
+	// MachineHealthCheckClass defines a MachineHealthCheck for a group of machines.
+	// If specified (any field is set), it entirely overrides the MachineHealthCheckClass defined in ClusterClass.
+	MachineHealthCheckClass `json:",inline"`
 }
 
 // ClusterVariable can be used to customize the Cluster through

@@ -699,23 +699,30 @@ export ENABLE_POD_SECURITY_STANDARD="false"
 {{#/tab }}
 {{#tab Equinix Metal}}
 
-There are a couple of required environment variables that you have to expose in
-order to get a well tuned and function workload, they are all listed here:
+There are several required variables you need to set to create a cluster. There
+are also a few optional tunables if you'd like to change the OS or CIDRs used.
 
 ```bash
+# Required (made up examples shown)
 # The project where your cluster will be placed to.
 # You have to get one from the Equinix Metal Console if you don't have one already.
-export PROJECT_ID="5yd4thd-5h35-5hwk-1111-125gjej40930"
+export PROJECT_ID="2b59569f-10d1-49a6-a000-c2fb95a959a1"
 # The facility where you want your cluster to be provisioned
-export FACILITY="ewr1"
-# The operatin system used to provision the device
+export FACILITY="da11"
+# What plan to use for your control plane nodes
+export CONTROLPLANE_NODE_TYPE="m3.small.x86"
+# What plan to use for your worker nodes
+export WORKER_NODE_TYPE="m3.small.x86"
+# The ssh key you would like to have access to the nodes
+export SSH_KEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDvMgVEubPLztrvVKgNPnRe9sZSjAqaYj9nmCkgr4PdK username@computer"
+export CLUSTER_NAME="my-cluster"
+
+# Optional (defaults shown)
 export NODE_OS="ubuntu_18_04"
-# The ssh key name you loaded in the Equinix Metal Console
-export SSH_KEY="my-ssh"
 export POD_CIDR="192.168.0.0/16"
 export SERVICE_CIDR="172.26.0.0/16"
-export CONTROLPLANE_NODE_TYPE="t1.small"
-export WORKER_NODE_TYPE="t1.small"
+# Only relevant if using the kube-vip flavor
+export KUBE_VIP_VERSION="v0.5.0"
 ```
 
 {{#/tab }}

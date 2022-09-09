@@ -76,13 +76,12 @@ func TestGetReference(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Get object and update the ref",
+			name: "Get object fails: object does not exist with this apiVersion",
 			ref:  contract.ObjToRef(controlPlaneTemplate),
 			objects: []client.Object{
 				controlPlaneTemplatev99,
 			},
-			want:    controlPlaneTemplatev99,
-			wantRef: contract.ObjToRef(controlPlaneTemplatev99),
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

@@ -25,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"sigs.k8s.io/cluster-api/controllers/external"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 // bootstrapTemplateNamePrefix calculates the name prefix for a BootstrapTemplate.
@@ -44,13 +43,9 @@ func controlPlaneInfrastructureMachineTemplateNamePrefix(clusterName string) str
 }
 
 // getReference gets the object referenced in ref.
-// If necessary, it updates the ref to the latest apiVersion of the current contract.
 func (r *Reconciler) getReference(ctx context.Context, ref *corev1.ObjectReference) (*unstructured.Unstructured, error) {
 	if ref == nil {
 		return nil, errors.New("reference is not set")
-	}
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, ref); err != nil {
-		return nil, err
 	}
 
 	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, ref.Namespace)

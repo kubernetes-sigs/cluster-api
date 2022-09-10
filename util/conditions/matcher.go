@@ -42,7 +42,7 @@ func (m matchConditions) Match(actual interface{}) (success bool, err error) {
 		elems = append(elems, MatchCondition(condition))
 	}
 
-	return gomega.ConsistOf(elems).Match(actual)
+	return gomega.ConsistOf(elems...).Match(actual)
 }
 
 func (m matchConditions) FailureMessage(actual interface{}) (message string) {

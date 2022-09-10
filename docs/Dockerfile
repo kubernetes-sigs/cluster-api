@@ -18,7 +18,7 @@
 FROM maven:3-jdk-8
 
 RUN apt-get update && apt-get install -y --no-install-recommends graphviz=2.42.2-5 fonts-symbola=2.60-1.1 fonts-wqy-zenhei=0.9.45-8 && rm -rf /var/lib/apt/lists/*
-RUN wget -O /plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2022.6/plantuml-1.2022.6.jar
+RUN wget -nv -O /plantuml.jar https://github.com/plantuml/plantuml/releases/download/v1.2022.6/plantuml-1.2022.6.jar
 
 # By default, java writes a 'hsperfdata_<username>' directory in the work dir.
 # This directory is not needed; to ensure it is not written, we set `-XX:-UsePerfData`

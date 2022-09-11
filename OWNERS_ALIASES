@@ -100,4 +100,5 @@ aliases:
 
   cluster-api-docs-reviewers:
     - killianmuldoon
+    - oscr
   cluster-api-docs-maintainers:

@@ -257,7 +257,7 @@ providers.
 |CAPVCD        | cluster.x-k8s.io/provider=infrastructure-vcd           |
 |CAPX          | cluster.x-k8s.io/provider=infrastructure-nutanix       |
 |CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure         |
-
+|CAPOSC        | cluster.x-k8s.io/provider=infrastructure-outscale      |
 ### Workload cluster templates
 
 An infrastructure provider could publish a **cluster templates** file to be used by `clusterctl generate cluster`.

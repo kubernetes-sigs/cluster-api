@@ -287,11 +287,11 @@ type fakeClient struct {
 	deleteError error
 }
 
-func (fc *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (fc *fakeClient) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	if fc.getError != nil {
 		return fc.getError
 	}
-	return fc.Client.Get(ctx, key, obj)
+	return fc.Client.Get(ctx, key, obj, opts...)
 }
 
 func (fc *fakeClient) Create(ctx context.Context, obj client.Object, opts ...client.CreateOption) error {

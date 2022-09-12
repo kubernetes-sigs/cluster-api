@@ -63,6 +63,8 @@ linters-settings:
         alias: apierrors
       - pkg: k8s.io/apimachinery/pkg/util/errors
         alias: kerrors
+      - pkg: k8s.io/component-base/logs/api/v1
+        alias: logsv1
       # Controller Runtime
       - pkg: sigs.k8s.io/controller-runtime
         alias: ctrl

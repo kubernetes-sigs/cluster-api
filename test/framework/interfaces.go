@@ -26,7 +26,7 @@ import (
 
 // Getter can get resources.
 type Getter interface {
-	Get(ctx context.Context, key client.ObjectKey, obj client.Object) error
+	Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error
 }
 
 // Creator can creates resources.

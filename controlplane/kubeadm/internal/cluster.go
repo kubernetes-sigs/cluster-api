@@ -68,8 +68,8 @@ func (e *RemoteClusterConnectionError) Error() string { return e.Name + ": " + e
 func (e *RemoteClusterConnectionError) Unwrap() error { return e.Err }
 
 // Get implements client.Reader.
-func (m *Management) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-	return m.Client.Get(ctx, key, obj)
+func (m *Management) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	return m.Client.Get(ctx, key, obj, opts...)
 }
 
 // List implements client.Reader.

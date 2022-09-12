@@ -127,12 +127,12 @@ func NewClient(apiReader client.Reader, objs []client.Object) *Client {
 // Get retrieves an object for the given object key from the internal object tracker.
 // If the object does not exist in the internal object tracker it tries to fetch the object
 // from the Kubernetes Cluster using the apiReader client (if apiReader is not nil).
-func (c *Client) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-	if err := c.fakeClient.Get(ctx, key, obj); err != nil {
+func (c *Client) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+	if err := c.fakeClient.Get(ctx, key, obj, opts...); err != nil {
 		// If the object is not found by the fake client, get the object
 		// using the apiReader.
 		if apierrors.IsNotFound(err) && c.apiReader != nil {
-			return c.apiReader.Get(ctx, key, obj)
+			return c.apiReader.Get(ctx, key, obj, opts...)
 		}
 		return err
 	}

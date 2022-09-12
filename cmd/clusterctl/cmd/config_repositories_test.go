@@ -126,6 +126,7 @@ nested              InfrastructureProvider   https://github.com/kubernetes-sigs/
 nutanix             InfrastructureProvider   https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/releases/latest/       infrastructure-components.yaml
 oci                 InfrastructureProvider   https://github.com/oracle/cluster-api-provider-oci/releases/latest/                         infrastructure-components.yaml
 openstack           InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/          infrastructure-components.yaml
+outscale            InfrastructureProvider   https://github.com/outscale-dev/cluster-api-provider-outscale/releases/latest/              infrastructure-components.yaml
 packet              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-packet/releases/latest/             infrastructure-components.yaml
 sidero              InfrastructureProvider   https://github.com/siderolabs/sidero/releases/latest/                                       infrastructure-components.yaml
 vcd                 InfrastructureProvider   https://github.com/vmware/cluster-api-provider-cloud-director/releases/latest/              infrastructure-components.yaml
@@ -238,6 +239,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: openstack
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-openstack/releases/latest/
+- File: infrastructure-components.yaml
+  Name: outscale
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/outscale-dev/cluster-api-provider-outscale/releases/latest/
 - File: infrastructure-components.yaml
   Name: packet
   ProviderType: InfrastructureProvider

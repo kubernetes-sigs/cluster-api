@@ -78,6 +78,9 @@ Cluster API Provider Kubevirt
 ### CAPO
 Cluster API Provider OpenStack
 
+## CAPOSC
+Cluster API Provider Outscale
+
 ### CAPOCI
 Cluster API Provider Oracle Cloud Infrastructure (OCI)
 

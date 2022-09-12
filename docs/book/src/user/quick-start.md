@@ -206,7 +206,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Kubevirt,Metal3,Nutanix,OCI,OpenStack,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Kubevirt,Metal3,Nutanix,OCI,OpenStack,Outscale,VCD,vcluster,Virtink,vSphere"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases].
@@ -367,6 +367,7 @@ clusterctl init --infrastructure digitalocean
 ```
 
 {{#/tab }}
+
 {{#tab Docker}}
 
 <aside class="note warning">
@@ -465,6 +466,23 @@ clusterctl init --infrastructure openstack
 ```
 
 {{#/tab }}
+
+{{#tab Outscale}}
+
+```bash
+export OSC_SECRET_KEY=<your-secret-key>
+export OSC_ACCESS_KEY=<your-access-key>
+export OSC_REGION=<you-region>
+# Create namespace
+kubectl create namespace cluster-api-provider-outscale-system
+# Create secret
+kubectl create secret generic cluster-api-provider-outscale --from-literal=access_key=${OSC_ACCESS_KEY} --from-literal=secret_key=${OSC_SECRET_KEY} --from-literal=region=${OSC_REGION}  -n cluster-api-provider-outscale-system 
+# Initialize the management cluster
+clusterctl init --infrastructure outscale
+```
+
+{{#/tab }}
+
 {{#tab VCD}}
 
 Please follow the Cluster API Provider for [Cloud Director Getting Started Guide](https://github.com/vmware/cluster-api-provider-cloud-director/blob/main/README.md)
@@ -579,7 +597,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,Kubevirt,Metal3,Nutanix,OpenStack,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,Kubevirt,Metal3,Nutanix,OpenStack,Outscale,VCD,vcluster,Virtink,vSphere"}}
 {{#tab AWS}}
 
 ```bash
@@ -666,6 +684,7 @@ export DO_NODE_MACHINE_IMAGE==<your-capi-image-id>
 ```
 
 {{#/tab }}
+
 {{#tab Docker}}
 
 <aside class="note warning">
@@ -868,6 +887,29 @@ export OPENSTACK_EXTERNAL_NETWORK_ID=<external network ID>
 ```
 
 A full configuration reference can be found in [configuration.md](https://github.com/kubernetes-sigs/cluster-api-provider-openstack/blob/master/docs/book/src/clusteropenstack/configuration.md).
+
+{{#/tab }}
+{{#tab Outscale}}
+
+A ClusterAPI compatible image must be available in your Outscale account. For instructions on how to build a compatible image
+see [image-builder](https://image-builder.sigs.k8s.io/capi/capi.html).
+
+```bash
+# The outscale root disk iops
+export OSC_IOPS="<IOPS>"
+# The outscale root disk size
+export OSC_VOLUME_SIZE="<VOLUME_SIZE>"
+# The outscale root disk volumeType
+export OSC_VOLUME_TYPE="<VOLUME_TYPE>"
+# The outscale key pair
+export OSC_KEYPAIR_NAME="<KEYPAIR_NAME>"
+# The outscale subregion name
+export OSC_SUBREGION_NAME="<SUBREGION_NAME>"
+# The outscale vm type
+export OSC_VM_TYPE="<VM_TYPE>"
+# The outscale image name
+export OSC_IMAGE_NAME="<IMAGE_NAME>"
+```
 
 {{#/tab }}
 {{#tab VCD}}

@@ -27,6 +27,7 @@ updated info about which API version they are supporting.
 - [Equinix Metal (formerly Packet)](https://github.com/kubernetes-sigs/cluster-api-provider-packet)
 - [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp)
 - [Hetzner](https://github.com/syself/cluster-api-provider-hetzner)
+- [Outscale](https://github.com/outscale-dev/cluster-api-provider-outscale)
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
 - [KubeVirt](https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt)
 - [MAAS](https://github.com/spectrocloud/cluster-api-provider-maas)

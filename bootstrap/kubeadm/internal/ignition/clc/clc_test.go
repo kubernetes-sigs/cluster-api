@@ -20,8 +20,8 @@ package clc_test
 import (
 	"testing"
 
-	ignition "github.com/flatcar-linux/ignition/config/v2_3"
-	"github.com/flatcar-linux/ignition/config/v2_3/types"
+	ignition "github.com/flatcar/ignition/config/v2_3"
+	"github.com/flatcar/ignition/config/v2_3/types"
 	"github.com/google/go-cmp/cmp"
 	"k8s.io/utils/pointer"
 

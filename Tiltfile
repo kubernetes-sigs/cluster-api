@@ -3,6 +3,7 @@
 envsubst_cmd = "./hack/tools/bin/envsubst"
 clusterctl_cmd = "./bin/clusterctl"
 kubectl_cmd = "kubectl"
+kubernetes_version = "v1.25.0"
 
 if str(local("command -v " + kubectl_cmd + " || true", quiet = True)) == "":
     fail("Required command '" + kubectl_cmd + "' not found in PATH")
@@ -103,8 +104,9 @@ providers = {
             "internal",
             "third_party",
         ],
-        "additional_docker_helper_commands": "RUN curl -LO https://dl.k8s.io/release/v1.23.3/bin/linux/{ARCH}/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/bin/kubectl".format(
+        "additional_docker_helper_commands": "RUN curl -LO https://dl.k8s.io/release/{KUBE}/bin/linux/{ARCH}/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/bin/kubectl".format(
             ARCH = os_arch,
+            KUBE = kubernetes_version,
         ),
         "additional_docker_build_commands": """
 COPY --from=tilt-helper /usr/bin/kubectl /usr/bin/kubectl
@@ -506,7 +508,7 @@ def cluster_templates():
 
     # Ensure we have default values for a small set of well-known variables
     substitutions["NAMESPACE"] = substitutions.get("NAMESPACE", "default")
-    substitutions["KUBERNETES_VERSION"] = substitutions.get("KUBERNETES_VERSION", "v1.25.0")
+    substitutions["KUBERNETES_VERSION"] = substitutions.get("KUBERNETES_VERSION", kubernetes_version)
     substitutions["CONTROL_PLANE_MACHINE_COUNT"] = substitutions.get("CONTROL_PLANE_MACHINE_COUNT", "1")
     substitutions["WORKER_MACHINE_COUNT"] = substitutions.get("WORKER_MACHINE_COUNT", "3")
 

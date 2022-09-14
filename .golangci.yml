@@ -1,12 +1,16 @@
 linters:
   disable-all: true
   enable:
+  - asasalint
   - asciicheck
+  - bidichk
   - bodyclose
   - containedctx
   - depguard
   - dogsled
+  - durationcheck
   - errcheck
+  - errchkjson
   - exportloopref
   - gci
   - goconst

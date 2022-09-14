@@ -30,3 +30,7 @@ make test-junit
 echo -e "\n*** Testing Cluster API Provider Docker ***\n"
 # Docker provider
 make test-capd-junit
+
+echo -e "\n*** Testing Cluster API Runtime SDK test extension ***\n"
+# Test Extension
+make test-test-extension-junit

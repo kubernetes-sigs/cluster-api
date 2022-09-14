@@ -496,7 +496,7 @@ func TestSyncDeploymentStatus(t *testing.T) {
 }
 
 // asserts the conditions set on the Getter object.
-// TODO: replace this with util.condition.MatchConditions (or a new matcher in internal/matchers).
+// TODO: replace this with util.condition.MatchConditions (or a new matcher in controller runtime komega).
 func assertConditions(t *testing.T, from conditions.Getter, conditions ...*clusterv1.Condition) {
 	t.Helper()
 

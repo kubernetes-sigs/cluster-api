@@ -46,6 +46,9 @@ Get someone with Netlify access to do the following:
 1. Publish `clusterctl` to Homebrew by bumping the version in [clusterctl.rb](https://github.com/Homebrew/homebrew-core/blob/master/Formula/clusterctl.rb).
    For an example please see: [PR: clusterctl 1.1.5](https://github.com/Homebrew/homebrew-core/pull/105075/files).
 
+   **Note**: Homebrew has [conventions for commit messages](https://docs.brew.sh/Formula-Cookbook#commit) usually 
+   the commit message for us should be e.g. "clusterctl 1.1.5"
+
 ### Versioning
 
 See the [versioning documentation](./../../CONTRIBUTING.md#versioning) for more information.

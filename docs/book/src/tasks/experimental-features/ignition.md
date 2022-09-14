@@ -1,6 +1,6 @@
 # Experimental Feature: Ignition Bootstrap Config (alpha)
 
-The default configuration engine for bootstrapping workload cluster machines is [cloud-init](https://cloudinit.readthedocs.io/). **Ignition** is an alternative engine used by Linux distributions such as [Flatcar Container Linux](https://www.flatcar-linux.org/docs/latest/provisioning/ignition/) and [Fedora CoreOS](https://docs.fedoraproject.org/en-US/fedora-coreos/producing-ign/) and therefore should be used when choosing an Ignition-based distribution as the underlying OS for workload clusters.
+The default configuration engine for bootstrapping workload cluster machines is [cloud-init](https://cloudinit.readthedocs.io/). **Ignition** is an alternative engine used by Linux distributions such as [Flatcar Container Linux](https://www.flatcar.org/docs/latest/provisioning/ignition/) and [Fedora CoreOS](https://docs.fedoraproject.org/en-US/fedora-coreos/producing-ign/) and therefore should be used when choosing an Ignition-based distribution as the underlying OS for workload clusters.
 
 <aside class="note warning">
 

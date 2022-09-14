@@ -24,7 +24,7 @@ import (
 	"strconv"
 	"strings"
 
-	ignitionTypes "github.com/flatcar-linux/ignition/config/v2_3/types"
+	ignitionTypes "github.com/flatcar/ignition/config/v2_3/types"
 	"github.com/pkg/errors"
 	"github.com/vincent-petithory/dataurl"
 	"sigs.k8s.io/yaml"

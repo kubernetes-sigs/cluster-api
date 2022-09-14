@@ -12,8 +12,8 @@ require (
 	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46
 	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/fatih/color v1.13.0
-	github.com/flatcar-linux/container-linux-config-transpiler v0.9.2
-	github.com/flatcar-linux/ignition v0.36.1
+	github.com/flatcar/container-linux-config-transpiler v0.9.4
+	github.com/flatcar/ignition v0.36.2
 	github.com/go-logr/logr v1.2.0
 	github.com/gobuffalo/flect v0.2.5
 	github.com/google/go-cmp v0.5.8

@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	ignition "github.com/flatcar-linux/ignition/config/v2_3"
+	ignition "github.com/flatcar/ignition/config/v2_3"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

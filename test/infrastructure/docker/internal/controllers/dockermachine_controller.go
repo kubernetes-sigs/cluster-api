@@ -452,7 +452,7 @@ func (r *DockerMachineReconciler) getBootstrapData(ctx context.Context, machine 
 	}
 
 	format := s.Data["format"]
-	if string(format) == "" {
+	if len(format) == 0 {
 		format = []byte(bootstrapv1.CloudConfig)
 	}
 

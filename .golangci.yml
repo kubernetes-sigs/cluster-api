@@ -150,7 +150,9 @@ linters-settings:
     - G108 # Profiling endpoint is automatically exposed on /debug/pprof
   gocritic:
     enabled-tags:
+      - diagnostic
       - experimental
+      - performance
     disabled-checks:
     - appendAssign
     - dupImport # https://github.com/go-critic/go-critic/issues/845
@@ -165,6 +167,8 @@ linters-settings:
     - unnecessaryDefer
     - whyNoLint
     - wrapperFunc
+    - rangeValCopy
+    - hugeParam
   unused:
     go: "1.19"
 issues:

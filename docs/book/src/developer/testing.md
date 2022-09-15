@@ -74,7 +74,7 @@ easily readable, well documented and consistent across the code base.
 In light of continuing improving our practice around this ambitious goal, we are starting to introduce a shared set of:
 
 - Builders (`sigs.k8s.io/cluster-api/internal/test/builder`), allowing to create test objects in a simple and consistent way.
-- Matchers (`sigs.k8s.io/cluster-api/internal/test/matchers`), improving how we write test assertions.
+- Matchers (`sigs.k8s.io/controller-runtime/pkg/envtest/komega`), improving how we write test assertions.
 
 Each contribution in growing this set of utilities or their adoption across the codebase is more than welcome!
 

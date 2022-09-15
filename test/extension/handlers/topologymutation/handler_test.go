@@ -27,11 +27,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	. "sigs.k8s.io/controller-runtime/pkg/envtest/komega"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
-	. "sigs.k8s.io/cluster-api/internal/test/matchers"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
 
@@ -304,7 +304,7 @@ func TestHandler_GeneratePatches(t *testing.T) {
 
 			// Expect all response fields to be as expected. responseItems are ignored here and tested below.
 			// Ignore the message to not compare error strings.
-			g.Expect(tt.expectedResponse).To(EqualObject(response, IgnorePaths{{"items"}, {"message"}}))
+			g.Expect(tt.expectedResponse).To(EqualObject(response, IgnorePaths{"items", ".message"}))
 			// For each item in the response check that the patches are the same.
 			// Note that the order of the individual patch operations in Items[].Patch is not determinate so we unmarshal
 			// to an array and check that the arrays hold equivalent items.

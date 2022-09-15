@@ -366,7 +366,7 @@ func getBootstrapData(ctx context.Context, c client.Client, machinePool *expv1.M
 	}
 
 	format := s.Data["format"]
-	if string(format) == "" {
+	if len(format) == 0 {
 		format = []byte(bootstrapv1.CloudConfig)
 	}
 

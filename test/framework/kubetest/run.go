@@ -161,10 +161,12 @@ func Run(ctx context.Context, input RunInput) error {
 	}
 
 	// Formulate our command arguments
-	args := []string{}
+	var args []string
 	args = append(args, ginkgoArgs...)
-	args = append(args, "/usr/local/bin/e2e.test")
-	args = append(args, "--")
+	args = append(
+		args,
+		"/usr/local/bin/e2e.test",
+		"--")
 	args = append(args, e2eArgs...)
 	args = append(args, config.toFlags()...)
 

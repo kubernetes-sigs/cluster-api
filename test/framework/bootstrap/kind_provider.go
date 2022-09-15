@@ -148,8 +148,10 @@ func (k *KindClusterProvider) createKindCluster() {
 	if k.nodeImage != "" {
 		nodeImage = k.nodeImage
 	}
-	kindCreateOptions = append(kindCreateOptions, kind.CreateWithNodeImage(nodeImage))
-	kindCreateOptions = append(kindCreateOptions, kind.CreateWithRetain(true))
+	kindCreateOptions = append(
+		kindCreateOptions,
+		kind.CreateWithNodeImage(nodeImage),
+		kind.CreateWithRetain(true))
 
 	provider := kind.NewProvider(kind.ProviderWithLogger(cmd.NewLogger()))
 	err := provider.Create(k.name, kindCreateOptions...)

@@ -58,6 +58,7 @@ TOOLS_DIR := hack/tools
 TOOLS_BIN_DIR := $(abspath $(TOOLS_DIR)/$(BIN_DIR))
 E2E_FRAMEWORK_DIR := $(TEST_DIR)/framework
 CAPD_DIR := $(TEST_DIR)/infrastructure/docker
+TEST_EXTENSION_DIR := $(TEST_DIR)/extension
 GO_INSTALL := ./scripts/go_install.sh
 OBSERVABILITY_DIR := hack/observability
 
@@ -682,6 +683,20 @@ test-capd-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests
 	cd $(CAPD_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.infra_docker.exitcode) | tee $(ARTIFACTS)/junit.infra_docker.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.infra_docker.xml --raw-command cat $(ARTIFACTS)/junit.infra_docker.stdout
 	exit $$(cat $(ARTIFACTS)/junit.infra_docker.exitcode)
+
+.PHONY: test-test-extension
+test-test-extension: $(SETUP_ENVTEST) ## Run unit and integration tests for the test extension
+	cd $(TEST_EXTENSION_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
+
+.PHONY: test-test-extension-verbose
+test-test-extension-verbose: ## Run unit and integration tests with verbose flag
+	$(MAKE) test-test-extension TEST_ARGS="$(TEST_ARGS) -v"
+
+.PHONY: test-test-extension-junit
+test-test-extension-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report for the test extension
+	cd $(TEST_EXTENSION_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.test_extension.exitcode) | tee $(ARTIFACTS)/junit.test_extension.stdout
+	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.test_extension.xml --raw-command cat $(ARTIFACTS)/junit.test_extension.stdout
+	exit $$(cat $(ARTIFACTS)/junit.test_extension.exitcode)
 
 .PHONY: kind-cluster
 kind-cluster: ## Create a new kind cluster designed for development with Tilt

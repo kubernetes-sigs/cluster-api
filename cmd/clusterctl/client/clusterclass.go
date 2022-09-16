@@ -59,7 +59,7 @@ func addClusterClassIfMissing(template Template, clusterClassClient repository.C
 	return mergedTemplate, nil
 }
 
-// clusterClassNamesFromTemplate returns the list of cluster classes referenced
+// clusterClassNamesFromTemplate returns the list of ClusterClasses referenced
 // by custers defined in the template. If not clusters are defined in the template
 // or if no cluster uses a cluster class it returns an empty list.
 func clusterClassNamesFromTemplate(template Template) ([]string, error) {
@@ -85,7 +85,7 @@ func clusterClassNamesFromTemplate(template Template) ([]string, error) {
 	return classes, nil
 }
 
-// fetchMissingClusterClassTemplates returns a list of templates for cluster classes that do not yet exist
+// fetchMissingClusterClassTemplates returns a list of templates for ClusterClasses that do not yet exist
 // in the cluster. If the cluster is not initialized, all the ClusterClasses are added.
 func fetchMissingClusterClassTemplates(clusterClassClient repository.ClusterClassClient, clusterClient cluster.Client, classes []string, targetNamespace string, listVariablesOnly bool) (Template, error) {
 	// first check if the cluster is initialized.
@@ -114,7 +114,7 @@ func fetchMissingClusterClassTemplates(clusterClassClient repository.ClusterClas
 	}
 
 	// Get the templates for all ClusterClasses and associated objects if the target
-	// CluterClass does not exits in the cluster.
+	// ClusterClass does not exits in the cluster.
 	templates := []repository.Template{}
 	for _, class := range classes {
 		if clusterInitialized {

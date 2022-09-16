@@ -321,9 +321,9 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 		return err
 	}
 
-	log.V(1).Info("Pausing the source cluster classes")
+	log.V(1).Info("Pausing the source ClusterClasses")
 	if err := setClusterClassPause(o.fromProxy, clusterClasses, true, o.dryRun); err != nil {
-		return errors.Wrap(err, "error pausing cluster classes")
+		return errors.Wrap(err, "error pausing ClusterClasses")
 	}
 
 	// Ensure all the expected target namespaces are in place before creating objects.
@@ -355,10 +355,10 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 		}
 	}
 
-	// Resume the cluster classes in the target management cluster, so the controllers start reconciling it.
-	log.V(1).Info("Resuming the target cluter classes")
+	// Resume the ClusterClasses in the target management cluster, so the controllers start reconciling it.
+	log.V(1).Info("Resuming the target ClusterClasses")
 	if err := setClusterClassPause(toProxy, clusterClasses, false, o.dryRun); err != nil {
-		return errors.Wrap(err, "error resuming cluster classes")
+		return errors.Wrap(err, "error resuming ClusterClasses")
 	}
 
 	// Reset the pause field on the Cluster object in the target management cluster, so the controllers start reconciling it.
@@ -381,9 +381,9 @@ func (o *objectMover) backup(graph *objectGraph, directory string) error {
 		return err
 	}
 
-	log.V(1).Info("Pausing the source cluster classes")
+	log.V(1).Info("Pausing the source ClusterClasses")
 	if err := setClusterClassPause(o.fromProxy, clusterClasses, true, o.dryRun); err != nil {
-		return errors.Wrap(err, "error pausing cluster classes")
+		return errors.Wrap(err, "error pausing ClusterClasses")
 	}
 
 	// Define the move sequence by processing the ownerReference chain, so we ensure that a Kubernetes object is moved only after its owners.
@@ -401,10 +401,10 @@ func (o *objectMover) backup(graph *objectGraph, directory string) error {
 		}
 	}
 
-	// Resume the cluster classes in the target management cluster, so the controllers start reconciling it.
-	log.V(1).Info("Resuming the target cluter classes")
+	// Resume the ClusterClasses in the target management cluster, so the controllers start reconciling it.
+	log.V(1).Info("Resuming the target ClusterClasses")
 	if err := setClusterClassPause(o.fromProxy, clusterClasses, false, o.dryRun); err != nil {
-		return errors.Wrap(err, "error resuming cluster classes")
+		return errors.Wrap(err, "error resuming ClusterClasses")
 	}
 
 	// Reset the pause field on the Cluster object in the target management cluster, so the controllers start reconciling it.
@@ -443,9 +443,9 @@ func (o *objectMover) restore(graph *objectGraph, toProxy Proxy) error {
 
 	// Resume reconciling the ClusterClasses after being restored from a backup.
 	// By default, during backup, ClusterClasses are paused so they must be unpaused to be used again
-	log.V(1).Info("Resuming the target cluter classes")
+	log.V(1).Info("Resuming the target ClusterClasses")
 	if err := setClusterClassPause(toProxy, clusterClasses, false, o.dryRun); err != nil {
-		return errors.Wrap(err, "error resuming cluster classes")
+		return errors.Wrap(err, "error resuming ClusterClasses")
 	}
 
 	// Resume reconciling the Clusters after being restored from a backup.

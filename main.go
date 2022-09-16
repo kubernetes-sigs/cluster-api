@@ -160,7 +160,7 @@ func InitFlags(fs *pflag.FlagSet) {
 		"Number of clusters to process simultaneously")
 
 	fs.IntVar(&clusterClassConcurrency, "clusterclass-concurrency", 10,
-		"Number of cluster classes to process simultaneously")
+		"Number of ClusterClasses to process simultaneously")
 
 	fs.IntVar(&clusterConcurrency, "cluster-concurrency", 10,
 		"Number of clusters to process simultaneously")

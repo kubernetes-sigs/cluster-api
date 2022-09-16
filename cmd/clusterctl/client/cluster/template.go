@@ -19,6 +19,7 @@ package cluster
 import (
 	"context"
 	"encoding/base64"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -129,6 +130,14 @@ func (t *templateClient) GetFromURL(templateURL, targetNamespace string, skipTem
 }
 
 func (t *templateClient) getURLContent(templateURL string) ([]byte, error) {
+	if templateURL == "-" {
+		b, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read stdin")
+		}
+		return b, nil
+	}
+
 	rURL, err := url.Parse(templateURL)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to parse %q", templateURL)

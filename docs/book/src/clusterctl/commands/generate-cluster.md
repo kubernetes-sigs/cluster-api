@@ -69,9 +69,10 @@ clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
 Also following flags are available `--from-config-map-namespace` (defaults to current namespace) and `--from-config-map-key`
 (defaults to `template`).
 
-#### GitHub or local file system folder
+#### GitHub, local file system folder or standard input
 
-Use the `--from` flag to read cluster templates stored in a GitHub repository or in a local file system folder; e.g.
+Use the `--from` flag to read cluster templates stored in a GitHub repository, in a local file system folder,
+or from the standard input; e.g.
 
 ```bash
 clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
@@ -83,6 +84,13 @@ or
 ```bash
 clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
    --from ~/my-template.yaml > my-cluster.yaml
+```
+
+or
+
+```bash
+cat ~/my-template.yaml | clusterctl generate cluster my-cluster --kubernetes-version v1.16.3 \
+    --from - > my-cluster.yaml
 ```
 
 ### Variables

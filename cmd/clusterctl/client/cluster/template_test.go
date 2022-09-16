@@ -307,6 +307,12 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
 	g.Expect(os.WriteFile(path, []byte(template), 0600)).To(Succeed())
 
+	// redirect stdin
+	saveStdin := os.Stdin
+	defer func() { os.Stdin = saveStdin }()
+	os.Stdin, err = os.Open(path)
+	g.Expect(err).NotTo(HaveOccurred())
+
 	type args struct {
 		templateURL         string
 		targetNamespace     string
@@ -332,6 +338,16 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 			name: "Get from GitHub",
 			args: args{
 				templateURL:         "https://github.com/kubernetes-sigs/cluster-api/blob/main/config/default/cluster-template.yaml",
+				targetNamespace:     "",
+				skipTemplateProcess: false,
+			},
+			want:    template,
+			wantErr: false,
+		},
+		{
+			name: "Get from stdin",
+			args: args{
+				templateURL:         "-",
 				targetNamespace:     "",
 				skipTemplateProcess: false,
 			},

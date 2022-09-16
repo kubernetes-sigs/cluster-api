@@ -263,6 +263,7 @@ func TestComputeControlPlane(t *testing.T) {
 	replicas := int32(3)
 	duration := 10 * time.Second
 	nodeDrainTimeout := metav1.Duration{Duration: duration}
+	nodeVolumeDetachTimeout := metav1.Duration{Duration: duration}
 	nodeDeletionTimeout := metav1.Duration{Duration: duration}
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -277,9 +278,10 @@ func TestComputeControlPlane(t *testing.T) {
 						Labels:      map[string]string{"l2": ""},
 						Annotations: map[string]string{"a2": ""},
 					},
-					Replicas:            &replicas,
-					NodeDrainTimeout:    &nodeDrainTimeout,
-					NodeDeletionTimeout: &nodeDeletionTimeout,
+					Replicas:                &replicas,
+					NodeDrainTimeout:        &nodeDrainTimeout,
+					NodeVolumeDetachTimeout: &nodeVolumeDetachTimeout,
+					NodeDeletionTimeout:     &nodeDeletionTimeout,
 				},
 			},
 		},
@@ -317,6 +319,7 @@ func TestComputeControlPlane(t *testing.T) {
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
 		assertNestedField(g, obj, duration.String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
+		assertNestedField(g, obj, duration.String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
 		assertNestedField(g, obj, duration.String(), contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path()...)
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().InfrastructureRef().Path()...)
 
@@ -1321,17 +1324,19 @@ func TestComputeMachineDeployment(t *testing.T) {
 	replicas := int32(5)
 	failureDomain := "always-up-region"
 	nodeDrainTimeout := metav1.Duration{Duration: 10 * time.Second}
+	nodeVolumeDetachTimeout := metav1.Duration{Duration: 10 * time.Second}
 	nodeDeletionTimeout := metav1.Duration{Duration: 10 * time.Second}
 	mdTopology := clusterv1.MachineDeploymentTopology{
 		Metadata: clusterv1.ObjectMeta{
 			Labels: map[string]string{"foo": "baz"},
 		},
-		Class:               "linux-worker",
-		Name:                "big-pool-of-machines",
-		Replicas:            &replicas,
-		FailureDomain:       &failureDomain,
-		NodeDrainTimeout:    &nodeDrainTimeout,
-		NodeDeletionTimeout: &nodeDeletionTimeout,
+		Class:                   "linux-worker",
+		Name:                    "big-pool-of-machines",
+		Replicas:                &replicas,
+		FailureDomain:           &failureDomain,
+		NodeDrainTimeout:        &nodeDrainTimeout,
+		NodeVolumeDetachTimeout: &nodeVolumeDetachTimeout,
+		NodeDeletionTimeout:     &nodeDeletionTimeout,
 	}
 
 	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {

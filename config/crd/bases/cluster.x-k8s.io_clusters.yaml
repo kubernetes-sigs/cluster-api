@@ -876,6 +876,12 @@ spec:
                           any time limitations. NOTE: NodeDrainTimeout is different
                           from `kubectl drain --timeout`'
                         type: string
+                      nodeVolumeDetachTimeout:
+                        description: NodeVolumeDetachTimeout is the total amount of
+                          time that the controller will spend on waiting for all volumes
+                          to be detached. The default value is 0, meaning that the
+                          volumes can be detached without any time limitations.
+                        type: string
                       replicas:
                         description: Replicas is the number of control plane nodes.
                           If the value is nil, the ControlPlane object is created
@@ -992,6 +998,13 @@ spec:
                                 can be drained without any time limitations. NOTE:
                                 NodeDrainTimeout is different from `kubectl drain
                                 --timeout`'
+                              type: string
+                            nodeVolumeDetachTimeout:
+                              description: NodeVolumeDetachTimeout is the total amount
+                                of time that the controller will spend on waiting
+                                for all volumes to be detached. The default value
+                                is 0, meaning that the volumes can be detached without
+                                any time limitations.
                               type: string
                             replicas:
                               description: Replicas is the number of worker nodes

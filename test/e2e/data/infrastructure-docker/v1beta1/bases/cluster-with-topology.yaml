@@ -18,12 +18,14 @@ spec:
     controlPlane:
       metadata: {}
       nodeDeletionTimeout: "30s"
+      nodeVolumeDetachTimeout: "5m"
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
     workers:
       machineDeployments:
       - class: "default-worker"
         name: "md-0"
         nodeDeletionTimeout: "30s"
+        nodeVolumeDetachTimeout: "5m"
         replicas: ${WORKER_MACHINE_COUNT}
         failureDomain: fd4
     variables:

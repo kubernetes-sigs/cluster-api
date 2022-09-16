@@ -466,6 +466,11 @@ func (in *ControlPlaneTopology) DeepCopyInto(out *ControlPlaneTopology) {
 		*out = new(metav1.Duration)
 		**out = **in
 	}
+	if in.NodeVolumeDetachTimeout != nil {
+		in, out := &in.NodeVolumeDetachTimeout, &out.NodeVolumeDetachTimeout
+		*out = new(metav1.Duration)
+		**out = **in
+	}
 	if in.NodeDeletionTimeout != nil {
 		in, out := &in.NodeDeletionTimeout, &out.NodeDeletionTimeout
 		*out = new(metav1.Duration)
@@ -964,6 +969,11 @@ func (in *MachineDeploymentTopology) DeepCopyInto(out *MachineDeploymentTopology
 	}
 	if in.NodeDrainTimeout != nil {
 		in, out := &in.NodeDrainTimeout, &out.NodeDrainTimeout
+		*out = new(metav1.Duration)
+		**out = **in
+	}
+	if in.NodeVolumeDetachTimeout != nil {
+		in, out := &in.NodeVolumeDetachTimeout, &out.NodeVolumeDetachTimeout
 		*out = new(metav1.Duration)
 		**out = **in
 	}

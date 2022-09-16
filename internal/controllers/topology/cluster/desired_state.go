@@ -242,6 +242,13 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 		}
 	}
 
+	// If it is required to manage the NodeVolumeDetachTimeout for the control plane, set the corresponding field.
+	if s.Blueprint.Topology.ControlPlane.NodeVolumeDetachTimeout != nil {
+		if err := contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Set(controlPlane, *s.Blueprint.Topology.ControlPlane.NodeVolumeDetachTimeout); err != nil {
+			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.nodeVolumeDetachTimeout in the ControlPlane object")
+		}
+	}
+
 	// If it is required to manage the NodeDeletionTimeout for the control plane, set the corresponding field.
 	if s.Blueprint.Topology.ControlPlane.NodeDeletionTimeout != nil {
 		if err := contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Set(controlPlane, *s.Blueprint.Topology.ControlPlane.NodeDeletionTimeout); err != nil {
@@ -538,13 +545,14 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 					Annotations: mergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations),
 				},
 				Spec: clusterv1.MachineSpec{
-					ClusterName:         s.Current.Cluster.Name,
-					Version:             pointer.String(version),
-					Bootstrap:           clusterv1.Bootstrap{ConfigRef: contract.ObjToRef(desiredMachineDeployment.BootstrapTemplate)},
-					InfrastructureRef:   *contract.ObjToRef(desiredMachineDeployment.InfrastructureMachineTemplate),
-					FailureDomain:       machineDeploymentTopology.FailureDomain,
-					NodeDrainTimeout:    machineDeploymentTopology.NodeDrainTimeout,
-					NodeDeletionTimeout: machineDeploymentTopology.NodeDeletionTimeout,
+					ClusterName:             s.Current.Cluster.Name,
+					Version:                 pointer.String(version),
+					Bootstrap:               clusterv1.Bootstrap{ConfigRef: contract.ObjToRef(desiredMachineDeployment.BootstrapTemplate)},
+					InfrastructureRef:       *contract.ObjToRef(desiredMachineDeployment.InfrastructureMachineTemplate),
+					FailureDomain:           machineDeploymentTopology.FailureDomain,
+					NodeDrainTimeout:        machineDeploymentTopology.NodeDrainTimeout,
+					NodeVolumeDetachTimeout: machineDeploymentTopology.NodeVolumeDetachTimeout,
+					NodeDeletionTimeout:     machineDeploymentTopology.NodeDeletionTimeout,
 				},
 			},
 		},

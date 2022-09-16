@@ -579,7 +579,7 @@ def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
     )
 
 def deploy_cluster_template(template_name, label, filename, substitutions):
-    apply_cluster_template_cmd = "CLUSTER_NAME=" + template_name + "-$RANDOM;" + clusterctl_cmd + " generate cluster $CLUSTER_NAME --from " + filename + " | " + kubectl_cmd + " apply -f - && echo \"Cluster '$CLUSTER_NAME' created, don't forget to delete\n\""
+    apply_cluster_template_cmd = "CLUSTER_NAME=" + template_name + "-$RANDOM;" + clusterctl_cmd + " generate cluster -n $NAMESPACE $CLUSTER_NAME --from " + filename + " | " + kubectl_cmd + " apply -f - && echo \"Cluster '$CLUSTER_NAME' created, don't forget to delete\n\""
     delete_clusters_cmd = 'DELETED=$(echo "$(bash -c "' + kubectl_cmd + ' --namespace=$NAMESPACE get clusters -A --no-headers -o custom-columns=":metadata.name"")" | grep -E "^' + template_name + '-[[:digit:]]{1,5}$"); if [ -z "$DELETED" ]; then echo "Nothing to delete for cluster template ' + template_name + '"; else echo "Deleting clusters:\n$DELETED\n"; echo $DELETED | xargs -L1 ' + kubectl_cmd + ' delete cluster; fi; echo "\n"'
 
     local_resource(

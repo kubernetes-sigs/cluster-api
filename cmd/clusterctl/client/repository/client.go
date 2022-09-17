@@ -48,7 +48,7 @@ type Client interface {
 	// Please note that templates are expected to exist for the infrastructure providers only.
 	Templates(version string) TemplateClient
 
-	// ClusterClasses provide access to YAML file for the cluster classes available
+	// ClusterClasses provide access to YAML file for the ClusterClasses available
 	// for the provider.
 	ClusterClasses(version string) ClusterClassClient
 

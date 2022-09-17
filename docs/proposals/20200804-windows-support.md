@@ -115,7 +115,7 @@ the [image-builder project](https://github.com/kubernetes-sigs/image-builder) th
 built need to adhere to [Windows licensing requirements](https://www.microsoft.com/en-us/licensing/product-licensing/windows-server).
 
 There is prior art for building Windows base images. For example, AKS-Engine has an example implementation for using packer and scripts to do image configuration: https://github.com/Azure/aks-engine/blob/master/vhd/packer/windows-vhd-builder.json.  
-Another example is the the [sig-windows-tools](https://github.com/kubernetes-sigs/sig-windows-tools) which provide scripts for image configuration when using Kubeadm.
+Another example is the [sig-windows-tools](https://github.com/kubernetes-sigs/sig-windows-tools) which provide scripts for image configuration when using Kubeadm.
 
 Although the Linux implementation in image-builder uses Ansible for configuration, Windows isn't going to share
 the same configuration because [Ansible](https://docs.ansible.com/ansible/latest/user_guide/windows.html) requires [Windows specific modules](https://docs.ansible.com/ansible/2.9/modules/list_of_windows_modules.html) to do the configuration. 
@@ -131,7 +131,7 @@ and use privileged containers in place of wins.exe enabled containers.
 
 Each infrastructure providers must provide their own `PreKubeadmCommands`/`PostKubeadmCommands` scripts that
 are required for additional configuration for the node. During planning for Beta we will be able to identify
-common overlapping features that can be added into the the base images in image-builder and for re-use 
+common overlapping features that can be added into the base images in image-builder and for re-use 
 
 #### netbios names
 

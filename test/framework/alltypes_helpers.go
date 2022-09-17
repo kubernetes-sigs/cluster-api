@@ -76,7 +76,7 @@ func GetCAPIResources(ctx context.Context, input GetCAPIResourcesInput) []*unstr
 	return objList
 }
 
-// getClusterAPITypes returns the list of TypeMeta to be considered for the the move discovery phase.
+// getClusterAPITypes returns the list of TypeMeta to be considered for the move discovery phase.
 // This list includes all the types belonging to CAPI providers.
 func getClusterAPITypes(ctx context.Context, lister Lister) []metav1.TypeMeta {
 	discoveredTypes := []metav1.TypeMeta{}

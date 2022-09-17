@@ -127,13 +127,13 @@ func SetSummary(to Setter, options ...MergeOption) {
 	Set(to, summary(to, options...))
 }
 
-// SetMirror creates a new condition by mirroring the the Ready condition from a dependent object;
+// SetMirror creates a new condition by mirroring the Ready condition from a dependent object;
 // if the Ready condition does not exists in the source object, no target conditions is generated.
 func SetMirror(to Setter, targetCondition clusterv1.ConditionType, from Getter, options ...MirrorOptions) {
 	Set(to, mirror(from, targetCondition, options...))
 }
 
-// SetAggregate creates a new condition with the aggregation of all the the Ready condition
+// SetAggregate creates a new condition with the aggregation of all the Ready condition
 // from a list of dependent objects; if the Ready condition does not exists in one of the source object,
 // the object is excluded from the aggregation; if none of the source object have ready condition,
 // no target conditions is generated.

@@ -921,7 +921,7 @@ docker-push-manifest-core: ## Push the multiarch manifest for the core docker im
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-push-manifest-kubeadm-bootstrap
-docker-push-manifest-kubeadm-bootstrap: ## Push the multiarch manifest for the the kubeadm bootstrap docker images
+docker-push-manifest-kubeadm-bootstrap: ## Push the multiarch manifest for the kubeadm bootstrap docker images
 	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${KUBEADM_BOOTSTRAP_CONTROLLER_IMG}:${TAG} ${KUBEADM_BOOTSTRAP_CONTROLLER_IMG}-$${arch}:${TAG}; done
@@ -930,7 +930,7 @@ docker-push-manifest-kubeadm-bootstrap: ## Push the multiarch manifest for the t
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./bootstrap/kubeadm/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-push-manifest-kubeadm-control-plane
-docker-push-manifest-kubeadm-control-plane: ## Push the multiarch manifest for the the kubeadm control plane docker images
+docker-push-manifest-kubeadm-control-plane: ## Push the multiarch manifest for the kubeadm control plane docker images
 	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${KUBEADM_CONTROL_PLANE_CONTROLLER_IMG}:${TAG} ${KUBEADM_CONTROL_PLANE_CONTROLLER_IMG}-$${arch}:${TAG}; done
@@ -939,7 +939,7 @@ docker-push-manifest-kubeadm-control-plane: ## Push the multiarch manifest for t
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
 
 .PHONY: docker-push-manifest-capd
-docker-capd-push-manifest: ## Push the multiarch manifest for the the capd docker images
+docker-capd-push-manifest: ## Push the multiarch manifest for the capd docker images
 	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(CAPD_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CAPD_CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CAPD_CONTROLLER_IMG}:${TAG} ${CAPD_CONTROLLER_IMG}-$${arch}:${TAG}; done

@@ -181,7 +181,7 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 		// If the resource is a cluster resource, skip it if the resource name does not start with the instance prefix.
 		// This is required because there are cluster resources like e.g. ClusterRoles and ClusterRoleBinding, which are instance specific;
 		// During the installation, clusterctl adds the instance namespace prefix to such resources (see fixRBAC), and so we can rely
-		// on that for deleting only the global resources belonging the the instance we are processing.
+		// on that for deleting only the global resources belonging the instance we are processing.
 		// NOTE: namespace and CRD are special case managed above; webhook instead goes hand by hand with the controller they
 		// should always be deleted.
 		isWebhook := obj.GroupVersionKind().Kind == validatingWebhookConfigurationKind || obj.GroupVersionKind().Kind == mutatingWebhookConfigurationKind

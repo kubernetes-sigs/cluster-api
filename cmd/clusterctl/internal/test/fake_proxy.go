@@ -162,7 +162,7 @@ func (f *FakeProxy) WithNamespace(n string) *FakeProxy {
 
 // WithProviderInventory can be used as a fast track for setting up test scenarios requiring an already initialized management cluster.
 // NB. this method adds an items to the Provider inventory, but it doesn't install the corresponding provider; if the
-// test case requires the actual provider to be installed, use the the fake client to install both the provider
+// test case requires the actual provider to be installed, use the fake client to install both the provider
 // components and the corresponding inventory item.
 func (f *FakeProxy) WithProviderInventory(name string, providerType clusterctlv1.ProviderType, version, targetNamespace string) *FakeProxy {
 	f.objs = append(f.objs, &clusterctlv1.Provider{

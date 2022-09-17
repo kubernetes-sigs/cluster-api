@@ -269,7 +269,7 @@ func (o *objectMover) checkProvisioningCompleted(graph *objectGraph) error {
 	return kerrors.NewAggregate(errList)
 }
 
-// getClusterObj retrieves the the clusterObj corresponding to a node with type Cluster.
+// getClusterObj retrieves the clusterObj corresponding to a node with type Cluster.
 func getClusterObj(proxy Proxy, cluster *node, clusterObj *clusterv1.Cluster) error {
 	c, err := proxy.NewClient()
 	if err != nil {
@@ -287,7 +287,7 @@ func getClusterObj(proxy Proxy, cluster *node, clusterObj *clusterv1.Cluster) er
 	return nil
 }
 
-// getMachineObj retrieves the the machineObj corresponding to a node with type Machine.
+// getMachineObj retrieves the machineObj corresponding to a node with type Machine.
 func getMachineObj(proxy Proxy, machine *node, machineObj *clusterv1.Machine) error {
 	c, err := proxy.NewClient()
 	if err != nil {

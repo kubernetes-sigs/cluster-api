@@ -125,6 +125,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 type UpgradeManagementClusterAndWaitInput struct {
 	ClusterProxy         framework.ClusterProxy
 	ClusterctlConfigPath string
+	ClusterctlVariables  map[string]string
 	Contract             string
 	LogFolder            string
 }
@@ -139,6 +140,8 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 
 	Upgrade(ctx, UpgradeInput{
 		ClusterctlConfigPath: input.ClusterctlConfigPath,
+		ClusterctlVariables:  input.ClusterctlVariables,
+		ClusterName:          input.ClusterProxy.GetName(),
 		KubeconfigPath:       input.ClusterProxy.GetKubeconfigPath(),
 		Contract:             input.Contract,
 		LogFolder:            input.LogFolder,

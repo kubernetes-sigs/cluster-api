@@ -4,5 +4,5 @@ bases:
 - ../bases/cluster-with-kcp.yaml
 
 patchesStrategicMerge:
-- ./md.yaml
-- ./cluster-with-kcp.yaml
+- md.yaml
+- cluster-with-kcp.yaml

@@ -137,6 +137,35 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 	return clusterctlConfigFile.Path
 }
 
+// copyAndAmendClusterctlConfigInput is the input for copyAndAmendClusterctlConfig.
+type copyAndAmendClusterctlConfigInput struct {
+	ClusterctlConfigPath string
+	OutputPath           string
+	Variables            map[string]string
+}
+
+// copyAndAmendClusterctlConfig copies the clusterctl-config from ClusterctlConfigPath to
+// OutputPath and adds the given Variables.
+func copyAndAmendClusterctlConfig(_ context.Context, input copyAndAmendClusterctlConfigInput) {
+	// Read clusterctl config from ClusterctlConfigPath.
+	clusterctlConfigFile := &clusterctlConfig{
+		Path: input.ClusterctlConfigPath,
+	}
+	clusterctlConfigFile.read()
+
+	// Overwrite variables.
+	if clusterctlConfigFile.Values == nil {
+		clusterctlConfigFile.Values = map[string]interface{}{}
+	}
+	for key, value := range input.Variables {
+		clusterctlConfigFile.Values[key] = value
+	}
+
+	// Write clusterctl config to OutputPath.
+	clusterctlConfigFile.Path = input.OutputPath
+	clusterctlConfigFile.write()
+}
+
 // YAMLForComponentSource returns the YAML for the provided component source.
 func YAMLForComponentSource(ctx context.Context, source ProviderVersionSource) ([]byte, error) {
 	var data []byte

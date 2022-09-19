@@ -1,0 +1,37 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: '${CLUSTER_NAME}'
+  namespace: default
+  labels:
+    cni: "${CLUSTER_NAME}-crs-0"
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ['${DOCKER_SERVICE_CIDRS}']
+    pods:
+      cidrBlocks: ['${DOCKER_POD_CIDRS}']
+    serviceDomain: '${DOCKER_SERVICE_DOMAIN}'
+  topology:
+    class: "quick-start"
+    version: "${KUBERNETES_VERSION}"
+    controlPlane:
+      metadata: {}
+      # Can't be used as this field doesn't exist in v1.2.x.
+      #nodeDeletionTimeout: "30s"
+      replicas: ${CONTROL_PLANE_MACHINE_COUNT}
+    workers:
+      machineDeployments:
+      - class: "default-worker"
+        name: "md-0"
+        # Can't be used as this field doesn't exist in v1.2.x.
+        #nodeDeletionTimeout: "30s"
+        replicas: ${WORKER_MACHINE_COUNT}
+        failureDomain: fd4
+    variables:
+      # We set an empty value to use the default tag kubeadm init is using.
+    - name: etcdImageTag
+      value: ""
+      # We set an empty value to use the default tag kubeadm init is using.
+    - name: coreDNSImageTag
+      value: ""

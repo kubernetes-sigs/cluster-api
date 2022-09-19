@@ -123,12 +123,24 @@ func InitWithBinary(_ context.Context, binary string, input InitInput) {
 type UpgradeInput struct {
 	LogFolder            string
 	ClusterctlConfigPath string
+	ClusterctlVariables  map[string]string
+	ClusterName          string
 	KubeconfigPath       string
 	Contract             string
 }
 
 // Upgrade calls clusterctl upgrade apply with the list of providers defined in the local repository.
 func Upgrade(ctx context.Context, input UpgradeInput) {
+	if len(input.ClusterctlVariables) > 0 {
+		outputPath := filepath.Join(filepath.Dir(input.ClusterctlConfigPath), fmt.Sprintf("clusterctl-upgrade-config-%s.yaml", input.ClusterName))
+		copyAndAmendClusterctlConfig(ctx, copyAndAmendClusterctlConfigInput{
+			ClusterctlConfigPath: input.ClusterctlConfigPath,
+			OutputPath:           outputPath,
+			Variables:            input.ClusterctlVariables,
+		})
+		input.ClusterctlConfigPath = outputPath
+	}
+
 	log.Logf("clusterctl upgrade apply --contract %s --config %s --kubeconfig %s",
 		input.Contract,
 		input.ClusterctlConfigPath,

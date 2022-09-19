@@ -2,7 +2,6 @@ bases:
   - ../bases/cluster-with-kcp.yaml
   - ../bases/md.yaml
   - ../bases/crs.yaml
-  - mhc.yaml
 
 patchesStrategicMerge:
-- ./md.yaml
+  - ignition.yaml

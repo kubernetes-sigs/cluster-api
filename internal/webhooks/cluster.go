@@ -256,9 +256,6 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 				continue
 			}
 
-			allErrs = append(allErrs, variables.ValidateTopLevelClusterVariablesExist(md.Variables.Overrides, newCluster.Spec.Topology.Variables,
-				fldPath.Child("workers", "machineDeployments").Index(i).Child("variables", "overrides"))...)
-
 			allErrs = append(allErrs, variables.ValidateMachineDeploymentVariables(md.Variables.Overrides, clusterClass.Spec.Variables,
 				fldPath.Child("workers", "machineDeployments").Index(i).Child("variables", "overrides"))...)
 		}

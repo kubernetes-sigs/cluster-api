@@ -82,6 +82,8 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases = restored.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases
 	}
 
+	dst.Spec.RolloutBefore = restored.Spec.RolloutBefore
+
 	return nil
 }
 

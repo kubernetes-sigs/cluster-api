@@ -318,3 +318,54 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 	m.Spec.ProviderID = pointer.StringPtr(providerID)
 	return ctrl.Result{}, nil
 }
+
+func (r *Reconciler) reconcileCertificateExpiry(ctx context.Context, _ *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	var annotations map[string]string
+
+	if !util.IsControlPlaneMachine(m) {
+		// If the machine is not a control plane machine, return early.
+		return ctrl.Result{}, nil
+	}
+
+	var expiryInfoFound bool
+
+	// Check for certificate expiry information in the machine annotation.
+	// This should take precedence over other information.
+	annotations = m.GetAnnotations()
+	if expiry, ok := annotations[clusterv1.MachineCertificatesExpiryDateAnnotation]; ok {
+		expiryInfoFound = true
+		expiryTime, err := time.Parse(time.RFC3339, expiry)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile certificates expiry: failed to parse expiry date from annotation on %s", klog.KObj(m))
+		}
+		expTime := metav1.NewTime(expiryTime)
+		m.Status.CertificatesExpiryDate = &expTime
+	} else if m.Spec.Bootstrap.ConfigRef != nil {
+		// If the expiry information is not available on the machine annotation
+		// look for it on the bootstrap config.
+		bootstrapConfig, err := external.Get(ctx, r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to reconcile certificates expiry")
+		}
+
+		// Check for certificate expiry information in the bootstrap config.
+		annotations = bootstrapConfig.GetAnnotations()
+		if expiry, ok := annotations[clusterv1.MachineCertificatesExpiryDateAnnotation]; ok {
+			expiryInfoFound = true
+			expiryTime, err := time.Parse(time.RFC3339, expiry)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile certificates expiry: failed to parse expiry date from annotation on %s", klog.KObj(bootstrapConfig))
+			}
+			expTime := metav1.NewTime(expiryTime)
+			m.Status.CertificatesExpiryDate = &expTime
+		}
+	}
+
+	// If the certificates expiry information is not fond on the machine
+	// and on the bootstrap config then reset machine.status.certificatesExpiryDate.
+	if !expiryInfoFound {
+		m.Status.CertificatesExpiryDate = nil
+	}
+
+	return ctrl.Result{}, nil
+}

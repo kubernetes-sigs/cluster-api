@@ -2481,6 +2481,12 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref common.Reference
 							Format:      "",
 						},
 					},
+					"certificatesExpiryDate": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CertificatesExpiryDate is the expiry date of the machine certificates. This value is only set for control plane machines.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
 					"bootstrapReady": {
 						SchemaProps: spec.SchemaProps{
 							Description: "BootstrapReady is the state of the bootstrap provider.",

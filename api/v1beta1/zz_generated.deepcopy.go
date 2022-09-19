@@ -1427,6 +1427,10 @@ func (in *MachineStatus) DeepCopyInto(out *MachineStatus) {
 		*out = make(MachineAddresses, len(*in))
 		copy(*out, *in)
 	}
+	if in.CertificatesExpiryDate != nil {
+		in, out := &in.CertificatesExpiryDate, &out.CertificatesExpiryDate
+		*out = (*in).DeepCopy()
+	}
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
 		*out = make(Conditions, len(*in))

@@ -2069,6 +2069,48 @@ func TestKubeadmConfigReconciler_ResolveUsers(t *testing.T) {
 	}
 }
 
+func TestKubeadmConfigReconciler_ReconcileCertificateExpiryTime(t *testing.T) {
+	fakeNow, _ := time.Parse(time.RFC3339, "2022-01-01T00:00:00Z")
+	now = func() time.Time {
+		return fakeNow
+	}
+	oneYearFromNow := "2023-01-01T00:00:00Z"
+	time2 := "2023-10-01T00:00:00Z"
+
+	tests := []struct {
+		name     string
+		cfg      *bootstrapv1.KubeadmConfig
+		wantTime string
+	}{
+		{
+			name:     "set the expiry time to one year from now if the expiry time is not set",
+			cfg:      &bootstrapv1.KubeadmConfig{},
+			wantTime: oneYearFromNow,
+		},
+		{
+			name: "do not change the expiry time if it is already set",
+			cfg: &bootstrapv1.KubeadmConfig{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.MachineCertificatesExpiryDateAnnotation: time2,
+					},
+				},
+			},
+			wantTime: time2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			k := &KubeadmConfigReconciler{}
+			k.addCertificateExpiryAnnotation(tt.cfg)
+			annotations := tt.cfg.GetAnnotations()
+			g.Expect(annotations[clusterv1.MachineCertificatesExpiryDateAnnotation]).To(Equal(tt.wantTime))
+		})
+	}
+}
+
 // test utils.
 
 // newWorkerMachineForCluster returns a Machine with the passed Cluster's information and a pre-configured name.

@@ -1248,6 +1248,7 @@ func autoConvert_v1beta1_MachineStatus_To_v1alpha3_MachineStatus(in *v1beta1.Mac
 	out.FailureMessage = (*string)(unsafe.Pointer(in.FailureMessage))
 	out.Addresses = *(*MachineAddresses)(unsafe.Pointer(&in.Addresses))
 	out.Phase = in.Phase
+	// WARNING: in.CertificatesExpiryDate requires manual conversion: does not exist in peer-type
 	out.BootstrapReady = in.BootstrapReady
 	out.InfrastructureReady = in.InfrastructureReady
 	out.ObservedGeneration = in.ObservedGeneration

@@ -277,6 +277,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		r.reconcileInfrastructure,
 		r.reconcileNode,
 		r.reconcileInterruptibleNodeLabel,
+		r.reconcileCertificateExpiry,
 	}
 
 	res := ctrl.Result{}

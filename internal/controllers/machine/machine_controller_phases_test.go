@@ -1100,3 +1100,236 @@ func TestReconcileInfrastructure(t *testing.T) {
 		})
 	}
 }
+
+func TestReconcileCertificateExpiry(t *testing.T) {
+	fakeTimeString := "2020-01-01T00:00:00Z"
+	fakeTime, _ := time.Parse(time.RFC3339, fakeTimeString)
+	fakeMetaTime := &metav1.Time{Time: fakeTime}
+
+	fakeTimeString2 := "2020-02-02T00:00:00Z"
+	fakeTime2, _ := time.Parse(time.RFC3339, fakeTimeString2)
+	fakeMetaTime2 := &metav1.Time{Time: fakeTime2}
+
+	bootstrapConfigWithExpiry := map[string]interface{}{
+		"kind":       "GenericBootstrapConfig",
+		"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+		"metadata": map[string]interface{}{
+			"name":      "bootstrap-config-with-expiry",
+			"namespace": metav1.NamespaceDefault,
+			"annotations": map[string]interface{}{
+				clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
+			},
+		},
+		"spec": map[string]interface{}{},
+		"status": map[string]interface{}{
+			"ready":          true,
+			"dataSecretName": "secret-data",
+		},
+	}
+
+	bootstrapConfigWithoutExpiry := map[string]interface{}{
+		"kind":       "GenericBootstrapConfig",
+		"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+		"metadata": map[string]interface{}{
+			"name":      "bootstrap-config-without-expiry",
+			"namespace": metav1.NamespaceDefault,
+		},
+		"spec": map[string]interface{}{},
+		"status": map[string]interface{}{
+			"ready":          true,
+			"dataSecretName": "secret-data",
+		},
+	}
+
+	tests := []struct {
+		name     string
+		machine  *clusterv1.Machine
+		expected func(g *WithT, m *clusterv1.Machine)
+	}{
+		{
+			name: "worker machine with certificate expiry annotation should not update expiry date",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-test-existing",
+					Namespace: metav1.NamespaceDefault,
+					Annotations: map[string]string{
+						clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{},
+				},
+			},
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.CertificatesExpiryDate).To(BeNil())
+			},
+		},
+		{
+			name: "control plane machine with no bootstrap config and no certificate expiry annotation should not set expiry date",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-test-existing",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabelName: "",
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{},
+				},
+			},
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.CertificatesExpiryDate).To(BeNil())
+			},
+		},
+		{
+			name: "control plane machine with bootstrap config and no certificate expiry annotation should not set expiry date",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-test-existing",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabelName: "",
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+							Kind:       "GenericBootstrapConfig",
+							Name:       "bootstrap-config-without-expiry",
+						},
+					},
+				},
+			},
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.CertificatesExpiryDate).To(BeNil())
+			},
+		},
+		{
+			name: "control plane machine with certificate expiry annotation in bootstrap config should set expiry date",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-test-existing",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabelName: "",
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+							Kind:       "GenericBootstrapConfig",
+							Name:       "bootstrap-config-with-expiry",
+						},
+					},
+				},
+			},
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.CertificatesExpiryDate).To(Equal(fakeMetaTime))
+			},
+		},
+		{
+			name: "control plane machine with certificate expiry annotation and no certificate expiry annotation on bootstrap config should set expiry date",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-test-existing",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabelName: "",
+					},
+					Annotations: map[string]string{
+						clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+							Kind:       "GenericBootstrapConfig",
+							Name:       "bootstrap-config-without-expiry",
+						},
+					},
+				},
+			},
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.CertificatesExpiryDate).To(Equal(fakeMetaTime))
+			},
+		},
+		{
+			name: "control plane machine with certificate expiry annotation in machine should take precedence over bootstrap config and should set expiry date",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-test-existing",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabelName: "",
+					},
+					Annotations: map[string]string{
+						clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString2,
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+							Kind:       "GenericBootstrapConfig",
+							Name:       "bootstrap-config-with-expiry",
+						},
+					},
+				},
+			},
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.CertificatesExpiryDate).To(Equal(fakeMetaTime2))
+			},
+		},
+		{
+			name: "reset certificates expiry information in machine status if the information is not available on the machine and the bootstrap config",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-test-existing",
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineControlPlaneLabelName: "",
+					},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+							Kind:       "GenericBootstrapConfig",
+							Name:       "bootstrap-config-without-expiry",
+						},
+					},
+				},
+				Status: clusterv1.MachineStatus{
+					CertificatesExpiryDate: fakeMetaTime,
+				},
+			},
+			expected: func(g *WithT, m *clusterv1.Machine) {
+				g.Expect(m.Status.CertificatesExpiryDate).To(BeNil())
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			r := &Reconciler{
+				Client: fake.NewClientBuilder().
+					WithObjects(
+						tc.machine,
+						&unstructured.Unstructured{Object: bootstrapConfigWithExpiry},
+						&unstructured.Unstructured{Object: bootstrapConfigWithoutExpiry},
+					).Build(),
+			}
+
+			_, _ = r.reconcileCertificateExpiry(ctx, nil, tc.machine)
+			if tc.expected != nil {
+				tc.expected(g, tc.machine)
+			}
+		})
+	}
+}

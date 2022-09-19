@@ -99,6 +99,7 @@ func (src *Machine) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.NodeDeletionTimeout = restored.Spec.NodeDeletionTimeout
 	dst.Status.NodeInfo = restored.Status.NodeInfo
+	dst.Status.CertificatesExpiryDate = restored.Status.CertificatesExpiryDate
 	return nil
 }
 

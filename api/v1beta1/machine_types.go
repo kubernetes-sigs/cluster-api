@@ -50,6 +50,12 @@ const (
 	// to pause reconciliation of deletion. These hooks will prevent removal of
 	// an instance from an infrastructure provider until all are removed.
 	PreTerminateDeleteHookAnnotationPrefix = "pre-terminate.delete.hook.machine.cluster.x-k8s.io"
+
+	// MachineCertificatesExpiryDateAnnotation annotation specifies the expiry date of the machine certificates in RFC3339 format.
+	// This annotation can be used on control plane machines to trigger rollout before certificates expire.
+	// This annotation can be set on BootstrapConfig or Machine objects. The value set on the Machine object takes precedence.
+	// This annotation can only be used on Control Plane Machines.
+	MachineCertificatesExpiryDateAnnotation = "machine.cluster.x-k8s.io/certificates-expiry"
 )
 
 // ANCHOR: MachineSpec
@@ -170,6 +176,11 @@ type MachineStatus struct {
 	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
 	Phase string `json:"phase,omitempty"`
+
+	// CertificatesExpiryDate is the expiry date of the machine certificates.
+	// This value is only set for control plane machines.
+	// +optional
+	CertificatesExpiryDate *metav1.Time `json:"certificatesExpiryDate,omitempty"`
 
 	// BootstrapReady is the state of the bootstrap provider.
 	// +optional

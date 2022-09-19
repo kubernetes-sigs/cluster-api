@@ -165,6 +165,53 @@ func TestShouldRolloutAfter(t *testing.T) {
 	})
 }
 
+func TestShouldRolloutBeforeCertificatesExpire(t *testing.T) {
+	reconciliationTime := &metav1.Time{Time: time.Now()}
+	t.Run("if rolloutBefore is nil it should return false", func(t *testing.T) {
+		g := NewWithT(t)
+		m := &clusterv1.Machine{}
+		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, nil)(m)).To(BeFalse())
+	})
+	t.Run("if rolloutBefore.certificatesExpiryDays is nil it should return false", func(t *testing.T) {
+		g := NewWithT(t)
+		m := &clusterv1.Machine{}
+		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, &controlplanev1.RolloutBefore{})(m)).To(BeFalse())
+	})
+	t.Run("if machine is nil it should return false", func(t *testing.T) {
+		g := NewWithT(t)
+		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: pointer.Int32(10)}
+		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(nil)).To(BeFalse())
+	})
+	t.Run("if the machine certificate expiry information is not available it should return false", func(t *testing.T) {
+		g := NewWithT(t)
+		m := &clusterv1.Machine{}
+		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: pointer.Int32(10)}
+		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(m)).To(BeFalse())
+	})
+	t.Run("if the machine certificates are not going to expire within the expiry time it should return false", func(t *testing.T) {
+		g := NewWithT(t)
+		certificateExpiryTime := reconciliationTime.Add(60 * 24 * time.Hour) // certificates will expire in 60 days from 'now'.
+		m := &clusterv1.Machine{
+			Status: clusterv1.MachineStatus{
+				CertificatesExpiryDate: &metav1.Time{Time: certificateExpiryTime},
+			},
+		}
+		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: pointer.Int32(10)}
+		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(m)).To(BeFalse())
+	})
+	t.Run("if machine certificates will expire within the expiry time then it should return true", func(t *testing.T) {
+		g := NewWithT(t)
+		certificateExpiryTime := reconciliationTime.Add(5 * 24 * time.Hour) // certificates will expire in 5 days from 'now'.
+		m := &clusterv1.Machine{
+			Status: clusterv1.MachineStatus{
+				CertificatesExpiryDate: &metav1.Time{Time: certificateExpiryTime},
+			},
+		}
+		rb := &controlplanev1.RolloutBefore{CertificatesExpiryDays: pointer.Int32(10)}
+		g.Expect(collections.ShouldRolloutBefore(reconciliationTime, rb)(m)).To(BeTrue())
+	})
+}
+
 func TestHashAnnotationKey(t *testing.T) {
 	t.Run("machine with specified annotation returns true", func(t *testing.T) {
 		g := NewWithT(t)

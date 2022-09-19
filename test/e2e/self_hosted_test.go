@@ -21,6 +21,7 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("When testing Cluster API working on self-hosted clusters", func() {
@@ -38,12 +39,29 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters", fun
 var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass [ClusterClass]", func() {
 	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
 		return SelfHostedSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			Flavor:                "topology",
+			E2EConfig:                e2eConfig,
+			ClusterctlConfigPath:     clusterctlConfigPath,
+			BootstrapClusterProxy:    bootstrapClusterProxy,
+			ArtifactFolder:           artifactFolder,
+			SkipCleanup:              skipCleanup,
+			Flavor:                   "topology",
+			ControlPlaneMachineCount: pointer.Int64Ptr(1),
+			WorkerMachineCount:       pointer.Int64Ptr(1),
+		}
+	})
+})
+
+var _ = Describe("When testing Cluster API working on self-hosted clusters using ClusterClass with a HA control plane [ClusterClass]", func() {
+	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
+		return SelfHostedSpecInput{
+			E2EConfig:                e2eConfig,
+			ClusterctlConfigPath:     clusterctlConfigPath,
+			BootstrapClusterProxy:    bootstrapClusterProxy,
+			ArtifactFolder:           artifactFolder,
+			SkipCleanup:              skipCleanup,
+			Flavor:                   "topology",
+			ControlPlaneMachineCount: pointer.Int64Ptr(3),
+			WorkerMachineCount:       pointer.Int64Ptr(1),
 		}
 	})
 })

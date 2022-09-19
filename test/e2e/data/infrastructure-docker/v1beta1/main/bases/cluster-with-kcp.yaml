@@ -59,6 +59,8 @@ spec:
       extraMounts:
         - containerPath: "/var/run/docker.sock"
           hostPath: "/var/run/docker.sock"
+      # The DOCKER_PRELOAD_IMAGES variable gets set in self-hosted E2E tests to the list of images of the E2E configuration.
+      preLoadImages: ${DOCKER_PRELOAD_IMAGES:-[]}
 ---
 # KubeadmControlPlane referenced by the Cluster object with
 # - the label kcp-adoption.step2, because it should be created in the second step of the kcp-adoption test.

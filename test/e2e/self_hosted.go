@@ -18,23 +18,22 @@ package e2e
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/test/e2e/internal/log"
 	"sigs.k8s.io/cluster-api/test/framework"
-	"sigs.k8s.io/cluster-api/test/framework/bootstrap"
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 )
@@ -48,6 +47,22 @@ type SelfHostedSpecInput struct {
 	SkipCleanup           bool
 	ControlPlaneWaiters   clusterctl.ControlPlaneWaiters
 	Flavor                string
+
+	// SkipUpgrade skip the upgrade of the self-hosted clusters kubernetes version.
+	// If true, the variable KUBERNETES_VERSION is expected to be set.
+	// If false, the variables KUBERNETES_VERSION_UPGRADE_FROM, KUBERNETES_VERSION_UPGRADE_TO,
+	// ETCD_VERSION_UPGRADE_TO and COREDNS_VERSION_UPGRADE_TO are expected to be set.
+	SkipUpgrade bool
+
+	// ControlPlaneMachineCount is used in `config cluster` to configure the count of the control plane machines used in the test.
+	// Default is 1.
+	ControlPlaneMachineCount *int64
+
+	// WorkerMachineCount is used in `config cluster` to configure the count of the worker machines used in the test.
+	// NOTE: If the WORKER_MACHINE_COUNT var is used multiple times in the cluster template, the absolute count of
+	// worker machines is a multiple of WorkerMachineCount.
+	// Default is 1.
+	WorkerMachineCount *int64
 }
 
 // SelfHostedSpec implements a test that verifies Cluster API creating a cluster, pivoting to a self-hosted cluster.
@@ -64,6 +79,11 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		selfHostedNamespace     *corev1.Namespace
 		selfHostedCancelWatches context.CancelFunc
 		selfHostedCluster       *clusterv1.Cluster
+
+		controlPlaneMachineCount int64
+		workerMachineCount       int64
+
+		kubernetesVersion string
 	)
 
 	BeforeEach(func() {
@@ -73,17 +93,60 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
-		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
+
+		if input.SkipUpgrade {
+			// Use KubernetesVersion if no upgrade step is defined by test input.
+			Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
+
+			kubernetesVersion = input.E2EConfig.GetVariable(KubernetesVersion)
+		} else {
+			Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersionUpgradeFrom))
+			Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersionUpgradeTo))
+			Expect(input.E2EConfig.Variables).To(HaveKey(EtcdVersionUpgradeTo))
+			Expect(input.E2EConfig.Variables).To(HaveKey(CoreDNSVersionUpgradeTo))
+
+			kubernetesVersion = input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom)
+		}
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
+
+		if input.ControlPlaneMachineCount == nil {
+			controlPlaneMachineCount = 1
+		} else {
+			controlPlaneMachineCount = *input.ControlPlaneMachineCount
+		}
+
+		if input.WorkerMachineCount == nil {
+			workerMachineCount = 1
+		} else {
+			workerMachineCount = *input.WorkerMachineCount
+		}
 	})
 
 	It("Should pivot the bootstrap cluster to a self-hosted cluster", func() {
 		By("Creating a workload cluster")
 
 		workloadClusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
+		clusterctlVariables := map[string]string{}
+
+		// In case the infrastructure-docker provider is installed, ensure to add the preload images variable to load the
+		// controller images into the nodes.
+		// NOTE: we are checking the bootstrap cluster and assuming the workload cluster will be on the same infrastructure provider.
+		// Also, given that we use it to set a variable, then it is up to cluster templates to use it or not.
+		hasDockerInfrastructureProvider := hasProvider(ctx, input.BootstrapClusterProxy.GetClient(), "infrastructure-docker")
+
+		// In case the infrastructure-docker provider is installed, ensure to add the preload images variable to load the
+		// controller images into the nodes.
+		if hasDockerInfrastructureProvider {
+			images := []string{}
+			for _, image := range input.E2EConfig.Images {
+				images = append(images, fmt.Sprintf("%q", image.Name))
+			}
+			clusterctlVariables["DOCKER_PRELOAD_IMAGES"] = `[` + strings.Join(images, ",") + `]`
+		}
+
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
@@ -94,9 +157,10 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				Flavor:                   input.Flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              workloadClusterName,
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: pointer.Int64Ptr(1),
-				WorkerMachineCount:       pointer.Int64Ptr(1),
+				KubernetesVersion:        kubernetesVersion,
+				ControlPlaneMachineCount: &controlPlaneMachineCount,
+				WorkerMachineCount:       &workerMachineCount,
+				ClusterctlVariables:      clusterctlVariables,
 			},
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
@@ -106,34 +170,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 
 		By("Turning the workload cluster into a management cluster")
 
-		// In case the cluster is a DockerCluster, we should load controller images into the nodes.
-		// Nb. this can be achieved also by changing the DockerMachine spec, but for the time being we are using
-		// this approach because this allows to have a single source of truth for images, the e2e config
-		// Nb. If the cluster is a managed topology cluster.Spec.InfrastructureRef will be nil till
-		// the cluster object is reconciled. Therefore, we always try to fetch the reconciled cluster object from
-		// the server to check if it is a DockerCluster.
 		cluster := clusterResources.Cluster
-		isDockerCluster := false
-		Eventually(func() error {
-			c := input.BootstrapClusterProxy.GetClient()
-			tmpCluster := &clusterv1.Cluster{}
-			if err := c.Get(ctx, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}, tmpCluster); err != nil {
-				return err
-			}
-			if tmpCluster.Spec.InfrastructureRef != nil {
-				isDockerCluster = tmpCluster.Spec.InfrastructureRef.Kind == "DockerCluster"
-				return nil
-			}
-			return errors.New("cluster object not yet reconciled")
-		}, "1m", "5s").Should(Succeed(), "Failed to get the Cluster %s", klog.KObj(cluster))
-
-		if isDockerCluster {
-			Expect(bootstrap.LoadImagesToKindCluster(ctx, bootstrap.LoadImagesToKindClusterInput{
-				Name:   cluster.Name,
-				Images: input.E2EConfig.Images,
-			})).To(Succeed())
-		}
-
 		// Get a ClusterBroker so we can interact with the workload cluster
 		selfHostedClusterProxy = input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
 
@@ -215,6 +252,94 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			return matchUnstructuredLists(preMoveMachineList, postMoveMachineList)
 		}, "3m", "30s").Should(BeTrue(), "Machines should not roll out after move to self-hosted cluster")
 
+		if input.SkipUpgrade {
+			// Only do upgrade step if defined by test input.
+			return
+		}
+
+		By("Upgrading the self-hosted Cluster")
+
+		if clusterResources.Cluster.Spec.Topology != nil {
+			// Cluster is using ClusterClass, upgrade via topology.
+			By("Upgrading the Cluster topology")
+			framework.UpgradeClusterTopologyAndWaitForUpgrade(ctx, framework.UpgradeClusterTopologyAndWaitForUpgradeInput{
+				ClusterProxy:                selfHostedClusterProxy,
+				Cluster:                     clusterResources.Cluster,
+				ControlPlane:                clusterResources.ControlPlane,
+				EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
+				DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
+				MachineDeployments:          clusterResources.MachineDeployments,
+				KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			})
+		} else {
+			// Cluster is not using ClusterClass, upgrade via individual resources.
+			By("Upgrading the Kubernetes control-plane")
+			var (
+				upgradeCPMachineTemplateTo      *string
+				upgradeWorkersMachineTemplateTo *string
+			)
+
+			if input.E2EConfig.HasVariable(CPMachineTemplateUpgradeTo) {
+				upgradeCPMachineTemplateTo = pointer.StringPtr(input.E2EConfig.GetVariable(CPMachineTemplateUpgradeTo))
+			}
+
+			if input.E2EConfig.HasVariable(WorkersMachineTemplateUpgradeTo) {
+				upgradeWorkersMachineTemplateTo = pointer.StringPtr(input.E2EConfig.GetVariable(WorkersMachineTemplateUpgradeTo))
+			}
+
+			framework.UpgradeControlPlaneAndWaitForUpgrade(ctx, framework.UpgradeControlPlaneAndWaitForUpgradeInput{
+				ClusterProxy:                selfHostedClusterProxy,
+				Cluster:                     clusterResources.Cluster,
+				ControlPlane:                clusterResources.ControlPlane,
+				EtcdImageTag:                input.E2EConfig.GetVariable(EtcdVersionUpgradeTo),
+				DNSImageTag:                 input.E2EConfig.GetVariable(CoreDNSVersionUpgradeTo),
+				KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+				UpgradeMachineTemplate:      upgradeCPMachineTemplateTo,
+				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			})
+
+			if workerMachineCount > 0 {
+				By("Upgrading the machine deployment")
+				framework.UpgradeMachineDeploymentsAndWait(ctx, framework.UpgradeMachineDeploymentsAndWaitInput{
+					ClusterProxy:                selfHostedClusterProxy,
+					Cluster:                     clusterResources.Cluster,
+					UpgradeVersion:              input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+					UpgradeMachineTemplate:      upgradeWorkersMachineTemplateTo,
+					MachineDeployments:          clusterResources.MachineDeployments,
+					WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+				})
+			}
+		}
+
+		// Only attempt to upgrade MachinePools if they were provided in the template.
+		if len(clusterResources.MachinePools) > 0 && workerMachineCount > 0 {
+			By("Upgrading the machinepool instances")
+			framework.UpgradeMachinePoolAndWait(ctx, framework.UpgradeMachinePoolAndWaitInput{
+				ClusterProxy:                   selfHostedClusterProxy,
+				Cluster:                        clusterResources.Cluster,
+				UpgradeVersion:                 input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+				WaitForMachinePoolToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
+				MachinePools:                   clusterResources.MachinePools,
+			})
+		}
+
+		By("Waiting until nodes are ready")
+		workloadProxy := selfHostedClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterResources.Cluster.Name)
+		workloadClient := workloadProxy.GetClient()
+		framework.WaitForNodesReady(ctx, framework.WaitForNodesReadyInput{
+			Lister:            workloadClient,
+			KubernetesVersion: input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+			Count:             int(clusterResources.ExpectedTotalNodes()),
+			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
+		})
+
 		By("PASSED!")
 	})
 
@@ -264,4 +389,18 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
+}
+
+func hasProvider(ctx context.Context, c client.Client, providerName string) bool {
+	providerList := clusterctlv1.ProviderList{}
+	Eventually(func() error {
+		return c.List(ctx, &providerList)
+	}, "1m", "5s").Should(Succeed(), "Failed to list the Providers")
+
+	for _, provider := range providerList.Items {
+		if provider.GetName() == providerName {
+			return true
+		}
+	}
+	return false
 }

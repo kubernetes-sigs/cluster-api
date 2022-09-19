@@ -309,7 +309,7 @@ func (o *objectGraph) objMetaToNode(obj *unstructured.Unstructured, n *node) {
 	}
 }
 
-// getDiscoveryTypes returns the list of TypeMeta to be considered for the the move discovery phase.
+// getDiscoveryTypes returns the list of TypeMeta to be considered for the move discovery phase.
 // This list includes all the types defines by the CRDs installed by clusterctl and the ConfigMap/Secret core types.
 func (o *objectGraph) getDiscoveryTypes() error {
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}

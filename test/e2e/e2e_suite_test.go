@@ -74,7 +74,7 @@ var (
 	// with the providers specified in the configPath.
 	clusterctlConfigPath string
 
-	// bootstrapClusterProvider manages provisioning of the the bootstrap cluster to be used for the e2e tests.
+	// bootstrapClusterProvider manages provisioning of the bootstrap cluster to be used for the e2e tests.
 	// Please note that provisioning will be skipped if e2e.use-existing-cluster is provided.
 	bootstrapClusterProvider bootstrap.ClusterProvider
 

@@ -234,7 +234,7 @@ func mirror(from Getter, targetCondition clusterv1.ConditionType, options ...Mir
 	return condition
 }
 
-// Aggregates all the the Ready condition from a list of dependent objects into the target object;
+// Aggregates all the Ready condition from a list of dependent objects into the target object;
 // if the Ready condition does not exists in one of the source object, the object is excluded from
 // the aggregation; if none of the source object have ready condition, no target conditions is generated.
 func aggregate(from []Getter, targetCondition clusterv1.ConditionType, options ...MergeOption) *clusterv1.Condition {

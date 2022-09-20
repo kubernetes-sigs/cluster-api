@@ -19,10 +19,13 @@ package machine
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -116,6 +119,17 @@ func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Clust
 		}
 	}
 
+	if !r.disableNodeLabelSync {
+		options := []client.PatchOption{
+			client.FieldOwner("capi-machine"),
+			client.ForceOwnership,
+		}
+		nodePatch := unstructuredNode(node.Name, node.UID, getManagedLabels(machine.Labels))
+		if err := remoteClient.Patch(ctx, nodePatch, client.Apply, options...); err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to apply patch label to the node")
+		}
+	}
+
 	// Do the remaining node health checks, then set the node health to true if all checks pass.
 	status, message := summarizeNodeConditions(node)
 	if status == corev1.ConditionFalse {
@@ -129,6 +143,37 @@ func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Clust
 
 	conditions.MarkTrue(machine, clusterv1.MachineNodeHealthyCondition)
 	return ctrl.Result{}, nil
+}
+
+// unstructuredNode returns a raw unstructured from Node input.
+func unstructuredNode(name string, uid types.UID, labels map[string]string) *unstructured.Unstructured {
+	obj := &unstructured.Unstructured{}
+	obj.SetAPIVersion("v1")
+	obj.SetKind("Node")
+	obj.SetName(name)
+	obj.SetUID(uid)
+	obj.SetLabels(labels)
+	return obj
+}
+
+// getManagedLabels gets a map[string]string and returns another map[string]string
+// filtering out labels not managed by CAPI.
+func getManagedLabels(labels map[string]string) map[string]string {
+	managedLabels := make(map[string]string)
+	for key, value := range labels {
+		dnsSubdomainOrName := strings.Split(key, "/")[0]
+		if dnsSubdomainOrName == clusterv1.NodeRoleLabelPrefix {
+			managedLabels[key] = value
+		}
+		if dnsSubdomainOrName == clusterv1.NodeRestrictionLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.NodeRestrictionLabelDomain) {
+			managedLabels[key] = value
+		}
+		if dnsSubdomainOrName == clusterv1.ManagedNodeLabelDomain || strings.HasSuffix(dnsSubdomainOrName, "."+clusterv1.ManagedNodeLabelDomain) {
+			managedLabels[key] = value
+		}
+	}
+
+	return managedLabels
 }
 
 // summarizeNodeConditions summarizes a Node's conditions and returns the summary of condition statuses and concatenate failed condition messages:

@@ -117,6 +117,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		r := &Reconciler{
+			disableNodeLabelSync: true,
 			Client: fake.NewClientBuilder().
 				WithScheme(scheme.Scheme).
 				WithObjects(defaultCluster,
@@ -155,6 +156,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		r := &Reconciler{
+			disableNodeLabelSync: true,
 			Client: fake.NewClientBuilder().
 				WithScheme(scheme.Scheme).
 				WithObjects(defaultCluster,
@@ -198,6 +200,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		machine.Status.LastUpdated = &lastUpdated
 
 		r := &Reconciler{
+			disableNodeLabelSync: true,
 			Client: fake.NewClientBuilder().
 				WithScheme(scheme.Scheme).
 				WithObjects(defaultCluster,
@@ -268,8 +271,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		node := &corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "machine-test-node",
-				Namespace: metav1.NamespaceDefault,
+				Name: "machine-test-node",
 			},
 			Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 		}
@@ -285,8 +287,9 @@ func TestReconcileMachinePhases(t *testing.T) {
 				defaultKubeconfigSecret,
 			).Build()
 		r := &Reconciler{
-			Client:  cl,
-			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			disableNodeLabelSync: true,
+			Client:               cl,
+			Tracker:              remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
@@ -334,8 +337,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		node := &corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "machine-test-node",
-				Namespace: metav1.NamespaceDefault,
+				Name: "machine-test-node",
 			},
 			Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 		}
@@ -351,8 +353,9 @@ func TestReconcileMachinePhases(t *testing.T) {
 				defaultKubeconfigSecret,
 			).Build()
 		r := &Reconciler{
-			Client:  cl,
-			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			disableNodeLabelSync: true,
+			Client:               cl,
+			Tracker:              remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
@@ -410,8 +413,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		machine.Status.LastUpdated = &lastUpdated
 		node := &corev1.Node{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "machine-test-node",
-				Namespace: metav1.NamespaceDefault,
+				Name: "machine-test-node",
 			},
 			Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
 		}
@@ -427,8 +429,9 @@ func TestReconcileMachinePhases(t *testing.T) {
 				defaultKubeconfigSecret,
 			).Build()
 		r := &Reconciler{
-			Client:  cl,
-			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			disableNodeLabelSync: true,
+			Client:               cl,
+			Tracker:              remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
@@ -487,8 +490,9 @@ func TestReconcileMachinePhases(t *testing.T) {
 			).Build()
 
 		r := &Reconciler{
-			Client:  cl,
-			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			disableNodeLabelSync: true,
+			Client:               cl,
+			Tracker:              remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machine)
@@ -568,9 +572,10 @@ func TestReconcileMachinePhases(t *testing.T) {
 				infraConfig,
 			).Build()
 		r := &Reconciler{
-			Client:   cl,
-			Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
-			recorder: record.NewFakeRecorder(32),
+			disableNodeLabelSync: true,
+			Client:               cl,
+			Tracker:              remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
+			recorder:             record.NewFakeRecorder(32),
 		}
 
 		res, err := r.reconcileDelete(ctx, defaultCluster, machine)
@@ -867,6 +872,7 @@ func TestReconcileBootstrap(t *testing.T) {
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
 			r := &Reconciler{
+				disableNodeLabelSync: true,
 				Client: fake.NewClientBuilder().
 					WithObjects(tc.machine,
 						builder.GenericBootstrapConfigCRD.DeepCopy(),
@@ -1077,6 +1083,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
 			r := &Reconciler{
+				disableNodeLabelSync: true,
 				Client: fake.NewClientBuilder().
 					WithObjects(tc.machine,
 						builder.GenericBootstrapConfigCRD.DeepCopy(),
@@ -1318,6 +1325,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 			g := NewWithT(t)
 
 			r := &Reconciler{
+				disableNodeLabelSync: true,
 				Client: fake.NewClientBuilder().
 					WithObjects(
 						tc.machine,

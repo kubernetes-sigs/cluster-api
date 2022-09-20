@@ -215,7 +215,7 @@ spec:
 <h1>Supported types</h1>
 
 The following basic types are supported: `string`, `integer`, `number` and `boolean`. We are also 
-supporting complex types, please see the [complex variables](#complex-variables) section.
+supporting complex types, please see the [complex variable types](#complex-variable-types) section.
 
 </aside>
 

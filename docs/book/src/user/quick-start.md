@@ -449,7 +449,7 @@ Please visit the [Metal3 project][Metal3 provider].
 {{#/tab }}
 {{#tab Nutanix}}
 
-Please follow the Cluster API Provider for [Nutanix Getting Started Guide](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/blob/main/docs/getting_started.md)
+Please follow the Cluster API Provider for [Nutanix Getting Started Guide](https://opendocs.nutanix.com/capx/latest/getting_started/)
 
 {{#/tab }}
 {{#tab OCI}}

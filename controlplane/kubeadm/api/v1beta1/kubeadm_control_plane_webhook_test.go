@@ -271,8 +271,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 					Namespace:  "foo",
 					Name:       "infraTemplate",
 				},
-				NodeDrainTimeout:    &metav1.Duration{Duration: time.Second},
-				NodeDeletionTimeout: &metav1.Duration{Duration: time.Second},
+				NodeDrainTimeout:        &metav1.Duration{Duration: time.Second},
+				NodeVolumeDetachTimeout: &metav1.Duration{Duration: time.Second},
+				NodeDeletionTimeout:     &metav1.Duration{Duration: time.Second},
 			},
 			Replicas: pointer.Int32Ptr(1),
 			RolloutStrategy: &RolloutStrategy{
@@ -398,6 +399,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.MachineTemplate.InfrastructureRef.APIVersion = "test/v1alpha2"
 	validUpdate.Spec.MachineTemplate.InfrastructureRef.Name = "orange"
 	validUpdate.Spec.MachineTemplate.NodeDrainTimeout = &metav1.Duration{Duration: 10 * time.Second}
+	validUpdate.Spec.MachineTemplate.NodeVolumeDetachTimeout = &metav1.Duration{Duration: 10 * time.Second}
 	validUpdate.Spec.MachineTemplate.NodeDeletionTimeout = &metav1.Duration{Duration: 10 * time.Second}
 	validUpdate.Spec.Replicas = pointer.Int32Ptr(5)
 	now := metav1.NewTime(time.Now())

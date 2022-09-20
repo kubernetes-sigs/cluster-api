@@ -1237,6 +1237,131 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 	}
 }
 
+func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
+	testCluster := &clusterv1.Cluster{
+		TypeMeta:   metav1.TypeMeta{Kind: "Cluster", APIVersion: clusterv1.GroupVersion.String()},
+		ObjectMeta: metav1.ObjectMeta{Namespace: metav1.NamespaceDefault, Name: "test-cluster"},
+	}
+
+	tests := []struct {
+		name     string
+		machine  *clusterv1.Machine
+		expected bool
+	}{
+		{
+			name: "Exclude wait node volume detaching annotation exists",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:        "test-machine",
+					Namespace:   metav1.NamespaceDefault,
+					Finalizers:  []string{clusterv1.MachineFinalizer},
+					Annotations: map[string]string{clusterv1.ExcludeWaitForNodeVolumeDetachAnnotation: "existed!!"},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{},
+			},
+			expected: false,
+		},
+		{
+			name: "Volume detach timeout is over",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:             "test-cluster",
+					InfrastructureRef:       corev1.ObjectReference{},
+					Bootstrap:               clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
+					NodeVolumeDetachTimeout: &metav1.Duration{Duration: time.Second * 30},
+				},
+
+				Status: clusterv1.MachineStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:               clusterv1.VolumeDetachSucceededCondition,
+							Status:             corev1.ConditionFalse,
+							LastTransitionTime: metav1.Time{Time: time.Now().Add(-(time.Second * 60)).UTC()},
+						},
+					},
+				},
+			},
+			expected: false,
+		},
+		{
+			name: "Volume detach timeout is not yet over",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:             "test-cluster",
+					InfrastructureRef:       corev1.ObjectReference{},
+					Bootstrap:               clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
+					NodeVolumeDetachTimeout: &metav1.Duration{Duration: time.Second * 60},
+				},
+				Status: clusterv1.MachineStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:               clusterv1.VolumeDetachSucceededCondition,
+							Status:             corev1.ConditionFalse,
+							LastTransitionTime: metav1.Time{Time: time.Now().Add(-(time.Second * 30)).UTC()},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+		{
+			name: "Volume detach timeout option is set to it's default value 0",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:       "test-machine",
+					Namespace:  metav1.NamespaceDefault,
+					Finalizers: []string{clusterv1.MachineFinalizer},
+				},
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       "test-cluster",
+					InfrastructureRef: corev1.ObjectReference{},
+					Bootstrap:         clusterv1.Bootstrap{DataSecretName: pointer.StringPtr("data")},
+				},
+				Status: clusterv1.MachineStatus{
+					Conditions: clusterv1.Conditions{
+						{
+							Type:               clusterv1.VolumeDetachSucceededCondition,
+							Status:             corev1.ConditionFalse,
+							LastTransitionTime: metav1.Time{Time: time.Now().Add(-(time.Second * 1000)).UTC()},
+						},
+					},
+				},
+			},
+			expected: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			var objs []client.Object
+			objs = append(objs, testCluster, tt.machine)
+
+			r := &Reconciler{
+				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+			}
+
+			got := r.isNodeVolumeDetachingAllowed(tt.machine)
+			g.Expect(got).To(Equal(tt.expected))
+		})
+	}
+}
+
 func TestIsDeleteNodeAllowed(t *testing.T) {
 	deletionts := metav1.Now()
 

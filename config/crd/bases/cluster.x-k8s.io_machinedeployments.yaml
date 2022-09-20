@@ -1316,6 +1316,12 @@ spec:
                           any time limitations. NOTE: NodeDrainTimeout is different
                           from `kubectl drain --timeout`'
                         type: string
+                      nodeVolumeDetachTimeout:
+                        description: NodeVolumeDetachTimeout is the total amount of
+                          time that the controller will spend on waiting for all volumes
+                          to be detached. The default value is 0, meaning that the
+                          volumes can be detached without any time limitations.
+                        type: string
                       providerID:
                         description: ProviderID is the identification ID of the machine
                           provided by the provider. This field must match the provider

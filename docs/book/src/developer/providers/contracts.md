@@ -20,13 +20,13 @@ Each value MUST point to an available version in your CRD Spec.
 The label allows Cluster API controllers to perform automatic conversions for object references, the controllers will pick the last available version in the list if multiple versions are found.
 To apply the label to CRDs it’s possible to use commonLabels in your kustomize.yaml file, usually in config/crd.
 
-In this example we show how to map a particular Cluster API contract version to your own CRD using Kustomize’s commonLabels feature:
+In this example we show how to map a particular Cluster API contract version to your own CRD using Kustomize’s `commonLabels` feature, in your `config/crd/kustomization.yaml`:
 
 ```yaml
 commonLabels:
-cluster.x-k8s.io/v1alpha2: v1alpha1
-cluster.x-k8s.io/v1alpha3: v1alpha2
-cluster.x-k8s.io/v1beta1:  v1beta1
+  cluster.x-k8s.io/v1alpha2: v1alpha1
+  cluster.x-k8s.io/v1alpha3: v1alpha2
+  cluster.x-k8s.io/v1beta1: v1beta1
 ```
 
 An example of this is in the [Kubeadm Bootstrap provider](https://github.com/kubernetes-sigs/cluster-api/blob/release-1.1/controlplane/kubeadm/config/crd/kustomization.yaml).

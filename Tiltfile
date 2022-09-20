@@ -191,18 +191,25 @@ tilt_helper_dockerfile_header = """
 FROM golang:1.19.0 as tilt-helper
 # Support live reloading with Tilt
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
-RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/restart.sh  && \
-    wget --output-document /start.sh --quiet https://raw.githubusercontent.com/windmilleng/rerun-process-wrapper/master/start.sh && \
-    chmod +x /start.sh && chmod +x /restart.sh && chmod +x /go/bin/dlv
+RUN wget --output-document /restart.sh --quiet https://raw.githubusercontent.com/tilt-dev/rerun-process-wrapper/master/restart.sh  && \
+    wget --output-document /start.sh --quiet https://raw.githubusercontent.com/tilt-dev/rerun-process-wrapper/master/start.sh && \
+    chmod +x /start.sh && chmod +x /restart.sh && chmod +x /go/bin/dlv && \
+    touch /process.txt && chmod 0777 /process.txt `# pre-create PID file to allow even non-root users to run the image`
 """
 
 tilt_dockerfile_header = """
 FROM gcr.io/distroless/base:debug as tilt
 WORKDIR /
+COPY --from=tilt-helper /process.txt .
 COPY --from=tilt-helper /start.sh .
 COPY --from=tilt-helper /restart.sh .
 COPY --from=tilt-helper /go/bin/dlv .
 COPY $binary_name .
+"""
+
+tilt_dockerfile_footer = """
+# Use same USER instruction as in kubebuilder-generated Dockerfile
+USER 65532:65532
 """
 
 def build_go_binary(context, reload_deps, debug, go_main, binary_name, label):
@@ -267,6 +274,7 @@ def build_docker_image(image, context, binary_name, additional_docker_build_comm
         additional_docker_helper_commands,
         tilt_dockerfile_header,
         additional_docker_build_commands,
+        tilt_dockerfile_footer,
     ])
 
     # Set up an image build for the provider. The live update configuration syncs the output from the local_resource

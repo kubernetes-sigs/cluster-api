@@ -12,7 +12,7 @@ workflow that offers easy deployments and rapid iterative builds.
 1. [Tilt](https://docs.tilt.dev/install.html): v0.22.2 or newer
 1. [kustomize](https://github.com/kubernetes-sigs/kustomize): provided via `make kustomize`
 1. [envsubst](https://github.com/drone/envsubst): provided via `make envsubst`
-1. [helm](https://github.com/helm/helm): v3.7.1 or newer 
+1. [helm](https://github.com/helm/helm): v3.7.1 or newer
 1. Clone the [Cluster API](https://github.com/kubernetes-sigs/cluster-api) repository
    locally
 1. Clone the provider(s) you want to deploy locally as well
@@ -349,6 +349,7 @@ A provider must supply a `tilt-provider.yaml` file describing how to build it. H
 name: aws
 config:
   image: "gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller",
+  label: CAPA
   live_reload_deps: ["main.go", "go.mod", "go.sum", "api", "cmd", "controllers", "pkg"]
   label: CAPA
 ```

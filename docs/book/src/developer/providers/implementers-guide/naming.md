@@ -44,7 +44,7 @@ identifies it.
 
 For example, our cluster object will be:
 ```yaml
-apiVersion: infrastructure.cluster.x-k8s.io/v1alpha3
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
 kind: MailgunCluster
 ```
 

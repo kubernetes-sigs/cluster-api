@@ -39,24 +39,33 @@ func (r *MailgunClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 
 ## RBAC Roles
 
-Those `// +kubebuilder...` lines tell kubebuilder to generate [RBAC] roles so the manager we're writing can access its own managed resources.
-We also need to add roles that will let it retrieve (but not modify) Cluster API objects.
-So we'll add another annotation for that:
+The `// +kubebuilder...` lines tell kubebuilder to generate [RBAC] roles so the manager we're writing can access its own managed resources. These should already exist in `controllers/mailguncluster_controller.go`:
 
-```
+```go
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=mailgunclusters,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io,resources=mailgunclusters/status,verbs=get;update;patch
+```
+
+We also need to add rules that will let it retrieve (but not modify) Cluster API objects.
+So we'll add another annotation for that, right below the other lines:
+
+```go
 // +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusters;clusters/status,verbs=get;list;watch
 ```
 
-Make sure to add the annotation to both `MailgunClusterReconciler` and `MailgunMachineReconciler`.
+Make sure to add this annotation to `MailgunClusterReconciler`.
+
+For `MailgunMachineReconciler`, access to Cluster API `Machine` object is needed, so you must add this annotation in `controllers/mailgunmachine_controller.go`:
+
+```go
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=machines;machines/status,verbs=get;list;watch
+```
 
 Regenerate the RBAC roles after you are done:
 
-```
+```bash
 make manifests
 ```
-
 
 [RBAC]: https://kubernetes.io/docs/reference/access-authn-authz/rbac/#role-and-clusterrole
 
@@ -90,7 +99,7 @@ func (r *MailgunClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, err
 	ctx := context.Background()
 	_ = r.Log.WithValues("mailguncluster", req.NamespacedName)
 
-	var cluster infrastructurev1alpha3.MailgunCluster
+	var cluster infrav1.MailgunCluster
 	if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
 		return ctrl.Result{}, err
 	}
@@ -103,7 +112,7 @@ By returning an error, we request that our controller will get `Reconcile()` cal
 That may not always be what we want - what if the object's been deleted? So let's check that:
 
 ```
-var cluster infrastructurev1alpha3.MailgunCluster
+var cluster infrav1.MailgunCluster
 if err := r.Get(ctx, req.NamespacedName, &cluster); err != nil {
     // 	import apierrors "k8s.io/apimachinery/pkg/api/errors"
     if apierrors.IsNotFound(err) {
@@ -198,7 +207,7 @@ if err := helper.Patch(ctx, &mgCluster); err != nil {
 return ctrl.Result{}, nil
 ```
 
-[cluster]: https://godoc.org/sigs.k8s.io/cluster-api/api/v1alpha3#Cluster
+[cluster]: https://godoc.org/sigs.k8s.io/cluster-api/api/v1beta1#Cluster
 [getowner]: https://godoc.org/sigs.k8s.io/cluster-api/util#GetOwnerMachine
 [idempotent]: https://stackoverflow.com/questions/1077412/what-is-an-idempotent-operation
 

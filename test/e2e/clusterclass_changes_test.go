@@ -54,7 +54,9 @@ var _ = Describe("When testing ClusterClass changes [ClusterClass]", func() {
 						"hostPath":      "/var/run/docker.sock",
 					},
 					map[string]interface{}{
-						"containerPath": "/tmp",
+						// /tmp cannot be used as containerPath as
+						// it already exists.
+						"containerPath": "/test",
 						"hostPath":      "/tmp",
 					},
 				},

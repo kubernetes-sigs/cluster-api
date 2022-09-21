@@ -124,7 +124,7 @@ func init() {
 
 	// flags for the url source
 	generateClusterClusterCmd.Flags().StringVar(&gc.url, "from", "",
-		"The URL to read the workload cluster template from. If unspecified, the infrastructure provider repository URL will be used")
+		"The URL to read the workload cluster template from. If unspecified, the infrastructure provider repository URL will be used. If set to '-', the workload cluster template is read from stdin.")
 
 	// flags for the config map source
 	generateClusterClusterCmd.Flags().StringVar(&gc.configMapName, "from-config-map", "",

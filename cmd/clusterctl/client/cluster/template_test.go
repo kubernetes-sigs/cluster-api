@@ -310,7 +310,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 	// redirect stdin
 	saveStdin := os.Stdin
 	defer func() { os.Stdin = saveStdin }()
-	os.Stdin, err = os.Open(path)
+	os.Stdin, err = os.Open(path) //nolint:gosec
 	g.Expect(err).NotTo(HaveOccurred())
 
 	type args struct {

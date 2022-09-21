@@ -278,28 +278,35 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 
 	// if the machine isn't bootstrapped, only then run bootstrap scripts
 	if !machineStatus.Bootstrapped {
-		log.Info("Bootstrapping instance", "instance", machine.Name())
-		if err := externalMachine.PreloadLoadImages(ctx, np.dockerMachinePool.Spec.Template.PreLoadImages); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to pre-load images into the docker machine with instance name %s", machine.Name())
-		}
-
-		bootstrapData, format, err := getBootstrapData(ctx, np.client, np.machinePool)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to get bootstrap data for instance named %s", machine.Name())
-		}
-
-		timeoutctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+		timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 		defer cancel()
-		// Run the bootstrap script. Simulates cloud-init/Ignition.
-		if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData, format); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to exec DockerMachinePool instance bootstrap for instance named %s", machine.Name())
-		}
-		// Check for bootstrap success
-		if err := externalMachine.CheckForBootstrapSuccess(timeoutctx); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to check for existence of bootstrap success file at /run/cluster-api/bootstrap-success.complete")
-		}
 
+		// Check for bootstrap success
+		// We have to check here to make this reentrant for cases where the bootstrap works
+		// but bootstrapped is never set on the object. We only try to bootstrap if the machine
+		// is not already bootstrapped.
+		if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, false); err != nil {
+			log.Info("Bootstrapping instance", "instance", machine.Name())
+			if err := externalMachine.PreloadLoadImages(timeoutCtx, np.dockerMachinePool.Spec.Template.PreLoadImages); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to pre-load images into the docker machine with instance name %s", machine.Name())
+			}
+
+			bootstrapData, format, err := getBootstrapData(timeoutCtx, np.client, np.machinePool)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to get bootstrap data for instance named %s", machine.Name())
+			}
+
+			// Run the bootstrap script. Simulates cloud-init/Ignition.
+			if err := externalMachine.ExecBootstrap(timeoutCtx, bootstrapData, format); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to exec DockerMachinePool instance bootstrap for instance named %s", machine.Name())
+			}
+			// Check for bootstrap success
+			if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, true); err != nil {
+				return ctrl.Result{}, errors.Wrap(err, "failed to check for existence of bootstrap success file at /run/cluster-api/bootstrap-success.complete")
+			}
+		}
 		machineStatus.Bootstrapped = true
+
 		// return to surface the machine has been bootstrapped.
 		return ctrl.Result{Requeue: true}, nil
 	}

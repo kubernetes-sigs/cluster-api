@@ -355,7 +355,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstr
 		}
 		err := cmd.Run(ctx)
 		if err != nil {
-			log.Info("Failed running command", "command", command, "stdout", outStd.String(), "stderr", outErr.String(), "bootstrap data", data)
+			log.Info("Failed running command", "instance", m.Name(), "command", command, "stdout", outStd.String(), "stderr", outErr.String(), "bootstrap data", data)
 			logContainerDebugInfo(ctx, log, m.ContainerName())
 			return errors.Wrap(errors.WithStack(err), "failed to run cloud config")
 		}
@@ -365,7 +365,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstr
 }
 
 // CheckForBootstrapSuccess checks if bootstrap was successful by checking for existence of the sentinel file.
-func (m *Machine) CheckForBootstrapSuccess(ctx context.Context) error {
+func (m *Machine) CheckForBootstrapSuccess(ctx context.Context, logResult bool) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if m.container == nil {
@@ -378,7 +378,9 @@ func (m *Machine) CheckForBootstrapSuccess(ctx context.Context) error {
 	cmd.SetStderr(&outErr)
 	cmd.SetStdout(&outStd)
 	if err := cmd.Run(ctx); err != nil {
-		log.Info("Failed running command", "command", "test -f /run/cluster-api/bootstrap-success.complete", "stdout", outStd.String(), "stderr", outErr.String())
+		if logResult {
+			log.Info("Failed running command", "command", "test -f /run/cluster-api/bootstrap-success.complete", "stdout", outStd.String(), "stderr", outErr.String())
+		}
 		return errors.Wrap(errors.WithStack(err), "failed to run bootstrap check")
 	}
 	return nil

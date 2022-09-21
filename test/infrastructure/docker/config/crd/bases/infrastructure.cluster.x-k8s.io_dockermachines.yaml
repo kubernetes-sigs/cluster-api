@@ -346,8 +346,9 @@ spec:
             description: DockerMachineSpec defines the desired state of DockerMachine.
             properties:
               bootstrapped:
-                description: Bootstrapped is true when the kubeadm bootstrapping has
-                  been run against this machine
+                description: 'Bootstrapped is true when the kubeadm bootstrapping
+                  has been run against this machine Deprecated: This field will be
+                  removed in the next apiVersion.'
                 type: boolean
               customImage:
                 description: CustomImage allows customizing the container image that

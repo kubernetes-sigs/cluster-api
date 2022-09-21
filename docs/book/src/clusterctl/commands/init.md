@@ -181,7 +181,7 @@ If this happens, there are no guarantees about the proper functioning of `cluste
 
 Cluster API providers require a cert-manager version supporting the `cert-manager.io/v1` API to be installed in the cluster.
 
-While doing init, clusterctl checks if there is a version of cert-manager already installed. If not, clusterctl will 
+While doing init, clusterctl checks if there is a version of cert-manager already installed. If not, clusterctl will
 install a default version (currently cert-manager v1.9.1). See [clusterctl configuration](../configuration.md) for
 available options to customize this operation.
 
@@ -190,8 +190,11 @@ available options to customize this operation.
 <h1>Warning</h1>
 
 Please note that, if clusterctl installs cert-manager, it will take care of its lifecycle, eventually upgrading it
-during clusterctl upgrade. Instead, if cert-manager is provided by the users, the user is responsible for 
+during clusterctl upgrade. Instead, if cert-manager is provided by the users, the user is responsible for
 upgrading this component when required.
 
 </aside>
 
+## Avoiding GitHub rate limiting
+
+Follow [this](../overview.md#avoiding-github-rate-limiting)

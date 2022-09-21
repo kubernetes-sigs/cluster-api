@@ -95,6 +95,10 @@ If no value is specified, or the format is invalid, the default value of 10 minu
 
 Please note that the configuration above will be considered also when doing `clusterctl upgrade plan` or `clusterctl upgrade plan`.
 
+## Avoiding GitHub rate limiting
+
+Follow [this](./overview.md#avoiding-github-rate-limiting)
+
 ## Overrides Layer
 
 <aside class="note warning">

@@ -207,11 +207,6 @@ COPY --from=tilt-helper /go/bin/dlv .
 COPY $binary_name .
 """
 
-tilt_dockerfile_footer = """
-# Use same USER instruction as in kubebuilder-generated Dockerfile
-USER 65532:65532
-"""
-
 def build_go_binary(context, reload_deps, debug, go_main, binary_name, label):
     # Set up a local_resource build of a go binary. The target repo is expected to have a main.go in
     # the context path or the main.go must be provided via go_main option. The binary is written to .tiltbuild/bin/{$binary_name}.
@@ -274,7 +269,6 @@ def build_docker_image(image, context, binary_name, additional_docker_build_comm
         additional_docker_helper_commands,
         tilt_dockerfile_header,
         additional_docker_build_commands,
-        tilt_dockerfile_footer,
     ])
 
     # Set up an image build for the provider. The live update configuration syncs the output from the local_resource

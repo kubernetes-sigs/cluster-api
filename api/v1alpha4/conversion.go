@@ -125,6 +125,8 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Workers.MachineDeployments[i].MachineHealthCheck = restored.Spec.Workers.MachineDeployments[i].MachineHealthCheck
 	}
 
+	dst.Status = restored.Status
+
 	return nil
 }
 
@@ -351,4 +353,9 @@ func Convert_v1beta1_ControlPlaneTopology_To_v1alpha4_ControlPlaneTopology(in *c
 func Convert_v1beta1_MachineStatus_To_v1alpha4_MachineStatus(in *clusterv1.MachineStatus, out *MachineStatus, s apiconversion.Scope) error {
 	// MachineStatus.CertificatesExpiryDate has been added in v1beta1.
 	return autoConvert_v1beta1_MachineStatus_To_v1alpha4_MachineStatus(in, out, s)
+}
+
+func Convert_v1beta1_ClusterClass_To_v1alpha4_ClusterClass(in *clusterv1.ClusterClass, out *ClusterClass, s apiconversion.Scope) error {
+	// ClusterClass.Status has been added in v1beta1.
+	return autoConvert_v1beta1_ClusterClass_To_v1alpha4_ClusterClass(in, out, s)
 }

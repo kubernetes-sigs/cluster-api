@@ -28,6 +28,7 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=clusterclasses,shortName=cc,scope=Namespaced,categories=cluster-api
 // +kubebuilder:storageversion
+// +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterClass"
 
 // ClusterClass is a template which can be used to create managed topologies.
@@ -35,7 +36,8 @@ type ClusterClass struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec ClusterClassSpec `json:"spec,omitempty"`
+	Spec   ClusterClassSpec   `json:"spec,omitempty"`
+	Status ClusterClassStatus `json:"status,omitempty"`
 }
 
 // ClusterClassSpec describes the desired state of the ClusterClass.
@@ -474,6 +476,27 @@ type LocalObjectTemplate struct {
 	// offered by a provider.
 	Ref *corev1.ObjectReference `json:"ref"`
 }
+
+// ANCHOR: ClusterClassStatus
+
+// ClusterClassStatus defines the observed state of the ClusterClass.
+type ClusterClassStatus struct {
+	// Conditions defines current observed state of the ClusterClass.
+	// +optional
+	Conditions Conditions `json:"conditions,omitempty"`
+}
+
+// GetConditions returns the set of conditions for this object.
+func (c *ClusterClass) GetConditions() Conditions {
+	return c.Status.Conditions
+}
+
+// SetConditions sets the conditions on this object.
+func (c *ClusterClass) SetConditions(conditions Conditions) {
+	c.Status.Conditions = conditions
+}
+
+// ANCHOR_END: ClusterClassStatus
 
 // +kubebuilder:object:root=true
 

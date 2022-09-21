@@ -6,6 +6,8 @@
 <img src="https://img.shields.io/badge/join%20slack-%23cluster--api-brightgreen"></a>
 </p>
 
+Testing linter
+
 # Cluster API
 
 ### 👋 Welcome to our project! Our [Book](https://cluster-api.sigs.k8s.io) can help you get started and provides lots of in-depth information.

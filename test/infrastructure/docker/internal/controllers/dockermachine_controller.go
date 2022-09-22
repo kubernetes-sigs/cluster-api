@@ -288,25 +288,31 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 
 	// if the machine isn't bootstrapped, only then run bootstrap scripts
 	if !dockerMachine.Spec.Bootstrapped {
-		bootstrapData, format, err := r.getBootstrapData(ctx, machine)
-		if err != nil {
-			log.Error(err, "failed to get bootstrap data")
-			return ctrl.Result{}, err
-		}
-
-		timeoutctx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+		timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 		defer cancel()
-		// Run the bootstrap script. Simulates cloud-init/Ignition.
-		if err := externalMachine.ExecBootstrap(timeoutctx, bootstrapData, format); err != nil {
-			conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
-			return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
-		}
-		// Check for bootstrap success
-		if err := externalMachine.CheckForBootstrapSuccess(timeoutctx); err != nil {
-			conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
-			return ctrl.Result{}, errors.Wrap(err, "failed to check for existence of bootstrap success file at /run/cluster-api/bootstrap-success.complete")
-		}
 
+		// Check for bootstrap success
+		// We have to check here to make this reentrant for cases where the bootstrap works
+		// but bootstrapped is never set on the object. We only try to bootstrap if the machine
+		// is not already bootstrapped.
+		if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, false); err != nil {
+			bootstrapData, format, err := r.getBootstrapData(timeoutCtx, machine)
+			if err != nil {
+				log.Error(err, "failed to get bootstrap data")
+				return ctrl.Result{}, err
+			}
+
+			// Run the bootstrap script. Simulates cloud-init/Ignition.
+			if err := externalMachine.ExecBootstrap(timeoutCtx, bootstrapData, format); err != nil {
+				conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
+				return ctrl.Result{}, errors.Wrap(err, "failed to exec DockerMachine bootstrap")
+			}
+			// Check for bootstrap success
+			if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, true); err != nil {
+				conditions.MarkFalse(dockerMachine, infrav1.BootstrapExecSucceededCondition, infrav1.BootstrapFailedReason, clusterv1.ConditionSeverityWarning, "Repeating bootstrap")
+				return ctrl.Result{}, errors.Wrap(err, "failed to check for existence of bootstrap success file at /run/cluster-api/bootstrap-success.complete")
+			}
+		}
 		dockerMachine.Spec.Bootstrapped = true
 	}
 

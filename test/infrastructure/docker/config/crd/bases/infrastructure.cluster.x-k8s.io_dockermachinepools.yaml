@@ -527,8 +527,9 @@ spec:
                         type: object
                       type: array
                     bootstrapped:
-                      description: Bootstrapped is true when the kubeadm bootstrapping
-                        has been run against this machine
+                      description: 'Bootstrapped is true when the kubeadm bootstrapping
+                        has been run against this machine Deprecated: This field will
+                        be removed in the next apiVersion.'
                       type: boolean
                     instanceName:
                       description: InstanceName is the identification of the Machine

@@ -51,6 +51,7 @@ type DockerMachineSpec struct {
 
 	// Bootstrapped is true when the kubeadm bootstrapping has been run
 	// against this machine
+	// Deprecated: This field will be removed in the next apiVersion.
 	// +optional
 	Bootstrapped bool `json:"bootstrapped,omitempty"`
 }

@@ -112,6 +112,7 @@ test-extension-deployment: $(KUSTOMIZE) ## Generate deployment for test extensio
 GINKGO_FOCUS ?=
 GINKGO_SKIP ?=
 GINKGO_NODES ?= 1
+GINKGO_TIMEOUT ?= 2h
 E2E_CONF_FILE ?= ${REPO_ROOT}/test/e2e/config/docker.yaml
 ARTIFACTS ?= ${REPO_ROOT}/_artifacts
 SKIP_RESOURCE_CLEANUP ?= false
@@ -125,7 +126,7 @@ endif
 
 .PHONY: run
 run: $(GINKGO) cluster-templates test-extension-deployment ## Run the end-to-end tests
-	$(GINKGO) -v --trace --tags=e2e --focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) --nodes=$(GINKGO_NODES) --no-color=$(GINKGO_NOCOLOR) --output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" $(GINKGO_ARGS) . -- \
+	$(GINKGO) -v --trace --tags=e2e --focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) --nodes=$(GINKGO_NODES) --timeout=$(GINKGO_TIMEOUT) --no-color=$(GINKGO_NOCOLOR) --output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" $(GINKGO_ARGS) . -- \
 	    -e2e.artifacts-folder="$(ARTIFACTS)" \
 	    -e2e.config="$(E2E_CONF_FILE)" \
 	    -e2e.skip-resource-cleanup=$(SKIP_RESOURCE_CLEANUP) -e2e.use-existing-cluster=$(USE_EXISTING_CLUSTER)

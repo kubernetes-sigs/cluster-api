@@ -1,1 +1,10 @@
 # Placeholder for loki chart configuration, see https://github.com/grafana/helm-charts/tree/main/charts/loki
+
+# Set high ingestion limits so log-push can push logs without hitting the rate limits:
+# Push response: status: "429 Too Many Requests", body: "Ingestion rate limit exceeded for user fake (limit:
+# 4194304 bytes/sec) while attempting to ingest '1000' lines totaling '755293' bytes, reduce log volume or
+# contact your Loki administrator to see if the limit can be increased"
+config:
+  limits_config:
+    ingestion_rate_mb: 1024
+    ingestion_burst_size_mb: 1024

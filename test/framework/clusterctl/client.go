@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -315,11 +316,17 @@ func Move(ctx context.Context, input MoveInput) {
 	Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling Move")
 	Expect(input.FromKubeconfigPath).To(BeAnExistingFile(), "Invalid argument. input.FromKubeconfigPath must be an existing file when calling Move")
 	Expect(input.ToKubeconfigPath).To(BeAnExistingFile(), "Invalid argument. input.ToKubeconfigPath must be an existing file when calling Move")
-	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for Move")
+	logDir := path.Join(input.LogFolder, "logs", input.Namespace)
+	Expect(os.MkdirAll(logDir, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for Move")
 
 	By("Moving workload clusters")
+	log.Logf("clusterctl move --from-kubeconfig %s --to-kubeconfig %s --namespace %s",
+		input.FromKubeconfigPath,
+		input.ToKubeconfigPath,
+		input.Namespace,
+	)
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-move.log", input.LogFolder)
+	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-move.log", logDir)
 	defer log.Close()
 	options := clusterctlclient.MoveOptions{
 		FromKubeconfig: clusterctlclient.Kubeconfig{Path: input.FromKubeconfigPath, Context: ""},
@@ -331,7 +338,7 @@ func Move(ctx context.Context, input MoveInput) {
 }
 
 func getClusterctlClientWithLogger(configPath, logName, logFolder string) (clusterctlclient.Client, *logger.LogFile) {
-	log := logger.CreateLogFile(logger.CreateLogFileInput{
+	log := logger.OpenLogFile(logger.OpenLogFileInput{
 		LogFolder: logFolder,
 		Name:      logName,
 	})

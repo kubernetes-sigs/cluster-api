@@ -27,7 +27,7 @@ type CertManager interface {
 	Version() string
 
 	// Timeout returns the timeout for cert-manager to start.
-	// If empty, 10m will will be used.
+	// If empty, 10m will be used.
 	Timeout() string
 }
 

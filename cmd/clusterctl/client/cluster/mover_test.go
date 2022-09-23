@@ -706,7 +706,7 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 				// Add delay so we ensure the file ModTime of updated files is different from old ones in the original files
 				time.Sleep(time.Millisecond * 50)
 
-				// Running backupTargetObject should override any existing files since it represents a new backup
+				// Running backupTargetObject should override any existing files since it represents a new toDirectory
 				err = mover.backupTargetObject(node, dir)
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
@@ -855,7 +855,7 @@ func Test_objectMover_backup(t *testing.T) {
 			// trigger discovery the content of the source cluster
 			g.Expect(graph.Discovery("")).To(Succeed())
 
-			// Run backup
+			// Run toDirectory
 			mover := objectMover{
 				fromProxy: graph.proxy,
 			}
@@ -866,7 +866,7 @@ func Test_objectMover_backup(t *testing.T) {
 			}
 			defer os.RemoveAll(dir)
 
-			err = mover.backup(graph, dir)
+			err = mover.toDirectory(graph, dir)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -996,7 +996,7 @@ func Test_objectMover_restore(t *testing.T) {
 			// gets a fakeProxy to an empty cluster with all the required CRDs
 			toProxy := getFakeProxyWithCRDs()
 
-			// Run restore
+			// Run fromDirectory
 			mover := objectMover{
 				fromProxy: graph.proxy,
 			}
@@ -1018,14 +1018,14 @@ func Test_objectMover_restore(t *testing.T) {
 				g.Expect(graph.addRestoredObj(&objs[i])).NotTo(HaveOccurred())
 			}
 
-			// restore works on the target cluster which does not yet have objs to discover
+			// fromDirectory works on the target cluster which does not yet have objs to discover
 			// instead set the owners and tenants correctly on object graph like how ObjectMover.Restore does
 			// https://github.com/kubernetes-sigs/cluster-api/blob/main/cmd/clusterctl/client/cluster/mover.go#L129-L132
 			graph.setSoftOwnership()
 			graph.setTenants()
 			graph.checkVirtualNode()
 
-			err = mover.restore(graph, toProxy)
+			err = mover.fromDirectory(graph, toProxy)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

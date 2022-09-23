@@ -1,5 +1,7 @@
 # clusterctl backup
 
+**DEPRECATED. Please use `clusterctl move --to-directory` instead.**
+
 Backup Cluster API objects and all dependencies from a management cluster.
 
 # clusterctl config repositories
@@ -15,6 +17,8 @@ Help provides help for any command in the application.
 Simply type `clusterctl help [command]` for full details.
 
 # clusterctl restore
+
+**DEPRECATED. Please use `clusterctl move --from-directory` instead.**
 
 Restore Cluster API objects from file by glob. Object files are searched in the default config directory
 or in the provided directory.

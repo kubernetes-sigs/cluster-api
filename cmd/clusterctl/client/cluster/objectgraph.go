@@ -82,7 +82,7 @@ type node struct {
 	// the node is linked to a object indirectly in the OwnerReference chain.
 	tenant map[*node]empty
 
-	// restoreObject holds the object that is referenced when creating a node during restore from file.
+	// restoreObject holds the object that is referenced when creating a node during fromDirectory from file.
 	// the object can then be referenced latter when restoring objects to a target management cluster
 	restoreObject *unstructured.Unstructured
 
@@ -179,8 +179,8 @@ func (o *objectGraph) addObj(obj *unstructured.Unstructured) error {
 	return nil
 }
 
-// addRestoredObj adds a Kubernetes object to the object graph from file that is generated during a restore
-// Populates the restoredObject field to be referenced during restore
+// addRestoredObj adds a Kubernetes object to the object graph from file that is generated during a fromDirectory
+// Populates the restoredObject field to be referenced during fromDirectory
 // During add, OwnerReferences are processed in order to create the dependency graph.
 func (o *objectGraph) addRestoredObj(obj *unstructured.Unstructured) error {
 	// Add object to graph

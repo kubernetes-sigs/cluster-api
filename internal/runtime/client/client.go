@@ -400,16 +400,6 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 		return errors.New("http call failed: opts.Catalog cannot be nil")
 	}
 
-	extensionURL, err := urlForExtension(opts.config, opts.registrationGVH, opts.name)
-	if err != nil {
-		return errors.Wrap(err, "http call failed")
-	}
-
-	// Observe request duration metric.
-	start := time.Now()
-	defer func() {
-		runtimemetrics.RequestDuration.Observe(opts.hookGVH, *extensionURL, time.Since(start))
-	}()
 	requireConversion := opts.registrationGVH.Version != opts.hookGVH.Version
 
 	requestLocal := request
@@ -450,6 +440,27 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	if err != nil {
 		return errors.Wrap(err, "http call failed: failed to marshall request object")
 	}
+
+	// Here we create the target URL that is used to make the HTTP call.
+	// Potentially we can have a runtimeClient.httpCallExtension func (method, url, body) (runtimeClient.response) {} method.
+	//
+	// This will have a default method that does what we are doing right now.
+	// But we will provide a way to inject a different runtimeClient.httpCallExtension with something like runtimeClient.InjectExtensionCaller()
+	//
+	// If we are in clusterctl topology plan when creating the runtimeClient we provide a custom httpCallExtension method
+	// that makes the calls through proxy if the extension is a service ref and calls the URL directly if url is provided.
+	//
+	// NOTE: What about certificates? How are certificates working in proxy setup?
+	extensionURL, err := urlForExtension(opts.config, opts.registrationGVH, opts.name)
+	if err != nil {
+		return errors.Wrap(err, "http call failed")
+	}
+
+	// Observe request duration metric.
+	start := time.Now()
+	defer func() {
+		runtimemetrics.RequestDuration.Observe(opts.hookGVH, *extensionURL, time.Since(start))
+	}()
 
 	if opts.timeout != 0 {
 		// Make the call time-bound if timeout is non-zero value.

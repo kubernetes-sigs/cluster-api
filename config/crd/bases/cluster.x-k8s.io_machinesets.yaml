@@ -129,7 +129,7 @@ spec:
               template:
                 description: Template is the object that describes the machine that
                   will be created if insufficient replicas are detected. Object references
-                  to custom resources resources are treated as templates.
+                  to custom resources are treated as templates.
                 properties:
                   metadata:
                     description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
@@ -575,7 +575,7 @@ spec:
               template:
                 description: Template is the object that describes the machine that
                   will be created if insufficient replicas are detected. Object references
-                  to custom resources resources are treated as templates.
+                  to custom resources are treated as templates.
                 properties:
                   metadata:
                     description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
@@ -979,7 +979,7 @@ spec:
               template:
                 description: Template is the object that describes the machine that
                   will be created if insufficient replicas are detected. Object references
-                  to custom resources resources are treated as templates.
+                  to custom resources are treated as templates.
                 properties:
                   metadata:
                     description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'

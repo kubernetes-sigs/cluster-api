@@ -42,7 +42,7 @@ Use Level 0 (the default, if you don't specify a level) for the most important u
 
 Use logging Levels 1 providing more info about the command's internal workflow.
 
-Use logging Levels 5 for for providing all the information required for debug purposes/problem investigation.
+Use logging Levels 5 for providing all the information required for debug purposes/problem investigation.
 
 Logging WithValues:
 

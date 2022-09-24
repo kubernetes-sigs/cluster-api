@@ -59,7 +59,7 @@ type Proxy interface {
 	// NewClient returns a new controller runtime Client object for working on the management cluster.
 	NewClient() (client.Client, error)
 
-	// CheckClusterAvailable checks if a a cluster is available and reachable.
+	// CheckClusterAvailable checks if a cluster is available and reachable.
 	CheckClusterAvailable() error
 
 	// ListResources lists namespaced and cluster-wide resources for a component matching the labels. Namespaced resources are only listed

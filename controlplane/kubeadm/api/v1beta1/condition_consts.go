@@ -27,7 +27,7 @@ const (
 
 const (
 	// CertificatesAvailableCondition documents that cluster certificates were generated as part of the
-	// processing of a a KubeadmControlPlane object.
+	// processing of a KubeadmControlPlane object.
 	CertificatesAvailableCondition clusterv1.ConditionType = "CertificatesAvailable"
 
 	// CertificatesGenerationFailedReason (Severity=Warning) documents a KubeadmControlPlane controller detecting

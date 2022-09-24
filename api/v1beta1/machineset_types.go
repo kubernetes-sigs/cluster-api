@@ -65,7 +65,7 @@ type MachineSetSpec struct {
 
 	// Template is the object that describes the machine that will be created if
 	// insufficient replicas are detected.
-	// Object references to custom resources resources are treated as templates.
+	// Object references to custom resources are treated as templates.
 	// +optional
 	Template MachineTemplateSpec `json:"template,omitempty"`
 }

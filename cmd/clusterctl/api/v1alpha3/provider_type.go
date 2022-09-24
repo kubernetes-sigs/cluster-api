@@ -47,8 +47,8 @@ type Provider struct {
 	// +optional
 	Version string `json:"version,omitempty"`
 
-	// WatchedNamespace indicates the namespace where the provider controller is is watching.
-	// if empty the provider controller is watching for objects in all namespaces.
+	// WatchedNamespace indicates the namespace where the provider controller is watching.
+	// If empty the provider controller is watching for objects in all namespaces.
 	// Deprecated: in clusterctl v1alpha4 all the providers watch all the namespaces; this field will be removed in a future version of this API
 	// +optional
 	WatchedNamespace string `json:"watchedNamespace,omitempty"`

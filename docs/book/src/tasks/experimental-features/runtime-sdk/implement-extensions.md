@@ -28,8 +28,8 @@ considerations/concerns apply.
 
 ## Implementation
 
-As mentioned above as a developer building systems on top of Cluster API, if you want to hook in the Cluster’s 
-lifecycle via a Runtime Extension, you have to implement an HTTPS server handling a discovery request and a set 
+As mentioned above as a developer building systems on top of Cluster API, if you want to hook in the Cluster’s
+lifecycle via a Runtime Extension, you have to implement an HTTPS server handling a discovery request and a set
 of additional requests according to the OpenAPI specification for the Runtime Hook you are interested in.
 
 The following shows a minimal example of a Runtime Extension server implementation:
@@ -56,7 +56,7 @@ import (
 )
 
 var (
-	catalog = runtimecatalog.New()
+	catalog  = runtimecatalog.New()
 	setupLog = ctrl.Log.WithName("setup")
 
 	// Flags.
@@ -165,36 +165,36 @@ func toPtr(f runtimehooksv1.FailurePolicy) *runtimehooksv1.FailurePolicy {
 }
 ```
 
-For a full example see our [test extension](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/extension). 
+For a full example see our [test extension](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/extension).
 
-Please note that a Runtime Extension server can serve multiple Runtime Hooks (in the example above 
-`BeforeClusterCreate` and `BeforeClusterUpgrade`) at the same time. Each of them are handled at a different path, like the 
+Please note that a Runtime Extension server can serve multiple Runtime Hooks (in the example above
+`BeforeClusterCreate` and `BeforeClusterUpgrade`) at the same time. Each of them are handled at a different path, like the
 Kubernetes API server does for different API resources. The exact format of those paths is handled by the server
 automatically in accordance to the OpenAPI specification of the Runtime Hooks.
 
 There is an additional `Discovery` endpoint which is automatically served by the `Server`. The `Discovery` endpoint
-returns a list of extension handlers to inform Cluster API which Runtime Hooks are implemented by this 
+returns a list of extension handlers to inform Cluster API which Runtime Hooks are implemented by this
 Runtime Extension server.
 
 Please note that Cluster API is only able to enforce the correct request and response types as defined by a Runtime Hook version.
 Developers are fully responsible for all other elements of the design of a Runtime Extension implementation, including:
 
-- To choose which programming language to use; please note that Golang is the language of choice, and we are not planning 
-  to test or provide tooling and libraries for other languages. Nevertheless, given that we rely on Open API and plain 
+- To choose which programming language to use; please note that Golang is the language of choice, and we are not planning
+  to test or provide tooling and libraries for other languages. Nevertheless, given that we rely on Open API and plain
   HTTPS calls, other languages should just work but support will be provided at best effort.
-- To choose if a dedicated or a shared HTTPS Server is used for the Runtime Extension (it can be e.g. also used to serve a 
+- To choose if a dedicated or a shared HTTPS Server is used for the Runtime Extension (it can be e.g. also used to serve a
   metric endpoint).
 
-When using Golang the Runtime Extension developer can benefit from the following packages (provided by the 
+When using Golang the Runtime Extension developer can benefit from the following packages (provided by the
 `sigs.k8s.io/cluster-api` module) as shown in the example above:
 
-- `exp/runtime/hooks/api/v1alpha1` contains the Runtime Hook Golang API types, which are also used to generate the 
+- `exp/runtime/hooks/api/v1alpha1` contains the Runtime Hook Golang API types, which are also used to generate the
   OpenAPI specification.
-- `exp/runtime/catalog` provides the `Catalog` object to register Runtime Hook definitions. The `Catalog` is then 
-  used by the `server` package to handle requests. `Catalog` is similar to the `runtime.Scheme` of the 
+- `exp/runtime/catalog` provides the `Catalog` object to register Runtime Hook definitions. The `Catalog` is then
+  used by the `server` package to handle requests. `Catalog` is similar to the `runtime.Scheme` of the
   `k8s.io/apimachinery/pkg/runtime` package, but it is designed to store Runtime Hook registrations.
 - `exp/runtime/server` provides a `Server` object which makes it easy to implement a Runtime Extension server.
-  The `Server` will automatically handle tasks like Marshalling/Unmarshalling requests and responses. A Runtime 
+  The `Server` will automatically handle tasks like Marshalling/Unmarshalling requests and responses. A Runtime
   Extension developer only has to implement a strongly typed function that contains the actual logic.
 
 ## Guidelines
@@ -203,23 +203,23 @@ While writing a Runtime Extension the following important guidelines must be con
 
 ### Timeouts
 
-Runtime Extension processing adds to reconcile durations of Cluster API controllers. They should respond to requests 
-as quickly as possible, typically in milliseconds. Runtime Extension developers can decide how long the Cluster API Runtime 
-should wait for a Runtime Extension to respond before treating the call as a failure (max is 30s) by returning the timeout 
-during discovery. Of course a Runtime Extension can trigger long-running tasks in the background, but they shouldn't block 
-synchronously. 
+Runtime Extension processing adds to reconcile durations of Cluster API controllers. They should respond to requests
+as quickly as possible, typically in milliseconds. Runtime Extension developers can decide how long the Cluster API Runtime
+should wait for a Runtime Extension to respond before treating the call as a failure (max is 30s) by returning the timeout
+during discovery. Of course a Runtime Extension can trigger long-running tasks in the background, but they shouldn't block
+synchronously.
 
 ### Availability
 
 Runtime Extension failure could result in errors in handling the workload clusters lifecycle, and so the implementation
-should be robust, have proper error handling, avoid panics, etc.. . Failure policies can be set up to mitigate the 
-negative impact of a Runtime Extension on the Cluster API Runtime, but this option can’t be used in all cases 
+should be robust, have proper error handling, avoid panics, etc.. . Failure policies can be set up to mitigate the
+negative impact of a Runtime Extension on the Cluster API Runtime, but this option can’t be used in all cases
 (see [Error Management](#error-management)).
 
 ### Blocking Hooks
 
-A Runtime Hook can be defined as "blocking" -  e.g. the `BeforeClusterUpgrade` hook allows a Runtime Extension
-to prevent the upgrade from starting. A Runtime Extension registered for the `BeforeClusterUpgrade` hook 
+A Runtime Hook can be defined as "blocking" - e.g. the `BeforeClusterUpgrade` hook allows a Runtime Extension
+to prevent the upgrade from starting. A Runtime Extension registered for the `BeforeClusterUpgrade` hook
 can block by returning a non-zero `retryAfterSeconds` value. Following consideration apply:
 
 - The system might decide to retry the same Runtime Extension even before the `retryAfterSeconds` period expires,
@@ -230,35 +230,35 @@ can block by returning a non-zero `retryAfterSeconds` value. Following considera
 - If there is more than one Runtime Extension registered for the same Runtime Hook and at least one returns
   `retryAfterSeconds`, all Runtime Extensions will be called again.
 
-Detailed description of what "blocking" means for each specific Runtime Hooks is documented case by case 
+Detailed description of what "blocking" means for each specific Runtime Hooks is documented case by case
 in the hook-specific implementation documentation (e.g. [Implementing Lifecycle Hook Runtime Extensions](./implement-lifecycle-hooks.md#Definitions)).
 
 ### Side Effects
 
-It is recommended that Runtime Extensions should avoid side effects if possible, which means they should operate 
-only on the content of the request sent to them, and not make out-of-band changes. If side effects are required, 
+It is recommended that Runtime Extensions should avoid side effects if possible, which means they should operate
+only on the content of the request sent to them, and not make out-of-band changes. If side effects are required,
 rules defined in the following sections apply.
 
 ### Idempotence
 
-An idempotent Runtime Extension is able to succeed even in case it has already been completed before (the Runtime 
-Extension checks current state and changes it only if necessary). This is necessary because a Runtime Extension 
-may be called many times after it already succeeded because other Runtime Extensions for the same hook may not 
+An idempotent Runtime Extension is able to succeed even in case it has already been completed before (the Runtime
+Extension checks current state and changes it only if necessary). This is necessary because a Runtime Extension
+may be called many times after it already succeeded because other Runtime Extensions for the same hook may not
 succeed in the same reconcile.
 
-A practical example that explains why idempotence is relevant is the fact that extensions could be called more 
+A practical example that explains why idempotence is relevant is the fact that extensions could be called more
 than once for the same lifecycle transition, e.g.
 
 - Two Runtime Extensions are registered for the `BeforeClusterUpgrade` hook.
-- Before a Cluster upgrade is started both extensions are called, but one of them temporarily blocks the operation 
+- Before a Cluster upgrade is started both extensions are called, but one of them temporarily blocks the operation
   by asking to retry after 30 seconds.
 - After 30 seconds the system retries the lifecycle transition, and both extensions are called again to re-evaluate
   if it is now possible to proceed with the Cluster upgrade.
 
 ### Avoid dependencies
 
-Each Runtime Extension should accomplish its task without depending on other Runtime Extensions. Introducing 
-dependencies across Runtime Extensions makes the system fragile, and it is probably a consequence of poor 
+Each Runtime Extension should accomplish its task without depending on other Runtime Extensions. Introducing
+dependencies across Runtime Extensions makes the system fragile, and it is probably a consequence of poor
 "Separation of Concerns" between extensions.
 
 ### Deterministic result
@@ -266,8 +266,8 @@ dependencies across Runtime Extensions makes the system fragile, and it is proba
 A deterministic Runtime Extension is implemented in such a way that given the same input it will always return
 the same output.
 
-Some Runtime Hooks, e.g. like external patches, might explicitly request for corresponding Runtime Extensions 
-to support this property. But we encourage developers to follow this pattern more generally given that it fits 
+Some Runtime Hooks, e.g. like external patches, might explicitly request for corresponding Runtime Extensions
+to support this property. But we encourage developers to follow this pattern more generally given that it fits
 well with practices like unit testing and generally makes the entire system more predictable and easier to troubleshoot.
 
 ### Error Management
@@ -275,12 +275,12 @@ well with practices like unit testing and generally makes the entire system more
 In case a Runtime Extension returns an error, the error will be handled according to the corresponding failure policy
 defined in the response of the Discovery call.
 
-If the failure policy is `Ignore` the error is going to be recorded in the controller's logs, but the processing 
-will continue. However we recognize that this failure policy cannot be used in most of the use cases because Runtime 
-Extension implementers want to ensure that the task implemented by an extension is completed before continuing with 
+If the failure policy is `Ignore` the error is going to be recorded in the controller's logs, but the processing
+will continue. However we recognize that this failure policy cannot be used in most of the use cases because Runtime
+Extension implementers want to ensure that the task implemented by an extension is completed before continuing with
 the cluster's lifecycle.
 
-If instead the failure policy is `Fail` the system will retry the operation until it passes. The following general 
+If instead the failure policy is `Fail` the system will retry the operation until it passes. The following general
 considerations apply:
 
 - It is the responsibility of Cluster API components to surface Runtime Extension errors using conditions.
@@ -289,5 +289,39 @@ considerations apply:
 - If there is more than one Runtime Extension registered for the same Runtime Hook and at least one of them fails,
   all the registered Runtime Extension will be retried. See [Idempotence](#idempotence)
 
-Additional considerations about errors that apply only to a specific Runtime Hook will be documented in the hook-specific 
+Additional considerations about errors that apply only to a specific Runtime Hook will be documented in the hook-specific
 implementation documentation.
+
+## Tips & tricks
+
+After you implemented and deployed a Runtime Extension you can manually test it by sending HTTP requests.
+This can be for example done via kubectl:
+
+Via `kubectl create --raw`:
+
+```bash
+# Send a Discovery Request to the webhook-service in namespace default with protocol https on port 443:
+kubectl create --raw '/api/v1/namespaces/default/services/https:webhook-service:443/proxy/hooks.runtime.cluster.x-k8s.io/v1alpha1/discovery' \
+  -f <(echo '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"DiscoveryRequest"}') | jq
+```
+
+Via `kubectl proxy` and `curl`:
+
+```bash
+# Open a proxy with kubectl and then use curl to send the request
+## First terminal:
+kubectl proxy
+## Second terminal:
+curl -X 'POST' 'http://127.0.0.1:8001/api/v1/namespaces/default/services/https:webhook-service:443/proxy/hooks.runtime.cluster.x-k8s.io/v1alpha1/discovery' \
+  -d '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"DiscoveryRequest"}' | jq
+```
+
+For more details about the API of the Runtime Extensions please see <button onclick="openSwaggerUI()">Swagger UI</button>.
+
+<script>
+// openSwaggerUI calculates the absolute URL of the RuntimeSDK YAML file and opens Swagger UI.
+function openSwaggerUI() {
+  var schemaURL = new URL("runtime-sdk-openapi.yaml", document.baseURI).href
+  window.open("https://editor.swagger.io/?url=" + schemaURL)
+}
+</script>

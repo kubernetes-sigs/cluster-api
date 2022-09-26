@@ -227,6 +227,13 @@ func (c *ControlPlaneMachineTemplate) NodeDrainTimeout() *Duration {
 	}
 }
 
+// NodeVolumeDetachTimeout provides access to the nodeVolumeDetachTimeout of a MachineTemplate.
+func (c *ControlPlaneMachineTemplate) NodeVolumeDetachTimeout() *Duration {
+	return &Duration{
+		path: Path{"spec", "machineTemplate", "nodeVolumeDetachTimeout"},
+	}
+}
+
 // NodeDeletionTimeout provides access to the nodeDeletionTimeout of a MachineTemplate.
 func (c *ControlPlaneMachineTemplate) NodeDeletionTimeout() *Duration {
 	return &Duration{

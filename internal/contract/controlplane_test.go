@@ -171,6 +171,28 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(durationString).To(Equal(expectedDurationString))
 	})
 
+	t.Run("Manages spec.machineTemplate.nodeVolumeDetachTimeout", func(t *testing.T) {
+		g := NewWithT(t)
+
+		duration := metav1.Duration{Duration: 2*time.Minute + 10*time.Second}
+		expectedDurationString := "2m10s"
+		g.Expect(ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()).To(Equal(Path{"spec", "machineTemplate", "nodeVolumeDetachTimeout"}))
+
+		err := ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Set(obj, duration)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal(duration))
+
+		// Check that the literal string value of the duration is correctly formatted.
+		durationString, found, err := unstructured.NestedString(obj.UnstructuredContent(), "spec", "machineTemplate", "nodeVolumeDetachTimeout")
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(found).To(BeTrue())
+		g.Expect(durationString).To(Equal(expectedDurationString))
+	})
+
 	t.Run("Manages spec.machineTemplate.nodeDeletionTimeout", func(t *testing.T) {
 		g := NewWithT(t)
 

@@ -1,5 +1,5 @@
 ---
-# CI E2E test test configuration scenario using locally build images and manifests for:
+# CI E2E test configuration scenario using locally build images and manifests for:
 # - cluster-api
 # - bootstrap kubeadm
 # - control-plane kubeadm

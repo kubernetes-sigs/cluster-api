@@ -101,7 +101,7 @@ type ProviderConfig struct {
 	Type string `json:"type"`
 
 	// Versions is a list of component YAML to be added to the local repository, one for each release.
-	// Please note that the first source will be used a a default release for this provider.
+	// Please note that the first source will be used a default release for this provider.
 	Versions []ProviderVersionSource `json:"versions,omitempty"`
 
 	// Files is a list of files to be copied into the local repository for all the releases.

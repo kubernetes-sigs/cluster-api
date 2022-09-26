@@ -49,7 +49,7 @@ type unstructuredWrapper struct {
 //   - It's not possible to detect if the object has an empty condition list or if it does not implement conditions;
 //     in both cases the operation returns an empty slice is returned.
 //   - If the object doesn't implement conditions on under status as defined in Cluster API,
-//     JSON-unmarshal matches incoming object keys to the keys; this can lead to to conditions values partially set.
+//     JSON-unmarshal matches incoming object keys to the keys; this can lead to conditions values partially set.
 func (c *unstructuredWrapper) GetConditions() clusterv1.Conditions {
 	conditions := clusterv1.Conditions{}
 	if err := util.UnstructuredUnmarshalField(c.Unstructured, &conditions, "status", "conditions"); err != nil {

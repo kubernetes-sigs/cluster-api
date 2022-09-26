@@ -191,7 +191,7 @@ clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
 
 ### Fix kubeconfig when using Docker Desktop
 
-When using using Docker Desktop on macOS or Docker Desktop (Docker Engine works fine) on Linux, you'll need to take a few extra steps to get the kubeconfig for a workload cluster created with the Docker provider.
+When using Docker Desktop on macOS or Docker Desktop (Docker Engine works fine) on Linux, you'll need to take a few extra steps to get the kubeconfig for a workload cluster created with the Docker provider.
 
 ```bash
 # Point the kubeconfig to the exposed port of the load balancer, rather than the inaccessible container IP.

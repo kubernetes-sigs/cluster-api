@@ -36,7 +36,7 @@ type Client interface {
 	// Variables provide access to environment variables and/or variables defined in the clusterctl configuration file.
 	Variables() VariablesClient
 
-	// ImageMeta provide access to to image meta configurations.
+	// ImageMeta provide access to image meta configurations.
 	ImageMeta() ImageMetaClient
 }
 

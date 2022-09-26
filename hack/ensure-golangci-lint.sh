@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# NOTE: This script is copied from from https://raw.githubusercontent.com/golangci/golangci-lint/main/install.sh.
+# NOTE: This script is copied from https://raw.githubusercontent.com/golangci/golangci-lint/main/install.sh.
 
 set -e
 

@@ -78,7 +78,14 @@ The test module, clusterctl, and experiments do not provide any backward compati
 #### Backporting a patch
 
 We only accept backports of critical bugs, security issues, or bugs without easy workarounds, any
-backport MUST not be breaking for either API or behavioral changes.
+backport MUST not be breaking for either API or behavioral changes. In order to improve user/developer experience
+maintainers can choose to backport:
+- Doc improvements
+- Improvements to CI signal
+- Improvements to the test framework (enabling improvements to provider's test signal)
+- Cert-manager bump (to avoid having branch using cert-manager versions out of support, when possible)
+- Changes required to support new Kubernetes versions, when possible.
+
 We generally do not accept PRs against older release branches.
 
 ### APIs

@@ -316,7 +316,8 @@ curl -X 'POST' 'http://127.0.0.1:8001/api/v1/namespaces/default/services/https:w
   -d '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"DiscoveryRequest"}' | jq
 ```
 
-For more details about the API of the Runtime Extensions please see <button onclick="openSwaggerUI()">Swagger UI</button>.
+For more details about the API of the Runtime Extensions please see <button onclick="openSwaggerUI()">Swagger UI</button>.  
+For more details on proxy support please see [Proxies in Kubernetes](https://kubernetes.io/docs/concepts/cluster-administration/proxies/).
 
 <script>
 // openSwaggerUI calculates the absolute URL of the RuntimeSDK YAML file and opens Swagger UI.

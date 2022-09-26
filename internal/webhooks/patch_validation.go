@@ -166,44 +166,58 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 				"no selector enabled",
 			))
 	}
+
 	if selector.MatchResources.InfrastructureCluster {
-		if selectorMatchTemplate(selector, class.Spec.Infrastructure.Ref) {
-			return nil
-		}
-	}
-	if selector.MatchResources.ControlPlane {
-		if selectorMatchTemplate(selector, class.Spec.ControlPlane.Ref) {
-			return nil
+		if !selectorMatchTemplate(selector, class.Spec.Infrastructure.Ref) {
+			allErrs = append(allErrs, field.Invalid(
+				path.Child("matchResources", "infrastructureCluster"),
+				selector.MatchResources.InfrastructureCluster,
+				"selector is enabled but does not match the infrastructure ref",
+			))
 		}
 	}
 
-	if selector.MatchResources.ControlPlane && class.Spec.ControlPlane.MachineInfrastructure != nil {
-		if selectorMatchTemplate(selector, class.Spec.ControlPlane.MachineInfrastructure.Ref) {
-			return nil
+	if selector.MatchResources.ControlPlane {
+		match := false
+		if selectorMatchTemplate(selector, class.Spec.ControlPlane.Ref) {
+			match = true
+		}
+		if class.Spec.ControlPlane.MachineInfrastructure != nil &&
+			selectorMatchTemplate(selector, class.Spec.ControlPlane.MachineInfrastructure.Ref) {
+			match = true
+		}
+		if !match {
+			allErrs = append(allErrs, field.Invalid(
+				path.Child("matchResources", "controlPlane"),
+				selector.MatchResources.ControlPlane,
+				"selector is enabled but matches neither the controlPlane ref nor the controlPlane machineInfrastructure ref",
+			))
 		}
 	}
 
 	if selector.MatchResources.MachineDeploymentClass != nil && len(selector.MatchResources.MachineDeploymentClass.Names) > 0 {
-		for _, name := range selector.MatchResources.MachineDeploymentClass.Names {
+		for i, name := range selector.MatchResources.MachineDeploymentClass.Names {
+			match := false
 			for _, md := range class.Spec.Workers.MachineDeployments {
 				if md.Class == name {
-					if selectorMatchTemplate(selector, md.Template.Infrastructure.Ref) {
-						return nil
-					}
-					if selectorMatchTemplate(selector, md.Template.Bootstrap.Ref) {
-						return nil
+					if selectorMatchTemplate(selector, md.Template.Infrastructure.Ref) ||
+						selectorMatchTemplate(selector, md.Template.Bootstrap.Ref) {
+						match = true
+						break
 					}
 				}
 			}
+			if !match {
+				allErrs = append(allErrs, field.Invalid(
+					path.Child("matchResources", "machineDeploymentClass", "names").Index(i),
+					name,
+					"selector is enabled but matches neither the bootstrap ref nor the infrastructure ref of a MachineDeployment class",
+				))
+			}
 		}
 	}
-	// if the code has not returned at this point there is no matching template in the ClusterClass. Return an error.
-	return append(allErrs,
-		field.Invalid(
-			path,
-			prettyPrint(selector),
-			"selector did not match any template in the ClusterClass",
-		))
+
+	return allErrs
 }
 
 // selectorMatchTemplate returns true if APIVersion and Kind for the given selector match the reference.

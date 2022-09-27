@@ -74,12 +74,16 @@ type ClusterctlUpgradeSpecInput struct {
 	// UpgradeClusterctlVariables can be used to set additional variables for clusterctl upgrade.
 	UpgradeClusterctlVariables map[string]string
 	SkipCleanup                bool
-	ControlPlaneWaiters        clusterctl.ControlPlaneWaiters
-	PreInit                    func(managementClusterProxy framework.ClusterProxy)
-	PreUpgrade                 func(managementClusterProxy framework.ClusterProxy)
-	PostUpgrade                func(managementClusterProxy framework.ClusterProxy)
-	MgmtFlavor                 string
-	WorkloadFlavor             string
+	// PreWaitForCluster is a function that can be used as a hook to apply extra resources (that cannot be part of the template) in the generated namespace hosting the cluster
+	// This function is called after applying the cluster template and before waiting for the cluster resources.
+	PreWaitForCluster   func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string, workloadClusterName string)
+	ControlPlaneWaiters clusterctl.ControlPlaneWaiters
+	PreInit             func(managementClusterProxy framework.ClusterProxy)
+	PreUpgrade          func(managementClusterProxy framework.ClusterProxy)
+	PostUpgrade         func(managementClusterProxy framework.ClusterProxy)
+	MgmtFlavor          string
+	CNIManifestPath     string
+	WorkloadFlavor      string
 }
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
@@ -193,6 +197,12 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),
 			},
+			PreWaitForCluster: func() {
+				if input.PreWaitForCluster != nil {
+					input.PreWaitForCluster(input.BootstrapClusterProxy, managementClusterNamespace.Name, managementClusterName)
+				}
+			},
+			CNIManifestPath:              input.CNIManifestPath,
 			ControlPlaneWaiters:          input.ControlPlaneWaiters,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -289,6 +299,11 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		log.Logf("Applying the cluster template yaml to the cluster")
 		Expect(managementClusterProxy.Apply(ctx, workloadClusterTemplate)).To(Succeed())
+
+		if input.PreWaitForCluster != nil {
+			By("Running PreWaitForCluster steps against the management cluster")
+			input.PreWaitForCluster(managementClusterProxy, testNamespace.Name, workLoadClusterName)
+		}
 
 		By("Waiting for the machines to exists")
 		Eventually(func() (int64, error) {

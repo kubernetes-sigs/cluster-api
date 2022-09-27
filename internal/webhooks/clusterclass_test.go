@@ -1335,6 +1335,257 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 				Build(),
 			expectErr: true,
 		},
+		{
+			name: "error if a control plane MachineHealthCheck that is in use by a cluster is removed",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithTopology(builder.ClusterTopology().
+						WithClass("clusterclass1").
+						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+							Enable: pointer.Bool(true),
+						}).
+						Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
+					UnhealthyConditions: []clusterv1.UnhealthyCondition{
+						{
+							Type:    corev1.NodeReady,
+							Status:  corev1.ConditionUnknown,
+							Timeout: metav1.Duration{Duration: 5 * time.Minute},
+						},
+					},
+				}).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "pass if a control plane MachineHealthCheck is removed but no cluster enforces it",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithTopology(builder.ClusterTopology().
+						WithClass("clusterclass1").
+						Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{}).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "pass if a control plane MachineHealthCheck is removed when clusters are not using it (clusters have overrides in topology)",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithTopology(builder.ClusterTopology().
+						WithClass("clusterclass1").
+						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+							Enable: pointer.Bool(true),
+							MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+								UnhealthyConditions: []clusterv1.UnhealthyCondition{
+									{
+										Type:    corev1.NodeReady,
+										Status:  corev1.ConditionUnknown,
+										Timeout: metav1.Duration{Duration: 5 * time.Minute},
+									},
+								},
+							},
+						}).
+						Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{}).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "error if a MachineDeployment MachineHealthCheck that is in use by a cluster is removed",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithTopology(builder.ClusterTopology().
+						WithClass("clusterclass1").
+						WithMachineDeployment(builder.MachineDeploymentTopology("md1").
+							WithClass("mdclass1").
+							WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+								Enable: pointer.Bool(true),
+							}).
+							Build()).
+						Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("mdclass1").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{}).
+						Build(),
+				).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("mdclass1").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build(),
+				).
+				Build(),
+			expectErr: true,
+		},
+		{
+			name: "pass if a MachineDeployment MachineHealthCheck is removed but no cluster enforces it",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithTopology(builder.ClusterTopology().
+						WithClass("clusterclass1").
+						WithMachineDeployment(builder.MachineDeploymentTopology("md1").
+							WithClass("mdclass1").
+							Build()).
+						Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("mdclass1").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{}).
+						Build(),
+				).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("mdclass1").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build(),
+				).
+				Build(),
+			expectErr: false,
+		},
+		{
+			name: "pass if a MachineDeployment MachineHealthCheck is removed when clusters are not using it (clusters have overrides in topology)",
+			clusters: []client.Object{
+				builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithTopology(builder.ClusterTopology().
+						WithClass("clusterclass1").
+						WithMachineDeployment(builder.MachineDeploymentTopology("md1").
+							WithClass("mdclass1").
+							WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+								Enable: pointer.Bool(true),
+								MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+									UnhealthyConditions: []clusterv1.UnhealthyCondition{
+										{
+											Type:    corev1.NodeReady,
+											Status:  corev1.ConditionUnknown,
+											Timeout: metav1.Duration{Duration: 5 * time.Minute},
+										},
+									},
+								},
+							}).
+							Build()).
+						Build()).
+					Build(),
+			},
+			oldClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("mdclass1").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{}).
+						Build(),
+				).
+				Build(),
+			newClusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "inf").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("mdclass1").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						Build(),
+				).
+				Build(),
+			expectErr: false,
+		},
 	}
 
 	for _, tt := range tests {

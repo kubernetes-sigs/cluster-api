@@ -155,6 +155,11 @@ func (in *ClusterTopologyBuilder) DeepCopyInto(out *ClusterTopologyBuilder) {
 		*out = new(v1beta1.WorkersTopology)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.controlPlaneMHC != nil {
+		in, out := &in.controlPlaneMHC, &out.controlPlaneMHC
+		*out = new(v1beta1.MachineHealthCheckTopology)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.variables != nil {
 		in, out := &in.variables, &out.variables
 		*out = make([]v1beta1.ClusterVariable, len(*in))
@@ -399,6 +404,11 @@ func (in *MachineDeploymentTopologyBuilder) DeepCopyInto(out *MachineDeploymentT
 		in, out := &in.replicas, &out.replicas
 		*out = new(int32)
 		**out = **in
+	}
+	if in.mhc != nil {
+		in, out := &in.mhc, &out.mhc
+		*out = new(v1beta1.MachineHealthCheckTopology)
+		(*in).DeepCopyInto(*out)
 	}
 	if in.variables != nil {
 		in, out := &in.variables, &out.variables

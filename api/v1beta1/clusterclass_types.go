@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"reflect"
+
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -175,6 +177,11 @@ type MachineHealthCheckClass struct {
 	// a controller that lives outside of Cluster API.
 	// +optional
 	RemediationTemplate *corev1.ObjectReference `json:"remediationTemplate,omitempty"`
+}
+
+// IsZero returns true if none of the values of MachineHealthCheckClass are defined.
+func (m MachineHealthCheckClass) IsZero() bool {
+	return reflect.ValueOf(m).IsZero()
 }
 
 // ClusterClassVariable defines a variable which can

@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -853,6 +854,222 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				Build(),
 			wantErr: true,
+		},
+		{
+			name: "Reject a cluster that has MHC enabled for control plane but is missing MHC definition in cluster topology and clusterclass",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+							Enable: pointer.Bool(true),
+						}).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Reject a cluster that MHC override defined for control plane but is missing unhealthy conditions",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+							MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+								UnhealthyConditions: []clusterv1.UnhealthyCondition{},
+							},
+						}).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Reject a cluster that MHC override defined for control plane but is set when control plane is missing machineInfrastructure",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+							MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+								UnhealthyConditions: []clusterv1.UnhealthyCondition{
+									{
+										Type:   corev1.NodeReady,
+										Status: corev1.ConditionFalse,
+									},
+								},
+							},
+						}).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Accept a cluster that has MHC enabled for control plane with control plane MHC defined in ClusterClass",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+							Enable: pointer.Bool(true),
+						}).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{}).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "Accept a cluster that has MHC enabled for control plane with control plane MHC defined in cluster topology",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+							Enable: pointer.Bool(true),
+							MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+								UnhealthyConditions: []clusterv1.UnhealthyCondition{
+									{
+										Type:   corev1.NodeReady,
+										Status: corev1.ConditionFalse,
+									},
+								},
+							},
+						}).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "Reject a cluster that has MHC enabled for machine deployment but is missing MHC definition in cluster topology and ClusterClass",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithMachineDeployment(
+							builder.MachineDeploymentTopology("md1").
+								WithClass("worker-class").
+								WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+									Enable: pointer.Bool(true),
+								}).
+								Build(),
+						).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("worker-class").Build(),
+				).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Reject a cluster that has MHC override defined for machine deployment but is missing unhealthy conditions",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithMachineDeployment(
+							builder.MachineDeploymentTopology("md1").
+								WithClass("worker-class").
+								WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+									MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+										UnhealthyConditions: []clusterv1.UnhealthyCondition{},
+									},
+								}).
+								Build(),
+						).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("worker-class").Build(),
+				).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "Accept a cluster that has MHC enabled for machine deployment with machine deployment MHC defined in ClusterClass",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithMachineDeployment(
+							builder.MachineDeploymentTopology("md1").
+								WithClass("worker-class").
+								WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+									Enable: pointer.Bool(true),
+								}).
+								Build(),
+						).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("worker-class").
+						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{}).
+						Build(),
+				).
+				Build(),
+			wantErr: false,
+		},
+		{
+			name: "Accept a cluster that has MHC enabled for machine deployment with machine deployment MHC defined in cluster topology",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						WithMachineDeployment(
+							builder.MachineDeploymentTopology("md1").
+								WithClass("worker-class").
+								WithMachineHealthCheck(&clusterv1.MachineHealthCheckTopology{
+									Enable: pointer.Bool(true),
+									MachineHealthCheckClass: clusterv1.MachineHealthCheckClass{
+										UnhealthyConditions: []clusterv1.UnhealthyCondition{
+											{
+												Type:   corev1.NodeReady,
+												Status: corev1.ConditionFalse,
+											},
+										},
+									},
+								}).
+								Build(),
+						).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("worker-class").Build(),
+				).
+				Build(),
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {

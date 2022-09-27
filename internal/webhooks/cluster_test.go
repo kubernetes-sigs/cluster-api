@@ -757,7 +757,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 			expectErr: true,
 		},
 		{
-			name: "should fail when variable override is missing the corresponding top-level variable",
+			name: "should pass even when variable override is missing the corresponding top-level variable",
 			clusterClassVariables: []clusterv1.ClusterClassVariable{
 				{
 					Name:     "cpu",
@@ -782,7 +782,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 						Build()).
 					Build()).
 				Build(),
-			expectErr: true,
+			expectErr: false,
 		},
 	}
 

@@ -102,23 +102,6 @@ func validateClusterVariablesDefined(clusterVariables []clusterv1.ClusterVariabl
 	return allErrs
 }
 
-// ValidateTopLevelClusterVariablesExist validates that all overrides have a corresponding top-level variable.
-func ValidateTopLevelClusterVariablesExist(clusterVariablesOverrides []clusterv1.ClusterVariable, clusterVariables []clusterv1.ClusterVariable, fldPath *field.Path) field.ErrorList {
-	var allErrs field.ErrorList
-
-	// Build map for easier and faster access.
-	clusterVariablesMap := getClusterVariablesMap(clusterVariables)
-
-	for i, clusterVariableOverride := range clusterVariablesOverrides {
-		if _, ok := clusterVariablesMap[clusterVariableOverride.Name]; !ok {
-			return field.ErrorList{field.Invalid(fldPath.Index(i).Child("name"), clusterVariableOverride.Name,
-				fmt.Sprintf("variable override with name %q is missing a corresponding top-level variable", clusterVariableOverride.Name))}
-		}
-	}
-
-	return allErrs
-}
-
 // ValidateClusterVariable validates a clusterVariable.
 func ValidateClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterClassVariable *clusterv1.ClusterClassVariable, fldPath *field.Path) field.ErrorList {
 	// Parse JSON value.

@@ -9,6 +9,7 @@ A managed Cluster can be used to:
 * [Add a MachineDeployment](#add-a-machinedeployment)
 * [Use variables in a Cluster](#use-variables)
 * [Rebase a Cluster to a different ClusterClass](#rebase-a-cluster)
+* [Upgrading Cluster API](#upgrading-cluster-api)
 * [Tips and tricks](#tips-and-tricks)
 
 ## Upgrade a Cluster
@@ -266,6 +267,104 @@ Please note that:
 
 </aside>
 
+# Upgrading Cluster API
+
+There are some special considerations for ClusterClass regarding Cluster API upgrades when the upgrade includes a bump
+of the apiVersion of infrastructure, bootstrap or control plane provider CRDs.
+
+The recommended approach is to first upgrade Cluster API and then update the apiVersions in the ClusterClass references afterwards.
+By following above steps, there won't be any disruptions of the reconciliation as the Cluster topology controller is able to reconcile the Cluster 
+even with the old apiVersions in the ClusterClass.
+
+Note: The apiVersions in ClusterClass cannot be updated before Cluster API because the new apiVersions don't exist in 
+the management cluster before the Cluster API upgrade.
+
+In general the Cluster topology controller always uses exactly the versions of the CRDs referenced in the ClusterClass.
+This means in the following example the Cluster topology controller will always use `v1beta1` when reconciling/applying 
+patches for the infrastructure ref, even if the `DockerClusterTemplate` already has a `v1beta2` apiVersion.
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: quick-start
+  namespace: default
+spec:
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerClusterTemplate
+...
+```
+
+<aside class="note warning">
+
+<h1>Bumping apiVersions in ClusterClass</h1>
+
+When upgrading the apiVersions in references in the ClusterClass the corresponding patches have to be changed accordingly.
+This includes bumping the apiVersion in the patch selector and potentially updating the JSON patch to changes in the new 
+apiVersion of the referenced CRD. The following example shows how to upgrade the ClusterClass in this case. 
+
+ClusterClass with the old apiVersion:
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: quick-start
+spec:
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+      kind: DockerClusterTemplate
+...
+  patches:
+  - name: lbImageRepository
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/loadBalancer/imageRepository"
+        valueFrom:
+          variable: lbImageRepository
+```
+
+ClusterClass with the new apiVersion:
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: quick-start
+spec:
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1beta2 # apiVersion updated
+      kind: DockerClusterTemplate
+...
+  patches:
+  - name: lbImageRepository
+    definitions:
+    - selector:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta2 # apiVersion updated
+        kind: DockerClusterTemplate
+        matchResources:
+          infrastructureCluster: true
+      jsonPatches:
+      - op: add
+        # Path has been updated, as in this example imageRepository has been renamed 
+        # to imageRepo in v1beta2 of DockerClusterTemplate.
+        path: "/spec/template/spec/loadBalancer/imageRepo"
+        valueFrom:
+          variable: lbImageRepository
+```
+
+If external patches are used in the ClusterClass, it has to be ensured that all external patches support the new apiVersion 
+before bumping apiVersions.
+
+</aside>
 
 [Quick Start guide]: ../../../user/quick-start.md
 [ClusterClass rebase]: ./change-clusterclass.md#rebase

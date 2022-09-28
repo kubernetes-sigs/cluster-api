@@ -242,21 +242,29 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}()
 
-	switch {
 	// Wait for the infrastructure to be ready.
-	case !cluster.Status.InfrastructureReady:
+	if !cluster.Status.InfrastructureReady {
 		log.Info("Cluster infrastructure is not ready, waiting")
 		conditions.MarkFalse(config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
-	// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
-	// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
-	case configOwner.DataSecretName() != nil && (!config.Status.Ready || config.Status.DataSecretName == nil):
-		config.Status.Ready = true
-		config.Status.DataSecretName = configOwner.DataSecretName()
-		conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableCondition)
-		return ctrl.Result{}, nil
-	// Status is ready means a config has been generated.
-	case config.Status.Ready:
+	}
+	// check if secret already exist
+	secretName, err := r.getSecretName(ctx, scope.Config.Namespace, scope.Config.Name)
+	if err != nil && !apierrors.IsNotFound(err) {
+		log.Error(err, "Failed to get secret")
+		return ctrl.Result{}, err
+	}
+	if secretName != "" {
+		// Secret generated
+		// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
+		// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
+		if !config.Status.Ready || config.Status.DataSecretName == nil {
+			config.Status.Ready = true
+			config.Status.DataSecretName = pointer.StringPtr(secretName)
+			conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableCondition)
+			return ctrl.Result{}, nil
+		}
+		// refresh token as needed.
 		if config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil {
 			if !configOwner.HasNodeRefs() {
 				// If the BootstrapToken has been generated for a join but the config owner has no nodeRefs,
@@ -273,7 +281,6 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		// In any other case just return as the config is already generated and need not be generated again.
 		return ctrl.Result{}, nil
 	}
-
 	// Note: can't use IsFalse here because we need to handle the absence of the condition as well as false.
 	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		return r.handleClusterNotInitialized(ctx, scope)
@@ -977,7 +984,15 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(ctx context.Co
 	}
 }
 
-// storeBootstrapData creates a new secret with the data passed in as input,
+func (r *KubeadmConfigReconciler) getSecretName(ctx context.Context, namespace string, secretName string) (string, error) {
+	bootstrapDataSecret := &corev1.Secret{}
+	if err := r.Client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: secretName}, bootstrapDataSecret); err != nil {
+		return "", err
+	}
+	return bootstrapDataSecret.Name, nil
+}
+
+// storeBootstrapData creates a new secret if not already exist, else updates the same with the data passed in as input,
 // sets the reference in the configuration status and ready to true.
 func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope *Scope, data []byte) error {
 	log := ctrl.LoggerFrom(ctx)

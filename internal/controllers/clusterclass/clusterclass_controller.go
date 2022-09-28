@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util/annotations"
-	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -91,21 +90,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	// We use the patchHelper to patch potential changes to the ObjectReferences in ClusterClass.
-	patchHelper, err := patch.NewHelper(clusterClass, r.Client)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	defer func() {
-		if err := patchHelper.Patch(ctx, clusterClass); err != nil {
-			reterr = kerrors.NewAggregate([]error{
-				reterr,
-				errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: clusterClass})},
-			)
-		}
-	}()
-
 	return r.reconcile(ctx, clusterClass)
 }
 
@@ -133,37 +117,34 @@ func (r *Reconciler) reconcile(ctx context.Context, clusterClass *clusterv1.Clus
 		}
 	}
 
-	// Ensure all the referenced objects are owned by the ClusterClass and that references are
-	// upgraded to the latest contract.
-	// Nb. Some external objects can be referenced multiple times in the ClusterClass. We
-	// update the API contracts of all the references but we set the owner reference on the unique
-	// external object only once.
+	// Ensure all referenced objects are owned by the ClusterClass.
+	// Nb. Some external objects can be referenced multiple times in the ClusterClass,
+	// but we only want to set the owner reference once per unique external object.
+	// For example the same KubeadmConfigTemplate could be referenced in multiple MachineDeployment
+	// classes.
 	errs := []error{}
-	patchedRefs := sets.NewString()
+	reconciledRefs := sets.NewString()
 	for i := range refs {
 		ref := refs[i]
 		uniqueKey := uniqueObjectRefKey(ref)
-		if err := r.reconcileExternal(ctx, clusterClass, ref, !patchedRefs.Has(uniqueKey)); err != nil {
+
+		// Continue as we only have to reconcile every referenced object once.
+		if reconciledRefs.Has(uniqueKey) {
+			continue
+		}
+
+		if err := r.reconcileExternal(ctx, clusterClass, ref); err != nil {
 			errs = append(errs, err)
 			continue
 		}
-		patchedRefs.Insert(uniqueKey)
+		reconciledRefs.Insert(uniqueKey)
 	}
 
 	return ctrl.Result{}, kerrors.NewAggregate(errs)
 }
 
-func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *clusterv1.ClusterClass, ref *corev1.ObjectReference, setOwnerRef bool) error {
+func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *clusterv1.ClusterClass, ref *corev1.ObjectReference) error {
 	log := ctrl.LoggerFrom(ctx)
-
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, ref); err != nil {
-		return errors.Wrapf(err, "failed to update reference API contract of %s", tlog.KRef{Ref: ref})
-	}
-
-	// If we dont need to set the ownerReference then return early.
-	if !setOwnerRef {
-		return nil
-	}
 
 	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, clusterClass.Namespace)
 	if err != nil {
@@ -173,7 +154,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *cluste
 		return errors.Wrapf(err, "failed to get the external object for the cluster class. refGroupVersionKind: %s, refName: %s", ref.GroupVersionKind(), ref.Name)
 	}
 
-	// If external ref is paused, return early.
+	// If referenced object is paused, return early.
 	if annotations.HasPaused(obj) {
 		log.V(3).Info("External object referenced is paused", "refGroupVersionKind", ref.GroupVersionKind(), "refName", ref.Name)
 		return nil

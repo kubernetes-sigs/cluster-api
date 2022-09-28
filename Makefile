@@ -116,7 +116,7 @@ GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
 HADOLINT_VER := v2.10.0
 HADOLINT_FAILURE_THRESHOLD = warning
 
-KPROMO_VER := v3.4.4
+KPROMO_VER := v3.4.5
 KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
 KPROMO_PKG := sigs.k8s.io/promo-tools/v3/cmd/kpromo

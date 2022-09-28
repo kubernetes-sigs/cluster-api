@@ -39,6 +39,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -56,19 +57,25 @@ type errCallingExtensionHandler error
 
 const defaultDiscoveryTimeout = 10 * time.Second
 
+// serviceProxyPathTemplate the template of the of the URL to call the service through the api-server proxy.
+// Example:  /api/v1/namespaces/<namespace>/services/https:<service-name>:<port>/proxy/<path>
+const serviceProxyPathTemplate = "/api/v1/namespaces/%s/services/https:%s:%s/proxy/%s"
+
 // Options are creation options for a Client.
 type Options struct {
-	Catalog  *runtimecatalog.Catalog
-	Registry runtimeregistry.ExtensionRegistry
-	Client   ctrlclient.Client
+	Catalog     *runtimecatalog.Catalog
+	Registry    runtimeregistry.ExtensionRegistry
+	Client      ctrlclient.Client
+	ProxyClient *rest.RESTClient
 }
 
 // New returns a new Client.
 func New(options Options) Client {
 	return &client{
-		catalog:  options.Catalog,
-		registry: options.Registry,
-		client:   options.Client,
+		catalog:     options.Catalog,
+		registry:    options.Registry,
+		client:      options.Client,
+		proxyClient: options.ProxyClient,
 	}
 }
 
@@ -102,9 +109,10 @@ type Client interface {
 var _ Client = &client{}
 
 type client struct {
-	catalog  *runtimecatalog.Catalog
-	registry runtimeregistry.ExtensionRegistry
-	client   ctrlclient.Client
+	catalog     *runtimecatalog.Catalog
+	registry    runtimeregistry.ExtensionRegistry
+	client      ctrlclient.Client
+	proxyClient *rest.RESTClient
 }
 
 func (c *client) WarmUp(extensionConfigList *runtimev1.ExtensionConfigList) error {
@@ -136,7 +144,7 @@ func (c *client) Discover(ctx context.Context, extensionConfig *runtimev1.Extens
 		hookGVH:         hookGVH,
 		timeout:         defaultDiscoveryTimeout,
 	}
-	if err := httpCall(ctx, request, response, opts); err != nil {
+	if err := c.httpCall(ctx, request, response, opts); err != nil {
 		return nil, errors.Wrapf(err, "failed to discover extension %q", extensionConfig.Name)
 	}
 
@@ -348,7 +356,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 		name:            strings.TrimSuffix(registration.Name, "."+registration.ExtensionConfigName),
 		timeout:         timeoutDuration,
 	}
-	err = httpCall(ctx, request, response, opts)
+	err = c.httpCall(ctx, request, response, opts)
 	if err != nil {
 		// If the error is errCallingExtensionHandler then apply failure policy to calculate
 		// the effective result of the operation.
@@ -391,7 +399,7 @@ type httpCallOptions struct {
 	timeout         time.Duration
 }
 
-func httpCall(ctx context.Context, request, response runtime.Object, opts *httpCallOptions) error {
+func (c *client) httpCall(ctx context.Context, request, response runtime.Object, opts *httpCallOptions) error {
 	log := ctrl.LoggerFrom(ctx)
 	if opts == nil || request == nil || response == nil {
 		return errors.New("http call failed: opts, request and response cannot be nil")
@@ -442,7 +450,7 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	}
 
 	// Here we create the target URL that is used to make the HTTP call.
-	// Potentially we can have a runtimeClient.httpCallExtension func (method, url, body) (runtimeClient.response) {} method.
+	// Potentially we can have a runtimeClient.httpCallExtension func (method, url, body) (runtimeClient.response) {} field in client.
 	//
 	// This will have a default method that does what we are doing right now.
 	// But we will provide a way to inject a different runtimeClient.httpCallExtension with something like runtimeClient.InjectExtensionCaller()
@@ -451,9 +459,104 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	// that makes the calls through proxy if the extension is a service ref and calls the URL directly if url is provided.
 	//
 	// NOTE: What about certificates? How are certificates working in proxy setup?
+	// extensionURL, err := urlForExtension(opts.config, opts.registrationGVH, opts.name)
+	// if err != nil {
+	// 	return errors.Wrap(err, "http call failed")
+	// }
+
+	// // Observe request duration metric.
+	// start := time.Now()
+	// defer func() {
+	// 	runtimemetrics.RequestDuration.Observe(opts.hookGVH, *extensionURL, time.Since(start))
+	// }()
+
+	// if opts.timeout != 0 {
+	// 	// Make the call time-bound if timeout is non-zero value.
+	// 	values := extensionURL.Query()
+	// 	values.Add("timeout", opts.timeout.String())
+	// 	extensionURL.RawQuery = values.Encode()
+
+	// 	var cancel context.CancelFunc
+	// 	ctx, cancel = context.WithTimeout(ctx, opts.timeout)
+	// 	defer cancel()
+	// }
+
+	// httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, extensionURL.String(), bytes.NewBuffer(postBody))
+	// if err != nil {
+	// 	return errors.Wrap(err, "http call failed: failed to create http request")
+	// }
+
+	// // Use client-go's transport.TLSConfigureFor to ensure good defaults for tls
+	// client := http.DefaultClient
+	// tlsConfig, err := transport.TLSConfigFor(&transport.Config{
+	// 	TLS: transport.TLSConfig{
+	// 		CAData:     opts.config.CABundle,
+	// 		ServerName: extensionURL.Hostname(),
+	// 	},
+	// })
+	// if err != nil {
+	// 	return errors.Wrap(err, "http call failed: failed to create tls config")
+	// }
+	// // This also adds http2
+	// client.Transport = utilnet.SetTransportDefaults(&http.Transport{
+	// 	TLSClientConfig: tlsConfig,
+	// })
+
+	// resp, err := client.Do(httpRequest)
+	// // Create http request metric.
+	// runtimemetrics.RequestsTotal.Observe(httpRequest, resp, opts.hookGVH, err)
+	// if err != nil {
+	// 	return errCallingExtensionHandler(
+	// 		errors.Wrapf(err, "http call failed"),
+	// 	)
+	// }
+	// defer resp.Body.Close()
+
+	var responseBody []byte
+	var responseStatusCode int
+	var responseErr error
+
+	// If a proxy client is provided and the extension is running as a service then call the
+	// extension service using the proxy client.
+	// If not, make a standard http call.
+	if c.proxyClient != nil && opts.config.Service != nil {
+		responseBody, responseStatusCode, responseErr = c.proxyHttpCall(ctx, opts, postBody)
+	} else {
+		responseBody, responseStatusCode, responseErr = c.standardHttpCall(ctx, opts, postBody)
+	}
+	if responseErr != nil {
+		return errCallingExtensionHandler(
+			errors.Wrapf(err, "http call failed"),
+		)
+	}
+
+	if responseStatusCode != http.StatusOK {
+		return errCallingExtensionHandler(
+			errors.Errorf("http call failed: got response with status code %d != 200: response: %q", responseStatusCode, string(responseBody)),
+		)
+	}
+
+	if err := json.Unmarshal(responseBody, responseLocal); err != nil {
+		return errCallingExtensionHandler(
+			errors.Wrap(err, "http call failed: failed to decode response"),
+		)
+	}
+
+	if requireConversion {
+		log.V(5).Info(fmt.Sprintf("Hook version of received response is %s. Converting response to %s", opts.registrationGVH, opts.hookGVH))
+		// Convert the received response to the original version of the response object.
+		if err := opts.catalog.Convert(responseLocal, response, ctx); err != nil {
+			return errors.Wrapf(err, "http call failed: failed to convert response from %T to %T", requestLocal, response)
+		}
+	}
+
+	return nil
+}
+
+func (c *client) standardHttpCall(ctx context.Context, opts *httpCallOptions, body []byte) ([]byte, int, error) {
 	extensionURL, err := urlForExtension(opts.config, opts.registrationGVH, opts.name)
 	if err != nil {
-		return errors.Wrap(err, "http call failed")
+		return nil, 0, errors.Wrap(err, "http call failed")
 	}
 
 	// Observe request duration metric.
@@ -473,9 +576,9 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 		defer cancel()
 	}
 
-	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, extensionURL.String(), bytes.NewBuffer(postBody))
+	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, extensionURL.String(), bytes.NewBuffer(body))
 	if err != nil {
-		return errors.Wrap(err, "http call failed: failed to create http request")
+		return nil, 0, errors.Wrap(err, "http call failed: failed to create http request")
 	}
 
 	// Use client-go's transport.TLSConfigureFor to ensure good defaults for tls
@@ -487,7 +590,7 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 		},
 	})
 	if err != nil {
-		return errors.Wrap(err, "http call failed: failed to create tls config")
+		return nil, 0, errors.Wrap(err, "http call failed: failed to create tls config")
 	}
 	// This also adds http2
 	client.Transport = utilnet.SetTransportDefaults(&http.Transport{
@@ -498,40 +601,68 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	// Create http request metric.
 	runtimemetrics.RequestsTotal.Observe(httpRequest, resp, opts.hookGVH, err)
 	if err != nil {
-		return errCallingExtensionHandler(
+		return nil, 0, errCallingExtensionHandler(
 			errors.Wrapf(err, "http call failed"),
 		)
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		respBody, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return errCallingExtensionHandler(
-				errors.Errorf("http call failed: got response with status code %d != 200: failed to read response body", resp.StatusCode),
-			)
-		}
-
-		return errCallingExtensionHandler(
-			errors.Errorf("http call failed: got response with status code %d != 200: response: %q", resp.StatusCode, string(respBody)),
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, 0, errCallingExtensionHandler(
+			errors.Wrap(err, "http call failed: failed to read response body"),
 		)
 	}
+	return responseBody, resp.StatusCode, nil
+}
 
-	if err := json.NewDecoder(resp.Body).Decode(responseLocal); err != nil {
-		return errCallingExtensionHandler(
-			errors.Wrap(err, "http call failed: failed to decode response"),
-		)
+// proxyHttpCall makes a http call to the service ref in the ExtensionsConfig by proxying the call through the
+// API server. This is used when making the code is run from outside the cluster as we might not have access to
+// a ClusterIP type service.
+func (c *client) proxyHttpCall(ctx context.Context, opts *httpCallOptions, body []byte) ([]byte, int, error) {
+	service := opts.config.Service
+	// construct the URL to the service that goes through the proxy
+	callPath := runtimecatalog.GVHToPath(opts.registrationGVH, opts.name)
+	if service.Path != nil {
+		callPath = path.Join(*service.Path, callPath)
 	}
 
-	if requireConversion {
-		log.V(5).Info(fmt.Sprintf("Hook version of received response is %s. Converting response to %s", opts.registrationGVH, opts.hookGVH))
-		// Convert the received response to the original version of the response object.
-		if err := opts.catalog.Convert(responseLocal, response, ctx); err != nil {
-			return errors.Wrapf(err, "http call failed: failed to convert response from %T to %T", requestLocal, response)
-		}
+	port := 443
+	if service.Port != nil {
+		port = int(*service.Port)
 	}
 
-	return nil
+	extensionPath := fmt.Sprintf(serviceProxyPathTemplate,
+		service.Namespace,
+		service.Name,
+		strconv.Itoa(port),
+		callPath,
+	)
+
+	var query string
+	if opts.timeout != 0 {
+		value := url.Values{}
+		value.Add("timeout", opts.timeout.String())
+		query = value.Encode()
+
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, opts.timeout)
+		defer cancel()
+	}
+
+	if query != "" {
+		extensionPath += "?" + query
+	}
+
+	result := c.proxyClient.Post().RequestURI(extensionPath).Body(body).Do(ctx)
+
+	var statusCode int
+	result.StatusCode(&statusCode)
+	responseBody, responseErr := result.Raw()
+	if responseErr != nil {
+		return nil, 0, errors.Wrap(responseErr, "proxy http call failed")
+	}
+	return responseBody, statusCode, nil
 }
 
 func urlForExtension(config runtimev1.ClientConfig, gvh runtimecatalog.GroupVersionHook, name string) (*url.URL, error) {

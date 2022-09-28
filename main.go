@@ -32,13 +32,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
+	kubectlscheme "k8s.io/kubectl/pkg/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -230,6 +233,13 @@ func main() {
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-controller-manager")
 
+	setKubernetesDefaults(restConfig)
+	restClient, err := rest.RESTClientFor(restConfig)
+	if err != nil {
+		setupLog.Error(err, "unable to create proxy client")
+		os.Exit(1)
+	}
+
 	minVer := version.MinimumKubernetesVersion
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		minVer = version.MinimumKubernetesVersionClusterTopology
@@ -269,7 +279,7 @@ func main() {
 
 	setupChecks(mgr)
 	setupIndexes(ctx, mgr)
-	setupReconcilers(ctx, mgr)
+	setupReconcilers(ctx, mgr, restClient)
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
@@ -299,7 +309,7 @@ func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager, restClient *rest.RESTClient) {
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 	// requiring a connection to a remote cluster
 	log := ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")
@@ -327,9 +337,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
 		// This is the creation of the runtimeClient for the controllers, embedding a shared catalog and registry instance.
 		runtimeClient = runtimeclient.New(runtimeclient.Options{
-			Catalog:  catalog,
-			Registry: runtimeregistry.New(),
-			Client:   mgr.GetClient(),
+			Catalog:     catalog,
+			Registry:    runtimeregistry.New(),
+			Client:      mgr.GetClient(),
+			ProxyClient: restClient,
 		})
 	}
 
@@ -545,4 +556,20 @@ func setupWebhooks(mgr ctrl.Manager) {
 
 func concurrency(c int) controller.Options {
 	return controller.Options{MaxConcurrentReconciles: c}
+}
+
+func setKubernetesDefaults(config *rest.Config) error {
+	// TODO remove this hack.  This is allowing the GetOptions to be serialized.
+	config.GroupVersion = &schema.GroupVersion{Group: "", Version: "v1"}
+
+	if config.APIPath == "" {
+		config.APIPath = "/api"
+	}
+	if config.NegotiatedSerializer == nil {
+		// This codec factory ensures the resources are not converted. Therefore, resources
+		// will not be round-tripped through internal versions. Defaulting does not happen
+		// on the client.
+		config.NegotiatedSerializer = kubectlscheme.Codecs.WithoutConversion()
+	}
+	return rest.SetKubernetesDefaults(config)
 }

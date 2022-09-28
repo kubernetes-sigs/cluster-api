@@ -95,6 +95,25 @@ If no value is specified, or the format is invalid, the default value of 10 minu
 
 Please note that the configuration above will be considered also when doing `clusterctl upgrade plan` or `clusterctl upgrade plan`.
 
+## Migrating to user-managed cert-manager
+
+You may want to migrate to a user-managed cert-manager further down the line, after initialising cert-manager on the management cluster through `clusterctl`.
+
+`clusterctl` looks for the label `clusterctl.cluster.x-k8s.io/core=cert-manager` on all api resources in the `cert-manager` namespace. If it finds the label, `clusterctl` will manage the cert-manager deployment. You can list all the resources with that label by running:
+```bash
+kubectl get all -A --selector=clusterctl.cluster.x-k8s.io/core=cert-manager
+```
+If you want to manage and install your own cert-manager, you'll need to remove this label from all API resources.
+
+<aside class="note warning">
+
+<h1>Warning</h1>
+
+Cluster API has a direct dependency on cert-manager. It's possible you could encounter issues if you use a different version to the Cluster API default version.
+
+</aside>
+
+
 ## Avoiding GitHub rate limiting
 
 Follow [this](./overview.md#avoiding-github-rate-limiting)

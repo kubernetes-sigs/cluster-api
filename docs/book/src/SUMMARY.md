@@ -94,7 +94,7 @@
     - [CustomResourceDefinitions relationships](./developer/crd-relationships.md)
 - [Troubleshooting](./user/troubleshooting.md)
 - [Reference](./reference/reference.md)
-    - [API Reference](./reference/api_reference.md) 
+    - [API Reference](./reference/api_reference.md)
     - [Glossary](./reference/glossary.md)
     - [Provider List](./reference/providers.md)
     - [Ports](./reference/ports.md)

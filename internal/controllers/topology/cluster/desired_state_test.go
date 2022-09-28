@@ -384,17 +384,18 @@ func TestComputeControlPlane(t *testing.T) {
 		}
 
 		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
-		scope := scope.New(cluster)
-		scope.Blueprint = blueprint
+		s := scope.New(cluster)
+		s.Blueprint = blueprint
+		s.Current.ControlPlane = &scope.ControlPlaneState{}
 
 		r := &Reconciler{}
 
-		obj, err := r.computeControlPlane(ctx, scope, infrastructureMachineTemplate)
+		obj, err := r.computeControlPlane(ctx, s, infrastructureMachineTemplate)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
 		assertTemplateToObject(g, assertTemplateInput{
-			cluster:     scope.Current.Cluster,
+			cluster:     s.Current.Cluster,
 			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
 			template:    blueprint.ControlPlane.Template,
 			currentRef:  nil,
@@ -403,12 +404,12 @@ func TestComputeControlPlane(t *testing.T) {
 		gotMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		expectedLabels := mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels)
+		expectedLabels := mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels)
 		expectedLabels[clusterv1.ClusterLabelName] = cluster.Name
 		expectedLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
 		g.Expect(gotMetadata).To(Equal(&clusterv1.ObjectMeta{
 			Labels:      expectedLabels,
-			Annotations: mergeMap(scope.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			Annotations: mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		}))
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
@@ -1233,7 +1234,8 @@ func TestComputeCluster(t *testing.T) {
 	// aggregating current cluster objects into ClusterState (simulating getCurrentState)
 	scope := scope.New(cluster)
 
-	obj := computeCluster(ctx, scope, infrastructureCluster, controlPlane)
+	obj, err := computeCluster(ctx, scope, infrastructureCluster, controlPlane)
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(obj).ToNot(BeNil())
 
 	// TypeMeta
@@ -2076,4 +2078,136 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 
 		g.Expect(got).To(Equal(want), cmp.Diff(got, want))
 	})
+}
+
+func TestCalculateRefDesiredAPIVersion(t *testing.T) {
+	tests := []struct {
+		name                    string
+		currentRef              *corev1.ObjectReference
+		desiredReferencedObject *unstructured.Unstructured
+		want                    *corev1.ObjectReference
+		wantErr                 bool
+	}{
+		{
+			name: "Return desired ref if current ref is nil",
+			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"kind":       "DockerCluster",
+				"metadata": map[string]interface{}{
+					"name":      "my-cluster-abc",
+					"namespace": metav1.NamespaceDefault,
+				},
+			}},
+			want: &corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "DockerCluster",
+				Name:       "my-cluster-abc",
+				Namespace:  metav1.NamespaceDefault,
+			},
+		},
+		{
+			name: "Error for invalid apiVersion",
+			currentRef: &corev1.ObjectReference{
+				APIVersion: "invalid/api/version",
+				Kind:       "DockerCluster",
+				Name:       "my-cluster-abc",
+				Namespace:  metav1.NamespaceDefault,
+			},
+			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"kind":       "DockerCluster",
+				"metadata": map[string]interface{}{
+					"name":      "my-cluster-abc",
+					"namespace": metav1.NamespaceDefault,
+				},
+			}},
+			wantErr: true,
+		},
+		{
+			name: "Return desired ref if group changed",
+			currentRef: &corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "DockerCluster",
+				Name:       "my-cluster-abc",
+				Namespace:  metav1.NamespaceDefault,
+			},
+			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
+				"apiVersion": "infrastructure2.cluster.x-k8s.io/v1beta1",
+				"kind":       "DockerCluster",
+				"metadata": map[string]interface{}{
+					"name":      "my-cluster-abc",
+					"namespace": metav1.NamespaceDefault,
+				},
+			}},
+			want: &corev1.ObjectReference{
+				// Group changed => apiVersion is taken from desired.
+				APIVersion: "infrastructure2.cluster.x-k8s.io/v1beta1",
+				Kind:       "DockerCluster",
+				Name:       "my-cluster-abc",
+				Namespace:  metav1.NamespaceDefault,
+			},
+		},
+		{
+			name: "Return desired ref if kind changed",
+			currentRef: &corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "DockerCluster",
+				Name:       "my-cluster-abc",
+				Namespace:  metav1.NamespaceDefault,
+			},
+			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"kind":       "DockerCluster2",
+				"metadata": map[string]interface{}{
+					"name":      "my-cluster-abc",
+					"namespace": metav1.NamespaceDefault,
+				},
+			}},
+			want: &corev1.ObjectReference{
+				// Kind changed => apiVersion is taken from desired.
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "DockerCluster2",
+				Name:       "my-cluster-abc",
+				Namespace:  metav1.NamespaceDefault,
+			},
+		},
+		{
+			name: "Return current apiVersion if group and kind are the same",
+			currentRef: &corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta2",
+				Kind:       "DockerCluster",
+				Name:       "my-cluster-abc",
+				Namespace:  metav1.NamespaceDefault,
+			},
+			desiredReferencedObject: &unstructured.Unstructured{Object: map[string]interface{}{
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"kind":       "DockerCluster",
+				"metadata": map[string]interface{}{
+					"name":      "my-cluster-abc",
+					"namespace": metav1.NamespaceDefault,
+				},
+			}},
+			want: &corev1.ObjectReference{
+				// Group and kind are the same => apiVersion is taken from currentRef.
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta2",
+				Kind:       "DockerCluster",
+				Name:       "my-cluster-abc",
+				Namespace:  metav1.NamespaceDefault,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			got, err := calculateRefDesiredAPIVersion(tt.currentRef, tt.desiredReferencedObject)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
 }

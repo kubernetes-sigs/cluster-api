@@ -21,8 +21,10 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -41,7 +43,7 @@ func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scop
 	// Reference to the InfrastructureCluster can be nil and is expected to be on the first reconcile.
 	// In this case the method should still be allowed to continue.
 	if currentState.Cluster.Spec.InfrastructureRef != nil {
-		infra, err := r.getCurrentInfrastructureClusterState(ctx, currentState.Cluster)
+		infra, err := r.getCurrentInfrastructureClusterState(ctx, s.Blueprint.InfrastructureClusterTemplate, currentState.Cluster)
 		if err != nil {
 			return nil, err
 		}
@@ -52,7 +54,7 @@ func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scop
 	// should still be allowed to continue.
 	currentState.ControlPlane = &scope.ControlPlaneState{}
 	if currentState.Cluster.Spec.ControlPlaneRef != nil {
-		cp, err := r.getCurrentControlPlaneState(ctx, currentState.Cluster, s.Blueprint)
+		cp, err := r.getCurrentControlPlaneState(ctx, s.Blueprint.ControlPlane, s.Blueprint.HasControlPlaneInfrastructureMachine(), currentState.Cluster)
 		if err != nil {
 			return nil, err
 		}
@@ -61,7 +63,7 @@ func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scop
 
 	// A Cluster may have zero or more MachineDeployments and a Cluster is expected to have zero MachineDeployments on
 	// first reconcile.
-	m, err := r.getCurrentMachineDeploymentState(ctx, currentState.Cluster)
+	m, err := r.getCurrentMachineDeploymentState(ctx, s.Blueprint.MachineDeployments, currentState.Cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -72,8 +74,12 @@ func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scop
 
 // getCurrentInfrastructureClusterState looks for the state of the InfrastructureCluster. If a reference is set but not
 // found, either from an error or the object not being found, an error is thrown.
-func (r *Reconciler) getCurrentInfrastructureClusterState(ctx context.Context, cluster *clusterv1.Cluster) (*unstructured.Unstructured, error) {
-	infra, err := r.getReference(ctx, cluster.Spec.InfrastructureRef)
+func (r *Reconciler) getCurrentInfrastructureClusterState(ctx context.Context, blueprintInfrastructureClusterTemplate *unstructured.Unstructured, cluster *clusterv1.Cluster) (*unstructured.Unstructured, error) {
+	ref, err := alignRefAPIVersion(blueprintInfrastructureClusterTemplate, cluster.Spec.InfrastructureRef)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read %s", tlog.KRef{Ref: cluster.Spec.InfrastructureRef})
+	}
+	infra, err := r.getReference(ctx, ref)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read %s", tlog.KRef{Ref: cluster.Spec.InfrastructureRef})
 	}
@@ -89,12 +95,16 @@ func (r *Reconciler) getCurrentInfrastructureClusterState(ctx context.Context, c
 // getCurrentControlPlaneState returns information on the ControlPlane being used by the Cluster. If a reference is not found,
 // an error is thrown. If the ControlPlane requires MachineInfrastructure according to its ClusterClass an error will be
 // thrown if the ControlPlane has no MachineTemplates.
-func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, cluster *clusterv1.Cluster, blueprint *scope.ClusterBlueprint) (*scope.ControlPlaneState, error) {
+func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, blueprintControlPlane *scope.ControlPlaneBlueprint, blueprintHasControlPlaneInfrastructureMachine bool, cluster *clusterv1.Cluster) (*scope.ControlPlaneState, error) {
 	var err error
 	res := &scope.ControlPlaneState{}
 
 	// Get the control plane object.
-	res.Object, err = r.getReference(ctx, cluster.Spec.ControlPlaneRef)
+	ref, err := alignRefAPIVersion(blueprintControlPlane.Template, cluster.Spec.ControlPlaneRef)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read %s", tlog.KRef{Ref: cluster.Spec.ControlPlaneRef})
+	}
+	res.Object, err = r.getReference(ctx, ref)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read %s", tlog.KRef{Ref: cluster.Spec.ControlPlaneRef})
 	}
@@ -106,7 +116,7 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, cluster *c
 	}
 
 	// If the clusterClass does not mandate the controlPlane has infrastructureMachines, return.
-	if !blueprint.HasControlPlaneInfrastructureMachine() {
+	if !blueprintHasControlPlaneInfrastructureMachine {
 		return res, nil
 	}
 
@@ -115,7 +125,11 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, cluster *c
 	if err != nil {
 		return res, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate reference for %s", tlog.KObj{Obj: res.Object})
 	}
-	res.InfrastructureMachineTemplate, err = r.getReference(ctx, machineInfrastructureRef)
+	ref, err = alignRefAPIVersion(blueprintControlPlane.InfrastructureMachineTemplate, machineInfrastructureRef)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s", tlog.KObj{Obj: res.Object})
+	}
+	res.InfrastructureMachineTemplate, err = r.getReference(ctx, ref)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get InfrastructureMachineTemplate for %s", tlog.KObj{Obj: res.Object})
 	}
@@ -143,7 +157,7 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, cluster *c
 // whether they are managed by a ClusterClass using labels. A Cluster may have zero or more MachineDeployments. Zero is
 // expected on first reconcile. If MachineDeployments are found for the Cluster their Infrastructure and Bootstrap references
 // are inspected. Where these are not found the function will throw an error.
-func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, cluster *clusterv1.Cluster) (map[string]*scope.MachineDeploymentState, error) {
+func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, blueprintMachineDeployments map[string]*scope.MachineDeploymentBlueprint, cluster *clusterv1.Cluster) (map[string]*scope.MachineDeploymentState, error) {
 	state := make(scope.MachineDeploymentsStateMap)
 
 	// List all the machine deployments in the current cluster and in a managed topology.
@@ -178,12 +192,26 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, clust
 			return nil, fmt.Errorf("duplicate %s found for label %s: %s", tlog.KObj{Obj: m}, clusterv1.ClusterTopologyMachineDeploymentLabelName, mdTopologyName)
 		}
 
+		mdClassName := getMDClassName(cluster, mdTopologyName)
+		if mdClassName == "" {
+			return nil, fmt.Errorf("failed to find MachineDeployment topology %s in %s", mdTopologyName, tlog.KObj{Obj: cluster})
+		}
+
+		mdBluePrint, ok := blueprintMachineDeployments[mdClassName]
+		if !ok {
+			return nil, fmt.Errorf("failed to find MachineDeployment class %s in ClusterClass", mdClassName)
+		}
+
 		// Gets the BootstrapTemplate
 		bootstrapRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
 		if bootstrapRef == nil {
 			return nil, fmt.Errorf("%s does not have a reference to a Bootstrap Config", tlog.KObj{Obj: m})
 		}
-		b, err := r.getReference(ctx, bootstrapRef)
+		ref, err := alignRefAPIVersion(mdBluePrint.BootstrapTemplate, bootstrapRef)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("%s Bootstrap reference could not be retrieved", tlog.KObj{Obj: m}))
+		}
+		b, err := r.getReference(ctx, ref)
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("%s Bootstrap reference could not be retrieved", tlog.KObj{Obj: m}))
 		}
@@ -199,7 +227,11 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, clust
 		if infraRef.Name == "" {
 			return nil, fmt.Errorf("%s does not have a reference to a InfrastructureMachineTemplate", tlog.KObj{Obj: m})
 		}
-		infra, err := r.getReference(ctx, &infraRef)
+		ref, err = alignRefAPIVersion(mdBluePrint.InfrastructureMachineTemplate, &infraRef)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
+		}
+		infra, err := r.getReference(ctx, ref)
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
 		}
@@ -231,4 +263,45 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, clust
 		}
 	}
 	return state, nil
+}
+
+// alignRefAPIVersion returns an aligned copy of the currentRef so it matches the apiVersion in ClusterClass.
+// This is required so the topology controller can diff current and desired state objects of the same
+// version during reconcile.
+// If group or kind was changed in the ClusterClass, an exact copy of the currentRef is returned because
+// it will end up in a diff and a rollout anyway.
+// Only bootstrap template refs in a ClusterClass can change their group and kind.
+func alignRefAPIVersion(templateFromClusterClass *unstructured.Unstructured, currentRef *corev1.ObjectReference) (*corev1.ObjectReference, error) {
+	currentGV, err := schema.ParseGroupVersion(currentRef.APIVersion)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to parse apiVersion: %q", currentRef.APIVersion)
+	}
+
+	apiVersion := currentRef.APIVersion
+	// Use apiVersion from ClusterClass if group and kind is the same.
+	if templateFromClusterClass.GroupVersionKind().Group == currentGV.Group &&
+		templateFromClusterClass.GetKind() == currentRef.Kind {
+		apiVersion = templateFromClusterClass.GetAPIVersion()
+	}
+
+	return &corev1.ObjectReference{
+		APIVersion: apiVersion,
+		Kind:       currentRef.Kind,
+		Namespace:  currentRef.Namespace,
+		Name:       currentRef.Name,
+	}, nil
+}
+
+// getMDClassName retrieves the MDClass name by looking up the MDTopology in the Cluster.
+func getMDClassName(cluster *clusterv1.Cluster, mdTopologyName string) string {
+	if cluster.Spec.Topology.Workers == nil {
+		return ""
+	}
+
+	for _, mdTopology := range cluster.Spec.Topology.Workers.MachineDeployments {
+		if mdTopology.Name == mdTopologyName {
+			return mdTopology.Class
+		}
+	}
+	return ""
 }

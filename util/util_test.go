@@ -41,7 +41,7 @@ import (
 func TestMachineToInfrastructureMapFunc(t *testing.T) {
 	g := NewWithT(t)
 
-	var testcases = []struct {
+	testcases := []struct {
 		name    string
 		input   schema.GroupVersionKind
 		request client.Object
@@ -110,7 +110,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 }
 
 func TestClusterToInfrastructureMapFunc(t *testing.T) {
-	var testcases = []struct {
+	testcases := []struct {
 		name           string
 		input          schema.GroupVersionKind
 		request        *clusterv1.Cluster
@@ -874,10 +874,15 @@ func TestRemoveOwnerRef(t *testing.T) {
 			},
 		},
 	}
+
+	originalOwnerRefs := append([]metav1.OwnerReference{}, ownerRefs...)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			newOwnerRefs := RemoveOwnerRef(ownerRefs, tt.toBeRemoved)
-			g.Expect(HasOwnerRef(newOwnerRefs, tt.toBeRemoved)).NotTo(BeTrue())
+			result := RemoveOwnerRef(ownerRefs, tt.toBeRemoved)
+			// RemoveOwnerRef should remove the owner ref, if it is found.
+			g.Expect(HasOwnerRef(result, tt.toBeRemoved)).NotTo(BeTrue())
+			// RemoveOwnerRef should not mutate its input.
+			g.Expect(ownerRefs).To(Equal(originalOwnerRefs), "RemoveOwnerRef mutated its input")
 		})
 	}
 }

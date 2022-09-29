@@ -4,7 +4,7 @@
 
 ## Management cluster
 
-A Kubernetes cluster that manages the lifecycle of Workload Clusters. A Management Cluster is also where one or more Infrastructure Providers run, and where resources such as Machines are stored.
+A Kubernetes cluster that manages the lifecycle of Workload Clusters. A Management Cluster is also where one or more providers run, and where resources such as Machines are stored.
 
 ### Workload cluster
 
@@ -12,13 +12,14 @@ A Kubernetes cluster whose lifecycle is managed by a Management Cluster.
 
 ## Infrastructure provider
 
-A source of computational resources, such as compute and networking. For example, cloud Infrastructure Providers include AWS, Azure, and Google, and bare metal Infrastructure Providers include VMware, MAAS, and metal3.io.
+A component responsible for the provisioning of infrastructure/computational resources required by the Cluster or by Machines (e.g. VMs, networking, etc.). 
+For example, cloud Infrastructure Providers include AWS, Azure, and Google, and bare metal Infrastructure Providers include VMware, MAAS, and metal3.io.
 
 When there is more than one way to obtain resources from the same Infrastructure Provider (such as AWS offering both EC2 and EKS), each way is referred to as a variant.
 
 ## Bootstrap provider
 
-The Bootstrap Provider is responsible for:
+A component responsible for turning a server into a Kubernetes node as well as for:
 
 1. Generating the cluster certificates, if not otherwise specified
 1. Initializing the control plane, and gating the creation of other nodes until it is complete
@@ -28,11 +29,13 @@ The Bootstrap Provider is responsible for:
 
 The [control plane](https://kubernetes.io/docs/concepts/overview/components/) is a set of components that serve the Kubernetes API and continuously reconcile desired state using [control loops](https://kubernetes.io/docs/concepts/architecture/controller/).
 
-* __Machine-based__ control planes are the most common type. Dedicated machines are provisioned, running [static pods](https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/) for components such as [kube-apiserver](https://kubernetes.io/docs/admin/kube-apiserver/), [kube-controller-manager](https://kubernetes.io/docs/admin/kube-controller-manager/) and [kube-scheduler](https://kubernetes.io/docs/admin/kube-scheduler/).
+* __Self-provisioned__: A Kubernetes control plane consisting of pods or machines wholly managed by a single Cluster API deployment.
+  e.g kubeadm uses [static pods](https://kubernetes.io/docs/tasks/configure-pod-container/static-pod/) for running components such as [kube-apiserver](https://kubernetes.io/docs/admin/kube-apiserver/), [kube-controller-manager](https://kubernetes.io/docs/admin/kube-controller-manager/) and [kube-scheduler](https://kubernetes.io/docs/admin/kube-scheduler/)
+  on control plane machines.
 
 * __Pod-based__ deployments require an external hosting cluster. The control plane components are deployed using standard *Deployment* and *StatefulSet* objects and the API is exposed using a *Service*.
 
-* __External__ control planes are offered and controlled by some system other than Cluster API, such as GKE, AKS, EKS, or IKS.
+* __External__  or __Managed__ control planes are offered and controlled by some system other than Cluster API, such as GKE, AKS, EKS, or IKS.
 
 The default provider uses kubeadm to bootstrap the control plane. As of v1alpha3, it exposes the configuration via the `KubeadmControlPlane` object. The controller, `capi-kubeadm-control-plane-controller-manager`, can then create Machine and BootstrapConfig objects based on the requested replicas in the `KubeadmControlPlane` object.
 

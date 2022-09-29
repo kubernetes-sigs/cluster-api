@@ -41,7 +41,7 @@ import (
 func TestMachineToInfrastructureMapFunc(t *testing.T) {
 	g := NewWithT(t)
 
-	var testcases = []struct {
+	testcases := []struct {
 		name    string
 		input   schema.GroupVersionKind
 		request client.Object
@@ -110,7 +110,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 }
 
 func TestClusterToInfrastructureMapFunc(t *testing.T) {
-	var testcases = []struct {
+	testcases := []struct {
 		name           string
 		input          schema.GroupVersionKind
 		request        *clusterv1.Cluster
@@ -840,17 +840,19 @@ func TestIsSupportedVersionSkew(t *testing.T) {
 
 func TestRemoveOwnerRef(t *testing.T) {
 	g := NewWithT(t)
-	ownerRefs := []metav1.OwnerReference{
-		{
-			APIVersion: "dazzlings.info/v1",
-			Kind:       "Twilight",
-			Name:       "m4g1c",
-		},
-		{
-			APIVersion: "bar.cluster.x-k8s.io/v1beta1",
-			Kind:       "TestCluster",
-			Name:       "bar-1",
-		},
+	makeOwnerRefs := func() []metav1.OwnerReference {
+		return []metav1.OwnerReference{
+			{
+				APIVersion: "dazzlings.info/v1",
+				Kind:       "Twilight",
+				Name:       "m4g1c",
+			},
+			{
+				APIVersion: "bar.cluster.x-k8s.io/v1beta1",
+				Kind:       "TestCluster",
+				Name:       "bar-1",
+			},
+		}
 	}
 
 	tests := []struct {
@@ -876,8 +878,10 @@ func TestRemoveOwnerRef(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			newOwnerRefs := RemoveOwnerRef(ownerRefs, tt.toBeRemoved)
-			g.Expect(HasOwnerRef(newOwnerRefs, tt.toBeRemoved)).NotTo(BeTrue())
+			// Use a fresh ownerRefs slice for each test, because RemoveOwnerRef may modify the underlying array.
+			ownerRefs := makeOwnerRefs()
+			ownerRefs = RemoveOwnerRef(ownerRefs, tt.toBeRemoved)
+			g.Expect(HasOwnerRef(ownerRefs, tt.toBeRemoved)).NotTo(BeTrue())
 		})
 	}
 }

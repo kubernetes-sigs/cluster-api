@@ -68,13 +68,18 @@ type ClusterctlUpgradeSpecInput struct {
 	// InitWithProvidersContract can be used to override the INIT_WITH_PROVIDERS_CONTRACT e2e config variable with a specific
 	// provider contract to use to initialise the secondary management cluster, e.g. `v1alpha3`
 	InitWithProvidersContract string
-	SkipCleanup               bool
-	ControlPlaneWaiters       clusterctl.ControlPlaneWaiters
-	PreInit                   func(managementClusterProxy framework.ClusterProxy)
-	PreUpgrade                func(managementClusterProxy framework.ClusterProxy)
-	PostUpgrade               func(managementClusterProxy framework.ClusterProxy)
-	MgmtFlavor                string
-	WorkloadFlavor            string
+	// InitWithKubernetesVersion can be used to override the INIT_WITH_KUBERNETES_VERSION e2e config variable with a specific
+	// Kubernetes version to use to create the secondary management cluster, e.g. `v1.25.0`
+	InitWithKubernetesVersion string
+	// UpgradeClusterctlVariables can be used to set additional variables for clusterctl upgrade.
+	UpgradeClusterctlVariables map[string]string
+	SkipCleanup                bool
+	ControlPlaneWaiters        clusterctl.ControlPlaneWaiters
+	PreInit                    func(managementClusterProxy framework.ClusterProxy)
+	PreUpgrade                 func(managementClusterProxy framework.ClusterProxy)
+	PostUpgrade                func(managementClusterProxy framework.ClusterProxy)
+	MgmtFlavor                 string
+	WorkloadFlavor             string
 }
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
@@ -115,11 +120,14 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		testCancelWatches context.CancelFunc
 
 		managementClusterName          string
-		clusterctlBinaryURL            string
 		managementClusterNamespace     *corev1.Namespace
 		managementClusterCancelWatches context.CancelFunc
 		managementClusterResources     *clusterctl.ApplyClusterTemplateAndWaitResult
 		managementClusterProxy         framework.ClusterProxy
+
+		initClusterctlBinaryURL string
+		initContract            string
+		initKubernetesVersion   string
 
 		workLoadClusterName string
 	)
@@ -130,17 +138,34 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
 		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
-		var clusterctlBinaryURLTemplate string
-		if input.InitWithBinary == "" {
+
+		clusterctlBinaryURLTemplate := input.InitWithBinary
+		if clusterctlBinaryURLTemplate == "" {
 			Expect(input.E2EConfig.Variables).To(HaveKey(initWithBinaryVariableName), "Invalid argument. %s variable must be defined when calling %s spec", initWithBinaryVariableName, specName)
 			Expect(input.E2EConfig.Variables[initWithBinaryVariableName]).ToNot(BeEmpty(), "Invalid argument. %s variable can't be empty when calling %s spec", initWithBinaryVariableName, specName)
 			clusterctlBinaryURLTemplate = input.E2EConfig.GetVariable(initWithBinaryVariableName)
-		} else {
-			clusterctlBinaryURLTemplate = input.InitWithBinary
 		}
 		clusterctlBinaryURLReplacer := strings.NewReplacer("{OS}", runtime.GOOS, "{ARCH}", runtime.GOARCH)
-		clusterctlBinaryURL = clusterctlBinaryURLReplacer.Replace(clusterctlBinaryURLTemplate)
-		Expect(input.E2EConfig.Variables).To(HaveKey(initWithKubernetesVersion))
+		initClusterctlBinaryURL = clusterctlBinaryURLReplacer.Replace(clusterctlBinaryURLTemplate)
+
+		// NOTE: by default we are considering all the providers, no matter of the contract.
+		// However, given that we want to test both v1alpha3 --> v1beta1 and v1alpha4 --> v1beta1, the INIT_WITH_PROVIDERS_CONTRACT
+		// variable can be used to select versions with a specific contract.
+		initContract = "*"
+		if input.E2EConfig.HasVariable(initWithProvidersContract) {
+			initContract = input.E2EConfig.GetVariable(initWithProvidersContract)
+		}
+		if input.InitWithProvidersContract != "" {
+			initContract = input.InitWithProvidersContract
+		}
+
+		initKubernetesVersion = input.InitWithKubernetesVersion
+		if initKubernetesVersion == "" {
+			Expect(input.E2EConfig.Variables).To(HaveKey(initWithKubernetesVersion), "Invalid argument. %s variable must be defined when calling %s spec", initWithKubernetesVersion, specName)
+			Expect(input.E2EConfig.Variables[initWithKubernetesVersion]).ToNot(BeEmpty(), "Invalid argument. %s variable can't be empty when calling %s spec", initWithKubernetesVersion, specName)
+			initKubernetesVersion = input.E2EConfig.GetVariable(initWithKubernetesVersion)
+		}
+
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 
@@ -164,7 +189,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				Flavor:                   input.MgmtFlavor,
 				Namespace:                managementClusterNamespace.Name,
 				ClusterName:              managementClusterName,
-				KubernetesVersion:        input.E2EConfig.GetVariable(initWithKubernetesVersion),
+				KubernetesVersion:        initKubernetesVersion,
 				ControlPlaneMachineCount: pointer.Int64Ptr(1),
 				WorkerMachineCount:       pointer.Int64Ptr(1),
 			},
@@ -193,26 +218,14 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		managementClusterProxy = input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
 
 		// Download the older clusterctl version to be used for setting up the management cluster to be upgraded
-
-		log.Logf("Downloading clusterctl binary from %s", clusterctlBinaryURL)
-		clusterctlBinaryPath := downloadToTmpFile(ctx, clusterctlBinaryURL)
+		log.Logf("Downloading clusterctl binary from %s", initClusterctlBinaryURL)
+		clusterctlBinaryPath := downloadToTmpFile(ctx, initClusterctlBinaryURL)
 		defer os.Remove(clusterctlBinaryPath) // clean up
 
 		err := os.Chmod(clusterctlBinaryPath, 0744) //nolint:gosec
 		Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
 
 		By("Initializing the workload cluster with older versions of providers")
-
-		// NOTE: by default we are considering all the providers, no matter of the contract.
-		// However, given that we want to test both v1alpha3 --> v1beta1 and v1alpha4 --> v1beta1, the INIT_WITH_PROVIDERS_CONTRACT
-		// variable can be used to select versions with a specific contract.
-		contract := "*"
-		if input.E2EConfig.HasVariable(initWithProvidersContract) {
-			contract = input.E2EConfig.GetVariable(initWithProvidersContract)
-		}
-		if input.InitWithProvidersContract != "" {
-			contract = input.InitWithProvidersContract
-		}
 
 		if input.PreInit != nil {
 			By("Running Pre-init steps against the management cluster")
@@ -223,10 +236,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			ClusterctlBinaryPath:    clusterctlBinaryPath, // use older version of clusterctl to init the management cluster
 			ClusterProxy:            managementClusterProxy,
 			ClusterctlConfigPath:    input.ClusterctlConfigPath,
-			CoreProvider:            input.E2EConfig.GetProviderLatestVersionsByContract(contract, config.ClusterAPIProviderName)[0],
-			BootstrapProviders:      input.E2EConfig.GetProviderLatestVersionsByContract(contract, config.KubeadmBootstrapProviderName),
-			ControlPlaneProviders:   input.E2EConfig.GetProviderLatestVersionsByContract(contract, config.KubeadmControlPlaneProviderName),
-			InfrastructureProviders: input.E2EConfig.GetProviderLatestVersionsByContract(contract, input.E2EConfig.InfrastructureProviders()...),
+			CoreProvider:            input.E2EConfig.GetProviderLatestVersionsByContract(initContract, config.ClusterAPIProviderName)[0],
+			BootstrapProviders:      input.E2EConfig.GetProviderLatestVersionsByContract(initContract, config.KubeadmBootstrapProviderName),
+			ControlPlaneProviders:   input.E2EConfig.GetProviderLatestVersionsByContract(initContract, config.KubeadmControlPlaneProviderName),
+			InfrastructureProviders: input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.InfrastructureProviders()...),
 			LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
 		}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
 
@@ -313,6 +326,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		By("Upgrading providers to the latest version available")
 		clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
+			ClusterctlVariables:  input.UpgradeClusterctlVariables,
 			ClusterProxy:         managementClusterProxy,
 			Contract:             clusterv1.GroupVersion.Version,
 			LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
@@ -342,19 +356,34 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		// After upgrading we are sure the version is the latest version of the API,
 		// so it is possible to use the standard helpers
 
-		testMachineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
-			Lister:      managementClusterProxy.GetClient(),
-			ClusterName: workLoadClusterName,
-			Namespace:   testNamespace.Name,
+		workloadCluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
+			Getter:    managementClusterProxy.GetClient(),
+			Namespace: testNamespace.Name,
+			Name:      workLoadClusterName,
 		})
-
-		framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
-			ClusterProxy:              managementClusterProxy,
-			Cluster:                   &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace.Name}},
-			MachineDeployment:         testMachineDeployments[0],
-			Replicas:                  2,
-			WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-		})
+		if workloadCluster.Spec.Topology != nil {
+			// Cluster is using ClusterClass, scale up via topology.
+			framework.ScaleAndWaitMachineDeploymentTopology(ctx, framework.ScaleAndWaitMachineDeploymentTopologyInput{
+				ClusterProxy:              managementClusterProxy,
+				Cluster:                   workloadCluster,
+				Replicas:                  2,
+				WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			})
+		} else {
+			// Cluster is not using ClusterClass, scale up via MachineDeployment.
+			testMachineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
+				Lister:      managementClusterProxy.GetClient(),
+				ClusterName: workLoadClusterName,
+				Namespace:   testNamespace.Name,
+			})
+			framework.ScaleAndWaitMachineDeployment(ctx, framework.ScaleAndWaitMachineDeploymentInput{
+				ClusterProxy:              managementClusterProxy,
+				Cluster:                   &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: testNamespace.Name}},
+				MachineDeployment:         testMachineDeployments[0],
+				Replicas:                  2,
+				WaitForMachineDeployments: input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			})
+		}
 
 		By("THE UPGRADED MANAGEMENT CLUSTER WORKS!")
 

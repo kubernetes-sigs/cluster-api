@@ -42,7 +42,16 @@ type providerConfig struct {
 // write writes a clusterctl config file to disk.
 func (c *clusterctlConfig) write() {
 	data, err := yaml.Marshal(c.Values)
-	Expect(err).ToNot(HaveOccurred(), "Failed to convert to yaml the clusterctl config file")
+	Expect(err).ToNot(HaveOccurred(), "Failed to marshal the clusterctl config file")
 
 	Expect(os.WriteFile(c.Path, data, 0600)).To(Succeed(), "Failed to write the clusterctl config file")
+}
+
+// read reads a clusterctl config file from disk.
+func (c *clusterctlConfig) read() {
+	data, err := os.ReadFile(c.Path)
+	Expect(err).ToNot(HaveOccurred())
+
+	err = yaml.Unmarshal(data, &c.Values)
+	Expect(err).ToNot(HaveOccurred(), "Failed to unmarshal the clusterctl config file")
 }

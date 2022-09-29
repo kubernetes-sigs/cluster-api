@@ -421,3 +421,78 @@ func ScaleAndWaitMachineDeployment(ctx context.Context, input ScaleAndWaitMachin
 		return nodeRefCount, nil
 	}, input.WaitForMachineDeployments...).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)), "Timed out waiting for Machine Deployment %s to have %d replicas", klog.KObj(input.MachineDeployment), *input.MachineDeployment.Spec.Replicas)
 }
+
+// ScaleAndWaitMachineDeploymentTopologyInput is the input for ScaleAndWaitMachineDeployment.
+type ScaleAndWaitMachineDeploymentTopologyInput struct {
+	ClusterProxy              ClusterProxy
+	Cluster                   *clusterv1.Cluster
+	Replicas                  int32
+	WaitForMachineDeployments []interface{}
+}
+
+// ScaleAndWaitMachineDeploymentTopology scales MachineDeployment topology and waits until all machines have node ref and equal to Replicas.
+func ScaleAndWaitMachineDeploymentTopology(ctx context.Context, input ScaleAndWaitMachineDeploymentTopologyInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for ScaleAndWaitMachineDeployment")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ScaleAndWaitMachineDeployment")
+	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling ScaleAndWaitMachineDeployment")
+	Expect(input.Cluster.Spec.Topology.Workers).ToNot(BeNil(), "Invalid argument. input.Cluster must have MachineDeployment topologies")
+	Expect(len(input.Cluster.Spec.Topology.Workers.MachineDeployments) >= 1).To(BeTrue(), "Invalid argument. input.Cluster must have at least one MachineDeployment topology")
+
+	mdTopology := input.Cluster.Spec.Topology.Workers.MachineDeployments[0]
+	log.Logf("Scaling machine deployment topology %s from %d to %d replicas", mdTopology.Name, *mdTopology.Replicas, input.Replicas)
+	patchHelper, err := patch.NewHelper(input.Cluster, input.ClusterProxy.GetClient())
+	Expect(err).ToNot(HaveOccurred())
+	mdTopology.Replicas = pointer.Int32Ptr(input.Replicas)
+	input.Cluster.Spec.Topology.Workers.MachineDeployments[0] = mdTopology
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, input.Cluster)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to scale machine deployment topology %s", mdTopology.Name)
+
+	log.Logf("Waiting for correct number of replicas to exist")
+	deploymentList := &clusterv1.MachineDeploymentList{}
+	Eventually(func() error {
+		return input.ClusterProxy.GetClient().List(ctx, deploymentList,
+			client.InNamespace(input.Cluster.Namespace),
+			client.MatchingLabels{
+				clusterv1.ClusterLabelName:                          input.Cluster.Name,
+				clusterv1.ClusterTopologyMachineDeploymentLabelName: mdTopology.Name,
+			},
+		)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineDeployments object for Cluster %s", klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
+
+	Expect(deploymentList.Items).To(HaveLen(1))
+	md := deploymentList.Items[0]
+
+	Eventually(func() (int, error) {
+		selectorMap, err := metav1.LabelSelectorAsMap(&md.Spec.Selector)
+		if err != nil {
+			return -1, err
+		}
+		ms := &clusterv1.MachineSetList{}
+		if err := input.ClusterProxy.GetClient().List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap)); err != nil {
+			return -1, err
+		}
+		if len(ms.Items) == 0 {
+			return -1, errors.New("no machinesets were found")
+		}
+		machineSet := ms.Items[0]
+		selectorMap, err = metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
+		if err != nil {
+			return -1, err
+		}
+		machines := &clusterv1.MachineList{}
+		if err := input.ClusterProxy.GetClient().List(ctx, machines, client.InNamespace(machineSet.Namespace), client.MatchingLabels(selectorMap)); err != nil {
+			return -1, err
+		}
+		nodeRefCount := 0
+		for _, machine := range machines.Items {
+			if machine.Status.NodeRef != nil {
+				nodeRefCount++
+			}
+		}
+		if len(machines.Items) != nodeRefCount {
+			return -1, errors.New("Machine count does not match existing nodes count")
+		}
+		return nodeRefCount, nil
+	}, input.WaitForMachineDeployments...).Should(Equal(int(*md.Spec.Replicas)), "Timed out waiting for Machine Deployment %s to have %d replicas", klog.KObj(&md), *md.Spec.Replicas)
+}

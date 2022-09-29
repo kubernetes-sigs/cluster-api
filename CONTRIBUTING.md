@@ -209,13 +209,13 @@ When submitting the PR remember to label it with the 📖 (:book:) icon.
 
 ## Proposal process (CAEP)
 
-The Cluster API Enhacement Proposal is the process this project uses to adopt new features, changes to the APIs, changes to contracts between components, or changes to CLI interfaces.
+The Cluster API Enhancement Proposal is the process this project uses to adopt new features, changes to the APIs, changes to contracts between components, or changes to CLI interfaces.
 
 The [template](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/YYYYMMDD-template.md), and accepted proposals live under [docs/proposals](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs/proposals).
 
-- Proposals or requests for enhacements (RFEs) MUST be associated with an issue.
+- Proposals or requests for enhancements (RFEs) MUST be associated with an issue.
   - Issues can be placed on the roadmap during planning if there is one or more folks
-    that can dedicate time to writing a CAEP and/or implementating it after approval.
+    that can dedicate time to writing a CAEP and/or implementing it after approval.
 - A proposal SHOULD be introduced and discussed during the weekly community meetings or on the
  [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle).
   - Submit and discuss proposals using a collaborative writing platform, preferably Google Docs, share documents with edit permissions with the [Kubernetes SIG Cluster Lifecycle mailing list](https://groups.google.com/forum/#!forum/kubernetes-sig-cluster-lifecycle).

@@ -69,6 +69,8 @@ Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/referen
   into specific moments of the workload cluster’s lifecycle, e.g. `BeforeClusterUpgrade`, `BeforeMachineRemediation`.
 - **Runtime Extension**: an external component which is part of a system/product built on top of Cluster API that can
   handle requests for a specific Runtime Hook.
+- **Runtime Extension Provider**: a project that provides a runtime extension and the yaml for installing it as part of 
+  its release artefacts.
 
 ## Summary
 
@@ -145,6 +147,7 @@ To define the Runtime SDK and more specifically
 - Improve the Runtime Extension developer guide based on experience and feedback;
 - Add metrics about Runtime Extension calls (usage, usage vs deprecated versions, duration, error rate etc.);
 - Allow providers to use the same SDK to define their own hooks.
+- Improve clusterctl to deploy and manage runtime extension providers
 
 ## Proposal
 

@@ -188,3 +188,34 @@ function openSwaggerUI() {
   window.open("https://editor.swagger.io/?url=" + schemaURL)
 }
 </script>
+
+## Dealing with Cluster API upgrades with apiVersion bumps
+
+There are some special considerations regarding Cluster API upgrades when the upgrade includes a bump
+of the apiVersion of infrastructure, bootstrap or control plane provider CRDs.
+
+When calling external patches the Cluster topology controller is always sending the templates in the apiVersion of the references
+in the ClusterClass.
+
+While inline patches are always referring to one specific apiVersion, external patch implementations are more flexible. They can
+be written in a way that they are able to handle multiple apiVersions of a CRD. This can be done by calculating patches differently
+depending on which apiVersion is received by the external patch implementation.
+
+This allows users more flexibility during Cluster API upgrades:
+
+Variant 1: External patch implementation supporting two apiVersions at the same time
+
+1. Update Cluster API
+2. Update the external patch implementation to be able to handle custom resources with the old and the new apiVersion
+3. Update the references in ClusterClasses to use the new apiVersion
+
+**Note** In this variant it doesn't matter if Cluster API or the external patch implementation is updated first.
+
+Variant 2: Deploy an additional instance of the external patch implementation which can handle the new apiVersion
+
+1. Upgrade Cluster API
+2. Deploy the new external patch implementation which is able to handle the new apiVersion
+3. Update ClusterClasses to use the new apiVersion and the new external patch implementation
+4. Remove the old external patch implementation as it's not used anymore
+
+**Note** In this variant it doesn't matter if Cluster API is updated or the new external patch implementation is deployed first.

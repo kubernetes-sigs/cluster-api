@@ -23,6 +23,13 @@ The process of turning a server into a Kubernetes node. This may involve assembl
 
 A temporary cluster that is used to provision a Target Management cluster.
 
+### Bootstrap provider
+
+Refers to a [provider](#provider) that implements a solution for the [bootstrap](#bootstrap) process.
+Bootstrap provider's interaction with Cluster API is based on what is defined in the [Cluster API contract](#contract). 
+
+See [CABPK](#CABPK). 
+
 # C
 ---
 
@@ -86,6 +93,12 @@ Cluster API Provider VMware Cloud Director
 ### CAPZ
 Cluster API Provider Azure
 
+### Cloud provider
+
+Or __Cloud service provider__
+
+Refers to an information technology (IT) company that provides computing resources (e.g. AWS, Azure, Google, etc.).
+
 ### Cluster
 
 A full Kubernetes deployment. See Management Cluster and Workload Cluster.
@@ -101,23 +114,48 @@ Or __Cluster API project__
 
 The Cluster API sub-project of the SIG-cluster-lifecycle. It is also used to refer to the software components, APIs, and community that produce them.
 
+See [core provider](#core-provider)
+
 ### Cluster API Runtime
 
 The Cluster API execution model, a set of controllers cooperating in managing the Kubernetes cluster lifecycle.
+
+### Contract
+
+Or __Cluster API contract__
+
+Defines a set of rules a [provider](#provider) is expected to comply with in order to interact with Cluster API.
+Those rules can be in the form of CustomResourceDefinition (CRD) fields and/or expected behaviors to be implemented.
 
 ### Control plane
 
 The set of Kubernetes services that form the basis of a cluster. See also [https://kubernetes.io/docs/concepts/#kubernetes-control-plane](https://kubernetes.io/docs/concepts/#kubernetes-control-plane) There are two variants:
 
 * __Self-provisioned__: A Kubernetes control plane consisting of pods or machines wholly managed by a single Cluster API deployment.
-* __External__: A control plane offered and controlled by some system other than Cluster API (e.g., GKE, AKS, EKS, IKS).
+* __External__ or __Managed__: A control plane offered and controlled by some system other than Cluster API (e.g., GKE, AKS, EKS, IKS).
+
+### Control plane provider
+
+Refers to a [provider](#provider) that implements a solution for the management of a Kubernetes [control plane][#control-plane].
+Control plane provider's interaction with Cluster API is based on what is defined in the [Cluster API contract](#contract).
+
+See [KCP](#KCP).
+
+### Core provider
+
+Refers to a [provider](#provider) that implements Cluster API core controllers; if you 
+consider that the first project that must be deployed in a management Cluster is Cluster API itself, it should be clear why
+the Cluster API project is also referred to as the core provider.
+
+See [CAPI](#cluster-api).
 
 # D
 ---
 
 ### Default implementation
 
-A feature implementation offered as part of the Cluster API project, infrastructure providers can swap it out for a different one.
+A feature implementation offered as part of the Cluster API project and maintained by the CAPI core team; For example
+[KCP](#KCP) is a default implementation for a [control plane provider](#control-plane-provider).
 
 # E
 ---
@@ -148,7 +186,15 @@ see [Server](#server)
 
 ### Infrastructure provider
 
-A source of computational resources (e.g. machines, networking, etc.). Examples for cloud include AWS, Azure, Google, etc.; for bare metal include VMware, MAAS, metal3.io, etc. When there is more than one way to obtain resources from the same infrastructure provider (e.g. EC2 vs. EKS) each way is referred to as a variant.
+Refers to a [provider](#provider) that implements provisioning of infrastructure/computational resources required by 
+the Cluster or by Machines (e.g. VMs, networking, etc.).
+Infrastructure provider's interaction with Cluster API is based on what is defined in the [Cluster API contract](#contract).
+
+Clouds infrastructure providers include AWS, Azure, or Google; while VMware, MAAS, or metal3.io can be defined as bare metal providers.
+When there is more than one way to obtain resources from the same infrastructure provider (e.g. EC2 vs. EKS in AWS) each way is referred to as a variant.
+
+See e.g. [CAPA][#CAPA], [CAPC][#CAPC], [CAPD][#CAPD], [CAPG][#CAPG], [CAPH][#CAPH], [CAPIBM][#CAPIBM], [CAPN][#CAPN],
+[CAPX][#CAPX], [CAPK][#CAPK], [CAPO][#CAPO], [CAPOCI][#CAPOCI], [CAPV][#CAPV], [CAPVC][#CAPVC], [CAPVCD][#CAPVCD], [CAPZ][#CAPZ]
 
 ### Inline patch 
 
@@ -161,6 +207,11 @@ see [Server](#server)
 ### Immutability
 
 A resource that does not mutate.  In kubernetes we often state the instance of a running pod is immutable or does not change once it is run.  In order to make a change, a new pod is run.  In the context of [Cluster API](#cluster-api) we often refer to a running instance of a [Machine](#machine) as being immutable, from a [Cluster API](#cluster-api) perspective.
+
+### IPAM provider
+
+Refers to a [provider](#provider) that allows Cluster API to interact with IPAM solutions.
+IPAM provider's interaction with Cluster API is based on the `IPAddressClaim` and `IPAddress` API types.
 
 # K
 ---
@@ -246,16 +297,27 @@ The pivot process is also used for deleting a management cluster and could also 
 
 ### Provider
 
-See [Infrastructure Provider](#infrastructure-provider)
+Or __Cluster API provider__
+
+This term was originally used as abbreviation for [Infrastructure provider](#infrastructure-provider), but currently it is used
+to refer to any project that can be deployed and provides functionality to the Cluster API management Cluster.
+
+See [Bootstrap provider](#bootstrap-provider), [Control plane provider](#control-plane-provider), [Core provider](#core-provider),
+[Infrastructure provider](#infrastructure-provider), [IPAM provider](#ipam-provider)  [Runtime extension provider](#runtime-extension-provider).
 
 ### Provider components
 
-Refers to the YAML artifact a provider publishes as part of their releases which is required to use the provider components,
-it usually contains Custom Resource Definitions (CRDs), Deployments (to run the controller manager), RBAC, etc.
+Refers to the YAML artifact published as part of the release process for [providers](#provider);
+it usually includes Custom Resource Definitions (CRDs), Deployments (to run the controller manager), RBAC, etc.
 
-### Provider implementation
+In some cases, the same expression is used to refer to the instances of above components deployed in a management cluster.
 
-Existing Cluster API implementations consist of generic and infrastructure provider-specific logic. The [infrastructure provider](#infrastructure-provider)-specific logic is currently maintained in infrastructure provider repositories.
+See [Provider repository](#provider-repository)
+
+### Provider repository
+
+Refers to the location where the YAML for [provider components](#provider-components) are hosted; usually a provider repository hosts
+many version of provider components, one for each released version.
 
 # R
 ---
@@ -265,6 +327,11 @@ Existing Cluster API implementations consist of generic and infrastructure provi
 An external component which is part of a system built on top of Cluster API that can handle requests for a specific Runtime Hook.
 
 See [Runtime SDK](#runtime-sdk)
+
+### Runtime Extension provider
+
+Refers to a [provider](#provider) that implements one or more [runtime extensions](#runtime-extension).
+Runtime Extension provider's interaction with Cluster API are based on the Open API spec for [runtime hooks](#runtime-hook).
 
 ### Runtime Hook
 

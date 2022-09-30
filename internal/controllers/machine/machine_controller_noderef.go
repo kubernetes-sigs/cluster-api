@@ -109,6 +109,10 @@ func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Clust
 		desired[clusterv1.OwnerKindAnnotation] = owner.Kind
 		desired[clusterv1.OwnerNameAnnotation] = owner.Name
 	}
+	if machine.Spec.FailureDomain != nil {
+		desired[clusterv1.FailureDomainAnnotation] = *machine.Spec.FailureDomain
+	}
+
 	if annotations.AddAnnotations(node, desired) {
 		if err := patchHelper.Patch(ctx, node); err != nil {
 			log.V(2).Info("Failed patch node to set annotations", "err", err, "node name", node.Name)

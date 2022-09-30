@@ -17,7 +17,6 @@ limitations under the License.
 package builder
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/gobuffalo/flect"
@@ -27,6 +26,7 @@ import (
 	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util/contract"
 )
 
 func untypedCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomResourceDefinition {
@@ -49,7 +49,7 @@ func generateCRD(gvk schema.GroupVersionKind, properties map[string]apiextension
 			Kind:       "CustomResourceDefinition",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: fmt.Sprintf("%s.%s", flect.Pluralize(strings.ToLower(gvk.Kind)), gvk.Group),
+			Name: contract.CalculateCRDName(gvk.Group, gvk.Kind),
 			Labels: map[string]string{
 				clusterv1.GroupVersion.String(): "v1beta1",
 			},

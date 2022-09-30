@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch"
-	"github.com/gobuffalo/flect"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -44,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	clustertopologycontroller "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
+	"sigs.k8s.io/cluster-api/util/contract"
 )
 
 const (
@@ -519,7 +519,7 @@ func (t *topologyClient) generateCRDs(objs []*unstructured.Unstructured) []*apie
 					Kind:       "CustomResourceDefinition",
 				},
 				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("%s.%s", flect.Pluralize(strings.ToLower(gvk.Kind)), gvk.Group),
+					Name: contract.CalculateCRDName(gvk.Group, gvk.Kind),
 					Labels: map[string]string{
 						// Here we assume that all the versions are compatible with the Cluster API contract version.
 						clusterv1.GroupVersion.String(): gvk.Version,

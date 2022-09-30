@@ -50,6 +50,9 @@ The `ImplementationControlPlane` *must* rely on the existence of
 
 ### CRD contracts
 
+The CRD name must have the format produced by `sigs.k8s.io/cluster-api/util/contract.CalculateCRDName(Group, Kind)`.
+The same applies for the name of the corresponding ControlPlane template CRD.
+
 #### Required `spec` fields for implementations using replicas
 
 * `replicas` - is an integer representing the number of desired
@@ -78,13 +81,13 @@ documentation][scale].
 
 #### Required `spec` fields for implementations using Machines
 
-* `machineTemplate` - is a struct containing details of the control plane 
+* `machineTemplate` - is a struct containing details of the control plane
   machine template.
 
 * `machineTemplate.metadata` - is a struct containing info about metadata for control plane
   machines.
 
-* `machineTemplate.metadata.labels` - is a map of string keys and values that can be used 
+* `machineTemplate.metadata.labels` - is a map of string keys and values that can be used
   to organize and categorize control plane machines.
 
 * `machineTemplate.metadata.annotations` - is a map of string keys and values containing
@@ -92,7 +95,7 @@ documentation][scale].
 
 * `machineTemplate.infrastructureRef` - is a corev1.ObjectReference to a custom resource
   offered by an infrastructure provider. The namespace in the ObjectReference must
-  be in the same namespace of the control plane object. 
+  be in the same namespace of the control plane object.
 
 * `machineTemplate.nodeDrainTimeout` - is a *metav1.Duration defining the total amount of time
   that the controller will spend on draining a control plane node.
@@ -220,7 +223,7 @@ following fields defined:
   version, will be used to determine when a control plane is fully upgraded
   (`spec.version == status.version`) and for enforcing [Kubernetes version
   skew policies](https://kubernetes.io/releases/version-skew-policy/) in managed topologies.
-  
+
 #### Optional `status` fields
 
 The `status` object **may** define several fields:

@@ -10,7 +10,8 @@ A bootstrap provider generates bootstrap data that is used to bootstrap a Kubern
 A bootstrap provider must define an API type for bootstrap resources. The type:
 
 1. Must belong to an API group served by the Kubernetes apiserver
-2. May be implemented as a CustomResourceDefinition, or as part of an aggregated apiserver
+2. Must be implemented as a CustomResourceDefinition.
+    1. The CRD name must have the format produced by `sigs.k8s.io/cluster-api/util/contract.CalculateCRDName(Group, Kind)`.
 3. Must be namespace-scoped
 4. Must have the standard Kubernetes "type metadata" and "object metadata"
 5. Should have a `spec` field containing fields relevant to the bootstrap provider
@@ -54,6 +55,9 @@ type PhippyBootstrapConfigTemplateResource struct {
 	Spec PhippyBootstrapConfigSpec `json:"spec"`
 }
 ```
+
+The CRD name of the template must also have the format produced by `sigs.k8s.io/cluster-api/util/contract.CalculateCRDName(Group, Kind)`.
+
 ### List Resources
 
 For any resource, also add list resources, e.g.

@@ -63,12 +63,12 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux GOARCH=${ARCH} \
     go build -trimpath -ldflags "${ldflags} -extldflags '-static'" \
-    -o /workspace/extension ${package}
+    -o /workspace/manager ${package}
 
 # Production image
 FROM gcr.io/distroless/static:nonroot-${ARCH}
 WORKDIR /
-COPY --from=builder /workspace/extension .
+COPY --from=builder /workspace/manager .
 # Use uid of nonroot user (65532) because kubernetes expects numeric user when applying pod security policies
 USER 65532
-ENTRYPOINT ["/extension"]
+ENTRYPOINT ["/manager"]

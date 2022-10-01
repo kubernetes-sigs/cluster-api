@@ -7,4 +7,4 @@ spec:
     - port: 443
       targetPort: webhook-server
   selector:
-    app: test-extension
+    app: test-extension-manager

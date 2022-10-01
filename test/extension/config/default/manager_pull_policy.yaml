@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: test-extension
+  name: manager
 spec:
   template:
     spec:
       containers:
-      - name: extension
+      - name: manager
         imagePullPolicy: Always

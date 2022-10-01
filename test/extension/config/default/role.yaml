@@ -1,7 +1,9 @@
+# Note: this is specific of the CAPI test-extension, because it uses a ConfigMap to define life-cycle hooks answers.
+# other Runtime extensions provider might want to drop this ClusterRole or make it scoped to a namespace changing kind to Role.
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
-  name: test-extension
+  name: manager-role # NOTE: this value will be prefixed with namePrefix value in kustomization.yaml
 rules:
   - apiGroups:
       - ""

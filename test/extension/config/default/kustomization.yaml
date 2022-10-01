@@ -1,23 +1,38 @@
+namespace: test-extension-system
+
+namePrefix: test-extension-
+
 commonLabels:
+  # Label to identify all the providers objects; As per the clusterctl contract the value should be unique.
+  cluster.x-k8s.io/provider: "runtime-extension-test"
 
 resources:
-- extension.yaml
+- namespace.yaml
+- manager.yaml
 - service.yaml
+- service_account.yaml
+# Note: resources specific of the CAPI test-extension, other Runtime extensions provider might want to drop this
 - role.yaml
 - rolebinding.yaml
-- service_account.yaml
 
 bases:
 - ../certmanager
 
 patchesStrategicMerge:
+# Enable webhook with corresponding certificate mount.
+- manager_webhook_patch.yaml
 # Provide customizable hook for make targets.
-- extension_image_patch.yaml
-- extension_pull_policy.yaml
-# Enable webhook.
-- extension_webhook_patch.yaml
+- manager_image_patch.yaml
+- manager_pull_policy.yaml
 
 vars:
+  - name: SERVICE_NAMESPACE
+    objref:
+      kind: Service
+      version: v1
+      name: webhook-service
+    fieldref:
+      fieldpath: metadata.namespace
   - name: SERVICE_NAME
     objref:
       kind: Service

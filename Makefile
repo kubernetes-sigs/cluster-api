@@ -612,8 +612,8 @@ docker-capd-build-all: $(addprefix docker-capd-build-,$(ALL_ARCH)) ## Build capd
 .PHONY: docker-build-test-extension
 docker-build-test-extension: ## Build the docker image for core controller manager
 	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" . -t $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG) --file ./test/extension/Dockerfile
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(TEST_EXTENSION_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./test/extension/config/default/extension_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./test/extension/config/default/extension_pull_policy.yaml"
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(TEST_EXTENSION_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./test/extension/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./test/extension/config/default/manager_pull_policy.yaml"
 
 .PHONY: e2e-framework
 e2e-framework: ## Builds the CAPI e2e framework
@@ -710,6 +710,7 @@ tilt-up: kind-cluster ## Start tilt and build kind cluster if needed.
 docker-build-e2e: ## Rebuild all Cluster API provider images to be used in the e2e tests
 	$(MAKE) docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
 	$(MAKE) docker-capd-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
+	$(MAKE) docker-build-test-extension REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
 
 ## --------------------------------------
 ## Release

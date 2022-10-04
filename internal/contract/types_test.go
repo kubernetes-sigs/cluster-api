@@ -60,7 +60,7 @@ func TestPath_IsParenOf(t *testing.T) {
 			want:  false,
 		},
 		{
-			name:  "False for not overlapping path path",
+			name:  "False for not overlapping path",
 			p:     Path{"foo", "bar"},
 			other: Path{"baz"},
 			want:  false,
@@ -102,7 +102,7 @@ func TestPath_Equal(t *testing.T) {
 			want:  false,
 		},
 		{
-			name:  "False for not overlapping path path",
+			name:  "False for not overlapping path",
 			p:     Path{"foo", "bar"},
 			other: Path{"baz"},
 			want:  false,
@@ -144,7 +144,7 @@ func TestPath_Overlaps(t *testing.T) {
 			want:  true,
 		},
 		{
-			name:  "False for not overlapping path path",
+			name:  "False for not overlapping path",
 			p:     Path{"foo", "bar"},
 			other: Path{"baz"},
 			want:  false,

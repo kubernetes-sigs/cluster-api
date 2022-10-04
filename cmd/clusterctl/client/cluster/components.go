@@ -188,6 +188,9 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 
 		if util.IsClusterResource(obj.GetKind()) &&
 			!isNamespace && !isCRD && !isWebhook &&
+			// TODO(oscr) Delete the check below condition when the min version to upgrade from is CAPI v1.3
+			// This check is needed due to the (now removed) support for multiple instances of the same provider.
+			// For more context read GitHub issue #7318 and/or PR #7339
 			!strings.HasPrefix(obj.GetName(), instanceNamespacePrefix) {
 			continue
 		}

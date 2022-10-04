@@ -186,7 +186,7 @@ func TestSimpleProcessor_Process(t *testing.T) {
 				configVariablesClient: test.NewFakeVariableClient().
 					WithVar("BAR", "bar"),
 			},
-			want:    []byte("foo bar, bar, bar"),
+			want:    []byte("foo bar, bar, bar"), //nolint:dupword
 			wantErr: false,
 		},
 		{
@@ -196,7 +196,7 @@ func TestSimpleProcessor_Process(t *testing.T) {
 				configVariablesClient: test.NewFakeVariableClient().
 					WithVar("BAR", "bar"),
 			},
-			want:    []byte(`\\ foo bar, bar, bar`),
+			want:    []byte(`\\ foo bar, bar, bar`), //nolint:dupword
 			wantErr: false,
 		},
 		{

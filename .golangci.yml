@@ -8,6 +8,7 @@ linters:
   - containedctx
   - depguard
   - dogsled
+  - dupword
   - durationcheck
   - errcheck
   - errchkjson

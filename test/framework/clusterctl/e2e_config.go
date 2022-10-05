@@ -395,20 +395,22 @@ func (c *E2EConfig) Validate() error {
 // - Providers files should be an existing file and have a target name.
 func (c *E2EConfig) validateProviders() error {
 	providersByType := map[clusterctlv1.ProviderType][]string{
-		clusterctlv1.CoreProviderType:           nil,
-		clusterctlv1.BootstrapProviderType:      nil,
-		clusterctlv1.ControlPlaneProviderType:   nil,
-		clusterctlv1.InfrastructureProviderType: nil,
+		clusterctlv1.CoreProviderType:             nil,
+		clusterctlv1.BootstrapProviderType:        nil,
+		clusterctlv1.ControlPlaneProviderType:     nil,
+		clusterctlv1.InfrastructureProviderType:   nil,
+		clusterctlv1.IPAMProviderType:             nil,
+		clusterctlv1.RuntimeExtensionProviderType: nil,
 	}
 	for i, providerConfig := range c.Providers {
 		// Providers name should not be empty.
 		if providerConfig.Name == "" {
 			return errEmptyArg(fmt.Sprintf("Providers[%d].Name", i))
 		}
-		// Providers type should be one of [CoreProvider, BootstrapProvider, ControlPlaneProvider, InfrastructureProvider].
+		// Providers type should be one of the know types.
 		providerType := clusterctlv1.ProviderType(providerConfig.Type)
 		switch providerType {
-		case clusterctlv1.CoreProviderType, clusterctlv1.BootstrapProviderType, clusterctlv1.ControlPlaneProviderType, clusterctlv1.InfrastructureProviderType:
+		case clusterctlv1.CoreProviderType, clusterctlv1.BootstrapProviderType, clusterctlv1.ControlPlaneProviderType, clusterctlv1.InfrastructureProviderType, clusterctlv1.IPAMProviderType, clusterctlv1.RuntimeExtensionProviderType:
 			providersByType[providerType] = append(providersByType[providerType], providerConfig.Name)
 		default:
 			return errInvalidArg("Providers[%d].Type=%q", i, providerConfig.Type)
@@ -504,9 +506,23 @@ func fileExists(filename string) bool {
 
 // InfrastructureProviders returns the infrastructure provider selected for running this E2E test.
 func (c *E2EConfig) InfrastructureProviders() []string {
+	return c.getProviders(clusterctlv1.InfrastructureProviderType)
+}
+
+// IPAMProviders returns the IPAM provider selected for running this E2E test.
+func (c *E2EConfig) IPAMProviders() []string {
+	return c.getProviders(clusterctlv1.IPAMProviderType)
+}
+
+// RuntimeExtensionProviders returns the runtime extension provider selected for running this E2E test.
+func (c *E2EConfig) RuntimeExtensionProviders() []string {
+	return c.getProviders(clusterctlv1.RuntimeExtensionProviderType)
+}
+
+func (c *E2EConfig) getProviders(t clusterctlv1.ProviderType) []string {
 	InfraProviders := []string{}
 	for _, provider := range c.Providers {
-		if provider.Type == string(clusterctlv1.InfrastructureProviderType) {
+		if provider.Type == string(t) {
 			InfraProviders = append(InfraProviders, provider.Name)
 		}
 	}

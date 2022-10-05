@@ -26,17 +26,19 @@ import (
 )
 
 type initOptions struct {
-	kubeconfig              string
-	kubeconfigContext       string
-	coreProvider            string
-	bootstrapProviders      []string
-	controlPlaneProviders   []string
-	infrastructureProviders []string
-	targetNamespace         string
-	listImages              bool
-	validate                bool
-	waitProviders           bool
-	waitProviderTimeout     int
+	kubeconfig                string
+	kubeconfigContext         string
+	coreProvider              string
+	bootstrapProviders        []string
+	controlPlaneProviders     []string
+	infrastructureProviders   []string
+	ipamProviders             []string
+	runtimeExtensionProviders []string
+	targetNamespace           string
+	listImages                bool
+	validate                  bool
+	waitProviders             bool
+	waitProviderTimeout       int
 }
 
 var initOpts = &initOptions{}
@@ -98,6 +100,10 @@ func init() {
 		"Bootstrap providers and versions (e.g. kubeadm:v1.1.5) to add to the management cluster. If unspecified, Kubeadm bootstrap provider's latest release is used.")
 	initCmd.PersistentFlags().StringSliceVarP(&initOpts.controlPlaneProviders, "control-plane", "c", nil,
 		"Control plane providers and versions (e.g. kubeadm:v1.1.5) to add to the management cluster. If unspecified, the Kubeadm control plane provider's latest release is used.")
+	initCmd.PersistentFlags().StringSliceVar(&initOpts.ipamProviders, "ipam", nil,
+		"IPAM providers and versions (e.g. infoblox:v0.0.1) to add to the management cluster.")
+	initCmd.PersistentFlags().StringSliceVar(&initOpts.runtimeExtensionProviders, "runtime-extension", nil,
+		"Runtime extension providers and versions (e.g. test:v0.0.1) to add to the management cluster.")
 	initCmd.Flags().StringVarP(&initOpts.targetNamespace, "target-namespace", "n", "",
 		"The target namespace where the providers should be deployed. If unspecified, the provider components' default namespace is used.")
 	initCmd.Flags().BoolVar(&initOpts.waitProviders, "wait-providers", false,
@@ -122,16 +128,18 @@ func runInit() error {
 	}
 
 	options := client.InitOptions{
-		Kubeconfig:              client.Kubeconfig{Path: initOpts.kubeconfig, Context: initOpts.kubeconfigContext},
-		CoreProvider:            initOpts.coreProvider,
-		BootstrapProviders:      initOpts.bootstrapProviders,
-		ControlPlaneProviders:   initOpts.controlPlaneProviders,
-		InfrastructureProviders: initOpts.infrastructureProviders,
-		TargetNamespace:         initOpts.targetNamespace,
-		LogUsageInstructions:    true,
-		WaitProviders:           initOpts.waitProviders,
-		WaitProviderTimeout:     time.Duration(initOpts.waitProviderTimeout) * time.Second,
-		IgnoreValidationErrors:  !initOpts.validate,
+		Kubeconfig:                client.Kubeconfig{Path: initOpts.kubeconfig, Context: initOpts.kubeconfigContext},
+		CoreProvider:              initOpts.coreProvider,
+		BootstrapProviders:        initOpts.bootstrapProviders,
+		ControlPlaneProviders:     initOpts.controlPlaneProviders,
+		InfrastructureProviders:   initOpts.infrastructureProviders,
+		IPAMProviders:             initOpts.ipamProviders,
+		RuntimeExtensionProviders: initOpts.runtimeExtensionProviders,
+		TargetNamespace:           initOpts.targetNamespace,
+		LogUsageInstructions:      true,
+		WaitProviders:             initOpts.waitProviders,
+		WaitProviderTimeout:       time.Duration(initOpts.waitProviderTimeout) * time.Second,
+		IgnoreValidationErrors:    !initOpts.validate,
 	}
 
 	if initOpts.listImages {

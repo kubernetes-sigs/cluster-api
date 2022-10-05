@@ -338,8 +338,13 @@ you are interested in testing clusterctl workflows, you should refer to the
 
 The following providers are currently defined in the Tiltfile:
 
-* **core**: cluster-api itself (Cluster/Machine/MachineDeployment/MachineSet/KubeadmConfig/KubeadmControlPlane)
-* **docker**: Docker provider (DockerCluster/DockerMachine)
+* **core**: cluster-api itself
+* **kubeadm-bootstrap**: kubeadm bootstrap provider
+* **kubeadm-control-plane**: kubeadm control-plane provider
+* **docker**: Docker infrastructure provider
+* **test-extension**: Runtime extension used by CAPI E2E tests
+
+Additional providers can be added by following the procedure described in following paragraphs:
 
 ### tilt-provider configuration
 
@@ -394,6 +399,12 @@ Set to `false` if your provider does not have a ./config folder or you do not wa
 **label** (String, default=provider name): The label to be used to group provider components in the tilt UI
 in tilt version >= v0.22.2 (see https://blog.tilt.dev/2021/08/09/resource-grouping.html); as a convention,
 provider abbreviation should be used (CAPD, KCP etc.).
+
+**additional_resources** ([]string, default=[]): A list of paths to yaml file to be loaded into the tilt cluster;
+e.g. use this to deploy an ExtensionConfig object for a RuntimeExtension provider.
+
+**resource_deps** ([]string, default=[]): A list of tilt resource names to be installed before the current provider;
+e.g. set this to ["capi_controller"] to ensure that this provider gets installed after Cluster API.
 
 ## Customizing Tilt
 

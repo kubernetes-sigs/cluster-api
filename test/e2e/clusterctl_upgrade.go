@@ -235,6 +235,9 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		err := os.Chmod(clusterctlBinaryPath, 0744) //nolint:gosec
 		Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
 
+		// Adjusts the clusterctlConfigPath in case the clusterctl version <= v1.3 (thus using a config file with only the providers supported in those versions)
+		clusterctlConfigPath := clusterctl.AdjustConfigPathForBinary(clusterctlBinaryPath, input.ClusterctlConfigPath)
+
 		By("Initializing the workload cluster with older versions of providers")
 
 		if input.PreInit != nil {
@@ -243,14 +246,16 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		}
 
 		clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
-			ClusterctlBinaryPath:    clusterctlBinaryPath, // use older version of clusterctl to init the management cluster
-			ClusterProxy:            managementClusterProxy,
-			ClusterctlConfigPath:    input.ClusterctlConfigPath,
-			CoreProvider:            input.E2EConfig.GetProviderLatestVersionsByContract(initContract, config.ClusterAPIProviderName)[0],
-			BootstrapProviders:      input.E2EConfig.GetProviderLatestVersionsByContract(initContract, config.KubeadmBootstrapProviderName),
-			ControlPlaneProviders:   input.E2EConfig.GetProviderLatestVersionsByContract(initContract, config.KubeadmControlPlaneProviderName),
-			InfrastructureProviders: input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.InfrastructureProviders()...),
-			LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
+			ClusterctlBinaryPath:      clusterctlBinaryPath, // use older version of clusterctl to init the management cluster
+			ClusterProxy:              managementClusterProxy,
+			ClusterctlConfigPath:      clusterctlConfigPath,
+			CoreProvider:              input.E2EConfig.GetProviderLatestVersionsByContract(initContract, config.ClusterAPIProviderName)[0],
+			BootstrapProviders:        input.E2EConfig.GetProviderLatestVersionsByContract(initContract, config.KubeadmBootstrapProviderName),
+			ControlPlaneProviders:     input.E2EConfig.GetProviderLatestVersionsByContract(initContract, config.KubeadmControlPlaneProviderName),
+			InfrastructureProviders:   input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.InfrastructureProviders()...),
+			IPAMProviders:             input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.IPAMProviders()...),
+			RuntimeExtensionProviders: input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.RuntimeExtensionProviders()...),
+			LogFolder:                 filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
 		}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
 
 		By("THE MANAGEMENT CLUSTER WITH THE OLDER VERSION OF PROVIDERS IS UP&RUNNING!")
@@ -282,7 +287,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			// pass reference to the management cluster hosting this test
 			KubeconfigPath: managementClusterProxy.GetKubeconfigPath(),
 			// pass the clusterctl config file that points to the local provider repository created for this test,
-			ClusterctlConfigPath: input.ClusterctlConfigPath,
+			ClusterctlConfigPath: clusterctlConfigPath,
 			// select template
 			Flavor: input.WorkloadFlavor,
 			// define template variables

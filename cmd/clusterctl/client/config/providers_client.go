@@ -361,14 +361,18 @@ func validateProvider(r Provider) error {
 	case clusterctlv1.CoreProviderType,
 		clusterctlv1.BootstrapProviderType,
 		clusterctlv1.InfrastructureProviderType,
-		clusterctlv1.ControlPlaneProviderType:
+		clusterctlv1.ControlPlaneProviderType,
+		clusterctlv1.IPAMProviderType,
+		clusterctlv1.RuntimeExtensionProviderType:
 		break
 	default:
-		return errors.Errorf("invalid provider type. Allowed values are [%s, %s, %s, %s]",
+		return errors.Errorf("invalid provider type. Allowed values are [%s, %s, %s, %s, %s, %s]",
 			clusterctlv1.CoreProviderType,
 			clusterctlv1.BootstrapProviderType,
 			clusterctlv1.InfrastructureProviderType,
-			clusterctlv1.ControlPlaneProviderType)
+			clusterctlv1.ControlPlaneProviderType,
+			clusterctlv1.IPAMProviderType,
+			clusterctlv1.RuntimeExtensionProviderType)
 	}
 	return nil
 }

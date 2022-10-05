@@ -105,10 +105,6 @@ cluster-templates-v1beta1: $(KUSTOMIZE) ## Generate cluster templates for v1beta
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/main/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1beta1/main/cluster-template-topology.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/main/cluster-template-ignition --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1beta1/main/cluster-template-ignition.yaml
 
-test-extension-deployment: $(KUSTOMIZE) ## Generate deployment for test extension
-	mkdir -p $(REPO_ROOT)/test/e2e/data/test-extension
-	$(KUSTOMIZE) build $(REPO_ROOT)/test/extension/config/default > $(REPO_ROOT)/test/e2e/data/test-extension/deployment.yaml
-
 ## --------------------------------------
 ## Testing
 ## --------------------------------------
@@ -131,7 +127,7 @@ _SKIP_ARGS := $(foreach arg,$(strip $(GINKGO_SKIP)),-skip="$(arg)")
 endif
 
 .PHONY: run
-run: $(GINKGO) cluster-templates test-extension-deployment ## Run the end-to-end tests
+run: $(GINKGO) cluster-templates ## Run the end-to-end tests
 	$(GINKGO) -v --trace -poll-progress-after=$(GINKGO_POLL_PROGRESS_AFTER) -poll-progress-interval=$(GINKGO_POLL_PROGRESS_INTERVAL) --tags=e2e --focus="$(GINKGO_FOCUS)" $(_SKIP_ARGS) --nodes=$(GINKGO_NODES) --timeout=$(GINKGO_TIMEOUT) --no-color=$(GINKGO_NOCOLOR) --output-dir="$(ARTIFACTS)" --junit-report="junit.e2e_suite.1.xml" $(GINKGO_ARGS) . -- \
 	    -e2e.artifacts-folder="$(ARTIFACTS)" \
 	    -e2e.config="$(E2E_CONF_FILE)" \

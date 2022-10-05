@@ -53,6 +53,12 @@ type InitOptions struct {
 	// If unspecified, the kubeadm control plane provider latest release is used.
 	ControlPlaneProviders []string
 
+	// IPAMProviders and versions (e.g. infoblox:v0.0.1) to add to the management cluster.
+	IPAMProviders []string
+
+	// RuntimeExtensionProviders and versions (e.g. test:v0.0.1) to add to the management cluster.
+	RuntimeExtensionProviders []string
+
 	// TargetNamespace defines the namespace where the providers should be deployed. If unspecified, each provider
 	// will be installed in a provider's default namespace.
 	TargetNamespace string
@@ -224,6 +230,14 @@ func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOp
 	}
 
 	if err := c.addToInstaller(addOptions, clusterctlv1.InfrastructureProviderType, options.InfrastructureProviders...); err != nil {
+		return nil, err
+	}
+
+	if err := c.addToInstaller(addOptions, clusterctlv1.IPAMProviderType, options.IPAMProviders...); err != nil {
+		return nil, err
+	}
+
+	if err := c.addToInstaller(addOptions, clusterctlv1.RuntimeExtensionProviderType, options.RuntimeExtensionProviders...); err != nil {
 		return nil, err
 	}
 

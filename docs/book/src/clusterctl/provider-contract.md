@@ -160,6 +160,8 @@ It is strongly recommended that:
 * Infrastructure providers release a file called `infrastructure-components.yaml`
 * Bootstrap providers release a file called ` bootstrap-components.yaml`
 * Control plane providers release a file called `control-plane-components.yaml`
+* IPAM providers release a file called `ipam-components.yaml`
+* Runtime extensions providers release a file called `runtime-extension-components.yaml`
 
 #### Target namespace
 
@@ -183,14 +185,16 @@ the provider installation.
 
 #### Controllers & Watching namespace
 
-Each provider is expected to deploy controllers using a Deployment.
+Each provider is expected to deploy controllers/runtime extension server using a Deployment.
 
-While defining the Deployment Spec, the container that executes the controller binary MUST be called `manager`.
+While defining the Deployment Spec, the container that executes the controller/runtime extension server binary MUST be called `manager`.
 
-The manager MUST support a `--namespace` flag for specifying the namespace where the controller
+For controllers only, the manager MUST support a `--namespace` flag for specifying the namespace where the controller
 will look for objects to reconcile; however, clusterctl will always install providers watching for all namespaces
 (`--namespace=""`); for more details see [support for multiple instances](../developer/architecture/controllers/support-multiple-instances.md)
 for more context.
+
+While defining Pods for Deployments, canonical names should be used for images.
 
 #### Variables
 

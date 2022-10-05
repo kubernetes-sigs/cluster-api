@@ -147,10 +147,12 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 
 		By("Initializing the workload cluster")
 		clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
-			ClusterProxy:            selfHostedClusterProxy,
-			ClusterctlConfigPath:    input.ClusterctlConfigPath,
-			InfrastructureProviders: input.E2EConfig.InfrastructureProviders(),
-			LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
+			ClusterProxy:              selfHostedClusterProxy,
+			ClusterctlConfigPath:      input.ClusterctlConfigPath,
+			InfrastructureProviders:   input.E2EConfig.InfrastructureProviders(),
+			IPAMProviders:             input.E2EConfig.IPAMProviders(),
+			RuntimeExtensionProviders: input.E2EConfig.RuntimeExtensionProviders(),
+			LogFolder:                 filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
 		}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
 
 		By("Ensure API servers are stable before doing move")

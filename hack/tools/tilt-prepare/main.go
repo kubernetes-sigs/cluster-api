@@ -77,22 +77,8 @@ type tiltSettings struct {
 	DeployCertManager   *bool                  `json:"deploy_cert_manager,omitempty"`
 	DeployObservability []string               `json:"deploy_observability,omitempty"`
 	EnableProviders     []string               `json:"enable_providers,omitempty"`
-	EnableAddons        []string               `json:"enable_addons,omitempty"`
 	AllowedContexts     []string               `json:"allowed_contexts,omitempty"`
 	ProviderRepos       []string               `json:"provider_repos,omitempty"`
-	AddonRepos          []string               `json:"addon_repos,omitempty"`
-}
-
-type addonSettings struct {
-	Name   string      `json:"name,omitempty"`
-	Config addonConfig `json:"config,omitempty"`
-}
-
-type addonConfig struct {
-	Image         string  `json:"image,omitempty"`
-	ContainerName string  `json:"container_name,omitempty"`
-	BinaryName    string  `json:"binary_name,omitempty"`
-	Context       *string `json:"context"`
 }
 
 type providerSettings struct {
@@ -277,6 +263,7 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 		"kubeadm-bootstrap":     "bootstrap/kubeadm",
 		"kubeadm-control-plane": "controlplane/kubeadm",
 		"docker":                "test/infrastructure/docker",
+		"test-extension":        "test/extension",
 	}
 
 	// Add all the provider paths to the providerpaths map
@@ -310,67 +297,7 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 		tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", ts, fmt.Sprintf("%s/config/default", path), getProviderObj)
 	}
 
-	addonPaths := map[string]string{}
-	for _, repo := range ts.AddonRepos {
-		addonContexts, err := loadAddon(repo)
-		if err != nil {
-			return err
-		}
-		for name, path := range addonContexts {
-			addonPaths[name] = path
-		}
-	}
-
-	// Add an addon task for each repo defined using enableAddons in the tilt-settings file.
-	for _, name := range ts.EnableAddons {
-		if name == "test-extension" {
-			tasks[name] = workloadTask(name, "addon", "extension", "extension", ts, fmt.Sprintf("%s/config/default", "./test/extension"), nil)
-			continue
-		}
-		path, ok := addonPaths[name]
-		if !ok {
-			return errors.Errorf("failed to obtain path for the addon %s", name)
-		}
-		as, err := readAddonSettings(path)
-		if err != nil {
-			return err
-		}
-		tasks[as.Name] = workloadTask(name, "addon", "extension", as.Config.ContainerName, ts, fmt.Sprintf("%s/config/default", path), nil)
-	}
 	return runTaskGroup(ctx, "resources", tasks)
-}
-
-func readAddonSettings(path string) (*addonSettings, error) {
-	path, err := checkWorkloadFileFormat(path, "addon")
-	if err != nil {
-		return nil, err
-	}
-	content, err := os.ReadFile(path) //nolint:gosec
-	if err != nil {
-		return nil, err
-	}
-	as := &addonSettings{}
-	if err := yaml.Unmarshal(content, as); err != nil {
-		return nil, errors.Wrap(err, "failed to unmarshal tilt-addons content")
-	}
-	return as, nil
-}
-
-func loadAddon(repo string) (map[string]string, error) {
-	var contextPath string
-	addonData, err := readAddonSettings(repo)
-	if err != nil {
-		return nil, err
-	}
-	addonContexts := map[string]string{}
-	if addonData.Config.Context != nil {
-		contextPath = repo + "/" + *addonData.Config.Context
-	} else {
-		contextPath = repo
-	}
-	addonContexts[addonData.Name] = contextPath
-
-	return addonContexts, nil
 }
 
 func loadProviders(r string) (map[string]string, error) {
@@ -940,19 +867,27 @@ func getProviderObj(prefix string, objs []unstructured.Unstructured) (*unstructu
 			clusterv1.ProviderLabelName)
 	}
 
-	providerType := "CoreProvider"
+	providerType := string(clusterctlv1.CoreProviderType)
 	providerName := manifestLabel
 	if strings.HasPrefix(manifestLabel, "infrastructure-") {
-		providerType = "InfrastructureProvider"
+		providerType = string(clusterctlv1.InfrastructureProviderType)
 		providerName = manifestLabel[len("infrastructure-"):]
 	}
 	if strings.HasPrefix(manifestLabel, "bootstrap-") {
-		providerType = "BootstrapProvider"
+		providerType = string(clusterctlv1.BootstrapProviderType)
 		providerName = manifestLabel[len("bootstrap-"):]
 	}
 	if strings.HasPrefix(manifestLabel, "control-plane-") {
-		providerType = "ControlPlaneProvider"
+		providerType = string(clusterctlv1.ControlPlaneProviderType)
 		providerName = manifestLabel[len("control-plane-"):]
+	}
+	if strings.HasPrefix(manifestLabel, "ipam-") {
+		providerType = string(clusterctlv1.IPAMProviderType)
+		providerName = manifestLabel[len("ipam-"):]
+	}
+	if strings.HasPrefix(manifestLabel, "runtime-extension-") {
+		providerType = string(clusterctlv1.RuntimeExtensionProviderType)
+		providerName = manifestLabel[len("runtime-extension-"):]
 	}
 
 	provider := &clusterctlv1.Provider{

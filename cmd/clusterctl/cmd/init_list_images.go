@@ -54,12 +54,14 @@ func runInitListImages() error {
 	}
 
 	options := client.InitOptions{
-		Kubeconfig:              client.Kubeconfig{Path: initOpts.kubeconfig, Context: initOpts.kubeconfigContext},
-		CoreProvider:            initOpts.coreProvider,
-		BootstrapProviders:      initOpts.bootstrapProviders,
-		ControlPlaneProviders:   initOpts.controlPlaneProviders,
-		InfrastructureProviders: initOpts.infrastructureProviders,
-		LogUsageInstructions:    false,
+		Kubeconfig:                client.Kubeconfig{Path: initOpts.kubeconfig, Context: initOpts.kubeconfigContext},
+		CoreProvider:              initOpts.coreProvider,
+		BootstrapProviders:        initOpts.bootstrapProviders,
+		ControlPlaneProviders:     initOpts.controlPlaneProviders,
+		InfrastructureProviders:   initOpts.infrastructureProviders,
+		IPAMProviders:             initOpts.ipamProviders,
+		RuntimeExtensionProviders: initOpts.runtimeExtensionProviders,
+		LogUsageInstructions:      false,
 	}
 
 	images, err := c.InitImages(options)

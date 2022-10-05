@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: test-extension
+  name: manager
 spec:
   template:
     spec:
       containers:
       - image: gcr.io/k8s-staging-cluster-api/test-extension:main
-        name: extension
+        name: manager

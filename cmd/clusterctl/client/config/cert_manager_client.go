@@ -17,8 +17,10 @@ limitations under the License.
 package config
 
 import (
+	"os"
 	"time"
 
+	"github.com/drone/envsubst/v2"
 	"github.com/pkg/errors"
 )
 
@@ -77,6 +79,12 @@ func (p *certManagerClient) Get() (CertManager, error) {
 	if userCertManager.URL != "" {
 		url = userCertManager.URL
 	}
+
+	url, err := envsubst.Eval(url, os.Getenv)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to evaluate url: %q", url)
+	}
+
 	if userCertManager.Version != "" {
 		version = userCertManager.Version
 	}

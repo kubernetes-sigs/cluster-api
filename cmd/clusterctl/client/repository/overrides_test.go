@@ -33,6 +33,7 @@ func TestOverrides(t *testing.T) {
 	tests := []struct {
 		name            string
 		configVarClient config.VariablesClient
+		envVars         map[string]string
 		expectedPath    string
 	}{
 		{
@@ -55,11 +56,28 @@ func TestOverrides(t *testing.T) {
 			configVarClient: test.NewFakeVariableClient().WithVar(overrideFolderKey, "/Users/foobar/workspace/releases"),
 			expectedPath:    "/Users/foobar/workspace/releases/infrastructure-myinfra/v1.0.1/infra-comp.yaml",
 		},
+		{
+			name:            "uses overrides folder from the config variables with evaluated env vars",
+			configVarClient: test.NewFakeVariableClient().WithVar(overrideFolderKey, "${TEST_REPO_PATH}/releases"),
+			envVars: map[string]string{
+				"TEST_REPO_PATH": "/tmp/test",
+			},
+			expectedPath: "/tmp/test/releases/infrastructure-myinfra/v1.0.1/infra-comp.yaml",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			for k, v := range tt.envVars {
+				g.Expect(os.Setenv(k, v)).To(Succeed())
+			}
+			defer func() {
+				for k := range tt.envVars {
+					g.Expect(os.Unsetenv(k)).To(Succeed())
+				}
+			}()
 			provider := config.NewProvider("myinfra", "", clusterctlv1.InfrastructureProviderType)
 			override := newOverride(&newOverrideInput{
 				configVariablesClient: tt.configVarClient,

@@ -290,7 +290,8 @@ func applyPatchesToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatc
 
 		// If a patch doesn't have a corresponding request item, the patch is invalid.
 		if requestItem == nil {
-			return errors.Errorf("unable to find corresponding request item with uid %q for the patch", patch.UID)
+			log.Infof("Unable to find corresponding request item with uid %q for the patch", patch.UID)
+			return errors.Errorf("unable to find corresponding request item for patch")
 		}
 
 		// Use the patch to create a patched copy of the template.
@@ -302,29 +303,29 @@ func applyPatchesToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatc
 			log.V(5).Infof("Accumulating JSON patch: %s", string(patch.Patch))
 			jsonPatch, err := jsonpatch.DecodePatch(patch.Patch)
 			if err != nil {
-				return errors.Wrapf(err, "failed to apply patch with uid %q: error decoding json patch (RFC6902): %s",
-					requestItem.UID, string(patch.Patch))
+				log.Infof("Failed to apply patch with uid %q: error decoding json patch (RFC6902): %s: %s", requestItem.UID, string(patch.Patch), err)
+				return errors.Wrap(err, "failed to apply patch: error decoding json patch (RFC6902)")
 			}
 
 			patchedTemplate, err = jsonPatch.Apply(requestItem.Object.Raw)
 			if err != nil {
-				return errors.Wrapf(err, "failed to apply patch with uid %q: error applying json patch (RFC6902): %s",
-					requestItem.UID, string(patch.Patch))
+				log.Infof("Failed to apply patch with uid %q: error applying json patch (RFC6902): %s: %s", requestItem.UID, string(patch.Patch), err)
+				return errors.Wrap(err, "failed to apply patch: error applying json patch (RFC6902)")
 			}
 		case runtimehooksv1.JSONMergePatchType:
 			log.V(5).Infof("Accumulating JSON merge patch: %s", string(patch.Patch))
 			patchedTemplate, err = jsonpatch.MergePatch(requestItem.Object.Raw, patch.Patch)
 			if err != nil {
-				return errors.Wrapf(err, "failed to apply patch with uid %q: error applying json merge patch (RFC7386): %s",
-					requestItem.UID, string(patch.Patch))
+				log.Infof("Failed to apply patch with uid %q: error applying json merge patch (RFC7386): %s: %s", requestItem.UID, string(patch.Patch), err)
+				return errors.Wrap(err, "failed to apply patch: error applying json merge patch (RFC7386)")
 			}
 		}
 
 		// Overwrite the spec of template.Template with the spec of the patchedTemplate,
 		// to ensure that we only pick up changes to the spec.
 		if err := patchTemplateSpec(&requestItem.Object, patchedTemplate); err != nil {
-			return errors.Wrapf(err, "failed to apply patch to template %s",
-				requestItem.UID)
+			log.Infof("Failed to apply patch to template %s: %s", requestItem.UID, err)
+			return errors.Wrap(err, "failed to apply patch to template")
 		}
 	}
 	return nil

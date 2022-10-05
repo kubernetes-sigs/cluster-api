@@ -18,6 +18,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"testing"
 
@@ -50,6 +51,7 @@ func Test_providers_List(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
+		envVars map[string]string
 		want    []Provider
 		wantErr bool
 	}{
@@ -71,6 +73,23 @@ func Test_providers_List(t *testing.T) {
 							"  url: \"https://zzz/infrastructure-components.yaml\"\n"+
 							"  type: \"InfrastructureProvider\"\n",
 					),
+			},
+			want:    defaultsAndZZZ,
+			wantErr: false,
+		},
+		{
+			name: "Returns user defined provider configurations with evaluated env vars",
+			fields: fields{
+				configGetter: test.NewFakeReader().
+					WithVar(
+						ProvidersConfigKey,
+						"- name: \"zzz\"\n"+
+							"  url: \"${TEST_REPO_PATH}/infrastructure-components.yaml\"\n"+
+							"  type: \"InfrastructureProvider\"\n",
+					),
+			},
+			envVars: map[string]string{
+				"TEST_REPO_PATH": "https://zzz",
 			},
 			want:    defaultsAndZZZ,
 			wantErr: false,
@@ -120,6 +139,14 @@ func Test_providers_List(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			for k, v := range tt.envVars {
+				g.Expect(os.Setenv(k, v)).To(Succeed())
+			}
+			defer func() {
+				for k := range tt.envVars {
+					g.Expect(os.Unsetenv(k)).To(Succeed())
+				}
+			}()
 			p := &providersClient{
 				reader: tt.fields.configGetter,
 			}

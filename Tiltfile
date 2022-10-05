@@ -104,6 +104,8 @@ providers = {
             "internal",
             "third_party",
         ],
+        "label": "CAPD",
+        # Add kubectl to the docker image, CAPD manager requires it.
         "additional_docker_helper_commands": "RUN curl -LO https://dl.k8s.io/release/{KUBE}/bin/linux/{ARCH}/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/bin/kubectl".format(
             ARCH = os_arch,
             KUBE = kubernetes_version,
@@ -111,23 +113,21 @@ providers = {
         "additional_docker_build_commands": """
 COPY --from=tilt-helper /usr/bin/kubectl /usr/bin/kubectl
 """,
-        "label": "CAPD",
     },
-}
-
-# Create a data structure to hold information about addons.
-addons = {
     "test-extension": {
-        "context": "./test/extension",
+        "context": "test/extension",
         "image": "gcr.io/k8s-staging-cluster-api/test-extension",
-        "container_name": "extension",
-        "live_reload_deps": ["main.go", "handlers"],
+        "live_reload_deps": [
+            "main.go",
+            "handlers",
+        ],
         "label": "test-extension",
-        "resource_deps": ["capi_controller"],
+        # Add the ExtensionConfig for this Runtime extension; given that the ExtensionConfig can be installed only when capi_controller
+        # are up and running, it is required to set a resource_deps to ensure proper install order.
         "additional_resources": [
             "config/tilt/extensionconfig.yaml",
-            "config/tilt/hookresponses-configmap.yaml",
         ],
+        "resource_deps": ["capi_controller"],
     },
 }
 
@@ -164,27 +164,6 @@ def load_provider_tiltfiles():
             if "go_main" not in provider_config:
                 provider_config["go_main"] = "main.go"
             providers[provider_name] = provider_config
-
-# load_addon_tiltfiles looks for tilt-addon.[yaml|json] files in the repositories listed in "addon_repos" in tilt settings and loads their config.
-def load_addon_tiltfiles():
-    addon_repos = settings.get("addon_repos", [])
-    for repo in addon_repos:
-        file = repo + "/tilt-addon.yaml" if os.path.exists(repo + "/tilt-addon.yaml") else repo + "/tilt-addon.json"
-        if not os.path.exists(file):
-            fail("Failed to load provider. No tilt-addon.{yaml|json} file found in " + repo)
-        addon_details = read_yaml(file, default = {})
-        if type(addon_details) != type([]):
-            addon_details = [addon_details]
-        for item in addon_details:
-            addon_name = item["name"]
-            addon_config = item["config"]
-            if "context" in addon_config:
-                addon_config["context"] = repo + "/" + addon_config["context"]
-            else:
-                addon_config["context"] = repo
-            if "go_main" not in addon_config:
-                addon_config["go_main"] = "main.go"
-            addons[addon_name] = addon_config
 
 tilt_helper_dockerfile_header = """
 # Tilt image
@@ -312,7 +291,6 @@ def get_port_forwards(debug):
 # 2. Configures a docker build for the provider, with live updating of the manager binary
 # 3. Runs kustomize for the provider's config/default and applies it
 def enable_provider(name, debug):
-    deployment_kind = "provider"
     p = providers.get(name)
     label = p.get("label")
 
@@ -336,76 +314,25 @@ def enable_provider(name, debug):
         port_forwards = port_forwards,
     )
 
+    additional_objs = []
+    p_resources = p.get("additional_resources", [])
+    for resource in p_resources:
+        k8s_yaml(p.get("context") + "/" + resource)
+        additional_objs = additional_objs + decode_yaml_stream(read_file(p.get("context") + "/" + resource))
+
     if p.get("kustomize_config", True):
-        yaml = read_file("./.tiltbuild/yaml/{}.{}.yaml".format(name, deployment_kind))
+        yaml = read_file("./.tiltbuild/yaml/{}.provider.yaml".format(name))
         k8s_yaml(yaml)
         objs = decode_yaml_stream(yaml)
         k8s_resource(
             workload = find_object_name(objs, "Deployment"),
-            objects = [find_object_qualified_name(objs, "Provider")],
+            objects = [find_object_qualified_name(objs, "Provider")] + find_all_objects_names(additional_objs),
             new_name = label.lower() + "_controller",
             labels = [label, "ALL.controllers"],
             port_forwards = port_forwards,
             links = links,
-            resource_deps = ["provider_crd"],
+            resource_deps = ["provider_crd"] + p.get("resource_deps", []),
         )
-
-# Configures an addon by doing the following:
-#
-# 1. Enables a local_resource go build of the addon's manager binary
-# 2. Configures a docker build for the addon, with live updating of the binary
-# 3. Runs kustomize for the addons's config/default and applies it
-def enable_addon(name, debug):
-    addon = addons.get(name)
-    deployment_kind = "addon"
-    label = addon.get("label")
-    port_forwards, links = get_port_forwards(debug)
-
-    build_go_binary(
-        context = addon.get("context"),
-        reload_deps = addon.get("live_reload_deps"),
-        debug = debug,
-        go_main = addon.get("go_main", "main.go"),
-        binary_name = "extension",
-        label = label,
-    )
-
-    build_docker_image(
-        image = addon.get("image"),
-        context = addon.get("context"),
-        binary_name = "extension",
-        additional_docker_helper_commands = addon.get("additional_docker_helper_commands", ""),
-        additional_docker_build_commands = addon.get("additional_docker_build_commands", ""),
-        port_forwards = port_forwards,
-    )
-
-    additional_objs = []
-    addon_resources = addon.get("additional_resources", [])
-    for resource in addon_resources:
-        k8s_yaml(addon.get("context") + "/" + resource)
-        additional_objs = additional_objs + decode_yaml_stream(read_file(addon.get("context") + "/" + resource))
-
-    if addon.get("kustomize_config", True):
-        yaml = read_file("./.tiltbuild/yaml/{}.{}.yaml".format(name, deployment_kind))
-        objs = decode_yaml_stream(yaml)
-        k8s_yaml(yaml)
-        k8s_resource(
-            workload = find_object_name(objs, "Deployment"),
-            new_name = label.lower() + "_addon",
-            labels = [label, "ALL.addons"],
-            port_forwards = port_forwards,
-            links = links,
-            objects = find_all_objects_names(additional_objs),
-            resource_deps = addon.get("resource_deps", {}),
-        )
-
-def enable_addons():
-    for name in get_addons():
-        enable_addon(name, settings.get("debug").get(name, {}))
-
-def get_addons():
-    user_enable_addons = settings.get("enable_addons", [])
-    return {k: "" for k in user_enable_addons}.keys()
 
 def find_object_name(objs, kind):
     for o in objs:
@@ -634,8 +561,6 @@ include_user_tilt_files()
 
 load_provider_tiltfiles()
 
-load_addon_tiltfiles()
-
 prepare_all()
 
 deploy_provider_crds()
@@ -643,7 +568,5 @@ deploy_provider_crds()
 deploy_observability()
 
 enable_providers()
-
-enable_addons()
 
 cluster_templates()

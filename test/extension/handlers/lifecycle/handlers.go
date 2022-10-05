@@ -23,12 +23,15 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 )
@@ -42,14 +45,13 @@ type Handler struct {
 func (h *Handler) DoBeforeClusterCreate(ctx context.Context, request *runtimehooksv1.BeforeClusterCreateRequest, response *runtimehooksv1.BeforeClusterCreateResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("BeforeClusterCreate is called")
-	cluster := request.Cluster
 
-	if err := h.readResponseFromConfigMap(ctx, cluster.Namespace, runtimehooksv1.BeforeClusterCreate, response); err != nil {
+	if err := h.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.BeforeClusterCreate, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
 	}
-	if err := h.recordCallInConfigMap(ctx, cluster.Namespace, runtimehooksv1.BeforeClusterCreate, response); err != nil {
+	if err := h.recordCallInConfigMap(ctx, &request.Cluster, runtimehooksv1.BeforeClusterCreate, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 	}
@@ -59,15 +61,14 @@ func (h *Handler) DoBeforeClusterCreate(ctx context.Context, request *runtimehoo
 func (h *Handler) DoBeforeClusterUpgrade(ctx context.Context, request *runtimehooksv1.BeforeClusterUpgradeRequest, response *runtimehooksv1.BeforeClusterUpgradeResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("BeforeClusterUpgrade is called")
-	cluster := request.Cluster
 
-	if err := h.readResponseFromConfigMap(ctx, cluster.Namespace, runtimehooksv1.BeforeClusterUpgrade, response); err != nil {
+	if err := h.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.BeforeClusterUpgrade, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
 	}
 
-	if err := h.recordCallInConfigMap(ctx, cluster.Namespace, runtimehooksv1.BeforeClusterUpgrade, response); err != nil {
+	if err := h.recordCallInConfigMap(ctx, &request.Cluster, runtimehooksv1.BeforeClusterUpgrade, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 	}
@@ -77,15 +78,14 @@ func (h *Handler) DoBeforeClusterUpgrade(ctx context.Context, request *runtimeho
 func (h *Handler) DoAfterControlPlaneInitialized(ctx context.Context, request *runtimehooksv1.AfterControlPlaneInitializedRequest, response *runtimehooksv1.AfterControlPlaneInitializedResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("AfterControlPlaneInitialized is called")
-	cluster := request.Cluster
 
-	if err := h.readResponseFromConfigMap(ctx, cluster.Namespace, runtimehooksv1.AfterControlPlaneInitialized, response); err != nil {
+	if err := h.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.AfterControlPlaneInitialized, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
 	}
 
-	if err := h.recordCallInConfigMap(ctx, cluster.Namespace, runtimehooksv1.AfterControlPlaneInitialized, response); err != nil {
+	if err := h.recordCallInConfigMap(ctx, &request.Cluster, runtimehooksv1.AfterControlPlaneInitialized, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 	}
@@ -95,15 +95,14 @@ func (h *Handler) DoAfterControlPlaneInitialized(ctx context.Context, request *r
 func (h *Handler) DoAfterControlPlaneUpgrade(ctx context.Context, request *runtimehooksv1.AfterControlPlaneUpgradeRequest, response *runtimehooksv1.AfterControlPlaneUpgradeResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("AfterControlPlaneUpgrade is called")
-	cluster := request.Cluster
 
-	if err := h.readResponseFromConfigMap(ctx, cluster.Namespace, runtimehooksv1.AfterControlPlaneUpgrade, response); err != nil {
+	if err := h.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.AfterControlPlaneUpgrade, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
 	}
 
-	if err := h.recordCallInConfigMap(ctx, cluster.Namespace, runtimehooksv1.AfterControlPlaneUpgrade, response); err != nil {
+	if err := h.recordCallInConfigMap(ctx, &request.Cluster, runtimehooksv1.AfterControlPlaneUpgrade, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 	}
@@ -113,15 +112,14 @@ func (h *Handler) DoAfterControlPlaneUpgrade(ctx context.Context, request *runti
 func (h *Handler) DoAfterClusterUpgrade(ctx context.Context, request *runtimehooksv1.AfterClusterUpgradeRequest, response *runtimehooksv1.AfterClusterUpgradeResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("AfterClusterUpgrade is called")
-	cluster := request.Cluster
 
-	if err := h.readResponseFromConfigMap(ctx, cluster.Namespace, runtimehooksv1.AfterClusterUpgrade, response); err != nil {
+	if err := h.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.AfterClusterUpgrade, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
 	}
 
-	if err := h.recordCallInConfigMap(ctx, cluster.Namespace, runtimehooksv1.AfterClusterUpgrade, response); err != nil {
+	if err := h.recordCallInConfigMap(ctx, &request.Cluster, runtimehooksv1.AfterClusterUpgrade, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 	}
@@ -131,25 +129,33 @@ func (h *Handler) DoAfterClusterUpgrade(ctx context.Context, request *runtimehoo
 func (h *Handler) DoBeforeClusterDelete(ctx context.Context, request *runtimehooksv1.BeforeClusterDeleteRequest, response *runtimehooksv1.BeforeClusterDeleteResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("BeforeClusterDelete is called")
-	cluster := request.Cluster
 
-	if err := h.readResponseFromConfigMap(ctx, cluster.Namespace, runtimehooksv1.BeforeClusterDelete, response); err != nil {
+	if err := h.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.BeforeClusterDelete, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
 	}
-	if err := h.recordCallInConfigMap(ctx, cluster.Namespace, runtimehooksv1.BeforeClusterDelete, response); err != nil {
+	if err := h.recordCallInConfigMap(ctx, &request.Cluster, runtimehooksv1.BeforeClusterDelete, response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 	}
+
+	// TODO: consider if to cleanup the ConfigMap after gating Cluster deletion.
 }
 
-func (h *Handler) readResponseFromConfigMap(ctx context.Context, namespace string, hook runtimecatalog.Hook, response runtimehooksv1.ResponseObject) error {
+func (h *Handler) readResponseFromConfigMap(ctx context.Context, cluster *clusterv1.Cluster, hook runtimecatalog.Hook, response runtimehooksv1.ResponseObject) error {
 	hookName := runtimecatalog.HookName(hook)
 	configMap := &corev1.ConfigMap{}
-	configMapName := "test-extension-hookresponses"
-	if err := h.Client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: configMapName}, configMap); err != nil {
-		return errors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(namespace, configMapName))
+	configMapName := fmt.Sprintf("%s-test-extension-hookresponses", cluster.Name)
+	if err := h.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: configMapName}, configMap); err != nil {
+		if apierrors.IsNotFound(err) {
+			configMap = responsesConfigMap(cluster)
+			if err := h.Client.Create(ctx, configMap); err != nil {
+				return errors.Wrapf(err, "failed to create the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
+			}
+		} else {
+			return errors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
+		}
 	}
 	if err := yaml.Unmarshal([]byte(configMap.Data[hookName+"-preloadedResponse"]), response); err != nil {
 		return errors.Wrapf(err, "failed to read %q response information from ConfigMap", hook)
@@ -161,12 +167,34 @@ func (h *Handler) readResponseFromConfigMap(ctx context.Context, namespace strin
 	return nil
 }
 
-func (h *Handler) recordCallInConfigMap(ctx context.Context, namespace string, hook runtimecatalog.Hook, response runtimehooksv1.ResponseObject) error {
+// responsesConfigMap generates a ConfigMap with preloaded responses for the test extension.
+func responsesConfigMap(cluster *clusterv1.Cluster) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%s-test-extension-hookresponses", cluster.Name),
+			Namespace: cluster.Namespace,
+		},
+		// Set the initial preloadedResponses for each of the tested hooks.
+		Data: map[string]string{
+			// Blocking hooks are set to return RetryAfterSeconds initially. These will be changed during the test.
+			"BeforeClusterCreate-preloadedResponse":      `{"Status": "Success", "RetryAfterSeconds": 5}`,
+			"BeforeClusterUpgrade-preloadedResponse":     `{"Status": "Success", "RetryAfterSeconds": 5}`,
+			"AfterControlPlaneUpgrade-preloadedResponse": `{"Status": "Success", "RetryAfterSeconds": 5}`,
+			"BeforeClusterDelete-preloadedResponse":      `{"Status": "Success", "RetryAfterSeconds": 5}`,
+
+			// Non-blocking hooks are set to Status:Success.
+			"AfterControlPlaneInitialized-preloadedResponse": `{"Status": "Success"}`,
+			"AfterClusterUpgrade-preloadedResponse":          `{"Status": "Success"}`,
+		},
+	}
+}
+
+func (h *Handler) recordCallInConfigMap(ctx context.Context, cluster *clusterv1.Cluster, hook runtimecatalog.Hook, response runtimehooksv1.ResponseObject) error {
 	hookName := runtimecatalog.HookName(hook)
 	configMap := &corev1.ConfigMap{}
-	configMapName := "test-extension-hookresponses"
-	if err := h.Client.Get(ctx, client.ObjectKey{Namespace: namespace, Name: configMapName}, configMap); err != nil {
-		return errors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(namespace, configMapName))
+	configMapName := fmt.Sprintf("%s-test-extension-hookresponses", cluster.Name)
+	if err := h.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: configMapName}, configMap); err != nil {
+		return errors.Wrapf(err, "failed to read the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
 	}
 	var patch client.Patch
 	if r, ok := response.(runtimehooksv1.RetryResponseObject); ok {
@@ -178,7 +206,7 @@ func (h *Handler) recordCallInConfigMap(ctx context.Context, namespace string, h
 			[]byte(fmt.Sprintf(`{"data":{"%s-actualResponseStatus":"%s"}}`, hookName, response.GetStatus()))) //nolint:gocritic
 	}
 	if err := h.Client.Patch(ctx, configMap, patch); err != nil {
-		return errors.Wrapf(err, "failed to update the ConfigMap %s", klog.KRef(namespace, configMapName))
+		return errors.Wrapf(err, "failed to update the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
 	}
 	return nil
 }

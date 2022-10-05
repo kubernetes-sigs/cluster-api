@@ -34,15 +34,17 @@ import (
 
 // InitManagementClusterAndWatchControllerLogsInput is the input type for InitManagementClusterAndWatchControllerLogs.
 type InitManagementClusterAndWatchControllerLogsInput struct {
-	ClusterProxy             framework.ClusterProxy
-	ClusterctlConfigPath     string
-	CoreProvider             string
-	BootstrapProviders       []string
-	ControlPlaneProviders    []string
-	InfrastructureProviders  []string
-	LogFolder                string
-	DisableMetricsCollection bool
-	ClusterctlBinaryPath     string
+	ClusterProxy              framework.ClusterProxy
+	ClusterctlConfigPath      string
+	CoreProvider              string
+	BootstrapProviders        []string
+	ControlPlaneProviders     []string
+	InfrastructureProviders   []string
+	IPAMProviders             []string
+	RuntimeExtensionProviders []string
+	LogFolder                 string
+	DisableMetricsCollection  bool
+	ClusterctlBinaryPath      string
 }
 
 // InitManagementClusterAndWatchControllerLogs initializes a management using clusterctl and setup watches for controller logs.
@@ -76,10 +78,12 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 			// pass the clusterctl config file that points to the local provider repository created for this test
 			ClusterctlConfigPath: input.ClusterctlConfigPath,
 			// setup the desired list of providers for a single-tenant management cluster
-			CoreProvider:            input.CoreProvider,
-			BootstrapProviders:      input.BootstrapProviders,
-			ControlPlaneProviders:   input.ControlPlaneProviders,
-			InfrastructureProviders: input.InfrastructureProviders,
+			CoreProvider:              input.CoreProvider,
+			BootstrapProviders:        input.BootstrapProviders,
+			ControlPlaneProviders:     input.ControlPlaneProviders,
+			InfrastructureProviders:   input.InfrastructureProviders,
+			IPAMProviders:             input.IPAMProviders,
+			RuntimeExtensionProviders: input.RuntimeExtensionProviders,
 			// setup clusterctl logs folder
 			LogFolder: input.LogFolder,
 		}

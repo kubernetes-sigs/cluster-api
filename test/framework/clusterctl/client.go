@@ -48,22 +48,26 @@ const (
 
 // InitInput is the input for Init.
 type InitInput struct {
-	LogFolder               string
-	ClusterctlConfigPath    string
-	KubeconfigPath          string
-	CoreProvider            string
-	BootstrapProviders      []string
-	ControlPlaneProviders   []string
-	InfrastructureProviders []string
+	LogFolder                 string
+	ClusterctlConfigPath      string
+	KubeconfigPath            string
+	CoreProvider              string
+	BootstrapProviders        []string
+	ControlPlaneProviders     []string
+	InfrastructureProviders   []string
+	IPAMProviders             []string
+	RuntimeExtensionProviders []string
 }
 
 // Init calls clusterctl init with the list of providers defined in the local repository.
 func Init(_ context.Context, input InitInput) {
-	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s --config %s --kubeconfig %s",
+	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s --ipam %s --runtime-extension %s --config %s --kubeconfig %s",
 		input.CoreProvider,
 		strings.Join(input.BootstrapProviders, ","),
 		strings.Join(input.ControlPlaneProviders, ","),
 		strings.Join(input.InfrastructureProviders, ","),
+		strings.Join(input.IPAMProviders, ","),
+		strings.Join(input.RuntimeExtensionProviders, ","),
 		input.ClusterctlConfigPath,
 		input.KubeconfigPath,
 	)
@@ -73,12 +77,14 @@ func Init(_ context.Context, input InitInput) {
 			Path:    input.KubeconfigPath,
 			Context: "",
 		},
-		CoreProvider:            input.CoreProvider,
-		BootstrapProviders:      input.BootstrapProviders,
-		ControlPlaneProviders:   input.ControlPlaneProviders,
-		InfrastructureProviders: input.InfrastructureProviders,
-		LogUsageInstructions:    true,
-		WaitProviders:           true,
+		CoreProvider:              input.CoreProvider,
+		BootstrapProviders:        input.BootstrapProviders,
+		ControlPlaneProviders:     input.ControlPlaneProviders,
+		InfrastructureProviders:   input.InfrastructureProviders,
+		IPAMProviders:             input.IPAMProviders,
+		RuntimeExtensionProviders: input.RuntimeExtensionProviders,
+		LogUsageInstructions:      true,
+		WaitProviders:             true,
 	}
 
 	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-init.log", input.LogFolder)
@@ -90,23 +96,35 @@ func Init(_ context.Context, input InitInput) {
 
 // InitWithBinary uses clusterctl binary to run init with the list of providers defined in the local repository.
 func InitWithBinary(_ context.Context, binary string, input InitInput) {
-	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s --config %s --kubeconfig %s",
+	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s --ipam %s --runtime-extension %s --config %s --kubeconfig %s",
 		input.CoreProvider,
 		strings.Join(input.BootstrapProviders, ","),
 		strings.Join(input.ControlPlaneProviders, ","),
 		strings.Join(input.InfrastructureProviders, ","),
+		strings.Join(input.IPAMProviders, ","),
+		strings.Join(input.RuntimeExtensionProviders, ","),
 		input.ClusterctlConfigPath,
 		input.KubeconfigPath,
 	)
 
-	cmd := exec.Command(binary, "init", //nolint:gosec // We don't care about command injection here.
-		"--core", input.CoreProvider,
-		"--bootstrap", strings.Join(input.BootstrapProviders, ","),
-		"--control-plane", strings.Join(input.ControlPlaneProviders, ","),
-		"--infrastructure", strings.Join(input.InfrastructureProviders, ","),
-		"--config", input.ClusterctlConfigPath,
-		"--kubeconfig", input.KubeconfigPath,
-	)
+	args := []string{"init", "--config", input.ClusterctlConfigPath, "--kubeconfig", input.KubeconfigPath}
+	if input.CoreProvider != "" {
+		args = append(args, "--core", input.CoreProvider)
+	}
+	if len(input.BootstrapProviders) > 0 {
+		args = append(args, "--bootstrap", strings.Join(input.BootstrapProviders, ","))
+	}
+	if len(input.InfrastructureProviders) > 0 {
+		args = append(args, "--infrastructure", strings.Join(input.InfrastructureProviders, ","))
+	}
+	if len(input.IPAMProviders) > 0 {
+		args = append(args, "--ipam", strings.Join(input.IPAMProviders, ","))
+	}
+	if len(input.RuntimeExtensionProviders) > 0 {
+		args = append(args, "--runtime-extension", strings.Join(input.RuntimeExtensionProviders, ","))
+	}
+
+	cmd := exec.Command(binary, args...) //nolint:gosec // We don't care about command injection here.
 
 	out, err := cmd.CombinedOutput()
 	_ = os.WriteFile(filepath.Join(input.LogFolder, "clusterctl-init.log"), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts

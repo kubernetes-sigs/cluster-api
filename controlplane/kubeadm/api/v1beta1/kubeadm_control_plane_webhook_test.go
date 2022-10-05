@@ -648,6 +648,16 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		Directory: "/tmp/patches",
 	}
 
+	updateDiskSetup := before.DeepCopy()
+	updateDiskSetup.Spec.KubeadmConfigSpec.DiskSetup = &bootstrapv1.DiskSetup{
+		Filesystems: []bootstrapv1.Filesystem{
+			{
+				Device:     "/dev/sda",
+				Filesystem: "ext4",
+			},
+		},
+	}
+
 	tests := []struct {
 		name                  string
 		enableIgnitionFeature bool
@@ -971,6 +981,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    before,
 			kcp:       updateJoinConfigurationPatches,
+		},
+		{
+			name:      "should allow changes to diskSetup",
+			expectErr: false,
+			before:    before,
+			kcp:       updateDiskSetup,
 		},
 		{
 			name:      "should return error when rolloutBefore.certificatesExpiryDays is invalid",

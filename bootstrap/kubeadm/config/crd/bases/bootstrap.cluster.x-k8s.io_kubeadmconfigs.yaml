@@ -2646,6 +2646,7 @@ spec:
                           - effect
                           - key
                           type: object
+                        nullable: true
                         type: array
                     type: object
                   patches:
@@ -2857,6 +2858,7 @@ spec:
                           - effect
                           - key
                           type: object
+                        nullable: true
                         type: array
                     type: object
                   patches:

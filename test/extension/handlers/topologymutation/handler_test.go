@@ -118,8 +118,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 				},
 				Items: []runtimehooksv1.GeneratePatchesResponseItem{
 					responseItem("1", `[
-{"op":"add","path":"/spec/template/spec/kubeadmConfigSpec/initConfiguration","value":{"localAPIEndpoint":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}},
-{"op":"add","path":"/spec/template/spec/kubeadmConfigSpec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}},
+{"op":"add","path":"/spec/template/spec/kubeadmConfigSpec/initConfiguration","value":{"localAPIEndpoint":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"},"taints":null}}},
+{"op":"add","path":"/spec/template/spec/kubeadmConfigSpec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"},"taints":null}}},
 {"op":"add","path":"/spec/template/spec/rolloutStrategy","value":{"rollingUpdate":{"maxSurge":3}}}
 ]`),
 					responseItem("2", `[
@@ -133,8 +133,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 {"op":"add","path":"/spec/template/spec/loadBalancer/imageRepository","value":"docker.io"}
 ]`),
 					responseItem("5", `[
-{"op":"add","path":"/spec/template/spec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}},
-{"op":"add","path":"/spec/template/spec/initConfiguration","value":{"localAPIEndpoint":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}}
+{"op":"add","path":"/spec/template/spec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"},"taints":null}}},
+{"op":"add","path":"/spec/template/spec/initConfiguration","value":{"localAPIEndpoint":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"},"taints":null}}}
 ]`),
 				},
 			},
@@ -168,8 +168,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 				Items: []runtimehooksv1.GeneratePatchesResponseItem{
 					responseItem("1", `[]`),
 					responseItem("4", `[
-{"op":"add","path":"/spec/template/spec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}},
-{"op":"add","path":"/spec/template/spec/initConfiguration","value":{"localAPIEndpoint":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}}
+{"op":"add","path":"/spec/template/spec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"},"taints":null}}},
+{"op":"add","path":"/spec/template/spec/initConfiguration","value":{"localAPIEndpoint":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"},"taints":null}}}
 ]`),
 				},
 			},
@@ -186,8 +186,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 				},
 				Items: []runtimehooksv1.GeneratePatchesResponseItem{
 					responseItem("1", `[
-{"op":"add","path":"/spec/template/spec/kubeadmConfigSpec/initConfiguration","value":{"localAPIEndpoint":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}},
-{"op":"add","path":"/spec/template/spec/kubeadmConfigSpec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"}}}}
+{"op":"add","path":"/spec/template/spec/kubeadmConfigSpec/initConfiguration","value":{"localAPIEndpoint":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"},"taints":null}}},
+{"op":"add","path":"/spec/template/spec/kubeadmConfigSpec/joinConfiguration","value":{"discovery":{},"nodeRegistration":{"kubeletExtraArgs":{"cgroup-driver":"cgroupfs"},"taints":null}}}
 ]`),
 					responseItem("4", `[]`),
 				},

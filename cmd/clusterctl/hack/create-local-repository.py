@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Copyright 2020 The Kubernetes Authors.
 #
@@ -73,6 +73,12 @@ providers = {
           'nextVersion': 'v1.3.99',
           'type': 'InfrastructureProvider',
           'configFolder': 'test/infrastructure/docker/config/default',
+      },
+      'runtime-extension-test': {
+          'componentsFile': 'runtime-extension-components.yaml',
+          'nextVersion': 'v1.3.99',
+          'type': 'RuntimeExtensionProvider',
+          'configFolder': 'test/extension/config/default',
       },
 }
 
@@ -156,7 +162,7 @@ def create_local_repositories():
         next_version = p.get('nextVersion')
         assert next_version is not None, 'invalid configuration for provider {}: please provide nextVersion value'.format(provider)
 
-        name, type =splitNameAndType(provider)
+        name, type = splitNameAndType(provider)
         assert name is not None, 'invalid configuration for provider {}: please use a valid provider label'.format(provider)
 
         components_file = p.get('componentsFile')
@@ -198,6 +204,10 @@ def splitNameAndType(provider):
         return provider[len('control-plane-'):], 'ControlPlaneProvider'
     if provider.startswith('infrastructure-'):
         return provider[len('infrastructure-'):], 'InfrastructureProvider'
+    if provider.startswith('ipam-'):
+        return provider[len('ipam-'):], 'IPAMProvider'
+    if provider.startswith('runtime-extension-'):
+        return provider[len('runtime-extension-'):], 'RuntimeExtensionProvider'
     return None, None
 
 def CoreProviderFlag():
@@ -212,12 +222,20 @@ def ControlPlaneProviderFlag():
 def InfrastructureProviderFlag():
     return '--infrastructure'
 
+def IPAMProviderFlag():
+    return '--ipam'
+
+def RuntimeExtensionProviderFlag():
+    return '--runtime-extension'
+
 def type_to_flag(type):
     switcher = {
         'CoreProvider': CoreProviderFlag,
         'BootstrapProvider': BootstrapProviderFlag,
         'ControlPlaneProvider': ControlPlaneProviderFlag,
-        'InfrastructureProvider': InfrastructureProviderFlag
+        'InfrastructureProvider': InfrastructureProviderFlag,
+        'IPAMProvider': IPAMProviderFlag,
+        'RuntimeExtensionProvider': RuntimeExtensionProviderFlag
     }
     func = switcher.get(type, lambda: 'Invalid type')
     return func()

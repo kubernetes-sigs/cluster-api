@@ -92,7 +92,9 @@ func (p *Provider) GetProviderType() ProviderType {
 		CoreProviderType,
 		BootstrapProviderType,
 		InfrastructureProviderType,
-		ControlPlaneProviderType:
+		ControlPlaneProviderType,
+		IPAMProviderType,
+		RuntimeExtensionProviderType:
 		return t
 	default:
 		return ProviderTypeUnknown
@@ -118,6 +120,14 @@ const (
 	// control-plane capabilities.
 	ControlPlaneProviderType = ProviderType("ControlPlaneProvider")
 
+	// IPAMProviderType is the type associated with codebases that provide
+	// IPAM capabilities.
+	IPAMProviderType = ProviderType("IPAMProvider")
+
+	// RuntimeExtensionProviderType is the type associated with codebases that provide
+	// runtime extensions.
+	RuntimeExtensionProviderType = ProviderType("RuntimeExtensionProvider")
+
 	// ProviderTypeUnknown is used when the type is unknown.
 	ProviderTypeUnknown = ProviderType("")
 )
@@ -133,8 +143,12 @@ func (p ProviderType) Order() int {
 		return 2
 	case InfrastructureProviderType:
 		return 3
-	default:
+	case IPAMProviderType:
 		return 4
+	case RuntimeExtensionProviderType:
+		return 5
+	default:
+		return 99
 	}
 }
 

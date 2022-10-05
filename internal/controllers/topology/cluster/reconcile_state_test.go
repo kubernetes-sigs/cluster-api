@@ -2980,7 +2980,7 @@ func Test_createErrorWithoutObjectName(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			err := createErrorWithoutObjectName(tt.input, tt.obj)
+			err := createErrorWithoutObjectName(ctx, tt.input, tt.obj)
 			g.Expect(err.Error()).To(Equal(tt.expected.Error()))
 		})
 	}

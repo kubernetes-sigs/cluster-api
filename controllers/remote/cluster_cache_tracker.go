@@ -482,6 +482,12 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 		// If no error occurs, reset the unhealthy counter.
 		_, err := restClient.Get().AbsPath(in.path).Timeout(in.requestTimeout).DoRaw(ctx)
 		if err != nil {
+			if apierrors.IsUnauthorized(err) {
+				// Unauthorized means that the underlying kubeconfig is not authorizing properly anymore, which
+				// usually is the result of automatic kubeconfig refreshes, meaning that we have to throw away the
+				// clusterAccessor and rely on the creation of a new one (with a refreshed kubeconfig)
+				return false, err
+			}
 			unhealthyCount++
 		} else {
 			unhealthyCount = 0

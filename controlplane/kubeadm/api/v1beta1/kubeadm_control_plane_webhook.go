@@ -126,6 +126,7 @@ const (
 	scheduler            = "scheduler"
 	ntp                  = "ntp"
 	ignition             = "ignition"
+	diskSetup            = "diskSetup"
 )
 
 const minimumCertificatesExpiryDays = 7
@@ -156,6 +157,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, users},
 		{spec, kubeadmConfigSpec, ntp, "*"},
 		{spec, kubeadmConfigSpec, ignition, "*"},
+		{spec, kubeadmConfigSpec, diskSetup, "*"},
 		{spec, "machineTemplate", "metadata", "*"},
 		{spec, "machineTemplate", "infrastructureRef", "apiVersion"},
 		{spec, "machineTemplate", "infrastructureRef", "name"},

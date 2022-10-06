@@ -244,6 +244,12 @@ func (c *ControlPlane) HasDeletingMachine() bool {
 	return len(c.Machines.Filter(collections.HasDeletionTimestamp)) > 0
 }
 
+// GetKubeadmConfig returns the KubeadmConfig of a given machine.
+func (c *ControlPlane) GetKubeadmConfig(machineName string) (*bootstrapv1.KubeadmConfig, bool) {
+	kubeadmConfig, ok := c.kubeadmConfigs[machineName]
+	return kubeadmConfig, ok
+}
+
 // MachinesNeedingRollout return a list of machines that need to be rolled out.
 func (c *ControlPlane) MachinesNeedingRollout() collections.Machines {
 	// Ignore machines to be deleted.

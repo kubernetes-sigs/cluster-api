@@ -17,7 +17,6 @@ limitations under the License.
 package proxy
 
 import (
-	"crypto/tls"
 	"time"
 
 	"k8s.io/client-go/rest"
@@ -37,9 +36,6 @@ type Proxy struct {
 
 	// KubeConfig is the config to connect to the API server
 	KubeConfig *rest.Config
-
-	// TLSConfig is for connecting to TLS servers listening on a proxied port
-	TLSConfig *tls.Config
 
 	// KeepAlive specifies how often a keep alive message is sent to hold
 	// the connection open

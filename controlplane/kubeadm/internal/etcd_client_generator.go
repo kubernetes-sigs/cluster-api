@@ -51,7 +51,6 @@ func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcd
 			Kind:       "pods",
 			Namespace:  metav1.NamespaceSystem,
 			KubeConfig: ecg.restConfig,
-			TLSConfig:  ecg.tlsConfig,
 			Port:       2379,
 		}
 		return etcd.NewClient(ctx, etcd.ClientConfiguration{

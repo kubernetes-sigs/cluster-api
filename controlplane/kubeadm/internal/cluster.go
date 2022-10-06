@@ -160,6 +160,7 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	}
 	tlsConfig.InsecureSkipVerify = true
 	return &Workload{
+		restConfig:          restConfig,
 		Client:              c,
 		CoreDNSMigrator:     &CoreDNSMigrator{},
 		etcdClientGenerator: NewEtcdClientGenerator(restConfig, tlsConfig, m.EtcdDialTimeout),

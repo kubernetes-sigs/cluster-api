@@ -66,14 +66,7 @@ const (
 const (
 	// DefaultTokenTTL is the default TTL used for tokens.
 	DefaultTokenTTL = 15 * time.Minute
-
-	// This hard-coded duration matches the hard-coded value used by kubeadm certificate generation.
-	certificateExpiryDuration = 365 * 24 * time.Hour
 )
-
-// now returns the current time.
-// This is defined as a variable so that it can be overridden in unit tests.
-var now = time.Now
 
 // InitLocker is a lock that is used around kubeadm init.
 type InitLocker interface {
@@ -511,10 +504,6 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		return ctrl.Result{}, err
 	}
 
-	// Update the certificate expiration time in the config.
-	// This annotation will be used by KCP to trigger control plane machines rollout before the certificate generated on the machine are going to expire.
-	r.addCertificateExpiryAnnotation(scope.Config)
-
 	return ctrl.Result{}, nil
 }
 
@@ -715,9 +704,6 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		scope.Error(err, "Failed to store bootstrap data")
 		return ctrl.Result{}, err
 	}
-
-	// Update the certificate expiration time in the config.
-	r.addCertificateExpiryAnnotation(scope.Config)
 
 	return ctrl.Result{}, nil
 }
@@ -1035,20 +1021,4 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 	scope.Config.Status.Ready = true
 	conditions.MarkTrue(scope.Config, bootstrapv1.DataSecretAvailableCondition)
 	return nil
-}
-
-// addCertificateExpiryAnnotation sets the certificate expiration time as an
-// annotation on KubeadmConfig, if it doesn't exist already.
-// NOTE: the certificate expiry date stored in the annotation will be slightly different from the one
-// actually used in the certificates - that depends on the exact time kubeadm runs on the machine-,
-// but this approximation is acceptable given that it happens before the actual expiration date.
-func (r *KubeadmConfigReconciler) addCertificateExpiryAnnotation(config *bootstrapv1.KubeadmConfig) {
-	annotations := config.GetAnnotations()
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-	if _, ok := annotations[clusterv1.MachineCertificatesExpiryDateAnnotation]; !ok {
-		annotations[clusterv1.MachineCertificatesExpiryDateAnnotation] = now().Add(certificateExpiryDuration).Format(time.RFC3339)
-		config.SetAnnotations(annotations)
-	}
 }

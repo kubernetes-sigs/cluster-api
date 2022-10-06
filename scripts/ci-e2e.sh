@@ -95,4 +95,4 @@ ctr -n moby events > "${ARTIFACTS_LOCAL}/containerd-events.txt" 2>&1 &
 # Run e2e tests
 mkdir -p "$ARTIFACTS"
 echo "+ run tests!"
-make -C test/e2e/ run
+make test-e2e

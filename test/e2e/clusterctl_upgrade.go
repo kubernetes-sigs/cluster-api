@@ -75,9 +75,12 @@ type ClusterctlUpgradeSpecInput struct {
 	PreInit             func(managementClusterProxy framework.ClusterProxy)
 	PreUpgrade          func(managementClusterProxy framework.ClusterProxy)
 	PostUpgrade         func(managementClusterProxy framework.ClusterProxy)
-	MgmtFlavor          string
-	CNIManifestPath     string
-	WorkloadFlavor      string
+	// PreCleanupManagementCluster hook can be used for extra steps that might be required from providers, for example, remove conflicting service (such as DHCP) running on
+	// the target management cluster and run it on bootstrap (before the latter resumes LCM) if both clusters share the same LAN
+	PreCleanupManagementCluster func(managementClusterProxy framework.ClusterProxy)
+	MgmtFlavor                  string
+	CNIManifestPath             string
+	WorkloadFlavor              string
 }
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
@@ -432,6 +435,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			testCancelWatches()
 		}
 
+		if input.PreCleanupManagementCluster != nil {
+			By("Running PreCleanupManagementCluster steps against the management cluster")
+			input.PreCleanupManagementCluster(managementClusterProxy)
+		}
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})

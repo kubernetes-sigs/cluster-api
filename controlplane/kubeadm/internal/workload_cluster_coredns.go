@@ -52,6 +52,9 @@ const (
 	oldKubernetesImageRepository = "k8s.gcr.io"
 	oldCoreDNSImageName          = "coredns"
 	coreDNSImageName             = "coredns/coredns"
+
+	oldControlPlaneTaint = "node-role.kubernetes.io/master" // Deprecated: https://github.com/kubernetes/kubeadm/issues/2200
+	controlPlaneTaint    = "node-role.kubernetes.io/control-plane"
 )
 
 var (
@@ -151,7 +154,7 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 		return err
 	}
 
-	if err := w.updateCoreDNSDeployment(ctx, info); err != nil {
+	if err := w.updateCoreDNSDeployment(ctx, info, version); err != nil {
 		return errors.Wrap(err, "unable to update coredns deployment")
 	}
 	return nil
@@ -250,15 +253,19 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 // updateCoreDNSDeployment will patch the deployment image to the
 // imageRepo:imageTag in the KCP dns. It will also ensure the volume of the
 // deployment uses the Corefile key of the coredns configmap.
-func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInfo) error {
+func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInfo, kubernetesVersion semver.Version) error {
 	helper, err := patch.NewHelper(info.Deployment, w.Client)
 	if err != nil {
 		return err
 	}
 	// Form the final image before issuing the patch.
 	patchCoreDNSDeploymentImage(info.Deployment, info.ToImage)
+
 	// Flip the deployment volume back to Corefile (from the backup key).
 	patchCoreDNSDeploymentVolume(info.Deployment, corefileBackupKey, corefileKey)
+
+	// Patch the tolerations according to the Kubernetes Version.
+	patchCoreDNSDeploymentTolerations(info.Deployment, kubernetesVersion)
 	return helper.Patch(ctx, info.Deployment)
 }
 
@@ -419,6 +426,54 @@ func patchCoreDNSDeploymentImage(deployment *appsv1.Deployment, image string) {
 			containers[idx].Image = image
 		}
 	}
+}
+
+// patchCoreDNSDeploymentTolerations patches the CoreDNS Deployment to make sure
+// it has the right control plane tolerations.
+// Kubernetes nodes created with kubeadm have the following taints depending on version:
+// * -v1.23: only old taint is set
+// * v1.24: both taints are set
+// * v1.25+: only new taint is set
+// To be absolutely safe this func will ensure that both tolerations are present
+// for Kubernetes < v1.26.0. Starting with v1.26.0 we will only set the new toleration.
+func patchCoreDNSDeploymentTolerations(deployment *appsv1.Deployment, kubernetesVersion semver.Version) {
+	// We always add the toleration for the new control plane taint.
+	tolerations := []corev1.Toleration{
+		{
+			Key:    controlPlaneTaint,
+			Effect: corev1.TaintEffectNoSchedule,
+		},
+	}
+
+	// We add the toleration for the old control plane taint for Kubernetes < v1.26.0.
+	if kubernetesVersion.LT(semver.Version{Major: 1, Minor: 26, Patch: 0}) {
+		tolerations = append(tolerations, corev1.Toleration{
+			Key:    oldControlPlaneTaint,
+			Effect: corev1.TaintEffectNoSchedule,
+		})
+	}
+
+	// Add all other already existing tolerations.
+	for _, currentToleration := range deployment.Spec.Template.Spec.Tolerations {
+		// Skip the old control plane toleration as it has been already added above,
+		// for Kubernetes < v1.26.0.
+		if currentToleration.Key == oldControlPlaneTaint &&
+			currentToleration.Effect == corev1.TaintEffectNoSchedule &&
+			currentToleration.Value == "" {
+			continue
+		}
+
+		// Skip the new control plane toleration as it has been already added above.
+		if currentToleration.Key == controlPlaneTaint &&
+			currentToleration.Effect == corev1.TaintEffectNoSchedule &&
+			currentToleration.Value == "" {
+			continue
+		}
+
+		tolerations = append(tolerations, currentToleration)
+	}
+
+	deployment.Spec.Template.Spec.Tolerations = tolerations
 }
 
 func extractImageVersion(tag string) (semver.Version, error) {

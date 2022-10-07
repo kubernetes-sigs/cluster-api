@@ -282,3 +282,16 @@ const (
 	// not yet completed because at least one of the lifecycle hooks is blocking.
 	TopologyReconciledHookBlockingReason = "LifecycleHookBlocking"
 )
+
+// Conditions and condition reasons for ClusterClass.
+const (
+	// ClusterClassRefVersionsUpToDateCondition documents if the references in the ClusterClass are
+	// up-to-date (i.e. they are using the latest apiVersion of the current Cluster API contract from
+	// the corresponding CRD).
+	ClusterClassRefVersionsUpToDateCondition ConditionType = "RefVersionsUpToDate"
+
+	// ClusterClassOutdatedRefVersionsReason (Severity=Warning) that the references in the ClusterClass are not
+	// up-to-date (i.e. they are not using the latest apiVersion of the current Cluster API contract from
+	// the corresponding CRD).
+	ClusterClassOutdatedRefVersionsReason = "OutdatedRefVersions"
+)

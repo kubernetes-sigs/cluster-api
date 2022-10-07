@@ -19,6 +19,7 @@ package clusterclass
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -34,12 +35,14 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/util/annotations"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 // +kubebuilder:rbac:groups=infrastructure.cluster.x-k8s.io;bootstrap.cluster.x-k8s.io;controlplane.cluster.x-k8s.io,resources=*,verbs=get;list;watch;update;patch
-// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusterclasses,verbs=get;list;watch;update;patch
+// +kubebuilder:rbac:groups=cluster.x-k8s.io,resources=clusterclasses;clusterclasses/status,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=apiextensions.k8s.io,resources=customresourcedefinitions,verbs=get;list;watch
 
 // Reconciler reconciles the ClusterClass object.
@@ -90,6 +93,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
+	patchHelper, err := patch.NewHelper(clusterClass, r.Client)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: clusterClass})
+	}
+
+	defer func() {
+		if err := patchHelper.Patch(ctx, clusterClass); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: clusterClass})})
+			return
+		}
+	}()
+
 	return r.reconcile(ctx, clusterClass)
 }
 
@@ -124,6 +139,7 @@ func (r *Reconciler) reconcile(ctx context.Context, clusterClass *clusterv1.Clus
 	// classes.
 	errs := []error{}
 	reconciledRefs := sets.NewString()
+	outdatedRefs := map[*corev1.ObjectReference]*corev1.ObjectReference{}
 	for i := range refs {
 		ref := refs[i]
 		uniqueKey := uniqueObjectRefKey(ref)
@@ -133,14 +149,61 @@ func (r *Reconciler) reconcile(ctx context.Context, clusterClass *clusterv1.Clus
 			continue
 		}
 
+		reconciledRefs.Insert(uniqueKey)
+
+		// Add the ClusterClass as owner reference to the templates so clusterctl move
+		// can identify all related objects and Kubernetes garbage collector deletes
+		// all referenced templates on ClusterClass deletion.
 		if err := r.reconcileExternal(ctx, clusterClass, ref); err != nil {
 			errs = append(errs, err)
 			continue
 		}
-		reconciledRefs.Insert(uniqueKey)
+
+		// Check if the template reference is outdated, i.e. it is not using the latest apiVersion
+		// for the current CAPI contract.
+		updatedRef := ref.DeepCopy()
+		if err := conversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, updatedRef); err != nil {
+			errs = append(errs, err)
+		}
+		if ref.GroupVersionKind().Version != updatedRef.GroupVersionKind().Version {
+			outdatedRefs[ref] = updatedRef
+		}
+	}
+	if len(errs) > 0 {
+		return ctrl.Result{}, kerrors.NewAggregate(errs)
 	}
 
-	return ctrl.Result{}, kerrors.NewAggregate(errs)
+	reconcileConditions(clusterClass, outdatedRefs)
+
+	return ctrl.Result{}, nil
+}
+
+func reconcileConditions(clusterClass *clusterv1.ClusterClass, outdatedRefs map[*corev1.ObjectReference]*corev1.ObjectReference) {
+	if len(outdatedRefs) > 0 {
+		var msg []string
+		for currentRef, updatedRef := range outdatedRefs {
+			msg = append(msg, fmt.Sprintf("Ref %q should be %q", refString(currentRef), refString(updatedRef)))
+		}
+		conditions.Set(
+			clusterClass,
+			conditions.FalseCondition(
+				clusterv1.ClusterClassRefVersionsUpToDateCondition,
+				clusterv1.ClusterClassOutdatedRefVersionsReason,
+				clusterv1.ConditionSeverityWarning,
+				strings.Join(msg, ", "),
+			),
+		)
+		return
+	}
+
+	conditions.Set(
+		clusterClass,
+		conditions.TrueCondition(clusterv1.ClusterClassRefVersionsUpToDateCondition),
+	)
+}
+
+func refString(ref *corev1.ObjectReference) string {
+	return fmt.Sprintf("%s %s/%s", ref.GroupVersionKind().String(), ref.Namespace, ref.Name)
 }
 
 func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *clusterv1.ClusterClass, ref *corev1.ObjectReference) error {

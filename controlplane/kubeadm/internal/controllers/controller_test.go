@@ -749,6 +749,218 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 	})
 }
 
+func TestReconcileCertificateExpiries(t *testing.T) {
+	g := NewWithT(t)
+
+	preExistingExpiry := time.Now().Add(5 * 24 * time.Hour)
+	detectedExpiry := time.Now().Add(25 * 24 * time.Hour)
+
+	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
+	kcp := &controlplanev1.KubeadmControlPlane{}
+	machineWithoutExpiryAnnotation := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithoutExpiryAnnotation",
+		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				Kind:       "GenericMachine",
+				APIVersion: "generic.io/v1",
+				Namespace:  metav1.NamespaceDefault,
+				Name:       "machineWithoutExpiryAnnotation-infra",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+					Namespace:  metav1.NamespaceDefault,
+					Name:       "machineWithoutExpiryAnnotation-bootstrap",
+				},
+			},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: "machineWithoutExpiryAnnotation",
+			},
+		},
+	}
+	machineWithoutExpiryAnnotationKubeadmConfig := &bootstrapv1.KubeadmConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithoutExpiryAnnotation-bootstrap",
+		},
+	}
+	machineWithExpiryAnnotation := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithExpiryAnnotation",
+		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				Kind:       "GenericMachine",
+				APIVersion: "generic.io/v1",
+				Namespace:  metav1.NamespaceDefault,
+				Name:       "machineWithExpiryAnnotation-infra",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+					Namespace:  metav1.NamespaceDefault,
+					Name:       "machineWithExpiryAnnotation-bootstrap",
+				},
+			},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: "machineWithExpiryAnnotation",
+			},
+		},
+	}
+	machineWithExpiryAnnotationKubeadmConfig := &bootstrapv1.KubeadmConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithExpiryAnnotation-bootstrap",
+			Annotations: map[string]string{
+				clusterv1.MachineCertificatesExpiryDateAnnotation: preExistingExpiry.Format(time.RFC3339),
+			},
+		},
+	}
+	machineWithDeletionTimestamp := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "machineWithDeletionTimestamp",
+			DeletionTimestamp: &metav1.Time{Time: time.Now()},
+		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				Kind:       "GenericMachine",
+				APIVersion: "generic.io/v1",
+				Namespace:  metav1.NamespaceDefault,
+				Name:       "machineWithDeletionTimestamp-infra",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+					Namespace:  metav1.NamespaceDefault,
+					Name:       "machineWithDeletionTimestamp-bootstrap",
+				},
+			},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: "machineWithDeletionTimestamp",
+			},
+		},
+	}
+	machineWithDeletionTimestampKubeadmConfig := &bootstrapv1.KubeadmConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithDeletionTimestamp-bootstrap",
+		},
+	}
+	machineWithoutNodeRef := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithoutNodeRef",
+		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				Kind:       "GenericMachine",
+				APIVersion: "generic.io/v1",
+				Namespace:  metav1.NamespaceDefault,
+				Name:       "machineWithoutNodeRef-infra",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+					Namespace:  metav1.NamespaceDefault,
+					Name:       "machineWithoutNodeRef-bootstrap",
+				},
+			},
+		},
+	}
+	machineWithoutNodeRefKubeadmConfig := &bootstrapv1.KubeadmConfig{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithoutNodeRef-bootstrap",
+		},
+	}
+	machineWithoutKubeadmConfig := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "machineWithoutKubeadmConfig",
+		},
+		Spec: clusterv1.MachineSpec{
+			InfrastructureRef: corev1.ObjectReference{
+				Kind:       "GenericMachine",
+				APIVersion: "generic.io/v1",
+				Namespace:  metav1.NamespaceDefault,
+				Name:       "machineWithoutKubeadmConfig-infra",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					Kind:       "KubeadmConfig",
+					APIVersion: bootstrapv1.GroupVersion.String(),
+					Namespace:  metav1.NamespaceDefault,
+					Name:       "machineWithoutKubeadmConfig-bootstrap",
+				},
+			},
+		},
+		Status: clusterv1.MachineStatus{
+			NodeRef: &corev1.ObjectReference{
+				Name: "machineWithoutKubeadmConfig",
+			},
+		},
+	}
+
+	ownedMachines := collections.FromMachines(
+		machineWithoutExpiryAnnotation,
+		machineWithExpiryAnnotation,
+		machineWithDeletionTimestamp,
+		machineWithoutNodeRef,
+		machineWithoutKubeadmConfig,
+	)
+
+	fakeClient := newFakeClient(
+		machineWithoutExpiryAnnotationKubeadmConfig,
+		machineWithExpiryAnnotationKubeadmConfig,
+		machineWithDeletionTimestampKubeadmConfig,
+		machineWithoutNodeRefKubeadmConfig,
+	)
+
+	controlPlane, err := internal.NewControlPlane(ctx, fakeClient, cluster, kcp, ownedMachines)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	r := &KubeadmControlPlaneReconciler{
+		Client: fakeClient,
+		managementCluster: &fakeManagementCluster{
+			Workload: fakeWorkloadCluster{
+				APIServerCertificateExpiry: &detectedExpiry,
+			},
+		},
+	}
+
+	_, err = r.reconcileCertificateExpiries(ctx, controlPlane)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Verify machineWithoutExpiryAnnotation has detectedExpiry.
+	actualKubeadmConfig := bootstrapv1.KubeadmConfig{}
+	err = fakeClient.Get(ctx, client.ObjectKeyFromObject(machineWithoutExpiryAnnotationKubeadmConfig), &actualKubeadmConfig)
+	g.Expect(err).NotTo(HaveOccurred())
+	actualExpiry := actualKubeadmConfig.Annotations[clusterv1.MachineCertificatesExpiryDateAnnotation]
+	g.Expect(actualExpiry).To(Equal(detectedExpiry.Format(time.RFC3339)))
+
+	// Verify machineWithExpiryAnnotation has still preExistingExpiry.
+	err = fakeClient.Get(ctx, client.ObjectKeyFromObject(machineWithExpiryAnnotationKubeadmConfig), &actualKubeadmConfig)
+	g.Expect(err).NotTo(HaveOccurred())
+	actualExpiry = actualKubeadmConfig.Annotations[clusterv1.MachineCertificatesExpiryDateAnnotation]
+	g.Expect(actualExpiry).To(Equal(preExistingExpiry.Format(time.RFC3339)))
+
+	// Verify machineWithDeletionTimestamp has still no expiry annotation.
+	err = fakeClient.Get(ctx, client.ObjectKeyFromObject(machineWithDeletionTimestampKubeadmConfig), &actualKubeadmConfig)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(actualKubeadmConfig.Annotations).ToNot(ContainElement(clusterv1.MachineCertificatesExpiryDateAnnotation))
+
+	// Verify machineWithoutNodeRef has still no expiry annotation.
+	err = fakeClient.Get(ctx, client.ObjectKeyFromObject(machineWithoutNodeRefKubeadmConfig), &actualKubeadmConfig)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(actualKubeadmConfig.Annotations).ToNot(ContainElement(clusterv1.MachineCertificatesExpiryDateAnnotation))
+}
+
 func TestReconcileInitializeControlPlane(t *testing.T) {
 	g := NewWithT(t)
 

@@ -333,6 +333,11 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return result, err
 	}
 
+	// Reconcile certificate expiry for machines that don't have the expiry annotation on KubeadmConfig yet.
+	if result, err := r.reconcileCertificateExpiries(ctx, controlPlane); err != nil || !result.IsZero() {
+		return result, err
+	}
+
 	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.
 	needRollout := controlPlane.MachinesNeedingRollout()
 	switch {
@@ -573,6 +578,71 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 
 	if len(removedMembers) > 0 {
 		log.Info("Etcd members without nodes removed from the cluster", "members", removedMembers)
+	}
+
+	return ctrl.Result{}, nil
+}
+
+func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	// Return if there are no KCP-owned control-plane machines.
+	if controlPlane.Machines.Len() == 0 {
+		return ctrl.Result{}, nil
+	}
+
+	// Ignore machines which are being deleted.
+	machines := controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp))
+
+	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(controlPlane.Cluster))
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile certificate expiries: cannot get remote client to workload cluster")
+	}
+
+	for _, m := range machines {
+		log = log.WithValues("Machine", klog.KObj(m))
+
+		kubeadmConfig, ok := controlPlane.GetKubeadmConfig(m.Name)
+		if !ok {
+			// Skip if the Machine doesn't have a KubeadmConfig.
+			continue
+		}
+
+		annotations := kubeadmConfig.GetAnnotations()
+		if _, ok := annotations[clusterv1.MachineCertificatesExpiryDateAnnotation]; ok {
+			// Skip if annotation is already set.
+			continue
+		}
+
+		if m.Status.NodeRef == nil {
+			// Skip if the Machine is still provisioning.
+			continue
+		}
+		nodeName := m.Status.NodeRef.Name
+		log = log.WithValues("Node", klog.KRef("", nodeName))
+
+		log.V(3).Info("Reconciling certificate expiry")
+		certificateExpiry, err := workloadCluster.GetAPIServerCertificateExpiry(ctx, kubeadmConfig, nodeName)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s", m.Name)
+		}
+		expiry := certificateExpiry.Format(time.RFC3339)
+
+		log.V(2).Info(fmt.Sprintf("Setting certificate expiry to %s", expiry))
+		patchHelper, err := patch.NewHelper(kubeadmConfig, r.Client)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s: failed to create PatchHelper for KubeadmConfig/%s", m.Name, kubeadmConfig.Name)
+		}
+
+		if annotations == nil {
+			annotations = map[string]string{}
+		}
+		annotations[clusterv1.MachineCertificatesExpiryDateAnnotation] = expiry
+		kubeadmConfig.SetAnnotations(annotations)
+
+		if err := patchHelper.Patch(ctx, kubeadmConfig); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile certificate expiry for Machine/%s: failed to patch KubeadmConfig/%s", m.Name, kubeadmConfig.Name)
+		}
 	}
 
 	return ctrl.Result{}, nil

@@ -18,12 +18,14 @@ package controllers
 
 import (
 	"context"
+	"time"
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -66,8 +68,9 @@ func (f *fakeManagementCluster) GetMachinePoolsForCluster(c context.Context, clu
 
 type fakeWorkloadCluster struct {
 	*internal.Workload
-	Status            internal.ClusterStatus
-	EtcdMembersResult []string
+	Status                     internal.ClusterStatus
+	EtcdMembersResult          []string
+	APIServerCertificateExpiry *time.Time
 }
 
 func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
@@ -83,6 +86,10 @@ func (f fakeWorkloadCluster) ReconcileEtcdMembers(ctx context.Context, nodeNames
 
 func (f fakeWorkloadCluster) ClusterStatus(_ context.Context) (internal.ClusterStatus, error) {
 	return f.Status, nil
+}
+
+func (f fakeWorkloadCluster) GetAPIServerCertificateExpiry(_ context.Context, _ *bootstrapv1.KubeadmConfig, _ string) (*time.Time, error) {
+	return f.APIServerCertificateExpiry, nil
 }
 
 func (f fakeWorkloadCluster) AllowBootstrapTokensToGetNodes(ctx context.Context) error {

@@ -1505,7 +1505,7 @@ func TestUpdateCoreDNSDeployment(t *testing.T) {
 				Client: fakeClient,
 			}
 
-			err := w.updateCoreDNSDeployment(ctx, tt.info)
+			err := w.updateCoreDNSDeployment(ctx, tt.info, semver.Version{Major: 1, Minor: 26, Patch: 0})
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1532,6 +1532,103 @@ func TestUpdateCoreDNSDeployment(t *testing.T) {
 			// ensure the image is updated and the volumes point to the corefile
 			g.Expect(actualDeployment.Spec.Template.Spec.Containers[0].Image).To(Equal(tt.info.ToImage))
 			g.Expect(actualDeployment.Spec.Template.Spec.Volumes).To(ConsistOf(expectedVolume))
+		})
+	}
+}
+
+func TestPatchCoreDNSDeploymentTolerations(t *testing.T) {
+	oldControlPlaneToleration := corev1.Toleration{
+		Key:    oldControlPlaneTaint,
+		Effect: corev1.TaintEffectNoSchedule,
+	}
+	controlPlaneToleration := corev1.Toleration{
+		Key:    controlPlaneTaint,
+		Effect: corev1.TaintEffectNoSchedule,
+	}
+
+	tests := []struct {
+		name                string
+		currentTolerations  []corev1.Toleration
+		kubernetesVersion   semver.Version
+		expectedTolerations []corev1.Toleration
+	}{
+		{
+			name:               "adds both tolerations for Kubernetes v1.25",
+			currentTolerations: []corev1.Toleration{},
+			kubernetesVersion:  semver.Version{Major: 1, Minor: 25, Patch: 0},
+			expectedTolerations: []corev1.Toleration{
+				controlPlaneToleration,
+				oldControlPlaneToleration,
+			},
+		},
+		{
+			name:               "adds only new toleration for Kubernetes v1.26",
+			currentTolerations: []corev1.Toleration{},
+			kubernetesVersion:  semver.Version{Major: 1, Minor: 26, Patch: 0},
+			expectedTolerations: []corev1.Toleration{
+				controlPlaneToleration,
+			},
+		},
+		{
+			name: "adds both tolerations for Kubernetes v1.25 and preserves additional tolerations",
+			currentTolerations: []corev1.Toleration{
+				{
+					Key:    "my-special.custom/taint",
+					Effect: corev1.TaintEffectNoExecute,
+					Value:  "aValue",
+				},
+			},
+			kubernetesVersion: semver.Version{Major: 1, Minor: 25, Patch: 0},
+			expectedTolerations: []corev1.Toleration{
+				controlPlaneToleration,
+				oldControlPlaneToleration,
+				{
+					Key:    "my-special.custom/taint",
+					Effect: corev1.TaintEffectNoExecute,
+					Value:  "aValue",
+				},
+			},
+		},
+		{
+			name: "ensures only new toleration is set for Kubernetes v1.26, drops old toleration and preserves additional tolerations",
+			currentTolerations: []corev1.Toleration{
+				oldControlPlaneToleration,
+				{
+					Key:    "my-special.custom/taint",
+					Effect: corev1.TaintEffectNoExecute,
+					Value:  "aValue",
+				},
+			},
+			kubernetesVersion: semver.Version{Major: 1, Minor: 25, Patch: 0},
+			expectedTolerations: []corev1.Toleration{
+				controlPlaneToleration,
+				oldControlPlaneToleration,
+				{
+					Key:    "my-special.custom/taint",
+					Effect: corev1.TaintEffectNoExecute,
+					Value:  "aValue",
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			d := &appsv1.Deployment{
+				Spec: appsv1.DeploymentSpec{
+					Template: corev1.PodTemplateSpec{
+						Spec: corev1.PodSpec{
+							Tolerations: tt.currentTolerations,
+						},
+					},
+				},
+			}
+
+			patchCoreDNSDeploymentTolerations(d, tt.kubernetesVersion)
+
+			g.Expect(d.Spec.Template.Spec.Tolerations).To(Equal(tt.expectedTolerations))
 		})
 	}
 }

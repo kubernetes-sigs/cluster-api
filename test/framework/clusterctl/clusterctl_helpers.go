@@ -275,7 +275,8 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		WorkerMachineCount:       input.ConfigCluster.WorkerMachineCount,
 		InfrastructureProvider:   input.ConfigCluster.InfrastructureProvider,
 		// setup clusterctl logs folder
-		LogFolder: input.ConfigCluster.LogFolder,
+		LogFolder:           input.ConfigCluster.LogFolder,
+		ClusterctlVariables: input.ConfigCluster.ClusterctlVariables,
 	})
 	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 

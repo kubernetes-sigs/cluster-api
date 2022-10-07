@@ -35,3 +35,6 @@ spec:
       # We set an empty value to use the default tag kubeadm init is using.
     - name: coreDNSImageTag
       value: ""
+    - name: preLoadImages
+      # The DOCKER_PRELOAD_IMAGES variable gets set in self-hosted E2E tests to the list of images of the E2E configuration.
+      value: ${DOCKER_PRELOAD_IMAGES:-[]}

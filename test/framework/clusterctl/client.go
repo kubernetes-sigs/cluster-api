@@ -219,6 +219,7 @@ type ConfigClusterInput struct {
 	ControlPlaneMachineCount *int64
 	WorkerMachineCount       *int64
 	Flavor                   string
+	ClusterctlVariables      map[string]string
 }
 
 // ConfigCluster gets a workload cluster based on a template.
@@ -246,6 +247,16 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 		ControlPlaneMachineCount: input.ControlPlaneMachineCount,
 		WorkerMachineCount:       input.WorkerMachineCount,
 		TargetNamespace:          input.Namespace,
+	}
+
+	if len(input.ClusterctlVariables) > 0 {
+		outputPath := filepath.Join(filepath.Dir(input.ClusterctlConfigPath), fmt.Sprintf("clusterctl-upgrade-config-%s.yaml", input.ClusterName))
+		copyAndAmendClusterctlConfig(ctx, copyAndAmendClusterctlConfigInput{
+			ClusterctlConfigPath: input.ClusterctlConfigPath,
+			OutputPath:           outputPath,
+			Variables:            input.ClusterctlVariables,
+		})
+		input.ClusterctlConfigPath = outputPath
 	}
 
 	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName), input.LogFolder)

@@ -46,7 +46,11 @@ import (
 
 const (
 	retryableOperationInterval = 3 * time.Second
-	retryableOperationTimeout  = 1 * time.Minute
+	// retryableOperationTimeout requires a higher value especially for self-hosted upgrades.
+	// Short unavailability of the Kube APIServer due to joining etcd members paired with unreachable conversion webhooks due to
+	// failed leader election and thus controller restarts lead to longer taking retries.
+	// The timeout occurs when listing machines in `GetControlPlaneMachinesByCluster`.
+	retryableOperationTimeout = 3 * time.Minute
 )
 
 // ClusterProxy defines the behavior of a type that acts as an intermediary with an existing Kubernetes cluster.

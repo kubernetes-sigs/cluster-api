@@ -41,6 +41,8 @@ providers:
 
 See [provider contract](provider-contract.md) for instructions about how to set up a provider repository.
 
+**Note**: It is possible to use the `${HOME}` and `${CLUSTERCTL_REPOSITORY_PATH}` environment variables in `url`.
+
 ## Variables
 
 When installing a provider `clusterctl` reads a YAML file that is published in the provider repository. While executing
@@ -73,6 +75,8 @@ cert-manager:
   url: "/Users/foo/.cluster-api/dev-repository/cert-manager/latest/cert-manager.yaml"
 ```
 
+**Note**: It is possible to use the `${HOME}` and `${CLUSTERCTL_REPOSITORY_PATH}` environment variables in `url`.
+
 Similarly, it is possible to override the default version installed by clusterctl by configuring:
 
 ```yaml
@@ -103,6 +107,7 @@ You may want to migrate to a user-managed cert-manager further down the line, af
 ```bash
 kubectl get all -A --selector=clusterctl.cluster.x-k8s.io/core=cert-manager
 ```
+
 If you want to manage and install your own cert-manager, you'll need to remove this label from all API resources.
 
 <aside class="note warning">
@@ -112,7 +117,6 @@ If you want to manage and install your own cert-manager, you'll need to remove t
 Cluster API has a direct dependency on cert-manager. It's possible you could encounter issues if you use a different version to the Cluster API default version.
 
 </aside>
-
 
 ## Avoiding GitHub rate limiting
 
@@ -186,6 +190,7 @@ run,
 ```bash
 clusterctl init --infrastructure aws:v0.5.0 -v5
 ```
+
 ```bash
 ...
 Using Override="infrastructure-components.yaml" Provider="infrastructure-aws" Version="v0.5.0"
@@ -199,6 +204,8 @@ directory in the clusterctl config file as
 ```yaml
 overridesFolder: /Users/foobar/workspace/dev-releases
 ```
+
+**Note**: It is possible to use the `${HOME}` and `${CLUSTERCTL_REPOSITORY_PATH}` environment variables in `overridesFolder`.
 
 ## Image overrides
 

@@ -18,9 +18,11 @@ package config
 
 import (
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 
+	"github.com/drone/envsubst/v2"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/validation"
 
@@ -295,6 +297,12 @@ func (p *providersClient) List() ([]Provider, error) {
 	}
 
 	for _, u := range userDefinedProviders {
+		var err error
+		u.URL, err = envsubst.Eval(u.URL, os.Getenv)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to evaluate url: %q", u.URL)
+		}
+
 		provider := NewProvider(u.Name, u.URL, u.Type)
 		if err := validateProvider(provider); err != nil {
 			return nil, errors.Wrapf(err, "error validating configuration for the %s with name %s. Please fix the providers value in clusterctl configuration file", provider.Type(), provider.Name())

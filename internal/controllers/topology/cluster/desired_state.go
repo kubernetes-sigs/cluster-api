@@ -601,7 +601,8 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 			Namespace: s.Current.Cluster.Namespace,
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
-			ClusterName: s.Current.Cluster.Name,
+			ClusterName:     s.Current.Cluster.Name,
+			MinReadySeconds: machineDeploymentTopology.MinReadySeconds,
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels:      mergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels),

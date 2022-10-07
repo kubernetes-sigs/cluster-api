@@ -127,11 +127,17 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 
 // UpgradeManagementClusterAndWaitInput is the input type for UpgradeManagementClusterAndWait.
 type UpgradeManagementClusterAndWaitInput struct {
-	ClusterProxy         framework.ClusterProxy
-	ClusterctlConfigPath string
-	ClusterctlVariables  map[string]string
-	Contract             string
-	LogFolder            string
+	ClusterProxy              framework.ClusterProxy
+	ClusterctlConfigPath      string
+	ClusterctlVariables       map[string]string
+	Contract                  string
+	CoreProvider              string
+	BootstrapProviders        []string
+	ControlPlaneProviders     []string
+	InfrastructureProviders   []string
+	IPAMProviders             []string
+	RuntimeExtensionProviders []string
+	LogFolder                 string
 }
 
 // UpgradeManagementClusterAndWait upgrades provider a management cluster using clusterctl, and waits for the cluster to be ready.
@@ -139,16 +145,32 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 	Expect(ctx).NotTo(BeNil(), "ctx is required for UpgradeManagementClusterAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling UpgradeManagementClusterAndWait")
 	Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling UpgradeManagementClusterAndWait")
-	Expect(input.Contract).ToNot(BeEmpty(), "Invalid argument. input.Contract can't be empty when calling UpgradeManagementClusterAndWait")
+	// Check if the user want a custom upgrade
+	isCustomUpgrade := input.CoreProvider != "" ||
+		len(input.BootstrapProviders) > 0 ||
+		len(input.ControlPlaneProviders) > 0 ||
+		len(input.InfrastructureProviders) > 0 ||
+		len(input.IPAMProviders) > 0 ||
+		len(input.RuntimeExtensionProviders) > 0
+
+	Expect((input.Contract != "" && !isCustomUpgrade) || (input.Contract == "" && isCustomUpgrade)).To(BeTrue(), `Invalid argument. Either the input.Contract parameter or at least one of the following providers has to be set:
+		input.CoreProvider, input.BootstrapProviders, input.ControlPlaneProviders, input.InfrastructureProviders, input.IPAMProviders, input.RuntimeExtensionProviders`)
+
 	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for UpgradeManagementClusterAndWait")
 
 	Upgrade(ctx, UpgradeInput{
-		ClusterctlConfigPath: input.ClusterctlConfigPath,
-		ClusterctlVariables:  input.ClusterctlVariables,
-		ClusterName:          input.ClusterProxy.GetName(),
-		KubeconfigPath:       input.ClusterProxy.GetKubeconfigPath(),
-		Contract:             input.Contract,
-		LogFolder:            input.LogFolder,
+		ClusterctlConfigPath:      input.ClusterctlConfigPath,
+		ClusterctlVariables:       input.ClusterctlVariables,
+		ClusterName:               input.ClusterProxy.GetName(),
+		KubeconfigPath:            input.ClusterProxy.GetKubeconfigPath(),
+		Contract:                  input.Contract,
+		CoreProvider:              input.CoreProvider,
+		BootstrapProviders:        input.BootstrapProviders,
+		ControlPlaneProviders:     input.ControlPlaneProviders,
+		InfrastructureProviders:   input.InfrastructureProviders,
+		IPAMProviders:             input.IPAMProviders,
+		RuntimeExtensionProviders: input.RuntimeExtensionProviders,
+		LogFolder:                 input.LogFolder,
 	})
 
 	client := input.ClusterProxy.GetClient()

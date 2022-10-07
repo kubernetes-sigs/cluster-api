@@ -41,6 +41,8 @@ providers:
 
 See [provider contract](provider-contract.md) for instructions about how to set up a provider repository.
 
+**Note**: It is possible to use the `${HOME}` and `${CLUSTERCTL_REPOSITORY_PATH}` environment variables in `url`.
+
 ## Variables
 
 When installing a provider `clusterctl` reads a YAML file that is published in the provider repository. While executing
@@ -72,6 +74,8 @@ wants to use a different repository, it is possible to use the following configu
 cert-manager:
   url: "/Users/foo/.cluster-api/dev-repository/cert-manager/latest/cert-manager.yaml"
 ```
+
+**Note**: It is possible to use the `${HOME}` and `${CLUSTERCTL_REPOSITORY_PATH}` environment variables in `url`.
 
 Similarly, it is possible to override the default version installed by clusterctl by configuring:
 
@@ -167,6 +171,7 @@ run,
 ```bash
 clusterctl init --infrastructure aws:v0.5.0 -v5
 ```
+
 ```bash
 ...
 Using Override="infrastructure-components.yaml" Provider="infrastructure-aws" Version="v0.5.0"
@@ -180,6 +185,8 @@ directory in the clusterctl config file as
 ```yaml
 overridesFolder: /Users/foobar/workspace/dev-releases
 ```
+
+**Note**: It is possible to use the `${HOME}` and `${CLUSTERCTL_REPOSITORY_PATH}` environment variables in `overridesFolder`.
 
 ## Image overrides
 

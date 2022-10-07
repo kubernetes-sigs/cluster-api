@@ -17,14 +17,17 @@ limitations under the License.
 package repository
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/drone/envsubst/v2"
 	"github.com/pkg/errors"
 	"k8s.io/client-go/util/homedir"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
 const (
@@ -69,6 +72,13 @@ func (o *overrides) Path() string {
 	f, err := o.configVariablesClient.Get(overrideFolderKey)
 	if err == nil && strings.TrimSpace(f) != "" {
 		basepath = f
+
+		evaluatedBasePath, err := envsubst.Eval(basepath, os.Getenv)
+		if err != nil {
+			logf.Log.Info(fmt.Sprintf("⚠️overridesFolder %q could not be evaluated: %v", basepath, err))
+		} else {
+			basepath = evaluatedBasePath
+		}
 	}
 
 	return filepath.Join(

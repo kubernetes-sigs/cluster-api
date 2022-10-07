@@ -17,6 +17,7 @@ limitations under the License.
 package config
 
 import (
+	"os"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -31,6 +32,7 @@ func TestCertManagerGet(t *testing.T) {
 	tests := []struct {
 		name    string
 		fields  fields
+		envVars map[string]string
 		want    CertManager
 		wantErr bool
 	}{
@@ -51,6 +53,17 @@ func TestCertManagerGet(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "return custom url with evaluated env vars if defined",
+			fields: fields{
+				reader: test.NewFakeReader().WithCertManager("${TEST_REPO_PATH}/foo-url", "vX.Y.Z", ""),
+			},
+			envVars: map[string]string{
+				"TEST_REPO_PATH": "/tmp/test",
+			},
+			want:    NewCertManager("/tmp/test/foo-url", "vX.Y.Z", CertManagerDefaultTimeout.String()),
+			wantErr: false,
+		},
+		{
 			name: "return timeout if defined",
 			fields: fields{
 				reader: test.NewFakeReader().WithCertManager("", "", "5m"),
@@ -63,6 +76,14 @@ func TestCertManagerGet(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			for k, v := range tt.envVars {
+				g.Expect(os.Setenv(k, v)).To(Succeed())
+			}
+			defer func() {
+				for k := range tt.envVars {
+					g.Expect(os.Unsetenv(k)).To(Succeed())
+				}
+			}()
 			p := &certManagerClient{
 				reader: tt.fields.reader,
 			}

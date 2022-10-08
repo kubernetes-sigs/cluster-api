@@ -107,13 +107,9 @@ Download the latest release; on linux, type:
 ```bash
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.2.x"}} -o clusterctl
 ```
-Make the clusterctl binary executable.
+Install clusterctl:
 ```bash
-chmod +x ./clusterctl
-```
-Move the binary in to your PATH.
-```bash
-sudo mv ./clusterctl /usr/local/bin/clusterctl
+sudo install -o root -g root -m 0755 clusterctl /usr/local/bin/clusterctl
 ```
 Test to ensure the version you installed is up-to-date:
 ```bash

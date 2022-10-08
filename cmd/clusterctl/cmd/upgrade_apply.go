@@ -48,15 +48,17 @@ var upgradeApplyCmd = &cobra.Command{
 		The upgrade apply command applies new versions of Cluster API providers as defined by clusterctl upgrade plan.
 
 		New version should be applied ensuring all the providers uses the same cluster API version
-		in order to guarantee the proper functioning of the management cluster.`),
+		in order to guarantee the proper functioning of the management cluster.
+
+ 		Specifying the provider using namespace/name:version is deprecated and will be dropped in a future release.`),
 
 	Example: Examples(`
 		# Upgrades all the providers in the management cluster to the latest version available which is compliant
 		# to the v1alpha4 API Version of Cluster API (contract).
 		clusterctl upgrade apply --contract v1alpha4
 
-		# Upgrades only the capa-system/aws provider to the v0.5.0 version.
-		clusterctl upgrade apply --infrastructure capa-system/aws:v0.5.0`),
+		# Upgrades only the aws provider to the v2.0.1 version.
+		clusterctl upgrade apply --infrastructure aws:v2.0.1`),
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return runUpgradeApply()
@@ -72,13 +74,13 @@ func init() {
 		"The API Version of Cluster API (contract, e.g. v1alpha4) the management cluster should upgrade to")
 
 	upgradeApplyCmd.Flags().StringVar(&ua.coreProvider, "core", "",
-		"Core provider instance version (e.g. capi-system/cluster-api:v1.1.5) to upgrade to. This flag can be used as alternative to --contract.")
+		"Core provider instance version (e.g. cluster-api:v1.1.5) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().StringSliceVarP(&ua.infrastructureProviders, "infrastructure", "i", nil,
-		"Infrastructure providers instance and versions (e.g. capa-system/aws:v0.5.0) to upgrade to. This flag can be used as alternative to --contract.")
+		"Infrastructure providers instance and versions (e.g. aws:v2.0.1) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().StringSliceVarP(&ua.bootstrapProviders, "bootstrap", "b", nil,
-		"Bootstrap providers instance and versions (e.g. capi-kubeadm-bootstrap-system/kubeadm:v1.1.5) to upgrade to. This flag can be used as alternative to --contract.")
+		"Bootstrap providers instance and versions (e.g. kubeadm:v1.1.5) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().StringSliceVarP(&ua.controlPlaneProviders, "control-plane", "c", nil,
-		"ControlPlane providers instance and versions (e.g. capi-kubeadm-control-plane-system/kubeadm:v1.1.5) to upgrade to. This flag can be used as alternative to --contract.")
+		"ControlPlane providers instance and versions (e.g. kubeadm:v1.1.5) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().StringSliceVar(&ua.ipamProviders, "ipam", nil,
 		"IPAM providers and versions (e.g. infoblox:v0.0.1) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().StringSliceVar(&ua.runtimeExtensionProviders, "runtime-extension", nil,

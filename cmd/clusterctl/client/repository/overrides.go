@@ -18,8 +18,10 @@ package repository
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/drone/envsubst/v2"
@@ -78,6 +80,19 @@ func (o *overrides) Path() string {
 			logf.Log.Info(fmt.Sprintf("⚠️overridesFolder %q could not be evaluated: %v", basepath, err))
 		} else {
 			basepath = evaluatedBasePath
+		}
+
+		if runtime.GOOS == "windows" {
+			parsedBasePath, err := url.Parse(basepath)
+			if err != nil {
+				logf.Log.Info(fmt.Sprintf("⚠️overridesFolder %q could not be parsed: %v", basepath, err))
+			} else {
+				// in case of windows, we should take care of removing the additional / which is required by the URI standard
+				// for windows local paths. see https://blogs.msdn.microsoft.com/ie/2006/12/06/file-uris-in-windows/ for more details.
+				// Encoded file paths are not required in Windows 10 versions <1803 and are unsupported in Windows 10 >=1803
+				// https://support.microsoft.com/en-us/help/4467268/url-encoded-unc-paths-not-url-decoded-in-windows-10-version-1803-later
+				basepath = filepath.FromSlash(strings.TrimPrefix(parsedBasePath.Path, "/"))
+			}
 		}
 	}
 

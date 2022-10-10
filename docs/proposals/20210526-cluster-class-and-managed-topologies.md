@@ -154,7 +154,7 @@ for all fields of all templates referenced in a ClusterClass.
 
 #### Story 5 - Ability to define ClusterClass customizations
 As a ClusterClass author (e.g. an infrastructure provider author), I want to be able to write a ClusterClass which covers a wide range of use cases. To make this possible, 
-I want to make the CusterClass customizable, i.e. depending on configuration provided during Cluster creation, the managed topology should have a different shape.
+I want to make the ClusterClass customizable, i.e. depending on configuration provided during Cluster creation, the managed topology should have a different shape.
 
 **Note**: Without this feature all Clusters of the same ClusterClass would be the same apart from the properties that are already configure via the topology,
 like Kubernetes version, labels and annotations. This would limit the number of variants a single ClusterClass could address, i.e. separate ClusterClasses would be 

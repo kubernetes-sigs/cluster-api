@@ -60,12 +60,12 @@ func addClusterClassIfMissing(template Template, clusterClassClient repository.C
 }
 
 // clusterClassNamesFromTemplate returns the list of ClusterClasses referenced
-// by custers defined in the template. If not clusters are defined in the template
+// by clusters defined in the template. If not clusters are defined in the template
 // or if no cluster uses a cluster class it returns an empty list.
 func clusterClassNamesFromTemplate(template Template) ([]string, error) {
 	classes := []string{}
 
-	// loop thorugh all the objects and if the object is a cluster
+	// loop through all the objects and if the object is a cluster
 	// check and see if cluster.spec.topology.class is defined.
 	// If defined, add value to the result.
 	for i := range template.Objs() {

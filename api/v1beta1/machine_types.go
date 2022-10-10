@@ -59,6 +59,9 @@ const (
 	// This annotation can be set on BootstrapConfig or Machine objects. The value set on the Machine object takes precedence.
 	// This annotation can only be used on Control Plane Machines.
 	MachineCertificatesExpiryDateAnnotation = "machine.cluster.x-k8s.io/certificates-expiry"
+
+	// MachineDetachedAnnotation is the annotation set on machines if keep v1.Node after deleting machine.
+	MachineDetachedAnnotation = "machine.cluster.x-k8s.io/detached"
 )
 
 // ANCHOR: MachineSpec

@@ -507,6 +507,15 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 		return errClusterIsBeingDeleted
 	}
 
+	// If the machine is detached, considered as no nodeRef.
+	if machine.Annotations != nil {
+		if _, found := machine.Annotations[clusterv1.MachineDetachedAnnotation]; found {
+			log.Info("The machine is detached, it's not allowed to delete.",
+				"machine", machine)
+			return errNilNodeRef
+		}
+	}
+
 	// Cannot delete something that doesn't exist.
 	if machine.Status.NodeRef == nil {
 		return errNilNodeRef

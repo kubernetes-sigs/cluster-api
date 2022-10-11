@@ -14,15 +14,6 @@ steps:
     - DOCKER_BUILDKIT=1
     args:
     - release-staging
-  - name: 'gcr.io/k8s-staging-test-infra/gcb-docker-gcloud:v20221007-ad65926f6b'
-    entrypoint: make
-    env:
-    - DOCKER_CLI_EXPERIMENTAL=enabled
-    - TAG=$_GIT_TAG
-    - PULL_BASE_REF=$_PULL_BASE_REF
-    - DOCKER_BUILDKIT=1
-    args:
-    - release-capd-staging
 substitutions:
   # _GIT_TAG will be filled with a git-based tag for the image, of the form vYYYYMMDD-hash, and
   # can be used as a substitution

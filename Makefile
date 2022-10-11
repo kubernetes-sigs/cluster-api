@@ -234,7 +234,7 @@ help:  # Display this help
 
 ##@ generate:
 
-ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane capd
+ALL_GENERATE_MODULES = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure
 
 .PHONY: generate
 generate: ## Run all generate-manifests-*, generate-go-deepcopy-*, generate-go-conversions-* and generate-go-openapi targets
@@ -296,8 +296,8 @@ generate-manifests-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate manifest
 		output:webhook:dir=./controlplane/kubeadm/config/webhook \
 		webhook
 
-.PHONY: generate-manifests-capd
-generate-manifests-capd: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for capd provider
+.PHONY: generate-manifests-docker-infrastructure
+generate-manifests-docker-infrastructure: $(CONTROLLER_GEN) ## Generate manifests e.g. CRD, RBAC etc. for docker infrastructure provider
 	$(MAKE) clean-generated-yaml SRC_DIRS="$(CAPD_DIR)/config/crd/bases"
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
 		paths=./api/... \
@@ -344,8 +344,8 @@ generate-go-deepcopy-kubeadm-control-plane: $(CONTROLLER_GEN) ## Generate deepco
 		object:headerFile=./hack/boilerplate/boilerplate.generatego.txt \
 		paths=./controlplane/kubeadm/api/...
 
-.PHONY: generate-go-deepcopy-capd
-generate-go-deepcopy-capd: $(CONTROLLER_GEN) ## Generate deepcopy go code for capd
+.PHONY: generate-go-deepcopy-docker-infrastructure
+generate-go-deepcopy-docker-infrastructure: $(CONTROLLER_GEN) ## Generate deepcopy go code for docker infrastructure provider
 	$(MAKE) clean-generated-deepcopy SRC_DIRS="$(CAPD_DIR)/api,$(CAPD_DIR)/$(EXP_DIR)/api"
 	cd $(CAPD_DIR); $(CONTROLLER_GEN) \
 		object:headerFile=../../../hack/boilerplate/boilerplate.generatego.txt \
@@ -429,8 +429,8 @@ generate-go-conversions-kubeadm-control-plane: $(CONVERSION_GEN) ## Generate con
 		--output-file-base=zz_generated.conversion $(CONVERSION_GEN_OUTPUT_BASE) \
 		--go-header-file=./hack/boilerplate/boilerplate.generatego.txt
 
-.PHONY: generate-go-conversions-capd
-generate-go-conversions-capd: $(CONVERSION_GEN) ## Generate conversions go code for capd
+.PHONY: generate-go-conversions-docker-infrastructure
+generate-go-conversions-docker-infrastructure: $(CONVERSION_GEN) ## Generate conversions go code for docker infrastructure provider
 	cd $(CAPD_DIR); $(CONVERSION_GEN) \
 		--input-dirs=./api/v1alpha3 \
 		--input-dirs=./api/v1alpha4 \
@@ -569,7 +569,7 @@ verify-tiltfile: ## Verify Tiltfile format
 clusterctl: ## Build the clusterctl binary
 	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/clusterctl sigs.k8s.io/cluster-api/cmd/clusterctl
 
-ALL_MANAGERS = core kubeadm-bootstrap kubeadm-control-plane capd
+ALL_MANAGERS = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure
 
 .PHONY: managers
 managers: $(addprefix manager-,$(ALL_MANAGERS)) ## Run all manager-* targets
@@ -586,8 +586,8 @@ manager-kubeadm-bootstrap: ## Build the kubeadm bootstrap manager binary into th
 manager-kubeadm-control-plane: ## Build the kubeadm control plane manager binary into the ./bin folder
 	go build -trimpath -ldflags "$(LDFLAGS)" -o $(BIN_DIR)/kubeadm-control-plane-manager sigs.k8s.io/cluster-api/controlplane/kubeadm
 
-.PHONY: manager-capd
-manager-capd: ## Build the kubeadm control plane manager binary into the ./bin folder
+.PHONY: manager-docker-infrastructure
+manager-docker-infrastructure: ## Build the docker infrastructure manager binary into the ./bin folder
 	cd $(CAPD_DIR); go build -trimpath -ldflags "$(LDFLAGS)" -o ../../../$(BIN_DIR)/capd-manager sigs.k8s.io/cluster-api/test/infrastructure/docker
 
 .PHONY: docker-pull-prerequisites
@@ -602,11 +602,19 @@ docker-build-all: $(addprefix docker-build-,$(ALL_ARCH)) ## Build docker images 
 docker-build-%:
 	$(MAKE) ARCH=$* docker-build
 
-ALL_DOCKER_BUILD = core kubeadm-bootstrap kubeadm-control-plane clusterctl
+ALL_DOCKER_BUILD = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure test-extension clusterctl
 
 .PHONY: docker-build
-docker-build: docker-pull-prerequisites ## Run docker-build-* targets for all providers
+docker-build: docker-pull-prerequisites ## Run docker-build-* targets for all the images
 	$(MAKE) ARCH=$(ARCH) $(addprefix docker-build-,$(ALL_DOCKER_BUILD))
+
+ALL_DOCKER_BUILD_E2E = core kubeadm-bootstrap kubeadm-control-plane docker-infrastructure test-extension
+
+.PHONY: docker-build-e2e
+docker-build-e2e: ## Run docker-build-* targets for all the images with settings to be used for the e2e tests
+    # please ensure the generated image name matches image names used in the E2E_CONF_FILE;
+    # also the same settings must exist in ci-e2e-lib.sh, capi:buildDockerImage func.
+	$(MAKE) REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent TAG=dev $(addprefix docker-build-,$(ALL_DOCKER_BUILD_E2E))
 
 .PHONY: docker-build-core
 docker-build-core: ## Build the docker image for core controller manager
@@ -626,12 +634,15 @@ docker-build-kubeadm-control-plane: ## Build the docker image for kubeadm contro
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
 
-.PHONY: docker-build-clusterctl
-docker-build-clusterctl: ## Build the docker image for clusterctl with output binary name as 'clusterctl'
-	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./cmd/clusterctl --build-arg ldflags="$(LDFLAGS)" -f ./cmd/clusterctl/Dockerfile . -t $(CLUSTERCTL_IMG)-$(ARCH):$(TAG)
+.PHONY: docker-build-docker-infrastructure
+docker-build-docker-infrastructure: ## Build the docker image for docker infrastructure controller manager
+	cd $(CAPD_DIR); DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" ../../.. -t $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG) --file Dockerfile
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPD_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
 
-.PHONY: docker-capd-build-all
-docker-capd-build-all: $(addprefix docker-capd-build-,$(ALL_ARCH)) ## Build capd docker images for all architectures
+.PHONY: docker-build-clusterctl
+docker-build-clusterctl: ## Build the docker image for clusterctl
+	DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg package=./cmd/clusterctl --build-arg ldflags="$(LDFLAGS)" -f ./cmd/clusterctl/Dockerfile . -t $(CLUSTERCTL_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-build-test-extension
 docker-build-test-extension: ## Build the docker image for core controller manager
@@ -646,19 +657,6 @@ e2e-framework: ## Builds the CAPI e2e framework
 .PHONY: build-book
 build-book: ## Build the book
 	$(MAKE) -C docs/book build
-
-.PHONY: serve-book
-serve-book: ## Build and serve the book (with live-reload)
-	$(MAKE) -C docs/book serve
-
-docker-capd-build-%:
-	$(MAKE) ARCH=$* docker-capd-build
-
-.PHONY: docker-capd-build
-docker-capd-build: ## Build the docker image for capd
-	cd $(CAPD_DIR); DOCKER_BUILDKIT=1 docker build --build-arg builder_image=$(GO_CONTAINER_IMAGE) --build-arg goproxy=$(GOPROXY) --build-arg ARCH=$(ARCH) --build-arg ldflags="$(LDFLAGS)" ../../.. -t $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG) --file Dockerfile
-	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPD_CONTROLLER_IMG)-$(ARCH) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
-	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
 
 ## --------------------------------------
 ## Testing
@@ -690,16 +688,16 @@ test-cover: ## Run unit and integration tests and generate a coverage report
 	go tool cover -func=out/coverage.out -o out/coverage.txt
 	go tool cover -html=out/coverage.out -o out/coverage.html
 
-.PHONY: test-capd
-test-capd: $(SETUP_ENVTEST) ## Run unit and integration tests for capd
+.PHONY: test-docker-infrastructure
+test-docker-infrastructure: $(SETUP_ENVTEST) ## Run unit and integration tests for docker infrastructure provider
 	cd $(CAPD_DIR); KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test ./... $(TEST_ARGS)
 
-.PHONY: test-capd-verbose
-test-capd-verbose: ## Run unit and integration tests with verbose flag
-	$(MAKE) test-capd TEST_ARGS="$(TEST_ARGS) -v"
+.PHONY: test-docker-infrastructure-verbose
+test-docker-infrastructure-verbose: ## Run unit and integration tests for docker infrastructure provider with verbose flag
+	$(MAKE) test-docker-infrastructure TEST_ARGS="$(TEST_ARGS) -v"
 
-.PHONY: test-capd-junit
-test-capd-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report for capd
+.PHONY: test-docker-infrastructure-junit
+test-docker-infrastructure-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integration tests and generate a junit report for docker infrastructure provider
 	cd $(CAPD_DIR); set +o errexit; (KUBEBUILDER_ASSETS="$(KUBEBUILDER_ASSETS)" go test -json ./... $(TEST_ARGS); echo $$? > $(ARTIFACTS)/junit.infra_docker.exitcode) | tee $(ARTIFACTS)/junit.infra_docker.stdout
 	$(GOTESTSUM) --junitfile $(ARTIFACTS)/junit.infra_docker.xml --raw-command cat $(ARTIFACTS)/junit.infra_docker.stdout
 	exit $$(cat $(ARTIFACTS)/junit.infra_docker.exitcode)
@@ -737,11 +735,9 @@ kind-cluster: ## Create a new kind cluster designed for development with Tilt
 tilt-up: kind-cluster ## Start tilt and build kind cluster if needed.
 	tilt up
 
-.PHONY: docker-build-e2e
-docker-build-e2e: ## Rebuild all Cluster API provider images to be used in the e2e tests
-	$(MAKE) docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
-	$(MAKE) docker-capd-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
-	$(MAKE) docker-build-test-extension REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
+.PHONY: serve-book
+serve-book: ## Build and serve the book (with live-reload)
+	$(MAKE) -C docs/book serve
 
 ## --------------------------------------
 ## Release
@@ -763,9 +759,11 @@ RELEASE_NOTES_DIR := _releasenotes
 USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4)
 IMAGE_REVIEWERS ?= $(shell ./hack/get-project-maintainers.sh)
 
+.PHONY: $(RELEASE_DIR)
 $(RELEASE_DIR):
 	mkdir -p $(RELEASE_DIR)/
 
+.PHONY: $(RELEASE_NOTES_DIR)
 $(RELEASE_NOTES_DIR):
 	mkdir -p $(RELEASE_NOTES_DIR)/
 
@@ -836,6 +834,7 @@ release-manifests-dev: $(RELEASE_DIR) $(KUSTOMIZE) ## Build the development mani
 	cd $(CAPD_DIR); $(KUSTOMIZE) build config/default > ../../../$(RELEASE_DIR)/infrastructure-components-development.yaml
 	cp $(CAPD_DIR)/templates/* $(RELEASE_DIR)/
 
+.PHONY: release-binaries
 release-binaries: ## Build the binaries to publish with a release
 	RELEASE_BINARY=clusterctl-linux-amd64 BUILD_PATH=./cmd/clusterctl GOOS=linux GOARCH=amd64 $(MAKE) release-binary
 	RELEASE_BINARY=clusterctl-linux-arm64 BUILD_PATH=./cmd/clusterctl GOOS=linux GOARCH=arm64 $(MAKE) release-binary
@@ -844,6 +843,7 @@ release-binaries: ## Build the binaries to publish with a release
 	RELEASE_BINARY=clusterctl-windows-amd64.exe BUILD_PATH=./cmd/clusterctl GOOS=windows GOARCH=amd64 $(MAKE) release-binary
 	RELEASE_BINARY=clusterctl-linux-ppc64le BUILD_PATH=./cmd/clusterctl GOOS=linux GOARCH=ppc64le $(MAKE) release-binary
 
+.PHONY: release-binary
 release-binary: $(RELEASE_DIR)
 	docker run \
 		--rm \
@@ -869,6 +869,10 @@ release-staging-nightly: ## Tag and push container images to the staging bucket.
 	$(MAKE) manifest-modification REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(NEW_RELEASE_ALIAS_TAG)
 	## Build the manifests
 	$(MAKE) release-manifests
+	# Set the manifest image to the staging bucket.
+	$(MAKE) manifest-modification-dev REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(NEW_RELEASE_ALIAS_TAG)
+	## Build the dev manifests
+	$(MAKE) release-manifests-dev
 	# Example manifest location: artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20210121/bootstrap-components.yaml
 	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(NEW_RELEASE_ALIAS_TAG)
 
@@ -878,25 +882,6 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 	gcloud container images add-tag $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(CLUSTERCTL_IMG):$(TAG) $(CLUSTERCTL_IMG):$(RELEASE_ALIAS_TAG)
-
-.PHONY: release-capd-staging
-release-capd-staging: ## Build and push container images to the staging bucket
-	REGISTRY=$(STAGING_REGISTRY) $(MAKE) docker-capd-build-all docker-capd-push-all release-capd-alias-tag
-
-.PHONY: release-capd-staging-nightly
-release-capd-staging-nightly: ## Tag and push container images to the staging bucket. Example image tag: cluster-api-controller:nightly_main_20210121
-	$(eval NEW_RELEASE_ALIAS_TAG := nightly_$(RELEASE_ALIAS_TAG)_$(shell date +'%Y%m%d'))
-	echo $(NEW_RELEASE_ALIAS_TAG)
-	$(MAKE) release-capd-alias-tag TAG=$(RELEASE_ALIAS_TAG) RELEASE_ALIAS_TAG=$(NEW_RELEASE_ALIAS_TAG)
-	# Set the manifest image to the staging bucket.
-	$(MAKE) manifest-modification-dev REGISTRY=$(STAGING_REGISTRY) RELEASE_TAG=$(NEW_RELEASE_ALIAS_TAG)
-	## Build the manifests
-	$(MAKE) release-manifests-dev
-	# Example manifest location: artifacts.k8s-staging-cluster-api.appspot.com/components/nightly_main_20210121/infrastructure-components.yaml
-	gsutil cp $(RELEASE_DIR)/* gs://$(STAGING_BUCKET)/components/$(NEW_RELEASE_ALIAS_TAG)
-
-.PHONY: release-capd-alias-tag
-release-capd-alias-tag: ## Add the release alias tag to the last build tag
 	gcloud container images add-tag $(CAPD_CONTROLLER_IMG):$(TAG) $(CAPD_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 
 .PHONY: release-notes
@@ -915,33 +900,24 @@ promote-images: $(KPROMO)
 ## Docker
 ## --------------------------------------
 
-.PHONY: docker-push
-docker-push: ## Push the docker images
-	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
-	docker push $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	docker push $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
-	docker push $(CLUSTERCTL_IMG)-$(ARCH):$(TAG)
-
 .PHONY: docker-push-all
-docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))  ## Push all the architecture docker images
+docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))  ## Push the docker images to be included in the release for all architectures + related multiarch manifests
 	$(MAKE) docker-push-manifest-core
 	$(MAKE) docker-push-manifest-kubeadm-bootstrap
 	$(MAKE) docker-push-manifest-kubeadm-control-plane
+	$(MAKE) docker-push-manifest-docker-infrastructure
 	$(MAKE) docker-push-clusterctl
 
 docker-push-%:
 	$(MAKE) ARCH=$* docker-push
 
-.PHONY: docker-capd-push
-docker-capd-push: ## Push the capd docker image
+.PHONY: docker-push
+docker-push: ## Push the docker images to be included in the release
+	docker push $(CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(CLUSTERCTL_IMG)-$(ARCH):$(TAG)
 	docker push $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG)
-
-.PHONY: docker-capd-push-all
-docker-capd-push-all: $(addprefix docker-capd-push-,$(ALL_ARCH))  ## Push all the architecture docker images
-	$(MAKE) docker-capd-push-manifest
-
-docker-capd-push-%:
-	$(MAKE) ARCH=$* docker-capd-push
 
 .PHONY: docker-push-manifest-core
 docker-push-manifest-core: ## Push the multiarch manifest for the core docker images
@@ -970,8 +946,8 @@ docker-push-manifest-kubeadm-control-plane: ## Push the multiarch manifest for t
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./controlplane/kubeadm/config/default/manager_pull_policy.yaml"
 
-.PHONY: docker-push-manifest-capd
-docker-capd-push-manifest: ## Push the multiarch manifest for the capd docker images
+.PHONY: docker-push-manifest-docker-infrastructure
+docker-push-manifest-docker-infrastructure: ## Push the multiarch manifest for the docker infrastructure provider images
 	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(CAPD_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CAPD_CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CAPD_CONTROLLER_IMG}:${TAG} ${CAPD_CONTROLLER_IMG}-$${arch}:${TAG}; done

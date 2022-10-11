@@ -17,7 +17,7 @@ For a complete overview, please refer to the documentation available [here](http
 ## Testing
 
 In order to test your local changes, go to the top level directory of this project, `cluster-api/` and run
-`make test-capd` to run the unit tests. 
+`make test-docker-infrastructure` to run the unit tests. 
 
 **Note:** `make test-e2e` runs the CAPI E2E tests that are based on CAPD (CAPD does not have a separated e2e suite).
 

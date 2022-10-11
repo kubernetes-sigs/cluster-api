@@ -14,38 +14,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# capi:buildDockerImages builds all the CAPI (and CAPD) docker images, if not already present locally.
+# capi:buildDockerImages builds all the required docker images, if not already present locally.
 capi:buildDockerImages () {
   # Configure provider images generation;
-  # please ensure the generated image name matches image names used in the E2E_CONF_FILE
+  # please ensure the generated image name matches image names used in the E2E_CONF_FILE;
+  # also the same settings must be set in Makefile, docker-build-e2e target.
   ARCH="$(go env GOARCH)"
   export REGISTRY=gcr.io/k8s-staging-cluster-api
   export TAG=dev
   export ARCH
-  export PULL_POLICY=IfNotPresent
 
-  ## Build all Cluster API provider images, if missing
+  ## Build all required docker image, if missing.
+  ## Note: we check only for one image to exist, and assume that if one is missing all are missing.
   if [[ "$(docker images -q "$REGISTRY/cluster-api-controller-$ARCH:$TAG" 2> /dev/null)" == "" ]]; then
-    echo "+ Building CAPI images"
-    make docker-build
+    echo "+ Building CAPI images and CAPD image"
+    make docker-build-e2e
   else
     echo "+ CAPI images already present in the system, skipping make"
-  fi
-
-  ## Build CAPD provider images, if missing
-  if [[ "$(docker images -q "$REGISTRY/capd-manager-$ARCH:$TAG" 2> /dev/null)" == "" ]]; then
-    echo "+ Building CAPD images"
-    make docker-capd-build
-  else
-    echo "+ CAPD images already present in the system, skipping make"
-  fi
-
-  ## Build test extension images, if missing
-  if [[ "$(docker images -q "$REGISTRY/test-extension-$ARCH:$TAG" 2> /dev/null)" == "" ]]; then
-    echo "+ Building test-extension image"
-    make docker-build-test-extension
-  else
-    echo "+ test-extension image already present in the system, skipping make"
   fi
 }
 

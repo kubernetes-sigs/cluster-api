@@ -46,7 +46,7 @@ GitHub Presubmit Workflows:
 ### Postsubmits
 
 Prow Postsubmits:
-* [post-cluster-api-push-images] Google Cloud Build: `make release-staging`, `make release-capd-staging`
+* [post-cluster-api-push-images] Google Cloud Build: `make release-staging`
 
 ### Periodics
 
@@ -75,7 +75,7 @@ Prow Periodics:
   * GINKGO_FOCUS: `[K8s-Upgrade]`
 * [periodic-cluster-api-e2e-workload-upgrade-1-25-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.25` TO: `ci/latest-1.26`
   * GINKGO_FOCUS: `[K8s-Upgrade]`
-* [cluster-api-push-images-nightly] Google Cloud Build: `make release-staging-nightly`, `make release-capd-staging-nightly`
+* [cluster-api-push-images-nightly] Google Cloud Build: `make release-staging-nightly`
 
 ## Test-infra configuration
 

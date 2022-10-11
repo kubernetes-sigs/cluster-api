@@ -33,16 +33,10 @@ If you want to create a local artifact, follow these instructions:
 
 ### Build artifacts locally
 
-In order to build artifacts for the CAPI core provider, the kubeadm bootstrap provider and the kubeadm control plane provider:
+In order to build artifacts for the CAPI core provider, the kubeadm bootstrap provider, the kubeadm control plane provider and the docker infrastructure provider:
 
 ```bash
 make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
-```
-
-In order to build docker provider artifacts
-
-```bash
-make docker-capd-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
 ```
 
 ### Create a clusterctl-settings.json file

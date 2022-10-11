@@ -175,13 +175,6 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// If the bootstrap data is populated, set ready and return.
-	if m.Spec.Bootstrap.DataSecretName != nil {
-		m.Status.BootstrapReady = true
-		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
-		return ctrl.Result{}, nil
-	}
-
 	// If the Bootstrap ref is nil (and so the machine should use user generated data secret), return.
 	if m.Spec.Bootstrap.ConfigRef == nil {
 		return ctrl.Result{}, nil
@@ -192,10 +185,20 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	// If the external object is paused return.
+	if externalResult.Paused {
+		return ctrl.Result{}, nil
+	}
+
 	if externalResult.RequeueAfter > 0 {
 		return ctrl.Result{RequeueAfter: externalResult.RequeueAfter}, nil
 	}
-	if externalResult.Paused {
+
+	// If the bootstrap data is populated, set ready and return.
+	if m.Spec.Bootstrap.DataSecretName != nil {
+		m.Status.BootstrapReady = true
+		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
 		return ctrl.Result{}, nil
 	}
 	bootstrapConfig := externalResult.Result

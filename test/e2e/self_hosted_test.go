@@ -65,3 +65,18 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters using
 		}
 	})
 })
+
+var _ = Describe("When testing Cluster API working on single-node self-hosted clusters using ClusterClass [ClusterClass]", func() {
+	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
+		return SelfHostedSpecInput{
+			E2EConfig:                e2eConfig,
+			ClusterctlConfigPath:     clusterctlConfigPath,
+			BootstrapClusterProxy:    bootstrapClusterProxy,
+			ArtifactFolder:           artifactFolder,
+			SkipCleanup:              skipCleanup,
+			Flavor:                   "topology-single-node-cluster",
+			ControlPlaneMachineCount: pointer.Int64Ptr(1),
+			WorkerMachineCount:       pointer.Int64Ptr(0),
+		}
+	})
+})

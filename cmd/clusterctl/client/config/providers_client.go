@@ -45,6 +45,7 @@ const (
 	DOProviderName             = "digitalocean"
 	GCPProviderName            = "gcp"
 	HetznerProviderName        = "hetzner"
+	OutscaleProviderName       = "outscale"
 	IBMCloudProviderName       = "ibmcloud"
 	Metal3ProviderName         = "metal3"
 	NestedProviderName         = "nested"
@@ -207,6 +208,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         HetznerProviderName,
 			url:          "https://github.com/syself/cluster-api-provider-hetzner/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         OutscaleProviderName,
+			url:          "https://github.com/outscale-dev/cluster-api-provider-outscale/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

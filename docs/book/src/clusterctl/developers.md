@@ -181,18 +181,27 @@ For example, assuming that on [docker hub][kind-docker-hub] there is no
 image for version `vX.Y.Z`, therefore creating a CAPD workload cluster with
 `--kubernetes-version=vX.Y.Z` will fail. See [issue 3795] for more details.
 
-### Get the kubeconfig for the workload cluster
+### Get the kubeconfig for the workload cluster when using Docker Desktop
 
-The command for getting the kubeconfig file for connecting to a workload cluster is the following:
+For Docker Desktop on macOS, Linux or Windows use kind to retrieve the kubeconfig.
+
+```bash
+kind get kubeconfig --name capi-quickstart > capi-quickstart.kubeconfig
+````
+
+Docker Engine for Linux works with the default clusterctl approach.
+```bash
+clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
+```
+
+### Fix kubeconfig when using Docker Desktop and clusterctl
+When retrieving the kubeconfig using `clusterctl` with Docker Desktop on macOS or Windows or Docker Desktop (Docker Engine works fine) on Linux, you'll need to take a few extra steps to get the kubeconfig for a workload cluster created with the Docker provider.
 
 ```bash
 clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
 ```
 
-### Fix kubeconfig when using Docker Desktop
-
-When using Docker Desktop on macOS or Docker Desktop (Docker Engine works fine) on Linux, you'll need to take a few extra steps to get the kubeconfig for a workload cluster created with the Docker provider.
-
+To fix the kubeconfig run:
 ```bash
 # Point the kubeconfig to the exposed port of the load balancer, rather than the inaccessible container IP.
 sed -i -e "s/server:.*/server: https:\/\/$(docker port capi-quickstart-lb 6443/tcp | sed "s/0.0.0.0/127.0.0.1/")/g" ./capi-quickstart.kubeconfig

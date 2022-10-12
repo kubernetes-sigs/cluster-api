@@ -52,11 +52,11 @@ func (m *MachinePool) Default() {
 	m.Labels[clusterv1.ClusterLabelName] = m.Spec.ClusterName
 
 	if m.Spec.Replicas == nil {
-		m.Spec.Replicas = pointer.Int32Ptr(1)
+		m.Spec.Replicas = pointer.Int32(1)
 	}
 
 	if m.Spec.MinReadySeconds == nil {
-		m.Spec.MinReadySeconds = pointer.Int32Ptr(0)
+		m.Spec.MinReadySeconds = pointer.Int32(0)
 	}
 
 	if m.Spec.Template.Spec.Bootstrap.ConfigRef != nil && m.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace == "" {

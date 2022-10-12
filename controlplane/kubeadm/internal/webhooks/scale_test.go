@@ -62,7 +62,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 				},
 				NodeDrainTimeout: &metav1.Duration{Duration: time.Second},
 			},
-			Replicas: pointer.Int32Ptr(1),
+			Replicas: pointer.Int32(1),
 			RolloutStrategy: &controlplanev1.RolloutStrategy{
 				Type: controlplanev1.RollingUpdateStrategyType,
 				RollingUpdate: &controlplanev1.RollingUpdate{
@@ -121,7 +121,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 				},
 				NTP: &bootstrapv1.NTP{
 					Servers: []string{"test-server-1", "test-server-2"},
-					Enabled: pointer.BoolPtr(true),
+					Enabled: pointer.Bool(true),
 				},
 			},
 			Version: "v1.16.6",

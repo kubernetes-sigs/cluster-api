@@ -88,9 +88,9 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			},
 			Spec: clusterv1.MachineDeploymentSpec{
 				ClusterName:          testCluster.Name,
-				MinReadySeconds:      pointer.Int32Ptr(0),
-				Replicas:             pointer.Int32Ptr(2),
-				RevisionHistoryLimit: pointer.Int32Ptr(0),
+				MinReadySeconds:      pointer.Int32(0),
+				Replicas:             pointer.Int32(2),
+				RevisionHistoryLimit: pointer.Int32(0),
 				Selector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						clusterv1.ClusterLabelName: testCluster.Name,
@@ -101,7 +101,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 					RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 						MaxUnavailable: intOrStrPtr(0),
 						MaxSurge:       intOrStrPtr(1),
-						DeletePolicy:   pointer.StringPtr("Oldest"),
+						DeletePolicy:   pointer.String("Oldest"),
 					},
 				},
 				Template: clusterv1.MachineTemplateSpec{
@@ -117,7 +117,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 							Name:       "md-template",
 						},
 						Bootstrap: clusterv1.Bootstrap{
-							DataSecretName: pointer.StringPtr("data-secret-name"),
+							DataSecretName: pointer.String("data-secret-name"),
 						},
 					},
 				},
@@ -244,7 +244,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		//
 		secondMachineSet := machineSets.Items[0]
 		t.Log("Scaling the MachineDeployment to 3 replicas")
-		modifyFunc := func(d *clusterv1.MachineDeployment) { d.Spec.Replicas = pointer.Int32Ptr(3) }
+		modifyFunc := func(d *clusterv1.MachineDeployment) { d.Spec.Replicas = pointer.Int32(3) }
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func() int {
 			key := client.ObjectKey{Name: secondMachineSet.Name, Namespace: secondMachineSet.Namespace}
@@ -269,7 +269,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		t.Log("Updating deletePolicy on the MachineDeployment")
 		modifyFunc = func(d *clusterv1.MachineDeployment) {
-			d.Spec.Strategy.RollingUpdate.DeletePolicy = pointer.StringPtr("Newest")
+			d.Spec.Strategy.RollingUpdate.DeletePolicy = pointer.String("Newest")
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func() string {

@@ -196,7 +196,7 @@ func TestReconcileUpdateObservedGeneration(t *testing.T) {
 	}, 10*time.Second).Should(Equal(generation))
 
 	// triggers a generation change by changing the spec
-	kcp.Spec.Replicas = pointer.Int32Ptr(*kcp.Spec.Replicas + 2)
+	kcp.Spec.Replicas = pointer.Int32(*kcp.Spec.Replicas + 2)
 	g.Expect(env.Update(ctx, kcp)).To(Succeed())
 
 	// read kcp.Generation after the update
@@ -718,7 +718,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 								Kind:       "KubeadmConfig",
 							},
 						},
-						Version: pointer.StringPtr("v1.15.0"),
+						Version: pointer.String("v1.15.0"),
 					},
 				},
 			},
@@ -1653,7 +1653,7 @@ func createClusterWithControlPlane(namespace string) (*clusterv1.Cluster, *contr
 					APIVersion: "generic.io/v1",
 				},
 			},
-			Replicas: pointer.Int32Ptr(int32(3)),
+			Replicas: pointer.Int32(int32(3)),
 			Version:  "v1.16.6",
 			RolloutStrategy: &controlplanev1.RolloutStrategy{
 				Type: "RollingUpdate",

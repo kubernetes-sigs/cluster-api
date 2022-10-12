@@ -172,22 +172,22 @@ func readTiltSettings(path string) (*tiltSettings, error) {
 // setDefaults sets default values for debug related fields in tiltSettings.
 func setDefaults(ts *tiltSettings) {
 	if ts.DeployCertManager == nil {
-		ts.DeployCertManager = pointer.BoolPtr(true)
+		ts.DeployCertManager = pointer.Bool(true)
 	}
 
 	for k := range ts.Debug {
 		p := ts.Debug[k]
 		if p.Continue == nil {
-			p.Continue = pointer.BoolPtr(true)
+			p.Continue = pointer.Bool(true)
 		}
 		if p.Port == nil {
-			p.Port = pointer.IntPtr(0)
+			p.Port = pointer.Int(0)
 		}
 		if p.ProfilerPort == nil {
-			p.ProfilerPort = pointer.IntPtr(0)
+			p.ProfilerPort = pointer.Int(0)
 		}
 		if p.MetricsPort == nil {
-			p.MetricsPort = pointer.IntPtr(0)
+			p.MetricsPort = pointer.Int(0)
 		}
 
 		ts.Debug[k] = p

@@ -27,8 +27,8 @@ import (
 )
 
 func TestNewFailureDomainPicker(t *testing.T) {
-	a := pointer.StringPtr("us-west-1a")
-	b := pointer.StringPtr("us-west-1b")
+	a := pointer.String("us-west-1a")
+	b := pointer.String("us-west-1b")
 
 	fds := clusterv1.FailureDomains{
 		*a: clusterv1.FailureDomainSpec{},
@@ -98,8 +98,8 @@ func TestNewFailureDomainPicker(t *testing.T) {
 }
 
 func TestNewFailureDomainPickMost(t *testing.T) {
-	a := pointer.StringPtr("us-west-1a")
-	b := pointer.StringPtr("us-west-1b")
+	a := pointer.String("us-west-1a")
+	b := pointer.String("us-west-1b")
 
 	fds := clusterv1.FailureDomains{
 		*a: clusterv1.FailureDomainSpec{ControlPlane: true},

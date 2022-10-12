@@ -500,7 +500,7 @@ func scaleDownDeployment(ctx context.Context, c client.Client, deploy appsv1.Dep
 		}
 
 		// Scale down.
-		deployment.Spec.Replicas = pointer.Int32Ptr(0)
+		deployment.Spec.Replicas = pointer.Int32(0)
 		if err := c.Update(ctx, deployment); err != nil {
 			return errors.Wrapf(err, "failed to update Deployment/%s", deploy.GetName())
 		}

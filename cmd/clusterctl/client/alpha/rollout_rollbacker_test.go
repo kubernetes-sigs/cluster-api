@@ -71,7 +71,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 						Name:       "md-template",
 					},
 					Bootstrap: clusterv1.Bootstrap{
-						DataSecretName: pointer.StringPtr("data-secret-name"),
+						DataSecretName: pointer.String("data-secret-name"),
 					},
 				},
 			},
@@ -150,7 +150,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 										Name:       "md-template-rollback",
 									},
 									Bootstrap: clusterv1.Bootstrap{
-										DataSecretName: pointer.StringPtr("data-secret-name-rollback"),
+										DataSecretName: pointer.String("data-secret-name-rollback"),
 									},
 								},
 							},

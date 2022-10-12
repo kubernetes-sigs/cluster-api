@@ -75,7 +75,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 		namespace     *corev1.Namespace
 		cancelWatches context.CancelFunc
 		cluster       *clusterv1.Cluster
-		replicas      = pointer.Int64Ptr(1)
+		replicas      = pointer.Int64(1)
 	)
 
 	SetDefaultEventuallyTimeout(15 * time.Minute)
@@ -115,7 +115,7 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 			InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 			ControlPlaneMachineCount: replicas,
-			WorkerMachineCount:       pointer.Int64Ptr(0),
+			WorkerMachineCount:       pointer.Int64(0),
 			// setup clusterctl logs folder
 			LogFolder: filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 		})

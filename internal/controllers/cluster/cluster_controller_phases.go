@@ -125,7 +125,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 		cluster.Status.FailureReason = &clusterStatusError
 	}
 	if failureMessage != "" {
-		cluster.Status.FailureMessage = pointer.StringPtr(
+		cluster.Status.FailureMessage = pointer.String(
 			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
 				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)

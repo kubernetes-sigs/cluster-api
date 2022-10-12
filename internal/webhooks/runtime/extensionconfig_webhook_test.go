@@ -54,7 +54,7 @@ func TestExtensionConfigValidationFeatureGated(t *testing.T) {
 		},
 	}
 	updatedExtension := extension.DeepCopy()
-	updatedExtension.Spec.ClientConfig.URL = pointer.StringPtr("https://a-new-extension-address.com")
+	updatedExtension.Spec.ClientConfig.URL = pointer.String("https://a-new-extension-address.com")
 	tests := []struct {
 		name        string
 		new         *runtimev1.ExtensionConfig
@@ -150,7 +150,7 @@ func TestExtensionConfigValidate(t *testing.T) {
 		Spec: runtimev1.ExtensionConfigSpec{
 			ClientConfig: runtimev1.ClientConfig{
 				Service: &runtimev1.ServiceReference{
-					Path:      pointer.StringPtr("/path/to/handler"),
+					Path:      pointer.String("/path/to/handler"),
 					Port:      pointer.Int32(1),
 					Name:      "foo",
 					Namespace: "bar",
@@ -163,13 +163,13 @@ func TestExtensionConfigValidate(t *testing.T) {
 
 	// Valid updated Extension
 	updatedExtension := extensionWithURL.DeepCopy()
-	updatedExtension.Spec.ClientConfig.URL = pointer.StringPtr("https://a-in-extension-address.com")
+	updatedExtension.Spec.ClientConfig.URL = pointer.String("https://a-in-extension-address.com")
 
 	extensionWithoutURLOrService := extensionWithURL.DeepCopy()
 	extensionWithoutURLOrService.Spec.ClientConfig.URL = nil
 
 	extensionWithInvalidServicePath := extensionWithService.DeepCopy()
-	extensionWithInvalidServicePath.Spec.ClientConfig.Service.Path = pointer.StringPtr("https://example.com")
+	extensionWithInvalidServicePath.Spec.ClientConfig.Service.Path = pointer.String("https://example.com")
 
 	extensionWithNoServiceName := extensionWithService.DeepCopy()
 	extensionWithNoServiceName.Spec.ClientConfig.Service.Name = ""

@@ -87,7 +87,7 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
 				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{},
 			},
-			Replicas: pointer.Int32Ptr(1),
+			Replicas: pointer.Int32(1),
 			Version:  "v1.19.0",
 			RolloutStrategy: &RolloutStrategy{
 				Type: RollingUpdateStrategyType,
@@ -114,10 +114,10 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	missingReplicas.Spec.Replicas = nil
 
 	zeroReplicas := valid.DeepCopy()
-	zeroReplicas.Spec.Replicas = pointer.Int32Ptr(0)
+	zeroReplicas.Spec.Replicas = pointer.Int32(0)
 
 	evenReplicas := valid.DeepCopy()
-	evenReplicas.Spec.Replicas = pointer.Int32Ptr(2)
+	evenReplicas.Spec.Replicas = pointer.Int32(2)
 
 	evenReplicasExternalEtcd := evenReplicas.DeepCopy()
 	evenReplicasExternalEtcd.Spec.KubeadmConfigSpec = bootstrapv1.KubeadmConfigSpec{
@@ -275,7 +275,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				NodeVolumeDetachTimeout: &metav1.Duration{Duration: time.Second},
 				NodeDeletionTimeout:     &metav1.Duration{Duration: time.Second},
 			},
-			Replicas: pointer.Int32Ptr(1),
+			Replicas: pointer.Int32(1),
 			RolloutStrategy: &RolloutStrategy{
 				Type: RollingUpdateStrategyType,
 				RollingUpdate: &RollingUpdate{
@@ -334,7 +334,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 				},
 				NTP: &bootstrapv1.NTP{
 					Servers: []string{"test-server-1", "test-server-2"},
-					Enabled: pointer.BoolPtr(true),
+					Enabled: pointer.Bool(true),
 				},
 			},
 			Version: "v1.16.6",
@@ -343,7 +343,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 
 	updateMaxSurgeVal := before.DeepCopy()
 	updateMaxSurgeVal.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = int32(0)
-	updateMaxSurgeVal.Spec.Replicas = pointer.Int32Ptr(3)
+	updateMaxSurgeVal.Spec.Replicas = pointer.Int32(3)
 
 	wrongReplicaCountForScaleIn := before.DeepCopy()
 	wrongReplicaCountForScaleIn.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal = int32(0)
@@ -401,16 +401,16 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.MachineTemplate.NodeDrainTimeout = &metav1.Duration{Duration: 10 * time.Second}
 	validUpdate.Spec.MachineTemplate.NodeVolumeDetachTimeout = &metav1.Duration{Duration: 10 * time.Second}
 	validUpdate.Spec.MachineTemplate.NodeDeletionTimeout = &metav1.Duration{Duration: 10 * time.Second}
-	validUpdate.Spec.Replicas = pointer.Int32Ptr(5)
+	validUpdate.Spec.Replicas = pointer.Int32(5)
 	now := metav1.NewTime(time.Now())
 	validUpdate.Spec.RolloutAfter = &now
 	validUpdate.Spec.KubeadmConfigSpec.Format = bootstrapv1.CloudConfig
 
 	scaleToZero := before.DeepCopy()
-	scaleToZero.Spec.Replicas = pointer.Int32Ptr(0)
+	scaleToZero.Spec.Replicas = pointer.Int32(0)
 
 	scaleToEven := before.DeepCopy()
-	scaleToEven.Spec.Replicas = pointer.Int32Ptr(2)
+	scaleToEven.Spec.Replicas = pointer.Int32(2)
 
 	invalidNamespace := before.DeepCopy()
 	invalidNamespace.Spec.MachineTemplate.InfrastructureRef.Namespace = "bar"
@@ -581,7 +581,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		},
 	}
 	scaleToEvenExternalEtcdCluster := beforeExternalEtcdCluster.DeepCopy()
-	scaleToEvenExternalEtcdCluster.Spec.Replicas = pointer.Int32Ptr(2)
+	scaleToEvenExternalEtcdCluster.Spec.Replicas = pointer.Int32(2)
 
 	beforeInvalidEtcdCluster := before.DeepCopy()
 	beforeInvalidEtcdCluster.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd = bootstrapv1.Etcd{
@@ -619,7 +619,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	updateNTPServers.Spec.KubeadmConfigSpec.NTP.Servers = []string{"new-server"}
 
 	disableNTPServers := before.DeepCopy()
-	disableNTPServers.Spec.KubeadmConfigSpec.NTP.Enabled = pointer.BoolPtr(false)
+	disableNTPServers.Spec.KubeadmConfigSpec.NTP.Enabled = pointer.Bool(false)
 
 	invalidRolloutBeforeCertificateExpiryDays := before.DeepCopy()
 	invalidRolloutBeforeCertificateExpiryDays.Spec.RolloutBefore = &RolloutBefore{
@@ -1078,7 +1078,7 @@ func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 				g.Expect(tt.kcp.Spec.Version).To(Equal("v1.19.0"))
 				g.Expect(tt.kcp.Spec.RolloutStrategy.Type).To(Equal(RollingUpdateStrategyType))
 				g.Expect(tt.kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
-				g.Expect(tt.kcp.Spec.Replicas).To(Equal(pointer.Int32Ptr(1)))
+				g.Expect(tt.kcp.Spec.Replicas).To(Equal(pointer.Int32(1)))
 			}
 		})
 	}

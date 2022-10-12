@@ -48,7 +48,7 @@ func TestCalculateStatus(t *testing.T) {
 		"all machines are running": {
 			machineSets: []*clusterv1.MachineSet{{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 				Status: clusterv1.MachineSetStatus{
 					Selector:           "",
@@ -60,7 +60,7 @@ func TestCalculateStatus(t *testing.T) {
 			}},
 			newMachineSet: &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 				Status: clusterv1.MachineSetStatus{
 					Selector:           "",
@@ -75,7 +75,7 @@ func TestCalculateStatus(t *testing.T) {
 					Generation: 2,
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			expectedStatus: clusterv1.MachineDeploymentStatus{
@@ -91,7 +91,7 @@ func TestCalculateStatus(t *testing.T) {
 		"scaling up": {
 			machineSets: []*clusterv1.MachineSet{{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 				Status: clusterv1.MachineSetStatus{
 					Selector:           "",
@@ -103,7 +103,7 @@ func TestCalculateStatus(t *testing.T) {
 			}},
 			newMachineSet: &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 				Status: clusterv1.MachineSetStatus{
 					Selector:           "",
@@ -118,7 +118,7 @@ func TestCalculateStatus(t *testing.T) {
 					Generation: 2,
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			expectedStatus: clusterv1.MachineDeploymentStatus{
@@ -134,7 +134,7 @@ func TestCalculateStatus(t *testing.T) {
 		"scaling down": {
 			machineSets: []*clusterv1.MachineSet{{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 				Status: clusterv1.MachineSetStatus{
 					Selector:           "",
@@ -146,7 +146,7 @@ func TestCalculateStatus(t *testing.T) {
 			}},
 			newMachineSet: &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 				Status: clusterv1.MachineSetStatus{
 					Selector:           "",
@@ -161,7 +161,7 @@ func TestCalculateStatus(t *testing.T) {
 					Generation: 2,
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			expectedStatus: clusterv1.MachineDeploymentStatus{
@@ -177,7 +177,7 @@ func TestCalculateStatus(t *testing.T) {
 		"MachineSet failed": {
 			machineSets: []*clusterv1.MachineSet{{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 				Status: clusterv1.MachineSetStatus{
 					Selector:           "",
@@ -190,7 +190,7 @@ func TestCalculateStatus(t *testing.T) {
 			}},
 			newMachineSet: &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 				Status: clusterv1.MachineSetStatus{
 					Selector:           "",
@@ -205,7 +205,7 @@ func TestCalculateStatus(t *testing.T) {
 					Generation: 2,
 				},
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			expectedStatus: clusterv1.MachineDeploymentStatus{
@@ -242,7 +242,7 @@ func TestScaleMachineSet(t *testing.T) {
 			name: "It fails when new MachineSet has no replicas",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			machineSet: &clusterv1.MachineSet{
@@ -268,7 +268,7 @@ func TestScaleMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			error: errors.Errorf("spec.replicas for MachineDeployment foo/bar is nil, this is unexpected"),
@@ -288,7 +288,7 @@ func TestScaleMachineSet(t *testing.T) {
 							MaxSurge:       intOrStrPtr(2),
 						},
 					},
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			machineSet: &clusterv1.MachineSet{
@@ -297,7 +297,7 @@ func TestScaleMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(0),
+					Replicas: pointer.Int32(0),
 				},
 			},
 			newScale: 2,
@@ -317,7 +317,7 @@ func TestScaleMachineSet(t *testing.T) {
 							MaxSurge:       intOrStrPtr(2),
 						},
 					},
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			machineSet: &clusterv1.MachineSet{
@@ -326,7 +326,7 @@ func TestScaleMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(4),
+					Replicas: pointer.Int32(4),
 				},
 			},
 			newScale: 2,
@@ -346,7 +346,7 @@ func TestScaleMachineSet(t *testing.T) {
 							MaxSurge:       intOrStrPtr(2),
 						},
 					},
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			machineSet: &clusterv1.MachineSet{
@@ -355,7 +355,7 @@ func TestScaleMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			newScale: 2,
@@ -411,7 +411,7 @@ func newTestMachineDeployment(pds *int32, replicas, statusReplicas, updatedRepli
 				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
 					MaxUnavailable: intOrStrPtr(0),
 					MaxSurge:       intOrStrPtr(1),
-					DeletePolicy:   pointer.StringPtr("Oldest"),
+					DeletePolicy:   pointer.String("Oldest"),
 				},
 			},
 		},
@@ -434,7 +434,7 @@ func newTestMachinesetWithReplicas(name string, specReplicas, statusReplicas, av
 			Namespace:         metav1.NamespaceDefault,
 		},
 		Spec: clusterv1.MachineSetSpec{
-			Replicas: pointer.Int32Ptr(specReplicas),
+			Replicas: pointer.Int32(specReplicas),
 		},
 		Status: clusterv1.MachineSetStatus{
 			AvailableReplicas: availableReplicas,

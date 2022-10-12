@@ -235,27 +235,27 @@ func TestHashAnnotationKey(t *testing.T) {
 func TestInFailureDomain(t *testing.T) {
 	t.Run("nil machine returns false", func(t *testing.T) {
 		g := NewWithT(t)
-		g.Expect(collections.InFailureDomains(pointer.StringPtr("test"))(nil)).To(BeFalse())
+		g.Expect(collections.InFailureDomains(pointer.String("test"))(nil)).To(BeFalse())
 	})
 	t.Run("machine with given failure domain returns true", func(t *testing.T) {
 		g := NewWithT(t)
-		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: pointer.StringPtr("test")}}
-		g.Expect(collections.InFailureDomains(pointer.StringPtr("test"))(m)).To(BeTrue())
+		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: pointer.String("test")}}
+		g.Expect(collections.InFailureDomains(pointer.String("test"))(m)).To(BeTrue())
 	})
 	t.Run("machine with a different failure domain returns false", func(t *testing.T) {
 		g := NewWithT(t)
-		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: pointer.StringPtr("notTest")}}
+		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: pointer.String("notTest")}}
 		g.Expect(collections.InFailureDomains(
-			pointer.StringPtr("test"),
-			pointer.StringPtr("test2"),
-			pointer.StringPtr("test3"),
+			pointer.String("test"),
+			pointer.String("test2"),
+			pointer.String("test3"),
 			nil,
-			pointer.StringPtr("foo"))(m)).To(BeFalse())
+			pointer.String("foo"))(m)).To(BeFalse())
 	})
 	t.Run("machine without failure domain returns false", func(t *testing.T) {
 		g := NewWithT(t)
 		m := &clusterv1.Machine{}
-		g.Expect(collections.InFailureDomains(pointer.StringPtr("test"))(m)).To(BeFalse())
+		g.Expect(collections.InFailureDomains(pointer.String("test"))(m)).To(BeFalse())
 	})
 	t.Run("machine without failure domain returns true, when nil used for failure domain", func(t *testing.T) {
 		g := NewWithT(t)
@@ -264,8 +264,8 @@ func TestInFailureDomain(t *testing.T) {
 	})
 	t.Run("machine with failure domain returns true, when one of multiple failure domains match", func(t *testing.T) {
 		g := NewWithT(t)
-		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: pointer.StringPtr("test")}}
-		g.Expect(collections.InFailureDomains(pointer.StringPtr("foo"), pointer.StringPtr("test"))(m)).To(BeTrue())
+		m := &clusterv1.Machine{Spec: clusterv1.MachineSpec{FailureDomain: pointer.String("test")}}
+		g.Expect(collections.InFailureDomains(pointer.String("foo"), pointer.String("test"))(m)).To(BeTrue())
 	})
 }
 

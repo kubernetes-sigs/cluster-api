@@ -748,8 +748,8 @@ func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, k
 			Kind:               "KubeadmControlPlane",
 			Name:               kcp.Name,
 			UID:                kcp.UID,
-			Controller:         pointer.BoolPtr(true),
-			BlockOwnerDeletion: pointer.BoolPtr(true),
+			Controller:         pointer.Bool(true),
+			BlockOwnerDeletion: pointer.Bool(true),
 		}))
 
 		if err := r.Client.Update(ctx, ss); err != nil {

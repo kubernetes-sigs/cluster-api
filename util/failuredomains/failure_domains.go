@@ -83,7 +83,7 @@ func PickFewest(failureDomains clusterv1.FailureDomains, machines collections.Ma
 		return nil
 	}
 	sort.Sort(aggregations)
-	return pointer.StringPtr(aggregations[0].id)
+	return pointer.String(aggregations[0].id)
 }
 
 func pick(failureDomains clusterv1.FailureDomains, machines collections.Machines) failureDomainAggregations {

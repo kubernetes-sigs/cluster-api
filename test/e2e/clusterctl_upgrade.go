@@ -197,8 +197,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				Namespace:                managementClusterNamespace.Name,
 				ClusterName:              managementClusterName,
 				KubernetesVersion:        initKubernetesVersion,
-				ControlPlaneMachineCount: pointer.Int64Ptr(1),
-				WorkerMachineCount:       pointer.Int64Ptr(1),
+				ControlPlaneMachineCount: pointer.Int64(1),
+				WorkerMachineCount:       pointer.Int64(1),
 			},
 			PreWaitForCluster: func() {
 				if input.PreWaitForCluster != nil {
@@ -279,8 +279,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		workLoadClusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		kubernetesVersion := input.E2EConfig.GetVariable(KubernetesVersion)
-		controlPlaneMachineCount := pointer.Int64Ptr(1)
-		workerMachineCount := pointer.Int64Ptr(1)
+		controlPlaneMachineCount := pointer.Int64(1)
+		workerMachineCount := pointer.Int64(1)
 
 		log.Logf("Creating the workload cluster with name %q using the %q template (Kubernetes %s, %d control-plane machines, %d worker machines)",
 			workLoadClusterName, "(default)", kubernetesVersion, *controlPlaneMachineCount, *workerMachineCount)

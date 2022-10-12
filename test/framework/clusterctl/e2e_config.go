@@ -585,7 +585,7 @@ func (c *E2EConfig) GetInt64PtrVariable(varName string) *int64 {
 
 	wCount, err := strconv.ParseInt(wCountStr, 10, 64)
 	Expect(err).NotTo(HaveOccurred())
-	return pointer.Int64Ptr(wCount)
+	return pointer.Int64(wCount)
 }
 
 // GetInt32PtrVariable returns an Int32Ptr variable from the e2e config file.
@@ -597,7 +597,7 @@ func (c *E2EConfig) GetInt32PtrVariable(varName string) *int32 {
 
 	wCount, err := strconv.ParseUint(wCountStr, 10, 32)
 	Expect(err).NotTo(HaveOccurred())
-	return pointer.Int32Ptr(int32(wCount))
+	return pointer.Int32(int32(wCount))
 }
 
 // GetProviderVersions returns the sorted list of versions defined for a provider.

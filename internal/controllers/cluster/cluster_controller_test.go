@@ -315,13 +315,13 @@ func TestClusterReconciler(t *testing.T) {
 			},
 			Spec: clusterv1.MachineSpec{
 				ClusterName: cluster.Name,
-				ProviderID:  pointer.StringPtr("aws:///id-node-1"),
+				ProviderID:  pointer.String("aws:///id-node-1"),
 				Bootstrap: clusterv1.Bootstrap{
-					DataSecretName: pointer.StringPtr(""),
+					DataSecretName: pointer.String(""),
 				},
 			},
 		}
-		machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("test6-bootstrapdata")
+		machine.Spec.Bootstrap.DataSecretName = pointer.String("test6-bootstrapdata")
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 		key = client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
 		defer func() {

@@ -152,15 +152,15 @@ func PopulateDefaultsMachineDeployment(d *MachineDeployment) {
 	d.Labels[ClusterLabelName] = d.Spec.ClusterName
 
 	if d.Spec.MinReadySeconds == nil {
-		d.Spec.MinReadySeconds = pointer.Int32Ptr(0)
+		d.Spec.MinReadySeconds = pointer.Int32(0)
 	}
 
 	if d.Spec.RevisionHistoryLimit == nil {
-		d.Spec.RevisionHistoryLimit = pointer.Int32Ptr(1)
+		d.Spec.RevisionHistoryLimit = pointer.Int32(1)
 	}
 
 	if d.Spec.ProgressDeadlineSeconds == nil {
-		d.Spec.ProgressDeadlineSeconds = pointer.Int32Ptr(600)
+		d.Spec.ProgressDeadlineSeconds = pointer.Int32(600)
 	}
 
 	if d.Spec.Selector.MatchLabels == nil {

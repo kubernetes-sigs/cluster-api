@@ -154,7 +154,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 		WithVersion("v1.19.1").
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "cfg").Unstructured()).
 		Build()
-	machine.Spec.Bootstrap.DataSecretName = pointer.StringPtr("something")
+	machine.Spec.Bootstrap.DataSecretName = pointer.String("something")
 
 	config := newKubeadmConfig(metav1.NamespaceDefault, "cfg")
 	objects := []client.Object{
@@ -844,7 +844,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 					Kind:       "KubeadmConfig",
 					Name:       workerJoinConfig.Name,
 					UID:        workerJoinConfig.UID,
-					Controller: pointer.BoolPtr(true),
+					Controller: pointer.Bool(true),
 				},
 			},
 		},
@@ -1482,7 +1482,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 			},
 			machine: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					Version: pointer.StringPtr("otherVersion"),
+					Version: pointer.String("otherVersion"),
 				},
 			},
 		},
@@ -1508,7 +1508,7 @@ func TestKubeadmConfigReconciler_Reconcile_DynamicDefaultsForClusterConfiguratio
 			},
 			machine: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					Version: pointer.StringPtr("myversion"),
+					Version: pointer.String("myversion"),
 				},
 			},
 		},

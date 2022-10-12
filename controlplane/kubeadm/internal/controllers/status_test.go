@@ -322,7 +322,7 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version:  "v1.16.6",
-			Replicas: pointer.Int32Ptr(3),
+			Replicas: pointer.Int32(3),
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
 				InfrastructureRef: corev1.ObjectReference{
 					APIVersion: "test/v1alpha1",

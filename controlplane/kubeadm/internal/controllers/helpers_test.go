@@ -522,7 +522,7 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 	}
 	expectedMachineSpec := clusterv1.MachineSpec{
 		ClusterName: cluster.Name,
-		Version:     utilpointer.StringPtr(kcp.Spec.Version),
+		Version:     utilpointer.String(kcp.Spec.Version),
 		Bootstrap: clusterv1.Bootstrap{
 			ConfigRef: bootstrapRef.DeepCopy(),
 		},

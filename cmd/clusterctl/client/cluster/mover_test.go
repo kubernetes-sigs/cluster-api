@@ -1791,7 +1791,7 @@ func Test_createTargetObject(t *testing.T) {
 								APIVersion: "cluster.x-k8s.io/v1beta1",
 							},
 						}: {
-							Controller: pointer.BoolPtr(true),
+							Controller: pointer.Bool(true),
 						},
 					},
 				},
@@ -1804,7 +1804,7 @@ func Test_createTargetObject(t *testing.T) {
 				}
 				g.Expect(toClient.Get(ctx, key, c)).ToNot(HaveOccurred())
 				g.Expect(c.OwnerReferences).To(HaveLen(1))
-				g.Expect(c.OwnerReferences[0].Controller).To(Equal(pointer.BoolPtr(true)))
+				g.Expect(c.OwnerReferences[0].Controller).To(Equal(pointer.Bool(true)))
 			},
 		},
 		{

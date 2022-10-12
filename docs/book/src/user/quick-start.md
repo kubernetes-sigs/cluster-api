@@ -1091,19 +1091,34 @@ The control plane won't be `Ready` until we install a CNI in the next step.
 
 </aside>
 
-After the first control plane node is up and running, we can retrieve the [workload cluster] Kubeconfig:
+After the first control plane node is up and running, we can retrieve the [workload cluster] Kubeconfig.
+
+{{#tabs name:"tab-get-kubeconfig" tabs:"Default,Docker"}}
+
+{{#/tab }}
+{{#tab Default}}
 
 ```bash
 clusterctl get kubeconfig capi-quickstart > capi-quickstart.kubeconfig
 ```
 
+{{#/tab }}
+
+{{#tab Docker}}
+For Docker Desktop on macOS, Linux or Windows use kind to retrieve the kubeconfig. Docker Engine for Linux works with the default clusterctl approach.
+
+```bash
+kind get kubeconfig --name capi-quickstart > capi-quickstart.kubeconfig
+```
+
 <aside class="note warning">
 
-<h1>Warning</h1>
-
-If you're using Docker Desktop on macOS, or Docker Desktop (Docker Engine works fine) on Linux, you'll need to take a few extra steps to get the kubeconfig for a workload cluster created with the Docker provider. See [Additional Notes for the Docker provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider).
+Note: To use the default clusterctl method to retrieve kubeconfig for a workload cluster created with the Docker provider when using Docker Desktop see [Additional Notes for the Docker provider](../clusterctl/developers.md#additional-notes-for-the-docker-provider).
 
 </aside>
+
+{{#/tab }}
+{{#/tabs }}
 
 ### Deploy a CNI solution
 

@@ -26,6 +26,7 @@ spec:
         name: "md-0"
         nodeDeletionTimeout: "30s"
         nodeVolumeDetachTimeout: "5m"
+        minReadySeconds: 5
         replicas: ${WORKER_MACHINE_COUNT}
         failureDomain: fd4
     variables:

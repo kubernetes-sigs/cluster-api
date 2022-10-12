@@ -1328,6 +1328,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 	nodeDrainTimeout := metav1.Duration{Duration: 10 * time.Second}
 	nodeVolumeDetachTimeout := metav1.Duration{Duration: 10 * time.Second}
 	nodeDeletionTimeout := metav1.Duration{Duration: 10 * time.Second}
+	minReadySeconds := int32(5)
 	mdTopology := clusterv1.MachineDeploymentTopology{
 		Metadata: clusterv1.ObjectMeta{
 			Labels: map[string]string{"foo": "baz"},
@@ -1339,6 +1340,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		NodeDrainTimeout:        &nodeDrainTimeout,
 		NodeVolumeDetachTimeout: &nodeVolumeDetachTimeout,
 		NodeDeletionTimeout:     &nodeDeletionTimeout,
+		MinReadySeconds:         &minReadySeconds,
 	}
 
 	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {
@@ -1365,6 +1367,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		actualMd := actual.Object
 		g.Expect(*actualMd.Spec.Replicas).To(Equal(replicas))
+		g.Expect(*actualMd.Spec.MinReadySeconds).To(Equal(minReadySeconds))
 		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(failureDomain))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeout).To(Equal(nodeDrainTimeout))
 		g.Expect(*actualMd.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(nodeDeletionTimeout))

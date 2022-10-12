@@ -199,6 +199,13 @@ type MachineDeploymentTopology struct {
 	// +optional
 	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 
+	// Minimum number of seconds for which a newly created machine should
+	// be ready.
+	// Defaults to 0 (machine will be considered available as soon as it
+	// is ready)
+	// +optional
+	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
+
 	// Variables can be used to customize the MachineDeployment through patches.
 	// +optional
 	Variables *MachineDeploymentVariables `json:"variables,omitempty"`

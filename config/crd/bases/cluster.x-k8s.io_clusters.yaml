@@ -1211,6 +1211,12 @@ spec:
                                     controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
                                   type: object
                               type: object
+                            minReadySeconds:
+                              description: Minimum number of seconds for which a newly
+                                created machine should be ready. Defaults to 0 (machine
+                                will be considered available as soon as it is ready)
+                              format: int32
+                              type: integer
                             name:
                               description: Name is the unique identifier for this
                                 MachineDeploymentTopology. The value is used with

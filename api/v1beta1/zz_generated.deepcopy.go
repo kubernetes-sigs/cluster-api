@@ -1015,6 +1015,11 @@ func (in *MachineDeploymentTopology) DeepCopyInto(out *MachineDeploymentTopology
 		*out = new(metav1.Duration)
 		**out = **in
 	}
+	if in.MinReadySeconds != nil {
+		in, out := &in.MinReadySeconds, &out.MinReadySeconds
+		*out = new(int32)
+		**out = **in
+	}
 	if in.Variables != nil {
 		in, out := &in.Variables, &out.Variables
 		*out = new(MachineDeploymentVariables)

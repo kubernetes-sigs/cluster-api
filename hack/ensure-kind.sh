@@ -20,7 +20,7 @@ set -o pipefail
 
 set -x
 
-GOPATH_BIN="$(go env GOPATH)/bin/"
+GOPATH_BIN="$(go env GOPATH)/bin"
 MINIMUM_KIND_VERSION=v0.16.0
 goarch="$(go env GOARCH)"
 goos="$(go env GOOS)"

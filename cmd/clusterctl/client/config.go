@@ -403,7 +403,7 @@ func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplate
 	if options.ControlPlaneMachineCount == nil {
 		// Check if set through env variable and default to 1 otherwise
 		if v, err := c.configClient.Variables().Get("CONTROL_PLANE_MACHINE_COUNT"); err != nil {
-			options.ControlPlaneMachineCount = pointer.Int64Ptr(1)
+			options.ControlPlaneMachineCount = pointer.Int64(1)
 		} else {
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
@@ -421,7 +421,7 @@ func (c *clusterctlClient) templateOptionsToVariables(options GetClusterTemplate
 	if options.WorkerMachineCount == nil {
 		// Check if set through env variable and default to 0 otherwise
 		if v, err := c.configClient.Variables().Get("WORKER_MACHINE_COUNT"); err != nil {
-			options.WorkerMachineCount = pointer.Int64Ptr(0)
+			options.WorkerMachineCount = pointer.Int64(0)
 		} else {
 			i, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {

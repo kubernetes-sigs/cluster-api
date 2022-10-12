@@ -160,8 +160,8 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 				Namespace:                namespace.Name,
 				ClusterName:              clusterName,
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
-				ControlPlaneMachineCount: pointer.Int64Ptr(controlPlaneMachineCount),
-				WorkerMachineCount:       pointer.Int64Ptr(workerMachineCount),
+				ControlPlaneMachineCount: pointer.Int64(controlPlaneMachineCount),
+				WorkerMachineCount:       pointer.Int64(workerMachineCount),
 			},
 			PreWaitForCluster: func() {
 				beforeClusterCreateTestHandler(ctx,

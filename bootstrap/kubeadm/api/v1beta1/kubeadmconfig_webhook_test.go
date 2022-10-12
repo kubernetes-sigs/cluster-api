@@ -40,7 +40,7 @@ func TestKubeadmConfigDefault(t *testing.T) {
 		Spec: KubeadmConfigSpec{},
 	}
 	updateDefaultingKubeadmConfig := kubeadmConfig.DeepCopy()
-	updateDefaultingKubeadmConfig.Spec.Verbosity = pointer.Int32Ptr(4)
+	updateDefaultingKubeadmConfig.Spec.Verbosity = pointer.Int32(4)
 	t.Run("for KubeadmConfig", utildefaulting.DefaultValidateTest(updateDefaultingKubeadmConfig))
 
 	kubeadmConfig.Default()
@@ -187,7 +187,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 				Spec: KubeadmConfigSpec{
 					Users: []User{
 						{
-							Passwd: pointer.StringPtr("foo"),
+							Passwd: pointer.String("foo"),
 						},
 					},
 				},
@@ -223,7 +223,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					Users: []User{
 						{
 							PasswdFrom: &PasswdSource{},
-							Passwd:     pointer.StringPtr("foo"),
+							Passwd:     pointer.String("foo"),
 						},
 					},
 				},
@@ -244,7 +244,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 									Key: "bar",
 								},
 							},
-							Passwd: pointer.StringPtr("foo"),
+							Passwd: pointer.String("foo"),
 						},
 					},
 				},
@@ -265,7 +265,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 									Name: "foo",
 								},
 							},
-							Passwd: pointer.StringPtr("foo"),
+							Passwd: pointer.String("foo"),
 						},
 					},
 				},
@@ -308,7 +308,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					Format: Ignition,
 					Users: []User{
 						{
-							Inactive: pointer.BoolPtr(true),
+							Inactive: pointer.Bool(true),
 						},
 					},
 				},
@@ -327,7 +327,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					DiskSetup: &DiskSetup{
 						Partitions: []Partition{
 							{
-								TableType: pointer.StringPtr("MS-DOS"),
+								TableType: pointer.String("MS-DOS"),
 							},
 						},
 					},
@@ -388,7 +388,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					DiskSetup: &DiskSetup{
 						Filesystems: []Filesystem{
 							{
-								ReplaceFS: pointer.StringPtr("ntfs"),
+								ReplaceFS: pointer.String("ntfs"),
 							},
 						},
 					},
@@ -408,7 +408,7 @@ func TestKubeadmConfigValidate(t *testing.T) {
 					DiskSetup: &DiskSetup{
 						Filesystems: []Filesystem{
 							{
-								Partition: pointer.StringPtr("1"),
+								Partition: pointer.String("1"),
 							},
 						},
 					},

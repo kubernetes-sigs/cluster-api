@@ -36,7 +36,7 @@ func TestKubeadmConfigTemplateDefault(t *testing.T) {
 		},
 	}
 	updateDefaultingKubeadmConfigTemplate := kubeadmConfigTemplate.DeepCopy()
-	updateDefaultingKubeadmConfigTemplate.Spec.Template.Spec.Verbosity = pointer.Int32Ptr(4)
+	updateDefaultingKubeadmConfigTemplate.Spec.Template.Spec.Verbosity = pointer.Int32(4)
 	t.Run("for KubeadmConfigTemplate", utildefaulting.DefaultValidateTest(updateDefaultingKubeadmConfigTemplate))
 
 	kubeadmConfigTemplate.Default()

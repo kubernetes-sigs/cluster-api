@@ -51,7 +51,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 			},
 			newMachineSet: &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			error: errors.Errorf("spec.replicas for MachineDeployment foo/bar is nil, this is unexpected"),
@@ -60,7 +60,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 			name: "It fails when new machineSet has no replicas",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -86,7 +86,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 							MaxSurge:       intOrStrPtr(2),
 						},
 					},
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -95,7 +95,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(0),
+					Replicas: pointer.Int32(0),
 				},
 			},
 			expectedNewMachineSetReplicas: 2,
@@ -115,7 +115,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 							MaxSurge:       intOrStrPtr(2),
 						},
 					},
-					Replicas: pointer.Int32Ptr(0),
+					Replicas: pointer.Int32(0),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -124,7 +124,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			expectedNewMachineSetReplicas: 0,
@@ -144,7 +144,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 							MaxSurge:       intOrStrPtr(2),
 						},
 					},
-					Replicas: pointer.Int32Ptr(3),
+					Replicas: pointer.Int32(3),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -153,7 +153,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(1),
+					Replicas: pointer.Int32(1),
 				},
 			},
 			expectedNewMachineSetReplicas: 2,
@@ -164,7 +164,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 						Name:      "3replicas",
 					},
 					Spec: clusterv1.MachineSetSpec{
-						Replicas: pointer.Int32Ptr(3),
+						Replicas: pointer.Int32(3),
 					},
 					Status: clusterv1.MachineSetStatus{
 						Replicas: 3,
@@ -188,7 +188,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 							MaxSurge:       intOrStrPtr(0),
 						},
 					},
-					Replicas: pointer.Int32Ptr(1),
+					Replicas: pointer.Int32(1),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -197,7 +197,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(0),
+					Replicas: pointer.Int32(0),
 				},
 			},
 			expectedNewMachineSetReplicas: 0,
@@ -208,7 +208,7 @@ func TestReconcileNewMachineSet(t *testing.T) {
 						Name:      "machine-not-yet-deleted",
 					},
 					Spec: clusterv1.MachineSetSpec{
-						Replicas: pointer.Int32Ptr(0),
+						Replicas: pointer.Int32(0),
 					},
 					Status: clusterv1.MachineSetStatus{
 						Replicas: 1,
@@ -282,7 +282,7 @@ func TestReconcileOldMachineSets(t *testing.T) {
 			},
 			newMachineSet: &clusterv1.MachineSet{
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			error: errors.Errorf("spec.replicas for MachineDeployment foo/bar is nil, this is unexpected"),
@@ -291,7 +291,7 @@ func TestReconcileOldMachineSets(t *testing.T) {
 			name: "It fails when new machineSet has no replicas",
 			machineDeployment: &clusterv1.MachineDeployment{
 				Spec: clusterv1.MachineDeploymentSpec{
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -317,7 +317,7 @@ func TestReconcileOldMachineSets(t *testing.T) {
 							MaxSurge:       intOrStrPtr(3),
 						},
 					},
-					Replicas: pointer.Int32Ptr(2),
+					Replicas: pointer.Int32(2),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -326,7 +326,7 @@ func TestReconcileOldMachineSets(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(0),
+					Replicas: pointer.Int32(0),
 				},
 				Status: clusterv1.MachineSetStatus{
 					AvailableReplicas: 2,
@@ -339,7 +339,7 @@ func TestReconcileOldMachineSets(t *testing.T) {
 						Name:      "2replicas",
 					},
 					Spec: clusterv1.MachineSetSpec{
-						Replicas: pointer.Int32Ptr(2),
+						Replicas: pointer.Int32(2),
 					},
 					Status: clusterv1.MachineSetStatus{
 						AvailableReplicas: 2,
@@ -351,7 +351,7 @@ func TestReconcileOldMachineSets(t *testing.T) {
 						Name:      "1replicas",
 					},
 					Spec: clusterv1.MachineSetSpec{
-						Replicas: pointer.Int32Ptr(1),
+						Replicas: pointer.Int32(1),
 					},
 					Status: clusterv1.MachineSetStatus{
 						AvailableReplicas: 1,
@@ -375,7 +375,7 @@ func TestReconcileOldMachineSets(t *testing.T) {
 							MaxSurge:       intOrStrPtr(3),
 						},
 					},
-					Replicas: pointer.Int32Ptr(10),
+					Replicas: pointer.Int32(10),
 				},
 			},
 			newMachineSet: &clusterv1.MachineSet{
@@ -384,7 +384,7 @@ func TestReconcileOldMachineSets(t *testing.T) {
 					Name:      "bar",
 				},
 				Spec: clusterv1.MachineSetSpec{
-					Replicas: pointer.Int32Ptr(5),
+					Replicas: pointer.Int32(5),
 				},
 				Status: clusterv1.MachineSetStatus{
 					Replicas:          5,
@@ -399,7 +399,7 @@ func TestReconcileOldMachineSets(t *testing.T) {
 						Name:      "8replicas",
 					},
 					Spec: clusterv1.MachineSetSpec{
-						Replicas: pointer.Int32Ptr(8),
+						Replicas: pointer.Int32(8),
 					},
 					Status: clusterv1.MachineSetStatus{
 						Replicas:          10,

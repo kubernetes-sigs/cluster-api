@@ -466,7 +466,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set Machine ProviderID.
-		machine.Spec.ProviderID = pointer.StringPtr("test://id-1")
+		machine.Spec.ProviderID = pointer.String("test://id-1")
 
 		// Set NodeRef to nil.
 		machine.Status.NodeRef = nil
@@ -747,7 +747,7 @@ func TestReconcileBootstrap(t *testing.T) {
 							Kind:       "GenericBootstrapConfig",
 							Name:       "bootstrap-config1",
 						},
-						DataSecretName: pointer.StringPtr("secret-data"),
+						DataSecretName: pointer.String("secret-data"),
 					},
 				},
 				Status: clusterv1.MachineStatus{

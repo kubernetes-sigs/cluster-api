@@ -64,7 +64,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		},
 		Spec: expv1.MachinePoolSpec{
 			ClusterName: defaultCluster.Name,
-			Replicas:    pointer.Int32Ptr(1),
+			Replicas:    pointer.Int32(1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -361,7 +361,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Status.ReadyReplicas = 1
 
 		// Scale up
-		machinepool.Spec.Replicas = pointer.Int32Ptr(5)
+		machinepool.Spec.Replicas = pointer.Int32(5)
 
 		r.reconcilePhase(machinepool)
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseScalingUp))
@@ -392,7 +392,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		err = unstructured.SetNestedField(infraConfig.Object, int64(4), "status", "replicas")
 		g.Expect(err).NotTo(HaveOccurred())
 
-		machinepool.Spec.Replicas = pointer.Int32Ptr(4)
+		machinepool.Spec.Replicas = pointer.Int32(4)
 
 		// Set NodeRef.
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{
@@ -414,7 +414,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Status.ReadyReplicas = 4
 
 		// Scale down
-		machinepool.Spec.Replicas = pointer.Int32Ptr(1)
+		machinepool.Spec.Replicas = pointer.Int32(1)
 
 		r.reconcilePhase(machinepool)
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseScalingDown))
@@ -632,7 +632,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 									Kind:       "BootstrapConfig",
 									Name:       "bootstrap-config1",
 								},
-								DataSecretName: pointer.StringPtr("data"),
+								DataSecretName: pointer.String("data"),
 							},
 						},
 					},
@@ -676,7 +676,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 									Kind:       "BootstrapConfig",
 									Name:       "bootstrap-config1",
 								},
-								DataSecretName: pointer.StringPtr("data"),
+								DataSecretName: pointer.String("data"),
 							},
 						},
 					},
@@ -729,7 +729,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			},
 		},
 		Spec: expv1.MachinePoolSpec{
-			Replicas: pointer.Int32Ptr(1),
+			Replicas: pointer.Int32(1),
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
@@ -808,7 +808,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: expv1.MachinePoolSpec{
-					Replicas: pointer.Int32Ptr(1),
+					Replicas: pointer.Int32(1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
@@ -904,7 +904,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 					Namespace: metav1.NamespaceDefault,
 				},
 				Spec: expv1.MachinePoolSpec{
-					Replicas: pointer.Int32Ptr(0),
+					Replicas: pointer.Int32(0),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{

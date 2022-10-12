@@ -578,7 +578,7 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 			args: args{
 				tag: "foo",
 			},
-			wantTagName: pointer.StringPtr("v0.4.1"),
+			wantTagName: pointer.String("v0.4.1"),
 			wantErr:     false,
 		},
 		{

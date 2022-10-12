@@ -63,7 +63,7 @@ func TestMachineSetConversion(t *testing.T) {
 			ClusterName:     clusterName,
 			Template:        newFakeMachineTemplate(ns.Name, clusterName),
 			MinReadySeconds: 10,
-			Replicas:        pointer.Int32Ptr(1),
+			Replicas:        pointer.Int32(1),
 			DeletePolicy:    "Random",
 		},
 	}
@@ -89,7 +89,7 @@ func TestMachineDeploymentConversion(t *testing.T) {
 		Spec: MachineDeploymentSpec{
 			ClusterName: clusterName,
 			Template:    newFakeMachineTemplate(ns.Name, clusterName),
-			Replicas:    pointer.Int32Ptr(0),
+			Replicas:    pointer.Int32(0),
 		},
 	}
 

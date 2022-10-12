@@ -45,8 +45,8 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters using
 			ArtifactFolder:           artifactFolder,
 			SkipCleanup:              skipCleanup,
 			Flavor:                   "topology",
-			ControlPlaneMachineCount: pointer.Int64Ptr(1),
-			WorkerMachineCount:       pointer.Int64Ptr(1),
+			ControlPlaneMachineCount: pointer.Int64(1),
+			WorkerMachineCount:       pointer.Int64(1),
 		}
 	})
 })
@@ -60,8 +60,8 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters using
 			ArtifactFolder:           artifactFolder,
 			SkipCleanup:              skipCleanup,
 			Flavor:                   "topology",
-			ControlPlaneMachineCount: pointer.Int64Ptr(3),
-			WorkerMachineCount:       pointer.Int64Ptr(1),
+			ControlPlaneMachineCount: pointer.Int64(3),
+			WorkerMachineCount:       pointer.Int64(1),
 		}
 	})
 })
@@ -75,8 +75,8 @@ var _ = Describe("When testing Cluster API working on single-node self-hosted cl
 			ArtifactFolder:           artifactFolder,
 			SkipCleanup:              skipCleanup,
 			Flavor:                   "topology-single-node-cluster",
-			ControlPlaneMachineCount: pointer.Int64Ptr(1),
-			WorkerMachineCount:       pointer.Int64Ptr(0),
+			ControlPlaneMachineCount: pointer.Int64(1),
+			WorkerMachineCount:       pointer.Int64(0),
 		}
 	})
 })

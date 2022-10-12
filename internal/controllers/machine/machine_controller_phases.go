@@ -162,7 +162,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 		m.Status.FailureReason = &machineStatusError
 	}
 	if failureMessage != "" {
-		m.Status.FailureMessage = pointer.StringPtr(
+		m.Status.FailureMessage = pointer.String(
 			fmt.Sprintf("Failure detected from referenced resource %v with name %q: %s",
 				obj.GroupVersionKind(), obj.GetName(), failureMessage),
 		)
@@ -230,7 +230,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.
 	} else if secretName == "" {
 		return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	}
-	m.Spec.Bootstrap.DataSecretName = pointer.StringPtr(secretName)
+	m.Spec.Bootstrap.DataSecretName = pointer.String(secretName)
 	if !m.Status.BootstrapReady {
 		log.Info("Bootstrap provider generated data secret and reports status.ready", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig), "Secret", klog.KRef(m.Namespace, secretName))
 	}
@@ -252,7 +252,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 		if m.Status.InfrastructureReady {
 			log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
 			m.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.InvalidConfigurationMachineError)
-			m.Status.FailureMessage = pointer.StringPtr(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
+			m.Status.FailureMessage = pointer.String(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
 				m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
 			return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q, requeueing", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
 		}
@@ -312,10 +312,10 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 	case err != nil:
 		return ctrl.Result{}, errors.Wrapf(err, "failed to failure domain from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	default:
-		m.Spec.FailureDomain = pointer.StringPtr(failureDomain)
+		m.Spec.FailureDomain = pointer.String(failureDomain)
 	}
 
-	m.Spec.ProviderID = pointer.StringPtr(providerID)
+	m.Spec.ProviderID = pointer.String(providerID)
 	return ctrl.Result{}, nil
 }
 

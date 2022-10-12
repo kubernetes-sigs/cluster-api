@@ -321,7 +321,7 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 			Namespace: input.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: pointer.Int32Ptr(4),
+			Replicas: pointer.Int32(4),
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": "nonstop",

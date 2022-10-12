@@ -36,7 +36,7 @@ func TestMachineDefault(t *testing.T) {
 		},
 		Spec: MachineSpec{
 			Bootstrap: Bootstrap{ConfigRef: &corev1.ObjectReference{}},
-			Version:   pointer.StringPtr("1.17.5"),
+			Version:   pointer.String("1.17.5"),
 		},
 	}
 	t.Run("for Machine", utildefaulting.DefaultValidateTest(m))
@@ -62,7 +62,7 @@ func TestMachineBootstrapValidation(t *testing.T) {
 		},
 		{
 			name:      "should not return error if dataSecretName is set",
-			bootstrap: Bootstrap{ConfigRef: nil, DataSecretName: pointer.StringPtr("test")},
+			bootstrap: Bootstrap{ConfigRef: nil, DataSecretName: pointer.String("test")},
 			expectErr: false,
 		},
 		{
@@ -234,7 +234,7 @@ func TestMachineVersionValidation(t *testing.T) {
 			m := &Machine{
 				Spec: MachineSpec{
 					Version:   &tt.version,
-					Bootstrap: Bootstrap{ConfigRef: nil, DataSecretName: pointer.StringPtr("test")},
+					Bootstrap: Bootstrap{ConfigRef: nil, DataSecretName: pointer.String("test")},
 				},
 			}
 

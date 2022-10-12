@@ -182,7 +182,7 @@ func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, clust
 	}
 
 	if machinePool.Spec.Replicas == nil {
-		machinePool.Spec.Replicas = pointer.Int32Ptr(1)
+		machinePool.Spec.Replicas = pointer.Int32(1)
 	}
 
 	pool, err := docker.NewNodePool(ctx, r.Client, cluster, machinePool, dockerMachinePool)

@@ -141,8 +141,8 @@ func TestNewInitControlPlaneDiskMounts(t *testing.T) {
 					{
 						Device:    "test-device",
 						Layout:    true,
-						Overwrite: pointer.BoolPtr(false),
-						TableType: pointer.StringPtr("gpt"),
+						Overwrite: pointer.Bool(false),
+						TableType: pointer.String("gpt"),
 					},
 				},
 				Filesystems: []bootstrapv1.Filesystem{

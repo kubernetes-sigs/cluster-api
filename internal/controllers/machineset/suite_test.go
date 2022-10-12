@@ -188,7 +188,7 @@ func fakeMachineNodeRef(m *clusterv1.Machine, pid string, g *WithT) {
 
 	// Patch the Machine.
 	patchMachine := client.MergeFrom(m.DeepCopy())
-	m.Spec.ProviderID = pointer.StringPtr(pid)
+	m.Spec.ProviderID = pointer.String(pid)
 	g.Expect(env.Patch(ctx, m, patchMachine)).To(Succeed())
 
 	patchMachine = client.MergeFrom(m.DeepCopy())

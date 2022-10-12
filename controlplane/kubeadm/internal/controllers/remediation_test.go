@@ -114,7 +114,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed())
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(1),
+				Replicas: utilpointer.Int32(1),
 				RolloutStrategy: &controlplanev1.RolloutStrategy{
 					RollingUpdate: &controlplanev1.RollingUpdate{
 						MaxSurge: &intstr.IntOrString{
@@ -141,7 +141,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m2 := createMachine(ctx, g, ns.Name, "m2-healthy-")
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas:        utilpointer.Int32Ptr(3),
+				Replicas:        utilpointer.Int32(3),
 				RolloutStrategy: &controlplanev1.RolloutStrategy{},
 			}},
 			Cluster:  &clusterv1.Cluster{},
@@ -163,7 +163,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		m3 := getDeletingMachine(ns.Name, "m3-deleting") // NB. This machine is not created, it gets only added to control plane
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(3),
+				Replicas: utilpointer.Int32(3),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
@@ -185,7 +185,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(3),
+				Replicas: utilpointer.Int32(3),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
@@ -220,7 +220,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(5),
+				Replicas: utilpointer.Int32(5),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
@@ -257,7 +257,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(2),
+				Replicas: utilpointer.Int32(2),
 				Version:  "v1.19.1",
 			}},
 			Cluster:  &clusterv1.Cluster{},
@@ -306,7 +306,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(3),
+				Replicas: utilpointer.Int32(3),
 				Version:  "v1.19.1",
 			}},
 			Cluster:  &clusterv1.Cluster{},
@@ -356,7 +356,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(4),
+				Replicas: utilpointer.Int32(4),
 				Version:  "v1.19.1",
 			}},
 			Cluster:  &clusterv1.Cluster{},
@@ -406,7 +406,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(4),
+				Replicas: utilpointer.Int32(4),
 				Version:  "v1.19.1",
 			}},
 			Cluster:  &clusterv1.Cluster{},
@@ -454,7 +454,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(1),
+				Replicas: utilpointer.Int32(1),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1),
@@ -485,7 +485,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(3),
+				Replicas: utilpointer.Int32(3),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2),
@@ -515,7 +515,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(3),
+				Replicas: utilpointer.Int32(3),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2),
@@ -552,7 +552,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(3),
+				Replicas: utilpointer.Int32(3),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2),
@@ -583,7 +583,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(3),
+				Replicas: utilpointer.Int32(3),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
@@ -614,7 +614,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(3),
+				Replicas: utilpointer.Int32(3),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
@@ -652,7 +652,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(3),
+				Replicas: utilpointer.Int32(3),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3),
@@ -685,7 +685,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(5),
+				Replicas: utilpointer.Int32(5),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
@@ -718,7 +718,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(7),
+				Replicas: utilpointer.Int32(7),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5),
@@ -753,7 +753,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(7),
+				Replicas: utilpointer.Int32(7),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5, m6, m7),
@@ -788,7 +788,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 
 		controlPlane := &internal.ControlPlane{
 			KCP: &controlplanev1.KubeadmControlPlane{Spec: controlplanev1.KubeadmControlPlaneSpec{
-				Replicas: utilpointer.Int32Ptr(5),
+				Replicas: utilpointer.Int32(5),
 			}},
 			Cluster:  &clusterv1.Cluster{},
 			Machines: collections.FromMachines(m1, m2, m3, m4, m5, m6, m7),
@@ -868,7 +868,7 @@ func createMachine(ctx context.Context, g *WithT, namespace, name string, option
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "cluster",
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: utilpointer.StringPtr("secret"),
+				DataSecretName: utilpointer.String("secret"),
 			},
 		},
 	}
@@ -896,7 +896,7 @@ func getDeletingMachine(namespace, name string, options ...machineOption) *clust
 		Spec: clusterv1.MachineSpec{
 			ClusterName: "cluster",
 			Bootstrap: clusterv1.Bootstrap{
-				DataSecretName: utilpointer.StringPtr("secret"),
+				DataSecretName: utilpointer.String("secret"),
 			},
 		},
 	}

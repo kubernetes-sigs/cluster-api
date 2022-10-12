@@ -275,8 +275,8 @@ func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
 					ClusterName:              "foo",
 					TargetNamespace:          "bar",
 					KubernetesVersion:        "v1.2.3",
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
-					WorkerMachineCount:       pointer.Int64Ptr(2),
+					ControlPlaneMachineCount: pointer.Int64(1),
+					WorkerMachineCount:       pointer.Int64(2),
 				},
 			},
 			wantVars: map[string]string{
@@ -295,8 +295,8 @@ func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
 					ClusterName:              "foo",
 					TargetNamespace:          "bar",
 					KubernetesVersion:        "", // empty means to use value from env variables/config file
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
-					WorkerMachineCount:       pointer.Int64Ptr(2),
+					ControlPlaneMachineCount: pointer.Int64(1),
+					WorkerMachineCount:       pointer.Int64(2),
 				},
 			},
 			wantVars: map[string]string{
@@ -373,7 +373,7 @@ func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
 					ClusterName:              "foo",
 					TargetNamespace:          "bar",
 					KubernetesVersion:        "v1.2.3",
-					ControlPlaneMachineCount: pointer.Int64Ptr(-1),
+					ControlPlaneMachineCount: pointer.Int64(-1),
 				},
 			},
 			wantErr: true,
@@ -385,8 +385,8 @@ func Test_clusterctlClient_templateOptionsToVariables(t *testing.T) {
 					ClusterName:              "foo",
 					TargetNamespace:          "bar",
 					KubernetesVersion:        "v1.2.3",
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
-					WorkerMachineCount:       pointer.Int64Ptr(-1),
+					ControlPlaneMachineCount: pointer.Int64(1),
+					WorkerMachineCount:       pointer.Int64(-1),
 				},
 			},
 			wantErr: true,
@@ -527,7 +527,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 					},
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					ControlPlaneMachineCount: pointer.Int64(1),
 				},
 			},
 			want: templateValues{
@@ -547,7 +547,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 					},
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					ControlPlaneMachineCount: pointer.Int64(1),
 				},
 			},
 			want: templateValues{
@@ -567,7 +567,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 					},
 					ClusterName:              "test",
 					TargetNamespace:          "", // empty triggers usage of the current namespace
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					ControlPlaneMachineCount: pointer.Int64(1),
 				},
 			},
 			want: templateValues{
@@ -586,7 +586,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 					},
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					ControlPlaneMachineCount: pointer.Int64(1),
 				},
 			},
 			want: templateValues{
@@ -607,7 +607,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 					},
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					ControlPlaneMachineCount: pointer.Int64(1),
 				},
 			},
 			want: templateValues{
@@ -743,7 +743,7 @@ func Test_clusterctlClient_GetClusterTemplate_onEmptyCluster(t *testing.T) {
 					},
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					ControlPlaneMachineCount: pointer.Int64(1),
 				},
 			},
 			want: templateValues{
@@ -763,7 +763,7 @@ func Test_clusterctlClient_GetClusterTemplate_onEmptyCluster(t *testing.T) {
 					},
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					ControlPlaneMachineCount: pointer.Int64(1),
 				},
 			},
 			wantErr: true,
@@ -778,7 +778,7 @@ func Test_clusterctlClient_GetClusterTemplate_onEmptyCluster(t *testing.T) {
 					},
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					ControlPlaneMachineCount: pointer.Int64(1),
 				},
 			},
 			want: templateValues{
@@ -799,7 +799,7 @@ func Test_clusterctlClient_GetClusterTemplate_onEmptyCluster(t *testing.T) {
 					},
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					ControlPlaneMachineCount: pointer.Int64(1),
 				},
 			},
 			want: templateValues{
@@ -894,7 +894,7 @@ func Test_clusterctlClient_GetClusterTemplate_withoutCluster(t *testing.T) {
 					},
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					ControlPlaneMachineCount: pointer.Int64(1),
 				},
 			},
 			want: templateValues{
@@ -914,7 +914,7 @@ func Test_clusterctlClient_GetClusterTemplate_withoutCluster(t *testing.T) {
 					},
 					ClusterName:              "test",
 					TargetNamespace:          "ns1",
-					ControlPlaneMachineCount: pointer.Int64Ptr(1),
+					ControlPlaneMachineCount: pointer.Int64(1),
 				},
 			},
 			wantErr: true,

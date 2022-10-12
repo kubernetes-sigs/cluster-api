@@ -1,0 +1,11 @@
+resources:
+  - ../bases/cluster-with-topology.yaml
+  - ../bases/crs.yaml
+
+patches:
+- path: disable-control-plane-taint-variable.yaml
+  target:
+    group: cluster.x-k8s.io
+    version: v1beta1
+    kind: Cluster
+

@@ -195,6 +195,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/v1beta1/main/cluster-template-upgrades-runtimesdk.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/main/cluster-template-kcp-scale-in.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/main/cluster-template-ipv6.yaml"
+    - sourcePath: "../data/infrastructure-docker/v1beta1/main/cluster-template-topology-single-node-cluster.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/main/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/main/cluster-template-ignition.yaml"
     - sourcePath: "../data/infrastructure-docker/v1beta1/main/clusterclass-quick-start.yaml"

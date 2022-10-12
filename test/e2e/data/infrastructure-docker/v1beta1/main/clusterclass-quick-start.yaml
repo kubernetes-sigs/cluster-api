@@ -84,6 +84,12 @@ spec:
         items:
           type: string
         description: "preLoadImages sets the images for the docker machines to preload."
+  - name: controlPlaneTaint
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: boolean
+        default: true
   patches:
   - name: lbImageRepository
     definitions:
@@ -225,6 +231,21 @@ spec:
         path: /spec/template/spec/rolloutStrategy/rollingUpdate/maxSurge
         valueFrom:
           template: "{{ .kubeadmControlPlaneMaxSurge }}"
+  - name: controlPlaneTaint
+    enabledIf: "{{ not .controlPlaneTaint }}"
+    definitions:
+    - selector:
+        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+        kind: KubeadmControlPlaneTemplate
+        matchResources:
+          controlPlane: true
+      jsonPatches:
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/taints"
+        value: []
+      - op: add
+        path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/taints"
+        value: []
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate

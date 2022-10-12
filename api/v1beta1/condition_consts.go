@@ -138,6 +138,7 @@ const (
 
 	// MachineHealthCheckSuccededCondition is set on machines that have passed a healthcheck by the MachineHealthCheck controller.
 	// In the event that the health check fails it will be set to False.
+	//
 	// Deprecated: This const is going to be removed in a next release. Use MachineHealthCheckSucceededCondition instead.
 	MachineHealthCheckSuccededCondition ConditionType = "HealthCheckSucceeded"
 

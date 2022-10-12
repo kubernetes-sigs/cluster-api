@@ -2929,8 +2929,9 @@ spec:
                   is to add retries to kubeadm proper and use that functionality.
                   \n This will add about 40KB to userdata \n For more information,
                   refer to https://github.com/kubernetes-sigs/cluster-api/pull/2763#discussion_r397306055.
-                  Deprecated: This experimental fix is no longer needed and this field
-                  will be removed in a future release."
+                  \n Deprecated: This experimental fix is no longer needed and this
+                  field will be removed in a future release. When removing also remove
+                  from staticcheck exclude-rules for SA1019 in golangci.yml"
                 type: boolean
               users:
                 description: Users specifies extra users to add

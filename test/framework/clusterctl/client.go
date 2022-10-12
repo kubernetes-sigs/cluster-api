@@ -139,12 +139,18 @@ func InitWithBinary(_ context.Context, binary string, input InitInput) {
 
 // UpgradeInput is the input for Upgrade.
 type UpgradeInput struct {
-	LogFolder            string
-	ClusterctlConfigPath string
-	ClusterctlVariables  map[string]string
-	ClusterName          string
-	KubeconfigPath       string
-	Contract             string
+	LogFolder                 string
+	ClusterctlConfigPath      string
+	ClusterctlVariables       map[string]string
+	ClusterName               string
+	KubeconfigPath            string
+	Contract                  string
+	CoreProvider              string
+	BootstrapProviders        []string
+	ControlPlaneProviders     []string
+	InfrastructureProviders   []string
+	IPAMProviders             []string
+	RuntimeExtensionProviders []string
 }
 
 // Upgrade calls clusterctl upgrade apply with the list of providers defined in the local repository.
@@ -159,19 +165,49 @@ func Upgrade(ctx context.Context, input UpgradeInput) {
 		input.ClusterctlConfigPath = outputPath
 	}
 
-	log.Logf("clusterctl upgrade apply --contract %s --config %s --kubeconfig %s",
-		input.Contract,
-		input.ClusterctlConfigPath,
-		input.KubeconfigPath,
-	)
+	// Check if the user want a custom upgrade
+	isCustomUpgrade := input.CoreProvider != "" ||
+		len(input.BootstrapProviders) > 0 ||
+		len(input.ControlPlaneProviders) > 0 ||
+		len(input.InfrastructureProviders) > 0 ||
+		len(input.IPAMProviders) > 0 ||
+		len(input.RuntimeExtensionProviders) > 0
+
+	Expect((input.Contract != "" && !isCustomUpgrade) || (input.Contract == "" && isCustomUpgrade)).To(BeTrue(), `Invalid arguments. Either the input.Contract parameter or at least one of the following providers has to be set:
+		input.CoreProvider, input.BootstrapProviders, input.ControlPlaneProviders, input.InfrastructureProviders, input.IPAMProviders, input.RuntimeExtensionProviders`)
+
+	if isCustomUpgrade {
+		log.Logf("clusterctl upgrade apply --core %s --bootstrap %s --control-plane %s --infrastructure %s --ipam %s --runtime-extension %s --config %s --kubeconfig %s",
+			input.CoreProvider,
+			strings.Join(input.BootstrapProviders, ","),
+			strings.Join(input.ControlPlaneProviders, ","),
+			strings.Join(input.InfrastructureProviders, ","),
+			strings.Join(input.IPAMProviders, ","),
+			strings.Join(input.RuntimeExtensionProviders, ","),
+			input.ClusterctlConfigPath,
+			input.KubeconfigPath,
+		)
+	} else {
+		log.Logf("clusterctl upgrade apply --contract %s --config %s --kubeconfig %s",
+			input.Contract,
+			input.ClusterctlConfigPath,
+			input.KubeconfigPath,
+		)
+	}
 
 	upgradeOpt := clusterctlclient.ApplyUpgradeOptions{
 		Kubeconfig: clusterctlclient.Kubeconfig{
 			Path:    input.KubeconfigPath,
 			Context: "",
 		},
-		Contract:      input.Contract,
-		WaitProviders: true,
+		Contract:                  input.Contract,
+		CoreProvider:              input.CoreProvider,
+		BootstrapProviders:        input.BootstrapProviders,
+		ControlPlaneProviders:     input.ControlPlaneProviders,
+		InfrastructureProviders:   input.InfrastructureProviders,
+		IPAMProviders:             input.IPAMProviders,
+		RuntimeExtensionProviders: input.RuntimeExtensionProviders,
+		WaitProviders:             true,
 	}
 
 	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-upgrade.log", input.LogFolder)

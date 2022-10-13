@@ -81,6 +81,11 @@ type ClusterctlUpgradeSpecInput struct {
 	MgmtFlavor                  string
 	CNIManifestPath             string
 	WorkloadFlavor              string
+	// Custom providers can be specified to upgrade to a pre-release or a custom version instead of upgrading to the latest using contact
+	CoreProvider            string
+	BootstrapProviders      []string
+	ControlPlaneProviders   []string
+	InfrastructureProviders []string
 }
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
@@ -327,13 +332,32 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		)
 		Expect(err).NotTo(HaveOccurred())
 
-		By("Upgrading providers to the latest version available")
-		clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
-			ClusterctlConfigPath: input.ClusterctlConfigPath,
-			ClusterProxy:         managementClusterProxy,
-			Contract:             clusterv1.GroupVersion.Version,
-			LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
-		}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
+		// Check if the user want a custom upgrade
+		isCustomUpgrade := input.CoreProvider != "" ||
+			len(input.BootstrapProviders) > 0 ||
+			len(input.ControlPlaneProviders) > 0 ||
+			len(input.InfrastructureProviders) > 0
+
+		if isCustomUpgrade {
+			By("Upgrading providers to custom versions")
+			clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
+				ClusterctlConfigPath:    input.ClusterctlConfigPath,
+				ClusterProxy:            managementClusterProxy,
+				CoreProvider:            input.CoreProvider,
+				BootstrapProviders:      input.BootstrapProviders,
+				ControlPlaneProviders:   input.ControlPlaneProviders,
+				InfrastructureProviders: input.InfrastructureProviders,
+				LogFolder:               filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
+			}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
+		} else {
+			By("Upgrading providers to the latest version available")
+			clusterctl.UpgradeManagementClusterAndWait(ctx, clusterctl.UpgradeManagementClusterAndWaitInput{
+				ClusterctlConfigPath: input.ClusterctlConfigPath,
+				ClusterProxy:         managementClusterProxy,
+				Contract:             clusterv1.GroupVersion.Version,
+				LogFolder:            filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
+			}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
+		}
 
 		By("THE MANAGEMENT CLUSTER WAS SUCCESSFULLY UPGRADED!")
 

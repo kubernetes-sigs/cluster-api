@@ -112,6 +112,15 @@ func TestGetCurrentState(t *testing.T) {
 		WithBootstrapTemplate(machineDeploymentBootstrap).
 		WithInfrastructureTemplate(machineDeploymentInfrastructure).
 		Build()
+	machineDeployment2 := builder.MachineDeployment(metav1.NamespaceDefault, "md2").
+		WithLabels(map[string]string{
+			clusterv1.ClusterLabelName:                          "cluster1",
+			clusterv1.ClusterTopologyOwnedLabel:                 "",
+			clusterv1.ClusterTopologyMachineDeploymentLabelName: "md2",
+		}).
+		WithBootstrapTemplate(machineDeploymentBootstrap).
+		WithInfrastructureTemplate(machineDeploymentInfrastructure).
+		Build()
 
 	// MachineHealthChecks for the MachineDeployment and the ControlPlane.
 	machineHealthCheckForMachineDeployment := builder.MachineHealthCheck(machineDeployment.Namespace, machineDeployment.Name).
@@ -570,6 +579,70 @@ func TestGetCurrentState(t *testing.T) {
 				MachineDeployments: map[string]*scope.MachineDeploymentState{
 					"md1": {
 						Object:                        machineDeployment,
+						BootstrapTemplate:             machineDeploymentBootstrap,
+						InfrastructureMachineTemplate: machineDeploymentInfrastructure,
+					},
+				},
+			},
+		},
+		{
+			name: "Should read a full Cluster, even if a MachineDeployment topology has been deleted and the MachineDeployment still exists",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithInfrastructureCluster(infraCluster).
+				WithControlPlane(controlPlaneWithInfra).
+				WithTopology(builder.ClusterTopology().
+					WithMachineDeployment(clusterv1.MachineDeploymentTopology{
+						Class: "mdClass",
+						Name:  "md1",
+					}).
+					Build()).
+				Build(),
+			blueprint: &scope.ClusterBlueprint{
+				ClusterClass:                  clusterClassWithControlPlaneInfra,
+				InfrastructureClusterTemplate: infraClusterTemplate,
+				ControlPlane: &scope.ControlPlaneBlueprint{
+					Template:                      controlPlaneTemplateWithInfrastructureMachine,
+					InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate,
+				},
+				MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{
+					"mdClass": {
+						BootstrapTemplate:             machineDeploymentBootstrap,
+						InfrastructureMachineTemplate: machineDeploymentInfrastructure,
+					},
+				},
+			},
+			objects: []client.Object{
+				infraCluster,
+				clusterClassWithControlPlaneInfra,
+				controlPlaneInfrastructureMachineTemplate,
+				controlPlaneWithInfra,
+				machineDeploymentInfrastructure,
+				machineDeploymentBootstrap,
+				machineDeployment,
+				machineDeployment2,
+			},
+			// Expect valid return of full ClusterState with MachineDeployments properly filtered by label.
+			want: &scope.ClusterState{
+				Cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+					WithInfrastructureCluster(infraCluster).
+					WithControlPlane(controlPlaneWithInfra).
+					WithTopology(builder.ClusterTopology().
+						WithMachineDeployment(clusterv1.MachineDeploymentTopology{
+							Class: "mdClass",
+							Name:  "md1",
+						}).
+						Build()).
+					Build(),
+				ControlPlane:          &scope.ControlPlaneState{Object: controlPlaneWithInfra, InfrastructureMachineTemplate: controlPlaneInfrastructureMachineTemplate},
+				InfrastructureCluster: infraCluster,
+				MachineDeployments: map[string]*scope.MachineDeploymentState{
+					"md1": {
+						Object:                        machineDeployment,
+						BootstrapTemplate:             machineDeploymentBootstrap,
+						InfrastructureMachineTemplate: machineDeploymentInfrastructure,
+					},
+					"md2": {
+						Object:                        machineDeployment2,
 						BootstrapTemplate:             machineDeploymentBootstrap,
 						InfrastructureMachineTemplate: machineDeploymentInfrastructure,
 					},

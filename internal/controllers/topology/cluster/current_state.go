@@ -186,60 +186,64 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 		}
 
 		// Make sure that the name of the MachineDeployment stays unique.
-		// If we've already have seen a MachineDeployment with the same name
+		// If we've already seen a MachineDeployment with the same name
 		// this is an error, probably caused from manual modifications or a race condition.
 		if _, ok := state[mdTopologyName]; ok {
 			return nil, fmt.Errorf("duplicate %s found for label %s: %s", tlog.KObj{Obj: m}, clusterv1.ClusterTopologyMachineDeploymentLabelName, mdTopologyName)
 		}
 
-		mdClassName := getMDClassName(cluster, mdTopologyName)
-		if mdClassName == "" {
-			return nil, fmt.Errorf("failed to find MachineDeployment topology %s in %s", mdTopologyName, tlog.KObj{Obj: cluster})
-		}
-
-		mdBluePrint, ok := blueprintMachineDeployments[mdClassName]
-		if !ok {
-			return nil, fmt.Errorf("failed to find MachineDeployment class %s in ClusterClass", mdClassName)
-		}
-
-		// Gets the BootstrapTemplate
+		// Gets the bootstrapRef.
 		bootstrapRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
 		if bootstrapRef == nil {
 			return nil, fmt.Errorf("%s does not have a reference to a Bootstrap Config", tlog.KObj{Obj: m})
 		}
-		ref, err := alignRefAPIVersion(mdBluePrint.BootstrapTemplate, bootstrapRef)
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("%s Bootstrap reference could not be retrieved", tlog.KObj{Obj: m}))
-		}
-		b, err := r.getReference(ctx, ref)
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("%s Bootstrap reference could not be retrieved", tlog.KObj{Obj: m}))
-		}
-		// check that the referenced object has the ClusterTopologyOwnedLabel label.
-		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
-		// owned by the topology.
-		if !labels.IsTopologyOwned(b) {
-			return nil, fmt.Errorf("BootstrapTemplate object %s referenced from MD %s is not topology owned", tlog.KObj{Obj: b}, tlog.KObj{Obj: m})
-		}
-
-		// Gets the InfrastructureMachineTemplate
-		infraRef := m.Spec.Template.Spec.InfrastructureRef
+		// Gets the infraRef.
+		infraRef := &m.Spec.Template.Spec.InfrastructureRef
 		if infraRef.Name == "" {
 			return nil, fmt.Errorf("%s does not have a reference to a InfrastructureMachineTemplate", tlog.KObj{Obj: m})
 		}
-		ref, err = alignRefAPIVersion(mdBluePrint.InfrastructureMachineTemplate, &infraRef)
-		if err != nil {
-			return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
+
+		// If the mdTopology exists in the Cluster, lookup the corresponding mdBluePrint and align
+		// the apiVersions in the bootstrapRef and infraRef.
+		// If the mdTopology doesn't exist, do nothing (this can happen if the mdTopology was deleted).
+		// **Note** We can't check if the MachineDeployment has a DeletionTimestamp, because at this point it could not be set yet.
+		if mdTopologyExistsInCluster, mdClassName := getMDClassName(cluster, mdTopologyName); mdTopologyExistsInCluster {
+			mdBluePrint, ok := blueprintMachineDeployments[mdClassName]
+			if !ok {
+				return nil, fmt.Errorf("failed to find MachineDeployment class %s in ClusterClass", mdClassName)
+			}
+			bootstrapRef, err = alignRefAPIVersion(mdBluePrint.BootstrapTemplate, bootstrapRef)
+			if err != nil {
+				return nil, errors.Wrap(err, fmt.Sprintf("%s Bootstrap reference could not be retrieved", tlog.KObj{Obj: m}))
+			}
+			infraRef, err = alignRefAPIVersion(mdBluePrint.InfrastructureMachineTemplate, infraRef)
+			if err != nil {
+				return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
+			}
 		}
-		infra, err := r.getReference(ctx, ref)
+
+		// Get the BootstrapTemplate.
+		bootstrapTemplate, err := r.getReference(ctx, bootstrapRef)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("%s Bootstrap reference could not be retrieved", tlog.KObj{Obj: m}))
+		}
+		// check that the referenced object has the ClusterTopologyOwnedLabel label.
+		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
+		// owned by the topology.
+		if !labels.IsTopologyOwned(bootstrapTemplate) {
+			return nil, fmt.Errorf("BootstrapTemplate object %s referenced from MD %s is not topology owned", tlog.KObj{Obj: bootstrapTemplate}, tlog.KObj{Obj: m})
+		}
+
+		// Get the InfraMachineTemplate.
+		infraMachineTemplate, err := r.getReference(ctx, infraRef)
 		if err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
 		}
 		// check that the referenced object has the ClusterTopologyOwnedLabel label.
 		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
 		// owned by the topology.
-		if !labels.IsTopologyOwned(infra) {
-			return nil, fmt.Errorf("InfrastructureMachineTemplate object %s referenced from MD %s is not topology owned", tlog.KObj{Obj: infra}, tlog.KObj{Obj: m})
+		if !labels.IsTopologyOwned(infraMachineTemplate) {
+			return nil, fmt.Errorf("InfrastructureMachineTemplate object %s referenced from MD %s is not topology owned", tlog.KObj{Obj: infraMachineTemplate}, tlog.KObj{Obj: m})
 		}
 
 		// Gets the MachineHealthCheck.
@@ -257,8 +261,8 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 
 		state[mdTopologyName] = &scope.MachineDeploymentState{
 			Object:                        m,
-			BootstrapTemplate:             b,
-			InfrastructureMachineTemplate: infra,
+			BootstrapTemplate:             bootstrapTemplate,
+			InfrastructureMachineTemplate: infraMachineTemplate,
 			MachineHealthCheck:            mhc,
 		}
 	}
@@ -293,15 +297,15 @@ func alignRefAPIVersion(templateFromClusterClass *unstructured.Unstructured, cur
 }
 
 // getMDClassName retrieves the MDClass name by looking up the MDTopology in the Cluster.
-func getMDClassName(cluster *clusterv1.Cluster, mdTopologyName string) string {
+func getMDClassName(cluster *clusterv1.Cluster, mdTopologyName string) (bool, string) {
 	if cluster.Spec.Topology.Workers == nil {
-		return ""
+		return false, ""
 	}
 
 	for _, mdTopology := range cluster.Spec.Topology.Workers.MachineDeployments {
 		if mdTopology.Name == mdTopologyName {
-			return mdTopology.Class
+			return true, mdTopology.Class
 		}
 	}
-	return ""
+	return false, ""
 }

@@ -206,6 +206,11 @@ type MachineDeploymentTopology struct {
 	// +optional
 	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
 
+	// The deployment strategy to use to replace existing machines with
+	// new ones.
+	// +optional
+	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
+
 	// Variables can be used to customize the MachineDeployment through patches.
 	// +optional
 	Variables *MachineDeploymentVariables `json:"variables,omitempty"`

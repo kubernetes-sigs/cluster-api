@@ -1020,6 +1020,11 @@ func (in *MachineDeploymentTopology) DeepCopyInto(out *MachineDeploymentTopology
 		*out = new(int32)
 		**out = **in
 	}
+	if in.Strategy != nil {
+		in, out := &in.Strategy, &out.Strategy
+		*out = new(MachineDeploymentStrategy)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Variables != nil {
 		in, out := &in.Variables, &out.Variables
 		*out = new(MachineDeploymentVariables)

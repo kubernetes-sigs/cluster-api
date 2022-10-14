@@ -36,8 +36,8 @@ func TestParseImageName(t *testing.T) {
 	}{
 		{
 			name:      "input with path and tag",
-			input:     "k8s.gcr.io/dev/coredns:1.6.2",
-			repo:      "k8s.gcr.io/dev",
+			input:     "registry.k8s.io/dev/coredns:1.6.2",
+			repo:      "registry.k8s.io/dev",
 			imageName: "coredns",
 			tag:       "1.6.2",
 			wantError: false,

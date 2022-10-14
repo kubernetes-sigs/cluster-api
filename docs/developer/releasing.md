@@ -12,7 +12,7 @@
    - `git push origin ${RELEASE_TAG}`
    - `git push origin test/${RELEASE_TAG}`
 
-## Promote images from the staging repo to `k8s.gcr.io/cluster-api`
+## Promote images from the staging repo to `registry.k8s.io/cluster-api`
 
 Images are built by the [post push images job](https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-push-images). This will push the image to a [staging repository](https://console.cloud.google.com/gcr/images/k8s-staging-cluster-api).
 

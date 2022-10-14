@@ -298,7 +298,7 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 					ClusterName: "test",
 					DNS: bootstrapv1.DNS{
 						ImageMeta: bootstrapv1.ImageMeta{
-							ImageRepository: "k8s.gcr.io/coredns",
+							ImageRepository: "registry.k8s.io/coredns",
 							ImageTag:        "1.6.5",
 						},
 					},

@@ -1039,7 +1039,7 @@ func TestReconcileInitializeControlPlane(t *testing.T) {
 			"ClusterConfiguration": `apiServer:
 dns:
   type: CoreDNS
-imageRepository: k8s.gcr.io
+imageRepository: registry.k8s.io
 kind: ClusterConfiguration
 kubernetesVersion: metav1.16.1`,
 		},
@@ -1057,7 +1057,7 @@ kubernetesVersion: metav1.16.1`,
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:  "coredns",
-						Image: "k8s.gcr.io/coredns:1.6.2",
+						Image: "registry.k8s.io/coredns:1.6.2",
 					}},
 				},
 			},
@@ -1163,7 +1163,7 @@ func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 				ClusterConfiguration: &bootstrapv1.ClusterConfiguration{
 					DNS: bootstrapv1.DNS{
 						ImageMeta: bootstrapv1.ImageMeta{
-							ImageRepository: "k8s.gcr.io",
+							ImageRepository: "registry.k8s.io",
 							ImageTag:        "1.7.2",
 						},
 					},
@@ -1184,7 +1184,7 @@ func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:  "coredns",
-						Image: "k8s.gcr.io/coredns:1.6.2",
+						Image: "registry.k8s.io/coredns:1.6.2",
 					}},
 					Volumes: []corev1.Volume{{
 						Name: "config-volume",
@@ -1224,7 +1224,7 @@ func TestKubeadmControlPlaneReconciler_updateCoreDNS(t *testing.T) {
 			"ClusterConfiguration": `apiServer:
 dns:
   type: CoreDNS
-imageRepository: k8s.gcr.io
+imageRepository: registry.k8s.io
 kind: ClusterConfiguration
 kubernetesVersion: metav1.16.1`,
 		},
@@ -1282,7 +1282,7 @@ kubernetesVersion: metav1.16.1`,
 		}
 		var actualCoreDNSDeployment appsv1.Deployment
 		g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: "coredns", Namespace: metav1.NamespaceSystem}, &actualCoreDNSDeployment)).To(Succeed())
-		g.Expect(actualCoreDNSDeployment.Spec.Template.Spec.Containers[0].Image).To(Equal("k8s.gcr.io/coredns:1.7.2"))
+		g.Expect(actualCoreDNSDeployment.Spec.Template.Spec.Containers[0].Image).To(Equal("registry.k8s.io/coredns:1.7.2"))
 		g.Expect(actualCoreDNSDeployment.Spec.Template.Spec.Volumes).To(ConsistOf(expectedVolume))
 	})
 

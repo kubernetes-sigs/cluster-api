@@ -206,8 +206,8 @@ spec:
       openAPIV3Schema:
         type: string
         description: ImageRepository is the container registry to pull images from.
-        default: k8s.gcr.io
-        example: k8s.gcr.io
+        default: registry.k8s.io
+        example: registry.k8s.io
 ```
 
 <aside class="note">

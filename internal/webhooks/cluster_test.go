@@ -409,6 +409,115 @@ func TestClusterValidation(t *testing.T) {
 					WithTopology(&clusterv1.Topology{}).
 					Build(),
 			},
+			{
+				name:      "pass with undefined CIDR ranges",
+				expectErr: false,
+				in: builder.Cluster("fooNamespace", "cluster1").
+					WithClusterNetwork(&clusterv1.ClusterNetwork{
+						Services: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{}},
+						Pods: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{}},
+					}).
+					Build(),
+			},
+			{
+				name:      "pass with nil CIDR ranges",
+				expectErr: false,
+				in: builder.Cluster("fooNamespace", "cluster1").
+					WithClusterNetwork(&clusterv1.ClusterNetwork{
+						Services: &clusterv1.NetworkRanges{
+							CIDRBlocks: nil},
+						Pods: &clusterv1.NetworkRanges{
+							CIDRBlocks: nil},
+					}).
+					Build(),
+			},
+			{
+				name:      "pass with valid IPv4 CIDR ranges",
+				expectErr: false,
+				in: builder.Cluster("fooNamespace", "cluster1").
+					WithClusterNetwork(&clusterv1.ClusterNetwork{
+						Services: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.10.10.10/24"}},
+						Pods: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.10.10.10/24"}},
+					}).
+					Build(),
+			},
+			{
+				name:      "pass with valid IPv6 CIDR ranges",
+				expectErr: false,
+				in: builder.Cluster("fooNamespace", "cluster1").
+					WithClusterNetwork(&clusterv1.ClusterNetwork{
+						Services: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64"}},
+						Pods: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64"}},
+					}).
+					Build(),
+			},
+			{
+				name:      "pass with valid dualstack CIDR ranges",
+				expectErr: false,
+				in: builder.Cluster("fooNamespace", "cluster1").
+					WithClusterNetwork(&clusterv1.ClusterNetwork{
+						Services: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64", "10.10.10.10/24"}},
+						Pods: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"2004::1234:abcd:ffff:c0a8:101/64", "10.10.10.10/24"}},
+					}).
+					Build(),
+			},
+			{
+				name:      "pass if multiple CIDR ranges of IPv4 are passed",
+				expectErr: false,
+				in: builder.Cluster("fooNamespace", "cluster1").
+					WithClusterNetwork(&clusterv1.ClusterNetwork{
+						Services: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.10.10.10/24", "11.11.11.11/24"}},
+					}).
+					Build(),
+			},
+			{
+				name:      "pass if multiple CIDR ranges of IPv6 are passed",
+				expectErr: false,
+				in: builder.Cluster("fooNamespace", "cluster1").
+					WithClusterNetwork(&clusterv1.ClusterNetwork{
+						Services: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"2002::1234:abcd:ffff:c0a8:101/64", "2004::1234:abcd:ffff:c0a8:101/64"}},
+					}).
+					Build(),
+			},
+			{
+				name:      "pass if too many cidr ranges are specified in the clusterNetwork pods field",
+				expectErr: false,
+				in: builder.Cluster("fooNamespace", "cluster1").
+					WithClusterNetwork(&clusterv1.ClusterNetwork{
+						Pods: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.10.10.10/24", "11.11.11.11/24", "12.12.12.12/24"}}}).
+					Build(),
+			},
+			{
+				name:      "fails if service cidr ranges are not valid",
+				expectErr: true,
+				in: builder.Cluster("fooNamespace", "cluster1").
+					WithClusterNetwork(&clusterv1.ClusterNetwork{
+						Services: &clusterv1.NetworkRanges{
+							// Invalid ranges: missing network suffix
+							CIDRBlocks: []string{"10.10.10.10", "11.11.11.11"}}}).
+					Build(),
+			},
+			{
+				name:      "fails if pod cidr ranges are not valid",
+				expectErr: true,
+				in: builder.Cluster("fooNamespace", "cluster1").
+					WithClusterNetwork(&clusterv1.ClusterNetwork{
+						Pods: &clusterv1.NetworkRanges{
+							// Invalid ranges: missing network suffix
+							CIDRBlocks: []string{"10.10.10.10", "11.11.11.11"}}}).
+					Build(),
+			},
 		}
 	)
 	for _, tt := range tests {

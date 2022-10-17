@@ -19,6 +19,7 @@ package webhooks
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 
 	"github.com/blang/semver"
@@ -170,6 +171,19 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 			),
 		)
 	}
+	if newCluster.Spec.ClusterNetwork != nil {
+		// Ensure that the CIDR blocks defined under ClusterNetwork are valid.
+		if newCluster.Spec.ClusterNetwork.Pods != nil {
+			allErrs = append(allErrs, validateCIDRBlocks(specPath.Child("clusterNetwork", "pods", "cidrBlocks"),
+				newCluster.Spec.ClusterNetwork.Pods.CIDRBlocks)...)
+		}
+
+		if newCluster.Spec.ClusterNetwork.Services != nil {
+			allErrs = append(allErrs, validateCIDRBlocks(specPath.Child("clusterNetwork", "services", "cidrBlocks"),
+				newCluster.Spec.ClusterNetwork.Services.CIDRBlocks)...)
+		}
+	}
+
 	topologyPath := specPath.Child("topology")
 
 	// Validate the managed topology, if defined.
@@ -442,4 +456,18 @@ func machineDeploymentClassOfName(clusterClass *clusterv1.ClusterClass, name str
 		}
 	}
 	return nil
+}
+
+// validateCIDRBlocks ensures the passed CIDR is valid.
+func validateCIDRBlocks(fldPath *field.Path, cidrs []string) field.ErrorList {
+	var allErrs field.ErrorList
+	for i, cidr := range cidrs {
+		if _, _, err := net.ParseCIDR(cidr); err != nil {
+			allErrs = append(allErrs, field.Invalid(
+				fldPath.Index(i),
+				cidr,
+				err.Error()))
+		}
+	}
+	return allErrs
 }

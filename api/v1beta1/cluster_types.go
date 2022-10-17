@@ -422,6 +422,8 @@ func (c *Cluster) SetConditions(conditions Conditions) {
 }
 
 // GetIPFamily returns a ClusterIPFamily from the configuration provided.
+// Note: IPFamily is not a concept in Kubernetes. It was originally introduced in CAPI for CAPD.
+// IPFamily may be dropped in a future release. More details at https://github.com/kubernetes-sigs/cluster-api/issues/7521
 func (c *Cluster) GetIPFamily() (ClusterIPFamily, error) {
 	var podCIDRs, serviceCIDRs []string
 	if c.Spec.ClusterNetwork != nil {

@@ -29,7 +29,7 @@ const (
 	CertManagerConfigKey = "cert-manager"
 
 	// CertManagerDefaultVersion defines the default cert-manager version to be used by clusterctl.
-	CertManagerDefaultVersion = "v1.9.1"
+	CertManagerDefaultVersion = "v1.10.0"
 
 	// CertManagerDefaultURL defines the default cert-manager repository url to be used by clusterctl.
 	// NOTE: At runtime /latest will be replaced with the CertManagerDefaultVersion or with the

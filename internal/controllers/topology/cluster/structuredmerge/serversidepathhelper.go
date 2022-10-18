@@ -17,10 +17,10 @@ limitations under the License.
 package structuredmerge
 
 import (
+	"context"
 	"encoding/json"
 
 	"github.com/pkg/errors"
-	"golang.org/x/net/context"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	ctrl "sigs.k8s.io/controller-runtime"

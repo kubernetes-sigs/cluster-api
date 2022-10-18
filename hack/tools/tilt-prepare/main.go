@@ -22,6 +22,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
@@ -35,7 +36,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/pflag"
-	"golang.org/x/net/context"
 	"helm.sh/helm/v3/pkg/repo"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -379,6 +379,7 @@ func runTaskGroup(ctx context.Context, name string, tasks map[string]taskFunctio
 
 	// Create a context to be used for canceling all the tasks when another fails.
 	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	// Make channels to pass fatal errors in WaitGroup
 	errors := make(chan error)

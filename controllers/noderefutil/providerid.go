@@ -19,7 +19,6 @@ package noderefutil
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"strings"
 )
@@ -87,9 +86,9 @@ func (p *ProviderID) ID() string {
 	return p.id
 }
 
-// Equals returns true if both the CloudProvider and ID match.
+// Equals returns true if this ProviderID string matches another ProviderID string.
 func (p *ProviderID) Equals(o *ProviderID) bool {
-	return p.CloudProvider() == o.CloudProvider() && p.ID() == o.ID()
+	return p.String() == o.String()
 }
 
 // String returns the string representation of this object.
@@ -102,10 +101,8 @@ func (p *ProviderID) Validate() bool {
 	return p.CloudProvider() != "" && p.ID() != ""
 }
 
-// IndexKey returns a string concatenating the cloudProvider and the ID parts of the providerID.
-// E.g Format: cloudProvider://optional/segments/etc/id. IndexKey: cloudProvider/id
-// This is useful to use the providerID as a reliable index between nodes and machines
-// as it guarantees the infra Providers contract.
+// IndexKey returns the required level of uniqueness
+// to represent and index machines uniquely from their node providerID.
 func (p *ProviderID) IndexKey() string {
-	return fmt.Sprintf("%s/%s", p.CloudProvider(), p.ID())
+	return p.String()
 }

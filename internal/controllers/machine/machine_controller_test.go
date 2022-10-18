@@ -100,7 +100,7 @@ func TestWatches(t *testing.T) {
 			Namespace: ns.Name,
 		},
 		Spec: corev1.NodeSpec{
-			ProviderID: "test:///id-1",
+			ProviderID: "test://id-1",
 		},
 	}
 
@@ -1800,7 +1800,7 @@ func TestNodeToMachine(t *testing.T) {
 			Name: "test-node-to-machine-1",
 		},
 		Spec: corev1.NodeSpec{
-			ProviderID: "test:///id-1",
+			ProviderID: "test://id-1",
 		},
 	}
 
@@ -1809,7 +1809,7 @@ func TestNodeToMachine(t *testing.T) {
 			Name: "test-node-to-machine-node-2",
 		},
 		Spec: corev1.NodeSpec{
-			ProviderID: "test:///id-2",
+			ProviderID: "test://id-2",
 		},
 	}
 

@@ -23,6 +23,7 @@ import (
 )
 
 const aws = "aws"
+const azure = "azure"
 
 func TestNewProviderID(t *testing.T) {
 	tests := []struct {
@@ -115,19 +116,53 @@ func TestInvalidProviderID(t *testing.T) {
 func TestProviderIDEquals(t *testing.T) {
 	g := NewWithT(t)
 
-	input1 := "aws:////instance-id1"
-	parsed1, err := NewProviderID(input1)
+	inputAWS1 := "aws:////instance-id1"
+	parsedAWS1, err := NewProviderID(inputAWS1)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(parsed1.String()).To(Equal(input1))
-	g.Expect(parsed1.ID()).To(Equal("instance-id1"))
-	g.Expect(parsed1.CloudProvider()).To(Equal(aws))
+	g.Expect(parsedAWS1.String()).To(Equal(inputAWS1))
+	g.Expect(parsedAWS1.ID()).To(Equal("instance-id1"))
+	g.Expect(parsedAWS1.CloudProvider()).To(Equal(aws))
 
-	input2 := "aws:///us-west-1/instance-id1"
-	parsed2, err := NewProviderID(input2)
+	inputAWS2 := "aws:///us-west-1/instance-id1"
+	parsedAWS2, err := NewProviderID(inputAWS2)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(parsed2.String()).To(Equal(input2))
-	g.Expect(parsed2.ID()).To(Equal("instance-id1"))
-	g.Expect(parsed2.CloudProvider()).To(Equal(aws))
+	g.Expect(parsedAWS2.String()).To(Equal(inputAWS2))
+	g.Expect(parsedAWS2.ID()).To(Equal("instance-id1"))
+	g.Expect(parsedAWS2.CloudProvider()).To(Equal(aws))
 
-	g.Expect(parsed1.Equals(parsed2)).To(BeTrue())
+	// Test for inequality
+	g.Expect(parsedAWS1.Equals(parsedAWS2)).To(BeFalse())
+
+	inputAzure1 := "azure:///subscriptions/4920076a-ba9f-11ec-8422-0242ac120002/resourceGroups/default-template/providers/Microsoft.Compute/virtualMachines/default-template-control-plane-fhrvh"
+	parsedAzure1, err := NewProviderID(inputAzure1)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(parsedAzure1.String()).To(Equal(inputAzure1))
+	g.Expect(parsedAzure1.ID()).To(Equal("default-template-control-plane-fhrvh"))
+	g.Expect(parsedAzure1.CloudProvider()).To(Equal(azure))
+
+	inputAzure2 := inputAzure1
+	parsedAzure2, err := NewProviderID(inputAzure2)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Test for equality
+	g.Expect(parsedAzure1.Equals(parsedAzure2)).To(BeTrue())
+
+	// Here we ensure that two different ProviderID strings that happen to have the same 'ID' are not equal
+	// We use Azure VMSS as an example, two different '0' VMs in different pools: k8s-pool1-vmss, and k8s-pool2-vmss
+	inputAzureVMFromOneVMSS := "azure:///subscriptions/4920076a-ba9f-11ec-8422-0242ac120002/resourceGroups/default-template/providers/Microsoft.Compute/virtualMachineScaleSets/k8s-pool1-vmss/virtualMachines/0"
+	inputAzureVMFromAnotherVMSS := "azure:///subscriptions/4920076a-ba9f-11ec-8422-0242ac120002/resourceGroups/default-template/providers/Microsoft.Compute/virtualMachineScaleSets/k8s-pool2-vmss/virtualMachines/0"
+	parsedAzureVMFromOneVMSS, err := NewProviderID(inputAzureVMFromOneVMSS)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(parsedAzureVMFromOneVMSS.String()).To(Equal(inputAzureVMFromOneVMSS))
+	g.Expect(parsedAzureVMFromOneVMSS.ID()).To(Equal("0"))
+	g.Expect(parsedAzureVMFromOneVMSS.CloudProvider()).To(Equal(azure))
+
+	parsedAzureVMFromAnotherVMSS, err := NewProviderID(inputAzureVMFromAnotherVMSS)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(parsedAzureVMFromAnotherVMSS.String()).To(Equal(inputAzureVMFromAnotherVMSS))
+	g.Expect(parsedAzureVMFromAnotherVMSS.ID()).To(Equal("0"))
+	g.Expect(parsedAzureVMFromAnotherVMSS.CloudProvider()).To(Equal(azure))
+
+	// Test for inequality
+	g.Expect(parsedAzureVMFromOneVMSS.Equals(parsedAzureVMFromAnotherVMSS)).To(BeFalse())
 }

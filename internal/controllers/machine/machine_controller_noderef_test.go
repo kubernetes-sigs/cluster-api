@@ -81,7 +81,7 @@ func TestGetNode(t *testing.T) {
 					ProviderID: "aws://us-west-2/test-get-node-2",
 				},
 			},
-			providerIDInput: "aws:///test-get-node-2",
+			providerIDInput: "aws://us-west-2/test-get-node-2",
 		},
 		{
 			name: "gce prefix, cloudProvider and ID matches",
@@ -93,7 +93,7 @@ func TestGetNode(t *testing.T) {
 					ProviderID: "gce://us-central1/test-get-node-2",
 				},
 			},
-			providerIDInput: "gce:///test-get-node-2",
+			providerIDInput: "gce://us-central1/test-get-node-2",
 		},
 		{
 			name: "Node is not found",

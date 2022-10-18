@@ -17,11 +17,11 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
-	"golang.org/x/net/context"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

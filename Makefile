@@ -761,11 +761,11 @@ IMAGE_REVIEWERS ?= $(shell ./hack/get-project-maintainers.sh)
 
 .PHONY: $(RELEASE_DIR)
 $(RELEASE_DIR):
-	mkdir -p $(RELEASE_DIR)/
+	@mkdir -p $(RELEASE_DIR)/
 
 .PHONY: $(RELEASE_NOTES_DIR)
 $(RELEASE_NOTES_DIR):
-	mkdir -p $(RELEASE_NOTES_DIR)/
+	@mkdir -p $(RELEASE_NOTES_DIR)/
 
 .PHONY: release
 release: clean-release ## Build and push container images using the latest git tag for the commit
@@ -810,23 +810,23 @@ manifest-modification-dev: # Set the manifest images to the staging bucket.
 
 .PHONY: release-manifests
 release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) $(RUNTIME_OPENAPI_GEN) ## Build the manifests to publish with a release
-	# Build core-components.
+	@# Build core-components.
 	$(KUSTOMIZE) build config/default > $(RELEASE_DIR)/core-components.yaml
-	# Build bootstrap-components.
+	@# Build bootstrap-components.
 	$(KUSTOMIZE) build bootstrap/kubeadm/config/default > $(RELEASE_DIR)/bootstrap-components.yaml
-	# Build control-plane-components.
+	@# Build control-plane-components.
 	$(KUSTOMIZE) build controlplane/kubeadm/config/default > $(RELEASE_DIR)/control-plane-components.yaml
 
-	## Build cluster-api-components (aggregate of all of the above).
+	@## Build cluster-api-components (aggregate of all of the above).
 	cat $(RELEASE_DIR)/core-components.yaml > $(RELEASE_DIR)/cluster-api-components.yaml
-	echo "---" >> $(RELEASE_DIR)/cluster-api-components.yaml
+	@echo "---" >> $(RELEASE_DIR)/cluster-api-components.yaml
 	cat $(RELEASE_DIR)/bootstrap-components.yaml >> $(RELEASE_DIR)/cluster-api-components.yaml
-	echo "---" >> $(RELEASE_DIR)/cluster-api-components.yaml
+	@echo "---" >> $(RELEASE_DIR)/cluster-api-components.yaml
 	cat $(RELEASE_DIR)/control-plane-components.yaml >> $(RELEASE_DIR)/cluster-api-components.yaml
-	# Add metadata to the release artifacts
+	@# Add metadata to the release artifacts
 	cp metadata.yaml $(RELEASE_DIR)/metadata.yaml
 
-	# Generate OpenAPI specification.
+	@# Generate OpenAPI specification.
 	$(RUNTIME_OPENAPI_GEN) --version $(RELEASE_TAG) --output-file $(RELEASE_DIR)/runtime-sdk-openapi.yaml
 
 .PHONY: release-manifests-dev
@@ -1108,7 +1108,7 @@ $(OPENAPI_GEN): # Build openapi-gen from tools folder.
 ## We are forcing a rebuilt of runtime-openapi-gen via PHONY so that we're always using an up-to-date version.
 .PHONY: $(RUNTIME_OPENAPI_GEN)
 $(RUNTIME_OPENAPI_GEN): $(TOOLS_DIR)/go.mod # Build openapi-gen from tools folder.
-	cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN) sigs.k8s.io/cluster-api/hack/tools/runtime-openapi-gen
+	@cd $(TOOLS_DIR); go build -tags=tools -o $(BIN_DIR)/$(RUNTIME_OPENAPI_GEN_BIN) sigs.k8s.io/cluster-api/hack/tools/runtime-openapi-gen
 
 $(GOTESTSUM): # Build gotestsum from tools folder.
 	GOBIN=$(TOOLS_BIN_DIR) $(GO_INSTALL) $(GOTESTSUM_PKG) $(GOTESTSUM_BIN) $(GOTESTSUM_VER)

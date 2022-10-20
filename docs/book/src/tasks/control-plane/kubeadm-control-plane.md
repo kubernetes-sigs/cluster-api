@@ -38,4 +38,4 @@ Cluster API Machines:
   for additional details.
 
 <!-- links -->
-[upgrades]: upgrading-clusters.md#how-to-upgrade-the-kubernetes-control-plane-version
+[upgrades]: ../upgrading-clusters.md#how-to-upgrade-the-kubernetes-control-plane-version

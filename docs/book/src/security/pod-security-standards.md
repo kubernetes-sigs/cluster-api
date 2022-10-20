@@ -7,7 +7,7 @@ It is using ClusterClass variables and patches to inject the configuration.
 
 ## Adding a basic Pod Security Standards configuration to a ClusterClass
 
-By adding the following variables and patches Pod Security Standards can be added to every ClusterClass which references a [Kubeadm based control plane](../tasks/kubeadm-control-plane.md).
+By adding the following variables and patches Pod Security Standards can be added to every ClusterClass which references a [Kubeadm based control plane](../tasks/control-plane/kubeadm-control-plane.md).
 
 ### Adding the variables to a ClusterClass
 

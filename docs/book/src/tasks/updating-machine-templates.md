@@ -33,7 +33,7 @@ field and the controller would orchestrate the upgrade by managing `MachineSets`
 In all cases, the `name` field should be updated to point to the newly-modified
 infrastructure machine template. This will trigger a rolling update. (This same process
 is described in the documentation for [upgrading the underlying machine image for
-KubeadmControlPlane](./kubeadm-control-plane.md) in the "How to upgrade the underlying
+KubeadmControlPlane](./control-plane/kubeadm-control-plane.md) in the "How to upgrade the underlying
 machine image" section.)
 
 Some infrastructure providers _may_, at their discretion, choose to support in-place

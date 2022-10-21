@@ -37,11 +37,11 @@ A machine infrastructure provider must define an API type for "infrastructure ma
             meant to be suitable for programmatic interpretation
         2. `failureMessage` (string): indicates there is a fatal problem reconciling the provider's infrastructure;
             meant to be a more descriptive value than `failureReason`
-        3. `addresses` (`MachineAddress`): a list of the host names, external IP addresses, internal IP addresses,
+        3. `addresses` (`MachineAddresses`): a list of the host names, external IP addresses, internal IP addresses,
             external DNS names, and/or internal DNS names for the provider's machine instance. `MachineAddress` is
             defined as:
-                - `type` (string): one of `Hostname`, `ExternalIP`, `InternalIP`, `ExternalDNS`, `InternalDNS`
-                - `address` (string)
+            - `type` (string): one of `Hostname`, `ExternalIP`, `InternalIP`, `ExternalDNS`, `InternalDNS`
+            - `address` (string)
 7. Should have a conditions field with the following:
    1. A Ready condition to represent the overall operational state of the component. It can be based on the summary of more detailed conditions existing on the same object, e.g. instanceReady, SecurityGroupsReady conditions.
 

@@ -168,6 +168,7 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, "replicas"},
 		{spec, "version"},
 		{spec, "rolloutAfter"},
+		{spec, "rolloutBefore", "*"},
 		{spec, "rolloutStrategy", "*"},
 	}
 

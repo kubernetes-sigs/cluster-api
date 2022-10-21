@@ -404,6 +404,9 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.Replicas = pointer.Int32(5)
 	now := metav1.NewTime(time.Now())
 	validUpdate.Spec.RolloutAfter = &now
+	validUpdate.Spec.RolloutBefore = &RolloutBefore{
+		CertificatesExpiryDays: pointer.Int32(14),
+	}
 	validUpdate.Spec.KubeadmConfigSpec.Format = bootstrapv1.CloudConfig
 
 	scaleToZero := before.DeepCopy()

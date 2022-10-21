@@ -108,6 +108,6 @@ style: [Kubernetes 1.26 Release Team](https://github.com/kubernetes/sig-release/
 
 | **Role**                                  | **Lead Name** (**GitHub / Slack ID**) | **Shadow Name(s) (GitHub / Slack ID)** |
 |-------------------------------------------|---------------------------------------|----------------------------------------|
-| Release Lead                              |                                       |                                        |
-| Communications/Docs/Release Notes Manager |                                       |                                        |
-| CI Signal/Bug Triage/Automation Manager   |                                       |                                        |
+| Release Lead                              |  Yuvaraj Kakaraparthi([@ykakarap](https://github.com/ykakarap)/Slack:`@Yuvaraj Kakaraparthi`)  | Jim Ntosas([@dntosas](https://github.com/dntosas)/ Slack:`@dntosas`), Carlos Panato([cpanato](https://github.com/cpanato)/ Slack:`@cpanato`), Amit Kumar([@hackeramitkumar](https://github.com/hackeramitkumar)/ Slack:`@Amit Kumar`) |
+| Communications/Docs/Release Notes Manager |  Oscar Utbult([@oscr](https://github.com/oscr)/ Slack:`@oscar`) | Sayantani Saha([@sayantani11](https://github.com/sayantani11)/ Slack:`@sayantani`), Vibhor Chinda([@VibhorChinda](https://github.com/VibhorChinda)/ Slack:`@Vibhor Chinda`) |
+| CI Signal/Bug Triage/Automation Manager   |  Furkat Gofurov([@furkatgofurov7](https://github.com/furkatgofurov7)/ Slack: `@Furkat Gofurov`) | Nawaz Khazielakha([@nawazkh](https://github.com/nawazkh)/ Slack: `@nawaz`), Aniruddha Basak([@aniruddha2000](https://github.com/aniruddha2000/)/ Slack: `@aniruddha`), Alexander Demicev([@alexander-demicev](https://github.com/alexander-demicev)/ Slack:`@Alexander Demicev`) |

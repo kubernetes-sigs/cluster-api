@@ -282,7 +282,7 @@ func TestMachine_Reconcile(t *testing.T) {
 		if err := env.Get(ctx, key, machine); err != nil {
 			return false
 		}
-		if conditions.Has(machine, clusterv1.InfrastructureReadyCondition) != true {
+		if !conditions.Has(machine, clusterv1.InfrastructureReadyCondition) {
 			return false
 		}
 		readyCondition := conditions.Get(machine, clusterv1.ReadyCondition)

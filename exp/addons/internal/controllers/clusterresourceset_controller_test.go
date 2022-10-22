@@ -188,7 +188,7 @@ metadata:
 				return false
 			}
 
-			if binding.Spec.Bindings[0].Resources[0].Applied != true || binding.Spec.Bindings[0].Resources[1].Applied != true {
+			if !binding.Spec.Bindings[0].Resources[0].Applied || !binding.Spec.Bindings[0].Resources[1].Applied {
 				return false
 			}
 

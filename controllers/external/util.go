@@ -60,6 +60,7 @@ func Delete(ctx context.Context, c client.Writer, ref *corev1.ObjectReference) e
 }
 
 // CloneTemplateInput is the input to CloneTemplate.
+//
 // Deprecated: use CreateFromTemplateInput instead. This type will be removed in a future release.
 type CloneTemplateInput struct {
 	// Client is the controller runtime client.
@@ -88,6 +89,7 @@ type CloneTemplateInput struct {
 }
 
 // CloneTemplate uses the client and the reference to create a new object from the template.
+//
 // Deprecated: use CreateFromTemplate instead. This function will be removed in a future release.
 func CloneTemplate(ctx context.Context, in *CloneTemplateInput) (*corev1.ObjectReference, error) {
 	from, err := Get(ctx, in.Client, in.TemplateRef, in.Namespace)

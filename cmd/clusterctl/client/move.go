@@ -49,6 +49,7 @@ type MoveOptions struct {
 }
 
 // BackupOptions holds options supported by backup.
+//
 // Deprecated: This will be dropped in a future release. Please use MoveOptions.
 type BackupOptions struct {
 	// FromKubeconfig defines the kubeconfig to use for accessing the source management cluster. If empty,
@@ -64,6 +65,7 @@ type BackupOptions struct {
 }
 
 // RestoreOptions holds options supported by restore.
+//
 // Deprecated: This will be dropped in a future release. Please use MoveOptions.
 type RestoreOptions struct {
 	// FromKubeconfig defines the kubeconfig to use for accessing the target management cluster. If empty,
@@ -158,7 +160,9 @@ func (c *clusterctlClient) toDirectory(options MoveOptions) error {
 	return fromCluster.ObjectMover().ToDirectory(options.Namespace, options.ToDirectory)
 }
 
-// Deprecated: This will be dropped in a future release. Please use Move.
+// Backup saves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target directory.
+//
+// Deprecated: This will be dropped in a future release. Please use ToDirectory.
 func (c *clusterctlClient) Backup(options BackupOptions) error {
 	return c.Move(MoveOptions{
 		FromKubeconfig: options.FromKubeconfig,
@@ -167,7 +171,9 @@ func (c *clusterctlClient) Backup(options BackupOptions) error {
 	})
 }
 
-// Deprecated: This will be dropped in a future release. Please use Move.
+// Restore restores all the Cluster API objects existing in a configured directory to a target management cluster.
+//
+// Deprecated: This will be dropped in a future release. Please use FromDirectory.
 func (c *clusterctlClient) Restore(options RestoreOptions) error {
 	return c.Move(MoveOptions{
 		ToKubeconfig:  options.ToKubeconfig,

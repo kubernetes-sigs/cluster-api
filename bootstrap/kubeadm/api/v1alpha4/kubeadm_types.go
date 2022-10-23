@@ -180,6 +180,7 @@ type ImageMeta struct {
 
 // ClusterStatus contains the cluster status. The ClusterStatus will be stored in the kubeadm-config
 // ConfigMap in the cluster, and then updated by kubeadm when additional control plane instance joins or leaves the cluster.
+//
 // Deprecated: ClusterStatus has been removed from kubeadm v1beta3 API; This type is preserved only to support
 // conversion to older versions of the kubeadm API.
 type ClusterStatus struct {

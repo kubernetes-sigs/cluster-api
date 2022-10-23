@@ -527,9 +527,10 @@ spec:
                         type: object
                       type: array
                     bootstrapped:
-                      description: 'Bootstrapped is true when the kubeadm bootstrapping
-                        has been run against this machine Deprecated: This field will
-                        be removed in the next apiVersion.'
+                      description: "Bootstrapped is true when the kubeadm bootstrapping
+                        has been run against this machine \n Deprecated: This field
+                        will be removed in the next apiVersion. When removing also
+                        remove from staticcheck exclude-rules for SA1019 in golangci.yml"
                       type: boolean
                     instanceName:
                       description: InstanceName is the identification of the Machine

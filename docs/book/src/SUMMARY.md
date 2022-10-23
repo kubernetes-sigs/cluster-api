@@ -36,6 +36,7 @@
             - [Implementing Topology Mutation Hook Extensions](./tasks/experimental-features/runtime-sdk/implement-topology-mutation-hook.md)
             - [Deploying Runtime Extensions](./tasks/experimental-features/runtime-sdk/deploy-runtime-extension.md)
         - [Ignition Bootstrap configuration](./tasks/experimental-features/ignition.md)
+    - [Running multiple providers](./tasks/multiple-providers.md)
 - [Security Guidelines](./security/index.md)
     - [Pod Security Standards](./security/pod-security-standards.md)
 - [clusterctl CLI](./clusterctl/overview.md)

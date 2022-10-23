@@ -30,7 +30,7 @@ A cluster infrastructure provider must define an API type for "infrastructure cl
             meant to be suitable for programmatic interpretation
         2. `failureMessage` (string): indicates there is a fatal problem reconciling the provider's infrastructure;
             meant to be a more descriptive value than `failureReason`
-        3. `failureDomains` (`failureDomains`): the failure domains that machines should be placed in. `failureDomains`
+        3. `failureDomains` (`FailureDomains`): the failure domains that machines should be placed in. `FailureDomains`
             is a map, defined as `map[string]FailureDomainSpec`. A unique key must be used for each `FailureDomainSpec`.
             `FailureDomainSpec` is defined as:
             - `controlPlane` (bool): indicates if failure domain is appropriate for running control plane instances.

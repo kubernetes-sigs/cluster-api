@@ -44,6 +44,11 @@ The `status` object **may** define several fields that do not affect functionali
 
 * `failureReason` - is a string that explains why a fatal error has occurred, if possible.
 * `failureMessage` - is a string that holds the message contained by the error.
+* `failureDomains` - is a `FailureDomains` type indicating the failure domains that machines should be placed in. `FailureDomains`
+is a map, defined as `map[string]FailureDomainSpec`. A unique key must be used for each `FailureDomainSpec`.
+`FailureDomainSpec` is defined as:
+    - `controlPlane` (bool): indicates if failure domain is appropriate for running control plane instances.
+    - `attributes` (`map[string]string`): arbitrary attributes for users to apply to a failure domain.
 
 Example:
 ```yaml

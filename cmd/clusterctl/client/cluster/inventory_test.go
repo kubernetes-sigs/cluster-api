@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
-func fakePollImmediateWaiter(interval, timeout time.Duration, condition wait.ConditionFunc) error {
+func fakePollImmediateWaiter(_, _ time.Duration, _ wait.ConditionFunc) error {
 	return nil
 }
 

@@ -71,12 +71,12 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func kubeadmBootstrapTokenStringFuzzer(in *upstreamv1beta1.BootstrapTokenString, c fuzz.Continue) {
+func kubeadmBootstrapTokenStringFuzzer(in *upstreamv1beta1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
 }
 
-func cabpkBootstrapTokenStringFuzzer(in *bootstrapv1.BootstrapTokenString, c fuzz.Continue) {
+func cabpkBootstrapTokenStringFuzzer(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
 }
@@ -84,11 +84,11 @@ func cabpkBootstrapTokenStringFuzzer(in *bootstrapv1.BootstrapTokenString, c fuz
 func dnsFuzzer(obj *upstreamv1beta1.DNS, c fuzz.Continue) {
 	c.FuzzNoCustom(obj)
 
-	// DNS.Type does not exists in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
+	// DNS.Type does not exist in v1alpha4, so setting it to empty string in order to avoid v1alpha3 --> v1alpha4 --> v1alpha3 round trip errors.
 	obj.Type = ""
 }
 
-func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *bootstrapv1alpha4.BootstrapTokenString, c fuzz.Continue) {
+func kubeadmBootstrapTokenStringFuzzerV1Alpha4(in *bootstrapv1alpha4.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = fakeID
 	in.Secret = fakeSecret
 }

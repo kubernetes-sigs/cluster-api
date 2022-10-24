@@ -349,11 +349,11 @@ func (m *topologyPlanOutputItemMatcher) Match(actual interface{}) (bool, error) 
 	return true, nil
 }
 
-func (m *topologyPlanOutputItemMatcher) FailureMessage(actual interface{}) string {
+func (m *topologyPlanOutputItemMatcher) FailureMessage(_ interface{}) string {
 	return fmt.Sprintf("Expected item Kind=%s, Namespace=%s, Name(prefix)=%s to be present", m.kind, m.namespace, m.namePrefix)
 }
 
-func (m *topologyPlanOutputItemMatcher) NegatedFailureMessage(actual interface{}) string {
+func (m *topologyPlanOutputItemMatcher) NegatedFailureMessage(_ interface{}) string {
 	return fmt.Sprintf("Expected item Kind=%s, Namespace=%s, Name(prefix)=%s not to be present", m.kind, m.namespace, m.namePrefix)
 }
 

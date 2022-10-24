@@ -67,7 +67,7 @@ type logger struct {
 
 var _ logr.LogSink = &logger{}
 
-func (l *logger) Init(info logr.RuntimeInfo) {
+func (l *logger) Init(_ logr.RuntimeInfo) {
 }
 
 // Enabled tests whether this Logger is enabled.

@@ -208,7 +208,7 @@ func TestClient_httpCall(t *testing.T) {
 	}
 }
 
-func fakeHookHandler(w http.ResponseWriter, r *http.Request) {
+func fakeHookHandler(w http.ResponseWriter, _ *http.Request) {
 	response := &fakev1alpha1.FakeResponse{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "FakeHookResponse",

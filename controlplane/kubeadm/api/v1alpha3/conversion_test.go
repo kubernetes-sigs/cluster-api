@@ -56,11 +56,11 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 	}
 }
 
-func kubeadmBootstrapTokenStringFuzzer(in *upstreamv1beta1.BootstrapTokenString, c fuzz.Continue) {
+func kubeadmBootstrapTokenStringFuzzer(in *upstreamv1beta1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }
-func cabpkBootstrapTokenStringFuzzer(in *bootstrapv1.BootstrapTokenString, c fuzz.Continue) {
+func cabpkBootstrapTokenStringFuzzer(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }

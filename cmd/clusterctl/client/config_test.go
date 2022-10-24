@@ -1046,6 +1046,6 @@ v3: default3`,
 // errReader returns a non-EOF error on the first read.
 type errReader struct{}
 
-func (e *errReader) Read(p []byte) (n int, err error) {
+func (e *errReader) Read(_ []byte) (n int, err error) {
 	return 0, errors.New("read error")
 }

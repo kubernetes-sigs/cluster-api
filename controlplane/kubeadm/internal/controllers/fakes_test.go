@@ -80,7 +80,7 @@ func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *cluster
 	return nil
 }
 
-func (f fakeWorkloadCluster) ReconcileEtcdMembers(ctx context.Context, nodeNames []string, version semver.Version) ([]string, error) {
+func (f fakeWorkloadCluster) ReconcileEtcdMembers(_ context.Context, _ []string, _ semver.Version) ([]string, error) {
 	return nil, nil
 }
 
@@ -92,35 +92,35 @@ func (f fakeWorkloadCluster) GetAPIServerCertificateExpiry(_ context.Context, _ 
 	return f.APIServerCertificateExpiry, nil
 }
 
-func (f fakeWorkloadCluster) AllowBootstrapTokensToGetNodes(ctx context.Context) error {
+func (f fakeWorkloadCluster) AllowBootstrapTokensToGetNodes(_ context.Context) error {
 	return nil
 }
 
-func (f fakeWorkloadCluster) ReconcileKubeletRBACRole(ctx context.Context, version semver.Version) error {
+func (f fakeWorkloadCluster) ReconcileKubeletRBACRole(_ context.Context, _ semver.Version) error {
 	return nil
 }
 
-func (f fakeWorkloadCluster) ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error {
+func (f fakeWorkloadCluster) ReconcileKubeletRBACBinding(_ context.Context, _ semver.Version) error {
 	return nil
 }
 
-func (f fakeWorkloadCluster) UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version semver.Version) error {
+func (f fakeWorkloadCluster) UpdateKubernetesVersionInKubeadmConfigMap(_ context.Context, _ semver.Version) error {
 	return nil
 }
 
-func (f fakeWorkloadCluster) UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imageRepository, imageTag string, version semver.Version) error {
+func (f fakeWorkloadCluster) UpdateEtcdVersionInKubeadmConfigMap(_ context.Context, _, _ string, _ semver.Version) error {
 	return nil
 }
 
-func (f fakeWorkloadCluster) UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error {
+func (f fakeWorkloadCluster) UpdateKubeletConfigMap(_ context.Context, _ semver.Version) error {
 	return nil
 }
 
-func (f fakeWorkloadCluster) RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error {
+func (f fakeWorkloadCluster) RemoveEtcdMemberForMachine(_ context.Context, _ *clusterv1.Machine) error {
 	return nil
 }
 
-func (f fakeWorkloadCluster) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machine *clusterv1.Machine, version semver.Version) error {
+func (f fakeWorkloadCluster) RemoveMachineFromKubeadmConfigMap(_ context.Context, _ *clusterv1.Machine, _ semver.Version) error {
 	return nil
 }
 
@@ -134,7 +134,7 @@ type fakeMigrator struct {
 	migratedCorefile string
 }
 
-func (m *fakeMigrator) Migrate(current, to, corefile string, deprecations bool) (string, error) {
+func (m *fakeMigrator) Migrate(_, _, _ string, _ bool) (string, error) {
 	m.migrateCalled = true
 	if m.migrateErr != nil {
 		return "", m.migrateErr

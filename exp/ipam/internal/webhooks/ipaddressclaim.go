@@ -47,7 +47,7 @@ type IPAddressClaim struct {
 var _ webhook.CustomValidator = &IPAddressClaim{}
 
 // ValidateCreate implements webhook.CustomValidator.
-func (webhook *IPAddressClaim) ValidateCreate(ctx context.Context, obj runtime.Object) error {
+func (webhook *IPAddressClaim) ValidateCreate(_ context.Context, obj runtime.Object) error {
 	claim, ok := obj.(*ipamv1.IPAddressClaim)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected an IPAddressClaim but got a %T", obj))
@@ -64,7 +64,7 @@ func (webhook *IPAddressClaim) ValidateCreate(ctx context.Context, obj runtime.O
 }
 
 // ValidateUpdate implements webhook.CustomValidator.
-func (webhook *IPAddressClaim) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+func (webhook *IPAddressClaim) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) error {
 	oldClaim, ok := oldObj.(*ipamv1.IPAddressClaim)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected an IPAddressClaim but got a %T", oldObj))
@@ -84,6 +84,6 @@ func (webhook *IPAddressClaim) ValidateUpdate(ctx context.Context, oldObj, newOb
 }
 
 // ValidateDelete implements webhook.CustomValidator.
-func (webhook *IPAddressClaim) ValidateDelete(ctx context.Context, obj runtime.Object) error {
+func (webhook *IPAddressClaim) ValidateDelete(_ context.Context, _ runtime.Object) error {
 	return nil
 }

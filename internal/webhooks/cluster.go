@@ -142,7 +142,7 @@ func (webhook *Cluster) ValidateUpdate(ctx context.Context, oldObj, newObj runti
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Cluster) ValidateDelete(_ context.Context, obj runtime.Object) error {
+func (webhook *Cluster) ValidateDelete(_ context.Context, _ runtime.Object) error {
 	return nil
 }
 

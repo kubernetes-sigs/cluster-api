@@ -298,22 +298,22 @@ type fakeObjectMover struct {
 	fromDirectoryErr error
 }
 
-func (f *fakeObjectMover) Move(namespace string, toCluster cluster.Client, dryRun bool) error {
+func (f *fakeObjectMover) Move(_ string, _ cluster.Client, _ bool) error {
 	return f.moveErr
 }
 
-func (f *fakeObjectMover) ToDirectory(namespace string, directory string) error {
+func (f *fakeObjectMover) ToDirectory(_ string, _ string) error {
 	return f.toDirectoryErr
 }
 
-func (f *fakeObjectMover) Backup(namespace string, directory string) error {
+func (f *fakeObjectMover) Backup(_ string, _ string) error {
 	return f.toDirectoryErr
 }
 
-func (f *fakeObjectMover) FromDirectory(toCluster cluster.Client, directory string) error {
+func (f *fakeObjectMover) FromDirectory(_ cluster.Client, _ string) error {
 	return f.fromDirectoryErr
 }
 
-func (f *fakeObjectMover) Restore(toCluster cluster.Client, directory string) error {
+func (f *fakeObjectMover) Restore(_ cluster.Client, _ string) error {
 	return f.fromDirectoryErr
 }

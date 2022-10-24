@@ -47,7 +47,7 @@ func (w *Workload) UpdateEtcdConditions(ctx context.Context, controlPlane *Contr
 	w.updateExternalEtcdConditions(ctx, controlPlane)
 }
 
-func (w *Workload) updateExternalEtcdConditions(ctx context.Context, controlPlane *ControlPlane) { //nolint:unparam
+func (w *Workload) updateExternalEtcdConditions(_ context.Context, controlPlane *ControlPlane) {
 	// When KCP is not responsible for external etcd, we are reporting only health at KCP level.
 	conditions.MarkTrue(controlPlane.KCP, controlplanev1.EtcdClusterHealthyCondition)
 

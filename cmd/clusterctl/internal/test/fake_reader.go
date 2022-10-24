@@ -55,7 +55,7 @@ type imageMeta struct {
 	Tag        string `json:"tag,omitempty"`
 }
 
-func (f *FakeReader) Init(config string) error {
+func (f *FakeReader) Init(_ string) error {
 	f.initialized = true
 	return nil
 }

@@ -627,7 +627,7 @@ func TestPatchHelper(t *testing.T) {
 					return false
 				}
 
-				return objAfter.Spec.Paused == true &&
+				return objAfter.Spec.Paused &&
 					reflect.DeepEqual(obj.Spec.InfrastructureRef, objAfter.Spec.InfrastructureRef)
 			}, timeout).Should(BeTrue())
 		})

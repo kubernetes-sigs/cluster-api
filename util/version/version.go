@@ -104,9 +104,8 @@ func newBuildIdentifiers(ids []string) buildIdentifiers {
 func (v buildIdentifiers) compare(o buildIdentifiers) int {
 	i := 0
 	for ; i < len(v) && i < len(o); i++ {
-		if comp := v[i].compare(o[i]); comp == 0 {
-			continue
-		} else {
+		comp := v[i].compare(o[i])
+		if comp != 0 {
 			return comp
 		}
 	}

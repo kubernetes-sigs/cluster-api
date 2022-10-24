@@ -98,7 +98,7 @@ spec:
               plugins:
               - name: PodSecurity
                 configuration:
-                  apiVersion: pod-security.admission.config.k8s.io/v1beta1
+                  apiVersion: pod-security.admission.config.k8s.io/v1{{ if semverCompare "< v1.25" .builtin.controlPlane.version }}beta1{{ end }}
                   kind: PodSecurityConfiguration
                   defaults:
                     enforce: "{{ .podSecurity.enforce }}"
@@ -164,7 +164,7 @@ spec:
                 plugins:
                 - name: PodSecurity
                   configuration:
-                    apiVersion: pod-security.admission.config.k8s.io/v1beta1
+                    apiVersion: pod-security.admission.config.k8s.io/v1{{ if semverCompare "< v1.25" .builtin.controlPlane.version }}beta1{{ end }}
                     kind: PodSecurityConfiguration
                     defaults:
                       enforce: "{{ .podSecurity.enforce }}"

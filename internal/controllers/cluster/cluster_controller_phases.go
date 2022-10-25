@@ -245,6 +245,9 @@ func (r *Reconciler) reconcileControlPlane(ctx context.Context, cluster *cluster
 		if err != nil {
 			return ctrl.Result{}, err
 		}
+
+		//TODO: PCP-22
+		conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 		if initialized {
 			conditions.MarkTrue(cluster, clusterv1.ControlPlaneInitializedCondition)
 		} else {
@@ -265,23 +268,44 @@ func (r *Reconciler) reconcileKubeconfig(ctx context.Context, cluster *clusterv1
 	// Do not generate the Kubeconfig if there is a ControlPlaneRef, since the Control Plane provider is
 	// responsible for the management of the Kubeconfig. We continue to manage it here only for backward
 	// compatibility when a Control Plane provider is not in use.
+
+	log.Info("TESTING..... Do not generate the Kubeconfig if there is a ControlPlaneRef", "cluster.Spec.ControlPlaneRef", cluster.Spec.ControlPlaneRef)
+	//TODO: PCP-22 comment this to let secret generation for now, ControlPlaneRef is present already
 	if cluster.Spec.ControlPlaneRef != nil {
 		return ctrl.Result{}, nil
 	}
 
 	_, err := secret.Get(ctx, r.Client, util.ObjectKey(cluster), secret.Kubeconfig)
-	switch {
-	case apierrors.IsNotFound(err):
-		if err := kubeconfig.CreateSecret(ctx, r.Client, cluster); err != nil {
-			if err == kubeconfig.ErrDependentCertificateNotFound {
-				log.Info("could not find secret for cluster, requeuing", "secret", secret.ClusterCA)
-				return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-			}
-			return ctrl.Result{}, err
-		}
-	case err != nil:
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Kubeconfig Secret for Cluster %q in namespace %q", cluster.Name, cluster.Namespace)
+	if err != nil {
+		log.Info("TESTING.... error getting kubeconfig", "err", err)
 	}
+
+	// TODO: PCP-22 read kubeconfig secrets from kube-system namespace
+	log.Error(nil, "TESTING..... Do not generate the Kubeconfig if there is a ControlPlaneRef")
+	if err := kubeconfig.ReadSecret(ctx, r.Client, cluster); err != nil {
+		if err == kubeconfig.ErrDependentCertificateNotFound {
+			log.Info("TESTING.... could not find secret for cluster, requesting", "secret", secret.ClusterCA)
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+		if err == kubeconfig.ErrAlreadyExists {
+			log.Info("TESTING.... could not find secret for cluster, requesting", "secret", secret.ClusterCA)
+			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	//switch {
+	//case apierrors.IsNotFound(err):
+	//	if err := kubeconfig.CreateSecret(ctx, r.Client, cluster); err != nil {
+	//		if err == kubeconfig.ErrDependentCertificateNotFound {
+	//			log.Info("could not find secret for cluster, requeuing", "secret", secret.ClusterCA)
+	//			return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
+	//		}
+	//		return ctrl.Result{}, err
+	//	}
+	//case err != nil:
+	//	return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve Kubeconfig Secret for Cluster %q in namespace %q", cluster.Name, cluster.Namespace)
+	//}
 
 	return ctrl.Result{}, nil
 }

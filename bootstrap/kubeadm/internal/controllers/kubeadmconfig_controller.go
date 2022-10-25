@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -262,10 +263,13 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		return ctrl.Result{}, nil
 	}
 
+	//TODO: PCP-22 check (annotation to skip handleClusterNotInitialized and go for join )
+	//how to make this condition true for new cluster as kubeadm cluster is already initialized
 	// Note: can't use IsFalse here because we need to handle the absence of the condition as well as false.
-	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
-		return r.handleClusterNotInitialized(ctx, scope)
-	}
+	log.Info("TESTING... skip handx``leClusterNotInitialized and push cluster for join")
+	//if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+	//	return r.handleClusterNotInitialized(ctx, scope)
+	//}
 
 	// Every other case it's a join scenario
 	// Nb. in this case ClusterConfiguration and InitConfiguration should not be defined by users, but in case of misconfigurations, CABPK simply ignore them
@@ -281,10 +285,12 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// it's a control plane join
 	if configOwner.IsControlPlaneMachine() {
+		log.Info("TESTING.... joinControlplane")
 		return r.joinControlplane(ctx, scope)
 	}
 
 	// It's a worker join
+	log.Info("TESTING.... It's a worker join")
 	return r.joinWorker(ctx, scope)
 }
 
@@ -342,6 +348,9 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	// initialize the DataSecretAvailableCondition if missing.
 	// this is required in order to avoid the condition's LastTransitionTime to flicker in case of errors surfacing
 	// using the DataSecretGeneratedFailedReason
+
+	scope.Info("TESTING.... In handleClusterNotInitialized")
+
 	if conditions.GetReason(scope.Config, bootstrapv1.DataSecretAvailableCondition) != bootstrapv1.DataSecretGenerationFailedReason {
 		conditions.MarkFalse(scope.Config, bootstrapv1.DataSecretAvailableCondition, clusterv1.WaitingForControlPlaneAvailableReason, clusterv1.ConditionSeverityInfo, "")
 	}
@@ -424,6 +433,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		return ctrl.Result{}, err
 	}
 
+	scope.Info("TESTING.... LookupOrGenerate new certificates")
 	certificates := secret.NewCertificatesForInitialControlPlane(scope.Config.Spec.ClusterConfiguration)
 	err = certificates.LookupOrGenerate(
 		ctx,
@@ -495,6 +505,10 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 }
 
 func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) (ctrl.Result, error) {
+
+	scope.Info("TESTING.... joinWorker")
+	log.Println("TESTING.... joinWorker")
+
 	certificates := secret.NewCertificatesForWorker(scope.Config.Spec.JoinConfiguration.CACertPath)
 	err := certificates.Lookup(
 		ctx,
@@ -600,6 +614,8 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		scope.Config.Spec.JoinConfiguration.ControlPlane = &bootstrapv1.JoinControlPlane{}
 	}
 
+	scope.Info("TESTING.... NewControlPlaneJoinCerts")
+	log.Println("TESTING.... joinControlplane")
 	certificates := secret.NewControlPlaneJoinCerts(scope.Config.Spec.ClusterConfiguration)
 	err := certificates.Lookup(
 		ctx,

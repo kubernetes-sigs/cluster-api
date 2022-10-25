@@ -261,10 +261,15 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	if config.ClusterConfiguration == nil {
 		config.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
 	}
+
+	//TODO: PCP-22 lookup or generate ca, sa, etcd certificates and key
 	certificates := secret.NewCertificatesForInitialControlPlane(config.ClusterConfiguration)
+	//for _, certificate := range certificates {
+	//	log.Info("TESTING.... lookup or generate ca, sa, etcd certificates and key: ", certificate)
+	//}
 	controllerRef := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
 	if err := certificates.LookupOrGenerate(ctx, r.Client, util.ObjectKey(cluster), *controllerRef); err != nil {
-		log.Error(err, "unable to lookup or create cluster certificates")
+		log.Error(err, "TESTING.... unable to lookup or create cluster certificates")
 		conditions.MarkFalse(kcp, controlplanev1.CertificatesAvailableCondition, controlplanev1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, err
 	}
@@ -276,6 +281,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return ctrl.Result{}, nil
 	}
 
+	//TODO: PCP-22 adopt kubeconfig instead of generating new
 	// Generate Cluster Kubeconfig if needed
 	if result, err := r.reconcileKubeconfig(ctx, cluster, kcp); !result.IsZero() || err != nil {
 		if err != nil {
@@ -352,6 +358,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	desiredReplicas := int(*kcp.Spec.Replicas)
 
 	switch {
+	//TODO: PCP-22 skip creating new control plane
 	// We are creating the first replica
 	case numMachines < desiredReplicas && numMachines == 0:
 		// Create new Machine w/ init
@@ -359,7 +366,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.AvailableCondition, controlplanev1.WaitingForKubeadmInitReason, clusterv1.ConditionSeverityInfo, "")
 		return r.initializeControlPlane(ctx, cluster, kcp, controlPlane)
 	// We are scaling up
-	case numMachines < desiredReplicas && numMachines > 0:
+	case numMachines < desiredReplicas && numMachines >= 0:
 		// Create a new Machine w/ join
 		log.Info("Scaling up control plane", "Desired", desiredReplicas, "Existing", numMachines)
 		return r.scaleUpControlPlane(ctx, cluster, kcp, controlPlane)
@@ -528,6 +535,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 	log := ctrl.LoggerFrom(ctx, "cluster", controlPlane.Cluster.Name)
 
 	// If etcd is not managed by KCP this is a no-op.
+	if true {
+		//TODO: PCP-22
+		return ctrl.Result{}, nil
+	}
+
 	if !controlPlane.IsEtcdManaged() {
 		return ctrl.Result{}, nil
 	}

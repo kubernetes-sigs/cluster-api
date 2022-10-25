@@ -22,6 +22,7 @@ type Purpose string
 const (
 	// KubeconfigDataName is the key used to store a Kubeconfig in the secret's data field.
 	KubeconfigDataName = "value"
+	//KubeconfigDataName2 = "admin.conf"
 
 	// TLSKeyDataName is the key used to store a TLS private key in the secret's data field.
 	TLSKeyDataName = "tls.key"

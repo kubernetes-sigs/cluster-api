@@ -106,11 +106,13 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	kcp.Status.ReadyReplicas = status.ReadyNodes
 	kcp.Status.UnavailableReplicas = replicas - status.ReadyNodes
 
+	//TODO: PCP-22 Initialized should be true to join new node to cluster or else it will try to init
 	// This only gets initialized once and does not change if the kubeadm config map goes away.
-	if status.HasKubeadmConfig {
-		kcp.Status.Initialized = true
-		conditions.MarkTrue(kcp, controlplanev1.AvailableCondition)
-	}
+	//if status.HasKubeadmConfig {
+	log.Info("TESTING.... set kcp.Status.Initialized to true")
+	kcp.Status.Initialized = true
+	conditions.MarkTrue(kcp, controlplanev1.AvailableCondition)
+	//}
 
 	if kcp.Status.ReadyReplicas > 0 {
 		kcp.Status.Ready = true

@@ -24,6 +24,8 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/hex"
+	"fmt"
+	"log"
 	"math/big"
 	"path/filepath"
 	"strings"
@@ -207,11 +209,74 @@ func (c Certificates) Lookup(ctx context.Context, ctrlclient client.Client, clus
 			return errors.WithStack(err)
 		}
 		// If a user has a badly formatted secret it will prevent the cluster from working.
+		//kp, err := secretToKeyPair(s, certificate.Purpose)
 		kp, err := secretToKeyPair(s)
 		if err != nil {
 			return err
 		}
 		certificate.KeyPair = kp
+	}
+
+	//err := c.LookupKubeadm(ctx, ctrlclient, clusterName)
+	//if err != nil {
+	//	log.Println("TESTING.... error:", err)
+	//	return err
+	//}
+	return nil
+}
+
+// LookupKubeadm looks up each certificate from secrets and populates the certificate with the secret data.
+func (c Certificates) LookupKubeadm(ctx context.Context, ctrlclient client.Client, clusterName client.ObjectKey) error {
+	// Look up each certificate as a secret and populate the certificate/key
+
+	fmt.Println("TESTING.... LookupKubeadm")
+	for _, certificate := range c {
+		s := &corev1.Secret{}
+		key := client.ObjectKey{
+			Name:      Name(clusterName.Name, certificate.Purpose),
+			Namespace: clusterName.Namespace,
+		}
+
+		//key := client.ObjectKey{
+		//	Name:      "kubeadm-certs",
+		//	Namespace: "kube-system",
+		//}
+
+		if err := ctrlclient.Get(ctx, key, s); err != nil {
+			if apierrors.IsNotFound(err) {
+				if certificate.External {
+					//log.Println("TESTING.... ERROR external certificate not found: ", certificate.Purpose)
+					//fmt.Println("TESTING.... ERROR external certificate not found: ", certificate.Purpose)
+					return errors.WithMessage(err, "external certificate not found")
+				}
+
+				//fmt.Println("TESTING..... err:", err)
+				continue
+			}
+			//log.Println("TESTING.... ERROR: ", certificate.Purpose)
+			//fmt.Println("TESTING.... ERROR: ", certificate.Purpose)
+			return errors.WithStack(err)
+		}
+
+		// If a user has a badly formatted secret it will prevent the cluster from working.
+		//log.Println("TESTING.... secretToKeyPair for certificate.Purpose", certificate.Purpose)
+		//fmt.Println("TESTING.... secretToKeyPair for certificate.Purpose", certificate.Purpose)
+
+		//for k, _ := range s.Data {
+		//	log.Println("TESTING.... s.Data", k)
+		//}
+		//for k, _ := range s.StringData {
+		//	log.Println("TESTING.... s.StringData", k)
+		//}
+		//kp, err := secretToKeyPair(s, certificate.Purpose)
+
+		kp, err := secretToKeyPair(s)
+		if err != nil {
+			return err
+		}
+
+		certificate.KeyPair = kp
+		//certificate.Generated = true
 	}
 	return nil
 }
@@ -220,6 +285,7 @@ func (c Certificates) Lookup(ctx context.Context, ctrlclient client.Client, clus
 func (c Certificates) EnsureAllExist() error {
 	for _, certificate := range c {
 		if certificate.KeyPair == nil {
+			log.Println("TESTING....", certificate)
 			return ErrMissingCertificate
 		}
 		if len(certificate.KeyPair.Cert) == 0 {
@@ -238,6 +304,9 @@ func (c Certificates) EnsureAllExist() error {
 func (c Certificates) Generate() error {
 	for _, certificate := range c {
 		if certificate.KeyPair == nil {
+			//TODO: Read existing certificate and create required secrets
+			log.Println("TESTING.... Certificate not present generate new for KeyPair", certificate.KeyFile)
+			fmt.Println("TESTING.... Certificate not present generate new for KeyPair", certificate.KeyFile)
 			err := certificate.Generate()
 			if err != nil {
 				return err
@@ -268,10 +337,10 @@ func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Cl
 		return err
 	}
 
-	// Generate the certificates that don't exist
-	if err := c.Generate(); err != nil {
-		return err
-	}
+	//// Generate the certificates that don't exist
+	//if err := c.Generate(); err != nil {
+	//	return err
+	//}
 
 	// Save any certificates that have been generated
 	return c.SaveGenerated(ctx, ctrlclient, clusterName, owner)
@@ -414,6 +483,51 @@ func secretToKeyPair(s *corev1.Secret) (*certs.KeyPair, error) {
 		Key:  key,
 	}, nil
 }
+
+//func secretToKeyPair(s *corev1.Secret, purpose Purpose) (*certs.KeyPair, error) {
+//
+//	var c, key []byte
+//	var exists bool
+//	var dataName, keyName string
+//	if purpose == ServiceAccount {
+//		dataName = string(purpose) + ".pub"
+//		keyName = string(purpose) + ".key"
+//		log.Println("TESTING.... secret name: ", dataName, keyName)
+//
+//	} else if purpose == EtcdCA {
+//		dataName = "etcd-ca.crt"
+//		keyName = "etcd-ca.key"
+//		log.Println("TESTING.... secret name: ", dataName, keyName)
+//
+//	} else if purpose == FrontProxyCA {
+//		dataName = "front-proxy-ca.crt"
+//		keyName = "front-proxy-ca.key"
+//		log.Println("TESTING.... secret name: ", dataName, keyName)
+//
+//	} else {
+//		dataName = string(purpose) + ".crt"
+//		keyName = string(purpose) + ".key"
+//		log.Println("TESTING.... secret name: ", dataName, keyName)
+//	}
+//
+//	c, exists = s.Data[dataName]
+//	if !exists {
+//		return nil, errors.Errorf("missing data for key %s", dataName)
+//	}
+//	//fmt.Println("TESTING.... c", c)
+//	// In some cases (external etcd) it's ok if the etcd.key does not exist.
+//	// TODO: some other function should ensure that the certificates we need exist.
+//	key, exists = s.Data[keyName]
+//	if !exists {
+//		key = []byte("")
+//	}
+//	//fmt.Println("TESTING.... key", key)
+//
+//	return &certs.KeyPair{
+//		Cert: c,
+//		Key:  key,
+//	}, nil
+//}
 
 func generateCACert() (*certs.KeyPair, error) {
 	x509Cert, privKey, err := newCertificateAuthority()

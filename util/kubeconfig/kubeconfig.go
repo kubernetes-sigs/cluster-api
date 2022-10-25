@@ -22,6 +22,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/pkg/errors"
@@ -41,6 +42,7 @@ import (
 var (
 	// ErrDependentCertificateNotFound signals that a CA secret could not be found.
 	ErrDependentCertificateNotFound = errors.New("could not find secret ca")
+	ErrAlreadyExists                = errors.New("secrets \"t-cluster-kubeconfig\" already exists")
 )
 
 // FromSecret fetches the Kubeconfig for a Cluster.
@@ -105,6 +107,72 @@ func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Clust
 		Name:       cluster.Name,
 		UID:        cluster.UID,
 	})
+}
+
+// ReadSecret reads the Kubeconfig secret from kube-system
+func ReadSecret(ctx context.Context, c client.Client, cluster *clusterv1.Cluster) error {
+	log.Println("TESTING.... IN ReadSecret")
+
+	name := util.ObjectKey(cluster)
+	return ReadSecretWithOwner(ctx, c, name, cluster.Spec.ControlPlaneEndpoint.String(), metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+	})
+}
+
+// ReadSecretWithOwner creates the Kubeconfig secret for the given cluster name, namespace, endpoint, and owner reference.
+func ReadSecretWithOwner(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string, owner metav1.OwnerReference) error {
+	//server := fmt.Sprintf("https://%s", endpoint)
+	//out, err := ReadExistingSecret(ctx, c, clusterName, server)
+	//if err != nil {
+	//	return err
+	//}
+	log.Println("TESTING.... IN ReadSecretWithOwner")
+
+	//clusterName := util.ObjectKey(clusterName)
+	configSecret, err := secret.GetFromNamespacedName(ctx, c, client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: clusterName.Name}, secret.Kubeconfig)
+	if err != nil {
+		log.Println("TESTING....", "error in getting kubeconfig: ", err)
+		return err
+	}
+
+	data, err := toKubeconfigBytes(configSecret)
+	if err != nil {
+		log.Println("TESTING....", "error in parsing kubeconfig: ", err)
+		return err
+	}
+	//if err := ReadExistingSecret(ctx, r.Client, configSecret); err != nil {
+	//	return ctrl.Result{}, errors.Wrap(err, "failed to regenerate kubeconfig")
+	//}
+
+	return c.Create(ctx, GenerateSecretWithOwner(clusterName, data, owner))
+}
+
+// ReadExistingSecret creates and stores a new Kubeconfig in the given secret.
+func ReadExistingSecret(ctx context.Context, c client.Client, configSecret *corev1.Secret) error {
+	clusterName, _, err := secret.ParseSecretName(configSecret.Name)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse secret name")
+	}
+	data, err := toKubeconfigBytes(configSecret)
+	if err != nil {
+		return err
+	}
+
+	config, err := clientcmd.Load(data)
+	if err != nil {
+		return errors.Wrap(err, "failed to convert kubeconfig Secret into a clientcmdapi.Config")
+	}
+	endpoint := config.Clusters[clusterName].Server
+	key := client.ObjectKey{Name: clusterName, Namespace: configSecret.Namespace}
+	out, err := generateKubeconfig(ctx, c, key, endpoint)
+	if err != nil {
+		return err
+	}
+	configSecret.Data[secret.KubeconfigDataName] = out
+	return c.Update(ctx, configSecret)
 }
 
 // CreateSecretWithOwner creates the Kubeconfig secret for the given cluster name, namespace, endpoint, and owner reference.
@@ -237,6 +305,7 @@ func generateKubeconfig(ctx context.Context, c client.Client, clusterName client
 }
 
 func toKubeconfigBytes(out *corev1.Secret) ([]byte, error) {
+	//data, ok := out.Data[secret.KubeconfigDataName2]
 	data, ok := out.Data[secret.KubeconfigDataName]
 	if !ok {
 		return nil, errors.Errorf("missing key %q in secret data", secret.KubeconfigDataName)

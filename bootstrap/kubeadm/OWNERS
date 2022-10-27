@@ -6,3 +6,6 @@ approvers:
 reviewers:
   - cluster-api-reviewers
   - cluster-api-bootstrap-provider-kubeadm-reviewers
+
+labels:
+  - area/kubeadm-bootstrap

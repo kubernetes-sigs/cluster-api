@@ -6,3 +6,6 @@ approvers:
 reviewers:
   - cluster-api-reviewers
   - cluster-api-topology-reviewers
+
+labels:
+  - area/topology

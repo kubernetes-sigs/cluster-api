@@ -6,3 +6,14 @@ approvers:
 reviewers:
   - cluster-api-reviewers
   - cluster-api-test-reviewers
+
+filters:
+  ".*":
+    labels:
+    - area/testing
+  "*infrastructure/docker/*":
+    labels:
+    - area/infrastructure-docker
+  "*e2e*":
+    labels:
+    - area/e2e

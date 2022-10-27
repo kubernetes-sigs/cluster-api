@@ -6,3 +6,6 @@ approvers:
 reviewers:
   - cluster-api-reviewers
   - cluster-api-docs-reviewers
+
+labels:
+  - area/docs

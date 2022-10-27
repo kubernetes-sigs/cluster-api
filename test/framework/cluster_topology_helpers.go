@@ -113,31 +113,36 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 		input.PreWaitForControlPlaneToBeUpgraded()
 	}
 
+	// FIXME This is just to get an end to the changes and get to testing
+	i, j := InterfaceToDuration(input.WaitForMachinesToBeUpgraded)
 	log.Logf("Waiting for control-plane machines to have the upgraded Kubernetes version")
 	WaitForControlPlaneMachinesToBeUpgraded(ctx, WaitForControlPlaneMachinesToBeUpgradedInput{
 		Lister:                   mgmtClient,
 		Cluster:                  input.Cluster,
 		MachineCount:             int(*input.ControlPlane.Spec.Replicas),
 		KubernetesUpgradeVersion: input.KubernetesUpgradeVersion,
-	}, input.WaitForMachinesToBeUpgraded...)
+	}, i, j)
 
+	i, j = InterfaceToDuration(input.WaitForKubeProxyUpgrade)
 	log.Logf("Waiting for kube-proxy to have the upgraded Kubernetes version")
 	workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name)
 	workloadClient := workloadCluster.GetClient()
 	WaitForKubeProxyUpgrade(ctx, WaitForKubeProxyUpgradeInput{
 		Getter:            workloadClient,
 		KubernetesVersion: input.KubernetesUpgradeVersion,
-	}, input.WaitForKubeProxyUpgrade...)
+	}, i, j)
 
+	i, j = InterfaceToDuration(input.WaitForDNSUpgrade)
 	// Wait for the CoreDNS upgrade if the DNSImageTag is set.
 	if input.DNSImageTag != "" {
 		log.Logf("Waiting for CoreDNS to have the upgraded image tag")
 		WaitForDNSUpgrade(ctx, WaitForDNSUpgradeInput{
 			Getter:     workloadClient,
 			DNSVersion: input.DNSImageTag,
-		}, input.WaitForDNSUpgrade...)
+		}, i, j)
 	}
 
+	i, j = InterfaceToDuration(input.WaitForEtcdUpgrade)
 	// Wait for the etcd upgrade if the EtcdImageTag is set.
 	if input.EtcdImageTag != "" {
 		log.Logf("Waiting for etcd to have the upgraded image tag")
@@ -147,7 +152,7 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 			Lister:      workloadClient,
 			ListOptions: &client.ListOptions{LabelSelector: lblSelector},
 			Condition:   EtcdImageTagCondition(input.EtcdImageTag, int(*input.ControlPlane.Spec.Replicas)),
-		}, input.WaitForEtcdUpgrade...)
+		}, i, j)
 	}
 
 	// Once the ControlPlane is upgraded we can run PreWaitForMachineDeploymentToBeUpgraded.
@@ -158,6 +163,7 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 		input.PreWaitForMachineDeploymentToBeUpgraded()
 	}
 
+	i, j = InterfaceToDuration(input.WaitForMachinesToBeUpgraded)
 	for _, deployment := range input.MachineDeployments {
 		if *deployment.Spec.Replicas > 0 {
 			log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s to be upgraded to %s",
@@ -168,7 +174,7 @@ func UpgradeClusterTopologyAndWaitForUpgrade(ctx context.Context, input UpgradeC
 				MachineCount:             int(*deployment.Spec.Replicas),
 				KubernetesUpgradeVersion: input.KubernetesUpgradeVersion,
 				MachineDeployment:        *deployment,
-			}, input.WaitForMachinesToBeUpgraded...)
+			}, i, j)
 		}
 	}
 }

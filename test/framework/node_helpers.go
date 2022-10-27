@@ -36,6 +36,7 @@ type WaitForNodesReadyInput struct {
 // WaitForNodesReady waits until there are exactly the given count nodes and they have the correct Kubernetes version
 // and are ready.
 func WaitForNodesReady(ctx context.Context, input WaitForNodesReadyInput) {
+	i, j := InterfaceToDuration(input.WaitForNodesReady)
 	Eventually(func() (bool, error) {
 		nodeList := &corev1.NodeList{}
 		if err := input.Lister.List(ctx, nodeList); err != nil {
@@ -53,5 +54,5 @@ func WaitForNodesReady(ctx context.Context, input WaitForNodesReadyInput) {
 			nodeReadyCount++
 		}
 		return input.Count == nodeReadyCount, nil
-	}, input.WaitForNodesReady...).Should(BeTrue())
+	}, i, j).Should(BeTrue())
 }

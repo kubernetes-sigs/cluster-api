@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -36,7 +37,7 @@ type WaitForClusterMachineNodeRefsInput struct {
 }
 
 // WaitForClusterMachineNodeRefs waits until all nodes associated with a machine deployment exist.
-func WaitForClusterMachineNodeRefs(ctx context.Context, input WaitForClusterMachineNodeRefsInput, intervals ...interface{}) {
+func WaitForClusterMachineNodeRefs(ctx context.Context, input WaitForClusterMachineNodeRefsInput, timeout, polling time.Duration) {
 	By("Waiting for the machines' nodes to exist")
 	machines := &clusterv1.MachineList{}
 
@@ -55,7 +56,7 @@ func WaitForClusterMachineNodeRefs(ctx context.Context, input WaitForClusterMach
 			}
 		}
 		return
-	}, intervals...).Should(Equal(len(machines.Items)), "Timed out waiting for %d nodes to exist", len(machines.Items))
+	}).WithTimeout(timeout).WithPolling(polling).Should(Equal(len(machines.Items)), "Timed out waiting for %d nodes to exist", len(machines.Items))
 }
 
 type WaitForClusterMachinesReadyInput struct {
@@ -64,7 +65,7 @@ type WaitForClusterMachinesReadyInput struct {
 	Cluster    *clusterv1.Cluster
 }
 
-func WaitForClusterMachinesReady(ctx context.Context, input WaitForClusterMachinesReadyInput, intervals ...interface{}) {
+func WaitForClusterMachinesReady(ctx context.Context, input WaitForClusterMachinesReadyInput, timeout, polling time.Duration) {
 	By("Waiting for the machines' nodes to be ready")
 	machines := &clusterv1.MachineList{}
 
@@ -91,5 +92,5 @@ func WaitForClusterMachinesReady(ctx context.Context, input WaitForClusterMachin
 			}
 		}
 		return
-	}, intervals...).Should(Equal(len(machines.Items)), "Timed out waiting for %d nodes to be ready", len(machines.Items))
+	}).WithTimeout(timeout).WithPolling(polling).Should(Equal(len(machines.Items)), "Timed out waiting for %d nodes to be ready", len(machines.Items))
 }

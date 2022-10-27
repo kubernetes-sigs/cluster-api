@@ -47,7 +47,7 @@ type CreateNamespaceInput struct {
 
 // CreateNamespace is used to create a namespace object.
 // If name is empty, a "test-" + util.RandomString(6) name will be generated.
-func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals ...interface{}) *corev1.Namespace {
+func CreateNamespace(ctx context.Context, input CreateNamespaceInput, timeout, polling time.Duration) *corev1.Namespace {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteNamespace")
 	Expect(input.Creator).NotTo(BeNil(), "input.Creator is required for CreateNamespace")
 	if input.Name == "" {
@@ -62,7 +62,7 @@ func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals 
 	log.Logf("Creating namespace %s", input.Name)
 	Eventually(func() error {
 		return input.Creator.Create(ctx, ns)
-	}, intervals...).Should(Succeed(), "Failed to create namespace %s", input.Name)
+	}).WithTimeout(timeout).WithPolling(polling).Should(Succeed(), "Failed to create namespace %s", input.Name)
 
 	return ns
 }
@@ -91,7 +91,7 @@ type DeleteNamespaceInput struct {
 }
 
 // DeleteNamespace is used to delete namespace object.
-func DeleteNamespace(ctx context.Context, input DeleteNamespaceInput, intervals ...interface{}) {
+func DeleteNamespace(ctx context.Context, input DeleteNamespaceInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteNamespace")
 	Expect(input.Deleter).NotTo(BeNil(), "input.Deleter is required for DeleteNamespace")
 	Expect(input.Name).NotTo(BeEmpty(), "input.Name is required for DeleteNamespace")
@@ -103,7 +103,7 @@ func DeleteNamespace(ctx context.Context, input DeleteNamespaceInput, intervals 
 	log.Logf("Deleting namespace %s", input.Name)
 	Eventually(func() error {
 		return input.Deleter.Delete(ctx, ns)
-	}, intervals...).Should(Succeed(), "Failed to delete namespace %s", input.Name)
+	}).WithTimeout(timeout).WithPolling(polling).Should(Succeed(), "Failed to delete namespace %s", input.Name)
 }
 
 // WatchNamespaceEventsInput is the input type for WatchNamespaceEvents.
@@ -181,7 +181,7 @@ func CreateNamespaceAndWatchEvents(ctx context.Context, input CreateNamespaceAnd
 	Expect(input.Name).ToNot(BeEmpty(), "Invalid argument. input.Name can't be empty when calling ClientSet")
 	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created in CreateNamespaceAndWatchEvents")
 
-	namespace := CreateNamespace(ctx, CreateNamespaceInput{Creator: input.Creator, Name: input.Name}, "40s", "10s")
+	namespace := CreateNamespace(ctx, CreateNamespaceInput{Creator: input.Creator, Name: input.Name}, 40*time.Second, 10*time.Second)
 	Expect(namespace).ToNot(BeNil(), "Failed to create namespace %q", input.Name)
 
 	log.Logf("Creating event watcher for namespace %q", input.Name)

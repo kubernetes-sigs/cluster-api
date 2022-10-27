@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/blang/semver"
 	. "github.com/onsi/ginkgo/v2"
@@ -71,7 +72,7 @@ type WaitForMachinePoolNodesToExistInput struct {
 }
 
 // WaitForMachinePoolNodesToExist waits until all nodes associated with a machine pool exist.
-func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoolNodesToExistInput, intervals ...interface{}) {
+func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoolNodesToExistInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachinePoolNodesToExist")
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachinePoolNodesToExist")
 	Expect(input.MachinePool).ToNot(BeNil(), "Invalid argument. input.MachinePool can't be nil when calling WaitForMachinePoolNodesToExist")
@@ -88,7 +89,7 @@ func WaitForMachinePoolNodesToExist(ctx context.Context, input WaitForMachinePoo
 		}
 
 		return int(input.MachinePool.Status.ReadyReplicas), nil
-	}, intervals...).Should(Equal(int(*input.MachinePool.Spec.Replicas)), "Timed out waiting for %v ready replicas for MachinePool %s", *input.MachinePool.Spec.Replicas, klog.KObj(input.MachinePool))
+	}).WithTimeout(timeout).WithPolling(polling).Should(Equal(int(*input.MachinePool.Spec.Replicas)), "Timed out waiting for %v ready replicas for MachinePool %s", *input.MachinePool.Spec.Replicas, klog.KObj(input.MachinePool))
 }
 
 // DiscoveryAndWaitForMachinePoolsInput is the input type for DiscoveryAndWaitForMachinePools.
@@ -99,7 +100,7 @@ type DiscoveryAndWaitForMachinePoolsInput struct {
 }
 
 // DiscoveryAndWaitForMachinePools discovers the MachinePools existing in a cluster and waits for them to be ready (all the machines provisioned).
-func DiscoveryAndWaitForMachinePools(ctx context.Context, input DiscoveryAndWaitForMachinePoolsInput, intervals ...interface{}) []*expv1.MachinePool {
+func DiscoveryAndWaitForMachinePools(ctx context.Context, input DiscoveryAndWaitForMachinePoolsInput, timeout, polling time.Duration) []*expv1.MachinePool {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForMachinePools")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForMachinePools")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForMachinePools")
@@ -113,7 +114,7 @@ func DiscoveryAndWaitForMachinePools(ctx context.Context, input DiscoveryAndWait
 		WaitForMachinePoolNodesToExist(ctx, WaitForMachinePoolNodesToExistInput{
 			Getter:      input.Getter,
 			MachinePool: machinepool,
-		}, intervals...)
+		}, timeout, polling)
 
 		// TODO: check for failure domains; currently MP doesn't provide a way to check where Machine are placed
 		//  (checking infrastructure is the only alternative, but this makes test not portable)
@@ -173,6 +174,8 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachinePool %s to be upgraded from %s to %s",
 			klog.KObj(mp), *oldVersion, input.UpgradeVersion)
+
+		i, j := InterfaceToDuration(input.WaitForMachinePoolToBeUpgraded)
 		WaitForMachinePoolInstancesToBeUpgraded(ctx, WaitForMachinePoolInstancesToBeUpgradedInput{
 			Getter:                   mgmtClient,
 			WorkloadClusterGetter:    input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name).GetClient(),
@@ -180,7 +183,7 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 			MachineCount:             int(*mp.Spec.Replicas),
 			KubernetesUpgradeVersion: input.UpgradeVersion,
 			MachinePool:              mp,
-		}, input.WaitForMachinePoolToBeUpgraded...)
+		}, i, j)
 	}
 }
 
@@ -211,11 +214,12 @@ func ScaleMachinePoolAndWait(ctx context.Context, input ScaleMachinePoolAndWaitI
 		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch MachinePool %s", klog.KObj(mp))
 	}
 
+	i, j := InterfaceToDuration(input.WaitForMachinePoolToScale)
 	for _, mp := range input.MachinePools {
 		WaitForMachinePoolNodesToExist(ctx, WaitForMachinePoolNodesToExistInput{
 			Getter:      mgmtClient,
 			MachinePool: mp,
-		}, input.WaitForMachinePoolToScale...)
+		}, i, j)
 	}
 }
 
@@ -230,7 +234,7 @@ type WaitForMachinePoolInstancesToBeUpgradedInput struct {
 }
 
 // WaitForMachinePoolInstancesToBeUpgraded waits until all instances belonging to a MachinePool are upgraded to the correct kubernetes version.
-func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForMachinePoolInstancesToBeUpgradedInput, intervals ...interface{}) {
+func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForMachinePoolInstancesToBeUpgradedInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachinePoolInstancesToBeUpgraded")
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachinePoolInstancesToBeUpgraded")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForMachinePoolInstancesToBeUpgraded")
@@ -265,7 +269,7 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 		}
 
 		return matches, nil
-	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all MachinePool %s instances to be upgraded to Kubernetes version %s", klog.KObj(input.MachinePool), input.KubernetesUpgradeVersion)
+	}).WithTimeout(timeout).WithPolling(polling).Should(Equal(input.MachineCount), "Timed out waiting for all MachinePool %s instances to be upgraded to Kubernetes version %s", klog.KObj(input.MachinePool), input.KubernetesUpgradeVersion)
 }
 
 // GetMachinesPoolInstancesInput is the input for GetMachinesPoolInstances.

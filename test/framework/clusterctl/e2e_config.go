@@ -556,6 +556,21 @@ func (c *E2EConfig) GetIntervals(spec, key string) []interface{} {
 	return intervalsInterfaces
 }
 
+func (c *E2EConfig) GetDurations(spec, key string) (time.Duration, time.Duration) {
+	i := c.GetIntervals(spec, key)
+	timeout := 1 * time.Hour
+	polling := 6 * time.Minute
+
+	if len(i) > 0 {
+		timeout, _ = time.ParseDuration(i[0].(string))
+	}
+	if len(i) == 2 {
+		polling, _ = time.ParseDuration(i[1].(string))
+	}
+
+	return timeout, polling
+}
+
 func (c *E2EConfig) HasVariable(varName string) bool {
 	if _, ok := os.LookupEnv(varName); ok {
 		return true

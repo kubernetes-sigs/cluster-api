@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"time"
 
 	"github.com/blang/semver"
 	. "github.com/onsi/ginkgo/v2"
@@ -36,7 +37,7 @@ type WaitForKubeProxyUpgradeInput struct {
 }
 
 // WaitForKubeProxyUpgrade waits until kube-proxy version matches with the kubernetes version. This is called during KCP upgrade.
-func WaitForKubeProxyUpgrade(ctx context.Context, input WaitForKubeProxyUpgradeInput, intervals ...interface{}) {
+func WaitForKubeProxyUpgrade(ctx context.Context, input WaitForKubeProxyUpgradeInput, timeout, polling time.Duration) {
 	By("Ensuring kube-proxy has the correct image")
 
 	parsedVersion, err := semver.ParseTolerant(input.KubernetesVersion)
@@ -63,5 +64,5 @@ func WaitForKubeProxyUpgrade(ctx context.Context, input WaitForKubeProxyUpgradeI
 			return true, nil
 		}
 		return false, nil
-	}, intervals...).Should(BeTrue())
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeTrue())
 }

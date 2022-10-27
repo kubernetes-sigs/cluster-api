@@ -99,8 +99,8 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 
 		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		client := input.BootstrapClusterProxy.GetClient()
-		WaitForClusterIntervals := input.E2EConfig.GetIntervals(specName, "wait-cluster")
-		WaitForControlPlaneIntervals := input.E2EConfig.GetIntervals(specName, "wait-control-plane")
+		nodeTimeout, nodePolling := input.E2EConfig.GetDurations(specName, "wait-cluster")
+		cpTimeout, cpPolling := input.E2EConfig.GetDurations(specName, "wait-control-plane")
 
 		workloadClusterTemplate := clusterctl.ConfigCluster(ctx, clusterctl.ConfigClusterInput{
 			// pass reference to the management cluster hosting this test
@@ -128,19 +128,19 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			Getter:    client,
 			Namespace: namespace.Name,
 			Name:      clusterName,
-		}, WaitForClusterIntervals...)
+		}, nodeTimeout, nodePolling)
 
 		framework.WaitForClusterMachineNodeRefs(ctx, framework.WaitForClusterMachineNodeRefsInput{
 			GetLister: client,
 			Cluster:   cluster,
-		}, WaitForControlPlaneIntervals...)
+		}, cpTimeout, cpPolling)
 
 		workloadCluster := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name)
 		framework.WaitForClusterMachinesReady(ctx, framework.WaitForClusterMachinesReadyInput{
 			GetLister:  input.BootstrapClusterProxy.GetClient(),
 			NodeGetter: workloadCluster.GetClient(),
 			Cluster:    cluster,
-		}, WaitForControlPlaneIntervals...)
+		}, cpTimeout, cpPolling)
 
 		By("Applying the cluster template yaml to the cluster with the 'kcp' selector")
 		Expect(input.BootstrapClusterProxy.Apply(ctx, workloadClusterTemplate, "--selector", "kcp-adoption.step2")).ShouldNot(HaveOccurred())
@@ -155,10 +155,11 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			return controlPlane
 		}, "5s", "100ms").ShouldNot(BeNil())
 
+		i, j := InterfaceToDuration()
 		framework.WaitForControlPlaneToBeUpToDate(ctx, framework.WaitForControlPlaneToBeUpToDateInput{
 			Getter:       client,
 			ControlPlane: controlPlane,
-		})
+		}, i, j)
 
 		By("Taking stable ownership of the Machines")
 		must := func(r *labels.Requirement, err error) labels.Requirement {

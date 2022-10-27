@@ -19,6 +19,7 @@ package framework
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -46,7 +47,7 @@ type CreateKubeadmControlPlaneInput struct {
 }
 
 // CreateKubeadmControlPlane creates the control plane object and necessary dependencies.
-func CreateKubeadmControlPlane(ctx context.Context, input CreateKubeadmControlPlaneInput, intervals ...interface{}) {
+func CreateKubeadmControlPlane(ctx context.Context, input CreateKubeadmControlPlaneInput, timeout, polling time.Duration) {
 	By("creating the machine template")
 	Eventually(func() error {
 		return input.Creator.Create(ctx, input.MachineTemplate)
@@ -59,7 +60,7 @@ func CreateKubeadmControlPlane(ctx context.Context, input CreateKubeadmControlPl
 			log.Logf("Failed to create the KubeadmControlPlane: %+v", err)
 		}
 		return err
-	}, intervals...).Should(Succeed(), "Failed to create the KubeadmControlPlane %s", klog.KObj(input.ControlPlane))
+	}).WithTimeout(timeout).WithPolling(polling).Should(Succeed(), "Failed to create the KubeadmControlPlane %s", klog.KObj(input.ControlPlane))
 }
 
 // GetKubeadmControlPlaneByClusterInput is the input for GetKubeadmControlPlaneByCluster.
@@ -92,7 +93,7 @@ type WaitForKubeadmControlPlaneMachinesToExistInput struct {
 }
 
 // WaitForKubeadmControlPlaneMachinesToExist will wait until all control plane machines have node refs.
-func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitForKubeadmControlPlaneMachinesToExistInput, intervals ...interface{}) {
+func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitForKubeadmControlPlaneMachinesToExistInput, timeout, polling time.Duration) {
 	By("Waiting for all control plane nodes to exist")
 	inClustersNamespaceListOption := client.InNamespace(input.Cluster.Namespace)
 	// ControlPlane labels
@@ -114,7 +115,7 @@ func WaitForKubeadmControlPlaneMachinesToExist(ctx context.Context, input WaitFo
 			}
 		}
 		return count, nil
-	}, intervals...).Should(Equal(int(*input.ControlPlane.Spec.Replicas)), "Timed out waiting for %d control plane machines to exist", int(*input.ControlPlane.Spec.Replicas))
+	}).WithTimeout(timeout).WithPolling(polling).Should(Equal(int(*input.ControlPlane.Spec.Replicas)), "Timed out waiting for %d control plane machines to exist", int(*input.ControlPlane.Spec.Replicas))
 }
 
 // WaitForOneKubeadmControlPlaneMachineToExistInput is the input for WaitForKubeadmControlPlaneMachinesToExist.
@@ -125,7 +126,7 @@ type WaitForOneKubeadmControlPlaneMachineToExistInput struct {
 }
 
 // WaitForOneKubeadmControlPlaneMachineToExist will wait until all control plane machines have node refs.
-func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input WaitForOneKubeadmControlPlaneMachineToExistInput, intervals ...interface{}) {
+func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input WaitForOneKubeadmControlPlaneMachineToExistInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForOneKubeadmControlPlaneMachineToExist")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForOneKubeadmControlPlaneMachineToExist")
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil when calling WaitForOneKubeadmControlPlaneMachineToExist")
@@ -151,7 +152,7 @@ func WaitForOneKubeadmControlPlaneMachineToExist(ctx context.Context, input Wait
 			}
 		}
 		return count > 0, nil
-	}, intervals...).Should(BeTrue(), "No Control Plane machines came into existence. ")
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeTrue(), "No Control Plane machines came into existence. ")
 }
 
 // WaitForControlPlaneToBeReadyInput is the input for WaitForControlPlaneToBeReady.
@@ -161,7 +162,7 @@ type WaitForControlPlaneToBeReadyInput struct {
 }
 
 // WaitForControlPlaneToBeReady will wait for a control plane to be ready.
-func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlaneToBeReadyInput, intervals ...interface{}) {
+func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlaneToBeReadyInput, timeout, polling time.Duration) {
 	By("Waiting for the control plane to be ready")
 	controlplane := &controlplanev1.KubeadmControlPlane{}
 	Eventually(func() (controlplanev1.KubeadmControlPlane, error) {
@@ -173,7 +174,7 @@ func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlane
 			return *controlplane, errors.Wrapf(err, "failed to get KCP")
 		}
 		return *controlplane, nil
-	}, intervals...).Should(MatchFields(IgnoreExtras, Fields{
+	}).WithTimeout(timeout).WithPolling(polling).Should(MatchFields(IgnoreExtras, Fields{
 		"Status": MatchFields(IgnoreExtras, Fields{
 			"Ready": BeTrue(),
 		}),
@@ -230,7 +231,7 @@ type DiscoveryAndWaitForControlPlaneInitializedInput struct {
 }
 
 // DiscoveryAndWaitForControlPlaneInitialized discovers the KubeadmControlPlane object attached to a cluster and waits for it to be initialized.
-func DiscoveryAndWaitForControlPlaneInitialized(ctx context.Context, input DiscoveryAndWaitForControlPlaneInitializedInput, intervals ...interface{}) *controlplanev1.KubeadmControlPlane {
+func DiscoveryAndWaitForControlPlaneInitialized(ctx context.Context, input DiscoveryAndWaitForControlPlaneInitializedInput, timeout, polling time.Duration) *controlplanev1.KubeadmControlPlane {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForControlPlaneInitialized")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForControlPlaneInitialized")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForControlPlaneInitialized")
@@ -250,7 +251,7 @@ func DiscoveryAndWaitForControlPlaneInitialized(ctx context.Context, input Disco
 		Lister:       input.Lister,
 		Cluster:      input.Cluster,
 		ControlPlane: controlPlane,
-	}, intervals...)
+	}, timeout, polling)
 
 	return controlPlane
 }
@@ -263,7 +264,7 @@ type WaitForControlPlaneAndMachinesReadyInput struct {
 }
 
 // WaitForControlPlaneAndMachinesReady waits for a KubeadmControlPlane object to be ready (all the machine provisioned and one node ready).
-func WaitForControlPlaneAndMachinesReady(ctx context.Context, input WaitForControlPlaneAndMachinesReadyInput, intervals ...interface{}) {
+func WaitForControlPlaneAndMachinesReady(ctx context.Context, input WaitForControlPlaneAndMachinesReadyInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForControlPlaneReady")
 	Expect(input.GetLister).ToNot(BeNil(), "Invalid argument. input.GetLister can't be nil when calling WaitForControlPlaneReady")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForControlPlaneReady")
@@ -275,7 +276,7 @@ func WaitForControlPlaneAndMachinesReady(ctx context.Context, input WaitForContr
 			Lister:       input.GetLister,
 			Cluster:      input.Cluster,
 			ControlPlane: input.ControlPlane,
-		}, intervals...)
+		}, timeout, polling)
 	}
 
 	log.Logf("Waiting for control plane %s to be ready (implies underlying nodes to be ready as well)", klog.KObj(input.ControlPlane))
@@ -283,7 +284,7 @@ func WaitForControlPlaneAndMachinesReady(ctx context.Context, input WaitForContr
 		Getter:       input.GetLister,
 		ControlPlane: input.ControlPlane,
 	}
-	WaitForControlPlaneToBeReady(ctx, waitForControlPlaneToBeReadyInput, intervals...)
+	WaitForControlPlaneToBeReady(ctx, waitForControlPlaneToBeReadyInput, timeout, polling)
 
 	AssertControlPlaneFailureDomains(ctx, AssertControlPlaneFailureDomainsInput{
 		Lister:  input.GetLister,
@@ -342,28 +343,32 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 		return patchHelper.Patch(ctx, input.ControlPlane)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch the new kubernetes version to KCP %s", klog.KObj(input.ControlPlane))
 
+	i, j := InterfaceToDuration(input.WaitForMachinesToBeUpgraded)
 	log.Logf("Waiting for control-plane machines to have the upgraded kubernetes version")
 	WaitForControlPlaneMachinesToBeUpgraded(ctx, WaitForControlPlaneMachinesToBeUpgradedInput{
 		Lister:                   mgmtClient,
 		Cluster:                  input.Cluster,
 		MachineCount:             int(*input.ControlPlane.Spec.Replicas),
 		KubernetesUpgradeVersion: input.KubernetesUpgradeVersion,
-	}, input.WaitForMachinesToBeUpgraded...)
+	}, i, j)
 
+	i, j = InterfaceToDuration(input.WaitForKubeProxyUpgrade)
 	log.Logf("Waiting for kube-proxy to have the upgraded kubernetes version")
 	workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, input.Cluster.Namespace, input.Cluster.Name)
 	workloadClient := workloadCluster.GetClient()
 	WaitForKubeProxyUpgrade(ctx, WaitForKubeProxyUpgradeInput{
 		Getter:            workloadClient,
 		KubernetesVersion: input.KubernetesUpgradeVersion,
-	}, input.WaitForKubeProxyUpgrade...)
+	}, i, j)
 
+	i, j = InterfaceToDuration(input.WaitForDNSUpgrade)
 	log.Logf("Waiting for CoreDNS to have the upgraded image tag")
 	WaitForDNSUpgrade(ctx, WaitForDNSUpgradeInput{
 		Getter:     workloadClient,
 		DNSVersion: input.DNSImageTag,
-	}, input.WaitForDNSUpgrade...)
+	}, i, j)
 
+	i, j = InterfaceToDuration(input.WaitForEtcdUpgrade)
 	log.Logf("Waiting for etcd to have the upgraded image tag")
 	lblSelector, err := labels.Parse("component=etcd")
 	Expect(err).ToNot(HaveOccurred())
@@ -371,7 +376,7 @@ func UpgradeControlPlaneAndWaitForUpgrade(ctx context.Context, input UpgradeCont
 		Lister:      workloadClient,
 		ListOptions: &client.ListOptions{LabelSelector: lblSelector},
 		Condition:   EtcdImageTagCondition(input.EtcdImageTag, int(*input.ControlPlane.Spec.Replicas)),
-	}, input.WaitForEtcdUpgrade...)
+	}, i, j)
 }
 
 // controlPlaneMachineOptions returns a set of ListOptions that allows to get all machine objects belonging to control plane.
@@ -404,6 +409,7 @@ func ScaleAndWaitControlPlane(ctx context.Context, input ScaleAndWaitControlPlan
 		return patchHelper.Patch(ctx, input.ControlPlane)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to scale controlplane %s from %v to %v replicas", klog.KObj(input.ControlPlane), scaleBefore, input.Replicas)
 
+	i, j := InterfaceToDuration(input.WaitForControlPlane)
 	log.Logf("Waiting for correct number of replicas to exist")
 	Eventually(func() (int, error) {
 		kcpLabelSelector, err := metav1.ParseToLabelSelector(input.ControlPlane.Status.Selector)
@@ -429,5 +435,5 @@ func ScaleAndWaitControlPlane(ctx context.Context, input ScaleAndWaitControlPlan
 			return -1, errors.New("Machine count does not match existing nodes count")
 		}
 		return nodeRefCount, nil
-	}, input.WaitForControlPlane...).Should(Equal(int(input.Replicas)), "Timed out waiting for %d replicas to exist for control-plane %s", int(input.Replicas), klog.KObj(input.ControlPlane))
+	}, i, j).Should(Equal(int(input.Replicas)), "Timed out waiting for %d replicas to exist for control-plane %s", int(input.Replicas), klog.KObj(input.ControlPlane))
 }

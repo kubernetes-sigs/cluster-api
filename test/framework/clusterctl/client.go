@@ -24,6 +24,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -45,6 +46,30 @@ const (
 	// DefaultInfrastructureProvider for ConfigClusterInput; use it for using the only infrastructure provider installed in a cluster.
 	DefaultInfrastructureProvider = ""
 )
+
+func InterfaceToDuration(i ...interface{}) (time.Duration, time.Duration) {
+	timeout := 1 * time.Hour
+	polling := 6 * time.Minute
+
+	if len(i) > 0 {
+		switch i[0].(type) {
+		case string:
+			timeout, _ = time.ParseDuration(i[0].(string))
+		default:
+			fmt.Printf("%T, %v\n", i[0], i[0])
+		}
+	}
+	if len(i) == 2 {
+		switch i[1].(type) {
+		case string:
+			timeout, _ = time.ParseDuration(i[1].(string))
+		default:
+			fmt.Printf("%T, %v\n", i[1], i[1])
+		}
+	}
+
+	return timeout, polling
+}
 
 // InitInput is the input for Init.
 type InitInput struct {

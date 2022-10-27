@@ -237,6 +237,7 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 	controlPlaneTemplateRef.Name = newControlPlaneTemplateName
 	Expect(patchHelper.Patch(ctx, input.ClusterClass)).To(Succeed())
 
+	i, j := InterfaceToDuration(input.WaitForControlPlane)
 	// NOTE: We only wait until the change is rolled out to the control plane object and not to the control plane machines
 	// to speed up the test and focus the test on the ClusterClass feature.
 	log.Logf("Waiting for ControlPlane rollout to complete.")
@@ -257,7 +258,7 @@ func modifyControlPlaneViaClusterClassAndWait(ctx context.Context, input modifyC
 			}
 		}
 		return nil
-	}, input.WaitForControlPlane...).Should(BeNil())
+	}, i, j).Should(BeNil())
 }
 
 // modifyMachineDeploymentViaClusterClassAndWaitInput is the input type for modifyMachineDeploymentViaClusterClassAndWait.
@@ -281,6 +282,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 
 	mgmtClient := input.ClusterProxy.GetClient()
 
+	i, j := InterfaceToDuration(input.WaitForMachineDeployments)
 	for _, mdClass := range input.ClusterClass.Spec.Workers.MachineDeployments {
 		// Continue if the MachineDeploymentClass is not using a BootstrapConfigTemplate.
 		if mdClass.Template.Bootstrap.Ref == nil {
@@ -377,7 +379,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 					}
 				}
 				return nil
-			}, input.WaitForMachineDeployments...).Should(BeNil())
+			}, i, j).Should(BeNil())
 		}
 	}
 }
@@ -428,6 +430,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 	input.Cluster.Spec.Topology.Class = newClusterClassName
 	Expect(patchHelper.Patch(ctx, input.Cluster)).To(Succeed())
 
+	i, j := InterfaceToDuration(input.WaitForMachineDeployments)
 	log.Logf("Waiting for MachineDeployment rollout to complete.")
 	for _, mdTopology := range input.Cluster.Spec.Topology.Workers.MachineDeployments {
 		// NOTE: We only wait until the change is rolled out to the MachineDeployment objects and not to the worker machines
@@ -454,7 +457,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 			}
 
 			return nil
-		}, input.WaitForMachineDeployments...).Should(BeNil())
+		}, i, j).Should(BeNil())
 	}
 
 	// Verify that the ControlPlane has not been changed.
@@ -491,6 +494,7 @@ func deleteMachineDeploymentTopologyAndWait(ctx context.Context, input deleteMac
 	input.Cluster.Spec.Topology.Workers.MachineDeployments = input.Cluster.Spec.Topology.Workers.MachineDeployments[1:]
 	Expect(patchHelper.Patch(ctx, input.Cluster)).To(Succeed())
 
+	i, j := InterfaceToDuration(input.WaitForMachineDeployments)
 	log.Logf("Waiting for MachineDeployment to be deleted.")
 	Eventually(func() error {
 		// Get MachineDeployment for the current MachineDeploymentTopology.
@@ -502,5 +506,5 @@ func deleteMachineDeploymentTopologyAndWait(ctx context.Context, input deleteMac
 			return errors.Errorf("expected no MachineDeployment for topology %q, but got %d", mdTopologyToDelete.Name, len(mdList.Items))
 		}
 		return nil
-	}, input.WaitForMachineDeployments...).Should(BeNil())
+	}, i, j).Should(BeNil())
 }

@@ -12,7 +12,7 @@ run:
 linters:
   disable-all: true
   enable:
-  - asasalint
+  #- asasalint
   - asciicheck
   - bidichk
   - bodyclose

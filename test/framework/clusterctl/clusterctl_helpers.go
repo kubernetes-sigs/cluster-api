@@ -100,11 +100,12 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 		Lister: client,
 	})
 	Expect(controllersDeployments).ToNot(BeEmpty(), "The list of controller deployments should not be empty")
+	i, j := InterfaceToDuration(intervals)
 	for _, deployment := range controllersDeployments {
 		framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
 			Getter:     client,
 			Deployment: deployment,
-		}, intervals...)
+		}, i, j)
 
 		// Start streaming logs from all controller providers
 		framework.WatchDeploymentLogs(ctx, framework.WatchDeploymentLogsInput{
@@ -181,11 +182,12 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 		ExcludeNamespaces: []string{"capi-webhook-system"}, // this namespace has been dropped in v1alpha4; this ensures we are not waiting for deployments being deleted as part of the upgrade process
 	})
 	Expect(controllersDeployments).ToNot(BeEmpty(), "The list of controller deployments should not be empty")
+	i, j := InterfaceToDuration(intervals)
 	for _, deployment := range controllersDeployments {
 		framework.WaitForDeploymentsAvailable(ctx, framework.WaitForDeploymentsAvailableInput{
 			Getter:     client,
 			Deployment: deployment,
-		}, intervals...)
+		}, i, j)
 
 		// Start streaming logs from all controller providers
 		framework.WatchDeploymentLogs(ctx, framework.WatchDeploymentLogsInput{
@@ -316,11 +318,12 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	}
 
 	log.Logf("Waiting for the cluster infrastructure to be provisioned")
+	i, j := InterfaceToDuration(input.WaitForClusterIntervals)
 	result.Cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.ClusterProxy.GetClient(),
 		Namespace: input.ConfigCluster.Namespace,
 		Name:      input.ConfigCluster.ClusterName,
-	}, input.WaitForClusterIntervals...)
+	}, i, j)
 
 	if result.Cluster.Spec.Topology != nil {
 		result.ClusterClass = framework.GetClusterClassByName(ctx, framework.GetClusterClassByNameInput{
@@ -346,18 +349,20 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	log.Logf("Waiting for control plane to be ready")
 	input.WaitForControlPlaneMachinesReady(ctx, input, result)
 
+	i, j = InterfaceToDuration(input.WaitForMachineDeployments)
 	log.Logf("Waiting for the machine deployments to be provisioned")
 	result.MachineDeployments = framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{
 		Lister:  input.ClusterProxy.GetClient(),
 		Cluster: result.Cluster,
-	}, input.WaitForMachineDeployments...)
+	}, i, j)
 
+	i, j = InterfaceToDuration(input.WaitForMachinePools)
 	log.Logf("Waiting for the machine pools to be provisioned")
 	result.MachinePools = framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
 		Getter:  input.ClusterProxy.GetClient(),
 		Lister:  input.ClusterProxy.GetClient(),
 		Cluster: result.Cluster,
-	}, input.WaitForMachinePools...)
+	}, i, j)
 
 	if input.PostMachinesProvisioned != nil {
 		log.Logf("Calling PostMachinesProvisioned")
@@ -368,12 +373,13 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 // setDefaults sets the default values for ApplyClusterTemplateAndWaitInput if not set.
 // Currently, we set the default ControlPlaneWaiters here, which are implemented for KubeadmControlPlane.
 func setDefaults(input *ApplyClusterTemplateAndWaitInput) {
+	i, j := InterfaceToDuration(input.WaitForControlPlaneIntervals)
 	if input.WaitForControlPlaneInitialized == nil {
 		input.WaitForControlPlaneInitialized = func(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult) {
 			result.ControlPlane = framework.DiscoveryAndWaitForControlPlaneInitialized(ctx, framework.DiscoveryAndWaitForControlPlaneInitializedInput{
 				Lister:  input.ClusterProxy.GetClient(),
 				Cluster: result.Cluster,
-			}, input.WaitForControlPlaneIntervals...)
+			}, i, j)
 		}
 	}
 
@@ -383,7 +389,7 @@ func setDefaults(input *ApplyClusterTemplateAndWaitInput) {
 				GetLister:    input.ClusterProxy.GetClient(),
 				Cluster:      result.Cluster,
 				ControlPlane: result.ControlPlane,
-			}, input.WaitForControlPlaneIntervals...)
+			}, i, j)
 		}
 	}
 }

@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -40,7 +41,7 @@ type CreateClusterInput struct {
 }
 
 // CreateCluster will create the Cluster and InfraCluster objects.
-func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...interface{}) {
+func CreateCluster(ctx context.Context, input CreateClusterInput, timeout, polling time.Duration) {
 	By("creating an InfrastructureCluster resource")
 	Eventually(func() error {
 		return input.Creator.Create(ctx, input.InfraCluster)
@@ -56,7 +57,7 @@ func CreateCluster(ctx context.Context, input CreateClusterInput, intervals ...i
 			return err
 		}
 		return nil
-	}, intervals...).Should(Succeed(), "Failed to create Cluster %s", klog.KObj(input.Cluster))
+	}).WithTimeout(timeout).WithPolling(polling).Should(Succeed(), "Failed to create Cluster %s", klog.KObj(input.Cluster))
 }
 
 // GetAllClustersByNamespaceInput is the input for GetAllClustersByNamespace.
@@ -129,7 +130,7 @@ type WaitForClusterToProvisionInput struct {
 }
 
 // WaitForClusterToProvision will wait for a cluster to have a phase status of provisioned.
-func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvisionInput, intervals ...interface{}) *clusterv1.Cluster {
+func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvisionInput, timeout, polling time.Duration) *clusterv1.Cluster {
 	cluster := &clusterv1.Cluster{}
 	By("Waiting for cluster to enter the provisioned phase")
 	Eventually(func() (string, error) {
@@ -141,7 +142,7 @@ func WaitForClusterToProvision(ctx context.Context, input WaitForClusterToProvis
 			return "", err
 		}
 		return cluster.Status.Phase, nil
-	}, intervals...).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)), "Timed out waiting for Cluster %s to provision", klog.KObj(input.Cluster))
+	}).WithTimeout(timeout).WithPolling(polling).Should(Equal(string(clusterv1.ClusterPhaseProvisioned)), "Timed out waiting for Cluster %s to provision", klog.KObj(input.Cluster))
 	return cluster
 }
 
@@ -164,7 +165,7 @@ type WaitForClusterDeletedInput struct {
 }
 
 // WaitForClusterDeleted waits until the cluster object has been deleted.
-func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput, intervals ...interface{}) {
+func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput, timeout, polling time.Duration) {
 	Byf("Waiting for cluster %s to be deleted", input.Cluster.GetName())
 	Eventually(func() bool {
 		cluster := &clusterv1.Cluster{}
@@ -173,7 +174,7 @@ func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput
 			Name:      input.Cluster.GetName(),
 		}
 		return apierrors.IsNotFound(input.Getter.Get(ctx, key, cluster))
-	}, intervals...).Should(BeTrue())
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeTrue())
 }
 
 // DiscoveryAndWaitForClusterInput is the input type for DiscoveryAndWaitForCluster.
@@ -184,7 +185,7 @@ type DiscoveryAndWaitForClusterInput struct {
 }
 
 // DiscoveryAndWaitForCluster discovers a cluster object in a namespace and waits for the cluster infrastructure to be provisioned.
-func DiscoveryAndWaitForCluster(ctx context.Context, input DiscoveryAndWaitForClusterInput, intervals ...interface{}) *clusterv1.Cluster {
+func DiscoveryAndWaitForCluster(ctx context.Context, input DiscoveryAndWaitForClusterInput, timeout, polling time.Duration) *clusterv1.Cluster {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForCluster")
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling DiscoveryAndWaitForCluster")
 	Expect(input.Namespace).ToNot(BeNil(), "Invalid argument. input.Namespace can't be empty when calling DiscoveryAndWaitForCluster")
@@ -205,7 +206,7 @@ func DiscoveryAndWaitForCluster(ctx context.Context, input DiscoveryAndWaitForCl
 	cluster = WaitForClusterToProvision(ctx, WaitForClusterToProvisionInput{
 		Getter:  input.Getter,
 		Cluster: cluster,
-	}, intervals...)
+	}, timeout, polling)
 
 	return cluster
 }
@@ -217,7 +218,7 @@ type DeleteClusterAndWaitInput struct {
 }
 
 // DeleteClusterAndWait deletes a cluster object and waits for it to be gone.
-func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, intervals ...interface{}) {
+func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteClusterAndWait")
 	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling DeleteClusterAndWait")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DeleteClusterAndWait")
@@ -231,7 +232,7 @@ func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, 
 	WaitForClusterDeleted(ctx, WaitForClusterDeletedInput{
 		Getter:  input.Client,
 		Cluster: input.Cluster,
-	}, intervals...)
+	}, timeout, polling)
 
 	//TODO: consider if to move in another func (what if there are more than one cluster?)
 	log.Logf("Check for all the Cluster API resources being deleted")
@@ -250,7 +251,7 @@ type DeleteAllClustersAndWaitInput struct {
 }
 
 // DeleteAllClustersAndWait deletes a cluster object and waits for it to be gone.
-func DeleteAllClustersAndWait(ctx context.Context, input DeleteAllClustersAndWaitInput, intervals ...interface{}) {
+func DeleteAllClustersAndWait(ctx context.Context, input DeleteAllClustersAndWaitInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DeleteAllClustersAndWait")
 	Expect(input.Client).ToNot(BeNil(), "Invalid argument. input.Client can't be nil when calling DeleteAllClustersAndWait")
 	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling DeleteAllClustersAndWait")
@@ -272,7 +273,7 @@ func DeleteAllClustersAndWait(ctx context.Context, input DeleteAllClustersAndWai
 		WaitForClusterDeleted(ctx, WaitForClusterDeletedInput{
 			Getter:  input.Client,
 			Cluster: c,
-		}, intervals...)
+		}, timeout, polling)
 	}
 }
 

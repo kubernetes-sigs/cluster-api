@@ -81,12 +81,14 @@ func DiscoverMachineHealthChecksAndWaitForRemediation(ctx context.Context, input
 		})
 
 		fmt.Fprintln(GinkgoWriter, "Waiting for remediation")
+
+		i, j := InterfaceToDuration(input.WaitForMachineRemediation)
 		WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx, WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput{
 			ClusterProxy:       input.ClusterProxy,
 			Cluster:            input.Cluster,
 			MachineHealthCheck: mhc,
 			MachinesCount:      len(machines),
-		}, input.WaitForMachineRemediation...)
+		}, i, j)
 	}
 }
 
@@ -129,7 +131,7 @@ type WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput struct {
 }
 
 // WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition patches a node condition to any one of the machines with a node ref.
-func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Context, input WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput, intervals ...interface{}) {
+func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Context, input WaitForMachineHealthCheckToRemediateUnhealthyNodeConditionInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition")
@@ -165,7 +167,7 @@ func WaitForMachineHealthCheckToRemediateUnhealthyNodeCondition(ctx context.Cont
 			}
 		}
 		return true
-	}, intervals...).Should(BeTrue())
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeTrue())
 }
 
 // hasMatchingUnhealthyConditions returns true if any node condition matches with machine health check unhealthy conditions.

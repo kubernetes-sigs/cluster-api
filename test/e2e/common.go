@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"time"
 
 	"github.com/blang/semver"
 	. "github.com/onsi/ginkgo/v2"
@@ -79,6 +80,7 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 	})
 
 	if !skipCleanup {
+		i, j := InterfaceToDuration(intervalsGetter(specName, "wait-delete-cluster"))
 		Byf("Deleting cluster %s", klog.KObj(cluster))
 		// While https://github.com/kubernetes-sigs/cluster-api/issues/2955 is addressed in future iterations, there is a chance
 		// that cluster variable is not set even if the cluster exists, so we are calling DeleteAllClustersAndWait
@@ -86,13 +88,14 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 		framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
 			Client:    clusterProxy.GetClient(),
 			Namespace: namespace.Name,
-		}, intervalsGetter(specName, "wait-delete-cluster")...)
+		}, i, j)
 
+		i, j = InterfaceToDuration()
 		Byf("Deleting namespace used for hosting the %q test spec", specName)
 		framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
 			Deleter: clusterProxy.GetClient(),
 			Name:    namespace.Name,
-		})
+		}, i, j)
 	}
 	cancelWatches()
 }
@@ -117,4 +120,27 @@ func (m *validVersionMatcher) FailureMessage(_ interface{}) (message string) {
 
 func (m *validVersionMatcher) NegatedFailureMessage(_ interface{}) (message string) {
 	return fmt.Sprintf("Expected\n%s\n%s", m.version, " not to be a valid version ")
+}
+
+func InterfaceToDuration(i ...interface{}) (time.Duration, time.Duration) {
+	timeout := 1 * time.Hour
+	polling := 6 * time.Minute
+
+	if len(i) > 0 {
+		switch i[0].(type) {
+		case string:
+			timeout, _ = time.ParseDuration(i[0].(string))
+		default:
+			fmt.Printf("%T, %v\n", i[0], i[0])
+		}
+	}
+	if len(i) == 2 {
+		switch i[1].(type) {
+		case string:
+			timeout, _ = time.ParseDuration(i[1].(string))
+		default:
+			fmt.Printf("%T, %v\n", i[1], i[1])
+		}
+	}
+	return timeout, polling
 }

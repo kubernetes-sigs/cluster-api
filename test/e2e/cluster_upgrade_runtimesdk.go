@@ -149,6 +149,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 			Namespace: namespace.Name,
 		}
 
+		i, j := InterfaceToDuration(input.E2EConfig.GetIntervals(specName, "wait-cluster"))
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
@@ -167,7 +168,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 				beforeClusterCreateTestHandler(ctx,
 					input.BootstrapClusterProxy.GetClient(),
 					clusterRef,
-					input.E2EConfig.GetIntervals(specName, "wait-cluster"))
+					i, j)
 			},
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
@@ -177,6 +178,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 
 		// TODO: check if AfterControlPlaneInitialized has been called (or add this check to the operation above)
 
+		i, j = InterfaceToDuration(input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
 		// Upgrade the Cluster topology to run through an entire cluster lifecycle to test the lifecycle hooks.
 		By("Upgrading the Cluster topology; creation waits for BeforeClusterUpgradeHook and AfterControlPlaneUpgradeHook to gate the operation")
 		framework.UpgradeClusterTopologyAndWaitForUpgrade(ctx, framework.UpgradeClusterTopologyAndWaitForUpgradeInput{
@@ -194,14 +196,14 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 					input.BootstrapClusterProxy.GetClient(),
 					clusterRef,
 					input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-					input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
+					i, j)
 			},
 			PreWaitForMachineDeploymentToBeUpgraded: func() {
 				afterControlPlaneUpgradeTestHandler(ctx,
 					input.BootstrapClusterProxy.GetClient(),
 					clusterRef,
 					input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-					input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
+					i, j)
 			},
 		})
 
@@ -230,7 +232,8 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 		By("Dumping resources and deleting the workload cluster; deletion waits for BeforeClusterDeleteHook to gate the operation")
 		dumpAndDeleteCluster(ctx, input.BootstrapClusterProxy, namespace.Name, clusterName, input.ArtifactFolder)
 
-		beforeClusterDeleteHandler(ctx, input.BootstrapClusterProxy.GetClient(), clusterRef, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster"))
+		i, j = InterfaceToDuration(input.E2EConfig.GetIntervals(specName, "wait-delete-cluster"))
+		beforeClusterDeleteHandler(ctx, input.BootstrapClusterProxy.GetClient(), clusterRef, i, j)
 
 		By("Checking all lifecycle hooks have been called")
 		// Assert that each hook has been called and returned "Success" during the test.
@@ -331,7 +334,7 @@ func getLifecycleHookResponsesFromConfigMap(ctx context.Context, c client.Client
 
 // beforeClusterCreateTestHandler calls runtimeHookTestHandler with a blockedCondition function which returns false if
 // the Cluster has entered ClusterPhaseProvisioned.
-func beforeClusterCreateTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, intervals []interface{}) {
+func beforeClusterCreateTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, timeout, polling time.Duration) {
 	hookName := "BeforeClusterCreate"
 	runtimeHookTestHandler(ctx, c, cluster, hookName, true, func() bool {
 		blocked := true
@@ -343,12 +346,12 @@ func beforeClusterCreateTestHandler(ctx context.Context, c client.Client, cluste
 			blocked = false
 		}
 		return blocked
-	}, intervals)
+	}, timeout, polling)
 }
 
 // beforeClusterUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if
 // any of the machines in the control plane has been updated to the target Kubernetes version.
-func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, toVersion string, intervals []interface{}) {
+func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, toVersion string, timeout, polling time.Duration) {
 	hookName := "BeforeClusterUpgrade"
 	runtimeHookTestHandler(ctx, c, cluster, hookName, true, func() bool {
 		var blocked = true
@@ -361,12 +364,12 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, clust
 			}
 		}
 		return blocked
-	}, intervals)
+	}, timeout, polling)
 }
 
 // afterControlPlaneUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if any
 // MachineDeployment in the Cluster has upgraded to the target Kubernetes version.
-func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, version string, intervals []interface{}) {
+func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, version string, timeout, polling time.Duration) {
 	hookName := "AfterControlPlaneUpgrade"
 	runtimeHookTestHandler(ctx, c, cluster, hookName, true, func() bool {
 		var blocked = true
@@ -380,12 +383,12 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, c
 			}
 		}
 		return blocked
-	}, intervals)
+	}, timeout, polling)
 }
 
 // beforeClusterDeleteHandler calls runtimeHookTestHandler with a blocking function which returns false if the Cluster
 // can not be found in the API server.
-func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, intervals []interface{}) {
+func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, timeout, polling time.Duration) {
 	hookName := "BeforeClusterDelete"
 	runtimeHookTestHandler(ctx, c, cluster, hookName, false, func() bool {
 		var blocked = true
@@ -395,7 +398,7 @@ func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster ty
 			blocked = false
 		}
 		return blocked
-	}, intervals)
+	}, timeout, polling)
 }
 
 // runtimeHookTestHandler runs a series of tests in sequence to check if the runtimeHook passed to it succeeds.
@@ -406,7 +409,7 @@ func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster ty
 //
 // Note: runtimeHookTestHandler assumes that the hook passed to it is currently returning a blocking response.
 // Updating the response to be non-blocking happens inline in the function.
-func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, hookName string, withTopologyReconciledCondition bool, blockingCondition func() bool, intervals []interface{}) {
+func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, hookName string, withTopologyReconciledCondition bool, blockingCondition func() bool, timeout, polling time.Duration) {
 	log.Logf("Blocking with %s hook for 60 seconds after the hook has been called for the first time", hookName)
 
 	// Check that the LifecycleHook has been called at least once and - when required - that the TopologyReconciled condition is a Failure.
@@ -449,7 +452,7 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster types.
 	// Expect the Hook to pass, setting the blockingCondition to false before the timeout ends.
 	Eventually(func() bool {
 		return blockingCondition()
-	}, intervals...).Should(BeFalse(),
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeFalse(),
 		fmt.Sprintf("ClusterTopology reconcile did not proceed as expected when calling %s", hookName))
 }
 

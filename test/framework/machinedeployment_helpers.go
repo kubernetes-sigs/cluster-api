@@ -19,6 +19,7 @@ package framework
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -94,7 +95,7 @@ type WaitForMachineDeploymentNodesToExistInput struct {
 }
 
 // WaitForMachineDeploymentNodesToExist waits until all nodes associated with a machine deployment exist.
-func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMachineDeploymentNodesToExistInput, intervals ...interface{}) {
+func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMachineDeploymentNodesToExistInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineDeploymentNodesToExist")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling WaitForMachineDeploymentNodesToExist")
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentNodesToExist")
@@ -128,7 +129,7 @@ func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMach
 			}
 		}
 		return count, nil
-	}, intervals...).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)), "Timed out waiting for %d nodes to be created for MachineDeployment %s", int(*input.MachineDeployment.Spec.Replicas), klog.KObj(input.MachineDeployment))
+	}).WithTimeout(timeout).WithPolling(polling).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)), "Timed out waiting for %d nodes to be created for MachineDeployment %s", int(*input.MachineDeployment.Spec.Replicas), klog.KObj(input.MachineDeployment))
 }
 
 // AssertMachineDeploymentFailureDomainsInput is the input for AssertMachineDeploymentFailureDomains.
@@ -182,7 +183,7 @@ type DiscoveryAndWaitForMachineDeploymentsInput struct {
 }
 
 // DiscoveryAndWaitForMachineDeployments discovers the MachineDeployments existing in a cluster and waits for them to be ready (all the machine provisioned).
-func DiscoveryAndWaitForMachineDeployments(ctx context.Context, input DiscoveryAndWaitForMachineDeploymentsInput, intervals ...interface{}) []*clusterv1.MachineDeployment {
+func DiscoveryAndWaitForMachineDeployments(ctx context.Context, input DiscoveryAndWaitForMachineDeploymentsInput, timeout, polling time.Duration) []*clusterv1.MachineDeployment {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoveryAndWaitForMachineDeployments")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling DiscoveryAndWaitForMachineDeployments")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoveryAndWaitForMachineDeployments")
@@ -197,7 +198,7 @@ func DiscoveryAndWaitForMachineDeployments(ctx context.Context, input DiscoveryA
 			Lister:            input.Lister,
 			Cluster:           input.Cluster,
 			MachineDeployment: deployment,
-		}, intervals...)
+		}, timeout, polling)
 
 		AssertMachineDeploymentFailureDomains(ctx, AssertMachineDeploymentFailureDomainsInput{
 			Lister:            input.Lister,
@@ -244,13 +245,15 @@ func UpgradeMachineDeploymentsAndWait(ctx context.Context, input UpgradeMachineD
 
 		log.Logf("Waiting for Kubernetes versions of machines in MachineDeployment %s to be upgraded from %s to %s",
 			klog.KObj(deployment), *oldVersion, input.UpgradeVersion)
+
+		i, j := InterfaceToDuration(input.WaitForMachinesToBeUpgraded)
 		WaitForMachineDeploymentMachinesToBeUpgraded(ctx, WaitForMachineDeploymentMachinesToBeUpgradedInput{
 			Lister:                   mgmtClient,
 			Cluster:                  input.Cluster,
 			MachineCount:             int(*deployment.Spec.Replicas),
 			KubernetesUpgradeVersion: input.UpgradeVersion,
 			MachineDeployment:        *deployment,
-		}, input.WaitForMachinesToBeUpgraded...)
+		}, i, j)
 	}
 }
 
@@ -261,7 +264,7 @@ type WaitForMachineDeploymentRollingUpgradeToStartInput struct {
 }
 
 // WaitForMachineDeploymentRollingUpgradeToStart waits until rolling upgrade starts.
-func WaitForMachineDeploymentRollingUpgradeToStart(ctx context.Context, input WaitForMachineDeploymentRollingUpgradeToStartInput, intervals ...interface{}) {
+func WaitForMachineDeploymentRollingUpgradeToStart(ctx context.Context, input WaitForMachineDeploymentRollingUpgradeToStartInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineDeploymentRollingUpgradeToStart")
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachineDeploymentRollingUpgradeToStart")
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentRollingUpgradeToStarts")
@@ -271,7 +274,7 @@ func WaitForMachineDeploymentRollingUpgradeToStart(ctx context.Context, input Wa
 		md := &clusterv1.MachineDeployment{}
 		g.Expect(input.Getter.Get(ctx, client.ObjectKey{Namespace: input.MachineDeployment.Namespace, Name: input.MachineDeployment.Name}, md)).To(Succeed())
 		return md.Status.Replicas != md.Status.AvailableReplicas
-	}, intervals...).Should(BeTrue())
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeTrue())
 }
 
 // WaitForMachineDeploymentRollingUpgradeToCompleteInput is the input for WaitForMachineDeploymentRollingUpgradeToComplete.
@@ -281,7 +284,7 @@ type WaitForMachineDeploymentRollingUpgradeToCompleteInput struct {
 }
 
 // WaitForMachineDeploymentRollingUpgradeToComplete waits until rolling upgrade is complete.
-func WaitForMachineDeploymentRollingUpgradeToComplete(ctx context.Context, input WaitForMachineDeploymentRollingUpgradeToCompleteInput, intervals ...interface{}) {
+func WaitForMachineDeploymentRollingUpgradeToComplete(ctx context.Context, input WaitForMachineDeploymentRollingUpgradeToCompleteInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineDeploymentRollingUpgradeToComplete")
 	Expect(input.Getter).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachineDeploymentRollingUpgradeToComplete")
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentRollingUpgradeToComplete")
@@ -291,7 +294,7 @@ func WaitForMachineDeploymentRollingUpgradeToComplete(ctx context.Context, input
 		md := &clusterv1.MachineDeployment{}
 		g.Expect(input.Getter.Get(ctx, client.ObjectKey{Namespace: input.MachineDeployment.Namespace, Name: input.MachineDeployment.Name}, md)).To(Succeed())
 		return md.Status.Replicas == md.Status.AvailableReplicas
-	}, intervals...).Should(BeTrue())
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeTrue())
 }
 
 // UpgradeMachineDeploymentInfrastructureRefAndWaitInput is the input type for UpgradeMachineDeploymentInfrastructureRefAndWait.
@@ -343,17 +346,18 @@ func UpgradeMachineDeploymentInfrastructureRefAndWait(ctx context.Context, input
 			return patchHelper.Patch(ctx, deployment)
 		}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to patch new infrastructure ref to MachineDeployment %s", klog.KObj(deployment))
 
+		i, j := InterfaceToDuration(input.WaitForMachinesToBeUpgraded)
 		log.Logf("Waiting for rolling upgrade to start.")
 		WaitForMachineDeploymentRollingUpgradeToStart(ctx, WaitForMachineDeploymentRollingUpgradeToStartInput{
 			Getter:            mgmtClient,
 			MachineDeployment: deployment,
-		}, input.WaitForMachinesToBeUpgraded...)
+		}, i, j)
 
 		log.Logf("Waiting for rolling upgrade to complete.")
 		WaitForMachineDeploymentRollingUpgradeToComplete(ctx, WaitForMachineDeploymentRollingUpgradeToCompleteInput{
 			Getter:            mgmtClient,
 			MachineDeployment: deployment,
-		}, input.WaitForMachinesToBeUpgraded...)
+		}, i, j)
 	}
 }
 
@@ -387,6 +391,7 @@ func ScaleAndWaitMachineDeployment(ctx context.Context, input ScaleAndWaitMachin
 		return patchHelper.Patch(ctx, input.MachineDeployment)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to scale machine deployment %s", klog.KObj(input.MachineDeployment))
 
+	i, j := InterfaceToDuration(input.WaitForMachineDeployments)
 	log.Logf("Waiting for correct number of replicas to exist")
 	Eventually(func() (int, error) {
 		selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
@@ -419,7 +424,7 @@ func ScaleAndWaitMachineDeployment(ctx context.Context, input ScaleAndWaitMachin
 			return -1, errors.New("Machine count does not match existing nodes count")
 		}
 		return nodeRefCount, nil
-	}, input.WaitForMachineDeployments...).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)), "Timed out waiting for Machine Deployment %s to have %d replicas", klog.KObj(input.MachineDeployment), *input.MachineDeployment.Spec.Replicas)
+	}, i, j).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)), "Timed out waiting for Machine Deployment %s to have %d replicas", klog.KObj(input.MachineDeployment), *input.MachineDeployment.Spec.Replicas)
 }
 
 // ScaleAndWaitMachineDeploymentTopologyInput is the input for ScaleAndWaitMachineDeployment.
@@ -463,6 +468,7 @@ func ScaleAndWaitMachineDeploymentTopology(ctx context.Context, input ScaleAndWa
 	Expect(deploymentList.Items).To(HaveLen(1))
 	md := deploymentList.Items[0]
 
+	i, j := InterfaceToDuration(input.WaitForMachineDeployments)
 	Eventually(func() (int, error) {
 		selectorMap, err := metav1.LabelSelectorAsMap(&md.Spec.Selector)
 		if err != nil {
@@ -494,5 +500,5 @@ func ScaleAndWaitMachineDeploymentTopology(ctx context.Context, input ScaleAndWa
 			return -1, errors.New("Machine count does not match existing nodes count")
 		}
 		return nodeRefCount, nil
-	}, input.WaitForMachineDeployments...).Should(Equal(int(*md.Spec.Replicas)), "Timed out waiting for Machine Deployment %s to have %d replicas", klog.KObj(&md), *md.Spec.Replicas)
+	}, i, j).Should(Equal(int(*md.Spec.Replicas)), "Timed out waiting for Machine Deployment %s to have %d replicas", klog.KObj(&md), *md.Spec.Replicas)
 }

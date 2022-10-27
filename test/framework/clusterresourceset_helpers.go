@@ -19,6 +19,7 @@ package framework
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -74,7 +75,7 @@ type DiscoverClusterResourceSetAndWaitForSuccessInput struct {
 }
 
 // DiscoverClusterResourceSetAndWaitForSuccess patches a ClusterResourceSet label to the cluster and waits for resources to be created in that cluster.
-func DiscoverClusterResourceSetAndWaitForSuccess(ctx context.Context, input DiscoverClusterResourceSetAndWaitForSuccessInput, intervals ...interface{}) {
+func DiscoverClusterResourceSetAndWaitForSuccess(ctx context.Context, input DiscoverClusterResourceSetAndWaitForSuccessInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DiscoverClusterResourceSetAndWaitForSuccess")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling DiscoverClusterResourceSetAndWaitForSuccess")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling DiscoverClusterResourceSetAndWaitForSuccess")
@@ -104,7 +105,7 @@ func DiscoverClusterResourceSetAndWaitForSuccess(ctx context.Context, input Disc
 			ClusterProxy:       input.ClusterProxy,
 			Cluster:            input.Cluster,
 			ClusterResourceSet: crs,
-		}, intervals...)
+		}, timeout, polling)
 	}
 }
 
@@ -116,7 +117,7 @@ type WaitForClusterResourceSetToApplyResourcesInput struct {
 }
 
 // WaitForClusterResourceSetToApplyResources wait until all ClusterResourceSet resources are created in the matching cluster.
-func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitForClusterResourceSetToApplyResourcesInput, intervals ...interface{}) {
+func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitForClusterResourceSetToApplyResourcesInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForClusterResourceSetToApplyResources")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling WaitForClusterResourceSetToApplyResources")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForClusterResourceSetToApplyResources")
@@ -127,7 +128,7 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 		binding := &addonsv1.ClusterResourceSetBinding{}
 		err := input.ClusterProxy.GetClient().Get(ctx, types.NamespacedName{Name: input.Cluster.Name, Namespace: input.Cluster.Namespace}, binding)
 		return err == nil
-	}, intervals...).Should(BeTrue())
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeTrue())
 
 	fmt.Fprintln(GinkgoWriter, "Waiting until the resource is created in the workload cluster")
 	Eventually(func() bool {
@@ -155,5 +156,5 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 			}
 		}
 		return true
-	}, intervals...).Should(BeTrue())
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeTrue())
 }

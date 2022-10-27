@@ -227,11 +227,12 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		})
 
 		log.Logf("Waiting for the cluster to be reconciled after moving to self hosted")
+		timeout, polling := InterfaceToDuration(input.E2EConfig.GetIntervals(specName, "wait-cluster"))
 		selfHostedCluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 			Getter:    selfHostedClusterProxy.GetClient(),
 			Namespace: selfHostedNamespace.Name,
 			Name:      cluster.Name,
-		}, input.E2EConfig.GetIntervals(specName, "wait-cluster")...)
+		}, timeout, polling)
 
 		controlPlane := framework.GetKubeadmControlPlaneByCluster(ctx, framework.GetKubeadmControlPlaneByClusterInput{
 			Lister:      selfHostedClusterProxy.GetClient(),
@@ -378,11 +379,12 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			})
 
 			log.Logf("Waiting for the cluster to be reconciled after moving back to bootstrap")
+			timeout, polling := InterfaceToDuration(input.E2EConfig.GetIntervals(specName, "wait-cluster"))
 			clusterResources.Cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 				Getter:    input.BootstrapClusterProxy.GetClient(),
 				Namespace: namespace.Name,
 				Name:      clusterResources.Cluster.Name,
-			}, input.E2EConfig.GetIntervals(specName, "wait-cluster")...)
+			}, timeout, polling)
 		}
 		if selfHostedCancelWatches != nil {
 			selfHostedCancelWatches()

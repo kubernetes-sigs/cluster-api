@@ -23,6 +23,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -164,14 +165,14 @@ type CreateRelatedResourcesInput struct {
 }
 
 // CreateRelatedResources is used to create runtime.Objects.
-func CreateRelatedResources(ctx context.Context, input CreateRelatedResourcesInput, intervals ...interface{}) {
+func CreateRelatedResources(ctx context.Context, input CreateRelatedResourcesInput, timeout, polling time.Duration) {
 	By("creating related resources")
 	for i := range input.RelatedResources {
 		obj := input.RelatedResources[i]
 		Byf("creating a/an %s resource", obj.GetObjectKind().GroupVersionKind())
 		Eventually(func() error {
 			return input.Creator.Create(ctx, obj)
-		}, intervals...).Should(Succeed(), "failed to create %s", obj.GetObjectKind().GroupVersionKind())
+		}).WithTimeout(timeout).WithPolling(polling).Should(Succeed(), "failed to create %s", obj.GetObjectKind().GroupVersionKind())
 	}
 }
 
@@ -182,4 +183,28 @@ func PrettyPrint(v interface{}) string {
 		return err.Error()
 	}
 	return string(b)
+}
+
+func InterfaceToDuration(i ...interface{}) (time.Duration, time.Duration) {
+	timeout := 1 * time.Hour
+	polling := 6 * time.Minute
+
+	if len(i) > 0 {
+		switch i[0].(type) {
+		case string:
+			timeout, _ = time.ParseDuration(i[0].(string))
+		default:
+			fmt.Printf("%T, %v\n", i[0], i[0])
+		}
+	}
+	if len(i) == 2 {
+		switch i[1].(type) {
+		case string:
+			timeout, _ = time.ParseDuration(i[1].(string))
+		default:
+			fmt.Printf("%T, %v\n", i[1], i[1])
+		}
+	}
+
+	return timeout, polling
 }

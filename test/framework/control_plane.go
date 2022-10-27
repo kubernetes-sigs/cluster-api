@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -33,7 +34,7 @@ type WaitForControlPlaneToBeUpToDateInput struct {
 }
 
 // WaitForControlPlaneToBeUpToDate will wait for a control plane to be fully up-to-date.
-func WaitForControlPlaneToBeUpToDate(ctx context.Context, input WaitForControlPlaneToBeUpToDateInput, intervals ...interface{}) {
+func WaitForControlPlaneToBeUpToDate(ctx context.Context, input WaitForControlPlaneToBeUpToDateInput, timeout, polling time.Duration) {
 	By("Waiting for the control plane to be ready")
 	Eventually(func() (int32, error) {
 		controlplane := &controlplanev1.KubeadmControlPlane{}
@@ -45,5 +46,5 @@ func WaitForControlPlaneToBeUpToDate(ctx context.Context, input WaitForControlPl
 			return 0, err
 		}
 		return controlplane.Status.UpdatedReplicas, nil
-	}, intervals...).Should(Equal(*input.ControlPlane.Spec.Replicas), "Timed waiting for all control plane replicas to be updated")
+	}).WithTimeout(timeout).WithPolling(polling).Should(Equal(*input.ControlPlane.Spec.Replicas), "Timed waiting for all control plane replicas to be updated")
 }

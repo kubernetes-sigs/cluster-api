@@ -62,7 +62,7 @@ type WaitForDeploymentsAvailableInput struct {
 // WaitForDeploymentsAvailable waits until the Deployment has status.Available = True, that signals that
 // all the desired replicas are in place.
 // This can be used to check if Cluster API controllers installed in the management cluster are working.
-func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAvailableInput, intervals ...interface{}) {
+func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAvailableInput, timeout, polling time.Duration) {
 	Byf("Waiting for deployment %s to be available", klog.KObj(input.Deployment))
 	deployment := &appsv1.Deployment{}
 	Eventually(func() bool {
@@ -79,7 +79,7 @@ func WaitForDeploymentsAvailable(ctx context.Context, input WaitForDeploymentsAv
 			}
 		}
 		return false
-	}, intervals...).Should(BeTrue(), func() string { return DescribeFailedDeployment(input, deployment) })
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeTrue(), func() string { return DescribeFailedDeployment(input, deployment) })
 }
 
 // DescribeFailedDeployment returns detailed output to help debug a deployment failure in e2e.
@@ -272,7 +272,7 @@ type WaitForDNSUpgradeInput struct {
 
 // WaitForDNSUpgrade waits until CoreDNS version matches with the CoreDNS upgrade version and all its replicas
 // are ready for use with the upgraded version. This is called during KCP upgrade.
-func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, intervals ...interface{}) {
+func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, timeout, polling time.Duration) {
 	By("Ensuring CoreDNS has the correct image")
 
 	Eventually(func() (bool, error) {
@@ -296,7 +296,7 @@ func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, interv
 		}
 
 		return false, nil
-	}, intervals...).Should(BeTrue())
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeTrue())
 }
 
 type DeployUnevictablePodInput struct {
@@ -452,10 +452,11 @@ func DeployUnevictablePod(ctx context.Context, input DeployUnevictablePodInput) 
 		})
 	}
 
+	i, j := InterfaceToDuration(input.WaitForDeploymentAvailableInterval)
 	WaitForDeploymentsAvailable(ctx, WaitForDeploymentsAvailableInput{
 		Getter:     input.WorkloadClusterProxy.GetClient(),
 		Deployment: workloadDeployment,
-	}, input.WaitForDeploymentAvailableInterval...)
+	}, i, j)
 }
 
 type AddDeploymentToWorkloadClusterInput struct {

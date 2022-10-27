@@ -19,6 +19,7 @@ package framework
 import (
 	"context"
 	"strings"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -38,7 +39,7 @@ type WaitForPodListConditionInput struct {
 
 // WaitForPodListCondition waits for the specified condition to be true for all
 // pods returned from the list filter.
-func WaitForPodListCondition(ctx context.Context, input WaitForPodListConditionInput, intervals ...interface{}) {
+func WaitForPodListCondition(ctx context.Context, input WaitForPodListConditionInput, timeout, polling time.Duration) {
 	Eventually(func() (bool, error) {
 		podList := &corev1.PodList{}
 		if err := input.Lister.List(ctx, podList, input.ListOptions); err != nil {
@@ -51,7 +52,7 @@ func WaitForPodListCondition(ctx context.Context, input WaitForPodListConditionI
 			return false, err
 		}
 		return true, nil
-	}, intervals...).Should(BeTrue())
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeTrue())
 }
 
 // EtcdImageTagCondition returns a podListCondition that ensures the pod image

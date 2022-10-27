@@ -18,6 +18,7 @@ package framework
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -122,7 +123,7 @@ type WaitForControlPlaneMachinesToBeUpgradedInput struct {
 }
 
 // WaitForControlPlaneMachinesToBeUpgraded waits until all machines are upgraded to the correct Kubernetes version.
-func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForControlPlaneMachinesToBeUpgradedInput, intervals ...interface{}) {
+func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForControlPlaneMachinesToBeUpgradedInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForControlPlaneMachinesToBeUpgraded")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling WaitForControlPlaneMachinesToBeUpgraded")
 	Expect(input.KubernetesUpgradeVersion).ToNot(BeEmpty(), "Invalid argument. input.KubernetesUpgradeVersion can't be empty when calling WaitForControlPlaneMachinesToBeUpgraded")
@@ -148,7 +149,7 @@ func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForC
 			return 0, errors.New("old nodes remain")
 		}
 		return upgraded, nil
-	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all control-plane machines in Cluster %s to be upgraded to kubernetes version %s", klog.KObj(input.Cluster), input.KubernetesUpgradeVersion)
+	}).WithTimeout(timeout).WithPolling(polling).Should(Equal(input.MachineCount), "Timed out waiting for all control-plane machines in Cluster %s to be upgraded to kubernetes version %s", klog.KObj(input.Cluster), input.KubernetesUpgradeVersion)
 }
 
 // WaitForMachineDeploymentMachinesToBeUpgradedInput is the input for WaitForMachineDeploymentMachinesToBeUpgraded.
@@ -161,7 +162,7 @@ type WaitForMachineDeploymentMachinesToBeUpgradedInput struct {
 }
 
 // WaitForMachineDeploymentMachinesToBeUpgraded waits until all machines belonging to a MachineDeployment are upgraded to the correct kubernetes version.
-func WaitForMachineDeploymentMachinesToBeUpgraded(ctx context.Context, input WaitForMachineDeploymentMachinesToBeUpgradedInput, intervals ...interface{}) {
+func WaitForMachineDeploymentMachinesToBeUpgraded(ctx context.Context, input WaitForMachineDeploymentMachinesToBeUpgradedInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineDeploymentMachinesToBeUpgraded")
 	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Getter can't be nil when calling WaitForMachineDeploymentMachinesToBeUpgraded")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling WaitForMachineDeploymentMachinesToBeUpgraded")
@@ -188,7 +189,7 @@ func WaitForMachineDeploymentMachinesToBeUpgraded(ctx context.Context, input Wai
 			return 0, errors.New("old nodes remain")
 		}
 		return upgraded, nil
-	}, intervals...).Should(Equal(input.MachineCount), "Timed out waiting for all MachineDeployment %s Machines to be upgraded to kubernetes version %s", klog.KObj(&input.MachineDeployment), input.KubernetesUpgradeVersion)
+	}).WithTimeout(timeout).WithPolling(polling).Should(Equal(input.MachineCount), "Timed out waiting for all MachineDeployment %s Machines to be upgraded to kubernetes version %s", klog.KObj(&input.MachineDeployment), input.KubernetesUpgradeVersion)
 }
 
 // PatchNodeConditionInput is the input for PatchNodeCondition.
@@ -232,7 +233,7 @@ type WaitForMachineStatusCheckInput struct {
 }
 
 // WaitForMachineStatusCheck waits for the specified status to be true for the machine.
-func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCheckInput, intervals ...interface{}) {
+func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCheckInput, timeout, polling time.Duration) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for WaitForMachineStatusCheck")
 	Expect(input.Machine).ToNot(BeNil(), "Invalid argument. input.Machine can't be nil when calling WaitForMachineStatusCheck")
 	Expect(input.StatusChecks).ToNot(BeEmpty(), "Invalid argument. input.StatusCheck can't be empty when calling WaitForMachineStatusCheck")
@@ -253,7 +254,7 @@ func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCh
 			}
 		}
 		return true, nil
-	}, intervals...).Should(BeTrue())
+	}).WithTimeout(timeout).WithPolling(polling).Should(BeTrue())
 }
 
 // MachineNodeRefCheck is a MachineStatusCheck ensuring that a NodeRef is assigned to the machine.

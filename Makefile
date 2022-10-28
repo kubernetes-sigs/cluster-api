@@ -46,6 +46,9 @@ export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?= 60s
 # This option is for running docker manifest command
 export DOCKER_CLI_EXPERIMENTAL := enabled
 
+# Enables shell script tracing. Enable by running: TRACE=1 make <target>
+TRACE ?= 0
+
 #
 # Directories.
 #
@@ -556,7 +559,7 @@ lint-fix: $(GOLANGCI_LINT) ## Lint the codebase and run auto-fixers if supported
 
 .PHONY: tiltfile-fix
 tiltfile-fix: ## Format the Tiltfile
-	./hack/verify-starlark.sh fix
+	TRACE=$(TRACE) ./hack/verify-starlark.sh fix
 
 APIDIFF_OLD_COMMIT ?= $(shell git rev-parse origin/main)
 
@@ -593,23 +596,23 @@ verify-conversions: $(CONVERSION_VERIFIER)  ## Verifies expected API conversion 
 
 .PHONY: verify-doctoc
 verify-doctoc:
-	./hack/verify-doctoc.sh
+	TRACE=$(TRACE) ./hack/verify-doctoc.sh
 
 .PHONY: verify-capi-book-summary
 verify-capi-book-summary:
-	./hack/verify-capi-book-summary.sh
+	TRACE=$(TRACE) ./hack/verify-capi-book-summary.sh
 
 .PHONY: verify-boilerplate
 verify-boilerplate: ## Verify boilerplate text exists in each file
-	./hack/verify-boilerplate.sh
+	TRACE=$(TRACE) ./hack/verify-boilerplate.sh
 
 .PHONY: verify-shellcheck
 verify-shellcheck: ## Verify shell files
-	./hack/verify-shellcheck.sh
+	TRACE=$(TRACE) ./hack/verify-shellcheck.sh
 
 .PHONY: verify-tiltfile
 verify-tiltfile: ## Verify Tiltfile format
-	./hack/verify-starlark.sh
+	TRACE=$(TRACE) ./hack/verify-starlark.sh
 
 ## --------------------------------------
 ## Binaries

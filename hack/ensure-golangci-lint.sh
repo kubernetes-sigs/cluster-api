@@ -18,6 +18,10 @@
 
 set -e
 
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
 usage() {
   this=$1
   cat <<EOF
@@ -42,12 +46,11 @@ parse_args() {
   # over-ridden by flag below
 
   BINDIR=${BINDIR:-./bin}
-  while getopts "b:dh?x" arg; do
+  while getopts "b:dh?" arg; do
     case "$arg" in
       b) BINDIR="$OPTARG" ;;
       d) log_set_priority 10 ;;
       h | \?) usage "$0" ;;
-      x) set -x ;;
     esac
   done
   shift $((OPTIND - 1))

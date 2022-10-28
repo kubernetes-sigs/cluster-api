@@ -18,6 +18,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
 REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 
 YQ_BIN=yq

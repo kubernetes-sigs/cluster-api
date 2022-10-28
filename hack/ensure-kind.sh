@@ -18,7 +18,9 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-set -x
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
 
 GOPATH_BIN="$(go env GOPATH)/bin"
 MINIMUM_KIND_VERSION=v0.16.0

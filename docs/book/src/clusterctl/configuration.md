@@ -105,7 +105,7 @@ You may want to migrate to a user-managed cert-manager further down the line, af
 
 `clusterctl` looks for the label `clusterctl.cluster.x-k8s.io/core=cert-manager` on all api resources in the `cert-manager` namespace. If it finds the label, `clusterctl` will manage the cert-manager deployment. You can list all the resources with that label by running:
 ```bash
-kubectl get all -A --selector=clusterctl.cluster.x-k8s.io/core=cert-manager
+kubectl api-resources --verbs=list -o name | xargs -n 1 kubectl get --show-kind --ignore-not-found -A --selector=clusterctl.cluster.x-k8s.io/core=cert-manager
 ```
 
 If you want to manage and install your own cert-manager, you'll need to remove this label from all API resources.

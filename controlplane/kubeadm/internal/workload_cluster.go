@@ -87,7 +87,7 @@ var (
 
 	// minKubernetesVersionImageRegistryMigration is first kubernetes version where
 	// the default image registry is registry.k8s.io instead of k8s.gcr.io.
-	minKubernetesVersionImageRegistryMigration = semver.MustParse("1.25.0")
+	minKubernetesVersionImageRegistryMigration = semver.MustParse("1.22.0")
 
 	// nextKubernetesVersionImageRegistryMigration is the next minor version after
 	// the default image registry changed to registry.k8s.io.
@@ -624,10 +624,10 @@ func yamlToUnstructured(rawYAML []byte) (*unstructured.Unstructured, error) {
 
 // ImageRepositoryFromClusterConfig returns the image repository to use. It returns:
 // * clusterConfig.ImageRepository if set.
-// * "registry.k8s.io" if v1.25 <= version < v1.26 to migrate to the new registry
+// * "registry.k8s.io" if v1.22 <= version < v1.26 to migrate to the new registry
 // * "" otherwise.
-// Beginning with kubernetes v1.25, the default registry for kubernetes is registry.k8s.io
-// instead of k8s.gcr.io which is why references should get migrated when upgrading to v1.25.
+// Beginning with kubernetes v1.22, the default registry for kubernetes is registry.k8s.io
+// instead of k8s.gcr.io which is why references should get migrated when upgrading to v1.22.
 // The migration follows the behavior of `kubeadm upgrade`.
 func ImageRepositoryFromClusterConfig(clusterConfig *bootstrapv1.ClusterConfiguration, kubernetesVersion semver.Version) string {
 	// If ImageRepository is explicitly specified, return early.
@@ -636,7 +636,7 @@ func ImageRepositoryFromClusterConfig(clusterConfig *bootstrapv1.ClusterConfigur
 		return clusterConfig.ImageRepository
 	}
 
-	// If v1.25 <= version < v1.26 return the default Kubernetes image repository to
+	// If v1.22 <= version < v1.26 return the default Kubernetes image repository to
 	// migrate to the new location and not cause changes else.
 	if kubernetesVersion.GTE(minKubernetesVersionImageRegistryMigration) &&
 		kubernetesVersion.LT(nextKubernetesVersionImageRegistryMigration) {

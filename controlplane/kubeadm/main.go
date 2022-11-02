@@ -53,6 +53,7 @@ import (
 	kubeadmcontrolplanecontrollers "sigs.k8s.io/cluster-api/controlplane/kubeadm/controllers"
 	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
 
@@ -89,6 +90,7 @@ var (
 	webhookCertDir                 string
 	healthAddr                     string
 	etcdDialTimeout                time.Duration
+	tlsOptions                     = flags.TLSOptions{}
 	logOptions                     = logs.NewOptions()
 )
 
@@ -139,6 +141,8 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.DurationVar(&etcdDialTimeout, "etcd-dial-timeout-duration", 10*time.Second,
 		"Duration that the etcd client waits at most to establish a connection with etcd")
 
+	flags.AddTLSOptions(fs, &tlsOptions)
+
 	feature.MutableGates.AddFlag(fs)
 }
 func main() {
@@ -169,6 +173,13 @@ func main() {
 
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-kubeadm-control-plane-manager")
+
+	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	if err != nil {
+		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		os.Exit(1)
+	}
+
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                     scheme,
 		MetricsBindAddress:         metricsBindAddr,
@@ -187,6 +198,7 @@ func main() {
 		Port:                   webhookPort,
 		HealthProbeBindAddress: healthAddr,
 		CertDir:                webhookCertDir,
+		TLSOpts:                tlsOptionOverrides,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

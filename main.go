@@ -67,6 +67,7 @@ import (
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
+	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
@@ -99,6 +100,7 @@ var (
 	webhookPort                   int
 	webhookCertDir                string
 	healthAddr                    string
+	tlsOptions                    = flags.TLSOptions{}
 	logOptions                    = logs.NewOptions()
 )
 
@@ -198,6 +200,8 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
+	flags.AddTLSOptions(fs, &tlsOptions)
+
 	feature.MutableGates.AddFlag(fs)
 }
 
@@ -240,6 +244,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	if err != nil {
+		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		os.Exit(1)
+	}
+
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                     scheme,
 		MetricsBindAddress:         metricsBindAddr,
@@ -258,6 +268,7 @@ func main() {
 		Port:                   webhookPort,
 		CertDir:                webhookCertDir,
 		HealthProbeBindAddress: healthAddr,
+		TLSOpts:                tlsOptionOverrides,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

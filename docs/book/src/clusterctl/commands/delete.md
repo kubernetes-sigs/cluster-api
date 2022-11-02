@@ -33,7 +33,7 @@ the aws provider, it deletes all the `AWSCluster`, `AWSMachine` etc.
 
 </aside>
 
-If you want to delete all the providers in a single operation , you can use the `--all` flag.
+If you want to delete all the providers in a single operation, you can use the `--all` flag.
 
 ```bash
 clusterctl delete --all

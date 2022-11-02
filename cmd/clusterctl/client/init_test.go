@@ -81,7 +81,7 @@ func Test_clusterctlClient_InitImages(t *testing.T) {
 				kubeconfigContext:      "mgmt-context",
 			},
 			expectedImages: []string{
-				"k8s.gcr.io/cluster-api-aws/cluster-api-aws-controller:v0.5.3",
+				"registry.k8s.io/cluster-api-aws/cluster-api-aws-controller:v0.5.3",
 			},
 			wantErr: false,
 		},
@@ -854,7 +854,7 @@ spec:
   template:
     spec:
       containers:
-      - image: k8s.gcr.io/cluster-api-aws/cluster-api-aws-controller:v0.5.3
+      - image: registry.k8s.io/cluster-api-aws/cluster-api-aws-controller:v0.5.3
         name: manager
         volumeMounts:
         - mountPath: /home/.aws

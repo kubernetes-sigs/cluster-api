@@ -85,7 +85,7 @@ func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 					ClusterName: "kcp-managed-etcd",
 					DNS: bootstrapv1.DNS{
 						ImageMeta: bootstrapv1.ImageMeta{
-							ImageRepository: "k8s.gcr.io/coredns",
+							ImageRepository: "registry.k8s.io/coredns",
 							ImageTag:        "1.6.5",
 						},
 					},

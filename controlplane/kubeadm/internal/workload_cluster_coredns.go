@@ -231,7 +231,9 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 		return nil, err
 	}
 
-	// Handle the renaming of the upstream image from "k8s.gcr.io/coredns" to "k8s.gcr.io/coredns/coredns"
+	// Handle the renaming of the upstream image from:
+	// * "registry.k8s.io/coredns" to "registry.k8s.io/coredns/coredns" or
+	// * "k8s.gcr.io/coredns" to "k8s.gcr.io/coredns/coredns"
 	toImageName := parsedImage.Name
 	if (toImageRepository == oldKubernetesImageRepository || toImageRepository == kubernetesImageRepository) &&
 		toImageName == oldCoreDNSImageName && targetMajorMinorPatch.GTE(semver.MustParse("1.8.0")) {

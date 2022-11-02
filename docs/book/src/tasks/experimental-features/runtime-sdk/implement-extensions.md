@@ -212,7 +212,7 @@ synchronously.
 ### Availability
 
 Runtime Extension failure could result in errors in handling the workload clusters lifecycle, and so the implementation
-should be robust, have proper error handling, avoid panics, etc.. . Failure policies can be set up to mitigate the
+should be robust, have proper error handling, avoid panics, etc. Failure policies can be set up to mitigate the
 negative impact of a Runtime Extension on the Cluster API Runtime, but this option can’t be used in all cases
 (see [Error Management](#error-management)).
 

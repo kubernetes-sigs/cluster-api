@@ -473,7 +473,7 @@ func (o *objectMover) fromDirectory(graph *objectGraph, toProxy Proxy) error {
 	}
 
 	// Resume reconciling the Clusters after being restored from a directory.
-	// By default, when moved to a directory , Clusters are paused, so they must be unpaused to be used again.
+	// By default, when moved to a directory, Clusters are paused, so they must be unpaused to be used again.
 	log.V(1).Info("Resuming the target cluster")
 	return setClusterPause(toProxy, clusters, false, o.dryRun)
 }

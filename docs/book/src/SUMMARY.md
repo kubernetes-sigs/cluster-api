@@ -109,3 +109,4 @@
     - [Code Review in Cluster API](./REVIEWING.md)
     - [Version Support](./reference/versions.md)
     - [Roadmap](./roadmap.md)
+    - [Supported Labels and Annotations](./reference/labels_and_annotations.md)

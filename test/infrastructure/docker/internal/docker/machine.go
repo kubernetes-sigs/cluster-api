@@ -297,19 +297,19 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 
 		err = containerRuntime.SaveContainerImage(ctx, image, imageTarPath)
 		if err != nil {
-			return errors.Wrap(err, "failed to save image")
+			return errors.Wrapf(err, "failed to save image %q to %q", image, imageTarPath)
 		}
 
 		f, err := os.Open(imageTarPath)
 		if err != nil {
-			return errors.Wrap(err, "failed to open image")
+			return errors.Wrapf(err, "failed to open image %q from %q", image, imageTarPath)
 		}
 		defer f.Close() //nolint:gocritic // No resource leak.
 
 		ps := m.container.Commander.Command("ctr", "--namespace=k8s.io", "images", "import", "-")
 		ps.SetStdin(f)
 		if err := ps.Run(ctx); err != nil {
-			return errors.Wrap(err, "failed to load image")
+			return errors.Wrapf(err, "failed to load image %q", image)
 		}
 	}
 	return nil

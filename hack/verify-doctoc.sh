@@ -18,6 +18,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
 command -v doctoc || echo "doctoc is not available on your system, skipping verification" && exit 0
 
 doctoc_files="README.md \

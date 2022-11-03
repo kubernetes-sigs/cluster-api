@@ -18,6 +18,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
 # Ensure the go tool exists and is a viable version.
 verify_go_version() {
   if [[ -z "$(command -v go)" ]]; then

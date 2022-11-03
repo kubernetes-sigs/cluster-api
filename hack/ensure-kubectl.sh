@@ -18,6 +18,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
 GOPATH_BIN="$(go env GOPATH)/bin/"
 MINIMUM_KUBECTL_VERSION=v1.19.0
 goarch="$(go env GOARCH)"

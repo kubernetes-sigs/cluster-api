@@ -26,6 +26,10 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
+if [[ "${TRACE-0}" == "1" ]]; then
+    set -o xtrace
+fi
+
 KIND_CLUSTER_NAME=${CAPI_KIND_CLUSTER_NAME:-"capi-test"}
 
 if [[ "$(kind get clusters)" =~ .*"${KIND_CLUSTER_NAME}".* ]]; then

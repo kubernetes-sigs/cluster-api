@@ -82,8 +82,12 @@ type tiltSettings struct {
 }
 
 type providerSettings struct {
-	Name    string  `json:"name,omitempty"`
-	Context *string `json:"context"`
+	Name   string          `json:"name,omitempty"`
+	Config *providerConfig `json:"config,omitempty"`
+}
+
+type providerConfig struct {
+	Context *string `json:"context,omitempty"`
 }
 
 type debugConfig struct {
@@ -309,8 +313,8 @@ func loadProviders(r string) (map[string]string, error) {
 
 	providerContexts := map[string]string{}
 	for _, p := range providerData {
-		if p.Context != nil {
-			contextPath = r + "/" + *p.Context
+		if p.Config != nil && p.Config.Context != nil {
+			contextPath = r + "/" + *p.Config.Context
 		} else {
 			contextPath = r
 		}

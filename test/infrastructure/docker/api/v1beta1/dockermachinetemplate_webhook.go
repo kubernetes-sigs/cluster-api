@@ -49,7 +49,7 @@ type DockerMachineTemplateWebhook struct{}
 var _ webhook.CustomValidator = &DockerMachineTemplateWebhook{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (*DockerMachineTemplateWebhook) ValidateCreate(ctx context.Context, _ runtime.Object) error {
+func (*DockerMachineTemplateWebhook) ValidateCreate(_ context.Context, _ runtime.Object) error {
 	return nil
 }
 
@@ -81,6 +81,6 @@ func (*DockerMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw 
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (*DockerMachineTemplateWebhook) ValidateDelete(ctx context.Context, _ runtime.Object) error {
+func (*DockerMachineTemplateWebhook) ValidateDelete(_ context.Context, _ runtime.Object) error {
 	return nil
 }

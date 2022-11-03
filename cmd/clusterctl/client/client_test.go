@@ -38,7 +38,7 @@ import (
 )
 
 // TestNewFakeClient is a fake test to document fakeClient usage.
-func TestNewFakeClient(t *testing.T) {
+func TestNewFakeClient(_ *testing.T) {
 	// create a fake config with a provider named P1 and a variable named var
 	repository1Config := config.NewProvider("p1", "url", clusterctlv1.CoreProviderType)
 

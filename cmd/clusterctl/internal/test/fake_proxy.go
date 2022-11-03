@@ -136,11 +136,11 @@ func (f *FakeProxy) ListResources(labels map[string]string, namespaces ...string
 	return ret, nil
 }
 
-func (f *FakeProxy) GetContexts(prefix string) ([]string, error) {
+func (f *FakeProxy) GetContexts(_ string) ([]string, error) {
 	return nil, nil
 }
 
-func (f *FakeProxy) GetResourceNames(groupVersion, kind string, options []client.ListOption, prefix string) ([]string, error) {
+func (f *FakeProxy) GetResourceNames(_, _ string, _ []client.ListOption, _ string) ([]string, error) {
 	return nil, nil
 }
 

@@ -82,12 +82,12 @@ func clusterConfigurationFuzzer(obj *upstreamv1beta1.ClusterConfiguration, c fuz
 	obj.UseHyperKubeImage = false
 }
 
-func kubeadmBootstrapTokenStringFuzzerV1UpstreamBeta1(in *upstreamv1beta1.BootstrapTokenString, c fuzz.Continue) {
+func kubeadmBootstrapTokenStringFuzzerV1UpstreamBeta1(in *upstreamv1beta1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }
 
-func kubeadmBootstrapTokenStringFuzzerV1Beta1(in *bootstrapv1.BootstrapTokenString, c fuzz.Continue) {
+func kubeadmBootstrapTokenStringFuzzerV1Beta1(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }

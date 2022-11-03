@@ -631,9 +631,9 @@ func filterObjects(objs []*unstructured.Unstructured, gvks ...schema.GroupVersio
 
 type noOpRecorder struct{}
 
-func (nr *noOpRecorder) Event(_ runtime.Object, _, _, _ string)                       {}
-func (nr *noOpRecorder) Eventf(_ runtime.Object, _, _, _ string, args ...interface{}) {}
-func (nr *noOpRecorder) AnnotatedEventf(_ runtime.Object, _ map[string]string, _, _, _ string, args ...interface{}) {
+func (nr *noOpRecorder) Event(_ runtime.Object, _, _, _ string)                    {}
+func (nr *noOpRecorder) Eventf(_ runtime.Object, _, _, _ string, _ ...interface{}) {}
+func (nr *noOpRecorder) AnnotatedEventf(_ runtime.Object, _ map[string]string, _, _, _ string, _ ...interface{}) {
 }
 
 func objToRef(o *unstructured.Unstructured) *corev1.ObjectReference {

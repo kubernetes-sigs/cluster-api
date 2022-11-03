@@ -55,34 +55,34 @@ func NewFakeClient() (Runtime, error) {
 }
 
 // SaveContainerImage saves a Docker image to the file specified by dest.
-func (f *FakeRuntime) SaveContainerImage(ctx context.Context, image, dest string) error {
+func (f *FakeRuntime) SaveContainerImage(_ context.Context, _, _ string) error {
 	return nil
 }
 
 // PullContainerImageIfNotExists triggers the Docker engine to pull an image, but only if it doesn't
 // already exist. This is important when we're using locally built images in CI which
 // do not exist remotely.
-func (f *FakeRuntime) PullContainerImageIfNotExists(ctx context.Context, image string) error {
+func (f *FakeRuntime) PullContainerImageIfNotExists(_ context.Context, _ string) error {
 	return nil
 }
 
 // PullContainerImage triggers the Docker engine to pull an image.
-func (f *FakeRuntime) PullContainerImage(ctx context.Context, image string) error {
+func (f *FakeRuntime) PullContainerImage(_ context.Context, _ string) error {
 	return nil
 }
 
 // ImageExistsLocally returns if the specified image exists in local container image cache.
-func (f *FakeRuntime) ImageExistsLocally(ctx context.Context, image string) (bool, error) {
+func (f *FakeRuntime) ImageExistsLocally(_ context.Context, _ string) (bool, error) {
 	return false, nil
 }
 
 // GetHostPort looks up the host port bound for the port and protocol (e.g. "6443/tcp").
-func (f *FakeRuntime) GetHostPort(ctx context.Context, containerName, portAndProtocol string) (string, error) {
+func (f *FakeRuntime) GetHostPort(_ context.Context, _, _ string) (string, error) {
 	return "", nil
 }
 
 // ExecContainer executes a command in a running container and writes any output to the provided writer.
-func (f *FakeRuntime) ExecContainer(ctx context.Context, containerName string, config *ExecContainerInput, command string, args ...string) error {
+func (f *FakeRuntime) ExecContainer(_ context.Context, containerName string, config *ExecContainerInput, command string, args ...string) error {
 	execContainerCallLog = append(execContainerCallLog, ExecContainerArgs{
 		ContainerName: containerName,
 		Config:        config,
@@ -104,12 +104,12 @@ func (f *FakeRuntime) ResetExecContainerCallLogs() {
 }
 
 // ListContainers returns a list of all containers.
-func (f *FakeRuntime) ListContainers(ctx context.Context, filters FilterBuilder) ([]Container, error) {
+func (f *FakeRuntime) ListContainers(_ context.Context, _ FilterBuilder) ([]Container, error) {
 	return []Container{}, nil
 }
 
 // DeleteContainer will remove a container, forcing removal if still running.
-func (f *FakeRuntime) DeleteContainer(ctx context.Context, containerName string) error {
+func (f *FakeRuntime) DeleteContainer(_ context.Context, containerName string) error {
 	deleteContainerCallLog = append(deleteContainerCallLog, containerName)
 	return nil
 }
@@ -125,7 +125,7 @@ func (f *FakeRuntime) ResetDeleteContainerCallLogs() {
 }
 
 // KillContainer will kill a running container with the specified signal.
-func (f *FakeRuntime) KillContainer(ctx context.Context, containerName, signal string) error {
+func (f *FakeRuntime) KillContainer(_ context.Context, containerName, signal string) error {
 	killContainerCallLog = append(killContainerCallLog, KillContainerArgs{
 		Container: containerName,
 		Signal:    signal,
@@ -146,17 +146,17 @@ func (f *FakeRuntime) ResetKillContainerCallLogs() {
 // GetContainerIPs inspects a container to get its IPv4 and IPv6 IP addresses.
 // Will not error if there is no IP address assigned. Calling code will need to
 // determine whether that is an issue or not.
-func (f *FakeRuntime) GetContainerIPs(ctx context.Context, containerName string) (string, string, error) {
+func (f *FakeRuntime) GetContainerIPs(_ context.Context, containerName string) (string, string, error) {
 	return containerName + "IPv4", containerName + "IPv6", nil
 }
 
 // ContainerDebugInfo gets the container metadata and logs from the runtime (docker inspect, docker logs).
-func (f *FakeRuntime) ContainerDebugInfo(ctx context.Context, containerName string, w io.Writer) error {
+func (f *FakeRuntime) ContainerDebugInfo(_ context.Context, _ string, _ io.Writer) error {
 	return nil
 }
 
 // RunContainer will run a docker container with the given settings and arguments, returning any errors.
-func (f *FakeRuntime) RunContainer(ctx context.Context, runConfig *RunContainerInput, output io.Writer) error {
+func (f *FakeRuntime) RunContainer(_ context.Context, runConfig *RunContainerInput, output io.Writer) error {
 	runContainerCallLog = append(runContainerCallLog, RunContainerArgs{runConfig, output})
 	return nil
 }

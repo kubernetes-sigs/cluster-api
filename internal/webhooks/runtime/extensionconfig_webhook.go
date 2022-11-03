@@ -53,7 +53,7 @@ var _ webhook.CustomValidator = &ExtensionConfig{}
 var _ webhook.CustomDefaulter = &ExtensionConfig{}
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
-func (webhook *ExtensionConfig) Default(ctx context.Context, obj runtime.Object) error {
+func (webhook *ExtensionConfig) Default(_ context.Context, obj runtime.Object) error {
 	extensionConfig, ok := obj.(*runtimev1.ExtensionConfig)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected an ExtensionConfig but got a %T", obj))

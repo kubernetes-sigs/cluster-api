@@ -49,7 +49,7 @@ type LoadE2EConfigInput struct {
 }
 
 // LoadE2EConfig loads the configuration for the e2e test environment.
-func LoadE2EConfig(ctx context.Context, input LoadE2EConfigInput) *E2EConfig {
+func LoadE2EConfig(_ context.Context, input LoadE2EConfigInput) *E2EConfig {
 	configData, err := os.ReadFile(input.ConfigPath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to read the e2e test config file")
 	Expect(configData).ToNot(BeEmpty(), "The e2e test config file should not be empty")

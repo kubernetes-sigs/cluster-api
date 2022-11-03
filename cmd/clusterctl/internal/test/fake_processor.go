@@ -44,22 +44,22 @@ func (fp *FakeProcessor) WithProcessErr(e error) *FakeProcessor {
 	return fp
 }
 
-func (fp *FakeProcessor) GetTemplateName(version, flavor string) string {
+func (fp *FakeProcessor) GetTemplateName(_, _ string) string {
 	return fp.artifactName
 }
 
-func (fp *FakeProcessor) GetClusterClassTemplateName(version, name string) string {
+func (fp *FakeProcessor) GetClusterClassTemplateName(_, name string) string {
 	return fmt.Sprintf("clusterclass-%s.yaml", name)
 }
 
-func (fp *FakeProcessor) GetVariables(raw []byte) ([]string, error) {
+func (fp *FakeProcessor) GetVariables(_ []byte) ([]string, error) {
 	return nil, fp.errGetVariables
 }
 
-func (fp *FakeProcessor) GetVariableMap(raw []byte) (map[string]*string, error) {
+func (fp *FakeProcessor) GetVariableMap(_ []byte) (map[string]*string, error) {
 	return nil, fp.errGetVariableMap
 }
 
-func (fp *FakeProcessor) Process(raw []byte, variablesGetter func(string) (string, error)) ([]byte, error) {
+func (fp *FakeProcessor) Process(_ []byte, _ func(string) (string, error)) ([]byte, error) {
 	return nil, fp.errProcess
 }

@@ -161,7 +161,7 @@ func (d *dockerRuntime) GetHostPort(ctx context.Context, containerName, portAndP
 }
 
 // ExecContainer executes a command in a running container and writes any output to the provided writer.
-func (d *dockerRuntime) ExecContainer(ctxd context.Context, containerName string, config *ExecContainerInput, command string, args ...string) error {
+func (d *dockerRuntime) ExecContainer(_ context.Context, containerName string, config *ExecContainerInput, command string, args ...string) error {
 	ctx := context.Background() // Let the command finish, even if it takes longer than the default timeout
 	execConfig := types.ExecConfig{
 		// Run with privileges so we can remount etc..

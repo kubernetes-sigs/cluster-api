@@ -62,7 +62,7 @@ func (webhook *IPAddress) ValidateCreate(ctx context.Context, obj runtime.Object
 }
 
 // ValidateUpdate implements webhook.CustomValidator.
-func (webhook *IPAddress) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+func (webhook *IPAddress) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) error {
 	oldIP, ok := oldObj.(*ipamv1.IPAddress)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected an IPAddress but got a %T", oldObj))
@@ -79,7 +79,7 @@ func (webhook *IPAddress) ValidateUpdate(ctx context.Context, oldObj, newObj run
 }
 
 // ValidateDelete implements webhook.CustomValidator.
-func (webhook *IPAddress) ValidateDelete(ctx context.Context, obj runtime.Object) error {
+func (webhook *IPAddress) ValidateDelete(_ context.Context, _ runtime.Object) error {
 	return nil
 }
 

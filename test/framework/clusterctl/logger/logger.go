@@ -35,14 +35,14 @@ type logger struct {
 
 var _ logr.LogSink = &logger{}
 
-func (l *logger) Init(info logr.RuntimeInfo) {
+func (l *logger) Init(_ logr.RuntimeInfo) {
 }
 
-func (l *logger) Enabled(level int) bool {
+func (l *logger) Enabled(_ int) bool {
 	return true
 }
 
-func (l *logger) Info(level int, msg string, kvs ...interface{}) {
+func (l *logger) Info(_ int, msg string, kvs ...interface{}) {
 	values := copySlice(l.values)
 	values = append(values, kvs...)
 	values = append(values, "msg", msg)
@@ -53,16 +53,16 @@ func (l *logger) Info(level int, msg string, kvs ...interface{}) {
 	fmt.Fprintln(l.writer, f)
 }
 
-func (l *logger) Error(err error, msg string, kvs ...interface{}) {
+func (l *logger) Error(_ error, _ string, _ ...interface{}) {
 	panic("using log.Error is deprecated in clusterctl")
 }
 
-func (l *logger) V(level int) logr.LogSink {
+func (l *logger) V(_ int) logr.LogSink {
 	nl := l.clone()
 	return nl
 }
 
-func (l *logger) WithName(name string) logr.LogSink {
+func (l *logger) WithName(_ string) logr.LogSink {
 	panic("using log.WithName is deprecated in clusterctl")
 }
 

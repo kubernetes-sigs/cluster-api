@@ -84,7 +84,7 @@ func (d *Dialer) DialContextWithAddr(ctx context.Context, addr string) (net.Conn
 
 // DialContext creates proxied port-forwarded connections.
 // ctx is currently unused, but fulfils the type signature used by GRPC.
-func (d *Dialer) DialContext(_ context.Context, network string, addr string) (net.Conn, error) {
+func (d *Dialer) DialContext(_ context.Context, _ string, addr string) (net.Conn, error) {
 	req := d.clientset.CoreV1().RESTClient().
 		Post().
 		Resource(d.proxy.Kind).

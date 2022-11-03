@@ -70,7 +70,7 @@ func (c *KubeadmConfig) ValidateCreate() error {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *KubeadmConfig) ValidateUpdate(old runtime.Object) error {
+func (c *KubeadmConfig) ValidateUpdate(_ runtime.Object) error {
 	return c.Spec.validate(c.Name)
 }
 

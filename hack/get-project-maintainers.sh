@@ -27,4 +27,4 @@ cd "${REPO_ROOT}" && make ${YQ_BIN} >/dev/null
 
 KEYS=()
 while IFS='' read -r line; do KEYS+=("$line"); done < <(${YQ_PATH} e '.aliases["cluster-api-maintainers"][]' OWNERS_ALIASES)
-echo "${KEYS[@]/#/@}"
+echo "${KEYS[@]/#/@} @cluster-api-release-team"

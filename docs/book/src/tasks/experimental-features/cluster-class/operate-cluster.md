@@ -199,7 +199,7 @@ Running the patch makes the following change to the Cluster yaml:
      topology:
        variables:
        - name: imageRepository
-         value: k8s.gcr.io
+         value: registry.k8s.io
        - name: etcdImageTag
          value: ""
        - name: coreDNSImageTag

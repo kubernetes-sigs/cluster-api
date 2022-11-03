@@ -21,9 +21,84 @@ import (
 
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 func TestInfrastructureCluster(t *testing.T) {
+	obj := &unstructured.Unstructured{Object: map[string]interface{}{}}
+
+	t.Run("Manages status.ready", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(InfrastructureCluster().Ready().Path()).To(Equal(Path{"status", "ready"}))
+
+		err := InfrastructureCluster().Ready().Set(obj, true)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := InfrastructureCluster().Ready().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal(true))
+	})
+	t.Run("Manages optional status.failureReason", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(InfrastructureCluster().FailureReason().Path()).To(Equal(Path{"status", "failureReason"}))
+
+		err := InfrastructureCluster().FailureReason().Set(obj, "fake-reason")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := InfrastructureCluster().FailureReason().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal("fake-reason"))
+	})
+	t.Run("Manages optional status.failureMessage", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(InfrastructureCluster().FailureMessage().Path()).To(Equal(Path{"status", "failureMessage"}))
+
+		err := InfrastructureCluster().FailureMessage().Set(obj, "fake-message")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := InfrastructureCluster().FailureMessage().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal("fake-message"))
+	})
+	t.Run("Manages optional status.failureDomains", func(t *testing.T) {
+		g := NewWithT(t)
+
+		failureDomains := clusterv1.FailureDomains{
+			"domain1": clusterv1.FailureDomainSpec{
+				ControlPlane: true,
+				Attributes: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+				},
+			},
+			"domain2": clusterv1.FailureDomainSpec{
+				ControlPlane: false,
+				Attributes: map[string]string{
+					"key3": "value3",
+					"key4": "value4",
+				},
+			},
+		}
+		g.Expect(InfrastructureCluster().FailureDomains().Path()).To(Equal(Path{"status", "failureDomains"}))
+
+		err := InfrastructureCluster().FailureDomains().Set(obj, failureDomains)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := InfrastructureCluster().FailureDomains().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal(failureDomains))
+	})
+}
+
+func TestInfrastructureClusterControlPlaneEndpoint(t *testing.T) {
 	tests := []struct {
 		name                  string
 		infrastructureCluster *unstructured.Unstructured

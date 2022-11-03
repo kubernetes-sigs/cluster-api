@@ -56,6 +56,32 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(Equal("1.2.3"))
 	})
+	t.Run("Manages status.ready", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(ControlPlane().Ready().Path()).To(Equal(Path{"status", "ready"}))
+
+		err := ControlPlane().Ready().Set(obj, true)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		got, err := ControlPlane().Ready().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal(true))
+	})
+	t.Run("Manages status.initialized", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(ControlPlane().Initialized().Path()).To(Equal(Path{"status", "initialized"}))
+
+		err := ControlPlane().Initialized().Set(obj, true)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		got, err := ControlPlane().Initialized().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal(true))
+	})
 	t.Run("Manages spec.replicas", func(t *testing.T) {
 		g := NewWithT(t)
 
@@ -107,6 +133,32 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
 		g.Expect(*got).To(Equal(int64(3)))
+	})
+	t.Run("Manages status.unavailableReplicas", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(ControlPlane().UnavailableReplicas().Path()).To(Equal(Path{"status", "unavailableReplicas"}))
+
+		err := ControlPlane().UnavailableReplicas().Set(obj, int64(3))
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().UnavailableReplicas().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal(int64(3)))
+	})
+	t.Run("Manages status.selector", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(ControlPlane().Selector().Path()).To(Equal(Path{"status", "selector"}))
+
+		err := ControlPlane().Selector().Set(obj, "my-selector")
+		g.Expect(err).ToNot(HaveOccurred())
+
+		got, err := ControlPlane().Selector().Get(obj)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(got).ToNot(BeNil())
+		g.Expect(*got).To(Equal("my-selector"))
 	})
 	t.Run("Manages spec.machineTemplate.infrastructureRef", func(t *testing.T) {
 		g := NewWithT(t)

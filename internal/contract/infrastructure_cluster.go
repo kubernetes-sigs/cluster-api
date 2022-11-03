@@ -17,14 +17,18 @@ limitations under the License.
 package contract
 
 import (
+	"encoding/json"
+	"strings"
 	"sync"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // InfrastructureClusterContract encodes information about the Cluster API contract for InfrastructureCluster objects
-// like e.g the DockerCluster, AWS Cluster etc.
+// like DockerClusters, AWS Clusters, etc.
 type InfrastructureClusterContract struct{}
 
 var infrastructureCluster *InfrastructureClusterContract
@@ -61,6 +65,34 @@ func (c *InfrastructureClusterControlPlaneEndpoint) Port() *Int64 {
 	}
 }
 
+// Ready provides access to the status.ready field in an InfrastructureCluster object.
+func (c *InfrastructureClusterContract) Ready() *Bool {
+	return &Bool{
+		path: []string{"status", "ready"},
+	}
+}
+
+// FailureReason provides access to the status.failureReason field in an InfrastructureCluster object. Note that this field is optional.
+func (c *InfrastructureClusterContract) FailureReason() *String {
+	return &String{
+		path: []string{"status", "failureReason"},
+	}
+}
+
+// FailureMessage provides access to the status.failureMessage field in an InfrastructureCluster object. Note that this field is optional.
+func (c *InfrastructureClusterContract) FailureMessage() *String {
+	return &String{
+		path: []string{"status", "failureMessage"},
+	}
+}
+
+// FailureDomains provides access to the status.failureDomains field in an InfrastructureCluster object. Note that this field is optional.
+func (c *InfrastructureClusterContract) FailureDomains() *FailureDomains {
+	return &FailureDomains{
+		path: []string{"status", "failureDomains"},
+	}
+}
+
 // IgnorePaths returns a list of paths to be ignored when reconciling an InfrastructureCluster.
 // NOTE: The controlPlaneEndpoint struct currently contains two mandatory fields (host and port).
 // As the host and port fields are not using omitempty, they are automatically set to their zero values
@@ -86,4 +118,55 @@ func (c *InfrastructureClusterContract) IgnorePaths(infrastructureCluster *unstr
 	}
 
 	return ignorePaths, nil
+}
+
+// FailureDomains represents an accessor to a clusterv1.FailureDomains path value.
+type FailureDomains struct {
+	path Path
+}
+
+// Path returns the path to the clusterv1.FailureDomains value.
+func (d *FailureDomains) Path() Path {
+	return d.path
+}
+
+// Get gets the metav1.MachineAddressList value.
+func (d *FailureDomains) Get(obj *unstructured.Unstructured) (*clusterv1.FailureDomains, error) {
+	domainMap, ok, err := unstructured.NestedMap(obj.UnstructuredContent(), d.path...)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(d.path, "."))
+	}
+	if !ok {
+		return nil, errors.Wrapf(errNotFound, "path %s", "."+strings.Join(d.path, "."))
+	}
+
+	domains := make(clusterv1.FailureDomains, len(domainMap))
+	s, err := json.Marshal(domainMap)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to marshall field at %s to json", "."+strings.Join(d.path, "."))
+	}
+	err = json.Unmarshal(s, &domains)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshall field at %s to json", "."+strings.Join(d.path, "."))
+	}
+
+	return &domains, nil
+}
+
+// Set sets the clusterv1.FailureDomains value in the path.
+func (d *FailureDomains) Set(obj *unstructured.Unstructured, values clusterv1.FailureDomains) error {
+	domains := make(map[string]interface{}, len(values))
+	s, err := json.Marshal(values)
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshall supplied values to json for path %s", "."+strings.Join(d.path, "."))
+	}
+	err = json.Unmarshal(s, &domains)
+	if err != nil {
+		return errors.Wrapf(err, "failed to unmarshall supplied values to json for path %s", "."+strings.Join(d.path, "."))
+	}
+
+	if err := unstructured.SetNestedField(obj.UnstructuredContent(), domains, d.path...); err != nil {
+		return errors.Wrapf(err, "failed to set path %s of object %v", "."+strings.Join(d.path, "."), obj.GroupVersionKind())
+	}
+	return nil
 }

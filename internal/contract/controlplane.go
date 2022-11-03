@@ -49,7 +49,7 @@ func (c *ControlPlaneContract) MachineTemplate() *ControlPlaneMachineTemplate {
 	return &ControlPlaneMachineTemplate{}
 }
 
-// Version provide access to version field  in a ControlPlane object, if any.
+// Version provide access to version field in a ControlPlane object, if any.
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
 // do support a field in the type definition from the fact that a field is not set in a given instance.
 // This is why in we are deriving if version is required from the ClusterClass in the topology reconciler code.
@@ -59,14 +59,28 @@ func (c *ControlPlaneContract) Version() *String {
 	}
 }
 
-// StatusVersion provide access to version field  in a ControlPlane object status, if any.
+// StatusVersion provide access to the version field in a ControlPlane object status, if any.
 func (c *ControlPlaneContract) StatusVersion() *String {
 	return &String{
 		path: []string{"status", "version"},
 	}
 }
 
-// Replicas provide access to replicas field  in a ControlPlane object, if any.
+// Ready provide access to the status.ready field in a ControlPlane object.
+func (c *ControlPlaneContract) Ready() *Bool {
+	return &Bool{
+		path: []string{"status", "ready"},
+	}
+}
+
+// Initialized provide access to status.initialized field in a ControlPlane object.
+func (c *ControlPlaneContract) Initialized() *Bool {
+	return &Bool{
+		path: []string{"status", "initialized"},
+	}
+}
+
+// Replicas provide access to replicas field in a ControlPlane object, if any.
 // NOTE: When working with unstructured there is no way to understand if the ControlPlane provider
 // do support a field in the type definition from the fact that a field is not set in a given instance.
 // This is why in we are deriving if replicas is required from the ClusterClass in the topology reconciler code.
@@ -76,24 +90,60 @@ func (c *ControlPlaneContract) Replicas() *Int64 {
 	}
 }
 
-// StatusReplicas provide access to status.replicas field  in a ControlPlane object, if any.
+// StatusReplicas provide access to the status.replicas field in a ControlPlane object, if any. Applies to implementations using replicas.
 func (c *ControlPlaneContract) StatusReplicas() *Int64 {
 	return &Int64{
 		path: []string{"status", "replicas"},
 	}
 }
 
-// UpdatedReplicas provide access to status.updatedReplicas field  in a ControlPlane object, if any.
+// UpdatedReplicas provide access to the status.updatedReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
 func (c *ControlPlaneContract) UpdatedReplicas() *Int64 {
 	return &Int64{
 		path: []string{"status", "updatedReplicas"},
 	}
 }
 
-// ReadyReplicas provide access to status.readyReplicas field  in a ControlPlane object, if any.
+// ReadyReplicas provide access to the status.readyReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
 func (c *ControlPlaneContract) ReadyReplicas() *Int64 {
 	return &Int64{
 		path: []string{"status", "readyReplicas"},
+	}
+}
+
+// UnavailableReplicas provide access to the status.unavailableReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
+func (c *ControlPlaneContract) UnavailableReplicas() *Int64 {
+	return &Int64{
+		path: []string{"status", "unavailableReplicas"},
+	}
+}
+
+// Selector provide access to the status.selector field in a ControlPlane object, if any. Applies to implementations using replicas.
+func (c *ControlPlaneContract) Selector() *String {
+	return &String{
+		path: []string{"status", "selector"},
+	}
+}
+
+// FailureReason provides access to the status.failureReason field in an ControlPlane object. Note that this field is optional.
+func (c *ControlPlaneContract) FailureReason() *String {
+	return &String{
+		path: []string{"status", "failureReason"},
+	}
+}
+
+// FailureMessage provides access to the status.failureMessage field in an ControlPlane object. Note that this field is optional.
+func (c *ControlPlaneContract) FailureMessage() *String {
+	return &String{
+		path: []string{"status", "failureMessage"},
+	}
+}
+
+// ExternalManagedControlPlane provides access to the status.externalManagedControlPlane field in an ControlPlane object.
+// Note that this field is optional.
+func (c *ControlPlaneContract) ExternalManagedControlPlane() *Bool {
+	return &Bool{
+		path: []string{"status", "externalManagedControlPlane"},
 	}
 }
 

@@ -1213,7 +1213,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 				},
 			},
 			{
-				name: "rename to coredns/coredns when upgrading to coredns=1.8.0 and kubernetesVersion=1.24.0",
+				name: "rename to coredns/coredns when upgrading to coredns=1.8.0 and kubernetesVersion=1.21.0",
 				objs: []client.Object{newCoreDNSInfoDeploymentWithimage(image162), cm},
 				clusterConfig: &bootstrapv1.ClusterConfiguration{
 					DNS: bootstrapv1.DNS{
@@ -1222,7 +1222,7 @@ func TestGetCoreDNSInfo(t *testing.T) {
 						},
 					},
 				},
-				kubernetesVersion: semver.MustParse("1.24.0"),
+				kubernetesVersion: semver.MustParse("1.21.0"),
 				expectedInfo: coreDNSInfo{
 					CurrentMajorMinorPatch: "1.6.2",
 					FromImageTag:           "1.6.2",
@@ -1248,6 +1248,26 @@ func TestGetCoreDNSInfo(t *testing.T) {
 					FromImageTag:           "1.6.2",
 					TargetMajorMinorPatch:  "1.8.0",
 					FromImage:              "registry.k8s.io/coredns:1.6.2",
+					ToImage:                "registry.k8s.io/coredns/coredns:1.8.0",
+					ToImageTag:             "1.8.0",
+				},
+			},
+			{
+				name: "patches ImageRepository to registry.k8s.io if it's set on neither global nor DNS-level and kubernetesVersion >= v1.22 and rename to coredns/coredns",
+				objs: []client.Object{newCoreDNSInfoDeploymentWithimage(image162), cm},
+				clusterConfig: &bootstrapv1.ClusterConfiguration{
+					DNS: bootstrapv1.DNS{
+						ImageMeta: bootstrapv1.ImageMeta{
+							ImageTag: "1.8.0",
+						},
+					},
+				},
+				kubernetesVersion: semver.MustParse("1.22.0"),
+				expectedInfo: coreDNSInfo{
+					CurrentMajorMinorPatch: "1.6.2",
+					FromImageTag:           "1.6.2",
+					TargetMajorMinorPatch:  "1.8.0",
+					FromImage:              image162,
 					ToImage:                "registry.k8s.io/coredns/coredns:1.8.0",
 					ToImageTag:             "1.8.0",
 				},

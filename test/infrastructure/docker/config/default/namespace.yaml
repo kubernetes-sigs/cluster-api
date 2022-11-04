@@ -3,4 +3,8 @@ kind: Namespace
 metadata:
   labels:
     control-plane: controller-manager
+    # CAPD requires the privileged policy because it needs to mount the docker socket using a hostPath.
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/warn: privileged
+    pod-security.kubernetes.io/audit: privileged
   name: system

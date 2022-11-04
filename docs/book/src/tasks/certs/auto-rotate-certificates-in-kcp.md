@@ -46,19 +46,20 @@ The annotation value is a [RFC3339] format timestamp. The annotation value on th
 
 <aside class="note warning">
 
-<h1> Approximate Certificate Expiry Time </h1>
+<h1>Certificate Expiry Time</h1>
 
-The time captured in the Bootstrap Config annotation is an approximate time at which the machine certificates will expire (1 year from creation). The time captured in the annotation will be a little earlier than the actual certificate expiry time.
-
-It is assumed that all the certificates has the same expiration time. If not, it is assumed that the kube-apiserver certificate expires before other certificates.
+It is assumed that all certificates on a control plane node have roughly the same expiration time (+/- a few minutes). KCP decides when a rotation is needed based on the expiry of the kube-apiserver certificate.
 
 </aside>
 
 <aside class="note warning">
 
-<h1> Deleting the machine.cluster.x-k8s.io/certificates-expiry annotation </h1>
+<h1>Manual certificate rotation</h1>
 
-If the annotation is delete from the object, the certificate expiry information will be cleared form the Machine's status leading to certificate renewal being effectively disabled. It is recommended to be highly cautions when deleting this annotation from the object.
+If certificates on control plane nodes are rotated manually (e.g. via `kubeadm certs renew`), please be aware that the rotation is only
+complete after all components including the kube-apiserver are using the new certificates. Thus, kube-apiserver, kube-controller-manager, kube-scheduler and etcd have to be restarted after certificate renewal.
+To allow KCP to re-discover the expiry date please remove the `machine.cluster.x-k8s.io/certificates-expiry` annotation from the
+KubeadmConfig corresponding to the current machine.
 
 </aside>
 

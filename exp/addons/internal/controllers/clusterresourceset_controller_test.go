@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -27,9 +28,11 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/test/envtest"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -39,13 +42,16 @@ const (
 
 func TestClusterResourceSetReconciler(t *testing.T) {
 	var (
-		clusterResourceSetName string
-		testCluster            *clusterv1.Cluster
-		clusterName            string
-		labels                 map[string]string
-		configmapName          = "test-configmap"
-		secretName             = "test-secret"
-		namespacePrefix        = "test-cluster-resource-set"
+		clusterResourceSetName      string
+		testCluster                 *clusterv1.Cluster
+		clusterName                 string
+		labels                      map[string]string
+		configmapName               = "test-configmap"
+		secretName                  = "test-secret"
+		namespacePrefix             = "test-cluster-resource-set"
+		resourceConfigMap1Name      = "resource-configmap"
+		resourceConfigMap2Name      = "resource-configmap-2"
+		resourceConfigMapsNamespace = "default"
 	)
 
 	setup := func(t *testing.T, g *WithT) *corev1.Namespace {
@@ -64,19 +70,29 @@ func TestClusterResourceSetReconciler(t *testing.T) {
 		g.Expect(env.Create(ctx, testCluster)).To(Succeed())
 		t.Log("Creating the remote Cluster kubeconfig")
 		g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
+
+		resourceConfigMap1Content := fmt.Sprintf(`metadata:
+ name: %s
+ namespace: %s
+kind: ConfigMap
+apiVersion: v1`, resourceConfigMap1Name, resourceConfigMapsNamespace)
+
 		testConfigmap := &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      configmapName,
 				Namespace: ns.Name,
 			},
 			Data: map[string]string{
-				"cm": `metadata:
- name: resource-configmap
- namespace: default
-kind: ConfigMap
-apiVersion: v1`,
+				"cm": resourceConfigMap1Content,
 			},
 		}
+
+		resourceConfigMap2Content := fmt.Sprintf(`metadata:
+kind: ConfigMap
+apiVersion: v1
+metadata:
+ name: %s
+ namespace: %s`, resourceConfigMap2Name, resourceConfigMapsNamespace)
 		testSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      secretName,
@@ -84,12 +100,7 @@ apiVersion: v1`,
 			},
 			Type: "addons.cluster.x-k8s.io/resource-set",
 			StringData: map[string]string{
-				"cm": `metadata:
-kind: ConfigMap
-apiVersion: v1
-metadata:
- name: resource-configmap
- namespace: default`,
+				"cm": resourceConfigMap2Content,
 			},
 		}
 		t.Log("Creating a Secret and a ConfigMap with ConfigMap in their data field")
@@ -141,7 +152,32 @@ metadata:
 			Name:      secretName,
 			Namespace: ns.Name,
 		}})).To(Succeed())
+
+		cm1 := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      resourceConfigMap1Name,
+				Namespace: resourceConfigMapsNamespace,
+			},
+		}
+		if err = env.Get(ctx, client.ObjectKeyFromObject(cm1), cm1); err == nil {
+			g.Expect(env.Delete(ctx, cm1)).To(Succeed())
+		}
+		cm2 := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      resourceConfigMap2Name,
+				Namespace: resourceConfigMapsNamespace,
+			},
+		}
+		if err = env.Get(ctx, client.ObjectKeyFromObject(cm2), cm2); err == nil {
+			g.Expect(env.Delete(ctx, cm2)).To(Succeed())
+		}
+
 		g.Expect(env.Delete(ctx, ns)).To(Succeed())
+
+		clusterKey := client.ObjectKey{Namespace: testCluster.Namespace, Name: testCluster.Name}
+		if err = env.Get(ctx, clusterKey, testCluster); err == nil {
+			g.Expect(env.Delete(ctx, testCluster)).To(Succeed())
+		}
 	}
 
 	t.Run("Should reconcile a ClusterResourceSet with multiple resources when a cluster with matching label exists", func(t *testing.T) {
@@ -170,35 +206,7 @@ metadata:
 		g.Expect(env.Create(ctx, clusterResourceSetInstance)).To(Succeed())
 
 		t.Log("Verifying ClusterResourceSetBinding is created with cluster owner reference")
-		g.Eventually(func() bool {
-			binding := &addonsv1.ClusterResourceSetBinding{}
-			clusterResourceSetBindingKey := client.ObjectKey{
-				Namespace: testCluster.Namespace,
-				Name:      testCluster.Name,
-			}
-			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
-			if err != nil {
-				return false
-			}
-
-			if len(binding.Spec.Bindings) != 1 {
-				return false
-			}
-			if len(binding.Spec.Bindings[0].Resources) != 2 {
-				return false
-			}
-
-			if !binding.Spec.Bindings[0].Resources[0].Applied || !binding.Spec.Bindings[0].Resources[1].Applied {
-				return false
-			}
-
-			return util.HasOwnerRef(binding.GetOwnerReferences(), metav1.OwnerReference{
-				APIVersion: clusterv1.GroupVersion.String(),
-				Kind:       "Cluster",
-				Name:       testCluster.Name,
-				UID:        testCluster.UID,
-			})
-		}, timeout).Should(BeTrue())
+		g.Eventually(clusterResourceSetBindingReady(env, testCluster), timeout).Should(BeTrue())
 		t.Log("Deleting the Cluster")
 		g.Expect(env.Delete(ctx, testCluster)).To(Succeed())
 	})
@@ -588,4 +596,193 @@ metadata:
 			return false
 		}, timeout).Should(BeTrue())
 	})
+
+	t.Run("Should reconcile a ClusterResourceSet with Reconcile strategy after the resources have already been created", func(t *testing.T) {
+		g := NewWithT(t)
+		ns := setup(t, g)
+		defer teardown(t, g, ns)
+
+		t.Log("Updating the cluster with labels")
+		testCluster.SetLabels(labels)
+		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
+
+		t.Log("Creating a ClusterResourceSet instance that has same labels as selector")
+		clusterResourceSet := &addonsv1.ClusterResourceSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterResourceSetName,
+				Namespace: ns.Name,
+			},
+			Spec: addonsv1.ClusterResourceSetSpec{
+				Strategy: string(addonsv1.ClusterResourceSetStrategyReconcile),
+				ClusterSelector: metav1.LabelSelector{
+					MatchLabels: labels,
+				},
+				Resources: []addonsv1.ResourceRef{{Name: configmapName, Kind: "ConfigMap"}, {Name: secretName, Kind: "Secret"}},
+			},
+		}
+
+		g.Expect(env.Create(ctx, clusterResourceSet)).To(Succeed())
+
+		t.Log("Verifying ClusterResourceSetBinding is created with cluster owner reference")
+		clusterResourceSetBindingKey := client.ObjectKey{
+			Namespace: testCluster.Namespace,
+			Name:      testCluster.Name,
+		}
+		g.Eventually(clusterResourceSetBindingReady(env, testCluster), timeout).Should(BeTrue())
+
+		binding := &addonsv1.ClusterResourceSetBinding{}
+		err := env.Get(ctx, clusterResourceSetBindingKey, binding)
+		g.Expect(err).NotTo(HaveOccurred())
+		resourceHashes := map[string]string{}
+		for _, r := range binding.Spec.Bindings[0].Resources {
+			resourceHashes[r.Name] = r.Hash
+		}
+
+		t.Log("Verifying resource ConfigMap 1 has been created")
+		resourceConfigMap1Key := client.ObjectKey{
+			Namespace: resourceConfigMapsNamespace,
+			Name:      resourceConfigMap1Name,
+		}
+		g.Eventually(func() error {
+			cm := &corev1.ConfigMap{}
+			return env.Get(ctx, resourceConfigMap1Key, cm)
+		}, timeout).Should(Succeed())
+
+		t.Log("Verifying resource ConfigMap 2 has been created")
+		resourceConfigMap2Key := client.ObjectKey{
+			Namespace: resourceConfigMapsNamespace,
+			Name:      resourceConfigMap2Name,
+		}
+		g.Eventually(func() error {
+			cm := &corev1.ConfigMap{}
+			return env.Get(ctx, resourceConfigMap2Key, cm)
+		}, timeout).Should(Succeed())
+
+		resourceConfigMap1 := configMap(
+			resourceConfigMap1Name,
+			resourceConfigMapsNamespace,
+			map[string]string{
+				"my_new_config": "some_value",
+			},
+		)
+
+		resourceConfigMap1Content, err := yaml.Marshal(resourceConfigMap1)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		testConfigmap := configMap(
+			configmapName,
+			ns.Name,
+			map[string]string{
+				"cm": string(resourceConfigMap1Content),
+			},
+		)
+
+		resourceConfigMap2 := configMap(
+			resourceConfigMap2Name,
+			resourceConfigMapsNamespace,
+			map[string]string{
+				"my_new_secret_config": "some_secret_value",
+			},
+		)
+
+		resourceConfigMap2Content, err := yaml.Marshal(resourceConfigMap2)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		testSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretName,
+				Namespace: ns.Name,
+			},
+			Type: "addons.cluster.x-k8s.io/resource-set",
+			StringData: map[string]string{
+				"cm": string(resourceConfigMap2Content),
+			},
+		}
+		t.Log("Updating the Secret and a ConfigMap with updated ConfigMaps in their data field")
+		g.Expect(env.Update(ctx, testConfigmap)).To(Succeed())
+		g.Expect(env.Update(ctx, testSecret)).To(Succeed())
+
+		t.Log("Verifying ClusterResourceSetBinding has been updated with new hashes")
+		g.Eventually(func() error {
+			binding := &addonsv1.ClusterResourceSetBinding{}
+			if err := env.Get(ctx, clusterResourceSetBindingKey, binding); err != nil {
+				return err
+			}
+
+			for _, r := range binding.Spec.Bindings[0].Resources {
+				if resourceHashes[r.Name] == r.Hash {
+					return errors.Errorf("resource binding for %s hasn't been updated with new hash", r.Name)
+				}
+			}
+
+			return nil
+		}, timeout).Should(Succeed())
+
+		t.Log("Checking resource ConfigMap 1 has been updated")
+		g.Eventually(configMapHasBeenUpdated(env, resourceConfigMap1Key, resourceConfigMap1), timeout).Should(Succeed())
+
+		t.Log("Checking resource ConfigMap 2 has been updated")
+		g.Eventually(configMapHasBeenUpdated(env, resourceConfigMap2Key, resourceConfigMap2), timeout).Should(Succeed())
+	})
+}
+
+func clusterResourceSetBindingReady(env *envtest.Environment, cluster *clusterv1.Cluster) func() bool {
+	return func() bool {
+		clusterResourceSetBindingKey := client.ObjectKey{
+			Namespace: cluster.Namespace,
+			Name:      cluster.Name,
+		}
+		binding := &addonsv1.ClusterResourceSetBinding{}
+		err := env.Get(ctx, clusterResourceSetBindingKey, binding)
+		if err != nil {
+			return false
+		}
+
+		if len(binding.Spec.Bindings) != 1 {
+			return false
+		}
+		if len(binding.Spec.Bindings[0].Resources) != 2 {
+			return false
+		}
+
+		if !binding.Spec.Bindings[0].Resources[0].Applied || !binding.Spec.Bindings[0].Resources[1].Applied {
+			return false
+		}
+
+		return util.HasOwnerRef(binding.GetOwnerReferences(), metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+			Name:       cluster.Name,
+			UID:        cluster.UID,
+		})
+	}
+}
+
+func configMapHasBeenUpdated(env *envtest.Environment, key client.ObjectKey, newState *corev1.ConfigMap) func() error {
+	return func() error {
+		cm := &corev1.ConfigMap{}
+		if err := env.Get(ctx, key, cm); err != nil {
+			return err
+		}
+
+		if !reflect.DeepEqual(cm.Data, newState.Data) {
+			return errors.Errorf("configMap %s hasn't been updated yet", key.Name)
+		}
+
+		return nil
+	}
+}
+
+func configMap(name, namespace string, data map[string]string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1",
+			Kind:       "ConfigMap",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: data,
+	}
 }

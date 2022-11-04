@@ -18,9 +18,7 @@ package controllers
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/pkg/errors"
@@ -38,23 +36,22 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
-	resourcepredicates "sigs.k8s.io/cluster-api/exp/addons/internal/controllers/predicates"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-var (
-	// ErrSecretTypeNotSupported signals that a Secret is not supported.
-	ErrSecretTypeNotSupported = errors.New("unsupported secret type")
-)
+// ErrSecretTypeNotSupported signals that a Secret is not supported.
+var ErrSecretTypeNotSupported = errors.New("unsupported secret type")
 
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;patch
 // +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;patch
@@ -82,7 +79,12 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
 			builder.OnlyMetadata,
 			builder.WithPredicates(
-				resourcepredicates.ResourceCreate(ctrl.LoggerFrom(ctx)),
+				predicate.Funcs{
+					CreateFunc:  func(e event.CreateEvent) bool { return true },
+					UpdateFunc:  func(e event.UpdateEvent) bool { return true },
+					DeleteFunc:  func(e event.DeleteEvent) bool { return false },
+					GenericFunc: func(e event.GenericEvent) bool { return false },
+				},
 			),
 		).
 		Watches(
@@ -90,13 +92,17 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
 			builder.OnlyMetadata,
 			builder.WithPredicates(
-				resourcepredicates.ResourceCreate(ctrl.LoggerFrom(ctx)),
+				predicate.Funcs{
+					CreateFunc:  func(e event.CreateEvent) bool { return true },
+					UpdateFunc:  func(e event.UpdateEvent) bool { return true },
+					DeleteFunc:  func(e event.DeleteEvent) bool { return false },
+					GenericFunc: func(e event.GenericEvent) bool { return false },
+				},
 			),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
-
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -301,8 +307,8 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			errList = append(errList, err)
 		}
 
-		// If resource is already applied successfully and clusterResourceSet mode is "ApplyOnce", continue. (No need to check hash changes here)
-		if resourceSetBinding.IsApplied(resource) {
+		resourceScope, scopeError := reconcileScopeForResource(clusterResourceSet, resource, resourceSetBinding, unstructuredObj)
+		if scopeError == nil && !resourceScope.needsApply() {
 			continue
 		}
 
@@ -314,54 +320,25 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			Applied:         false,
 			LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
 		})
-		// Since maps are not ordered, we need to order them to get the same hash at each reconcile.
-		keys := make([]string, 0)
-		data, ok := unstructuredObj.UnstructuredContent()["data"]
-		if !ok {
-			errList = append(errList, errors.New("failed to get data field from the resource"))
+
+		if scopeError != nil {
+			errList = append(errList, scopeError)
 			continue
-		}
-
-		unstructuredData := data.(map[string]interface{})
-		for key := range unstructuredData {
-			keys = append(keys, key)
-		}
-		sort.Strings(keys)
-
-		dataList := make([][]byte, 0)
-		for _, key := range keys {
-			val, ok, err := unstructured.NestedString(unstructuredData, key)
-			if !ok || err != nil {
-				errList = append(errList, errors.New("failed to get value field from the resource"))
-				continue
-			}
-
-			byteArr := []byte(val)
-			// If the resource is a Secret, data needs to be decoded.
-			if unstructuredObj.GetKind() == string(addonsv1.SecretClusterResourceSetResourceKind) {
-				byteArr, _ = base64.StdEncoding.DecodeString(val)
-			}
-
-			dataList = append(dataList, byteArr)
 		}
 
 		// Apply all values in the key-value pair of the resource to the cluster.
 		// As there can be multiple key-value pairs in a resource, each value may have multiple objects in it.
 		isSuccessful := true
-		for i := range dataList {
-			data := dataList[i]
-
-			if err := apply(ctx, remoteClient, data); err != nil {
-				isSuccessful = false
-				log.Error(err, "failed to apply ClusterResourceSet resource", "Resource kind", resource.Kind, "Resource name", resource.Name)
-				conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ApplyFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-				errList = append(errList, err)
-			}
+		if err = apply(ctx, remoteClient, resourceScope); err != nil {
+			isSuccessful = false
+			log.Error(err, "failed to apply ClusterResourceSet resource", "Resource kind", resource.Kind, "Resource name", resource.Name)
+			conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.ApplyFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
+			errList = append(errList, err)
 		}
 
 		resourceSetBinding.SetBinding(addonsv1.ResourceBinding{
 			ResourceRef:     resource,
-			Hash:            computeHash(dataList),
+			Hash:            resourceScope.hash(),
 			Applied:         isSuccessful,
 			LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
 		})

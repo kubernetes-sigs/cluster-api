@@ -22,4 +22,4 @@ REPO_ROOT=$(dirname "${BASH_SOURCE[0]}")/..
 cd "${REPO_ROOT}" || exit 1
 
 echo "*** Verifying Cluster API ***"
-make verify
+TRACE=1 make verify

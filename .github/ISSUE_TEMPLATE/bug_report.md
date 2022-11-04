@@ -1,6 +1,9 @@
 ---
-name: Bug report
+name: 🐛 Bug report
 about: Tell us about a problem you are experiencing
+title: ''
+labels: ''
+assignees: ''
 
 ---
 
@@ -24,4 +27,3 @@ about: Tell us about a problem you are experiencing
 
 /kind bug
 [One or more /area label. See https://github.com/kubernetes-sigs/cluster-api/labels?q=area for the list of labels]
- 

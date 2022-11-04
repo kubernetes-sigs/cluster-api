@@ -51,7 +51,7 @@ come up, including gaps in documentation!
 
 If you're a more experienced contributor, looking at unassigned issues in the next release milestone is a good way to find work that has been prioritized. For example, if the latest minor release is `v1.0`, the next release milestone is `v1.1`.
 
-Help and contributions are very welcome in the form of code contributions but also in helping to moderate office hours, triaging issues, fixing/investigating flaky tests, being part of the [release team](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/developer/release-team.md), helping new contributors with their questions, reviewing proposals, etc.
+Help and contributions are very welcome in the form of code contributions but also in helping to moderate office hours, triaging issues, fixing/investigating flaky tests, being part of the [release team](https://github.com/sbueringer/cluster-api/blob/pr-release-tasks/docs/release/release-team.md), helping new contributors with their questions, reviewing proposals, etc.
 
 ## Versioning
 

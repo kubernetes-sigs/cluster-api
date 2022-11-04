@@ -643,7 +643,7 @@ func TestClusterClassValidation(t *testing.T) {
 						},
 					},
 					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(1)}}).
+						Duration: time.Duration(6000000000000)}}).
 				Build(),
 		},
 		{
@@ -657,7 +657,7 @@ func TestClusterClassValidation(t *testing.T) {
 				// No ControlPlaneMachineInfrastructure makes this an invalid creation request.
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
 					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(1)}}).
+						Duration: time.Duration(6000000000000)}}).
 				Build(),
 			expectErr: true,
 		},
@@ -674,7 +674,7 @@ func TestClusterClassValidation(t *testing.T) {
 						Build()).
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
 					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(1)}}).
+						Duration: time.Duration(6000000000000)}}).
 				Build(),
 			expectErr: true,
 		},
@@ -701,9 +701,38 @@ func TestClusterClassValidation(t *testing.T) {
 								},
 							},
 							NodeStartupTimeout: &metav1.Duration{
-								Duration: time.Duration(1)}}).
+								Duration: time.Duration(6000000000000)}}).
 						Build()).
 				Build(),
+		},
+		{
+			name: "create fail if MachineDeployment MachineHealthCheck NodeStartUpTimeout is too short",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
+							UnhealthyConditions: []clusterv1.UnhealthyCondition{
+								{
+									Type:    corev1.NodeReady,
+									Status:  corev1.ConditionUnknown,
+									Timeout: metav1.Duration{Duration: 5 * time.Minute},
+								},
+							},
+							NodeStartupTimeout: &metav1.Duration{
+								// nodeStartupTimeout is too short here - 600ns.
+								Duration: time.Duration(600)}}).
+						Build()).
+				Build(),
+			expectErr: true,
 		},
 		{
 			name: "create fail if MachineDeployment MachineHealthCheck does not define UnhealthyConditions",
@@ -721,7 +750,7 @@ func TestClusterClassValidation(t *testing.T) {
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
 						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
 							NodeStartupTimeout: &metav1.Duration{
-								Duration: time.Duration(1)}}).
+								Duration: time.Duration(6000000000000)}}).
 						Build()).
 				Build(),
 			expectErr: true,

@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -538,18 +539,16 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 
 	// Validate ControlPlane MachineHealthCheck if defined.
 	if clusterClass.Spec.ControlPlane.MachineHealthCheck != nil {
+		fldPath := field.NewPath("spec", "controlPlane", "machineHealthCheck")
+
+		allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, clusterClass.Namespace,
+			clusterClass.Spec.ControlPlane.MachineHealthCheck)...)
+
 		// Ensure ControlPlane does not define a MachineHealthCheck if it does not define MachineInfrastructure.
 		if clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
 			allErrs = append(allErrs, field.Forbidden(
-				field.NewPath("spec", "controlPlane", "machineHealthCheck"),
+				fldPath.Child("machineInfrastructure"),
 				"can be set only if spec.controlPlane.machineInfrastructure is set",
-			))
-		}
-		// Ensure ControlPlane MachineHealthCheck defines UnhealthyConditions.
-		if len(clusterClass.Spec.ControlPlane.MachineHealthCheck.UnhealthyConditions) == 0 {
-			allErrs = append(allErrs, field.Forbidden(
-				field.NewPath("spec", "controlPlane", "machineHealthCheck", "unhealthyConditions"),
-				"must be defined and have at least one value",
 			))
 		}
 	}
@@ -559,12 +558,26 @@ func validateMachineHealthCheckClasses(clusterClass *clusterv1.ClusterClass) fie
 		if md.MachineHealthCheck == nil {
 			continue
 		}
-		if len(md.MachineHealthCheck.UnhealthyConditions) == 0 {
-			allErrs = append(allErrs, field.Forbidden(
-				field.NewPath("spec", "workers", "machineDeployments", "machineHealthCheck").Index(i).Child("unhealthyConditions"),
-				"must be defined and have at least one value",
-			))
-		}
+		fldPath := field.NewPath("spec", "workers", "machineDeployments", "machineHealthCheck").Index(i)
+
+		allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, clusterClass.Namespace, md.MachineHealthCheck)...)
 	}
 	return allErrs
+}
+
+// validateMachineHealthCheckClass validates the MachineHealthCheckSpec fields defined in a MachineHealthCheckClass.
+func validateMachineHealthCheckClass(fldPath *field.Path, namepace string, m *clusterv1.MachineHealthCheckClass) field.ErrorList {
+	mhc := clusterv1.MachineHealthCheck{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namepace,
+		},
+		Spec: clusterv1.MachineHealthCheckSpec{
+			NodeStartupTimeout:  m.NodeStartupTimeout,
+			MaxUnhealthy:        m.MaxUnhealthy,
+			UnhealthyConditions: m.UnhealthyConditions,
+			UnhealthyRange:      m.UnhealthyRange,
+			RemediationTemplate: m.RemediationTemplate,
+		}}
+
+	return mhc.ValidateCommonFields(fldPath)
 }

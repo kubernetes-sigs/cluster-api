@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -535,7 +536,13 @@ func setClusterPause(proxy Proxy, clusters []*node, value bool, dryRun bool) err
 	}
 
 	log := logf.Log
-	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", value)))
+	patchValue := "true"
+	if !value {
+		// If the `value` is false lets drop the field.
+		// This makes sure that clusterctl does now own the field and would avoid any ownership conflicts.
+		patchValue = "null"
+	}
+	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%s}}", patchValue)))
 
 	setClusterPauseBackoff := newWriteBackoff()
 	for i := range clusters {
@@ -863,6 +870,7 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 		return err
 	}
 
+	oldManagedFields := obj.GetManagedFields()
 	if err := cTo.Create(ctx, obj); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
 			return errors.Wrapf(err, "error creating %q %s/%s",
@@ -896,6 +904,10 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 
 	// Stores the newUID assigned to the newly created object.
 	nodeToCreate.newUID = obj.GetUID()
+
+	if err := patchTopologyManagedFields(ctx, oldManagedFields, obj, cTo); err != nil {
+		return errors.Wrap(err, "error patching the managed fields")
+	}
 
 	return nil
 }
@@ -1163,4 +1175,18 @@ func (o *objectMover) checkTargetProviders(toInventory InventoryClient) error {
 	}
 
 	return kerrors.NewAggregate(errList)
+}
+
+// patchTopologyManagedFields patches the managed fields of obj.
+// Without patching the managed fields, clusterctl would be the owner of the fields
+// which would lead to co-ownership and preventing other controllers using SSA from deleting fields.
+func patchTopologyManagedFields(ctx context.Context, oldManagedFields []metav1.ManagedFieldsEntry, obj *unstructured.Unstructured, cTo client.Client) error {
+	base := obj.DeepCopy()
+	obj.SetManagedFields(oldManagedFields)
+
+	if err := cTo.Patch(ctx, obj, client.MergeFrom(base)); err != nil {
+		return errors.Wrapf(err, "error patching managed fields %q %s/%s",
+			obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
+	}
+	return nil
 }

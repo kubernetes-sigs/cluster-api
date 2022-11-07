@@ -20,6 +20,7 @@
 
 | Annotation     | Note     |
 |:--------|:--------|
+| clusterctl.cluster.x-k8s.io/skip-crd-name-preflight-check   | Can be placed on provider CRDs, so that clusterctl doesn't emit a warning if the CRD doesn't comply with Cluster APIs naming scheme. Only CRDs that are referenced by core Cluster API CRDs have to comply with the naming scheme.   |
 | unsafe.topology.cluster.x-k8s.io/disable-update-class-name-check   | It can be used to disable the webhook check on update that disallows a pre-existing Cluster to be populated with Topology information and Class.  |
 | cluster.x-k8s.io/cluster-name   | It is set on nodes identifying the name of the cluster the node belongs to.  |
 |cluster.x-k8s.io/cluster-namespace    | It is set on nodes identifying the namespace of the cluster the node belongs to.   |

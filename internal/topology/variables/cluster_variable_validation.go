@@ -19,8 +19,11 @@ package variables
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
+	structuralschema "k8s.io/apiextensions-apiserver/pkg/apiserver/schema"
+	structuralpruning "k8s.io/apiextensions-apiserver/pkg/apiserver/schema/pruning"
 	"k8s.io/apiextensions-apiserver/pkg/apiserver/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
@@ -133,7 +136,55 @@ func ValidateClusterVariable(clusterVariable *clusterv1.ClusterVariable, cluster
 
 	// Validate variable against the schema.
 	// NOTE: We're reusing a library func used in CRD validation.
-	return validation.ValidateCustomResource(fldPath, variableValue, validator)
+	if err := validation.ValidateCustomResource(fldPath, variableValue, validator); err != nil {
+		return err
+	}
+
+	return validateUnknownFields(fldPath, clusterVariable, variableValue, apiExtensionsSchema)
+}
+
+// validateUnknownFields validates the given variableValue for unknown fields.
+// This func returns an error if there are variable fields in variableValue that are not defined in
+// variableSchema and if x-kubernetes-preserve-unknown-fields is not set.
+func validateUnknownFields(fldPath *field.Path, clusterVariable *clusterv1.ClusterVariable, variableValue interface{}, variableSchema *apiextensions.JSONSchemaProps) field.ErrorList {
+	// Structural schema pruning does not work with scalar values,
+	// so we wrap the schema and the variable in objects.
+	// <variable-name>: <variable-value>
+	wrappedVariable := map[string]interface{}{
+		clusterVariable.Name: variableValue,
+	}
+	// type: object
+	// properties:
+	//   <variable-name>: <variable-schema>
+	wrappedSchema := &apiextensions.JSONSchemaProps{
+		Type: "object",
+		Properties: map[string]apiextensions.JSONSchemaProps{
+			clusterVariable.Name: *variableSchema,
+		},
+	}
+	ss, err := structuralschema.NewStructural(wrappedSchema)
+	if err != nil {
+		return field.ErrorList{field.Invalid(fldPath, "",
+			fmt.Sprintf("failed defaulting variable %q: %v", clusterVariable.Name, err))}
+	}
+
+	// Run Prune to check if it would drop any unknown fields.
+	opts := structuralschema.UnknownFieldPathOptions{
+		// TrackUnknownFieldPaths has to be true so PruneWithOptions returns the unknown fields.
+		TrackUnknownFieldPaths: true,
+	}
+	prunedUnknownFields := structuralpruning.PruneWithOptions(wrappedVariable, ss, false, opts)
+	if len(prunedUnknownFields) > 0 {
+		// If prune dropped any unknown fields, return an error.
+		// This means that not all variable fields have been defined in the variable schema and
+		// x-kubernetes-preserve-unknown-fields was not set.
+		return field.ErrorList{
+			field.Invalid(fldPath, "",
+				fmt.Sprintf("failed validation: %q fields are not specified in the variable schema of variable %q", strings.Join(prunedUnknownFields, ","), clusterVariable.Name)),
+		}
+	}
+
+	return nil
 }
 
 func getClusterVariablesMap(clusterVariables []clusterv1.ClusterVariable) map[string]*clusterv1.ClusterVariable {

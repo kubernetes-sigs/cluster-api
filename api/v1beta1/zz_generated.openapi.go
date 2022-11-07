@@ -1181,6 +1181,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_JSONSchemaProps(ref common.Referen
 							Format:      "",
 						},
 					},
+					"x-kubernetes-preserve-unknown-fields": {
+						SchemaProps: spec.SchemaProps{
+							Description: "XPreserveUnknownFields allows setting fields in a variable object which are not defined in the variable schema. This affects fields recursively, except if nested properties or additionalProperties are specified in the schema.",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
 					"enum": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Enum is the list of valid values of the variable. NOTE: Can be set for all types.",

@@ -964,6 +964,13 @@ spec:
                               description: 'UniqueItems specifies if items in an array
                                 must be unique. NOTE: Can only be set if type is array.'
                               type: boolean
+                            x-kubernetes-preserve-unknown-fields:
+                              description: XPreserveUnknownFields allows setting fields
+                                in a variable object which are not defined in the
+                                variable schema. This affects fields recursively,
+                                except if nested properties or additionalProperties
+                                are specified in the schema.
+                              type: boolean
                           required:
                           - type
                           type: object

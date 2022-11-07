@@ -244,7 +244,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		//
 		secondMachineSet := machineSets.Items[0]
 		t.Log("Scaling the MachineDeployment to 3 replicas")
-		modifyFunc := func(d *clusterv1.MachineDeployment) { d.Spec.Replicas = pointer.Int32(3) }
+		modifyFunc := func(md *clusterv1.MachineDeployment) { md.Spec.Replicas = pointer.Int32(3) }
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func() int {
 			key := client.ObjectKey{Name: secondMachineSet.Name, Namespace: secondMachineSet.Namespace}
@@ -258,7 +258,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		// Update a MachineDeployment, expect Reconcile to be called and a new MachineSet to appear.
 		//
 		t.Log("Setting a label on the MachineDeployment")
-		modifyFunc = func(d *clusterv1.MachineDeployment) { d.Spec.Template.Labels["updated"] = "true" }
+		modifyFunc = func(md *clusterv1.MachineDeployment) { md.Spec.Template.Labels["updated"] = "true" }
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func() int {
 			if err := env.List(ctx, machineSets, msListOpts...); err != nil {
@@ -268,8 +268,8 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		}, timeout).Should(BeEquivalentTo(2))
 
 		t.Log("Updating deletePolicy on the MachineDeployment")
-		modifyFunc = func(d *clusterv1.MachineDeployment) {
-			d.Spec.Strategy.RollingUpdate.DeletePolicy = pointer.String("Newest")
+		modifyFunc = func(md *clusterv1.MachineDeployment) {
+			md.Spec.Strategy.RollingUpdate.DeletePolicy = pointer.String("Newest")
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func() string {
@@ -348,9 +348,9 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		}
 
 		t.Log("Updating MachineDeployment label")
-		modifyFunc = func(d *clusterv1.MachineDeployment) {
-			d.Spec.Selector.MatchLabels = newLabels
-			d.Spec.Template.Labels = newLabels
+		modifyFunc = func(md *clusterv1.MachineDeployment) {
+			md.Spec.Selector.MatchLabels = newLabels
+			md.Spec.Template.Labels = newLabels
 		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 

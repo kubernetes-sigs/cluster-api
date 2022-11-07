@@ -437,6 +437,20 @@ func HasOwner(refList []metav1.OwnerReference, apiVersion string, kinds []string
 	return false
 }
 
+// HasOwnerWithSameVersion checks if any of the references in the passed list match the given group from apiVersion and one of the given kinds.
+func HasOwnerWithSameVersion(refList []metav1.OwnerReference, apiVersion string, kinds []string) bool {
+	kindMap := make(map[string]bool)
+	for _, kind := range kinds {
+		kindMap[kind] = true
+	}
+	for _, mr := range refList {
+		if mr.APIVersion == apiVersion && kindMap[mr.Kind] {
+			return true
+		}
+	}
+	return false
+}
+
 // GetGVKMetadata retrieves a CustomResourceDefinition metadata from the API server using partial object metadata.
 //
 // This function is greatly more efficient than GetCRDWithContract and should be preferred in most cases.

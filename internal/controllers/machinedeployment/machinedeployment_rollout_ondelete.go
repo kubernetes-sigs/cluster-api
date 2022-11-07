@@ -32,8 +32,8 @@ import (
 )
 
 // rolloutOnDelete implements the logic for the OnDelete MachineDeploymentStrategyType.
-func (r *Reconciler) rolloutOnDelete(ctx context.Context, d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) error {
-	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, d, msList, true)
+func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) error {
+	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, md, msList, true)
 	if err != nil {
 		return err
 	}
@@ -48,25 +48,25 @@ func (r *Reconciler) rolloutOnDelete(ctx context.Context, d *clusterv1.MachineDe
 	allMSs := append(oldMSs, newMS)
 
 	// Scale up, if we can.
-	if err := r.reconcileNewMachineSetOnDelete(ctx, allMSs, newMS, d); err != nil {
+	if err := r.reconcileNewMachineSetOnDelete(ctx, allMSs, newMS, md); err != nil {
 		return err
 	}
 
-	if err := r.syncDeploymentStatus(allMSs, newMS, d); err != nil {
+	if err := r.syncDeploymentStatus(allMSs, newMS, md); err != nil {
 		return err
 	}
 
 	// Scale down, if we can.
-	if err := r.reconcileOldMachineSetsOnDelete(ctx, oldMSs, allMSs, d); err != nil {
+	if err := r.reconcileOldMachineSetsOnDelete(ctx, oldMSs, allMSs, md); err != nil {
 		return err
 	}
 
-	if err := r.syncDeploymentStatus(allMSs, newMS, d); err != nil {
+	if err := r.syncDeploymentStatus(allMSs, newMS, md); err != nil {
 		return err
 	}
 
-	if mdutil.DeploymentComplete(d, &d.Status) {
-		if err := r.cleanupDeployment(ctx, oldMSs, d); err != nil {
+	if mdutil.DeploymentComplete(md, &md.Status) {
+		if err := r.cleanupDeployment(ctx, oldMSs, md); err != nil {
 			return err
 		}
 	}

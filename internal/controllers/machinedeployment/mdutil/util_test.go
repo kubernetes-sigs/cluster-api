@@ -593,32 +593,32 @@ func TestDeploymentComplete(t *testing.T) {
 	tests := []struct {
 		name string
 
-		d *clusterv1.MachineDeployment
+		md *clusterv1.MachineDeployment
 
 		expected bool
 	}{
 		{
 			name: "not complete: min but not all machines become available",
 
-			d:        deployment(5, 5, 5, 4, 1, 0),
+			md:       deployment(5, 5, 5, 4, 1, 0),
 			expected: false,
 		},
 		{
 			name: "not complete: min availability is not honored",
 
-			d:        deployment(5, 5, 5, 3, 1, 0),
+			md:       deployment(5, 5, 5, 3, 1, 0),
 			expected: false,
 		},
 		{
 			name: "complete",
 
-			d:        deployment(5, 5, 5, 5, 0, 0),
+			md:       deployment(5, 5, 5, 5, 0, 0),
 			expected: true,
 		},
 		{
 			name: "not complete: all machines are available but not updated",
 
-			d:        deployment(5, 5, 4, 5, 0, 0),
+			md:       deployment(5, 5, 4, 5, 0, 0),
 			expected: false,
 		},
 		{
@@ -626,13 +626,13 @@ func TestDeploymentComplete(t *testing.T) {
 
 			// old machine set: spec.replicas=1, status.replicas=1, status.availableReplicas=1
 			// new machine set: spec.replicas=1, status.replicas=1, status.availableReplicas=0
-			d:        deployment(1, 2, 1, 1, 0, 1),
+			md:       deployment(1, 2, 1, 1, 0, 1),
 			expected: false,
 		},
 		{
 			name: "not complete: one replica deployment never comes up",
 
-			d:        deployment(1, 1, 1, 0, 1, 1),
+			md:       deployment(1, 1, 1, 0, 1, 1),
 			expected: false,
 		},
 	}
@@ -641,7 +641,7 @@ func TestDeploymentComplete(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(DeploymentComplete(test.d, &test.d.Status)).To(Equal(test.expected))
+			g.Expect(DeploymentComplete(test.md, &test.md.Status)).To(Equal(test.expected))
 		})
 	}
 }

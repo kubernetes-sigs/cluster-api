@@ -50,6 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
 
@@ -85,6 +86,7 @@ var (
 	webhookCertDir              string
 	healthAddr                  string
 	tokenTTL                    time.Duration
+	tlsOptions                  = flags.TLSOptions{}
 	logOptions                  = logs.NewOptions()
 )
 
@@ -135,6 +137,8 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
+	flags.AddTLSOptions(fs, &tlsOptions)
+
 	feature.MutableGates.AddFlag(fs)
 }
 
@@ -165,6 +169,13 @@ func main() {
 
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-kubeadm-bootstrap-manager")
+
+	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
+	if err != nil {
+		setupLog.Error(err, "unable to add TLS settings to the webhook server")
+		os.Exit(1)
+	}
+
 	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
 		Scheme:                     scheme,
 		MetricsBindAddress:         metricsBindAddr,
@@ -183,6 +194,7 @@ func main() {
 		Port:                   webhookPort,
 		HealthProbeBindAddress: healthAddr,
 		CertDir:                webhookCertDir,
+		TLSOpts:                tlsOptionOverrides,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

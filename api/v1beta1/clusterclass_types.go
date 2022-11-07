@@ -319,6 +319,12 @@ type JSONSchemaProps struct {
 	// +optional
 	ExclusiveMinimum bool `json:"exclusiveMinimum,omitempty"`
 
+	// XPreserveUnknownFields allows setting fields in a variable object
+	// which are not defined in the variable schema. This affects fields recursively,
+	// except if nested properties or additionalProperties are specified in the schema.
+	// +optional
+	XPreserveUnknownFields bool `json:"x-kubernetes-preserve-unknown-fields,omitempty"`
+
 	// Enum is the list of valid values of the variable.
 	// NOTE: Can be set for all types.
 	// +optional

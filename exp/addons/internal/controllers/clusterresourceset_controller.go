@@ -247,6 +247,8 @@ func (r *ClusterResourceSetReconciler) getClustersByClusterResourceSetSelector(c
 // cluster's ClusterResourceSetBinding.
 // In ApplyOnce strategy, resources are applied only once to a particular cluster. ClusterResourceSetBinding is used to check if a resource is applied before.
 // It applies resources best effort and continue on scenarios like: unsupported resource types, failure during creation, missing resources.
+// In Reconcile strategy, resources are re-applied to a particular cluster when their definition changes. The hash in ClusterResourceSetBinding is used to check
+// if a resource has changed or not.
 // TODO: If a resource already exists in the cluster but not applied by ClusterResourceSet, the resource will be updated ?
 func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) error {
 	log := ctrl.LoggerFrom(ctx, "Cluster", klog.KObj(cluster))

@@ -35,7 +35,7 @@ type getKubeconfigOptions struct {
 var gk = &getKubeconfigOptions{}
 
 var getKubeconfigCmd = &cobra.Command{
-	Use:   "kubeconfig",
+	Use:   "kubeconfig NAME",
 	Short: "Gets the kubeconfig file for accessing a workload cluster",
 	Long: LongDesc(`
 		Gets the kubeconfig file for accessing a workload cluster`),

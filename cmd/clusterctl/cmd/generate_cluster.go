@@ -47,7 +47,7 @@ type generateClusterOptions struct {
 var gc = &generateClusterOptions{}
 
 var generateClusterClusterCmd = &cobra.Command{
-	Use:   "cluster",
+	Use:   "cluster NAME",
 	Short: "Generate templates for creating workload clusters",
 	Long: LongDesc(`
 		Generate templates for creating workload clusters.

@@ -22,6 +22,9 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
+// DefaultHandlersTimeoutSeconds defines the default timeout duration for client calls to ExtensionHandlers.
+const DefaultHandlersTimeoutSeconds = 10
+
 // DiscoveryRequest is the request of the Discovery hook.
 // +kubebuilder:object:root=true
 type DiscoveryRequest struct {

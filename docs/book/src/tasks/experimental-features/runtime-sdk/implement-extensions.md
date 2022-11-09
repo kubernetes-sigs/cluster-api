@@ -56,8 +56,8 @@ import (
 )
 
 var (
-	catalog  = runtimecatalog.New()
-	setupLog = ctrl.Log.WithName("setup")
+	// catalog contains all information about RuntimeHooks.
+	catalog = runtimecatalog.New()
 
 	// Flags.
 	profilerAddress string
@@ -67,15 +67,17 @@ var (
 )
 
 func init() {
-	// Register the Runtime Hook types into the catalog.
+	// Adds to the catalog all the RuntimeHooks defined in cluster API.
 	_ = runtimehooksv1.AddToCatalog(catalog)
 }
 
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
+	// Initialize logs flags using Kubernetes component-base machinery.
 	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
 	logOptions.AddFlags(fs)
 
+	// Add test-extension specific flags
 	fs.StringVar(&profilerAddress, "profiler-address", "",
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
 
@@ -87,19 +89,25 @@ func InitFlags(fs *pflag.FlagSet) {
 }
 
 func main() {
+	// Creates a logger to be used during the main func.
+	setupLog := ctrl.Log.WithName("main")
+
+	// Initialize and parse command line flags.
 	InitFlags(pflag.CommandLine)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
 
+	// Validates logs flags using Kubernetes component-base machinery and applies them
 	if err := logOptions.ValidateAndApply(nil); err != nil {
 		setupLog.Error(err, "unable to start extension")
 		os.Exit(1)
 	}
 
-	// klog.Background will automatically use the right logger.
+	// Add the klog logger in the context.
 	ctrl.SetLogger(klog.Background())
 
+	// Initialize the golang profiler server, if required.
 	if profilerAddress != "" {
 		klog.Infof("Profiler listening for requests at %s", profilerAddress)
 		go func() {
@@ -107,9 +115,8 @@ func main() {
 		}()
 	}
 
-	ctx := ctrl.SetupSignalHandler()
-
-	webhookServer, err := server.NewServer(server.Options{
+	// Create a http server for serving runtime extensions
+	webhookServer, err := server.New(server.Options{
 		Catalog: catalog,
 		Port:    webhookPort,
 		CertDir: webhookCertDir,
@@ -124,8 +131,6 @@ func main() {
 		Hook:           runtimehooksv1.BeforeClusterCreate,
 		Name:           "before-cluster-create",
 		HandlerFunc:    DoBeforeClusterCreate,
-		TimeoutSeconds: pointer.Int32(5),
-		FailurePolicy:  toPtr(runtimehooksv1.FailurePolicyFail),
 	}); err != nil {
 		setupLog.Error(err, "error adding handler")
 		os.Exit(1)
@@ -134,13 +139,15 @@ func main() {
 		Hook:           runtimehooksv1.BeforeClusterUpgrade,
 		Name:           "before-cluster-upgrade",
 		HandlerFunc:    DoBeforeClusterUpgrade,
-		TimeoutSeconds: pointer.Int32(5),
-		FailurePolicy:  toPtr(runtimehooksv1.FailurePolicyFail),
 	}); err != nil {
 		setupLog.Error(err, "error adding handler")
 		os.Exit(1)
 	}
 
+	// Setup a context listening for SIGINT.
+	ctx := ctrl.SetupSignalHandler()
+
+	// Start the https server.
 	setupLog.Info("Starting Runtime Extension server")
 	if err := webhookServer.Start(ctx); err != nil {
 		setupLog.Error(err, "error running webhook server")
@@ -158,10 +165,6 @@ func DoBeforeClusterUpgrade(ctx context.Context, request *runtimehooksv1.BeforeC
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("BeforeClusterUpgrade is called")
 	// Your implementation
-}
-
-func toPtr(f runtimehooksv1.FailurePolicy) *runtimehooksv1.FailurePolicy {
-	return &f
 }
 ```
 
@@ -270,7 +273,26 @@ Some Runtime Hooks, e.g. like external patches, might explicitly request for cor
 to support this property. But we encourage developers to follow this pattern more generally given that it fits
 well with practices like unit testing and generally makes the entire system more predictable and easier to troubleshoot.
 
-### Error Management
+### Error messages
+
+RuntimeExtension authors should be aware that error messages are surfaced as a conditions in Kubernetes resources 
+and recorded in Cluster API controller's logs. As a consequence:
+
+- Error message must not contain any sensitive information.
+- Error message must be deterministic, and must avoid to including timestamps or values changing at every call.
+- Error message must not contain external errors when it's not clear if those errors are deterministic (e.g. errors return from cloud APIs).
+
+<aside class="note warning">
+
+<h1>Caution</h1>
+
+If an error message is not deterministic and it changes at every call even if the problem is the same, it could
+lead to to Kubernetes resources conditions continuously changing, and this generates a denial attack to 
+controllers processing those resource that might impact system stability.
+
+</aside>
+
+### Error management
 
 In case a Runtime Extension returns an error, the error will be handled according to the corresponding failure policy
 defined in the response of the Discovery call.

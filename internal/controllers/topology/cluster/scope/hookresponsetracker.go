@@ -56,18 +56,23 @@ func (h *HookResponseTracker) AggregateRetryAfter() time.Duration {
 
 // AggregateMessage returns a human friendly message about the blocking status of hooks.
 func (h *HookResponseTracker) AggregateMessage() string {
-	blockingHooks := []string{}
+	blockingHooks := map[string]string{}
 	for hook, resp := range h.responses {
 		if retryResponse, ok := resp.(runtimehooksv1.RetryResponseObject); ok {
 			if retryResponse.GetRetryAfterSeconds() != 0 {
-				blockingHooks = append(blockingHooks, hook)
+				blockingHooks[hook] = resp.GetMessage()
 			}
 		}
 	}
 	if len(blockingHooks) == 0 {
 		return ""
 	}
-	return fmt.Sprintf("hooks %q are blocking", strings.Join(blockingHooks, ","))
+
+	hookAndMessages := []string{}
+	for hook, message := range blockingHooks {
+		hookAndMessages = append(hookAndMessages, fmt.Sprintf("hook %q is blocking: %s", hook, message))
+	}
+	return strings.Join(hookAndMessages, "; ")
 }
 
 func lowestNonZeroRetryAfterSeconds(i, j int32) int32 {

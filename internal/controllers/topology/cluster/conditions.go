@@ -51,6 +51,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				clusterv1.TopologyReconciledCondition,
 				clusterv1.TopologyReconcileFailedReason,
 				clusterv1.ConditionSeverityError,
+				// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
 				reconcileErr.Error(),
 			),
 		)
@@ -66,6 +67,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				clusterv1.TopologyReconciledCondition,
 				clusterv1.TopologyReconciledHookBlockingReason,
 				clusterv1.ConditionSeverityInfo,
+				// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
 				s.HookResponseTracker.AggregateMessage(),
 			),
 		)

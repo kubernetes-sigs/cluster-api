@@ -67,6 +67,9 @@ This section outlines considerations specific to Topology Mutation hooks:
   i.e. unnecessary patches when the template is already in the desired state must be avoided.
 * **Avoid Dependencies**: An External Patch Extension must be independent of other External Patch Extensions. However
   if dependencies cannot be avoided, it is possible to control the order in which patches are executed via the ClusterClass.
+* **Error messages**: For a given request (a set of templates and variables) an External Patch Extension must
+  always return the same error message. Otherwise the system might became unstable due to controllers being overloaded
+  by continuous changes to Kubernetes resources as these messages are reported as conditions. See [error messages](implement-extensions.md#error-messages).
 
 ## Definitions
 

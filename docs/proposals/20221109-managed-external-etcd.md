@@ -1,13 +1,14 @@
 ---
-title: Add support for managed external etcd clusters in CAPI
+title: External etcd cluster lifecycle support
 authors:
   - "@mrajashree"
-creation-date: 2021-05-24
-last-updated: 2021-06-14
+  - "@g-gaston"
+creation-date: 2022-11-09
+last-updated: 2022-11-09
 status: provisional
 ---
 
-# Add support for managed external etcd clusters in CAPI
+# External etcd cluster lifecycle support
 
 ## Table of Contents
 
@@ -235,7 +236,7 @@ ManagedExternalEtcdInitialized bool `json:"managedExternalEtcdInitialized"`
 The following is a change proposed in the current validating webhook for KCP:
 - Make KubeadmConfigSpec.ClusterConfiguration.Etcd.External.Endpoints field mutable
     - The kubeadm validating webhook currently doesn't allow this field to get updated. It should be added as an [allowed path](https://github.com/mrajashree/cluster-api/commit/18c42c47d024ce17cdda39500fc0d6bd67c5aa67#diff-6603d336435f3ee62a50043413f62441b685d5c416e5cadd792ed2a536b2f55fR121) in the webhook.
-    - The main reason being that in case of a managed external etcd cluster, the user won't know the etcd endpoints when the KCP spec. The etcd provider will populate the KCP spec with the etcd cluster endpoints once it is available. Hence the field should be mutable so that the etcd provider can update it.
+    - The main reason being that in case of a managed external etcd cluster, the user won't know the etcd endpoints when the KCP spec is created. The etcd provider will populate the KCP spec with the etcd cluster endpoints once it is available. Hence the field should be mutable so that the etcd provider can update it.
     - Even though this is a change in an existing field's behavior, existing clusters that were created before this change goes in can utilize it for etcd cluster reconfiguration. For instance, let's assume that a cluster was created before this new etcd provider existed, and that cluster was using an external etcd cluster that the user was managing. If the user has to replace one of the etcd member VMs, the user can do so and update the KCP spec to include the new endpoint. That will trigger a control plane rollout and the kube-apiserver on the new Machines will be able to connect to the new external etcd endpoints.
 
 
@@ -265,6 +266,9 @@ Each etcd provider should add a new API type to manage the etcd cluster lifecycl
     - Endpoints: A comma separated string containing all etcd members endpoints.
 
 ###### Contract between etcd provider and Kubeadm Control Plane Provider (KCP)
+
+> TODO: expand this section. The interactions between KCP, Cluster and EtcdadmCluster controllers are more complex than what it appears here and differs in create vs upgrade scenarios.
+> Most of this complexity is introduced to try to avoid unnecessary CP rolling upgrades when changes are applied simultaneously to KCP and EtcdadmCluster.
 - KCP should wait for the external etcd cluster to be ready before it starts provisioning the control plane. This is required because the control plane component kube-apiserver needs to know the etcd server endpoints to connect with, and the etcd endpoints need to be healthy. This can be achieved by the etcd provider pausing KCP by applying the paused annotation (`cluster.x-k8s.io/paused`).
 - Control plane providers should check for the presence of `Cluster.Spec.ManagedExternalEtcdRef` field. This check should happen after the control plane is no longer paused, and before the provider starts provisioning the control plane.
 - The control plane provider should "Get" the CR referred by the cluster.spec.ManagedExternalEtcdRef and check its status.Endpoints field. 
@@ -302,9 +306,9 @@ This bootstrap provider will perform the steps specified above using a custom co
     - A [`runcmd` section](https://cloudinit.readthedocs.io/en/latest/topics/modules.html#runcmd) containing the etcdadm commands, along with any user specified commands.
   The controller then saves this cloud-init script as a Secret, and this Secret's name on the EtcdadmConfig.Status.DataSecretName field.
   - Since the EtcdadmConfig.Status.DataSecretName field gets set as per the [bootstrap provider specifications](https://cluster-api.sigs.k8s.io/developer/providers/bootstrap.html), the infrastructure providers will use the data from this Secret to initiate the Machines with the cloud-init script.
-  
+> TODO: the current implementation today supports [Bottlerocket](https://github.com/bottlerocket-os/bottlerocket) as well, document it.
+ 
 ##### Etcdadm cluster controller
-
 - The Etcdadm cluster controller will manage the external etcd cluster through a new API type called EtcdadmCluster. This CRD will accept etcd cluster spec, which includes replicas, etcd configuration options such as version, and an infrastructure template reference. This controller will create EtcdadmConfig CRs with the user specified spec to match the number of replicas.
 - This controller is responsible for provisioning the etcd cluster, and signaling the control plane cluster once etcd is ready.
 - [These are the changes required in CAPI](https://github.com/mrajashree/cluster-api/commit/18c42c47d024ce17cdda39500fc0d6bd67c5aa67#diff-626ff994de7814a6e127010bda83fd45dddd14893839ceb4d3d40210a49132f2) for the end to end flow to work
@@ -473,14 +477,14 @@ clusterctl init --etcdbootstrap etcdadm-bootstrap-provider --etcdprovider etcdad
 
 
 ### POC implementation
-- [etcdadm-bootstrap-provider](https://github.com/mrajashree/etcdadm-bootstrap-provider)
-- [etcdadm-controller](https://github.com/mrajashree/etcdadm-controller)
+- [etcdadm-bootstrap-provider](https://github.com/aws/etcdadm-bootstrap-provider)
+- [etcdadm-controller](https://github.com/aws/etcdadm-controller)
 - [CAPI changes](https://github.com/mrajashree/cluster-api/commit/18c42c47d024ce17cdda39500fc0d6bd67c5aa67)
 
 ### Questions
 
 - This proposal suggests that etcd providers should be pluggable, in case someone might add a new etcd provider that uses something other than etcdadm to bring up a cluster. Also the pluggable etcd provider can be used by any control plane provider. However if we don't see the need of additional etcd providers, or any control plane providers other than KCP that will utilize external etcd, we can decide to make it specific to KCP for the first iteration.
-- Should the machines making the external etcd be registered as a  Kubernetes node or not?
+- Should the machines making the external etcd be registered as a Kubernetes node or not?
     - So far the assumption is that the external etcd cluster will only run etcd and no other kubernetes components, but are there use cases that will need these machines to also register as a kubernetes node?
     - To clarify, if we have use cases where we need certain helper processes to run on these etcd nodes, we can do it with kubelet + static pod manifests.
 - Images: Will CAPI make new image for external etcd nodes, or embed etcdadm release in current image and use it for all nodes
@@ -526,11 +530,6 @@ clusterctl init --etcdbootstrap etcdadm-bootstrap-provider --etcdprovider etcdad
 
 ### Risks and Mitigations
 
-- What are the risks of this proposal and how do we mitigate? Think broadly.
-- How will UX be reviewed and by whom?
-- How will security be reviewed and by whom?
-- Consider including folks that also work outside the SIG or subproject.
-
 ## Alternatives
 
 - Although this proposal is for adding an implementation of the etcd provider that uses etcdadm, other projects/tools can also be used for creating etcd clusters. We can also add new implementations following the etcd provider contract for such projects.
@@ -566,7 +565,8 @@ TBD
 - [x] 04/06/2021: First round of feedback from community
 - [x] 04/21/2021: Shared proposal after addressing feedback at CAPI weekly office hours
 - [x] 04/28/2021: Gave a demo of the POC for etcdadm cluster controller + bootstrap provider end-to-end flow in CAPI weekly office hours
-- [x] 05/24/2021: Open proposal PR
+- [x] 05/24/2021: [Original PR] Open proposal PR
+- [x] 11/09/2022: Open new proposal PR
 
 <!-- Links -->
 [community meeting]: https://docs.google.com/document/d/1Ys-DOR5UsgbMEeciuG0HOgDQc8kZsaWIWJeKJ1-UfbY

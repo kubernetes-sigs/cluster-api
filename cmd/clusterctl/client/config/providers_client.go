@@ -58,6 +58,7 @@ const (
 	VSphereProviderName        = "vsphere"
 	MAASProviderName           = "maas"
 	KubevirtProviderName       = "kubevirt"
+	KubeKeyProviderName        = "kubekey"
 	VclusterProviderName       = "vcluster"
 	VirtinkProviderName        = "virtink"
 )
@@ -223,6 +224,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         NutanixProviderName,
 			url:          "https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         KubeKeyProviderName,
+			url:          "https://github.com/kubesphere/kubekey/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

@@ -118,6 +118,7 @@ docker              InfrastructureProvider   https://github.com/kubernetes-sigs/
 gcp                 InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/                infrastructure-components.yaml
 hetzner             InfrastructureProvider   https://github.com/syself/cluster-api-provider-hetzner/releases/latest/                     infrastructure-components.yaml
 ibmcloud            InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/           infrastructure-components.yaml
+kubekey             InfrastructureProvider   https://github.com/kubesphere/kubekey/releases/latest/                                      infrastructure-components.yaml
 kubevirt            InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/           infrastructure-components.yaml
 maas                InfrastructureProvider   https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/                  infrastructure-components.yaml
 metal3              InfrastructureProvider   https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/                   infrastructure-components.yaml
@@ -207,6 +208,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: ibmcloud
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/
+- File: infrastructure-components.yaml
+  Name: kubekey
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/kubesphere/kubekey/releases/latest/
 - File: infrastructure-components.yaml
   Name: kubevirt
   ProviderType: InfrastructureProvider

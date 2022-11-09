@@ -366,64 +366,64 @@ func (webhook *Cluster) getClusterClassForCluster(ctx context.Context, cluster *
 func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 
-	// Validate ControlPlane MachineHealthCheck if defined.
-	if cluster.Spec.Topology.ControlPlane.MachineHealthCheck != nil && !cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.IsZero() {
-		// Ensure ControlPlane does not define a MachineHealthCheck if the ClusterClass does not define MachineInfrastructure.
-		if clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
-			allErrs = append(allErrs, field.Forbidden(
-				field.NewPath("spec", "topology", "controlPlane", "machineHealthCheck"),
-				"can be set only if spec.controlPlane.machineInfrastructure is set in ClusterClass",
-			))
-		}
-		// Ensure ControlPlane MachineHealthCheck defines UnhealthyConditions.
-		if len(cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.UnhealthyConditions) == 0 {
-			allErrs = append(allErrs, field.Forbidden(
-				field.NewPath("spec", "topology", "controlPlane", "machineHealthCheck", "unhealthyConditions"),
-				"must have at least one value",
-			))
-		}
-	}
+	if cluster.Spec.Topology.ControlPlane.MachineHealthCheck != nil {
+		fldPath := field.NewPath("spec", "topology", "controlPlane", "machineHealthCheck")
 
-	// If MachineHealthCheck is explicitly enabled then make sure that a MachineHealthCheck definition is
-	// available either in the Cluster topology or in the ClusterClass.
-	// (One of these definitions will be used in the controller to create the MachineHealthCheck)
-	if cluster.Spec.Topology.ControlPlane.MachineHealthCheck != nil &&
-		cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable != nil &&
-		*cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable &&
-		cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.IsZero() &&
-		clusterClass.Spec.ControlPlane.MachineHealthCheck == nil {
-		allErrs = append(allErrs, field.Forbidden(
-			field.NewPath("spec", "topology", "controlPlane", "machineHealthCheck", "enable"),
-			fmt.Sprintf("cannot be set to %t as MachineHealthCheck definition is not available in the Cluster topology or the ClusterClass", *cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable),
-		))
+		// Validate ControlPlane MachineHealthCheck if defined.
+		if !cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.IsZero() {
+			// Ensure ControlPlane does not define a MachineHealthCheck if the ClusterClass does not define MachineInfrastructure.
+			if clusterClass.Spec.ControlPlane.MachineInfrastructure == nil {
+				allErrs = append(allErrs, field.Forbidden(
+					fldPath,
+					"can be set only if spec.controlPlane.machineInfrastructure is set in ClusterClass",
+				))
+			}
+			allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, cluster.Namespace,
+				&cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass)...)
+		}
+
+		// If MachineHealthCheck is explicitly enabled then make sure that a MachineHealthCheck definition is
+		// available either in the Cluster topology or in the ClusterClass.
+		// (One of these definitions will be used in the controller to create the MachineHealthCheck)
+
+		// Check if the machineHealthCheck is explicitly enabled in the ControlPlaneTopology.
+		if cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable != nil && *cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable {
+			// Ensure the MHC is defined in at least one of the ControlPlaneTopology of the Cluster or the ControlPlaneClass of the ClusterClass.
+			if cluster.Spec.Topology.ControlPlane.MachineHealthCheck.MachineHealthCheckClass.IsZero() && clusterClass.Spec.ControlPlane.MachineHealthCheck == nil {
+				allErrs = append(allErrs, field.Forbidden(
+					fldPath.Child("enable"),
+					fmt.Sprintf("cannot be set to %t as MachineHealthCheck definition is not available in the Cluster topology or the ClusterClass", *cluster.Spec.Topology.ControlPlane.MachineHealthCheck.Enable),
+				))
+			}
+		}
 	}
 
 	if cluster.Spec.Topology.Workers != nil {
 		for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {
-			// If MachineHealthCheck is defined ensure it defines UnhealthyConditions.
-			if md.MachineHealthCheck != nil && !md.MachineHealthCheck.MachineHealthCheckClass.IsZero() {
-				if len(md.MachineHealthCheck.MachineHealthCheckClass.UnhealthyConditions) == 0 {
-					allErrs = append(allErrs, field.Forbidden(
-						field.NewPath("spec", "topology", "workers", "machineDeployments", "machineHealthCheck").Index(i).Child("unhealthyConditions"),
-						"must have at least one value",
-					))
-				}
-			}
+			if md.MachineHealthCheck != nil {
+				fldPath := field.NewPath("spec", "topology", "workers", "machineDeployments", "machineHealthCheck").Index(i)
 
-			// If MachineHealthCheck is explicitly enabled then make sure that a MachineHealthCheck definition is
-			// available either in the Cluster topology or in the ClusterClass.
-			// (One of these definitions will be used in the controller to create the MachineHealthCheck)
-			mdClass := machineDeploymentClassOfName(clusterClass, md.Class)
-			if mdClass != nil { // Note: we skip handling the nil case here as it is already handled in previous validations.
-				if md.MachineHealthCheck != nil &&
-					md.MachineHealthCheck.Enable != nil &&
-					*md.MachineHealthCheck.Enable &&
-					md.MachineHealthCheck.MachineHealthCheckClass.IsZero() &&
-					mdClass.MachineHealthCheck == nil {
-					allErrs = append(allErrs, field.Forbidden(
-						field.NewPath("spec", "topology", "workers", "machineDeployments", "machineHealthCheck").Index(i).Child("enable"),
-						fmt.Sprintf("cannot be set to %t as MachineHealthCheck definition is not available in the Cluster topology or the ClusterClass", *md.MachineHealthCheck.Enable),
-					))
+				// Validate the MachineDeployment MachineHealthCheck if defined.
+				if !md.MachineHealthCheck.MachineHealthCheckClass.IsZero() {
+					allErrs = append(allErrs, validateMachineHealthCheckClass(fldPath, cluster.Namespace,
+						&md.MachineHealthCheck.MachineHealthCheckClass)...)
+				}
+
+				// If MachineHealthCheck is explicitly enabled then make sure that a MachineHealthCheck definition is
+				// available either in the Cluster topology or in the ClusterClass.
+				// (One of these definitions will be used in the controller to create the MachineHealthCheck)
+				mdClass := machineDeploymentClassOfName(clusterClass, md.Class)
+				if mdClass != nil { // Note: we skip handling the nil case here as it is already handled in previous validations.
+					// Check if the machineHealthCheck is explicitly enabled in the machineDeploymentTopology.
+					if md.MachineHealthCheck.Enable != nil && *md.MachineHealthCheck.Enable {
+						// Ensure the MHC is defined in at least one of the MachineDeploymentTopology of the Cluster or the MachineDeploymentClass of the ClusterClass.
+						if md.MachineHealthCheck.MachineHealthCheckClass.IsZero() && mdClass.MachineHealthCheck == nil {
+							allErrs = append(allErrs, field.Forbidden(
+								fldPath.Child("enable"),
+								fmt.Sprintf("cannot be set to %t as MachineHealthCheck definition is not available in the Cluster topology or the ClusterClass", *md.MachineHealthCheck.Enable),
+							))
+						}
+					}
 				}
 			}
 		}
@@ -433,7 +433,7 @@ func validateMachineHealthChecks(cluster *clusterv1.Cluster, clusterClass *clust
 }
 
 // machineDeploymentClassOfName find a MachineDeploymentClass of the given name in the provided ClusterClass.
-// Returns nill if can not find one.
+// Returns nil if it can not find one.
 // TODO: Check if there is already a helper function that can do this.
 func machineDeploymentClassOfName(clusterClass *clusterv1.ClusterClass, name string) *clusterv1.MachineDeploymentClass {
 	for _, mdClass := range clusterClass.Spec.Workers.MachineDeployments {

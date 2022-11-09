@@ -39,6 +39,12 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 				MatchLabels: map[string]string{"foo": "bar"},
 			},
 			RemediationTemplate: &corev1.ObjectReference{},
+			UnhealthyConditions: []UnhealthyCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionFalse,
+				},
+			},
 		},
 	}
 	t.Run("for MachineHealthCheck", utildefaulting.DefaultValidateTest(mhc))
@@ -76,6 +82,12 @@ func TestMachineHealthCheckLabelSelectorAsSelectorValidation(t *testing.T) {
 				Spec: MachineHealthCheckSpec{
 					Selector: metav1.LabelSelector{
 						MatchLabels: tt.selectors,
+					},
+					UnhealthyConditions: []UnhealthyCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
 					},
 				},
 			}
@@ -123,6 +135,12 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 							"test": "test",
 						},
 					},
+					UnhealthyConditions: []UnhealthyCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
+					},
 				},
 			}
 			oldMHC := &MachineHealthCheck{
@@ -133,6 +151,12 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 							"test": "test",
 						},
 					},
+					UnhealthyConditions: []UnhealthyCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
+					},
 				},
 			}
 
@@ -140,6 +164,58 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 				g.Expect(newMHC.ValidateUpdate(oldMHC)).NotTo(Succeed())
 			} else {
 				g.Expect(newMHC.ValidateUpdate(oldMHC)).To(Succeed())
+			}
+		})
+	}
+}
+
+func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
+	tests := []struct {
+		name               string
+		unhealthConditions []UnhealthyCondition
+		expectErr          bool
+	}{
+		{
+			name: "pass with correctly defined unhealthyConditions",
+			unhealthConditions: []UnhealthyCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionFalse,
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name:               "fail if the UnhealthCondition array is nil",
+			unhealthConditions: nil,
+			expectErr:          true,
+		},
+		{
+			name:               "fail if the UnhealthCondition array is empty",
+			unhealthConditions: []UnhealthyCondition{},
+			expectErr:          true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mhc := &MachineHealthCheck{
+				Spec: MachineHealthCheckSpec{
+					Selector: metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"test": "test",
+						},
+					},
+					UnhealthyConditions: tt.unhealthConditions,
+				},
+			}
+			if tt.expectErr {
+				g.Expect(mhc.ValidateCreate()).NotTo(Succeed())
+				g.Expect(mhc.ValidateUpdate(mhc)).NotTo(Succeed())
+			} else {
+				g.Expect(mhc.ValidateCreate()).To(Succeed())
+				g.Expect(mhc.ValidateUpdate(mhc)).To(Succeed())
 			}
 		})
 	}
@@ -200,6 +276,12 @@ func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
 						"test": "test",
 					},
 				},
+				UnhealthyConditions: []UnhealthyCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionFalse,
+					},
+				},
 			},
 		}
 
@@ -253,6 +335,12 @@ func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
 						"test": "test",
 					},
 				},
+				UnhealthyConditions: []UnhealthyCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionFalse,
+					},
+				},
 			},
 		}
 
@@ -268,7 +356,16 @@ func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
 
 func TestMachineHealthCheckSelectorValidation(t *testing.T) {
 	g := NewWithT(t)
-	mhc := &MachineHealthCheck{}
+	mhc := &MachineHealthCheck{
+		Spec: MachineHealthCheckSpec{
+			UnhealthyConditions: []UnhealthyCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionFalse,
+				},
+			},
+		},
+	}
 	err := mhc.validate(nil)
 	g.Expect(err).ToNot(BeNil())
 	g.Expect(err.Error()).To(ContainSubstring("selector must not be empty"))
@@ -283,6 +380,12 @@ func TestMachineHealthCheckClusterNameSelectorValidation(t *testing.T) {
 				MatchLabels: map[string]string{
 					ClusterLabelName: "bar",
 					"baz":            "qux",
+				},
+			},
+			UnhealthyConditions: []UnhealthyCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionFalse,
 				},
 			},
 		},
@@ -305,6 +408,12 @@ func TestMachineHealthCheckRemediationTemplateNamespaceValidation(t *testing.T) 
 		Spec: MachineHealthCheckSpec{
 			Selector:            metav1.LabelSelector{MatchLabels: map[string]string{"foo": "bar"}},
 			RemediationTemplate: &corev1.ObjectReference{Namespace: "foo"},
+			UnhealthyConditions: []UnhealthyCondition{
+				{
+					Type:   corev1.NodeReady,
+					Status: corev1.ConditionFalse,
+				},
+			},
 		},
 	}
 	invalid := valid.DeepCopy()

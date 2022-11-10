@@ -33,10 +33,11 @@ var (
 		{"metadata", "namespace"},
 		// uid is optional for a server side apply intent but sets the expectation of an object getting created or a specific one updated.
 		{"metadata", "uid"},
-		// the topology controller controls/has an opinion for labels, annotation, ownerReferences and spec only.
+		// the topology controller controls/has an opinion for labels, annotation, ownerReferences, finalizers and spec only.
 		{"metadata", "labels"},
 		{"metadata", "annotations"},
 		{"metadata", "ownerReferences"},
+		{"metadata", "finalizers"},
 		{"spec"},
 	}
 

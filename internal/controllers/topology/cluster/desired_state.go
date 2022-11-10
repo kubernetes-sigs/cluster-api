@@ -623,10 +623,19 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		},
 	}
 
-	// If it's a new MachineDeployment, set the finalizer.
-	// Note: we only add it on creation to avoid race conditions later on when
-	// the MachineDeployment topology controller removes the finalizer.
-	if currentMachineDeployment == nil {
+	// Set the finalizer on the MachineDeployment.
+	// Note - setting this in every case except where the MachineDeployment is in deleting AND the finalizer has already been removed
+	// prevents the finalizer from being removed on server-side apply as it is not explicitly set.
+	// The MachineDeployment topology controller removes the finalizer.
+
+	// Set the finalizer:
+	// - If this is a new MachineDeployment.
+	if currentMachineDeployment == nil ||
+		// - If the MachineDeployment is not being deleted.
+		currentMachineDeployment.Object.DeletionTimestamp.IsZero() ||
+		// - If the MachineDeployment is being deleted but currently still has the Finalizer.
+		(!currentMachineDeployment.Object.DeletionTimestamp.IsZero() &&
+			controllerutil.ContainsFinalizer(currentMachineDeployment.Object, clusterv1.MachineDeploymentTopologyFinalizer)) {
 		controllerutil.AddFinalizer(desiredMachineDeploymentObj, clusterv1.MachineDeploymentTopologyFinalizer)
 	}
 

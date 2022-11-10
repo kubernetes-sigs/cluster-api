@@ -1394,7 +1394,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Spec.Template.Spec.Bootstrap.ConfigRef.Name).ToNot(Equal("linux-worker-bootstraptemplate"))
 	})
 
-	t.Run("If there is already a machine deployment, it preserves the object name and the reference names", func(t *testing.T) {
+	t.Run("If there is already a machine deployment, it preserves the object name, the reference names", func(t *testing.T) {
 		g := NewWithT(t)
 		s := scope.New(cluster)
 		s.Blueprint = blueprint
@@ -1403,6 +1403,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 		currentMd := &clusterv1.MachineDeployment{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "existing-deployment-1",
+				Finalizers: []string{
+					clusterv1.MachineDeploymentTopologyFinalizer,
+				},
 			},
 			Spec: clusterv1.MachineDeploymentSpec{
 				Replicas: &currentReplicas,
@@ -1436,7 +1439,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
 		g.Expect(actualMd.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
-		g.Expect(controllerutil.ContainsFinalizer(actualMd, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
+		g.Expect(controllerutil.ContainsFinalizer(actualMd, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeTrue())
 
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("foo", "baz"))
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("fizz", "buzz"))
@@ -1602,6 +1605,112 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		// Check that UnhealthyConditions are set as expected.
 		g.Expect(actual.MachineHealthCheck.Spec.UnhealthyConditions).To(Equal(unhealthyConditions))
+	})
+	t.Run("Should correctly set the finalizer", func(t *testing.T) {
+		g := NewWithT(t)
+		s := scope.New(cluster)
+		s.Blueprint = blueprint
+		deletionTimestamp := metav1.Now()
+		baseMD := &clusterv1.MachineDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "existing-deployment-1",
+			},
+			Spec: clusterv1.MachineDeploymentSpec{
+				Replicas: pointer.Int32(3),
+				Template: clusterv1.MachineTemplateSpec{
+					Spec: clusterv1.MachineSpec{
+						Version: pointer.String("v1.21.2"),
+						Bootstrap: clusterv1.Bootstrap{
+							ConfigRef: contract.ObjToRef(workerBootstrapTemplate),
+						},
+						InfrastructureRef: *contract.ObjToRef(workerInfrastructureMachineTemplate),
+					},
+				},
+			},
+		}
+		mdTopology = clusterv1.MachineDeploymentTopology{
+			Metadata: clusterv1.ObjectMeta{
+				Labels: map[string]string{"foo": "baz"},
+			},
+			Class: "linux-worker",
+			Name:  "big-pool-of-machines",
+		}
+		t.Run("Should set the finalizer on a new MD", func(t *testing.T) {
+			s.Current.MachineDeployments = map[string]*scope.MachineDeploymentState{}
+			actual, err := computeMachineDeployment(ctx, s, nil, mdTopology)
+			g.Expect(err).ToNot(HaveOccurred())
+			actualMd := actual.Object
+			g.Expect(controllerutil.ContainsFinalizer(actualMd, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeTrue())
+		},
+		)
+		t.Run("Should add finalizer on an existing MD if not set", func(t *testing.T) {
+			currentMD := baseMD.DeepCopy()
+			currentMD.Finalizers = []string{}
+			s.Current.MachineDeployments = map[string]*scope.MachineDeploymentState{
+				"big-pool-of-machines": {
+					Object:                        currentMD,
+					BootstrapTemplate:             workerBootstrapTemplate,
+					InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+				},
+			}
+			actual, err := computeMachineDeployment(ctx, s, nil, mdTopology)
+			g.Expect(err).ToNot(HaveOccurred())
+			actualMd := actual.Object
+			g.Expect(controllerutil.ContainsFinalizer(actualMd, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeTrue())
+		},
+		)
+		t.Run("Should preserve finalizer on an existing MD if set", func(t *testing.T) {
+			currentMD := baseMD.DeepCopy()
+			currentMD.Finalizers = []string{clusterv1.MachineDeploymentTopologyFinalizer}
+			s.Current.MachineDeployments = map[string]*scope.MachineDeploymentState{
+				"big-pool-of-machines": {
+					Object:                        currentMD,
+					BootstrapTemplate:             workerBootstrapTemplate,
+					InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+				},
+			}
+			actual, err := computeMachineDeployment(ctx, s, nil, mdTopology)
+			g.Expect(err).ToNot(HaveOccurred())
+			actualMd := actual.Object
+			g.Expect(controllerutil.ContainsFinalizer(actualMd, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeTrue())
+		},
+		)
+		t.Run("Should preserve finalizer on an existing MD if finalizer is already set and MD has DeletionTimestamp", func(t *testing.T) {
+			currentMD := baseMD.DeepCopy()
+			currentMD.Finalizers = []string{clusterv1.MachineDeploymentTopologyFinalizer}
+			currentMD.DeletionTimestamp = &deletionTimestamp
+
+			s.Current.MachineDeployments = map[string]*scope.MachineDeploymentState{
+				"big-pool-of-machines": {
+					Object:                        currentMD,
+					BootstrapTemplate:             workerBootstrapTemplate,
+					InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+				},
+			}
+			actual, err := computeMachineDeployment(ctx, s, nil, mdTopology)
+			g.Expect(err).ToNot(HaveOccurred())
+			actualMd := actual.Object
+			g.Expect(controllerutil.ContainsFinalizer(actualMd, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeTrue())
+		},
+		)
+		t.Run("Should not set finalizer on an existing MD if not set and MD has DeletionTimestamp", func(t *testing.T) {
+			currentMD := baseMD.DeepCopy()
+			currentMD.Finalizers = []string{}
+			currentMD.DeletionTimestamp = &deletionTimestamp
+
+			s.Current.MachineDeployments = map[string]*scope.MachineDeploymentState{
+				"big-pool-of-machines": {
+					Object:                        currentMD,
+					BootstrapTemplate:             workerBootstrapTemplate,
+					InfrastructureMachineTemplate: workerInfrastructureMachineTemplate,
+				},
+			}
+			actual, err := computeMachineDeployment(ctx, s, nil, mdTopology)
+			g.Expect(err).ToNot(HaveOccurred())
+			actualMd := actual.Object
+			g.Expect(controllerutil.ContainsFinalizer(actualMd, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
+		},
+		)
 	})
 }
 

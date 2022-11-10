@@ -1094,31 +1094,31 @@ func Test_aggregateResponses(t *testing.T) {
 	}{
 		{
 			name:              "Aggregate response if there is only one response",
-			aggregateResponse: fakeSuccessResponse(),
+			aggregateResponse: fakeSuccessResponse(""),
 			responses: []runtimehooksv1.ResponseObject{
-				fakeSuccessResponse(),
+				fakeSuccessResponse("test"),
 			},
-			want: fakeSuccessResponse(),
+			want: fakeSuccessResponse("test"),
 		},
 		{
 			name:              "Aggregate retry response if there is only one response",
-			aggregateResponse: fakeRetryableSuccessResponse(0),
+			aggregateResponse: fakeRetryableSuccessResponse(0, ""),
 			responses: []runtimehooksv1.ResponseObject{
-				fakeRetryableSuccessResponse(5),
+				fakeRetryableSuccessResponse(5, "test"),
 			},
-			want: fakeRetryableSuccessResponse(5),
+			want: fakeRetryableSuccessResponse(5, "test"),
 		},
 		{
 			name:              "Aggregate retry responses to lowest non-zero retryAfterSeconds value",
-			aggregateResponse: fakeRetryableSuccessResponse(0),
+			aggregateResponse: fakeRetryableSuccessResponse(0, ""),
 			responses: []runtimehooksv1.ResponseObject{
-				fakeRetryableSuccessResponse(0),
-				fakeRetryableSuccessResponse(1),
-				fakeRetryableSuccessResponse(5),
-				fakeRetryableSuccessResponse(4),
-				fakeRetryableSuccessResponse(3),
+				fakeRetryableSuccessResponse(0, "test1"),
+				fakeRetryableSuccessResponse(1, "test2"),
+				fakeRetryableSuccessResponse(5, ""),
+				fakeRetryableSuccessResponse(4, ""),
+				fakeRetryableSuccessResponse(3, ""),
 			},
-			want: fakeRetryableSuccessResponse(1),
+			want: fakeRetryableSuccessResponse(1, "test1, test2"),
 		},
 	}
 	for _, tt := range tests {
@@ -1191,27 +1191,27 @@ func registry(configs []runtimev1.ExtensionConfig) runtimeregistry.ExtensionRegi
 	return registry
 }
 
-func fakeSuccessResponse() *fakev1alpha1.FakeResponse {
+func fakeSuccessResponse(message string) *fakev1alpha1.FakeResponse {
 	return &fakev1alpha1.FakeResponse{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "FakeResponse",
 			APIVersion: "v1alpha1",
 		},
 		CommonResponse: runtimehooksv1.CommonResponse{
-			Message: "",
+			Message: message,
 			Status:  runtimehooksv1.ResponseStatusSuccess,
 		},
 	}
 }
 
-func fakeRetryableSuccessResponse(retryAfterSeconds int32) *fakev1alpha1.RetryableFakeResponse {
+func fakeRetryableSuccessResponse(retryAfterSeconds int32, message string) *fakev1alpha1.RetryableFakeResponse {
 	return &fakev1alpha1.RetryableFakeResponse{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "FakeResponse",
 			APIVersion: "v1alpha1",
 		},
 		CommonResponse: runtimehooksv1.CommonResponse{
-			Message: "",
+			Message: message,
 			Status:  runtimehooksv1.ResponseStatusSuccess,
 		},
 		CommonRetryResponse: runtimehooksv1.CommonRetryResponse{

@@ -29,6 +29,7 @@ potentially block lifecycle transitions from happening.
 Following recommendations are especially relevant:
 
 * [Blocking and non Blocking](implement-extensions.md#blocking-hooks)
+* [Error messages](implement-extensions.md#error-messages)
 * [Error management](implement-extensions.md#error-management)
 * [Avoid dependencies](implement-extensions.md#avoid-dependencies)
 

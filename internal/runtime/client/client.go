@@ -254,25 +254,25 @@ func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook
 
 // aggregateSuccessfulResponses aggregates all successful responses into a single response.
 func aggregateSuccessfulResponses(aggregatedResponse runtimehooksv1.ResponseObject, responses []runtimehooksv1.ResponseObject) {
-	// At this point the Status should always be ResponseStatusSuccess and the Message should be empty.
-	// So let's set those values to avoid keeping values that could have been set by the caller of CallAllExtensions.
-	aggregatedResponse.SetMessage("")
+	// At this point the Status should always be ResponseStatusSuccess.
 	aggregatedResponse.SetStatus(runtimehooksv1.ResponseStatusSuccess)
 
-	aggregatedRetryResponse, ok := aggregatedResponse.(runtimehooksv1.RetryResponseObject)
-	if !ok {
-		// If the aggregated response is not a RetryResponseObject then we're done.
-		return
-	}
 	// Note: As all responses have the same type we can assume now that
 	// they all implement the RetryResponseObject interface.
-
+	messages := []string{}
 	for _, resp := range responses {
-		aggregatedRetryResponse.SetRetryAfterSeconds(lowestNonZeroRetryAfterSeconds(
-			aggregatedRetryResponse.GetRetryAfterSeconds(),
-			resp.(runtimehooksv1.RetryResponseObject).GetRetryAfterSeconds(),
-		))
+		aggregatedRetryResponse, ok := aggregatedResponse.(runtimehooksv1.RetryResponseObject)
+		if ok {
+			aggregatedRetryResponse.SetRetryAfterSeconds(lowestNonZeroRetryAfterSeconds(
+				aggregatedRetryResponse.GetRetryAfterSeconds(),
+				resp.(runtimehooksv1.RetryResponseObject).GetRetryAfterSeconds(),
+			))
+		}
+		if resp.GetMessage() != "" {
+			messages = append(messages, resp.GetMessage())
+		}
 	}
+	aggregatedResponse.SetMessage(strings.Join(messages, ", "))
 }
 
 // lowestNonZeroRetryAfterSeconds returns the lowest non-zero value of the two provided values.
@@ -336,7 +336,7 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	}
 
 	log.Info(fmt.Sprintf("Calling extension handler %q", name))
-	var timeoutDuration time.Duration
+	timeoutDuration := runtimehooksv1.DefaultHandlersTimeoutSeconds * time.Second
 	if registration.TimeoutSeconds != nil {
 		timeoutDuration = time.Duration(*registration.TimeoutSeconds) * time.Second
 	}
@@ -619,7 +619,7 @@ func defaultDiscoveryResponse(discovery *runtimehooksv1.DiscoveryResponse) *runt
 
 		// If TimeoutSeconds is not defined set to 10.
 		if handler.TimeoutSeconds == nil {
-			handler.TimeoutSeconds = pointer.Int32(10)
+			handler.TimeoutSeconds = pointer.Int32(runtimehooksv1.DefaultHandlersTimeoutSeconds)
 		}
 
 		discovery.Handlers[i] = handler

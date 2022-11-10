@@ -71,7 +71,14 @@ type Options struct {
 }
 
 // NewServer creates a new runtime webhook server based on the given Options.
+//
+// Deprecated: use New instead.
 func NewServer(options Options) (*Server, error) {
+	return New(options)
+}
+
+// New creates a new runtime webhook server based on the given Options.
+func New(options Options) (*Server, error) {
 	if options.Catalog == nil {
 		return nil, errors.Errorf("catalog is required")
 	}
@@ -118,9 +125,13 @@ type ExtensionHandler struct {
 	HandlerFunc runtimecatalog.Hook
 
 	// TimeoutSeconds is the timeout of the extension handler.
+	// If left undefined, this will be defaulted to 10s when processing the answer to the discovery
+	// call for this server.
 	TimeoutSeconds *int32
 
-	// FailurePolicy is the failure policy of the extension handler
+	// FailurePolicy is the failure policy of the extension handler.
+	// If left undefined, this will be defaulted to FailurePolicyFail when processing the answer to the discovery
+	// call for this server.
 	FailurePolicy *runtimehooksv1.FailurePolicy
 }
 

@@ -71,7 +71,7 @@ type describeClusterOptions struct {
 var dc = &describeClusterOptions{}
 
 var describeClusterClusterCmd = &cobra.Command{
-	Use:   "cluster",
+	Use:   "cluster NAME",
 	Short: "Describe workload clusters",
 	Long: LongDesc(`
 		Provide an "at glance" view of a Cluster API cluster designed to help the user in quickly

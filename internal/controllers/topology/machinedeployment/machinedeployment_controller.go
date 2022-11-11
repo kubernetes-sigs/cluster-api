@@ -21,6 +21,7 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -84,7 +85,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 //
 // We don't have to set the finalizer, as it's already set during MachineDeployment creation
 // in the cluster topology controller.
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Fetch the MachineDeployment instance.
@@ -112,12 +113,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
+	// Create a patch helper to add or remove the finalizer from the MachineDeployment.
+	patchHelper, err := patch.NewHelper(md, r.Client)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: md})
+	}
+	defer func() {
+		if err := patchHelper.Patch(ctx, md); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: md})})
+		}
+	}()
+
 	// Handle deletion reconciliation loop.
 	if !md.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, md)
 	}
 
-	// Nothing to do.
+	// If the MachineDeployment is not being deleted ensure the finalizer is set.
+	controllerutil.AddFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)
+
 	return ctrl.Result{}, nil
 }
 
@@ -151,16 +165,8 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineD
 		return ctrl.Result{}, err
 	}
 
-	// Remove the finalizer so the MachineDeployment can be garbage collected by Kubernetes.
-	patchHelper, err := patch.NewHelper(md, r.Client)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: md})
-	}
-
 	controllerutil.RemoveFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)
-	if err := patchHelper.Patch(ctx, md); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: md})
-	}
+
 	return ctrl.Result{}, nil
 }
 

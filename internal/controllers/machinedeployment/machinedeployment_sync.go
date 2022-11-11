@@ -35,11 +35,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/labels"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -176,17 +174,6 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, d *clusterv1.MachineD
 			Selector:        *newMSSelector,
 			Template:        newMSTemplate,
 		},
-	}
-
-	if feature.Gates.Enabled(feature.ClusterTopology) {
-		// If the MachineDeployment is owned by a Cluster Topology,
-		// add the finalizer to allow the topology controller to
-		// clean up resources when the MachineSet is deleted.
-		// MachineSets are deleted during rollout (e.g. template rotation) and
-		// after MachineDeployment deletion.
-		if labels.IsTopologyOwned(d) {
-			controllerutil.AddFinalizer(&newMS, clusterv1.MachineSetTopologyFinalizer)
-		}
 	}
 
 	if d.Spec.Strategy.RollingUpdate.DeletePolicy != nil {

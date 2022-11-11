@@ -911,9 +911,8 @@ func assertControlPlaneReconcile(cluster *clusterv1.Cluster) error {
 // assertMachineDeploymentsReconcile checks if the MachineDeployments:
 // 1) Are created in the correct number.
 // 2) Have the correct labels (TopologyOwned, ClusterName, MachineDeploymentName).
-// 3) Have the correct finalizer applied.
-// 4) Have the correct replicas and version.
-// 6) Have the correct Kind/APIVersion and Labels/Annotations for BoostrapRef and InfrastructureRef templates.
+// 3) Have the correct replicas and version.
+// 4) Have the correct Kind/APIVersion and Labels/Annotations for BoostrapRef and InfrastructureRef templates.
 func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 	// List all created machine deployments to assert the expected numbers are created.
 	machineDeployments := &clusterv1.MachineDeploymentList{}
@@ -948,16 +947,6 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 			// use the ClusterTopologyMachineDeploymentLabel to get the specific machineDeployment to compare to.
 			if topologyMD.Name != md.GetLabels()[clusterv1.ClusterTopologyMachineDeploymentLabelName] {
 				continue
-			}
-
-			// Assert that the correct Finalizer has been added to the MachineDeployment.
-			for _, f := range md.Finalizers {
-				// Break as soon as we find a matching finalizer.
-				if f == clusterv1.MachineDeploymentTopologyFinalizer {
-					break
-				}
-				// False if the finalizer is not present on the MachineDeployment.
-				return fmt.Errorf("finalizer %v not found on MachineDeployment", clusterv1.MachineDeploymentTopologyFinalizer)
 			}
 
 			// Check if the ClusterTopologyLabelName and ClusterTopologyOwnedLabel are set correctly.

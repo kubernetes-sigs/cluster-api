@@ -27,10 +27,98 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util"
 )
+
+func TestMachineSetTopologyFinalizer(t *testing.T) {
+	mdName := "md"
+
+	msBT := builder.BootstrapTemplate(metav1.NamespaceDefault, "msBT").Build()
+	msIMT := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "msIMT").Build()
+
+	cluster := builder.Cluster(metav1.NamespaceDefault, "fake-cluster").Build()
+	msBuilder := builder.MachineSet(metav1.NamespaceDefault, "ms").
+		WithBootstrapTemplate(msBT).
+		WithInfrastructureTemplate(msIMT).
+		WithClusterName(cluster.Name).
+		WithOwnerReferences([]metav1.OwnerReference{
+			{
+				Kind:       "MachineDeployment",
+				APIVersion: clusterv1.GroupVersion.String(),
+				Name:       "md",
+			},
+		}).
+		WithLabels(map[string]string{
+			clusterv1.MachineDeploymentLabelName: mdName,
+			clusterv1.ClusterTopologyOwnedLabel:  "",
+		})
+
+	ms := msBuilder.Build()
+	msWithFinalizer := msBuilder.Build()
+	msWithFinalizer.Finalizers = []string{clusterv1.MachineSetTopologyFinalizer}
+	msWithDeletionTimestamp := msBuilder.Build()
+	deletionTimestamp := metav1.Now()
+	msWithDeletionTimestamp.DeletionTimestamp = &deletionTimestamp
+
+	msWithDeletionTimestampAndFinalizer := msWithDeletionTimestamp.DeepCopy()
+	msWithDeletionTimestampAndFinalizer.Finalizers = []string{clusterv1.MachineSetTopologyFinalizer}
+
+	testCases := []struct {
+		name            string
+		ms              *clusterv1.MachineSet
+		expectFinalizer bool
+	}{
+		{
+			name:            "should add ClusterTopology finalizer to a MachineSet with no finalizer",
+			ms:              ms,
+			expectFinalizer: true,
+		},
+		{
+			name:            "should retain ClusterTopology finalizer on MachineSet with finalizer",
+			ms:              msWithFinalizer,
+			expectFinalizer: true,
+		},
+		{
+			name:            "should not add ClusterTopology finalizer on MachineSet with Deletion Timestamp and no finalizer ",
+			ms:              msWithDeletionTimestamp,
+			expectFinalizer: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(fakeScheme).
+				WithObjects(tc.ms, msBT, msIMT, cluster).
+				Build()
+
+			msr := &Reconciler{
+				Client:    fakeClient,
+				APIReader: fakeClient,
+			}
+
+			_, err := msr.Reconcile(ctx, reconcile.Request{
+				NamespacedName: util.ObjectKey(tc.ms),
+			})
+			g.Expect(err).NotTo(HaveOccurred())
+
+			key := client.ObjectKey{Namespace: tc.ms.Namespace, Name: tc.ms.Name}
+			var actual clusterv1.MachineSet
+			g.Expect(msr.Client.Get(ctx, key, &actual)).To(Succeed())
+			if tc.expectFinalizer {
+				g.Expect(actual.Finalizers).To(ConsistOf(clusterv1.MachineSetTopologyFinalizer))
+			} else {
+				g.Expect(actual.Finalizers).To(BeEmpty())
+			}
+		})
+	}
+}
 
 func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 	deletionTimeStamp := metav1.Now()

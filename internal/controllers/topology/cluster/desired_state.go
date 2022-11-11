@@ -28,7 +28,6 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -676,13 +675,6 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 				},
 			},
 		},
-	}
-
-	// If it's a new MachineDeployment, set the finalizer.
-	// Note: we only add it on creation to avoid race conditions later on when
-	// the MachineDeployment topology controller removes the finalizer.
-	if currentMachineDeployment == nil {
-		controllerutil.AddFinalizer(desiredMachineDeploymentObj, clusterv1.MachineDeploymentTopologyFinalizer)
 	}
 
 	// If an existing MachineDeployment is present, override the MachineDeployment generate name

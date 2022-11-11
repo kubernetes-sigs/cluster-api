@@ -1249,7 +1249,7 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 	return obj
 }
 
-// MachineSetBuilder holds the variables and objects needed to build a generic MachineSet.
+// MachineSetBuilder holds the variables and objects needed to build a MachineSet.
 type MachineSetBuilder struct {
 	namespace              string
 	name                   string
@@ -1257,6 +1257,8 @@ type MachineSetBuilder struct {
 	infrastructureTemplate *unstructured.Unstructured
 	replicas               *int32
 	labels                 map[string]string
+	clusterName            string
+	ownerRefs              []metav1.OwnerReference
 }
 
 // MachineSet creates a MachineSetBuilder with the given name and namespace.
@@ -1273,7 +1275,7 @@ func (m *MachineSetBuilder) WithBootstrapTemplate(ref *unstructured.Unstructured
 	return m
 }
 
-// WithInfrastructureTemplate adds the passed unstructured object to the MachineSet builder as an infrastructureMachineTemplate.
+// WithInfrastructureTemplate adds the passed unstructured object to the MachineSetBuilder as an infrastructureMachineTemplate.
 func (m *MachineSetBuilder) WithInfrastructureTemplate(ref *unstructured.Unstructured) *MachineSetBuilder {
 	m.infrastructureTemplate = ref
 	return m
@@ -1285,9 +1287,21 @@ func (m *MachineSetBuilder) WithLabels(labels map[string]string) *MachineSetBuil
 	return m
 }
 
-// WithReplicas sets the number of replicas for the MachineSetClassBuilder.
+// WithReplicas sets the number of replicas for the MachineSetBuilder.
 func (m *MachineSetBuilder) WithReplicas(replicas *int32) *MachineSetBuilder {
 	m.replicas = replicas
+	return m
+}
+
+// WithClusterName sets the number of replicas for the MachineSetBuilder.
+func (m *MachineSetBuilder) WithClusterName(name string) *MachineSetBuilder {
+	m.clusterName = name
+	return m
+}
+
+// WithOwnerReferences adds ownerReferences for the MachineSetBuilder.
+func (m *MachineSetBuilder) WithOwnerReferences(ownerRefs []metav1.OwnerReference) *MachineSetBuilder {
+	m.ownerRefs = ownerRefs
 	return m
 }
 
@@ -1299,11 +1313,13 @@ func (m *MachineSetBuilder) Build() *clusterv1.MachineSet {
 			APIVersion: clusterv1.GroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      m.name,
-			Namespace: m.namespace,
-			Labels:    m.labels,
+			Name:            m.name,
+			Namespace:       m.namespace,
+			Labels:          m.labels,
+			OwnerReferences: m.ownerRefs,
 		},
 	}
+	obj.Spec.ClusterName = m.clusterName
 	obj.Spec.Replicas = m.replicas
 	if m.bootstrapTemplate != nil {
 		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrapTemplate)

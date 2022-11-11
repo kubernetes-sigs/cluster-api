@@ -23,6 +23,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -86,7 +87,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 //
 // We don't have to set the finalizer, as it's already set during MachineSet creation
 // in the MachineSet controller.
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	// Fetch the MachineSet instance.
 	ms := &clusterv1.MachineSet{}
 	if err := r.Client.Get(ctx, req.NamespacedName, ms); err != nil {
@@ -119,12 +120,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
+	// Create a patch helper to add or remove the finalizer from the MachineSet.
+	patchHelper, err := patch.NewHelper(ms, r.Client)
+	if err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: ms})
+	}
+	defer func() {
+		if err := patchHelper.Patch(ctx, ms); err != nil {
+			reterr = kerrors.NewAggregate([]error{reterr, errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: ms})})
+		}
+	}()
+
 	// Handle deletion reconciliation loop.
 	if !ms.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, ms)
 	}
 
-	// Nothing to do.
+	// If the MachineSet is not being deleted ensure the finalizer is set.
+	controllerutil.AddFinalizer(ms, clusterv1.MachineSetTopologyFinalizer)
+
 	return ctrl.Result{}, nil
 }
 
@@ -172,14 +186,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, ms *clusterv1.MachineS
 	}
 
 	// Remove the finalizer so the MachineSet can be garbage collected by Kubernetes.
-	patchHelper, err := patch.NewHelper(ms, r.Client)
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: ms})
-	}
 	controllerutil.RemoveFinalizer(ms, clusterv1.MachineSetTopologyFinalizer)
-	if err := patchHelper.Patch(ctx, ms); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: ms})
-	}
 
 	return ctrl.Result{}, nil
 }

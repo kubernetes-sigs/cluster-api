@@ -19,4 +19,10 @@ package v1alpha3
 const (
 	// CertManagerVersionAnnotation reports the cert manager version installed by clusterctl.
 	CertManagerVersionAnnotation = "cert-manager.clusterctl.cluster.x-k8s.io/version"
+
+	// SkipCRDNamePreflightCheckAnnotation can be placed on provider CRDs, so that clusterctl doesn't emit a
+	// warning if the CRD doesn't comply with Cluster APIs naming scheme.
+	// Note: Only CRDs that are referenced by core Cluster API CRDs have to comply with the naming scheme.
+	// See the following issue for more information: https://github.com/kubernetes-sigs/cluster-api/issues/5686#issuecomment-1260897278
+	SkipCRDNamePreflightCheckAnnotation = "clusterctl.cluster.x-k8s.io/skip-crd-name-preflight-check"
 )

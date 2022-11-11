@@ -253,11 +253,8 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 }
 
 func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	if err := r.watchClusterNodes(ctx, cluster); err != nil {
-		log.Error(err, "error watching nodes on target cluster")
-		return ctrl.Result{}, err
+		return ctrl.Result{}, errors.Wrapf(err, "error watching nodes on target cluster")
 	}
 
 	// If the Machine belongs to a cluster, add an owner reference.

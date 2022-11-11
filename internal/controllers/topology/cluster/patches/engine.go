@@ -78,7 +78,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 	// respecting the order in which they are defined.
 	for i := range blueprint.ClusterClass.Spec.Patches {
 		clusterClassPatch := blueprint.ClusterClass.Spec.Patches[i]
-		ctx, log = log.WithValues("patch", clusterClassPatch.Name).Into(ctx)
+		ctx, log := log.WithValues("patch", clusterClassPatch.Name).Into(ctx)
 
 		log.V(5).Infof("Applying patch to templates")
 
@@ -115,7 +115,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 			continue
 		}
 
-		ctx, log = log.WithValues("patch", clusterClassPatch.Name).Into(ctx)
+		ctx, log := log.WithValues("patch", clusterClassPatch.Name).Into(ctx)
 
 		log.V(5).Infof("Validating topology")
 
@@ -283,7 +283,7 @@ func applyPatchesToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatc
 	log := tlog.LoggerFrom(ctx)
 
 	for _, patch := range resp.Items {
-		log = log.WithValues("uid", patch.UID)
+		log := log.WithValues("uid", patch.UID)
 
 		// Get the request item the patch belongs to.
 		requestItem := getRequestItemByUID(req, patch.UID)

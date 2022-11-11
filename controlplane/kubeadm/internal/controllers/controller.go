@@ -600,7 +600,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context
 	}
 
 	for _, m := range machines {
-		log = log.WithValues("Machine", klog.KObj(m))
+		log := log.WithValues("Machine", klog.KObj(m))
 
 		kubeadmConfig, ok := controlPlane.GetKubeadmConfig(m.Name)
 		if !ok {

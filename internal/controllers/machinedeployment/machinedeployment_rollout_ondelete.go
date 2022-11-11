@@ -85,7 +85,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 	totalReplicas := mdutil.GetReplicaCountForMachineSets(allMSs)
 	scaleDownAmount := totalReplicas - *deployment.Spec.Replicas
 	for _, oldMS := range oldMSs {
-		log = log.WithValues("MachineSet", klog.KObj(oldMS))
+		log := log.WithValues("MachineSet", klog.KObj(oldMS))
 		if oldMS.Spec.Replicas == nil || *oldMS.Spec.Replicas <= 0 {
 			log.V(4).Info("fully scaled down")
 			continue
@@ -138,7 +138,7 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 	}
 	log.V(4).Info("Finished reconcile of Old MachineSets to account for deleted machines. Now analyzing if there's more potential to scale down")
 	for _, oldMS := range oldMSs {
-		log = log.WithValues("MachineSet", klog.KObj(oldMS))
+		log := log.WithValues("MachineSet", klog.KObj(oldMS))
 		if scaleDownAmount <= 0 {
 			break
 		}

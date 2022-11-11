@@ -262,7 +262,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	filteredMachines := make([]*clusterv1.Machine, 0, len(allMachines.Items))
 	for idx := range allMachines.Items {
 		machine := &allMachines.Items[idx]
-		log = log.WithValues("Machine", klog.KObj(machine))
+		log := log.WithValues("Machine", klog.KObj(machine))
 		if shouldExcludeMachine(machineSet, machine) {
 			continue
 		}
@@ -283,7 +283,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 	var errs []error
 	for _, machine := range filteredMachines {
-		log = log.WithValues("Machine", klog.KObj(machine))
+		log := log.WithValues("Machine", klog.KObj(machine))
 		// filteredMachines contains machines in deleting status to calculate correct status.
 		// skip remediation for those in deleting status.
 		if !machine.DeletionTimestamp.IsZero() {
@@ -369,6 +369,8 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 		)
 
 		for i := 0; i < diff; i++ {
+			// Create a new logger so the global logger is not modified.
+			log := log
 			machine := r.getNewMachine(ms)
 
 			// Clone and set the infrastructure and bootstrap references.
@@ -665,7 +667,7 @@ func (r *Reconciler) updateStatus(ctx context.Context, cluster *clusterv1.Cluste
 	templateLabel := labels.Set(ms.Spec.Template.Labels).AsSelectorPreValidated()
 
 	for _, machine := range filteredMachines {
-		log = log.WithValues("Machine", klog.KObj(machine))
+		log := log.WithValues("Machine", klog.KObj(machine))
 
 		if templateLabel.Matches(labels.Set(machine.Labels)) {
 			fullyLabeledReplicasCount++

@@ -81,6 +81,8 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 	// easier to read and less error prone than using unstructured or working with raw json/yaml.
 	// IMPORTANT: by unit testing this func/nested func properly, it is possible to prevent unexpected rollouts when patches are modified.
 	topologymutation.WalkTemplates(ctx, h.decoder, req, resp, func(ctx context.Context, obj runtime.Object, variables map[string]apiextensionsv1.JSON, holderRef runtimehooksv1.HolderReference) error {
+		log := ctrl.LoggerFrom(ctx)
+
 		switch obj := obj.(type) {
 		case *infrav1.DockerClusterTemplate:
 			if err := patchDockerClusterTemplate(ctx, obj, variables); err != nil {

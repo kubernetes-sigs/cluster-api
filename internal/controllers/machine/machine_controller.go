@@ -197,11 +197,25 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Handle deletion reconciliation loop.
 	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, cluster, m)
+		res, err := r.reconcileDelete(ctx, cluster, m)
+		// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
+		// the current cluster because of concurrent access.
+		if errors.Is(err, remote.ErrClusterLocked) {
+			log.V(5).Info("Requeueing because another worker has the lock on the ClusterCacheTracker")
+			return ctrl.Result{Requeue: true}, nil
+		}
+		return res, err
 	}
 
 	// Handle normal reconciliation loop.
-	return r.reconcile(ctx, cluster, m)
+	res, err := r.reconcile(ctx, cluster, m)
+	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
+	// the current cluster because of concurrent access.
+	if errors.Is(err, remote.ErrClusterLocked) {
+		log.V(5).Info("Requeueing because another worker has the lock on the ClusterCacheTracker")
+		return ctrl.Result{Requeue: true}, nil
+	}
+	return res, err
 }
 
 func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clusterv1.Machine, options ...patch.Option) error {
@@ -243,11 +257,8 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 }
 
 func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
 		if err := r.watchClusterNodes(ctx, cluster); err != nil {
-			log.Error(err, "error watching nodes on target cluster")
 			return ctrl.Result{}, err
 		}
 	}

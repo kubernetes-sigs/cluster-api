@@ -202,11 +202,25 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 
 	if !kcp.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Handle deletion reconciliation loop.
-		return r.reconcileDelete(ctx, cluster, kcp)
+		res, err = r.reconcileDelete(ctx, cluster, kcp)
+		// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
+		// the current cluster because of concurrent access.
+		if errors.Is(err, remote.ErrClusterLocked) {
+			log.V(5).Info("Requeueing because another worker has the lock on the ClusterCacheTracker")
+			return ctrl.Result{Requeue: true}, nil
+		}
+		return res, err
 	}
 
 	// Handle normal reconciliation loop.
-	return r.reconcile(ctx, cluster, kcp)
+	res, err = r.reconcile(ctx, cluster, kcp)
+	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
+	// the current cluster because of concurrent access.
+	if errors.Is(err, remote.ErrClusterLocked) {
+		log.V(5).Info("Requeueing because another worker has the lock on the ClusterCacheTracker")
+		return ctrl.Result{Requeue: true}, nil
+	}
+	return res, err
 }
 
 func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kcp *controlplanev1.KubeadmControlPlane) error {

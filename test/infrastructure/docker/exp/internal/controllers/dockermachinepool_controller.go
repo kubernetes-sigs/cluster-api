@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	utilexp "sigs.k8s.io/cluster-api/exp/util"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
@@ -123,7 +124,14 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	}
 
 	// Handle non-deleted machines
-	return r.reconcileNormal(ctx, cluster, machinePool, dockerMachinePool)
+	res, err = r.reconcileNormal(ctx, cluster, machinePool, dockerMachinePool)
+	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
+	// the current cluster because of concurrent access.
+	if errors.Is(err, remote.ErrClusterLocked) {
+		log.V(5).Info("Requeueing because another worker has the lock on the ClusterCacheTracker")
+		return ctrl.Result{Requeue: true}, nil
+	}
+	return res, err
 }
 
 // SetupWithManager will add watches for this controller.

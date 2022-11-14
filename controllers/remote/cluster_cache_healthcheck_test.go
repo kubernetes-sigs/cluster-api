@@ -140,7 +140,10 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			})
 
 			// Make sure this passes for at least for some seconds, to give the health check goroutine time to run.
-			g.Consistently(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 5*time.Second, 1*time.Second).Should(BeTrue())
+			g.Consistently(func() bool {
+				_, ok := cct.loadAccessor(testClusterKey)
+				return ok
+			}, 5*time.Second, 1*time.Second).Should(BeTrue())
 		})
 
 		t.Run("with an invalid path", func(t *testing.T) {
@@ -162,7 +165,10 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 				})
 
 			// This should succeed after N consecutive failed requests.
-			g.Eventually(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 5*time.Second, 1*time.Second).Should(BeFalse())
+			g.Eventually(func() bool {
+				_, ok := cct.loadAccessor(testClusterKey)
+				return ok
+			}, 5*time.Second, 1*time.Second).Should(BeFalse())
 		})
 
 		t.Run("with an invalid config", func(t *testing.T) {
@@ -193,7 +199,10 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			})
 
 			// This should succeed after N consecutive failed requests.
-			g.Eventually(func() bool { return cct.clusterAccessorExists(testClusterKey) }, 5*time.Second, 1*time.Second).Should(BeFalse())
+			g.Eventually(func() bool {
+				_, ok := cct.loadAccessor(testClusterKey)
+				return ok
+			}, 5*time.Second, 1*time.Second).Should(BeFalse())
 		})
 	})
 }

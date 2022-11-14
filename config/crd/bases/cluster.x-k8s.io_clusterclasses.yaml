@@ -584,6 +584,28 @@ spec:
                           More info: http://kubernetes.io/docs/user-guide/labels'
                         type: object
                     type: object
+                  nodeDeletionTimeout:
+                    description: 'NodeDeletionTimeout defines how long the controller
+                      will attempt to delete the Node that the Machine hosts after
+                      the Machine is marked for deletion. A duration of 0 will retry
+                      deletion indefinitely. Defaults to 10 seconds. NOTE: This value
+                      can be overridden while defining a Cluster.Topology.'
+                    type: string
+                  nodeDrainTimeout:
+                    description: 'NodeDrainTimeout is the total amount of time that
+                      the controller will spend on draining a node. The default value
+                      is 0, meaning that the node can be drained without any time
+                      limitations. NOTE: NodeDrainTimeout is different from `kubectl
+                      drain --timeout` NOTE: This value can be overridden while defining
+                      a Cluster.Topology.'
+                    type: string
+                  nodeVolumeDetachTimeout:
+                    description: 'NodeVolumeDetachTimeout is the total amount of time
+                      that the controller will spend on waiting for all volumes to
+                      be detached. The default value is 0, meaning that the volumes
+                      can be detached without any time limitations. NOTE: This value
+                      can be overridden while defining a Cluster.Topology.'
+                    type: string
                   ref:
                     description: Ref is a required reference to a custom resource
                       offered by a provider.
@@ -1002,6 +1024,13 @@ spec:
                             and can be referenced in the Cluster to create a managed
                             MachineDeployment.
                           type: string
+                        failureDomain:
+                          description: 'FailureDomain is the failure domain the machines
+                            will be created in. Must match a key in the FailureDomains
+                            map stored on the cluster object. NOTE: This value can
+                            be overridden while defining a Cluster.Topology using
+                            this MachineDeploymentClass.'
+                          type: string
                         machineHealthCheck:
                           description: MachineHealthCheck defines a MachineHealthCheck
                             for this MachineDeploymentClass.
@@ -1103,6 +1132,106 @@ spec:
                                 (a) there are at least 3 unhealthy machines (and)
                                 (b) there are at most 5 unhealthy machines'
                               pattern: ^\[[0-9]+-[0-9]+\]$
+                              type: string
+                          type: object
+                        minReadySeconds:
+                          description: 'Minimum number of seconds for which a newly
+                            created machine should be ready. Defaults to 0 (machine
+                            will be considered available as soon as it is ready) NOTE:
+                            This value can be overridden while defining a Cluster.Topology
+                            using this MachineDeploymentClass.'
+                          format: int32
+                          type: integer
+                        nodeDeletionTimeout:
+                          description: 'NodeDeletionTimeout defines how long the controller
+                            will attempt to delete the Node that the Machine hosts
+                            after the Machine is marked for deletion. A duration of
+                            0 will retry deletion indefinitely. Defaults to 10 seconds.
+                            NOTE: This value can be overridden while defining a Cluster.Topology
+                            using this MachineDeploymentClass.'
+                          type: string
+                        nodeDrainTimeout:
+                          description: 'NodeDrainTimeout is the total amount of time
+                            that the controller will spend on draining a node. The
+                            default value is 0, meaning that the node can be drained
+                            without any time limitations. NOTE: NodeDrainTimeout is
+                            different from `kubectl drain --timeout` NOTE: This value
+                            can be overridden while defining a Cluster.Topology using
+                            this MachineDeploymentClass.'
+                          type: string
+                        nodeVolumeDetachTimeout:
+                          description: 'NodeVolumeDetachTimeout is the total amount
+                            of time that the controller will spend on waiting for
+                            all volumes to be detached. The default value is 0, meaning
+                            that the volumes can be detached without any time limitations.
+                            NOTE: This value can be overridden while defining a Cluster.Topology
+                            using this MachineDeploymentClass.'
+                          type: string
+                        strategy:
+                          description: 'The deployment strategy to use to replace
+                            existing machines with new ones. NOTE: This value can
+                            be overridden while defining a Cluster.Topology using
+                            this MachineDeploymentClass.'
+                          properties:
+                            rollingUpdate:
+                              description: Rolling update config params. Present only
+                                if MachineDeploymentStrategyType = RollingUpdate.
+                              properties:
+                                deletePolicy:
+                                  description: DeletePolicy defines the policy used
+                                    by the MachineDeployment to identify nodes to
+                                    delete when downscaling. Valid values are "Random,
+                                    "Newest", "Oldest" When no value is supplied,
+                                    the default DeletePolicy of MachineSet is used
+                                  enum:
+                                  - Random
+                                  - Newest
+                                  - Oldest
+                                  type: string
+                                maxSurge:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: 'The maximum number of machines that
+                                    can be scheduled above the desired number of machines.
+                                    Value can be an absolute number (ex: 5) or a percentage
+                                    of desired machines (ex: 10%). This can not be
+                                    0 if MaxUnavailable is 0. Absolute number is calculated
+                                    from percentage by rounding up. Defaults to 1.
+                                    Example: when this is set to 30%, the new MachineSet
+                                    can be scaled up immediately when the rolling
+                                    update starts, such that the total number of old
+                                    and new machines do not exceed 130% of desired
+                                    machines. Once old machines have been killed,
+                                    new MachineSet can be scaled up further, ensuring
+                                    that total number of machines running at any time
+                                    during the update is at most 130% of desired machines.'
+                                  x-kubernetes-int-or-string: true
+                                maxUnavailable:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  description: 'The maximum number of machines that
+                                    can be unavailable during the update. Value can
+                                    be an absolute number (ex: 5) or a percentage
+                                    of desired machines (ex: 10%). Absolute number
+                                    is calculated from percentage by rounding down.
+                                    This can not be 0 if MaxSurge is 0. Defaults to
+                                    0. Example: when this is set to 30%, the old MachineSet
+                                    can be scaled down to 70% of desired machines
+                                    immediately when the rolling update starts. Once
+                                    new machines are ready, old MachineSet can be
+                                    scaled down further, followed by scaling up the
+                                    new MachineSet, ensuring that the total number
+                                    of machines available at all times during the
+                                    update is at least 70% of desired machines.'
+                                  x-kubernetes-int-or-string: true
+                              type: object
+                            type:
+                              description: Type of deployment. Default is RollingUpdate.
+                              enum:
+                              - RollingUpdate
+                              - OnDelete
                               type: string
                           type: object
                         template:

@@ -100,6 +100,26 @@ type ControlPlaneClass struct {
 	// referenced above is Machine based and supports setting replicas.
 	// +optional
 	MachineHealthCheck *MachineHealthCheckClass `json:"machineHealthCheck,omitempty"`
+
+	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// The default value is 0, meaning that the node can be drained without any time limitations.
+	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// NOTE: This value can be overridden while defining a Cluster.Topology.
+	// +optional
+	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
+
+	// NodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+	// NOTE: This value can be overridden while defining a Cluster.Topology.
+	// +optional
+	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
+
+	// NodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// Defaults to 10 seconds.
+	// NOTE: This value can be overridden while defining a Cluster.Topology.
+	// +optional
+	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
 }
 
 // WorkersClass is a collection of deployment classes.
@@ -125,6 +145,44 @@ type MachineDeploymentClass struct {
 	// MachineHealthCheck defines a MachineHealthCheck for this MachineDeploymentClass.
 	// +optional
 	MachineHealthCheck *MachineHealthCheckClass `json:"machineHealthCheck,omitempty"`
+
+	// FailureDomain is the failure domain the machines will be created in.
+	// Must match a key in the FailureDomains map stored on the cluster object.
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// +optional
+	FailureDomain *string `json:"failureDomain,omitempty"`
+
+	// NodeDrainTimeout is the total amount of time that the controller will spend on draining a node.
+	// The default value is 0, meaning that the node can be drained without any time limitations.
+	// NOTE: NodeDrainTimeout is different from `kubectl drain --timeout`
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// +optional
+	NodeDrainTimeout *metav1.Duration `json:"nodeDrainTimeout,omitempty"`
+
+	// NodeVolumeDetachTimeout is the total amount of time that the controller will spend on waiting for all volumes
+	// to be detached. The default value is 0, meaning that the volumes can be detached without any time limitations.
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// +optional
+	NodeVolumeDetachTimeout *metav1.Duration `json:"nodeVolumeDetachTimeout,omitempty"`
+
+	// NodeDeletionTimeout defines how long the controller will attempt to delete the Node that the Machine
+	// hosts after the Machine is marked for deletion. A duration of 0 will retry deletion indefinitely.
+	// Defaults to 10 seconds.
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// +optional
+	NodeDeletionTimeout *metav1.Duration `json:"nodeDeletionTimeout,omitempty"`
+
+	// Minimum number of seconds for which a newly created machine should
+	// be ready.
+	// Defaults to 0 (machine will be considered available as soon as it
+	// is ready)
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	MinReadySeconds *int32 `json:"minReadySeconds,omitempty"`
+
+	// The deployment strategy to use to replace existing machines with
+	// new ones.
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	Strategy *MachineDeploymentStrategy `json:"strategy,omitempty"`
 }
 
 // MachineDeploymentClassTemplate defines how a MachineDeployment generated from a MachineDeploymentClass

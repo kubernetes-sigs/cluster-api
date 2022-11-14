@@ -252,7 +252,8 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		}
 	}
 
-	// If the Machine belongs to a cluster, add an owner reference.
+	// If the machine is a stand-alone one, meaning not originated from a MachineDeployment, then set it as directly
+	// owned by the Cluster (if not already present).
 	if r.shouldAdopt(m) {
 		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -685,8 +686,20 @@ func (r *Reconciler) reconcileDeleteExternal(ctx context.Context, m *clusterv1.M
 	return obj, nil
 }
 
+// shouldAdopt returns true if the Machine should be adopted as a stand-alone Machine directly owned by the Cluster.
 func (r *Reconciler) shouldAdopt(m *clusterv1.Machine) bool {
-	return metav1.GetControllerOf(m) == nil && !util.HasOwner(m.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"})
+	// if the machine is controlled by something (MS or KCP), or if it is a stand-alone machine directly owned by the Cluster, then no-op.
+	if metav1.GetControllerOf(m) != nil || util.HasOwner(m.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"}) {
+		return false
+	}
+
+	// If the Machine is originated by a MachineDeployment, this prevents it from being adopted as a stand-alone Machine.
+	// Note: this is required because after restore from a backup both the Machine controller and the
+	// MachineSet controller are racing to adopt Machines, see https://github.com/kubernetes-sigs/cluster-api/issues/7529
+	if _, ok := m.Labels[clusterv1.MachineDeploymentUniqueLabel]; ok {
+		return false
+	}
+	return true
 }
 
 func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.Cluster) error {

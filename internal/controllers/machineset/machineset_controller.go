@@ -209,6 +209,8 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	}
 	machineSet.Labels[clusterv1.ClusterLabelName] = machineSet.Spec.ClusterName
 
+	// If the machine set is a stand alone one, meaning not originated from a MachineDeployment, then set it as directly
+	// owned by the Cluster (if not already present).
 	if r.shouldAdopt(machineSet) {
 		machineSet.OwnerReferences = util.EnsureOwnerRef(machineSet.OwnerReferences, metav1.OwnerReference{
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -637,8 +639,20 @@ func (r *Reconciler) getMachineSetsForMachine(ctx context.Context, m *clusterv1.
 	return mss, nil
 }
 
+// shouldAdopt returns true if the MachineSet should be adopted as a stand-alone MachineSet directly owned by the Cluster.
 func (r *Reconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
-	return !util.HasOwner(ms.OwnerReferences, clusterv1.GroupVersion.String(), []string{"MachineDeployment", "Cluster"})
+	// if the MachineSet is controlled by a MachineDeployment, or if it is a stand-alone MachinesSet directly owned by the Cluster, then no-op.
+	if util.HasOwner(ms.OwnerReferences, clusterv1.GroupVersion.String(), []string{"MachineDeployment", "Cluster"}) {
+		return false
+	}
+
+	// If the MachineSet is originated by a MachineDeployment, this prevents it from being adopted as a stand-alone MachineSet.
+	// Note: this is required because after restore from a backup both the MachineSet controller and the
+	// MachineDeployment controller are racing to adopt MachineSets, see https://github.com/kubernetes-sigs/cluster-api/issues/7529
+	if _, ok := ms.Labels[clusterv1.MachineDeploymentUniqueLabel]; ok {
+		return false
+	}
+	return true
 }
 
 // updateStatus updates the Status field for the MachineSet

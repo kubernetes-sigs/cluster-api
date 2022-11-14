@@ -253,18 +253,22 @@ func TestComputeControlPlane(t *testing.T) {
 
 	controlPlaneTemplate := builder.ControlPlaneTemplate(metav1.NamespaceDefault, "template1").
 		Build()
+	clusterClassDuration := 20 * time.Second
 	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
 		WithControlPlaneMetadata(labels, annotations).
 		WithControlPlaneTemplate(controlPlaneTemplate).
+		WithControlPlaneNodeDrainTimeout(&metav1.Duration{Duration: clusterClassDuration}).
+		WithControlPlaneNodeVolumeDetachTimeout(&metav1.Duration{Duration: clusterClassDuration}).
+		WithControlPlaneNodeDeletionTimeout(&metav1.Duration{Duration: clusterClassDuration}).
 		Build()
 	// TODO: Replace with object builder.
 	// current cluster objects
 	version := "v1.21.2"
 	replicas := int32(3)
-	duration := 10 * time.Second
-	nodeDrainTimeout := metav1.Duration{Duration: duration}
-	nodeVolumeDetachTimeout := metav1.Duration{Duration: duration}
-	nodeDeletionTimeout := metav1.Duration{Duration: duration}
+	topologyDuration := 10 * time.Second
+	nodeDrainTimeout := metav1.Duration{Duration: topologyDuration}
+	nodeVolumeDetachTimeout := metav1.Duration{Duration: topologyDuration}
+	nodeDeletionTimeout := metav1.Duration{Duration: topologyDuration}
 	cluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "cluster1",
@@ -318,13 +322,59 @@ func TestComputeControlPlane(t *testing.T) {
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
 		assertNestedField(g, obj, int64(replicas), contract.ControlPlane().Replicas().Path()...)
-		assertNestedField(g, obj, duration.String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
-		assertNestedField(g, obj, duration.String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
-		assertNestedField(g, obj, duration.String(), contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path()...)
+		assertNestedField(g, obj, topologyDuration.String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
+		assertNestedField(g, obj, topologyDuration.String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
+		assertNestedField(g, obj, topologyDuration.String(), contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path()...)
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().InfrastructureRef().Path()...)
 
 		// Ensure no ownership is added to generated ControlPlane.
 		g.Expect(obj.GetOwnerReferences()).To(HaveLen(0))
+	})
+	t.Run("Generates the ControlPlane from the template using ClusterClass defaults", func(t *testing.T) {
+		g := NewWithT(t)
+
+		cluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "cluster1",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: clusterv1.ClusterSpec{
+				Topology: &clusterv1.Topology{
+					Version: version,
+					ControlPlane: clusterv1.ControlPlaneTopology{
+						Metadata: clusterv1.ObjectMeta{
+							Labels:      map[string]string{"l2": ""},
+							Annotations: map[string]string{"a2": ""},
+						},
+						Replicas: &replicas,
+						// no values for NodeDrainTimeout, NodeVolumeDetachTimeout, NodeDeletionTimeout
+					},
+				},
+			},
+		}
+
+		blueprint := &scope.ClusterBlueprint{
+			Topology:     cluster.Spec.Topology,
+			ClusterClass: clusterClass,
+			ControlPlane: &scope.ControlPlaneBlueprint{
+				Template: controlPlaneTemplate,
+			},
+		}
+
+		// aggregating current cluster objects into ClusterState (simulating getCurrentState)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		r := &Reconciler{}
+
+		obj, err := r.computeControlPlane(ctx, scope, nil)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(obj).ToNot(BeNil())
+
+		// checking only values from CC defaults
+		assertNestedField(g, obj, clusterClassDuration.String(), contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Path()...)
+		assertNestedField(g, obj, clusterClassDuration.String(), contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Path()...)
+		assertNestedField(g, obj, clusterClassDuration.String(), contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Path()...)
 	})
 	t.Run("Skips setting replicas if required", func(t *testing.T) {
 		g := NewWithT(t)
@@ -1275,6 +1325,12 @@ func TestComputeMachineDeployment(t *testing.T) {
 	}
 	nodeTimeoutDuration := &metav1.Duration{Duration: time.Duration(1)}
 
+	clusterClassFailureDomain := "A"
+	clusterClassDuration := metav1.Duration{Duration: 20 * time.Second}
+	var clusterClassMinReadySeconds int32 = 20
+	clusterClassStrategy := clusterv1.MachineDeploymentStrategy{
+		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+	}
 	md1 := builder.MachineDeploymentClass("linux-worker").
 		WithLabels(labels).
 		WithAnnotations(annotations).
@@ -1284,6 +1340,12 @@ func TestComputeMachineDeployment(t *testing.T) {
 			UnhealthyConditions: unhealthyConditions,
 			NodeStartupTimeout:  nodeTimeoutDuration,
 		}).
+		WithFailureDomain(&clusterClassFailureDomain).
+		WithNodeDrainTimeout(&clusterClassDuration).
+		WithNodeVolumeDetachTimeout(&clusterClassDuration).
+		WithNodeDeletionTimeout(&clusterClassDuration).
+		WithMinReadySeconds(&clusterClassMinReadySeconds).
+		WithStrategy(&clusterClassStrategy).
 		Build()
 	mcds := []clusterv1.MachineDeploymentClass{*md1}
 	fakeClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
@@ -1324,13 +1386,11 @@ func TestComputeMachineDeployment(t *testing.T) {
 	}
 
 	replicas := int32(5)
-	failureDomain := "always-up-region"
-	nodeDrainTimeout := metav1.Duration{Duration: 10 * time.Second}
-	nodeVolumeDetachTimeout := metav1.Duration{Duration: 10 * time.Second}
-	nodeDeletionTimeout := metav1.Duration{Duration: 10 * time.Second}
-	minReadySeconds := int32(5)
-	strategy := clusterv1.MachineDeploymentStrategy{
-		Type: clusterv1.OnDeleteMachineDeploymentStrategyType,
+	topologyFailureDomain := "B"
+	topologyDuration := metav1.Duration{Duration: 10 * time.Second}
+	var topologyMinReadySeconds int32 = 10
+	topologyStrategy := clusterv1.MachineDeploymentStrategy{
+		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
 	}
 	mdTopology := clusterv1.MachineDeploymentTopology{
 		Metadata: clusterv1.ObjectMeta{
@@ -1339,12 +1399,12 @@ func TestComputeMachineDeployment(t *testing.T) {
 		Class:                   "linux-worker",
 		Name:                    "big-pool-of-machines",
 		Replicas:                &replicas,
-		FailureDomain:           &failureDomain,
-		NodeDrainTimeout:        &nodeDrainTimeout,
-		NodeVolumeDetachTimeout: &nodeVolumeDetachTimeout,
-		NodeDeletionTimeout:     &nodeDeletionTimeout,
-		MinReadySeconds:         &minReadySeconds,
-		Strategy:                &strategy,
+		FailureDomain:           &topologyFailureDomain,
+		NodeDrainTimeout:        &topologyDuration,
+		NodeVolumeDetachTimeout: &topologyDuration,
+		NodeDeletionTimeout:     &topologyDuration,
+		MinReadySeconds:         &topologyMinReadySeconds,
+		Strategy:                &topologyStrategy,
 	}
 
 	t.Run("Generates the machine deployment and the referenced templates", func(t *testing.T) {
@@ -1371,11 +1431,12 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		actualMd := actual.Object
 		g.Expect(*actualMd.Spec.Replicas).To(Equal(replicas))
-		g.Expect(*actualMd.Spec.MinReadySeconds).To(Equal(minReadySeconds))
-		g.Expect(*actualMd.Spec.Strategy).To(Equal(strategy))
-		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(failureDomain))
-		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeout).To(Equal(nodeDrainTimeout))
-		g.Expect(*actualMd.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(nodeDeletionTimeout))
+		g.Expect(*actualMd.Spec.MinReadySeconds).To(Equal(topologyMinReadySeconds))
+		g.Expect(*actualMd.Spec.Strategy).To(Equal(topologyStrategy))
+		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
+		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeout).To(Equal(topologyDuration))
+		g.Expect(*actualMd.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(topologyDuration))
+		g.Expect(*actualMd.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(topologyDuration))
 		g.Expect(actualMd.Spec.ClusterName).To(Equal("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("big-pool-of-machines"))
@@ -1392,6 +1453,33 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
 		g.Expect(actualMd.Spec.Template.Spec.InfrastructureRef.Name).ToNot(Equal("linux-worker-inframachinetemplate"))
 		g.Expect(actualMd.Spec.Template.Spec.Bootstrap.ConfigRef.Name).ToNot(Equal("linux-worker-bootstraptemplate"))
+	})
+	t.Run("Generates the machine deployment and the referenced templates using ClusterClass defaults", func(t *testing.T) {
+		g := NewWithT(t)
+		scope := scope.New(cluster)
+		scope.Blueprint = blueprint
+
+		mdTopology := clusterv1.MachineDeploymentTopology{
+			Metadata: clusterv1.ObjectMeta{
+				Labels: map[string]string{"foo": "baz"},
+			},
+			Class:    "linux-worker",
+			Name:     "big-pool-of-machines",
+			Replicas: &replicas,
+			// missing FailureDomain, NodeDrainTimeout, NodeVolumeDetachTimeout, NodeDeletionTimeout, MinReadySeconds, Strategy
+		}
+
+		actual, err := computeMachineDeployment(ctx, scope, nil, mdTopology)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// checking only values from CC defaults
+		actualMd := actual.Object
+		g.Expect(*actualMd.Spec.MinReadySeconds).To(Equal(clusterClassMinReadySeconds))
+		g.Expect(*actualMd.Spec.Strategy).To(Equal(clusterClassStrategy))
+		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(clusterClassFailureDomain))
+		g.Expect(*actualMd.Spec.Template.Spec.NodeDrainTimeout).To(Equal(clusterClassDuration))
+		g.Expect(*actualMd.Spec.Template.Spec.NodeVolumeDetachTimeout).To(Equal(clusterClassDuration))
+		g.Expect(*actualMd.Spec.Template.Spec.NodeDeletionTimeout).To(Equal(clusterClassDuration))
 	})
 
 	t.Run("If there is already a machine deployment, it preserves the object name and the reference names", func(t *testing.T) {
@@ -1431,7 +1519,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		actualMd := actual.Object
 
 		g.Expect(*actualMd.Spec.Replicas).NotTo(Equal(currentReplicas))
-		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(failureDomain))
+		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
 		g.Expect(actualMd.Name).To(Equal("existing-deployment-1"))
 
 		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))

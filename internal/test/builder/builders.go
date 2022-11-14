@@ -247,6 +247,9 @@ type ClusterClassBuilder struct {
 	controlPlaneTemplate                      *unstructured.Unstructured
 	controlPlaneInfrastructureMachineTemplate *unstructured.Unstructured
 	controlPlaneMHC                           *clusterv1.MachineHealthCheckClass
+	controlPlaneNodeDrainTimeout              *metav1.Duration
+	controlPlaneNodeVolumeDetachTimeout       *metav1.Duration
+	controlPlaneNodeDeletionTimeout           *metav1.Duration
 	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
 	variables                                 []clusterv1.ClusterClassVariable
 	patches                                   []clusterv1.ClusterClassPatch
@@ -290,6 +293,24 @@ func (c *ClusterClassBuilder) WithControlPlaneInfrastructureMachineTemplate(t *u
 // WithControlPlaneMachineHealthCheck adds a MachineHealthCheck for the ControlPlane to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithControlPlaneMachineHealthCheck(mhc *clusterv1.MachineHealthCheckClass) *ClusterClassBuilder {
 	c.controlPlaneMHC = mhc
+	return c
+}
+
+// WithControlPlaneNodeDrainTimeout adds a NodeDrainTimeout for the ControlPlane to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithControlPlaneNodeDrainTimeout(t *metav1.Duration) *ClusterClassBuilder {
+	c.controlPlaneNodeDrainTimeout = t
+	return c
+}
+
+// WithControlPlaneNodeVolumeDetachTimeout adds a NodeVolumeDetachTimeout for the ControlPlane to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithControlPlaneNodeVolumeDetachTimeout(t *metav1.Duration) *ClusterClassBuilder {
+	c.controlPlaneNodeVolumeDetachTimeout = t
+	return c
+}
+
+// WithControlPlaneNodeDeletionTimeout adds a NodeDeletionTimeout for the ControlPlane to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithControlPlaneNodeDeletionTimeout(t *metav1.Duration) *ClusterClassBuilder {
+	c.controlPlaneNodeDeletionTimeout = t
 	return c
 }
 
@@ -346,6 +367,15 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 	if c.controlPlaneMHC != nil {
 		obj.Spec.ControlPlane.MachineHealthCheck = c.controlPlaneMHC
 	}
+	if c.controlPlaneNodeDrainTimeout != nil {
+		obj.Spec.ControlPlane.NodeDrainTimeout = c.controlPlaneNodeDrainTimeout
+	}
+	if c.controlPlaneNodeVolumeDetachTimeout != nil {
+		obj.Spec.ControlPlane.NodeVolumeDetachTimeout = c.controlPlaneNodeVolumeDetachTimeout
+	}
+	if c.controlPlaneNodeDeletionTimeout != nil {
+		obj.Spec.ControlPlane.NodeDeletionTimeout = c.controlPlaneNodeDeletionTimeout
+	}
 	if c.controlPlaneInfrastructureMachineTemplate != nil {
 		obj.Spec.ControlPlane.MachineInfrastructure = &clusterv1.LocalObjectTemplate{
 			Ref: objToRef(c.controlPlaneInfrastructureMachineTemplate),
@@ -364,6 +394,12 @@ type MachineDeploymentClassBuilder struct {
 	labels                        map[string]string
 	annotations                   map[string]string
 	machineHealthCheckClass       *clusterv1.MachineHealthCheckClass
+	failureDomain                 *string
+	nodeDrainTimeout              *metav1.Duration
+	nodeVolumeDetachTimeout       *metav1.Duration
+	nodeDeletionTimeout           *metav1.Duration
+	minReadySeconds               *int32
+	strategy                      *clusterv1.MachineDeploymentStrategy
 }
 
 // MachineDeploymentClass returns a MachineDeploymentClassBuilder with the given name and namespace.
@@ -403,6 +439,42 @@ func (m *MachineDeploymentClassBuilder) WithMachineHealthCheckClass(mhc *cluster
 	return m
 }
 
+// WithFailureDomain sets the FailureDomain for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithFailureDomain(f *string) *MachineDeploymentClassBuilder {
+	m.failureDomain = f
+	return m
+}
+
+// WithNodeDrainTimeout sets the NodeDrainTimeout for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithNodeDrainTimeout(t *metav1.Duration) *MachineDeploymentClassBuilder {
+	m.nodeDrainTimeout = t
+	return m
+}
+
+// WithNodeVolumeDetachTimeout sets the NodeVolumeDetachTimeout for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithNodeVolumeDetachTimeout(t *metav1.Duration) *MachineDeploymentClassBuilder {
+	m.nodeVolumeDetachTimeout = t
+	return m
+}
+
+// WithNodeDeletionTimeout sets the NodeDeletionTimeout for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithNodeDeletionTimeout(t *metav1.Duration) *MachineDeploymentClassBuilder {
+	m.nodeDeletionTimeout = t
+	return m
+}
+
+// WithMinReadySeconds sets the MinReadySeconds for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithMinReadySeconds(t *int32) *MachineDeploymentClassBuilder {
+	m.minReadySeconds = t
+	return m
+}
+
+// WithStrategy sets the Strategy for the MachineDeploymentClassBuilder.
+func (m *MachineDeploymentClassBuilder) WithStrategy(s *clusterv1.MachineDeploymentStrategy) *MachineDeploymentClassBuilder {
+	m.strategy = s
+	return m
+}
+
 // Build creates a full MachineDeploymentClass object with the variables passed to the MachineDeploymentClassBuilder.
 func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClass {
 	obj := &clusterv1.MachineDeploymentClass{
@@ -422,6 +494,24 @@ func (m *MachineDeploymentClassBuilder) Build() *clusterv1.MachineDeploymentClas
 	}
 	if m.machineHealthCheckClass != nil {
 		obj.MachineHealthCheck = m.machineHealthCheckClass
+	}
+	if m.failureDomain != nil {
+		obj.FailureDomain = m.failureDomain
+	}
+	if m.nodeDrainTimeout != nil {
+		obj.NodeDrainTimeout = m.nodeDrainTimeout
+	}
+	if m.nodeVolumeDetachTimeout != nil {
+		obj.NodeVolumeDetachTimeout = m.nodeVolumeDetachTimeout
+	}
+	if m.nodeDeletionTimeout != nil {
+		obj.NodeDeletionTimeout = m.nodeDeletionTimeout
+	}
+	if m.minReadySeconds != nil {
+		obj.MinReadySeconds = m.minReadySeconds
+	}
+	if m.strategy != nil {
+		obj.Strategy = m.strategy
 	}
 	return obj
 }

@@ -122,9 +122,18 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.Patches = restored.Spec.Patches
 	dst.Spec.Variables = restored.Spec.Variables
 	dst.Spec.ControlPlane.MachineHealthCheck = restored.Spec.ControlPlane.MachineHealthCheck
+	dst.Spec.ControlPlane.NodeDrainTimeout = restored.Spec.ControlPlane.NodeDrainTimeout
+	dst.Spec.ControlPlane.NodeVolumeDetachTimeout = restored.Spec.ControlPlane.NodeVolumeDetachTimeout
+	dst.Spec.ControlPlane.NodeDeletionTimeout = restored.Spec.ControlPlane.NodeDeletionTimeout
 
 	for i := range restored.Spec.Workers.MachineDeployments {
 		dst.Spec.Workers.MachineDeployments[i].MachineHealthCheck = restored.Spec.Workers.MachineDeployments[i].MachineHealthCheck
+		dst.Spec.Workers.MachineDeployments[i].FailureDomain = restored.Spec.Workers.MachineDeployments[i].FailureDomain
+		dst.Spec.Workers.MachineDeployments[i].NodeDrainTimeout = restored.Spec.Workers.MachineDeployments[i].NodeDrainTimeout
+		dst.Spec.Workers.MachineDeployments[i].NodeVolumeDetachTimeout = restored.Spec.Workers.MachineDeployments[i].NodeVolumeDetachTimeout
+		dst.Spec.Workers.MachineDeployments[i].NodeDeletionTimeout = restored.Spec.Workers.MachineDeployments[i].NodeDeletionTimeout
+		dst.Spec.Workers.MachineDeployments[i].MinReadySeconds = restored.Spec.Workers.MachineDeployments[i].MinReadySeconds
+		dst.Spec.Workers.MachineDeployments[i].Strategy = restored.Spec.Workers.MachineDeployments[i].Strategy
 	}
 
 	dst.Status = restored.Status

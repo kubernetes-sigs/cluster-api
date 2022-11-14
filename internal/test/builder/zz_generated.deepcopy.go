@@ -119,6 +119,21 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 		*out = new(v1beta1.MachineHealthCheckClass)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.controlPlaneNodeDrainTimeout != nil {
+		in, out := &in.controlPlaneNodeDrainTimeout, &out.controlPlaneNodeDrainTimeout
+		*out = new(v1.Duration)
+		**out = **in
+	}
+	if in.controlPlaneNodeVolumeDetachTimeout != nil {
+		in, out := &in.controlPlaneNodeVolumeDetachTimeout, &out.controlPlaneNodeVolumeDetachTimeout
+		*out = new(v1.Duration)
+		**out = **in
+	}
+	if in.controlPlaneNodeDeletionTimeout != nil {
+		in, out := &in.controlPlaneNodeDeletionTimeout, &out.controlPlaneNodeDeletionTimeout
+		*out = new(v1.Duration)
+		**out = **in
+	}
 	if in.machineDeploymentClasses != nil {
 		in, out := &in.machineDeploymentClasses, &out.machineDeploymentClasses
 		*out = make([]v1beta1.MachineDeploymentClass, len(*in))
@@ -388,6 +403,36 @@ func (in *MachineDeploymentClassBuilder) DeepCopyInto(out *MachineDeploymentClas
 	if in.machineHealthCheckClass != nil {
 		in, out := &in.machineHealthCheckClass, &out.machineHealthCheckClass
 		*out = new(v1beta1.MachineHealthCheckClass)
+		(*in).DeepCopyInto(*out)
+	}
+	if in.failureDomain != nil {
+		in, out := &in.failureDomain, &out.failureDomain
+		*out = new(string)
+		**out = **in
+	}
+	if in.nodeDrainTimeout != nil {
+		in, out := &in.nodeDrainTimeout, &out.nodeDrainTimeout
+		*out = new(v1.Duration)
+		**out = **in
+	}
+	if in.nodeVolumeDetachTimeout != nil {
+		in, out := &in.nodeVolumeDetachTimeout, &out.nodeVolumeDetachTimeout
+		*out = new(v1.Duration)
+		**out = **in
+	}
+	if in.nodeDeletionTimeout != nil {
+		in, out := &in.nodeDeletionTimeout, &out.nodeDeletionTimeout
+		*out = new(v1.Duration)
+		**out = **in
+	}
+	if in.minReadySeconds != nil {
+		in, out := &in.minReadySeconds, &out.minReadySeconds
+		*out = new(int32)
+		**out = **in
+	}
+	if in.strategy != nil {
+		in, out := &in.strategy, &out.strategy
+		*out = new(v1beta1.MachineDeploymentStrategy)
 		(*in).DeepCopyInto(*out)
 	}
 }

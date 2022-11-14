@@ -256,22 +256,34 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 	}
 
 	// If it is required to manage the NodeDrainTimeout for the control plane, set the corresponding field.
+	nodeDrainTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.NodeDrainTimeout
 	if s.Blueprint.Topology.ControlPlane.NodeDrainTimeout != nil {
-		if err := contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Set(controlPlane, *s.Blueprint.Topology.ControlPlane.NodeDrainTimeout); err != nil {
+		nodeDrainTimeout = s.Blueprint.Topology.ControlPlane.NodeDrainTimeout
+	}
+	if nodeDrainTimeout != nil {
+		if err := contract.ControlPlane().MachineTemplate().NodeDrainTimeout().Set(controlPlane, *nodeDrainTimeout); err != nil {
 			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.nodeDrainTimeout in the ControlPlane object")
 		}
 	}
 
 	// If it is required to manage the NodeVolumeDetachTimeout for the control plane, set the corresponding field.
+	nodeVolumeDetachTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.NodeVolumeDetachTimeout
 	if s.Blueprint.Topology.ControlPlane.NodeVolumeDetachTimeout != nil {
-		if err := contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Set(controlPlane, *s.Blueprint.Topology.ControlPlane.NodeVolumeDetachTimeout); err != nil {
+		nodeVolumeDetachTimeout = s.Blueprint.Topology.ControlPlane.NodeVolumeDetachTimeout
+	}
+	if nodeVolumeDetachTimeout != nil {
+		if err := contract.ControlPlane().MachineTemplate().NodeVolumeDetachTimeout().Set(controlPlane, *nodeVolumeDetachTimeout); err != nil {
 			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.nodeVolumeDetachTimeout in the ControlPlane object")
 		}
 	}
 
 	// If it is required to manage the NodeDeletionTimeout for the control plane, set the corresponding field.
+	nodeDeletionTimeout := s.Blueprint.ClusterClass.Spec.ControlPlane.NodeDeletionTimeout
 	if s.Blueprint.Topology.ControlPlane.NodeDeletionTimeout != nil {
-		if err := contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Set(controlPlane, *s.Blueprint.Topology.ControlPlane.NodeDeletionTimeout); err != nil {
+		nodeDeletionTimeout = s.Blueprint.Topology.ControlPlane.NodeDeletionTimeout
+	}
+	if nodeDeletionTimeout != nil {
+		if err := contract.ControlPlane().MachineTemplate().NodeDeletionTimeout().Set(controlPlane, *nodeDeletionTimeout); err != nil {
 			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.nodeDeletionTimeout in the ControlPlane object")
 		}
 	}
@@ -526,6 +538,18 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		return nil, errors.Errorf("MachineDeployment class %s not found in %s", className, tlog.KObj{Obj: s.Blueprint.ClusterClass})
 	}
 
+	var machineDeploymentClass *clusterv1.MachineDeploymentClass
+	for _, mdClass := range s.Blueprint.ClusterClass.Spec.Workers.MachineDeployments {
+		mdClass := mdClass
+		if mdClass.Class == className {
+			machineDeploymentClass = &mdClass
+			break
+		}
+	}
+	if machineDeploymentClass == nil {
+		return nil, errors.Errorf("MachineDeployment class %s not found in %s", className, tlog.KObj{Obj: s.Blueprint.ClusterClass})
+	}
+
 	// Compute the bootstrap template.
 	currentMachineDeployment := s.Current.MachineDeployments[machineDeploymentTopology.Name]
 	var currentBootstrapTemplateRef *corev1.ObjectReference
@@ -581,6 +605,37 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		return nil, errors.Wrapf(err, "failed to compute version for %s", machineDeploymentTopology.Name)
 	}
 
+	// Compute values that can be set both in the MachineDeploymentClass and in the MachineDeploymentTopology
+	minReadySeconds := machineDeploymentClass.MinReadySeconds
+	if machineDeploymentTopology.MinReadySeconds != nil {
+		minReadySeconds = machineDeploymentTopology.MinReadySeconds
+	}
+
+	strategy := machineDeploymentClass.Strategy
+	if machineDeploymentTopology.Strategy != nil {
+		strategy = machineDeploymentTopology.Strategy
+	}
+
+	failureDomain := machineDeploymentClass.FailureDomain
+	if machineDeploymentTopology.FailureDomain != nil {
+		failureDomain = machineDeploymentTopology.FailureDomain
+	}
+
+	nodeDrainTimeout := machineDeploymentClass.NodeDrainTimeout
+	if machineDeploymentTopology.NodeDrainTimeout != nil {
+		nodeDrainTimeout = machineDeploymentTopology.NodeDrainTimeout
+	}
+
+	nodeVolumeDetachTimeout := machineDeploymentClass.NodeVolumeDetachTimeout
+	if machineDeploymentTopology.NodeVolumeDetachTimeout != nil {
+		nodeVolumeDetachTimeout = machineDeploymentTopology.NodeVolumeDetachTimeout
+	}
+
+	nodeDeletionTimeout := machineDeploymentClass.NodeDeletionTimeout
+	if machineDeploymentTopology.NodeDeletionTimeout != nil {
+		nodeDeletionTimeout = machineDeploymentTopology.NodeDeletionTimeout
+	}
+
 	// Compute the MachineDeployment object.
 	desiredBootstrapTemplateRef, err := calculateRefDesiredAPIVersion(currentBootstrapTemplateRef, desiredMachineDeployment.BootstrapTemplate)
 	if err != nil {
@@ -602,8 +657,8 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
 			ClusterName:     s.Current.Cluster.Name,
-			MinReadySeconds: machineDeploymentTopology.MinReadySeconds,
-			Strategy:        machineDeploymentTopology.Strategy,
+			MinReadySeconds: minReadySeconds,
+			Strategy:        strategy,
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels:      mergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels),
@@ -614,10 +669,10 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 					Version:                 pointer.String(version),
 					Bootstrap:               clusterv1.Bootstrap{ConfigRef: desiredBootstrapTemplateRef},
 					InfrastructureRef:       *desiredInfraMachineTemplateRef,
-					FailureDomain:           machineDeploymentTopology.FailureDomain,
-					NodeDrainTimeout:        machineDeploymentTopology.NodeDrainTimeout,
-					NodeVolumeDetachTimeout: machineDeploymentTopology.NodeVolumeDetachTimeout,
-					NodeDeletionTimeout:     machineDeploymentTopology.NodeDeletionTimeout,
+					FailureDomain:           failureDomain,
+					NodeDrainTimeout:        nodeDrainTimeout,
+					NodeVolumeDetachTimeout: nodeVolumeDetachTimeout,
+					NodeDeletionTimeout:     nodeDeletionTimeout,
 				},
 			},
 		},

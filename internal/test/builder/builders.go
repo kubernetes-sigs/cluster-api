@@ -39,6 +39,7 @@ type ClusterBuilder struct {
 	topology              *clusterv1.Topology
 	infrastructureCluster *unstructured.Unstructured
 	controlPlane          *unstructured.Unstructured
+	network               *clusterv1.ClusterNetwork
 }
 
 // Cluster returns a ClusterBuilder with the given name and namespace.
@@ -47,6 +48,12 @@ func Cluster(namespace, name string) *ClusterBuilder {
 		namespace: namespace,
 		name:      name,
 	}
+}
+
+// WithClusterNetwork sets the ClusterNetwork for the ClusterBuilder.
+func (c *ClusterBuilder) WithClusterNetwork(clusterNetwork *clusterv1.ClusterNetwork) *ClusterBuilder {
+	c.network = clusterNetwork
+	return c
 }
 
 // WithLabels sets the labels for the ClusterBuilder.
@@ -93,7 +100,8 @@ func (c *ClusterBuilder) Build() *clusterv1.Cluster {
 			Annotations: c.annotations,
 		},
 		Spec: clusterv1.ClusterSpec{
-			Topology: c.topology,
+			Topology:       c.topology,
+			ClusterNetwork: c.network,
 		},
 	}
 	if c.infrastructureCluster != nil {

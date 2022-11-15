@@ -28,6 +28,12 @@ While using providers hosted on GitHub, clusterctl is calling GitHub API which a
 
 To avoid rate limiting for the public repos set the `GITHUB_TOKEN` environment variable. To generate a token [follow this](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/creating-a-personal-access-token) documentation. The token only needs `repo` scope for clusterctl.
 
+Per default `clusterctl` will use a go proxy to detect the available versions to prevent additional
+API calls to the GitHub API. It is possible to configure the go proxy url using the `GOPROXY` variable as
+for go itself (defaults to `https://proxy.golang.org`).
+To immediately fallback to the GitHub client and not use a go proxy, the environment variable could get set to
+`GOPROXY=off` or `GOPROXY=direct`.
+
 # Installing clusterctl
 Instructions are available in the [Quick Start](../user/quick-start.md#install-clusterctl).
 

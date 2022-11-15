@@ -49,6 +49,12 @@ A GitHub release can be used as a provider repository if:
 See the [GitHub docs](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) for more information
 about how to create a release.
 
+Per default `clusterctl` will use a go proxy to detect the available versions to prevent additional
+API calls to the GitHub API. It is possible to configure the go proxy url using the `GOPROXY` variable as
+for go itself (defaults to `https://proxy.golang.org`).
+To immediately fallback to the GitHub client and not use a go proxy, the environment variable could get set to
+`GOPROXY=off` or `GOPROXY=direct`.
+
 #### Creating a provider repository on GitLab
 
 You can use a GitLab generic packages for provider artifacts.

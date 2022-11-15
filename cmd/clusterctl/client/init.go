@@ -79,6 +79,10 @@ type InitOptions struct {
 	// IgnoreValidationErrors allows for skipping the validation of provider installs.
 	// NOTE this should only be used for development
 	IgnoreValidationErrors bool
+
+	// allowMissingProviderCRD is used to allow for a missing provider CRD when listing images.
+	// It is set to false to enforce that provider CRD is available when performing the standard init operation.
+	allowMissingProviderCRD bool
 }
 
 // Init initializes a management cluster by adding the requested list of providers.
@@ -181,6 +185,8 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 	// skip variable parsing when listing images
 	options.skipTemplateProcess = true
 
+	options.allowMissingProviderCRD = true
+
 	// create an installer service, add the requested providers to the install queue and then perform validation
 	// of the target state of the management cluster before starting the installation.
 	installer, err := c.setupInstaller(clusterClient, options)
@@ -205,16 +211,22 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOptions) (cluster.ProviderInstaller, error) {
 	installer := cluster.ProviderInstaller()
 
-	providerList, err := cluster.ProviderInventory().List()
-	if err != nil {
-		return nil, err
-	}
+	providerList := &clusterctlv1.ProviderList{}
 
 	addOptions := addToInstallerOptions{
 		installer:           installer,
 		targetNamespace:     options.TargetNamespace,
 		skipTemplateProcess: options.skipTemplateProcess,
 		providerList:        providerList,
+	}
+
+	if !options.allowMissingProviderCRD {
+		providerList, err := cluster.ProviderInventory().List()
+		if err != nil {
+			return nil, err
+		}
+
+		addOptions.providerList = providerList
 	}
 
 	if options.CoreProvider != "" {

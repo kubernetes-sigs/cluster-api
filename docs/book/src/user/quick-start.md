@@ -206,7 +206,7 @@ Additional documentation about experimental features can be found in [Experiment
 Depending on the infrastructure provider you are planning to use, some additional prerequisites should be satisfied
 before getting started with Cluster API. See below for the expected settings for common providers.
 
-{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,Kubevirt,Metal3,Nutanix,OCI,OpenStack,Outscale,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,KubeKey,Kubevirt,Metal3,Nutanix,OCI,OpenStack,Outscale,VCD,vcluster,Virtink,vSphere"}}
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases].
@@ -438,6 +438,13 @@ clusterctl init --infrastructure ibmcloud
 ```
 
 {{#/tab }}
+{{#tab KubeKey}}
+```bash
+# Initialize the management cluster
+clusterctl init --infrastructure kubekey
+```
+
+{{#/tab }}
 {{#tab Kubevirt}}
 
 Please visit the [Kubevirt project][Kubevirt provider].
@@ -597,7 +604,7 @@ before configuring a cluster with Cluster API. Instructions are provided for com
 Otherwise, you can look at the `clusterctl generate cluster` [command][clusterctl generate cluster] documentation for details about how to
 discover the list of variables required by a cluster templates.
 
-{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,Kubevirt,Metal3,Nutanix,OpenStack,Outscale,VCD,vcluster,Virtink,vSphere"}}
+{{#tabs name:"tab-configuration-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,IBM Cloud,KubeKey,Kubevirt,Metal3,Nutanix,OpenStack,Outscale,VCD,vcluster,Virtink,vSphere"}}
 {{#tab AWS}}
 
 ```bash
@@ -795,6 +802,22 @@ export IBMPOWERVS_NETWORK_NAME=<your-capi-network-name>
 ```
 
 Please visit the [IBM Cloud provider] for more information.
+
+{{#/tab }}
+{{#tab KubeKey}}
+```bash
+# Required environment variables
+# The KKZONE is used to specify where to download the binaries. (e.g. "", "cn")
+export KKZONE=""
+# The ssh name of the all instance Linux user. (e.g. root, ubuntu)
+export USER_NAME=<your-linux-user>
+# The ssh password of the all instance Linux user. 
+export PASSWORD=<your-linux-user-password>
+# The ssh IP address of the all instance. (e.g. "[{address: 192.168.100.3}, {address: 192.168.100.4}]")
+export INSTANCES=<your-linux-ip-address>
+# The cluster control plane VIP. (e.g. "192.168.100.100")
+export CONTROL_PLANE_ENDPOINT_IP=<your-control-plane-virtual-ip>
+```
 
 {{#/tab }}
 {{#tab Kubevirt}}

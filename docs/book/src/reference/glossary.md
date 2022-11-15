@@ -72,6 +72,9 @@ Cluster API Provider Nested
 ### CAPX
 Cluster API Provider Nutanix
 
+### CAPKK
+Cluster API Provider KubeKey
+
 ### CAPK
 Cluster API Provider Kubevirt
 

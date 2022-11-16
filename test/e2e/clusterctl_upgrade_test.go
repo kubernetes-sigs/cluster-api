@@ -66,7 +66,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.2=>current)", func() {
 			BootstrapClusterProxy:     bootstrapClusterProxy,
 			ArtifactFolder:            artifactFolder,
 			SkipCleanup:               skipCleanup,
-			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.2/clusterctl-{OS}-{ARCH}",
+			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.5/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			InitWithKubernetesVersion: "v1.25.0",
 		}
@@ -81,7 +81,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.2=>cur
 			BootstrapClusterProxy:     bootstrapClusterProxy,
 			ArtifactFolder:            artifactFolder,
 			SkipCleanup:               skipCleanup,
-			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.2/clusterctl-{OS}-{ARCH}",
+			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.5/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			InitWithKubernetesVersion: "v1.25.0",
 			WorkloadFlavor:            "topology",

@@ -263,7 +263,7 @@ func aggregateSuccessfulResponses(aggregatedResponse runtimehooksv1.ResponseObje
 	for _, resp := range responses {
 		aggregatedRetryResponse, ok := aggregatedResponse.(runtimehooksv1.RetryResponseObject)
 		if ok {
-			aggregatedRetryResponse.SetRetryAfterSeconds(lowestNonZeroRetryAfterSeconds(
+			aggregatedRetryResponse.SetRetryAfterSeconds(util.LowestNonZeroInt32(
 				aggregatedRetryResponse.GetRetryAfterSeconds(),
 				resp.(runtimehooksv1.RetryResponseObject).GetRetryAfterSeconds(),
 			))
@@ -273,20 +273,6 @@ func aggregateSuccessfulResponses(aggregatedResponse runtimehooksv1.ResponseObje
 		}
 	}
 	aggregatedResponse.SetMessage(strings.Join(messages, ", "))
-}
-
-// lowestNonZeroRetryAfterSeconds returns the lowest non-zero value of the two provided values.
-func lowestNonZeroRetryAfterSeconds(i, j int32) int32 {
-	if i == 0 {
-		return j
-	}
-	if j == 0 {
-		return i
-	}
-	if i < j {
-		return i
-	}
-	return j
 }
 
 // CallExtension makes the call to the extension with the given name.

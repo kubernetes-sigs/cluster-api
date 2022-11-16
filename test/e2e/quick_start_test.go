@@ -22,6 +22,8 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo/v2"
 	"k8s.io/utils/pointer"
+
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", func() {
@@ -72,6 +74,37 @@ var _ = Describe("When following the Cluster API quick-start with Ignition", fun
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 			Flavor:                pointer.String("ignition"),
+		}
+	})
+})
+
+var _ = Describe("When following the Cluster API quick-start check finalizers are correctly reconciled after deletion", func() {
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.AssertFinalizersAfterDeletion(ctx, proxy.GetClient(), namespace, clusterName)
+			},
+		}
+	})
+})
+
+var _ = Describe("When following the Cluster API quick-start with ClusterClass check finalizers are correctly reconciled after deletion [ClusterClass]", func() {
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			Flavor:                pointer.String("topology"),
+			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.AssertFinalizersAfterDeletion(ctx, proxy.GetClient(), namespace, clusterName)
+			},
 		}
 	})
 })

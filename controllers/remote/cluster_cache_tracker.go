@@ -36,6 +36,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -53,8 +54,13 @@ const (
 	healthCheckPollInterval       = 10 * time.Second
 	healthCheckRequestTimeout     = 5 * time.Second
 	healthCheckUnhealthyThreshold = 10
+	initialCacheSyncTimeout       = 5 * time.Minute
 	clusterCacheControllerName    = "cluster-cache-tracker"
 )
+
+// ErrClusterLocked is returned in methods that require cluster-level locking
+// if the cluster is already locked by another concurrent call.
+var ErrClusterLocked = errors.New("cluster is locked already")
 
 // ClusterCacheTracker manages client caches for workload clusters.
 type ClusterCacheTracker struct {
@@ -63,9 +69,15 @@ type ClusterCacheTracker struct {
 	client                client.Client
 	scheme                *runtime.Scheme
 
-	lock             sync.RWMutex
+	// clusterAccessorsLock is used to lock the access to the clusterAccessors map.
+	clusterAccessorsLock sync.RWMutex
+	// clusterAccessors is the map of clusterAccessors by cluster.
 	clusterAccessors map[client.ObjectKey]*clusterAccessor
-	indexes          []Index
+	// clusterLock is a per-cluster lock used whenever we're locking for a specific cluster.
+	// E.g. for actions like creating a client or adding watches.
+	clusterLock *keyedMutex
+
+	indexes []Index
 
 	// controllerPodMetadata is the Pod metadata of the controller using this ClusterCacheTracker.
 	// This is only set when the POD_NAMESPACE, POD_NAME and POD_UID environment variables are set.
@@ -128,16 +140,14 @@ func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOpt
 		client:                manager.GetClient(),
 		scheme:                manager.GetScheme(),
 		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
+		clusterLock:           newKeyedMutex(),
 		indexes:               options.Indexes,
 	}, nil
 }
 
 // GetClient returns a cached client for the given cluster.
 func (t *ClusterCacheTracker) GetClient(ctx context.Context, cluster client.ObjectKey) (client.Client, error) {
-	t.lock.Lock()
-	defer t.lock.Unlock()
-
-	accessor, err := t.getClusterAccessorLH(ctx, cluster, t.indexes...)
+	accessor, err := t.getClusterAccessor(ctx, cluster, t.indexes...)
 	if err != nil {
 		return nil, err
 	}
@@ -147,10 +157,7 @@ func (t *ClusterCacheTracker) GetClient(ctx context.Context, cluster client.Obje
 
 // GetRESTConfig returns a cached REST config for the given cluster.
 func (t *ClusterCacheTracker) GetRESTConfig(ctc context.Context, cluster client.ObjectKey) (*rest.Config, error) {
-	t.lock.Lock()
-	defer t.lock.Unlock()
-
-	accessor, err := t.getClusterAccessorLH(ctc, cluster, t.indexes...)
+	accessor, err := t.getClusterAccessor(ctc, cluster, t.indexes...)
 	if err != nil {
 		return nil, err
 	}
@@ -168,29 +175,68 @@ type clusterAccessor struct {
 
 // clusterAccessorExists returns true if a clusterAccessor exists for cluster.
 func (t *ClusterCacheTracker) clusterAccessorExists(cluster client.ObjectKey) bool {
-	t.lock.RLock()
-	defer t.lock.RUnlock()
+	t.clusterAccessorsLock.RLock()
+	defer t.clusterAccessorsLock.RUnlock()
 
 	_, exists := t.clusterAccessors[cluster]
 	return exists
 }
 
-// getClusterAccessorLH first tries to return an already-created clusterAccessor for cluster, falling back to creating a
-// new clusterAccessor if needed. Note, this method requires t.lock to already be held (LH=lock held).
-func (t *ClusterCacheTracker) getClusterAccessorLH(ctx context.Context, cluster client.ObjectKey, indexes ...Index) (*clusterAccessor, error) {
-	a := t.clusterAccessors[cluster]
-	if a != nil {
-		return a, nil
+// loadAccessor loads a clusterAccessor.
+func (t *ClusterCacheTracker) loadAccessor(cluster client.ObjectKey) (*clusterAccessor, bool) {
+	t.clusterAccessorsLock.RLock()
+	defer t.clusterAccessorsLock.RUnlock()
+
+	accessor, ok := t.clusterAccessors[cluster]
+	return accessor, ok
+}
+
+// storeAccessor stores a clusterAccessor.
+func (t *ClusterCacheTracker) storeAccessor(cluster client.ObjectKey, accessor *clusterAccessor) {
+	t.clusterAccessorsLock.Lock()
+	defer t.clusterAccessorsLock.Unlock()
+
+	t.clusterAccessors[cluster] = accessor
+}
+
+// getClusterAccessor returns a clusterAccessor for cluster.
+// It first tries to return an already-created clusterAccessor.
+// It then falls back to create a new clusterAccessor if needed.
+// If there is already another go routine trying to create a clusterAccessor
+// for the same cluster, an error is returned.
+func (t *ClusterCacheTracker) getClusterAccessor(ctx context.Context, cluster client.ObjectKey, indexes ...Index) (*clusterAccessor, error) {
+	log := ctrl.LoggerFrom(ctx, "cluster", klog.KRef(cluster.Namespace, cluster.Name))
+
+	// If the clusterAccessor already exists, return early.
+	if accessor, ok := t.loadAccessor(cluster); ok {
+		return accessor, nil
 	}
 
-	a, err := t.newClusterAccessor(ctx, cluster, indexes...)
+	// clusterAccessor doesn't exist yet, we might have to initialize one.
+	// Lock on the cluster to ensure only one clusterAccessor is initialized
+	// for the cluster at the same time.
+	// Return an error if another go routine already tries to create a clusterAccessor.
+	if ok := t.clusterLock.TryLock(cluster); !ok {
+		return nil, errors.Wrapf(ErrClusterLocked, "failed to create cluster accessor: failed to get lock for cluster")
+	}
+	defer t.clusterLock.Unlock(cluster)
+
+	// Until we got the cluster lock a different goroutine might have initialized the clusterAccessor
+	// for this cluster successfully already. If this is the case we return it.
+	if accessor, ok := t.loadAccessor(cluster); ok {
+		return accessor, nil
+	}
+
+	// We are the go routine who has to initialize the clusterAccessor.
+	log.V(4).Info("Creating new cluster accessor")
+	accessor, err := t.newClusterAccessor(ctx, cluster, indexes...)
 	if err != nil {
-		return nil, errors.Wrap(err, "error creating client and cache for remote cluster")
+		return nil, errors.Wrap(err, "failed to create cluster accessor")
 	}
 
-	t.clusterAccessors[cluster] = a
-
-	return a, nil
+	log.V(4).Info("Storing new cluster accessor")
+	t.storeAccessor(cluster, accessor)
+	return accessor, nil
 }
 
 // newClusterAccessor creates a new clusterAccessor.
@@ -264,7 +310,12 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 
 	// Start the cache!!!
 	go cache.Start(cacheCtx) //nolint:errcheck
-	if !cache.WaitForCacheSync(cacheCtx) {
+
+	// Wait until the cache is initially synced
+	cacheSyncCtx, cacheSyncCtxCancel := context.WithTimeout(ctx, initialCacheSyncTimeout)
+	defer cacheSyncCtxCancel()
+	if !cache.WaitForCacheSync(cacheSyncCtx) {
+		cache.Stop()
 		return nil, fmt.Errorf("failed waiting for cache for remote cluster %v to sync: %w", cluster, cacheCtx.Err())
 	}
 
@@ -335,22 +386,20 @@ func (t *ClusterCacheTracker) createClient(config *rest.Config, cluster client.O
 }
 
 // deleteAccessor stops a clusterAccessor's cache and removes the clusterAccessor from the tracker.
-func (t *ClusterCacheTracker) deleteAccessor(ctx context.Context, cluster client.ObjectKey) {
-	log := ctrl.LoggerFrom(ctx)
-
-	t.lock.Lock()
-	defer t.lock.Unlock()
+func (t *ClusterCacheTracker) deleteAccessor(_ context.Context, cluster client.ObjectKey) {
+	t.clusterAccessorsLock.Lock()
+	defer t.clusterAccessorsLock.Unlock()
 
 	a, exists := t.clusterAccessors[cluster]
 	if !exists {
 		return
 	}
 
-	log.V(2).Info("Deleting clusterAccessor", "cluster", cluster.String())
-
-	log.V(4).Info("Stopping cache", "cluster", cluster.String())
+	log := t.log.WithValues("Cluster", klog.KRef(cluster.Namespace, cluster.Name))
+	log.V(2).Info("Deleting clusterAccessor")
+	log.V(4).Info("Stopping cache")
 	a.cache.Stop()
-	log.V(4).Info("Cache stopped", "cluster", cluster.String())
+	log.V(4).Info("Cache stopped")
 
 	delete(t.clusterAccessors, cluster)
 }
@@ -388,26 +437,29 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 		return errors.New("input.Name is required")
 	}
 
-	t.lock.Lock()
-	defer t.lock.Unlock()
-
-	a, err := t.getClusterAccessorLH(ctx, input.Cluster, t.indexes...)
+	accessor, err := t.getClusterAccessor(ctx, input.Cluster, t.indexes...)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "failed to add %s watch on cluster %s", input.Kind, klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
 	}
 
-	if a.watches.Has(input.Name) {
+	// We have to lock the cluster, so that the watch is not created multiple times in parallel.
+	if ok := t.clusterLock.TryLock(input.Cluster); !ok {
+		return errors.Wrapf(ErrClusterLocked, "failed to add %s watch on cluster %s: failed to get lock for cluster", input.Kind, klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
+	}
+	defer t.clusterLock.Unlock(input.Cluster)
+
+	if accessor.watches.Has(input.Name) {
 		log := ctrl.LoggerFrom(ctx)
-		log.V(6).Info("Watch already exists", "namespace", input.Cluster.Namespace, "cluster", input.Cluster.Name, "name", input.Name)
+		log.V(6).Info("Watch already exists", "Cluster", klog.KRef(input.Cluster.Namespace, input.Cluster.Name), "name", input.Name)
 		return nil
 	}
 
 	// Need to create the watch
-	if err := input.Watcher.Watch(source.NewKindWithCache(input.Kind, a.cache), input.EventHandler, input.Predicates...); err != nil {
-		return errors.Wrap(err, "error creating watch")
+	if err := input.Watcher.Watch(source.NewKindWithCache(input.Kind, accessor.cache), input.EventHandler, input.Predicates...); err != nil {
+		return errors.Wrapf(err, "failed to add %s watch on cluster %s: failed to create watch", input.Kind, klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
 	}
 
-	a.watches.Insert(input.Name)
+	accessor.watches.Insert(input.Name)
 
 	return nil
 }
@@ -474,7 +526,7 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 			return false, nil
 		}
 
-		if !t.clusterAccessorExists(in.cluster) {
+		if _, ok := t.loadAccessor(in.cluster); !ok {
 			// Cache for this cluster has already been cleaned up.
 			// Nothing to do, so return true.
 			return true, nil
@@ -509,8 +561,7 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 	// NB. we are ignoring ErrWaitTimeout because this error happens when the channel is close, that in this case
 	// happens when the cache is explicitly stopped.
 	if err != nil && err != wait.ErrWaitTimeout {
-		log := ctrl.LoggerFrom(ctx)
-		log.Error(err, "Error health checking cluster", "cluster", in.cluster.String())
+		t.log.Error(err, "Error health checking cluster", "Cluster", klog.KRef(in.cluster.Namespace, in.cluster.Name))
 		t.deleteAccessor(ctx, in.cluster)
 	}
 }

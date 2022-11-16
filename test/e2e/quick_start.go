@@ -44,7 +44,8 @@ type QuickStartSpecInput struct {
 	// Flavor, if specified is the template flavor used to create the cluster for testing.
 	// If not specified, and the e2econfig variable IPFamily is IPV6, then "ipv6" is used,
 	// otherwise the default flavor is used.
-	Flavor *string
+	Flavor                  *string
+	PostMachinesProvisioned func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
 }
 
 // QuickStartSpec implements a spec that mimics the operation described in the Cluster API quick start, that is
@@ -82,7 +83,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 		if input.Flavor != nil {
 			flavor = *input.Flavor
 		}
-
+		clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
 			ClusterProxy: input.BootstrapClusterProxy,
 			ConfigCluster: clusterctl.ConfigClusterInput{
@@ -92,7 +93,7 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 				Flavor:                   flavor,
 				Namespace:                namespace.Name,
-				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
+				ClusterName:              clusterName,
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 				ControlPlaneMachineCount: pointer.Int64(1),
 				WorkerMachineCount:       pointer.Int64(1),
@@ -101,8 +102,12 @@ func QuickStartSpec(ctx context.Context, inputGetter func() QuickStartSpecInput)
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+			PostMachinesProvisioned: func() {
+				if input.PostMachinesProvisioned != nil {
+					input.PostMachinesProvisioned(input.BootstrapClusterProxy, namespace.Name, clusterName)
+				}
+			},
 		}, clusterResources)
-
 		By("PASSED!")
 	})
 

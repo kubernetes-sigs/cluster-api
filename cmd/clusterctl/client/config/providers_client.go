@@ -65,15 +65,17 @@ const (
 
 // Bootstrap providers.
 const (
-	KubeadmBootstrapProviderName = "kubeadm"
-	TalosBootstrapProviderName   = "talos"
+	KubeadmBootstrapProviderName    = "kubeadm"
+	KubeKeyK3sBootstrapProviderName = "kubekey-k3s"
+	TalosBootstrapProviderName      = "talos"
 )
 
 // ControlPlane providers.
 const (
-	KubeadmControlPlaneProviderName = "kubeadm"
-	TalosControlPlaneProviderName   = "talos"
-	NestedControlPlaneProviderName  = "nested"
+	KubeadmControlPlaneProviderName    = "kubeadm"
+	KubeKeyK3sControlPlaneProviderName = "kubekey-k3s"
+	TalosControlPlaneProviderName      = "talos"
+	NestedControlPlaneProviderName     = "nested"
 )
 
 // Other.
@@ -252,6 +254,11 @@ func (p *providersClient) defaults() []Provider {
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
 		&provider{
+			name:         KubeKeyK3sBootstrapProviderName,
+			url:          "https://github.com/kubesphere/kubekey/releases/latest/bootstrap-components.yaml",
+			providerType: clusterctlv1.BootstrapProviderType,
+		},
+		&provider{
 			name:         TalosBootstrapProviderName,
 			url:          "https://github.com/siderolabs/cluster-api-bootstrap-provider-talos/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
@@ -260,6 +267,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         KubeadmControlPlaneProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/control-plane-components.yaml",
+			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+		&provider{
+			name:         KubeKeyK3sControlPlaneProviderName,
+			url:          "https://github.com/kubesphere/kubekey/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
 		},
 		&provider{

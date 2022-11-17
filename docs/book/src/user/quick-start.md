@@ -439,6 +439,7 @@ clusterctl init --infrastructure ibmcloud
 
 {{#/tab }}
 {{#tab KubeKey}}
+
 ```bash
 # Initialize the management cluster
 clusterctl init --infrastructure kubekey
@@ -805,6 +806,7 @@ Please visit the [IBM Cloud provider] for more information.
 
 {{#/tab }}
 {{#tab KubeKey}}
+
 ```bash
 # Required environment variables
 # The KKZONE is used to specify where to download the binaries. (e.g. "", "cn")
@@ -818,6 +820,8 @@ export INSTANCES=<your-linux-ip-address>
 # The cluster control plane VIP. (e.g. "192.168.100.100")
 export CONTROL_PLANE_ENDPOINT_IP=<your-control-plane-virtual-ip>
 ```
+
+Please visit the [KubeKey provider] for more information.
 
 {{#/tab }}
 {{#tab Kubevirt}}
@@ -1228,6 +1232,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [management cluster]: ../reference/glossary.md#management-cluster
 [Metal3 getting started guide]: https://github.com/metal3-io/cluster-api-provider-metal3/blob/master/docs/getting-started.md
 [Metal3 provider]: https://github.com/metal3-io/cluster-api-provider-metal3/
+[KubeKey provider]: https://github.com/kubesphere/kubekey
 [Kubevirt provider]: https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/
 [oci-provider]: https://oracle.github.io/cluster-api-provider-oci/#getting-started
 [Equinix Metal getting started guide]: https://github.com/kubernetes-sigs/cluster-api-provider-packet#using

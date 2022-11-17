@@ -163,6 +163,11 @@ const (
 	// MachinePool infrastructure is scaling down.
 	MachinePoolPhaseScalingDown = MachinePoolPhase("ScalingDown")
 
+	// MachinePoolPhaseScaling is the MachinePool state when the
+	// MachinePool infrastructure is scaling.
+	// This phase value is appropriate to indicate an active state of scaling by an external autoscaler.
+	MachinePoolPhaseScaling = MachinePoolPhase("Scaling")
+
 	// MachinePoolPhaseDeleting is the MachinePool state when a delete
 	// request has been sent to the API Server,
 	// but its infrastructure has not yet been fully deleted.

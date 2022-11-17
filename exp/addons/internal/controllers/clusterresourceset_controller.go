@@ -36,14 +36,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	resourcepredicates "sigs.k8s.io/cluster-api/exp/addons/internal/controllers/predicates"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -79,12 +78,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
 			builder.OnlyMetadata,
 			builder.WithPredicates(
-				predicate.Funcs{
-					CreateFunc:  func(e event.CreateEvent) bool { return true },
-					UpdateFunc:  func(e event.UpdateEvent) bool { return true },
-					DeleteFunc:  func(e event.DeleteEvent) bool { return false },
-					GenericFunc: func(e event.GenericEvent) bool { return false },
-				},
+				resourcepredicates.ResourceCreateOrUpdate(ctrl.LoggerFrom(ctx)),
 			),
 		).
 		Watches(
@@ -92,12 +86,7 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
 			builder.OnlyMetadata,
 			builder.WithPredicates(
-				predicate.Funcs{
-					CreateFunc:  func(e event.CreateEvent) bool { return true },
-					UpdateFunc:  func(e event.UpdateEvent) bool { return true },
-					DeleteFunc:  func(e event.DeleteEvent) bool { return false },
-					GenericFunc: func(e event.GenericEvent) bool { return false },
-				},
+				resourcepredicates.ResourceCreateOrUpdate(ctrl.LoggerFrom(ctx)),
 			),
 		).
 		WithOptions(options).

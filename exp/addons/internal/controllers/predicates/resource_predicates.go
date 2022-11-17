@@ -23,11 +23,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-// ResourceCreate returns a predicate that returns true for a create event.
-func ResourceCreate(_ logr.Logger) predicate.Funcs {
+// ResourceCreateOrUpdate returns a predicate that returns true for create and update events.
+func ResourceCreateOrUpdate(_ logr.Logger) predicate.Funcs {
 	return predicate.Funcs{
 		CreateFunc:  func(e event.CreateEvent) bool { return true },
-		UpdateFunc:  func(e event.UpdateEvent) bool { return false },
+		UpdateFunc:  func(e event.UpdateEvent) bool { return true },
 		DeleteFunc:  func(e event.DeleteEvent) bool { return false },
 		GenericFunc: func(e event.GenericEvent) bool { return false },
 	}

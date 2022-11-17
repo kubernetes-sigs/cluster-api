@@ -30,7 +30,6 @@ import (
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
@@ -1363,7 +1362,6 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
 		g.Expect(actualMd.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
-		g.Expect(controllerutil.ContainsFinalizer(actualMd, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeTrue())
 
 		g.Expect(actualMd.Spec.Selector.MatchLabels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
 		g.Expect(actualMd.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
@@ -1417,7 +1415,6 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
 		g.Expect(actualMd.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
-		g.Expect(controllerutil.ContainsFinalizer(actualMd, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
 
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("foo", "baz"))
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("fizz", "buzz"))

@@ -27,10 +27,84 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util"
 )
+
+func TestMachineDeploymentTopologyFinalizer(t *testing.T) {
+	cluster := builder.Cluster(metav1.NamespaceDefault, "fake-cluster").Build()
+	mdBT := builder.BootstrapTemplate(metav1.NamespaceDefault, "mdBT").Build()
+	mdIMT := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "mdIMT").Build()
+	mdBuilder := builder.MachineDeployment(metav1.NamespaceDefault, "md").
+		WithClusterName("fake-cluster").
+		WithBootstrapTemplate(mdBT).
+		WithInfrastructureTemplate(mdIMT)
+
+	md := mdBuilder.Build()
+	mdWithFinalizer := mdBuilder.Build()
+	mdWithFinalizer.Finalizers = []string{clusterv1.MachineDeploymentTopologyFinalizer}
+	mdWithDeletionTimestamp := mdBuilder.Build()
+	deletionTimestamp := metav1.Now()
+	mdWithDeletionTimestamp.DeletionTimestamp = &deletionTimestamp
+
+	mdWithDeletionTimestampAndFinalizer := mdWithDeletionTimestamp.DeepCopy()
+	mdWithDeletionTimestampAndFinalizer.Finalizers = []string{clusterv1.MachineDeploymentTopologyFinalizer}
+
+	testCases := []struct {
+		name            string
+		md              *clusterv1.MachineDeployment
+		expectFinalizer bool
+	}{
+		{
+			name:            "should add ClusterTopology finalizer to a MachineDeployment with no finalizer",
+			md:              md,
+			expectFinalizer: true,
+		},
+		{
+			name:            "should retain ClusterTopology finalizer on MachineDeployment with finalizer",
+			md:              mdWithFinalizer,
+			expectFinalizer: true,
+		},
+		{
+			name:            "should not add ClusterTopology finalizer on MachineDeployment with Deletion Timestamp and no finalizer ",
+			md:              mdWithDeletionTimestamp,
+			expectFinalizer: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fakeClient := fake.NewClientBuilder().
+				WithScheme(fakeScheme).
+				WithObjects(tc.md, mdBT, mdIMT, cluster).
+				Build()
+
+			mdr := &Reconciler{
+				Client:    fakeClient,
+				APIReader: fakeClient,
+			}
+
+			_, err := mdr.Reconcile(ctx, reconcile.Request{
+				NamespacedName: util.ObjectKey(tc.md),
+			})
+			g.Expect(err).NotTo(HaveOccurred())
+
+			key := client.ObjectKey{Namespace: tc.md.Namespace, Name: tc.md.Name}
+			var actual clusterv1.MachineDeployment
+			g.Expect(mdr.Client.Get(ctx, key, &actual)).To(Succeed())
+			if tc.expectFinalizer {
+				g.Expect(actual.Finalizers).To(ConsistOf(clusterv1.MachineDeploymentTopologyFinalizer))
+			} else {
+				g.Expect(actual.Finalizers).To(BeEmpty())
+			}
+		})
+	}
+}
 
 func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 	deletionTimeStamp := metav1.Now()
@@ -98,7 +172,7 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 	t.Run("Should not delete templates of a MachineDeployment when they are still in use in a MachineSet", func(t *testing.T) {
 		g := NewWithT(t)
 
-		ms := builder.MachineSet(md.Namespace, "ms").
+		ms := builder.MachineSet(md.Namespace, "md").
 			WithBootstrapTemplate(mdBT).
 			WithInfrastructureTemplate(mdIMT).
 			WithLabels(map[string]string{

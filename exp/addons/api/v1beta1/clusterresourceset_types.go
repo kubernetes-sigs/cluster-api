@@ -81,7 +81,7 @@ const (
 	// ClusterResourceSet controller after being created if not specified by user.
 	ClusterResourceSetStrategyApplyOnce ClusterResourceSetStrategy = "ApplyOnce"
 	// ClusterResourceSetStrategyReconcile reapplies the resources managed by a ClusterResourceSet
-	// if their normalize hash changes.
+	// if their normalized hash changes.
 	ClusterResourceSetStrategyReconcile ClusterResourceSetStrategy = "Reconcile"
 )
 

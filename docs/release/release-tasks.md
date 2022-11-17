@@ -226,7 +226,8 @@ Additional information:
 
 #### [Optional] [Track] Bump the Kubernetes version
 
-TODO(sbueringer): Follow-up PR (this will probably just be create an issue based on another issue template)
+1. Create an issue for the new Kubernetes version via: [New Issue: Kubernetes bump](https://github.com/kubernetes-sigs/cluster-api/issues/new/choose).
+2. Track the issue to ensure the work is completed in time.
 
 ## Communications/Docs/Release Notes Manager
 

@@ -18,6 +18,8 @@ A release cycle can be split up into the following phases:
         * Providers can start adopting the new release based on the beta releases
     * All changes that impact providers' adoption of the new release should be announced in the provider updates section
       of the office hours meeting notes and approved in the PR or issue by both approvers and key affected providers.
+        * Non-breaking dependency bumps which don't require provider changes don't have to be explicitly approved
+          in addition to the regular PR review.
 * Week 15-16: RC
     * The release branch is created
     * Weekly RC releases will be released based on the release branch

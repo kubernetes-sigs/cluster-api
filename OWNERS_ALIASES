@@ -71,6 +71,7 @@ aliases:
 
   cluster-api-clusterctl-maintainers:
   cluster-api-clusterctl-reviewers:
+  - Jont828
   - ykakarap
 
   # -----------------------------------------------------------

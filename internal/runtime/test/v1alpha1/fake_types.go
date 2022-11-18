@@ -29,6 +29,9 @@ import (
 type FakeRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
+	// CommonRequest contains Settings field common to all request types.
+	runtimehooksv1.CommonRequest `json:",inline"`
+
 	Cluster clusterv1alpha4.Cluster
 
 	Second string
@@ -55,6 +58,9 @@ func FakeHook(*FakeRequest, *FakeResponse) {}
 type SecondFakeRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
+	// CommonRequest contains Settings field common to all request types.
+	runtimehooksv1.CommonRequest `json:",inline"`
+
 	Cluster clusterv1alpha4.Cluster
 
 	Second string
@@ -80,6 +86,9 @@ func SecondFakeHook(*SecondFakeRequest, *SecondFakeResponse) {}
 // +kubebuilder:object:root=true
 type RetryableFakeRequest struct {
 	metav1.TypeMeta `json:",inline"`
+
+	// CommonRequest contains Settings field common to all request types.
+	runtimehooksv1.CommonRequest `json:",inline"`
 
 	Cluster clusterv1alpha4.Cluster
 

@@ -48,6 +48,16 @@ func (e externalValidator) Validate(ctx context.Context, forObject client.Object
 	if !feature.Gates.Enabled(feature.RuntimeSDK) {
 		return nil, errors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", *e.patch.External.ValidateExtension)
 	}
+
+	// Set the settings defined in external patch definition on the request object.
+	// These settings will override overlapping keys defined in ExtensionConfig settings.
+	req.Settings = e.patch.External.Settings
+	// The req object is re-used across multiple calls to the patch generator.
+	// Reset the settings so that the request does not remain modified here.
+	defer func() {
+		req.Settings = nil
+	}()
+
 	resp := &runtimehooksv1.ValidateTopologyResponse{}
 	err := e.runtimeClient.CallExtension(ctx, runtimehooksv1.ValidateTopology, forObject, *e.patch.External.ValidateExtension, req, resp)
 	if err != nil {

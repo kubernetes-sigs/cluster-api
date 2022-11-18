@@ -29,6 +29,9 @@ import (
 type FakeRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
+	// CommonRequest contains Settings field common to all request types.
+	runtimehooksv1.CommonRequest `json:",inline"`
+
 	Cluster clusterv1.Cluster
 
 	Second string

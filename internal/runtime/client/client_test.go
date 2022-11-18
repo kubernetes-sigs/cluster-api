@@ -573,7 +573,7 @@ func TestClient_CallExtension(t *testing.T) {
 	type args struct {
 		hook     runtimecatalog.Hook
 		name     string
-		request  runtime.Object
+		request  runtimehooksv1.RequestObject
 		response runtimehooksv1.ResponseObject
 	}
 	tests := []struct {
@@ -636,7 +636,8 @@ func TestClient_CallExtension(t *testing.T) {
 				responses: map[string]testServerResponse{
 					"/*": response(runtimehooksv1.ResponseStatusSuccess),
 				},
-			}, args: args{
+			},
+			args: args{
 				hook:     fakev1alpha1.FakeHook,
 				name:     "valid-extension",
 				request:  &fakev1alpha1.FakeRequest{},
@@ -652,7 +653,8 @@ func TestClient_CallExtension(t *testing.T) {
 				responses: map[string]testServerResponse{
 					"/*": response(runtimehooksv1.ResponseStatusSuccess),
 				},
-			}, args: args{
+			},
+			args: args{
 				hook:     fakev1alpha1.FakeHook,
 				name:     "valid-extension",
 				request:  &fakev1alpha1.FakeRequest{},
@@ -668,7 +670,8 @@ func TestClient_CallExtension(t *testing.T) {
 				responses: map[string]testServerResponse{
 					"/*": response(runtimehooksv1.ResponseStatusFailure),
 				},
-			}, args: args{
+			},
+			args: args{
 				hook:     fakev1alpha1.FakeHook,
 				name:     "valid-extension",
 				request:  &fakev1alpha1.FakeRequest{},
@@ -684,7 +687,8 @@ func TestClient_CallExtension(t *testing.T) {
 				responses: map[string]testServerResponse{
 					"/*": response(runtimehooksv1.ResponseStatusFailure),
 				},
-			}, args: args{
+			},
+			args: args{
 				hook:     fakev1alpha1.FakeHook,
 				name:     "valid-extension",
 				request:  &fakev1alpha1.FakeRequest{},
@@ -698,7 +702,8 @@ func TestClient_CallExtension(t *testing.T) {
 			registeredExtensionConfigs: []runtimev1.ExtensionConfig{validExtensionHandlerWithIgnorePolicy},
 			testServer: testServerConfig{
 				start: false,
-			}, args: args{
+			},
+			args: args{
 				hook:     fakev1alpha1.FakeHook,
 				name:     "valid-extension",
 				request:  &fakev1alpha1.FakeRequest{},
@@ -711,7 +716,8 @@ func TestClient_CallExtension(t *testing.T) {
 			registeredExtensionConfigs: []runtimev1.ExtensionConfig{validExtensionHandlerWithFailPolicy},
 			testServer: testServerConfig{
 				start: false,
-			}, args: args{
+			},
+			args: args{
 				hook:     fakev1alpha1.FakeHook,
 				name:     "valid-extension",
 				request:  &fakev1alpha1.FakeRequest{},
@@ -764,6 +770,85 @@ func TestClient_CallExtension(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPrepareRequest(t *testing.T) {
+	t.Run("request should have the correct settings", func(t *testing.T) {
+		tests := []struct {
+			name         string
+			request      runtimehooksv1.RequestObject
+			registration *runtimeregistry.ExtensionRegistration
+			want         map[string]string
+		}{
+			{
+				name: "settings in request should be preserved as is if there are not setting in the registration",
+				request: &runtimehooksv1.BeforeClusterCreateRequest{
+					CommonRequest: runtimehooksv1.CommonRequest{
+						Settings: map[string]string{
+							"key1": "value1",
+						},
+					},
+				},
+				registration: &runtimeregistry.ExtensionRegistration{},
+				want: map[string]string{
+					"key1": "value1",
+				},
+			},
+			{
+				name: "settings in registration should be used as is if there are no settings in the request",
+				request: &runtimehooksv1.BeforeClusterCreateRequest{
+					CommonRequest: runtimehooksv1.CommonRequest{},
+				},
+				registration: &runtimeregistry.ExtensionRegistration{
+					Settings: map[string]string{
+						"key1": "value1",
+					},
+				},
+				want: map[string]string{
+					"key1": "value1",
+				},
+			},
+			{
+				name: "settings in request and registry should be merged with request taking precedence",
+				request: &runtimehooksv1.BeforeClusterCreateRequest{
+					CommonRequest: runtimehooksv1.CommonRequest{
+						Settings: map[string]string{
+							"key1": "value1",
+							"key2": "value2",
+						},
+					},
+				},
+				registration: &runtimeregistry.ExtensionRegistration{
+					Settings: map[string]string{
+						"key1": "value11",
+						"key3": "value3",
+					},
+				},
+				want: map[string]string{
+					"key1": "value1",
+					"key2": "value2",
+					"key3": "value3",
+				},
+			},
+		}
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				g := NewWithT(t)
+				var originalRegistrationSettings map[string]string
+				if tt.registration.Settings != nil {
+					originalRegistrationSettings = map[string]string{}
+					for k, v := range tt.registration.Settings {
+						originalRegistrationSettings[k] = v
+					}
+				}
+
+				g.Expect(cloneAndAddSettings(tt.request, tt.registration.Settings).GetSettings()).To(Equal(tt.want))
+				// Make sure that the original settings in the registration are not modified.
+				g.Expect(tt.registration.Settings).To(Equal(originalRegistrationSettings))
+			})
+		}
+	})
 }
 
 func TestClient_CallAllExtensions(t *testing.T) {
@@ -822,7 +907,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 
 	type args struct {
 		hook     runtimecatalog.Hook
-		request  runtime.Object
+		request  runtimehooksv1.RequestObject
 		response runtimehooksv1.ResponseObject
 	}
 	tests := []struct {

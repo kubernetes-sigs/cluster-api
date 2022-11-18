@@ -78,6 +78,9 @@ type ExtensionRegistration struct {
 
 	// FailurePolicy defines how failures in calls to the RuntimeExtension should be handled by a client.
 	FailurePolicy *runtimev1.FailurePolicy
+
+	// Settings captures additional information sent in call to the RuntimeExtensions.
+	Settings map[string]string
 }
 
 // extensionRegistry is an implementation of ExtensionRegistry.
@@ -255,6 +258,7 @@ func (r *extensionRegistry) add(extensionConfig *runtimev1.ExtensionConfig) erro
 			ClientConfig:      extensionConfig.Spec.ClientConfig,
 			TimeoutSeconds:    e.TimeoutSeconds,
 			FailurePolicy:     e.FailurePolicy,
+			Settings:          extensionConfig.Spec.Settings,
 		})
 	}
 

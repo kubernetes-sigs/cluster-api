@@ -34,6 +34,12 @@ type ExtensionConfigSpec struct {
 	// Defaults to the empty LabelSelector, which matches all objects.
 	// +optional
 	NamespaceSelector *metav1.LabelSelector `json:"namespaceSelector,omitempty"`
+
+	// Settings defines key value pairs to be passed to all calls
+	// to all supported RuntimeExtensions.
+	// Note: Settings can be overridden on the ClusterClass.
+	// +optional
+	Settings map[string]string `json:"settings,omitempty"`
 }
 
 // ClientConfig contains the information to make a client

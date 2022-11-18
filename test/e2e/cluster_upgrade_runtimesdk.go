@@ -290,6 +290,13 @@ func extensionConfig(name, namespace string) *runtimev1.ExtensionConfig {
 					},
 				},
 			},
+			Settings: map[string]string{
+				// In the E2E test we are defaulting all handlers to blocking because cluster_upgrade_runtimesdk_test
+				// expects the handlers to block the cluster lifecycle by default.
+				// Setting this value to true enforces that the test-extension automatically creates the ConfigMap with
+				// blocking preloaded responses.
+				"defaultAllHandlersToBlocking": "true",
+			},
 		},
 	}
 }

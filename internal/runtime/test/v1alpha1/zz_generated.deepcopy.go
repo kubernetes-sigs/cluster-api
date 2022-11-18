@@ -29,6 +29,7 @@ import (
 func (in *FakeRequest) DeepCopyInto(out *FakeRequest) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
+	in.CommonRequest.DeepCopyInto(&out.CommonRequest)
 	in.Cluster.DeepCopyInto(&out.Cluster)
 }
 
@@ -79,6 +80,7 @@ func (in *FakeResponse) DeepCopyObject() runtime.Object {
 func (in *RetryableFakeRequest) DeepCopyInto(out *RetryableFakeRequest) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
+	in.CommonRequest.DeepCopyInto(&out.CommonRequest)
 	in.Cluster.DeepCopyInto(&out.Cluster)
 }
 
@@ -130,6 +132,7 @@ func (in *RetryableFakeResponse) DeepCopyObject() runtime.Object {
 func (in *SecondFakeRequest) DeepCopyInto(out *SecondFakeRequest) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
+	in.CommonRequest.DeepCopyInto(&out.CommonRequest)
 	in.Cluster.DeepCopyInto(&out.Cluster)
 }
 

@@ -70,6 +70,7 @@ func RegisterConversions(s *runtime.Scheme) error {
 }
 
 func autoConvert_v1alpha1_FakeRequest_To_v1alpha2_FakeRequest(in *FakeRequest, out *v1alpha2.FakeRequest, s conversion.Scope) error {
+	out.CommonRequest = in.CommonRequest
 	if err := Convert_v1alpha4_Cluster_To_v1beta1_Cluster(&in.Cluster, &out.Cluster, s); err != nil {
 		return err
 	}
@@ -84,6 +85,7 @@ func Convert_v1alpha1_FakeRequest_To_v1alpha2_FakeRequest(in *FakeRequest, out *
 }
 
 func autoConvert_v1alpha2_FakeRequest_To_v1alpha1_FakeRequest(in *v1alpha2.FakeRequest, out *FakeRequest, s conversion.Scope) error {
+	out.CommonRequest = in.CommonRequest
 	if err := Convert_v1beta1_Cluster_To_v1alpha4_Cluster(&in.Cluster, &out.Cluster, s); err != nil {
 		return err
 	}

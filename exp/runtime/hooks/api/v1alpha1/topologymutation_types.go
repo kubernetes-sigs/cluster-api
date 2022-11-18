@@ -30,6 +30,9 @@ import (
 type GeneratePatchesRequest struct {
 	metav1.TypeMeta `json:",inline"`
 
+	// CommonRequest contains Settings field common to all request types.
+	CommonRequest `json:",inline"`
+
 	// Variables are global variables for all templates.
 	Variables []Variable `json:"variables"`
 
@@ -106,6 +109,9 @@ func GeneratePatches(*GeneratePatchesRequest, *GeneratePatchesResponse) {}
 // +kubebuilder:object:root=true
 type ValidateTopologyRequest struct {
 	metav1.TypeMeta `json:",inline"`
+
+	// CommonRequest contains Settings field common to all request types.
+	CommonRequest `json:",inline"`
 
 	// Variables are global variables for all templates.
 	Variables []Variable `json:"variables"`

@@ -819,7 +819,7 @@ export SERVICE_DOMAIN="k8s.test"
 
 It is also possible but **not recommended** to disable the per-default enabled [Pod Security Standard](../security/pod-security-standards.md):
 ```bash
-export ENABLE_POD_SECURITY_STANDARD="false"
+export POD_SECURITY_STANDARD_ENABLED="false"
 ```
 
 {{#/tab }}

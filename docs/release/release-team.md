@@ -21,7 +21,7 @@ This document introduces the concept of a release team with the following goals 
 
 Note that this document is intended to be a starting point for the release team. It is not a complete release process document.
 
-More details on the CAPI release process can be found in [this past issue tracking release tasks](https://github.com/kubernetes-sigs/cluster-api/issues/6615) and the current [release documentation](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/developer/releasing.md).
+More details on the CAPI release process can be found in the [release cycle](./release-cycle.md) and [release task](./release-tasks.md) documentation.
 
 ## Duration of Term
 
@@ -50,6 +50,8 @@ As noted above, making changes to  the CAPI release cadence is out of scope for 
 - **Communications/Docs/Release Notes Manager**: Responsible for communicating key dates to the community, improving release process documentation, and polishing release notes. Also responsible for ensuring the user-facing Netlify book and provider upgrade documentation are up to date.
 - **CI Signal/Bug Triage/Automation Manager**: Assumes the responsibility of the quality gate for the release and makes sure blocking issues and bugs are triaged and dealt with in a timely fashion. Helps improve release automation and tools.
 - **Shadow**: Any Release Team member may select one or more mentees to shadow the release process in order to help fulfill future Release Team staffing requirements and continue to grow the CAPI community in general.
+
+*Note*: This is also documented in [Release tasks](./release-tasks.md) together with a mapping to specific tasks.  
 
 ## Team Selection
 

@@ -202,15 +202,15 @@ func setDefaults(ts *tiltSettings) {
 func allowK8sConfig(ts *tiltSettings) error {
 	config, err := clientcmd.NewDefaultClientConfigLoadingRules().Load()
 	if err != nil {
-		return errors.Wrap(err, "failed to load Kubeconfig")
+		return errors.Wrap(err, "failed to load KubeConfig file")
 	}
 
 	if config.CurrentContext == "" {
-		return errors.New("failed to get current context")
+		return errors.New("failed to get current context from the KubeConfig file")
 	}
 	context, ok := config.Contexts[config.CurrentContext]
 	if !ok {
-		return errors.Errorf("failed to get context %s", config.CurrentContext)
+		return errors.Errorf("failed to get context %s from the KubeConfig file", config.CurrentContext)
 	}
 	if strings.HasPrefix(context.Cluster, "kind-") {
 		return nil
@@ -218,7 +218,7 @@ func allowK8sConfig(ts *tiltSettings) error {
 
 	allowed := sets.NewString(ts.AllowedContexts...)
 	if !allowed.Has(config.CurrentContext) {
-		return errors.Errorf("context %s is not allowed", config.CurrentContext)
+		return errors.Errorf("context %s from the KubeConfig file is not allowed", config.CurrentContext)
 	}
 	return nil
 }
@@ -668,7 +668,7 @@ func kustomizeTask(path, out string) taskFunction {
 // workloadTask generates a task for creating the component yaml for a workload and saving the output on a file.
 // NOTE: This task has several sub steps including running kustomize, envsubst, fixing components for debugging,
 // and adding the workload resource mimicking what clusterctl init does.
-func workloadTask(name, workloadType, binaryName, containerName string, ts *tiltSettings, path string, getAdditionalObjects func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
+func workloadTask(name, workloadType, binaryName, containerName string, ts *tiltSettings, path string, getAdditionalObject func(string, []unstructured.Unstructured) (*unstructured.Unstructured, error)) taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
 		kustomizeCmd := exec.CommandContext(ctx, kustomizePath, "build", path)
 		var stdout1, stderr1 bytes.Buffer
@@ -701,13 +701,22 @@ func workloadTask(name, workloadType, binaryName, containerName string, ts *tilt
 			errCh <- err
 			return
 		}
-		if getAdditionalObjects != nil {
-			additionalObjects, err := getAdditionalObjects(prefix, objs)
+		if getAdditionalObject != nil {
+			additionalObject, err := getAdditionalObject(prefix, objs)
 			if err != nil {
 				errCh <- err
 				return
 			}
-			objs = append(objs, *additionalObjects)
+			objs = append(objs, *additionalObject)
+		}
+
+		for _, o := range objs {
+			labels := o.GetLabels()
+			if labels == nil {
+				labels = map[string]string{}
+			}
+			labels[clusterctlv1.ClusterctlLabelName] = ""
+			o.SetLabels(labels)
 		}
 
 		yaml, err := utilyaml.FromUnstructured(objs)
@@ -757,7 +766,6 @@ func writeIfChanged(prefix string, path string, yaml []byte) error {
 // If there are extra_args given for the workload, we append those to the ones that already exist in the deployment.
 // This has the affect that the appended ones will take precedence, as those are read last.
 // Finally, we modify the deployment to enable prometheus metrics scraping.
-
 func prepareWorkload(name, prefix, binaryName, containerName string, objs []unstructured.Unstructured, ts *tiltSettings) error {
 	return updateDeployment(prefix, objs, func(d *appsv1.Deployment) {
 		for j, container := range d.Spec.Template.Spec.Containers {

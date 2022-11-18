@@ -116,19 +116,33 @@ this should generally not be the case.
 
 ### Support and guarantees
 
-Cluster API maintains the most recent release branch for all supported API and contract versions. Support for this section refers to the ability to backport and release patch versions.
-
-| API Version   | Branch      | Supported Until |
-| ------------- |-------------|-----------------|
-| **v1beta1**   | release-1.2 | current stable  |
-| **v1beta1**   | release-1.1 | 2022-09-15      |
-| **v1beta1**   | release-1.0 | 2022-02-02      |
-| **v1alpha4**  | release-0.4 | 2022-04-06      |
-| **v1alpha3**  | release-0.3 | 2022-02-23      |
+Cluster API maintains the most recent release/releases for all supported API and contract versions. Support for this section refers to the ability to backport and release patch versions;
+[backport policy](#backporting-a-patch) is defined above.
 
 - The API version is determined from the GroupVersion defined in the top-level `api/` package.
-- The EOL date is determined from the last release available once a new API version is published.
-- For each given API version only the most recent associated release branch is supported, older branches are immediately unsupported. Exceptions can be filed with maintainers and taken into consideration on a case-by-case basis.
+- The EOL date of each API Version is determined from the last release available once a new API version is published.
+
+| API Version  | Supported Until      |
+|--------------|----------------------|
+| **v1beta1**  | TBD (current stable) |
+| **v1alpha4** | EOL since 2022-04-06 |
+| **v1alpha3** | EOL since 2022-02-23 |
+
+- For the latest API version we support the two most recent minor releases; older minor releases are immediately unsupported when a new major/minor release is available. 
+- For older API versions we only support the most recent minor release until the API version reaches EOL.
+
+| Minor Release | API Version  | Supported Until                                      |
+|---------------|--------------|------------------------------------------------------|
+| v1.3.x        | **v1beta1**  | when v1.5.0 will be released                         |
+| v1.2.x        | **v1beta1**  | when v1.4.0 will be released, tentatively March 2023 |
+| v1.1.x        | **v1beta1**  | EOL since 2022-07-18 - v1.2.0 release date (*)       |
+| v1.0.x        | **v1beta1**  | EOL since 2022-02-02 - v1.1.0 release date (*)       |
+| v0.4.x        | **v1alpha4** | EOL since 2022-04-06 - API version EOL               |
+| v0.3.x        | **v1alpha3** | EOL since 2022-02-23 - API version EOL               |
+
+(*) Previous support policy applies, older minor releases were immediately unsupported when a new major/minor release was available
+
+- Exceptions can be filed with maintainers and taken into consideration on a case-by-case basis.
 
 ## Contributing a Patch
 

@@ -150,11 +150,11 @@ a target [management cluster] on the selected [infrastructure provider].
 ### Install clusterctl
 The clusterctl CLI tool handles the lifecycle of a Cluster API management cluster.
 
-{{#tabs name:"install-clusterctl" tabs:"linux,macOS,homebrew,Windows"}}
-{{#tab linux}}
+{{#tabs name:"install-clusterctl" tabs:"Linux,macOS,homebrew,Windows"}}
+{{#tab Linux}}
 
-#### Install clusterctl binary with curl on linux
-Download the latest release; on linux, type:
+#### Install clusterctl binary with curl on Linux
+Download the latest release; on Linux, type:
 ```bash
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.2.x"}} -o clusterctl
 ```
@@ -196,7 +196,7 @@ clusterctl version
 {{#/tab }}
 {{#tab homebrew}}
 
-#### Install clusterctl with homebrew on macOS and linux
+#### Install clusterctl with homebrew on macOS and Linux
 
 Install the latest release using homebrew:
 
@@ -257,10 +257,10 @@ before getting started with Cluster API. See below for the expected settings for
 {{#tab AWS}}
 
 Download the latest binary of `clusterawsadm` from the [AWS provider releases].
-{{#tabs name:"install-clusterawsadm" tabs:"linux,macOS,homebrew"}}
-{{#tab linux}}
+{{#tabs name:"install-clusterawsadm" tabs:"Linux,macOS,homebrew"}}
+{{#tab Linux}}
 
-Download the latest release; on linux, type:
+Download the latest release; on Linux, type:
 ```
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-linux-amd64" version:"1.x"}} -o clusterawsadm
 ```

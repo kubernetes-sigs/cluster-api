@@ -20,6 +20,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -213,6 +214,49 @@ func Test_templateClient_getGitHubFileContent(t *testing.T) {
 				},
 			}
 			got, err := c.getGitHubFileContent(tt.args.rURL)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+
+			g.Expect(got).To(Equal(tt.want))
+		})
+	}
+}
+
+func Test_templateClient_getRawUrlFileContent(t *testing.T) {
+	fakeServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, template)
+	}))
+
+	defer fakeServer.Close()
+
+	type args struct {
+		rURL string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name: "Return custom template",
+			args: args{
+				rURL: fakeServer.URL,
+			},
+			want:    []byte(template),
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			c := newTemplateClient(TemplateClientInput{})
+			got, err := c.getRawURLFileContent(tt.args.rURL)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"sort"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -39,6 +40,16 @@ func RemoveOwnerReferences(ctx context.Context, cli client.Client, namespace str
 			defer func() {
 				unpausePatch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%s}}", "false")))
 				_ = cli.Patch(ctx, c, unpausePatch)
+				// If the Cluster is topology managed label the ClusterClass to speed up its reconciliation of ownerRefs
+				if c.Spec.Topology != nil {
+					class := &clusterv1.ClusterClass{}
+					_ = cli.Get(ctx, client.ObjectKey{Namespace: namespace, Name: c.Spec.Topology.Class}, class)
+					annotationPatch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{\"cluster.x-k8s.io/modifiedAt\":\"%v\"}}}", time.Now().Format(time.RFC3339))))
+					err = cli.Patch(ctx, class, annotationPatch)
+					if err != nil {
+						fmt.Printf(err.Error())
+					}
+				}
 			}()
 			pausePatch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%s}}", "true")))
 			err = cli.Patch(ctx, c, pausePatch)

@@ -252,9 +252,9 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
 		// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
 	case configOwner.DataSecretName() != nil:
-		if err := r.ensureBootstrapSecretOwnerReference(ctx, scope); err != nil {
-			return ctrl.Result{}, err
-		}
+		//if err := r.ensureBootstrapSecretOwnerReference(ctx, scope); err != nil {
+		//	return ctrl.Result{}, err
+		//}
 		if !config.Status.Ready || config.Status.DataSecretName == nil {
 			config.Status.Ready = true
 			config.Status.DataSecretName = configOwner.DataSecretName()
@@ -447,7 +447,13 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		ctx,
 		r.Client,
 		util.ObjectKey(scope.Cluster),
-		*metav1.NewControllerRef(scope.Config, bootstrapv1.GroupVersion.WithKind("KubeadmConfig")),
+		// This seems to have been a race condition previously with one or the other controller becoming the controller ownerReference.
+		metav1.OwnerReference{
+			APIVersion: scope.Config.APIVersion,
+			Kind:       "KubeadmConfig",
+			Name:       scope.Config.Name,
+			UID:        scope.Config.UID,
+		},
 	)
 	if err != nil {
 		conditions.MarkFalse(scope.Config, bootstrapv1.CertificatesAvailableCondition, bootstrapv1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())

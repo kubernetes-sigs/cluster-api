@@ -10,6 +10,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/utils/pointer"
 
+	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -86,6 +88,7 @@ func OwnerReferencesSpec(ctx context.Context, inputGetter func() OwnerReferences
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
+		toUML(namespace.Name, fmt.Sprintf("%s-before.plantuml", namespace.Name))
 		// Check that the references are as expected on cluster creation.
 		framework.AssertOwnerReferences(namespace.Name,
 			framework.CoreTypeOwnerReferenceAssertion,
@@ -100,6 +103,8 @@ func OwnerReferencesSpec(ctx context.Context, inputGetter func() OwnerReferences
 
 		// Wait after removing references and unpausing to allow reconcilers to replace the ownerReferences.
 		time.Sleep(20 * time.Second)
+
+		toUML(namespace.Name, fmt.Sprintf("%s-after.plantuml", namespace.Name))
 
 		// Check if the ownerReferences are as expected once the cluster reconciles again.
 		framework.AssertOwnerReferences(namespace.Name,
@@ -118,4 +123,46 @@ func OwnerReferencesSpec(ctx context.Context, inputGetter func() OwnerReferences
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
+}
+
+type object struct {
+	apiVersion string
+	kind       string
+	name       string
+	owns       []object
+}
+
+func toUML(namespace, filename string) {
+	graph, err := clusterctlcluster.GetOwnerGraph(namespace)
+	if err != nil {
+		panic(err)
+	}
+	umlfile := "@startuml\n"
+	i := 0
+	nameToID := map[string]int{}
+	for _, v := range graph {
+		i++
+		objectName := fmt.Sprintf("\"%s/%s\"", v.Object.Kind, v.Object.Name)
+		nameToID[objectName] = i
+		umlfile = fmt.Sprintf("%s%s\n", umlfile,
+			fmt.Sprintf("object %s as %d", objectName, i))
+		umlfile = fmt.Sprintf("%s%s\n", umlfile,
+			fmt.Sprintf("%d : apiVersion : %s\n%d : kind : %s\n%d : name : %s\n%d : uid : %s\n",
+				i, v.Object.APIVersion,
+				i, v.Object.Kind,
+				i, v.Object.Name,
+				i, v.Object.UID,
+			))
+	}
+	for _, v := range graph {
+		objectName := fmt.Sprintf("\"%s/%s\"", v.Object.Kind, v.Object.Name)
+		for _, owner := range v.Owners {
+			ownerName := fmt.Sprintf("\"%s/%s\"", owner.Kind, owner.Name)
+			umlfile = fmt.Sprintf("%s%d --> %d\n", umlfile, nameToID[ownerName], nameToID[objectName])
+		}
+	}
+	umlfile = fmt.Sprintf("%s@enduml", umlfile)
+
+	err = os.WriteFile(fmt.Sprintf(filename), []byte(umlfile), 0600)
+
 }

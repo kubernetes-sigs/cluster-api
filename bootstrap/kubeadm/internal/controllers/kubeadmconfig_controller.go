@@ -248,13 +248,19 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Info("Cluster infrastructure is not ready, waiting")
 		conditions.MarkFalse(config, bootstrapv1.DataSecretAvailableCondition, bootstrapv1.WaitingForClusterInfrastructureReason, clusterv1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil
-	// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
-	// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
-	case configOwner.DataSecretName() != nil && (!config.Status.Ready || config.Status.DataSecretName == nil):
-		config.Status.Ready = true
-		config.Status.DataSecretName = configOwner.DataSecretName()
-		conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableCondition)
-		return ctrl.Result{}, nil
+		// For machines that already have a secret reference ensure the ownerReference and status are up to date.
+		// Reconcile status for machines that already have a secret reference, but our status isn't up to date.
+		// This case solves the pivoting scenario (or a backup restore) which doesn't preserve the status subresource on objects.
+	case configOwner.DataSecretName() != nil:
+		if err := r.ensureBootstrapSecretOwnerReference(ctx, scope); err != nil {
+			return ctrl.Result{}, err
+		}
+		if !config.Status.Ready || config.Status.DataSecretName == nil {
+			config.Status.Ready = true
+			config.Status.DataSecretName = configOwner.DataSecretName()
+			conditions.MarkTrue(config, bootstrapv1.DataSecretAvailableCondition)
+			return ctrl.Result{}, nil
+		}
 	// Status is ready means a config has been generated.
 	case config.Status.Ready:
 		if config.Spec.JoinConfiguration != nil && config.Spec.JoinConfiguration.Discovery.BootstrapToken != nil {
@@ -975,6 +981,29 @@ func (r *KubeadmConfigReconciler) reconcileTopLevelObjectSettings(ctx context.Co
 		config.Spec.ClusterConfiguration.KubernetesVersion = *machine.Spec.Version
 		log.V(3).Info("Altering ClusterConfiguration.KubernetesVersion", "KubernetesVersion", config.Spec.ClusterConfiguration.KubernetesVersion)
 	}
+}
+
+func (r *KubeadmConfigReconciler) ensureBootstrapSecretOwnerReference(ctx context.Context, scope *Scope) error {
+	secret := &corev1.Secret{}
+	err := r.Client.Get(ctx, client.ObjectKey{scope.Config.Namespace, scope.Config.Name}, secret)
+	if err != nil {
+		return err
+	}
+	patchHelper, err := patch.NewHelper(secret, r.Client)
+	if err != nil {
+		return err
+	}
+	util.EnsureOwnerRef(secret.OwnerReferences, metav1.OwnerReference{
+		APIVersion: scope.ConfigOwner.GetAPIVersion(),
+		Kind:       scope.ConfigOwner.GetKind(),
+		UID:        scope.ConfigOwner.GetUID(),
+		Name:       scope.ConfigOwner.GetName(),
+	})
+	err = patchHelper.Patch(ctx, secret)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // storeBootstrapData creates a new secret with the data passed in as input,

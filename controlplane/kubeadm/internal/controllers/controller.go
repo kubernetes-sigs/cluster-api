@@ -284,6 +284,9 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		conditions.MarkFalse(kcp, controlplanev1.CertificatesAvailableCondition, controlplanev1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, err
 	}
+	if err := r.ensureCertificateOwnerRefs(ctx, certificates, util.ObjectKey(cluster), *controllerRef); err != nil {
+		return ctrl.Result{}, err
+	}
 	conditions.MarkTrue(kcp, controlplanev1.CertificatesAvailableCondition)
 
 	// If ControlPlaneEndpoint is not set, return early
@@ -771,5 +774,32 @@ func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, k
 		}
 	}
 
+	return nil
+}
+
+// Lookup looks up each certificate from secrets and populates the certificate with the secret data.
+func (r *KubeadmControlPlaneReconciler) ensureCertificateOwnerRefs(ctx context.Context, certificates secret.Certificates, clusterName client.ObjectKey, owner metav1.OwnerReference) error {
+	// Look up each certificate as a secret and populate the certificate/key
+	for _, c := range certificates {
+		s := &corev1.Secret{}
+		key := client.ObjectKey{
+			Name:      secret.Name(clusterName.Name, c.Purpose),
+			Namespace: clusterName.Namespace,
+		}
+		if err := r.Client.Get(ctx, key, s); err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			return errors.WithStack(err)
+		}
+		patchHelper, err := patch.NewHelper(s, r.Client)
+		if err != nil {
+			return err
+		}
+		s.OwnerReferences = util.EnsureOwnerRef(s.OwnerReferences, owner)
+		if err := patchHelper.Patch(ctx, s); err != nil {
+			return err
+		}
+	}
 	return nil
 }

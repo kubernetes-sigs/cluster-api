@@ -26,7 +26,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -118,14 +117,18 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 
 	// With the migration from v1alpha2 to v1alpha3, Machine controllers should be the owner for the
 	// infra Machines, hence remove any existing machineset controller owner reference
-	if controller := metav1.GetControllerOf(obj); controller != nil && controller.Kind == "MachineSet" {
-		gv, err := schema.ParseGroupVersion(controller.APIVersion)
-		if err != nil {
-			return external.ReconcileOutput{}, err
-		}
-		if gv.Group == clusterv1.GroupVersion.Group {
-			ownerRefs := util.RemoveOwnerRef(obj.GetOwnerReferences(), *controller)
-			obj.SetOwnerReferences(ownerRefs)
+	if util.HasOwner(obj.GetOwnerReferences(), clusterv1.GroupVersion.String(), []string{"MachineSet"}) {
+		for _, owner := range obj.GetOwnerReferences() {
+			if owner.Kind == "MachineSet" {
+				ownerRefs := util.RemoveOwnerRef(obj.GetOwnerReferences(), metav1.OwnerReference{
+					APIVersion: owner.APIVersion,
+					Kind:       owner.Kind,
+					Name:       owner.Name,
+					UID:        owner.UID,
+				})
+				obj.SetOwnerReferences(ownerRefs)
+			}
+
 		}
 	}
 

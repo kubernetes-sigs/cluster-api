@@ -88,7 +88,7 @@ func OwnerReferencesSpec(ctx context.Context, inputGetter func() OwnerReferences
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
-		toUML(namespace.Name, fmt.Sprintf("%s-before.plantuml", namespace.Name))
+		toUML(namespace.Name, filepath.Join(input.ArtifactFolder, fmt.Sprintf("%s-before.plantuml", namespace.Name)))
 		// Check that the references are as expected on cluster creation.
 		framework.AssertOwnerReferences(namespace.Name,
 			framework.CoreTypeOwnerReferenceAssertion,
@@ -104,7 +104,7 @@ func OwnerReferencesSpec(ctx context.Context, inputGetter func() OwnerReferences
 		// Wait after removing references and unpausing to allow reconcilers to replace the ownerReferences.
 		time.Sleep(20 * time.Second)
 
-		toUML(namespace.Name, fmt.Sprintf("%s-after.plantuml", namespace.Name))
+		toUML(namespace.Name, filepath.Join(input.ArtifactFolder, fmt.Sprintf("%s-after.plantuml", namespace.Name)))
 
 		// Check if the ownerReferences are as expected once the cluster reconciles again.
 		framework.AssertOwnerReferences(namespace.Name,

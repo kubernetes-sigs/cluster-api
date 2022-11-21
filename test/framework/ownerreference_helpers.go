@@ -207,7 +207,7 @@ var KubeadmBootstrapOwnerReferenceAssertions = map[string]func([]metav1.OwnerRef
 		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK}, []schema.GroupVersionKind{clusterClassGVK})
 	},
 	kubeadmConfigKind: func(owners []metav1.OwnerReference) error {
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{machineGVK, machineSetGVK}, []schema.GroupVersionKind{machineGVK, kubeadmControlPlaneGVK})
+		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{machineGVK}, []schema.GroupVersionKind{machineGVK, kubeadmControlPlaneGVK})
 	},
 }
 
@@ -220,7 +220,7 @@ var (
 )
 var DockerInfraOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	dockerMachineKind: func(owners []metav1.OwnerReference) error {
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{machineGVK, machineSetGVK}, []schema.GroupVersionKind{machineGVK, kubeadmControlPlaneGVK})
+		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{machineGVK}, []schema.GroupVersionKind{machineGVK, kubeadmControlPlaneGVK})
 	},
 	dockerMachineTemplateKind: func(owners []metav1.OwnerReference) error {
 		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK}, []schema.GroupVersionKind{clusterClassGVK})

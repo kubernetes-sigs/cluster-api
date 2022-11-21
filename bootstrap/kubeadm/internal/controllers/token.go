@@ -81,7 +81,7 @@ func getToken(ctx context.Context, c client.Client, token string) (*corev1.Secre
 	}
 
 	if secret.Data == nil {
-		return nil, errors.Errorf("Invalid bootstrap secret %q, remove the token from the kubadm config to re-create", secretName)
+		return nil, errors.Errorf("Invalid bootstrap secret %q, remove the token from the kubeadm config to re-create", secretName)
 	}
 	return secret, nil
 }

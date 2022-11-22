@@ -203,8 +203,16 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			})
 		}, timeout).Should(BeTrue())
 
-		// Verify that expected number of machines are created
-		t.Log("Verify expected number of machines are created")
+		t.Log("Verify MachineSet has expected replicas and version")
+		firstMachineSet := machineSets.Items[0]
+		g.Expect(*firstMachineSet.Spec.Replicas).To(BeEquivalentTo(2))
+		g.Expect(*firstMachineSet.Spec.Template.Spec.Version).To(BeEquivalentTo("v1.10.3"))
+
+		t.Log("Verify MachineSet has expected ClusterLabelName and MachineDeploymentLabelName")
+		g.Expect(firstMachineSet.Labels[clusterv1.ClusterLabelName]).To(Equal(testCluster.Name))
+		g.Expect(firstMachineSet.Labels[clusterv1.MachineDeploymentLabelName]).To(Equal(deployment.Name))
+
+		t.Log("Verify expected number of Machines are created")
 		machines := &clusterv1.MachineList{}
 		g.Eventually(func() int {
 			if err := env.List(ctx, machines, client.InNamespace(namespace.Name)); err != nil {
@@ -213,15 +221,12 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			return len(machines.Items)
 		}, timeout).Should(BeEquivalentTo(*deployment.Spec.Replicas))
 
-		// Verify that machines has MachineSetLabelName and MachineDeploymentLabelName labels
-		t.Log("Verify machines have expected MachineSetLabelName and MachineDeploymentLabelName")
+		t.Log("Verify Machines have expected ClusterLabelName, MachineDeploymentLabelName and MachineSetLabelName")
 		for _, m := range machines.Items {
 			g.Expect(m.Labels[clusterv1.ClusterLabelName]).To(Equal(testCluster.Name))
+			g.Expect(m.Labels[clusterv1.MachineDeploymentLabelName]).To(Equal(deployment.Name))
+			g.Expect(m.Labels[clusterv1.MachineSetLabelName]).To(Equal(firstMachineSet.Name))
 		}
-
-		firstMachineSet := machineSets.Items[0]
-		g.Expect(*firstMachineSet.Spec.Replicas).To(BeEquivalentTo(2))
-		g.Expect(*firstMachineSet.Spec.Template.Spec.Version).To(BeEquivalentTo("v1.10.3"))
 
 		//
 		// Delete firstMachineSet and expect Reconcile to be called to replace it.
@@ -348,7 +353,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			clusterv1.ClusterLabelName: testCluster.Name,
 		}
 
-		t.Log("Updating MachineDeployment label")
+		t.Log("Updating MachineDeployment labels")
 		modifyFunc = func(d *clusterv1.MachineDeployment) {
 			d.Spec.Selector.MatchLabels = newLabels
 			d.Spec.Template.Labels = newLabels

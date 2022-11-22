@@ -289,6 +289,38 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		filteredMachines = append(filteredMachines, machine)
 	}
 
+	// If not already present, add a label specifying the MachineSet name to Machines.
+	// Ensure all required labels exist on the controlled Machines.
+	// This logic is needed to add the `cluster.x-k8s.io/set-name` label to Machines
+	// which were created before the `cluster.x-k8s.io/set-name` label was added to
+	// all Machines created by a MachineSet or if a user manually removed the label.
+	for _, machine := range filteredMachines {
+		mdNameOnMachineSet, mdNameSetOnMachineSet := machineSet.Labels[clusterv1.MachineDeploymentLabelName]
+		mdNameOnMachine := machine.Labels[clusterv1.MachineDeploymentLabelName]
+
+		if msName, ok := machine.Labels[clusterv1.MachineSetLabelName]; ok && msName == machineSet.Name &&
+			(!mdNameSetOnMachineSet || mdNameOnMachineSet == mdNameOnMachine) {
+			// Continue if the MachineSet name label is already set correctly and
+			// either the MachineDeployment name label is not set on the MachineSet or
+			// the MachineDeployment name label is set correctly on the Machine.
+			continue
+		}
+
+		helper, err := patch.NewHelper(machine, r.Client)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to Machine %q", clusterv1.MachineSetLabelName, machine.Name)
+		}
+		machine.Labels[clusterv1.MachineSetLabelName] = machineSet.Name
+		// Propagate the MachineDeploymentLabelName from MachineSet to Machine if it is set on the MachineSet.
+		if mdNameSetOnMachineSet {
+			machine.Labels[clusterv1.MachineDeploymentLabelName] = mdNameOnMachineSet
+		}
+		if err := helper.Patch(ctx, machine); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to Machine %q", clusterv1.MachineSetLabelName, machine.Name)
+		}
+	}
+
+	// Remediate failed Machines by deleting them.
 	var errs []error
 	for _, machine := range filteredMachines {
 		log := log.WithValues("Machine", klog.KObj(machine))
@@ -500,10 +532,11 @@ func (r *Reconciler) getNewMachine(machineSet *clusterv1.MachineSet) *clusterv1.
 	gv := clusterv1.GroupVersion
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			GenerateName:    fmt.Sprintf("%s-", machineSet.Name),
+			GenerateName: fmt.Sprintf("%s-", machineSet.Name),
+			// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, machineSetKind)},
 			Namespace:       machineSet.Namespace,
-			Labels:          machineSet.Spec.Template.Labels,
+			Labels:          make(map[string]string),
 			Annotations:     machineSet.Spec.Template.Annotations,
 		},
 		TypeMeta: metav1.TypeMeta{
@@ -513,9 +546,24 @@ func (r *Reconciler) getNewMachine(machineSet *clusterv1.MachineSet) *clusterv1.
 		Spec: machineSet.Spec.Template.Spec,
 	}
 	machine.Spec.ClusterName = machineSet.Spec.ClusterName
-	if machine.Labels == nil {
-		machine.Labels = make(map[string]string)
+
+	// Set the labels from machineSet.Spec.Template.Labels as labels for the new Machine.
+	// Note: We can't just set `machineSet.Spec.Template.Labels` directly and thus "share" the labels
+	// map between Machine and machineSet.Spec.Template.Labels. This would mean that adding the
+	// MachineSetLabelName and MachineDeploymentLabelName later on the Machine would also add the labels
+	// to machineSet.Spec.Template.Labels and thus modify the labels of the MachineSet.
+	for k, v := range machineSet.Spec.Template.Labels {
+		machine.Labels[k] = v
 	}
+
+	// Enforce that the MachineSetLabelName label is set
+	// Note: the MachineSetLabelName is added by the default webhook to MachineSet.spec.template.labels if a spec.selector is empty.
+	machine.Labels[clusterv1.MachineSetLabelName] = machineSet.Name
+	// Propagate the MachineDeploymentLabelName from MachineSet to Machine if it exists.
+	if mdName, ok := machineSet.Labels[clusterv1.MachineDeploymentLabelName]; ok {
+		machine.Labels[clusterv1.MachineDeploymentLabelName] = mdName
+	}
+
 	return machine
 }
 
@@ -652,10 +700,10 @@ func (r *Reconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 		return false
 	}
 
-	// If the MachineSet is originated by a MachineDeployment, this prevents it from being adopted as a stand-alone MachineSet.
+	// If the MachineSet is originated by a MachineDeployment object, it should not be adopted directly by the Cluster as a stand-alone MachineSet.
 	// Note: this is required because after restore from a backup both the MachineSet controller and the
 	// MachineDeployment controller are racing to adopt MachineSets, see https://github.com/kubernetes-sigs/cluster-api/issues/7529
-	if _, ok := ms.Labels[clusterv1.MachineDeploymentUniqueLabel]; ok {
+	if _, ok := ms.Labels[clusterv1.MachineDeploymentLabelName]; ok {
 		return false
 	}
 	return true

@@ -116,9 +116,8 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 		return external.ReconcileOutput{}, err
 	}
 
-	// With the migration from v1alpha2 to v1alpha3, Machine controllers should be the owner for the
-	// infra Machines, hence remove any existing machineset controller owner reference
-	if controller := metav1.GetControllerOf(obj); controller != nil && controller.Kind == "MachineSet" {
+	// Ensure the Machine is the controller owner for infrastructure and bootstrap object it references.
+	if controller := metav1.GetControllerOf(obj); controller != nil && controller.Kind != "Machine" {
 		gv, err := schema.ParseGroupVersion(controller.APIVersion)
 		if err != nil {
 			return external.ReconcileOutput{}, err

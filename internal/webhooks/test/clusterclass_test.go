@@ -446,7 +446,7 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 	defer func() {
 		// Delete each of the clusters.
 		for _, c := range clusters {
-			g.Expect(env.Delete(ctx, c)).To(Succeed())
+			g.Expect(env.CleanupAndWait(ctx, c)).To(Succeed())
 		}
 
 		// Delete the ClusterClasses in the API server.

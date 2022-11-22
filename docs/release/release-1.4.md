@@ -11,17 +11,17 @@ The following table shows the preliminary dates for the `v1.4` release cycle.
 | Start of Release Cycle                               | Release Lead | Monday 5th December 2022   | week 1   |
 | Schedule finalized                                   | Release Lead | Friday 9th December 2022   | week 1   |
 | Team finalized                                       | Release Lead | Friday 9th December 2022   | week 1   |
-| *v1.2.7 & v1.3.1 released*                           | Release Lead | Tuesday 10th January 2023  | week 6   |
-| *v1.2.8 & v1.3.2 released*                           | Release Lead | Tuesday 31st January 2023  | week 9   |
+| *v1.2.x & v1.3.x released*                           | Release Lead | Tuesday 10th January 2023  | week 6   |
+| *v1.2.x & v1.3.x released*                           | Release Lead | Tuesday 31st January 2023  | week 9   |
 | v1.4.0-beta.0 released                               | Release Lead | Tuesday 28th February 2023 | week 13  |
-| *v1.2.9 & v1.3.3 released*                           | Release Lead | Tuesday 28th February 2023 | week 13  |
+| *v1.2.x & v1.3.x released*                           | Release Lead | Tuesday 28th February 2023 | week 13  |
 | v1.4.0-beta.1 released                               | Release Lead | Tuesday 7th March 2023     | week 14  |
 | release-1.4 branch created (**Begin [Code Freeze]**) | Release Lead | Tuesday 14th March 2023    | week 15  |
 | v1.4.0-rc.0 released                                 | Release Lead | Tuesday 14th March 2023    | week 15  |
 | release-1.4 jobs created                             | CI Manager   | Tuesday 14th March 2023    | week 15  |
 | v1.4.0-rc.1 released                                 | Release Lead | Tuesday 21st March 2023    | week 16  |
 | **v1.4.0 released**                                  | Release Lead | Tuesday 28th March 2023    | week 17  |
-| *v1.2.10 & v1.3.4 released*                          | Release Lead | Tuesday 28th March 2023    | week 17  |
+| *v1.2.x & v1.3.x released*                           | Release Lead | Tuesday 28th March 2023    | week 17  |
 | Organize release retrospective                       | Release Lead | TBC                        | week 17  |
 
 After the `.0` release monthly patch release will be created.

@@ -74,7 +74,7 @@ func (g *goproxyClient) getVersions(ctx context.Context, base, owner, repository
 		}
 		defer resp.Body.Close()
 
-		if resp.StatusCode != 200 {
+		if resp.StatusCode != http.StatusOK {
 			retryError = errors.Errorf("failed to get versions: response status code %d", resp.StatusCode)
 			return false, nil
 		}

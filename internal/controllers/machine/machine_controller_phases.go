@@ -313,7 +313,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 	switch {
 	case err == util.ErrUnstructuredFieldNotFound: // no-op
 	case err != nil:
-		return ctrl.Result{}, errors.Wrapf(err, "failed to failure domain from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve failure domain from infrastructure provider for Machine %q in namespace %q", m.Name, m.Namespace)
 	default:
 		m.Spec.FailureDomain = pointer.String(failureDomain)
 	}

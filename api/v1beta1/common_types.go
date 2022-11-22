@@ -105,6 +105,8 @@ const (
 	MachineSkipRemediationAnnotation = "cluster.x-k8s.io/skip-remediation"
 
 	// ClusterSecretType defines the type of secret created by core components.
+	// Note: This is used by core CAPI, CAPBK, and KCP to determine whether a secret is created by the controllers
+	// themselves or supplied by the user (e.g. bring your own certificates).
 	ClusterSecretType corev1.SecretType = "cluster.x-k8s.io/secret" //nolint:gosec
 
 	// InterruptibleLabel is the label used to mark the nodes that run on interruptible instances.

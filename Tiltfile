@@ -11,7 +11,7 @@ if str(local("command -v " + kubectl_cmd + " || true", quiet = True)) == "":
 load("ext://uibutton", "cmd_button", "location", "text_input")
 
 # set defaults
-version_settings(True, ">=0.22.2")
+version_settings(True, ">=0.30.8")
 
 settings = {
     "enable_providers": ["docker"],
@@ -441,10 +441,6 @@ def cluster_templates():
     substitutions["CONTROL_PLANE_MACHINE_COUNT"] = substitutions.get("CONTROL_PLANE_MACHINE_COUNT", "1")
     substitutions["WORKER_MACHINE_COUNT"] = substitutions.get("WORKER_MACHINE_COUNT", "3")
 
-    # Note: this is a workaround to pass env variables to cmd buttons while this is not supported natively like in local_resource
-    for name, value in substitutions.items():
-        os.environ[name] = value
-
     template_dirs = settings.get("template_dirs", {
         "docker": ["./test/infrastructure/docker/templates"],
     })
@@ -488,6 +484,7 @@ def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
     cmd_button(
         clusterclass_name + ":apply",
         argv = ["bash", "-c", apply_clusterclass_cmd],
+        env = dictonary_to_list_of_string(substitutions),
         resource = clusterclass_name,
         icon_name = "note_add",
         text = "Apply `" + clusterclass_name + "` ClusterClass",
@@ -499,6 +496,7 @@ def deploy_clusterclass(clusterclass_name, label, filename, substitutions):
     cmd_button(
         clusterclass_name + ":delete",
         argv = ["bash", "-c", delete_clusterclass_cmd],
+        env = dictonary_to_list_of_string(substitutions),
         resource = clusterclass_name,
         icon_name = "delete_forever",
         text = "Delete `" + clusterclass_name + "` ClusterClass",
@@ -523,6 +521,7 @@ def deploy_cluster_template(template_name, label, filename, substitutions):
     cmd_button(
         template_name + ":apply",
         argv = ["bash", "-c", apply_cluster_template_cmd],
+        env = dictonary_to_list_of_string(substitutions),
         resource = template_name,
         icon_name = "add_box",
         text = "Create `" + template_name + "` cluster",
@@ -537,6 +536,7 @@ def deploy_cluster_template(template_name, label, filename, substitutions):
     cmd_button(
         template_name + ":delete",
         argv = ["bash", "-c", delete_clusters_cmd],
+        env = dictonary_to_list_of_string(substitutions),
         resource = template_name,
         icon_name = "delete_forever",
         text = "Delete `" + template_name + "` clusters",
@@ -548,10 +548,18 @@ def deploy_cluster_template(template_name, label, filename, substitutions):
     cmd_button(
         template_name + ":delete-all",
         argv = ["bash", "-c", kubectl_cmd + " delete clusters --all --wait=false"],
+        env = dictonary_to_list_of_string(substitutions),
         resource = template_name,
         icon_name = "delete_sweep",
         text = "Delete all workload clusters",
     )
+
+# A function to convert dictonary to list of strings in a format of "name=value"
+def dictonary_to_list_of_string(substitutions):
+    substitutions_list = []
+    for name, value in substitutions.items():
+        substitutions_list.append(name + "=" + value)
+    return substitutions_list
 
 ##############################
 # Actual work happens here

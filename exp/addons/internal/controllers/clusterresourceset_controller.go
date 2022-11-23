@@ -278,11 +278,6 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 
 	// Iterate all resources and apply them to the cluster and update the resource status in the ClusterResourceSetBinding object.
 	for _, resource := range clusterResourceSet.Spec.Resources {
-		// If resource is already applied successfully and clusterResourceSet mode is "ApplyOnce", continue. (No need to check hash changes here)
-		if resourceSetBinding.IsApplied(resource) {
-			continue
-		}
-
 		unstructuredObj, err := r.getResource(ctx, resource, cluster.GetNamespace())
 		if err != nil {
 			if err == ErrSecretTypeNotSupported {
@@ -299,6 +294,18 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			continue
 		}
 
+		// Ensure an ownerReference to the clusterResourceSet is on the resource.
+		if err := r.ensureResourceOwnerRef(ctx, clusterResourceSet, unstructuredObj); err != nil {
+			log.Error(err, "Failed to add ClusterResourceSet as resource owner reference",
+				"Resource type", unstructuredObj.GetKind(), "Resource name", unstructuredObj.GetName())
+			errList = append(errList, err)
+		}
+
+		// If resource is already applied successfully and clusterResourceSet mode is "ApplyOnce", continue. (No need to check hash changes here)
+		if resourceSetBinding.IsApplied(resource) {
+			continue
+		}
+
 		// Set status in ClusterResourceSetBinding in case of early continue due to a failure.
 		// Set only when resource is retrieved successfully.
 		resourceSetBinding.SetBinding(addonsv1.ResourceBinding{
@@ -307,13 +314,6 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			Applied:         false,
 			LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
 		})
-
-		if err := r.patchOwnerRefToResource(ctx, clusterResourceSet, unstructuredObj); err != nil {
-			log.Error(err, "Failed to patch ClusterResourceSet as resource owner reference",
-				"Resource type", unstructuredObj.GetKind(), "Resource name", unstructuredObj.GetName())
-			errList = append(errList, err)
-		}
-
 		// Since maps are not ordered, we need to order them to get the same hash at each reconcile.
 		keys := make([]string, 0)
 		data, ok := unstructuredObj.UnstructuredContent()["data"]
@@ -411,8 +411,8 @@ func (r *ClusterResourceSetReconciler) getResource(ctx context.Context, resource
 	return raw, nil
 }
 
-// patchOwnerRefToResource adds the ClusterResourceSet as a OwnerReference to the resource.
-func (r *ClusterResourceSetReconciler) patchOwnerRefToResource(ctx context.Context, clusterResourceSet *addonsv1.ClusterResourceSet, resource *unstructured.Unstructured) error {
+// ensureResourceOwnerRef adds the ClusterResourceSet as a OwnerReference to the resource.
+func (r *ClusterResourceSetReconciler) ensureResourceOwnerRef(ctx context.Context, clusterResourceSet *addonsv1.ClusterResourceSet, resource *unstructured.Unstructured) error {
 	newRef := metav1.OwnerReference{
 		APIVersion: clusterResourceSet.GroupVersionKind().GroupVersion().String(),
 		Kind:       clusterResourceSet.GroupVersionKind().Kind,

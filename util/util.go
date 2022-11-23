@@ -593,6 +593,20 @@ func LowestNonZeroResult(i, j ctrl.Result) ctrl.Result {
 	}
 }
 
+// LowestNonZeroInt32 returns the lowest non-zero value of the two provided values.
+func LowestNonZeroInt32(i, j int32) int32 {
+	if i == 0 {
+		return j
+	}
+	if j == 0 {
+		return i
+	}
+	if i < j {
+		return i
+	}
+	return j
+}
+
 // IsNil returns an error if the passed interface is equal to nil or if it has an interface value of nil.
 func IsNil(i interface{}) bool {
 	if i == nil {

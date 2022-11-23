@@ -206,6 +206,14 @@ See e.g. [CAPA][#CAPA], [CAPC][#CAPC], [CAPD][#CAPD], [CAPG][#CAPG], [CAPH][#CAP
 
 A [patch](#patch) defined inline in a [ClusterClass](#clusterclass). An alternative to an [external patch](#external-patch).
 
+### In-place mutable fields
+
+Fields which changes would only impact Kubernetes objects or/and controller behaviour
+but they won't mutate in any way provider infrastructure nor the software running on it. In-place mutable fields
+are propagated in place by CAPI controllers to avoid the more elaborated mechanics of a replace rollout.
+They include metadata, MinReadySeconds, NodeDrainTimeout, NodeVolumeDetachTimeout and NodeDeletionTimeout but are
+not limited to be expanded in the future.
+
 ### Instance
 
 see [Server](#server)

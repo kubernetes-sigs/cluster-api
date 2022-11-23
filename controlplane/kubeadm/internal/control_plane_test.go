@@ -20,13 +20,9 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -62,34 +58,6 @@ func TestControlPlane(t *testing.T) {
 		t.Run("With some machines in non defined failure domains", func(t *testing.T) {
 			controlPlane.Machines.Insert(machine("machine-5", withFailureDomain("unknown")))
 			g.Expect(*controlPlane.FailureDomainWithMostMachines(controlPlane.Machines)).To(Equal("unknown"))
-		})
-	})
-
-	t.Run("Generating components", func(t *testing.T) {
-		controlPlane := &ControlPlane{
-			KCP: &controlplanev1.KubeadmControlPlane{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "cp",
-					UID:  types.UID("test-uid"),
-				},
-			},
-			Cluster: &clusterv1.Cluster{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-cluster",
-				},
-			},
-		}
-
-		t.Run("Should generate KubeadmConfig without a controller reference", func(t *testing.T) {
-			spec := &bootstrapv1.KubeadmConfigSpec{}
-			kubeadmConfig := controlPlane.GenerateKubeadmConfig(spec)
-			g.Expect(kubeadmConfig.Labels["cluster.x-k8s.io/cluster-name"]).To(Equal("test-cluster"))
-			g.Expect(kubeadmConfig.OwnerReferences[0].Controller).To(BeNil())
-		})
-
-		t.Run("Should generate a new machine with a controller reference", func(t *testing.T) {
-			machine := controlPlane.NewMachine(&corev1.ObjectReference{Namespace: "foobar"}, &corev1.ObjectReference{Namespace: "foobar"}, pointer.String("failureDomain"))
-			g.Expect(machine.OwnerReferences[0].Controller).ToNot(BeNil())
 		})
 	})
 }

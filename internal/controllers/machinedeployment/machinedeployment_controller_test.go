@@ -92,9 +92,10 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				Replicas:             pointer.Int32Ptr(2),
 				RevisionHistoryLimit: pointer.Int32Ptr(0),
 				Selector: metav1.LabelSelector{
-					MatchLabels: map[string]string{
-						clusterv1.ClusterLabelName: testCluster.Name,
-					},
+					// We're using the same labels for spec.selector and spec.template.labels.
+					// The labels are later changed and we will use the initial labels later to
+					// verify that all original MachineSets have been deleted.
+					MatchLabels: labels,
 				},
 				Strategy: &clusterv1.MachineDeploymentStrategy{
 					Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
@@ -340,8 +341,8 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		// expect old MachineSets with old labels to be deleted
 		//
 		oldLabels := deployment.Spec.Selector.MatchLabels
-		oldLabels[clusterv1.MachineDeploymentLabelName] = deployment.Name
 
+		// Change labels and selector to a new set of labels which doesn't have any overlap with the previous labels.
 		newLabels := map[string]string{
 			"new-key":                  "new-value",
 			clusterv1.ClusterLabelName: testCluster.Name,

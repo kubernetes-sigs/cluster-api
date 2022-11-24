@@ -9,3 +9,12 @@ spec:
       cidrBlocks: ['${DOCKER_SERVICE_IPV6_CIDRS}']
     pods:
       cidrBlocks: ['${DOCKER_POD_IPV6_CIDRS}']
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerCluster
+metadata:
+  name: '${CLUSTER_NAME}'
+spec:
+  controlPlaneEndpoint:
+    port: 7777
+    host: ""

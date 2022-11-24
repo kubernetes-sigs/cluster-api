@@ -241,7 +241,10 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 		}
 	}()
-
+	// Ensure the bootstrap secret associated with this KubeadmConfig has the correct ownerReference.
+	if err := r.ensureBootstrapSecretOwnersRef(ctx, scope); err != nil {
+		return ctrl.Result{}, err
+	}
 	switch {
 	// Wait for the infrastructure to be ready.
 	case !cluster.Status.InfrastructureReady:
@@ -1020,5 +1023,34 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 	scope.Config.Status.DataSecretName = pointer.String(secret.Name)
 	scope.Config.Status.Ready = true
 	conditions.MarkTrue(scope.Config, bootstrapv1.DataSecretAvailableCondition)
+	return nil
+}
+
+// Ensure the bootstrap secret has the configOwner as a controller OwnerReference.
+func (r *KubeadmConfigReconciler) ensureBootstrapSecretOwnersRef(ctx context.Context, scope *Scope) error {
+	secret := &corev1.Secret{}
+	err := r.Client.Get(ctx, client.ObjectKey{Namespace: scope.Config.Namespace, Name: scope.Config.Name}, secret)
+	if err != nil {
+		// If the secret has not been created yet return early.
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return errors.Wrapf(err, "failed to add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())
+	}
+	patchHelper, err := patch.NewHelper(secret, r.Client)
+	if err != nil {
+		return errors.Wrapf(err, "failed to add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())
+	}
+	secret.OwnerReferences = util.EnsureOwnerRef(secret.OwnerReferences, metav1.OwnerReference{
+		APIVersion: scope.ConfigOwner.GetAPIVersion(),
+		Kind:       scope.ConfigOwner.GetKind(),
+		UID:        scope.ConfigOwner.GetUID(),
+		Name:       scope.ConfigOwner.GetName(),
+		Controller: pointer.Bool(true),
+	})
+	err = patchHelper.Patch(ctx, secret)
+	if err != nil {
+		return errors.Wrapf(err, "could not add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())
+	}
 	return nil
 }

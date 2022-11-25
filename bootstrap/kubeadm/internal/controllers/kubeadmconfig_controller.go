@@ -1026,7 +1026,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 	return nil
 }
 
-// Ensure the bootstrap secret has the configOwner as a controller OwnerReference.
+// Ensure the bootstrap secret has the KubeadmConfig as a controller OwnerReference.
 func (r *KubeadmConfigReconciler) ensureBootstrapSecretOwnersRef(ctx context.Context, scope *Scope) error {
 	secret := &corev1.Secret{}
 	err := r.Client.Get(ctx, client.ObjectKey{Namespace: scope.Config.Namespace, Name: scope.Config.Name}, secret)
@@ -1041,11 +1041,14 @@ func (r *KubeadmConfigReconciler) ensureBootstrapSecretOwnersRef(ctx context.Con
 	if err != nil {
 		return errors.Wrapf(err, "failed to add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())
 	}
+	if c := metav1.GetControllerOf(secret); c != nil && c.Kind != "KubeadmConfig" {
+		secret.OwnerReferences = util.RemoveOwnerRef(secret.OwnerReferences, *c)
+	}
 	secret.OwnerReferences = util.EnsureOwnerRef(secret.OwnerReferences, metav1.OwnerReference{
-		APIVersion: scope.ConfigOwner.GetAPIVersion(),
-		Kind:       scope.ConfigOwner.GetKind(),
-		UID:        scope.ConfigOwner.GetUID(),
-		Name:       scope.ConfigOwner.GetName(),
+		APIVersion: bootstrapv1.GroupVersion.String(),
+		Kind:       "KubeadmConfig",
+		UID:        scope.Config.UID,
+		Name:       scope.Config.Name,
 		Controller: pointer.Bool(true),
 	})
 	err = patchHelper.Patch(ctx, secret)

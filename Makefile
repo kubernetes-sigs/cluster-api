@@ -829,6 +829,11 @@ release: clean-release ## Build and push container images using the latest git t
 	git checkout "${RELEASE_TAG}"
 	# Build binaries first.
 	GIT_VERSION=$(RELEASE_TAG) $(MAKE) release-binaries
+	# Set the manifest images to the staging/production bucket and Builds the manifests to publish with a release.
+	$(MAKE) release-manifests-all
+
+.PHONY: release-manifests-all
+release-manifests-all: # Set the manifest images to the staging/production bucket and Builds the manifests to publish with a release.
 	# Set the manifest image to the production bucket.
 	$(MAKE) manifest-modification REGISTRY=$(PROD_REGISTRY)
 	## Build the manifests

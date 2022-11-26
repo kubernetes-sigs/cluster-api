@@ -210,29 +210,29 @@ spec:
           readOnly: true
           pathType: "File"
       - op: add
-        path: "/spec/template/spec/kubeadmConfigSpec/files"
+        path: "/spec/template/spec/kubeadmConfigSpec/files/-"
         valueFrom:
           template: |
-            - content: |
-                apiVersion: apiserver.config.k8s.io/v1
-                kind: AdmissionConfiguration
-                plugins:
-                - name: PodSecurity
-                  configuration:
-                    apiVersion: pod-security.admission.config.k8s.io/v1{{ if semverCompare "< v1.25" .builtin.controlPlane.version }}beta1{{ end }}
-                    kind: PodSecurityConfiguration
-                    defaults:
-                      enforce: "{{ .podSecurityStandard.enforce }}"
-                      enforce-version: "latest"
-                      audit: "{{ .podSecurityStandard.audit }}"
-                      audit-version: "latest"
-                      warn: "{{ .podSecurityStandard.warn }}"
-                      warn-version: "latest"
-                    exemptions:
-                      usernames: []
-                      runtimeClasses: []
-                      namespaces: [kube-system]
-              path: /etc/kubernetes/kube-apiserver-admission-pss.yaml
+            content: |
+              apiVersion: apiserver.config.k8s.io/v1
+              kind: AdmissionConfiguration
+              plugins:
+              - name: PodSecurity
+                configuration:
+                  apiVersion: pod-security.admission.config.k8s.io/v1{{ if semverCompare "< v1.25" .builtin.controlPlane.version }}beta1{{ end }}
+                  kind: PodSecurityConfiguration
+                  defaults:
+                    enforce: "{{ .podSecurityStandard.enforce }}"
+                    enforce-version: "latest"
+                    audit: "{{ .podSecurityStandard.audit }}"
+                    audit-version: "latest"
+                    warn: "{{ .podSecurityStandard.warn }}"
+                    warn-version: "latest"
+                  exemptions:
+                    usernames: []
+                    runtimeClasses: []
+                    namespaces: [kube-system]
+            path: /etc/kubernetes/kube-apiserver-admission-pss.yaml
     enabledIf: "{{ .podSecurityStandard.enabled }}"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1

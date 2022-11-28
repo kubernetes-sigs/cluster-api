@@ -760,10 +760,16 @@ func (r *Reconciler) shouldAdopt(m *clusterv1.Machine) bool {
 		return false
 	}
 
-	// If the Machine is originated by a MachineDeployment, this prevents it from being adopted as a stand-alone Machine.
-	// Note: this is required because after restore from a backup both the Machine controller and the
-	// MachineSet controller are racing to adopt Machines, see https://github.com/kubernetes-sigs/cluster-api/issues/7529
-	if _, ok := m.Labels[clusterv1.MachineDeploymentUniqueLabel]; ok {
+	// Note: following checks are required because after restore from a backup both the Machine controller and the
+	// MachineSet/ControlPlane controller are racing to adopt Machines, see https://github.com/kubernetes-sigs/cluster-api/issues/7529
+
+	// If the Machine is originated by a MachineSet, it should not be adopted directly by the Cluster as a stand-alone Machine.
+	if _, ok := m.Labels[clusterv1.MachineSetLabelName]; ok {
+		return false
+	}
+
+	// If the Machine is originated by a ControlPlane object, it should not be adopted directly by the Cluster as a stand-alone Machine.
+	if _, ok := m.Labels[clusterv1.MachineControlPlaneNameLabel]; ok {
 		return false
 	}
 	return true

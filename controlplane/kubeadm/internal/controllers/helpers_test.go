@@ -549,6 +549,10 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 	for k, v := range kcpMachineTemplateObjectMeta.Labels {
 		g.Expect(machine.Labels[k]).To(Equal(v))
 	}
+	g.Expect(machine.Labels[clusterv1.ClusterLabelName]).To(Equal(cluster.Name))
+	g.Expect(machine.Labels[clusterv1.MachineControlPlaneLabelName]).To(Equal(""))
+	g.Expect(machine.Labels[clusterv1.MachineControlPlaneNameLabel]).To(Equal(kcp.Name))
+
 	for k, v := range kcpMachineTemplateObjectMeta.Annotations {
 		g.Expect(machine.Annotations[k]).To(Equal(v))
 	}
@@ -556,6 +560,7 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 	// Verify that machineTemplate.ObjectMeta in KCP has not been modified.
 	g.Expect(kcp.Spec.MachineTemplate.ObjectMeta.Labels).NotTo(HaveKey(clusterv1.ClusterLabelName))
 	g.Expect(kcp.Spec.MachineTemplate.ObjectMeta.Labels).NotTo(HaveKey(clusterv1.MachineControlPlaneLabelName))
+	g.Expect(kcp.Spec.MachineTemplate.ObjectMeta.Labels).NotTo(HaveKey(clusterv1.MachineControlPlaneNameLabel))
 	g.Expect(kcp.Spec.MachineTemplate.ObjectMeta.Annotations).NotTo(HaveKey(controlplanev1.KubeadmClusterConfigurationAnnotation))
 }
 

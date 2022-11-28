@@ -275,6 +275,7 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 			Namespace:   kcp.Namespace,
 			Labels:      internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
 			Annotations: map[string]string{},
+			// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},

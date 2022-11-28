@@ -162,9 +162,10 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, d *clusterv1.MachineD
 	newMS := clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			// Make the name deterministic, to ensure idempotence
-			Name:            d.Name + "-" + apirand.SafeEncodeString(machineTemplateSpecHash),
-			Namespace:       d.Namespace,
-			Labels:          newMSTemplate.Labels,
+			Name:      d.Name + "-" + apirand.SafeEncodeString(machineTemplateSpecHash),
+			Namespace: d.Namespace,
+			Labels:    make(map[string]string),
+			// Note: by setting the ownerRef on creation we signal to the MachineSet controller that this is not a stand-alone MachineSet.
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(d, machineDeploymentKind)},
 		},
 		Spec: clusterv1.MachineSetSpec{
@@ -175,6 +176,18 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, d *clusterv1.MachineD
 			Template:        newMSTemplate,
 		},
 	}
+
+	// Set the labels from newMSTemplate as top-level labels for the new MS.
+	// Note: We can't just set `newMSTemplate.Labels` directly and thus "share" the labels map between top-level and
+	// .spec.template.metadata.labels. This would mean that adding the MachineDeploymentLabelName later top-level
+	// would also add the label to .spec.template.metadata.labels.
+	for k, v := range newMSTemplate.Labels {
+		newMS.Labels[k] = v
+	}
+
+	// Enforce that the MachineDeploymentLabelName label is set
+	// Note: the MachineDeploymentLabelName is added by the default webhook to MachineDeployment.spec.template.labels if spec.selector is empty.
+	newMS.Labels[clusterv1.MachineDeploymentLabelName] = d.Name
 
 	if d.Spec.Strategy.RollingUpdate.DeletePolicy != nil {
 		newMS.Spec.DeletePolicy = *d.Spec.Strategy.RollingUpdate.DeletePolicy

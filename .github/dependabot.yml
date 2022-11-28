@@ -1,5 +1,8 @@
+# Please see the documentation for all configuration options:
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
 version: 2
 updates:
+# GitHub Actions
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:
@@ -8,12 +11,19 @@ updates:
       prefix: ":seedling:"
   labels:
     - "ok-to-test"
+# Go
 - package-ecosystem: "gomod"
   directory: "/"
   schedule:
     interval: "weekly"
-  allow:
-    - dependency-name: "github.com/coredns/corefile-migration"
+  ignore:
+  # Ignore controller-runtime as its upgraded manually.
+  - dependency-name: "sigs.k8s.io/controller-runtime"
+  # Ignore k8s and its transitives modules as they are upgraded manually
+  # together with controller-runtime.
+  - dependency-name: "k8s.io/*"
+  - dependency-name: "go.etcd.io/*"
+  - dependency-name: "google.golang.org/grpc"
   commit-message:
     prefix: ":seedling:"
   labels:

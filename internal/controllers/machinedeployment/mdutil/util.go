@@ -410,9 +410,9 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 	return nil
 }
 
-// FindOldMachineSets returns the old machine sets targeted by the given Deployment, with the given slice of MSes.
+// FindOldMachineSets returns the old machine sets targeted by the given Deployment, within the given slice of MSes.
 // Returns two list of machine sets
-//   - the first contains all old machine sets with all non-zero replicas
+//   - the first contains all old machine sets with non-zero replicas
 //   - the second contains all old machine sets
 func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) ([]*clusterv1.MachineSet, []*clusterv1.MachineSet) {
 	var requiredMSs []*clusterv1.MachineSet

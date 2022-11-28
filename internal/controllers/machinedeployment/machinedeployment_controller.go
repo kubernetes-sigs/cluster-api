@@ -200,6 +200,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 	d.Labels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
 
+	// Set the MachineDeployment as directly owned by the Cluster (if not already present).
 	if r.shouldAdopt(d) {
 		d.OwnerReferences = util.EnsureOwnerRef(d.OwnerReferences, metav1.OwnerReference{
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -224,6 +225,27 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	msList, err := r.getMachineSetsForDeployment(ctx, d)
 	if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	// If not already present, add a label specifying the MachineDeployment name to MachineSets.
+	// Ensure all required labels exist on the controlled MachineSets.
+	// This logic is needed to add the `cluster.x-k8s.io/deployment-name` label to MachineSets
+	// which were created before the `cluster.x-k8s.io/deployment-name` label was added
+	// to all MachineSets created by a MachineDeployment or if a user manually removed the label.
+	for idx := range msList {
+		machineSet := msList[idx]
+		if name, ok := machineSet.Labels[clusterv1.MachineDeploymentLabelName]; ok && name == d.Name {
+			continue
+		}
+
+		helper, err := patch.NewHelper(machineSet, r.Client)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentLabelName, machineSet.Name)
+		}
+		machineSet.Labels[clusterv1.MachineDeploymentLabelName] = d.Name
+		if err := helper.Patch(ctx, machineSet); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentLabelName, machineSet.Name)
+		}
 	}
 
 	if d.Spec.Paused {

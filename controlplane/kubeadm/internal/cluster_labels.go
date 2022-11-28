@@ -34,5 +34,6 @@ func ControlPlaneMachineLabelsForCluster(kcp *controlplanev1.KubeadmControlPlane
 	// Always force these labels over the ones coming from the spec.
 	labels[clusterv1.ClusterLabelName] = clusterName
 	labels[clusterv1.MachineControlPlaneLabelName] = ""
+	labels[clusterv1.MachineControlPlaneNameLabel] = kcp.Name
 	return labels
 }

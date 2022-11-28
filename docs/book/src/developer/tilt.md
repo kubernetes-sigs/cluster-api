@@ -100,7 +100,7 @@ kustomize_substitutions:
   EXP_RUNTIME_SDK: "true"
 ```
 
-{{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,Azure,DigitalOcean,GCP"}}
+{{#tabs name:"tab-tilt-kustomize-substitution" tabs:"AWS,Azure,DigitalOcean,GCP,vSphere"}}
 {{#tab AWS}}
 
 For example, if the yaml contains `${AWS_B64ENCODED_CREDENTIALS}`, you could do the following:
@@ -167,6 +167,15 @@ base64 -i ~/path/to/gcp/credentials.json
 ```yaml
 kustomize_substitutions:
   GCP_B64ENCODED_CREDENTIALS: "your credentials here"
+```
+
+{{#/tab }}
+{{#tab vSphere}}
+
+```yaml
+kustomize_substitutions:
+  VSPHERE_USERNAME: "administrator@vsphere.local"
+  VSPHERE_PASSWORD: "Admin123"
 ```
 
 {{#/tab }}

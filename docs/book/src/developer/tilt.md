@@ -174,8 +174,8 @@ kustomize_substitutions:
 
 ```yaml
 kustomize_substitutions:
-  "VSPHERE_USERNAME": "administrator@vsphere.local",
-  "VSPHERE_PASSWORD": "Admin123",
+  VSPHERE_USERNAME: "administrator@vsphere.local"
+  VSPHERE_PASSWORD: "Admin123"
 ```
 
 {{#/tab }}

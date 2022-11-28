@@ -25,7 +25,7 @@ changes should be cherry-picked to all release series that will support the new 
   * Bump the Kubernetes version in:
     * `test/*`: search for occurrences of the previous Kubernetes version
     * `Tiltfile`
-  * Ensure the latest available kind version is used as well.
+  * Ensure the latest available kind version is used (including the latest images for this kind release)
   * Verify the quickstart manually
   * Prior art: #7156
 * [ ] Job configurations:

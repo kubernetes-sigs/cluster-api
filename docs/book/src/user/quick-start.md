@@ -1122,7 +1122,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 ```bash
 clusterctl generate cluster capi-quickstart --flavor development \
-  --kubernetes-version v1.25.0 \
+  --kubernetes-version v1.25.3 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1165,7 +1165,7 @@ clusterctl generate cluster capi-quickstart \
 
 ```bash
 clusterctl generate cluster capi-quickstart \
-  --kubernetes-version v1.25.0 \
+  --kubernetes-version v1.25.3 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1225,7 +1225,7 @@ You should see an output is similar to this:
 
 ```bash
 NAME                    CLUSTER           INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE    VERSION
-capi-quickstart-g2trk   capi-quickstart   true                                 3                  3         3             4m7s   v1.25.0
+capi-quickstart-g2trk   capi-quickstart   true                                 3                  3         3             4m7s   v1.25.3
 ```
 
 <aside class="note warning">
@@ -1427,12 +1427,12 @@ kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 ```
 ```bash
 NAME                                          STATUS   ROLES           AGE   VERSION
-capi-quickstart-g2trk-9xrjv                   Ready    control-plane   12m   v1.25.0
-capi-quickstart-g2trk-bmm9v                   Ready    control-plane   11m   v1.25.0
-capi-quickstart-g2trk-hvs9q                   Ready    control-plane   13m   v1.25.0
-capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          12m   v1.25.0
-capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          12m   v1.25.0
-capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          12m   v1.25.0
+capi-quickstart-g2trk-9xrjv                   Ready    control-plane   12m   v1.25.3
+capi-quickstart-g2trk-bmm9v                   Ready    control-plane   11m   v1.25.3
+capi-quickstart-g2trk-hvs9q                   Ready    control-plane   13m   v1.25.3
+capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          12m   v1.25.3
+capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          12m   v1.25.3
+capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          12m   v1.25.3
 ```
 
 {{#/tab }}

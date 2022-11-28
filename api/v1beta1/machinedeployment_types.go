@@ -152,8 +152,8 @@ type MachineDeploymentSpec struct {
 // MachineDeploymentStrategy describes how to replace existing machines
 // with new ones.
 type MachineDeploymentStrategy struct {
-	// Type of deployment.
-	// Default is RollingUpdate.
+	// Type of deployment. Allowed values are RollingUpdate and OnDelete.
+	// The default is RollingUpdate.
 	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
 	// +optional
 	Type MachineDeploymentStrategyType `json:"type,omitempty"`

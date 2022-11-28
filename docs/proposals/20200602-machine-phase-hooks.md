@@ -1,25 +1,27 @@
 ---
-title: Machine Deletion Phase Hooks
+title: Machine Phase Hooks
 authors:
   - "@michaelgugino"
+  - "@rvanderp3"
 reviewers:
   - "@enxebre"
   - "@vincepri"
   - "@detiber"
   - "@ncdc"
 creation-date: 2020-06-02
-last-updated: 2020-08-07
-status: implemented
+last-updated: 2022-11-28
+status: 
 ---
 
-# Machine Deletion Phase Hooks
+# Machine Phase Hooks
 
 ## Table of Contents
 <!-- toc -->
-- [Machine Deletion Phase Hooks](#machine-deletion-phase-hooks)
+- [Machine Phase Hooks](#machine-phase-hooks)
   - [Table of Contents](#table-of-contents)
   - [Glossary](#glossary)
     - [lifecycle hook](#lifecycle-hook)
+    - [provision phase](#provision-phase)    
     - [deletion phase](#deletion-phase)
   - [Summary](#summary)
   - [Motivation](#motivation)
@@ -32,6 +34,7 @@ status: implemented
       - [Story 3](#story-3)
     - [Implementation Details/Notes/Constraints](#implementation-detailsnotesconstraints)
       - [Lifecycle Points](#lifecycle-points)
+        - [pre-provision](#pre-provision)
         - [pre-drain](#pre-drain)
         - [pre-terminate](#pre-terminate)
       - [Annotation Form](#annotation-form)
@@ -67,6 +70,10 @@ Refer to the [Cluster API Book Glossary](https://cluster-api.sigs.k8s.io/referen
 A specific point in a machine's reconciliation lifecycle where execution of
 normal machine-controller behavior is paused or modified.
 
+### provision phase
+Describes when a machine has been created in the API and will be or is being 
+provisioned in the infrastructure. 
+
 ### deletion phase
 Describes when a machine has been marked for deletion but is still present
 in the API.  Various actions happen during this phase, such as draining a node,
@@ -96,6 +103,7 @@ drained and/or associated instance terminated.
 
 ### Goals
 
+- Define an initial set of hook points for the provision phase.
 - Define an initial set of hook points for the deletion phase.
 - Define an initial set and form of related annotations.
 - Define basic expectations for a controller or process that responds to a
@@ -142,12 +150,27 @@ controller instead of the logic built into the machine-controller.  This will
 allow me better flexibility and control over the lifecycle of workloads on each
 node.
 
+#### Story 3
+(pre-provision) As an operator, I want the ability to utilize my own provision
+controller instead of the logic built into the machine controller. This will
+allow me better flexibility and control over the lifecycle of workloads on each
+node.
+
+For example, this would allow static IPs to be obtained for an instance that is 
+about to be provisioned in the cloud provider. IPAM or IP management is not supported 
+today in the provision libraries and as such, this would require a custom provision 
+controller.
+
 ### Implementation Details/Notes/Constraints
 
 For each defined lifecycle point, one or more hooks may be applied as an annotation to the machine object.  These annotations will pause reconciliation of a machine object until all hooks are resolved for that lifecycle point.  The hooks should be managed by a Hook Implementing Controller or other external application, or
 manually created and removed by an administrator.
 
 #### Lifecycle Points
+##### pre-provision
+`pre-provision.provision.hook.machine.cluster.x-k8s.io`
+
+Hooks defined at this point will prevent the machine-controller from provisioning an instance in the cloud provider.
 ##### pre-drain
 `pre-drain.delete.hook.machine.cluster.x-k8s.io`
 
@@ -183,6 +206,8 @@ Some information about who created or is otherwise in charge of managing the ann
 
 These examples are all hypothetical to illustrate what form annotations should
 take.  The names of each hook and the respective controllers are fictional.
+
+pre-provision.provision.hook.machine.cluster.x-k8s.io: my-app-provision-controller
 
 pre-drain.hook.machine.cluster-api.x-k8s.io/migrate-important-app: my-app-migration-controller
 

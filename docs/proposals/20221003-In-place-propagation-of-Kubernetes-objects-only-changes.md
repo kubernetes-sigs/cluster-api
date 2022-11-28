@@ -234,15 +234,15 @@ labels:
 ```
 
 After the first reconciliation, the Machine gets above labels.
-Now assume that we remove label `a` from the MachineDeployment; The expected set of labels is 
+Now assume that we remove label `b` from the MachineDeployment; The expected set of labels is 
 
 ```yaml
 labels:
   a: a 
 ```
 
-But the machine still has the label `b`, but we cannot remove it, because at this stage we do not know
-if this label has been applied by Cluster API or by the user or another controllers.
+But the machine still has the label `b`, and the controller cannot remove it, because at this stage there is not 
+a clear signal allowing to detect if this label has been applied by Cluster API or by the user or another controllers.
 
 In order to manage properly this use case, that is co-authored maps, the solution available in API server is
 to use [Server Side Apply patches](https://kubernetes.io/docs/reference/using-api/server-side-apply/).
@@ -260,7 +260,7 @@ build in capabilities is a stronger, long term solution than any other alternati
 
 ### To not use SSA for [in-place propagation](#in-place-propagation) and be authoritative on labels and annotations
 
-If Cluster API uses regular patches instead of SSA patches, a a well tested path in Cluster API, Cluster API can
+If Cluster API uses regular patches instead of SSA patches, a well tested path in Cluster API, Cluster API can
 be implemented in order to be authoritative on label and annotations, that means that all the labels and annotations should
 be propagated from higher level objects (e.g. all the Machine's labels should be set on the MachineSet, and going
 on up the propagation chain).

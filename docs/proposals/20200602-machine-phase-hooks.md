@@ -110,7 +110,7 @@ drained and/or associated instance terminated.
 lifecycle hook.
 
 
-### Non-Goals/Future Work
+### Non-Goals
 
 - Create an exhaustive list of hooks; we can add more over time.
 - Create new machine phases.
@@ -120,6 +120,9 @@ lifecycle hook.
 - Require anyone to use these hooks for normal machine operations, these are
 strictly optional and for custom integrations only.
 
+### Future Work
+
+ - Implement [Runtime Hooks](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220221-runtime-SDK.md) which are analogous to the hooks described in this proposal.  
 
 ## Proposal
 
@@ -151,10 +154,9 @@ allow me better flexibility and control over the lifecycle of workloads on each
 node.
 
 #### Story 3
-(pre-provision) As an operator, I want the ability to utilize my own provision
-controller instead of the logic built into the machine controller. This will
-allow me better flexibility and control over the lifecycle of workloads on each
-node.
+(pre-provision) As an operator, I want the ability to have my controller 
+perform an action related to the Machine before the Machine is provisioned 
+in the cloud provider. 
 
 For example, this would allow static IPs to be obtained for an instance that is 
 about to be provisioned in the cloud provider. IPAM or IP management is not supported 
@@ -317,6 +319,10 @@ We probably don’t want other controllers dynamically adding and removing spec 
 
 ### CRDs
 Seems like we’d need to sync information to and from a CR.  There are different approaches to CRDs (1-to-1 mapping machine to CR, match labels, present/absent vs status fields) that each have their own drawbacks and are more complex to define and configure.
+
+### Runtime Hooks
+[Runtime Hooks](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20220221-runtime-SDK.md) provide a more generic extensibility model but are more complex to implement.  
+
 
 
 ## Upgrade Strategy

@@ -651,6 +651,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		Directory: "/tmp/patches",
 	}
 
+	updateInitConfigurationSkipPhases := before.DeepCopy()
+	updateInitConfigurationSkipPhases.Spec.KubeadmConfigSpec.InitConfiguration.SkipPhases = []string{"addon/kube-proxy"}
+
+	updateJoinConfigurationSkipPhases := before.DeepCopy()
+	updateJoinConfigurationSkipPhases.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases = []string{"addon/kube-proxy"}
+
 	updateDiskSetup := before.DeepCopy()
 	updateDiskSetup.Spec.KubeadmConfigSpec.DiskSetup = &bootstrapv1.DiskSetup{
 		Filesystems: []bootstrapv1.Filesystem{
@@ -984,6 +990,18 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    before,
 			kcp:       updateJoinConfigurationPatches,
+		},
+		{
+			name:      "should allow changes to initConfiguration.skipPhases",
+			expectErr: false,
+			before:    before,
+			kcp:       updateInitConfigurationSkipPhases,
+		},
+		{
+			name:      "should allow changes to joinConfiguration.skipPhases",
+			expectErr: false,
+			before:    before,
+			kcp:       updateJoinConfigurationSkipPhases,
 		},
 		{
 			name:      "should allow changes to diskSetup",

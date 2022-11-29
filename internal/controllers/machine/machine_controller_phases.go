@@ -115,17 +115,11 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 		return external.ReconcileOutput{}, err
 	}
 
-	// With the migration from v1alpha2 to v1alpha3, Machine controllers should be the owner for the
-	// infra Machines, hence remove any existing machineset controller owner reference
-	if controller := metav1.GetControllerOf(obj); controller != nil && controller.Kind == "MachineSet" {
-		gv, err := schema.ParseGroupVersion(controller.APIVersion)
-		if err != nil {
-			return external.ReconcileOutput{}, err
-		}
-		if gv.Group == clusterv1.GroupVersion.Group {
-			ownerRefs := util.RemoveOwnerRef(obj.GetOwnerReferences(), *controller)
-			obj.SetOwnerReferences(ownerRefs)
-		}
+	// removeOnCreateOwnerRefs removes MachineSet and control plane owners from the objects referred to by a Machine.
+	// These owner references are added initially because Machines don't exist when those objects are created.
+	// At this point the Machine exists and can be set as the controller reference.
+	if err := removeOnCreateOwnerRefs(cluster, m, obj); err != nil {
+		return external.ReconcileOutput{}, err
 	}
 
 	// Set external object ControllerReference to the Machine.
@@ -314,4 +308,34 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 
 	m.Spec.ProviderID = pointer.StringPtr(providerID)
 	return ctrl.Result{}, nil
+}
+
+// removeOnCreateOwnerRefs will remove any MachineSet or control plane owner references from passed objects.
+func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, obj *unstructured.Unstructured) error {
+	cpGVK := getControlPlaneGVKForMachine(cluster, m)
+	for _, owner := range obj.GetOwnerReferences() {
+		ownerGV, err := schema.ParseGroupVersion(owner.APIVersion)
+		if err != nil {
+			return errors.Wrapf(err, "Could not remove ownerReference %v from object %s/%s", owner.String(), obj.GetKind(), obj.GetName())
+		}
+		if (ownerGV.Group == clusterv1.GroupVersion.Group && owner.Kind == "MachineSet") ||
+			(cpGVK != nil && ownerGV.Group == cpGVK.GroupVersion().Group && owner.Kind == cpGVK.Kind) {
+			ownerRefs := util.RemoveOwnerRef(obj.GetOwnerReferences(), owner)
+			obj.SetOwnerReferences(ownerRefs)
+		}
+	}
+	return nil
+}
+
+// getControlPlaneGVKForMachine returns the Kind of the control plane in the Cluster associated with the Machine.
+// This function checks that the Machine is managed by a control plane, and then retrieves the Kind from the Cluster's
+// .spec.controlPlaneRef.
+func getControlPlaneGVKForMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) *schema.GroupVersionKind {
+	if _, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabelName]; ok {
+		if cluster.Spec.ControlPlaneRef != nil {
+			gvk := cluster.Spec.ControlPlaneRef.GroupVersionKind()
+			return &gvk
+		}
+	}
+	return nil
 }

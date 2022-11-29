@@ -6,7 +6,7 @@ require (
 	github.com/MakeNowJust/heredoc v1.0.0
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/blang/semver v3.5.1+incompatible
-	github.com/coredns/corefile-migration v1.0.17
+	github.com/coredns/corefile-migration v1.0.18
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/drone/envsubst/v2 v2.0.0-20210730161058-179042472c46

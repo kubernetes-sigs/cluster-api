@@ -114,7 +114,7 @@ func (l *topologyReconcileLogger) WithRef(ref *corev1.ObjectReference) Logger {
 
 // WithMachineDeployment adds to the logger information about the MachineDeployment object being processed.
 func (l *topologyReconcileLogger) WithMachineDeployment(md *clusterv1.MachineDeployment) Logger {
-	topologyName := md.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]
+	topologyName := md.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]
 	return &topologyReconcileLogger{
 		Logger: l.Logger.WithValues(
 			"MachineDeployment", klog.KObj(md),

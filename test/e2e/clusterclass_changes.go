@@ -338,7 +338,7 @@ func modifyMachineDeploymentViaClusterClassAndWait(ctx context.Context, input mo
 				// Get MachineDeployment for the current MachineDeploymentTopology.
 				mdList := &clusterv1.MachineDeploymentList{}
 				Expect(mgmtClient.List(ctx, mdList, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels{
-					clusterv1.ClusterTopologyMachineDeploymentLabelName: mdTopology.Name,
+					clusterv1.ClusterTopologyMachineDeploymentNameLabel: mdTopology.Name,
 				})).To(Succeed())
 				if len(mdList.Items) != 1 {
 					return errors.Errorf("expected one MachineDeployment for topology %q, but got %d", mdTopology.Name, len(mdList.Items))
@@ -442,7 +442,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 			// Get MachineDeployment for the current MachineDeploymentTopology.
 			mdList := &clusterv1.MachineDeploymentList{}
 			Expect(mgmtClient.List(ctx, mdList, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels{
-				clusterv1.ClusterTopologyMachineDeploymentLabelName: mdTopology.Name,
+				clusterv1.ClusterTopologyMachineDeploymentNameLabel: mdTopology.Name,
 			})).To(Succeed())
 			if len(mdList.Items) != 1 {
 				return errors.Errorf("expected one MachineDeployment for topology %q, but got %d", mdTopology.Name, len(mdList.Items))
@@ -501,7 +501,7 @@ func deleteMachineDeploymentTopologyAndWait(ctx context.Context, input deleteMac
 		// Get MachineDeployment for the current MachineDeploymentTopology.
 		mdList := &clusterv1.MachineDeploymentList{}
 		Expect(input.ClusterProxy.GetClient().List(ctx, mdList, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels{
-			clusterv1.ClusterTopologyMachineDeploymentLabelName: mdTopologyToDelete.Name,
+			clusterv1.ClusterTopologyMachineDeploymentNameLabel: mdTopologyToDelete.Name,
 		})).To(Succeed())
 		if len(mdList.Items) != 0 {
 			return errors.Errorf("expected no MachineDeployment for topology %q, but got %d", mdTopologyToDelete.Name, len(mdList.Items))

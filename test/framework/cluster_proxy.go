@@ -292,7 +292,7 @@ func getMachinesInCluster(ctx context.Context, c client.Client, namespace, name 
 	}
 
 	machineList := &clusterv1.MachineList{}
-	labels := map[string]string{clusterv1.ClusterLabelName: name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: name}
 	if err := c.List(ctx, machineList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
 		return nil, err
 	}
@@ -306,7 +306,7 @@ func getMachinePoolsInCluster(ctx context.Context, c client.Client, namespace, n
 	}
 
 	machinePoolList := &expv1.MachinePoolList{}
-	labels := map[string]string{clusterv1.ClusterLabelName: name}
+	labels := map[string]string{clusterv1.ClusterNameLabel: name}
 	if err := c.List(ctx, machinePoolList, client.InNamespace(namespace), client.MatchingLabels(labels)); err != nil {
 		return nil, err
 	}

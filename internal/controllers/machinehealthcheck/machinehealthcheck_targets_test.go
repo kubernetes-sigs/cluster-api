@@ -483,7 +483,7 @@ func newTestMachine(name, namespace, clusterName, nodeName string, labels map[st
 	for k, v := range labels {
 		l[k] = v
 	}
-	l[clusterv1.ClusterLabelName] = clusterName
+	l[clusterv1.ClusterNameLabel] = clusterName
 
 	bootstrap := "bootstrap"
 	return &clusterv1.Machine{

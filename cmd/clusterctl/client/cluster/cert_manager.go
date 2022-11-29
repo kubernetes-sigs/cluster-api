@@ -203,7 +203,7 @@ func (cm *certManagerClient) install() error {
 func (cm *certManagerClient) PlanUpgrade() (CertManagerUpgradePlan, error) {
 	log := logf.Log
 
-	objs, err := cm.proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue}, certManagerNamespace)
+	objs, err := cm.proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue}, certManagerNamespace)
 	if err != nil {
 		return CertManagerUpgradePlan{}, errors.Wrap(err, "failed get cert manager components")
 	}
@@ -232,7 +232,7 @@ func (cm *certManagerClient) PlanUpgrade() (CertManagerUpgradePlan, error) {
 func (cm *certManagerClient) EnsureLatestVersion() error {
 	log := logf.Log
 
-	objs, err := cm.proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue}, certManagerNamespace)
+	objs, err := cm.proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue}, certManagerNamespace)
 	if err != nil {
 		return errors.Wrap(err, "failed get cert manager components")
 	}
@@ -443,8 +443,8 @@ func addCerManagerLabel(objs []unstructured.Unstructured) []unstructured.Unstruc
 		if labels == nil {
 			labels = map[string]string{}
 		}
-		labels[clusterctlv1.ClusterctlLabelName] = ""
-		labels[clusterctlv1.ClusterctlCoreLabelName] = clusterctlv1.ClusterctlCoreLabelCertManagerValue
+		labels[clusterctlv1.ClusterctlLabel] = ""
+		labels[clusterctlv1.ClusterctlCoreLabel] = clusterctlv1.ClusterctlCoreLabelCertManagerValue
 		o.SetLabels(labels)
 	}
 	return objs

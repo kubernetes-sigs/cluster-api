@@ -344,7 +344,7 @@ First, the simplest is to let the package manager maintain the list. For example
 
 The solution implemented in the ClusterAddonProvider for Helm is to use HelmReleaseProxy to maintain an inventory. Each HelmReleaseProxy corresponds to a Helm release installed through HelmChartProxy. The controller only orchestrates Helm releases with a corresponding HelmReleaseProxy, ensuring that out of band Helm releases won’t be affected. 
 
-Additionally, each HelmReleaseProxy includes a `clusterv1.ClusterLabelName` and an additional label indicating the HelmChartProxy it corresponds to. This provides a way to query for all Helm releases installed on a Cluster and to query for all Helm releases belonging to a HelmChartProxy.
+Additionally, each HelmReleaseProxy includes a `clusterv1.ClusterNameLabel` and an additional label indicating the HelmChartProxy it corresponds to. This provides a way to query for all Helm releases installed on a Cluster and to query for all Helm releases belonging to a HelmChartProxy.
 
 #### Surface Cluster add-ons status
 

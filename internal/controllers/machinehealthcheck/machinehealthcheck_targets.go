@@ -237,7 +237,7 @@ func (r *Reconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, 
 // label selector.
 func (r *Reconciler) getMachinesFromMHC(ctx context.Context, mhc *clusterv1.MachineHealthCheck) ([]clusterv1.Machine, error) {
 	selector, err := metav1.LabelSelectorAsSelector(metav1.CloneSelectorAndAddLabel(
-		&mhc.Spec.Selector, clusterv1.ClusterLabelName, mhc.Spec.ClusterName,
+		&mhc.Spec.Selector, clusterv1.ClusterNameLabel, mhc.Spec.ClusterName,
 	))
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to build selector")

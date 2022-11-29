@@ -930,8 +930,8 @@ func Test_addCommonLabels(t *testing.T) {
 						"kind": "ClusterRole",
 						"metadata": map[string]interface{}{
 							"labels": map[string]interface{}{
-								clusterctlv1.ClusterctlLabelName: "",
-								clusterv1.ProviderLabelName:      "infrastructure-provider",
+								clusterctlv1.ClusterctlLabel: "",
+								clusterv1.ProviderNameLabel:  "infrastructure-provider",
 							},
 						},
 					},
@@ -966,8 +966,8 @@ func TestAlterComponents(t *testing.T) {
 				"kind": "ClusterRole",
 				"metadata": map[string]interface{}{
 					"labels": map[string]interface{}{
-						clusterctlv1.ClusterctlLabelName: "",
-						clusterv1.ProviderLabelName:      "infrastructure-provider",
+						clusterctlv1.ClusterctlLabel: "",
+						clusterv1.ProviderNameLabel:  "infrastructure-provider",
 					},
 				},
 			},

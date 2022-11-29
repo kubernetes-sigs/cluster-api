@@ -50,7 +50,7 @@ func TestMachineHealthCheckDefault(t *testing.T) {
 	t.Run("for MachineHealthCheck", utildefaulting.DefaultValidateTest(mhc))
 	mhc.Default()
 
-	g.Expect(mhc.Labels[ClusterLabelName]).To(Equal(mhc.Spec.ClusterName))
+	g.Expect(mhc.Labels[ClusterNameLabel]).To(Equal(mhc.Spec.ClusterName))
 	g.Expect(mhc.Spec.MaxUnhealthy.String()).To(Equal("100%"))
 	g.Expect(mhc.Spec.NodeStartupTimeout).ToNot(BeNil())
 	g.Expect(*mhc.Spec.NodeStartupTimeout).To(Equal(metav1.Duration{Duration: 10 * time.Minute}))
@@ -378,7 +378,7 @@ func TestMachineHealthCheckClusterNameSelectorValidation(t *testing.T) {
 			ClusterName: "foo",
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					ClusterLabelName: "bar",
+					ClusterNameLabel: "bar",
 					"baz":            "qux",
 				},
 			},
@@ -394,9 +394,9 @@ func TestMachineHealthCheckClusterNameSelectorValidation(t *testing.T) {
 	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("cannot specify a cluster selector other than the one specified by ClusterName"))
 
-	mhc.Spec.Selector.MatchLabels[ClusterLabelName] = "foo"
+	mhc.Spec.Selector.MatchLabels[ClusterNameLabel] = "foo"
 	g.Expect(mhc.validate(nil)).To(Succeed())
-	delete(mhc.Spec.Selector.MatchLabels, ClusterLabelName)
+	delete(mhc.Spec.Selector.MatchLabels, ClusterNameLabel)
 	g.Expect(mhc.validate(nil)).To(Succeed())
 }
 

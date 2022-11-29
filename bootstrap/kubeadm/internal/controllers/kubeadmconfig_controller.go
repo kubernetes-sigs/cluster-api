@@ -810,7 +810,7 @@ func (r *KubeadmConfigReconciler) ClusterToKubeadmConfigs(o client.Object) []ctr
 	selectors := []client.ListOption{
 		client.InNamespace(c.Namespace),
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName: c.Name,
+			clusterv1.ClusterNameLabel: c.Name,
 		},
 	}
 
@@ -999,7 +999,7 @@ func (r *KubeadmConfigReconciler) storeBootstrapData(ctx context.Context, scope 
 			Name:      scope.Config.Name,
 			Namespace: scope.Config.Namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: scope.Cluster.Name,
+				clusterv1.ClusterNameLabel: scope.Cluster.Name,
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{

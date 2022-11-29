@@ -133,7 +133,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	labels[clusterv1.ClusterLabelName] = m.Spec.ClusterName
+	labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 	obj.SetLabels(labels)
 
 	// Always attempt to Patch the external object.
@@ -388,7 +388,7 @@ func removeOnCreateOwnerRefs(cluster *clusterv1.Cluster, m *clusterv1.Machine, o
 // This function checks that the Machine is managed by a control plane, and then retrieves the Kind from the Cluster's
 // .spec.controlPlaneRef.
 func getControlPlaneGVKForMachine(cluster *clusterv1.Cluster, machine *clusterv1.Machine) *schema.GroupVersionKind {
-	if _, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabelName]; ok {
+	if _, ok := machine.GetLabels()[clusterv1.MachineControlPlaneLabel]; ok {
 		if cluster.Spec.ControlPlaneRef != nil {
 			gvk := cluster.Spec.ControlPlaneRef.GroupVersionKind()
 			return &gvk

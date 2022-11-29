@@ -35,7 +35,7 @@ func GetFilteredMachinesForCluster(ctx context.Context, c client.Reader, cluster
 		ml,
 		client.InNamespace(cluster.Namespace),
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName: cluster.Name,
+			clusterv1.ClusterNameLabel: cluster.Name,
 		},
 	); err != nil {
 		return nil, errors.Wrap(err, "failed to list machines")

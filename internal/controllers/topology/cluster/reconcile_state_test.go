@@ -1672,8 +1672,8 @@ func TestReconcileMachineDeployments(t *testing.T) {
 	infrastructureMachineTemplate9m := builder.TestInfrastructureMachineTemplate(metav1.NamespaceDefault, "infrastructure-machine-9m").Build()
 	bootstrapTemplate9m := builder.TestBootstrapTemplate(metav1.NamespaceDefault, "bootstrap-config-9m").Build()
 	md9 := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m, nil)
-	md9.Object.Spec.Template.ObjectMeta.Labels = map[string]string{clusterv1.ClusterLabelName: "cluster-1", "foo": "bar"}
-	md9.Object.Spec.Selector.MatchLabels = map[string]string{clusterv1.ClusterLabelName: "cluster-1", "foo": "bar"}
+	md9.Object.Spec.Template.ObjectMeta.Labels = map[string]string{clusterv1.ClusterNameLabel: "cluster-1", "foo": "bar"}
+	md9.Object.Spec.Selector.MatchLabels = map[string]string{clusterv1.ClusterNameLabel: "cluster-1", "foo": "bar"}
 	md9WithInstanceSpecificTemplateMetadataAndSelector := newFakeMachineDeploymentTopologyState("md-9m", infrastructureMachineTemplate9m, bootstrapTemplate9m, nil)
 	md9WithInstanceSpecificTemplateMetadataAndSelector.Object.Spec.Template.ObjectMeta.Labels = map[string]string{"foo": "bar"}
 	md9WithInstanceSpecificTemplateMetadataAndSelector.Object.Spec.Selector.MatchLabels = map[string]string{"foo": "bar"}
@@ -1827,7 +1827,7 @@ func TestReconcileMachineDeployments(t *testing.T) {
 					if wantMachineDeploymentState.Object.Name != gotMachineDeployment.Name {
 						continue
 					}
-					currentMachineDeploymentTopologyName := wantMachineDeploymentState.Object.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]
+					currentMachineDeploymentTopologyName := wantMachineDeploymentState.Object.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]
 					currentMachineDeploymentState := currentMachineDeploymentStates[currentMachineDeploymentTopologyName]
 
 					// Copy over the name of the newly created InfrastructureRef and Bootsrap.ConfigRef because they get a generated name
@@ -2402,7 +2402,7 @@ func TestReconcileReferencedObjectSequences(t *testing.T) {
 func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 	md := builder.MachineDeployment(metav1.NamespaceDefault, "md-1").WithLabels(
 		map[string]string{
-			clusterv1.ClusterTopologyMachineDeploymentLabelName: "machine-deployment-one",
+			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "machine-deployment-one",
 		}).
 		Build()
 
@@ -2588,7 +2588,7 @@ func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTem
 		Object: builder.MachineDeployment(metav1.NamespaceDefault, name).
 			WithInfrastructureTemplate(infrastructureMachineTemplate).
 			WithBootstrapTemplate(bootstrapTemplate).
-			WithLabels(map[string]string{clusterv1.ClusterTopologyMachineDeploymentLabelName: name + "-topology"}).
+			WithLabels(map[string]string{clusterv1.ClusterTopologyMachineDeploymentNameLabel: name + "-topology"}).
 			WithClusterName("cluster-1").
 			WithReplicas(1).
 			WithDefaulter(true).
@@ -2602,7 +2602,7 @@ func newFakeMachineDeploymentTopologyState(name string, infrastructureMachineTem
 func toMachineDeploymentTopologyStateMap(states []*scope.MachineDeploymentState) map[string]*scope.MachineDeploymentState {
 	ret := map[string]*scope.MachineDeploymentState{}
 	for _, state := range states {
-		ret[state.Object.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]] = state
+		ret[state.Object.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]] = state
 	}
 	return ret
 }

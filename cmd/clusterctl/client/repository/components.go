@@ -119,7 +119,7 @@ func (c *components) TargetNamespace() string {
 
 func (c *components) InventoryObject() clusterctlv1.Provider {
 	labels := getCommonLabels(c.Provider)
-	labels[clusterctlv1.ClusterctlCoreLabelName] = clusterctlv1.ClusterctlCoreLabelInventoryValue
+	labels[clusterctlv1.ClusterctlCoreLabel] = clusterctlv1.ClusterctlCoreLabelInventoryValue
 
 	return clusterctlv1.Provider{
 		TypeMeta: metav1.TypeMeta{
@@ -583,7 +583,7 @@ func addCommonLabels(objs []unstructured.Unstructured, provider config.Provider)
 
 func getCommonLabels(provider config.Provider) map[string]string {
 	return map[string]string{
-		clusterctlv1.ClusterctlLabelName: "",
-		clusterv1.ProviderLabelName:      provider.ManifestLabel(),
+		clusterctlv1.ClusterctlLabel: "",
+		clusterv1.ProviderNameLabel:  provider.ManifestLabel(),
 	}
 }

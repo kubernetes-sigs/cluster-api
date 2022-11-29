@@ -60,7 +60,7 @@ var (
 
 	// ErrNoCluster is returned when the cluster
 	// label could not be found on the object passed in.
-	ErrNoCluster = fmt.Errorf("no %q label present", clusterv1.ClusterLabelName)
+	ErrNoCluster = fmt.Errorf("no %q label present", clusterv1.ClusterNameLabel)
 
 	// ErrUnstructuredFieldNotFound determines that a field
 	// in an unstructured object could not be found.
@@ -131,7 +131,7 @@ func GetMachineIfExists(ctx context.Context, c client.Client, namespace, name st
 
 // IsControlPlaneMachine checks machine is a control plane node.
 func IsControlPlaneMachine(machine *clusterv1.Machine) bool {
-	_, ok := machine.ObjectMeta.Labels[clusterv1.MachineControlPlaneLabelName]
+	_, ok := machine.ObjectMeta.Labels[clusterv1.MachineControlPlaneLabel]
 	return ok
 }
 
@@ -148,10 +148,10 @@ func IsNodeReady(node *corev1.Node) bool {
 
 // GetClusterFromMetadata returns the Cluster object (if present) using the object metadata.
 func GetClusterFromMetadata(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*clusterv1.Cluster, error) {
-	if obj.Labels[clusterv1.ClusterLabelName] == "" {
+	if obj.Labels[clusterv1.ClusterNameLabel] == "" {
 		return nil, errors.WithStack(ErrNoCluster)
 	}
-	return GetClusterByName(ctx, c, obj.Namespace, obj.Labels[clusterv1.ClusterLabelName])
+	return GetClusterByName(ctx, c, obj.Namespace, obj.Labels[clusterv1.ClusterNameLabel])
 }
 
 // GetOwnerCluster returns the Cluster object owning the current resource.
@@ -492,7 +492,7 @@ func (k KubeAwareAPIVersions) Less(i, j int) bool {
 
 // ClusterToObjectsMapper returns a mapper function that gets a cluster and lists all objects for the object passed in
 // and returns a list of requests.
-// NB: The objects are required to have `clusterv1.ClusterLabelName` applied.
+// NB: The objects are required to have `clusterv1.ClusterNameLabel` applied.
 func ClusterToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.MapFunc, error) {
 	gvk, err := apiutil.GVKForObject(ro, scheme)
 	if err != nil {
@@ -512,7 +512,7 @@ func ClusterToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runti
 
 		listOpts := []client.ListOption{
 			client.MatchingLabels{
-				clusterv1.ClusterLabelName: cluster.Name,
+				clusterv1.ClusterNameLabel: cluster.Name,
 			},
 		}
 

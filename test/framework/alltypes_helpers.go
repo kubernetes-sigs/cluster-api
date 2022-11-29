@@ -153,7 +153,7 @@ func dumpObject(resource runtime.Object, logPath string) {
 // capiProviderOptions returns a set of ListOptions that allows to identify all the objects belonging to Cluster API providers.
 func capiProviderOptions() []client.ListOption {
 	return []client.ListOption{
-		client.HasLabels{clusterv1.ProviderLabelName},
+		client.HasLabels{clusterv1.ProviderNameLabel},
 	}
 }
 

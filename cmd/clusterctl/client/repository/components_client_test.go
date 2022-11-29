@@ -300,7 +300,7 @@ func Test_componentsClient_Get(t *testing.T) {
 			}
 
 			for _, o := range got.Objs() {
-				for _, v := range []string{clusterctlv1.ClusterctlLabelName, clusterv1.ProviderLabelName} {
+				for _, v := range []string{clusterctlv1.ClusterctlLabel, clusterv1.ProviderNameLabel} {
 					gs.Expect(o.GetLabels()).To(HaveKey(v))
 				}
 			}

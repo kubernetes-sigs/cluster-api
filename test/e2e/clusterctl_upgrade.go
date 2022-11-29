@@ -324,7 +324,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		Eventually(func() (int64, error) {
 			var n int64
 			machineList := &clusterv1alpha3.MachineList{}
-			if err := managementClusterProxy.GetClient().List(ctx, machineList, client.InNamespace(testNamespace.Name), client.MatchingLabels{clusterv1.ClusterLabelName: workLoadClusterName}); err == nil {
+			if err := managementClusterProxy.GetClient().List(ctx, machineList, client.InNamespace(testNamespace.Name), client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName}); err == nil {
 				for _, machine := range machineList.Items {
 					if machine.Status.NodeRef != nil {
 						n++
@@ -349,7 +349,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			ctx,
 			preUpgradeMachineList,
 			client.InNamespace(testNamespace.Name),
-			client.MatchingLabels{clusterv1.ClusterLabelName: workLoadClusterName},
+			client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName},
 		)
 		Expect(err).NotTo(HaveOccurred())
 		// Check if the user want a custom upgrade
@@ -400,7 +400,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				ctx,
 				postUpgradeMachineList,
 				client.InNamespace(testNamespace.Name),
-				client.MatchingLabels{clusterv1.ClusterLabelName: workLoadClusterName},
+				client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName},
 			)
 			Expect(err).NotTo(HaveOccurred())
 			return matchUnstructuredLists(preUpgradeMachineList, postUpgradeMachineList)

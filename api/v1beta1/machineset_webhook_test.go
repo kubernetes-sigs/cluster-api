@@ -43,10 +43,10 @@ func TestMachineSetDefault(t *testing.T) {
 	t.Run("for MachineSet", utildefaulting.DefaultValidateTest(ms))
 	ms.Default()
 
-	g.Expect(ms.Labels[ClusterLabelName]).To(Equal(ms.Spec.ClusterName))
+	g.Expect(ms.Labels[ClusterNameLabel]).To(Equal(ms.Spec.ClusterName))
 	g.Expect(ms.Spec.DeletePolicy).To(Equal(string(RandomMachineSetDeletePolicy)))
-	g.Expect(ms.Spec.Selector.MatchLabels).To(HaveKeyWithValue(MachineSetLabelName, "test-ms"))
-	g.Expect(ms.Spec.Template.Labels).To(HaveKeyWithValue(MachineSetLabelName, "test-ms"))
+	g.Expect(ms.Spec.Selector.MatchLabels).To(HaveKeyWithValue(MachineSetNameLabel, "test-ms"))
+	g.Expect(ms.Spec.Template.Labels).To(HaveKeyWithValue(MachineSetNameLabel, "test-ms"))
 	g.Expect(*ms.Spec.Template.Spec.Version).To(Equal("v1.19.10"))
 }
 

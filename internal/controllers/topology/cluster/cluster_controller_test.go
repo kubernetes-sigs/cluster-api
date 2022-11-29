@@ -924,14 +924,14 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 	clusterMDs := []clusterv1.MachineDeployment{}
 
 	// Run through all machine deployments and add only those with the TopologyOwnedLabel and the correct
-	// ClusterLabelName to the items for further testing.
+	// ClusterNameLabel to the items for further testing.
 	for _, m := range machineDeployments.Items {
-		// If the machineDeployment doesn't have the ClusterTopologyOwnedLabel and the ClusterLabelName ignore.
+		// If the machineDeployment doesn't have the ClusterTopologyOwnedLabel and the ClusterNameLabel ignore.
 		md := m
 		if err := assertClusterTopologyOwnedLabel(&md); err != nil {
 			continue
 		}
-		if err := assertClusterLabelName(&md, cluster.Name); err != nil {
+		if err := assertClusterNameLabel(&md, cluster.Name); err != nil {
 			continue
 		}
 		clusterMDs = append(clusterMDs, md)
@@ -945,7 +945,7 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 		for _, topologyMD := range cluster.Spec.Topology.Workers.MachineDeployments {
 			md := m
 			// use the ClusterTopologyMachineDeploymentLabel to get the specific machineDeployment to compare to.
-			if topologyMD.Name != md.GetLabels()[clusterv1.ClusterTopologyMachineDeploymentLabelName] {
+			if topologyMD.Name != md.GetLabels()[clusterv1.ClusterTopologyMachineDeploymentNameLabel] {
 				continue
 			}
 
@@ -954,7 +954,7 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 				return err
 			}
 
-			if err := assertClusterLabelName(&md, cluster.Name); err != nil {
+			if err := assertClusterNameLabel(&md, cluster.Name); err != nil {
 				return err
 			}
 
@@ -996,7 +996,7 @@ func assertMachineDeploymentsReconcile(cluster *clusterv1.Cluster) error {
 
 // getAndAssertLabelsAndAnnotations pulls the template referenced in the ObjectReference from the API server, checks for:
 // 1) The ClusterTopologyOwnedLabel.
-// 2) The correct ClusterLabelName.
+// 2) The correct ClusterNameLabel.
 // 3) The annotation stating where the template was cloned from.
 // The function returns the unstructured object and a bool indicating if it passed all tests.
 func getAndAssertLabelsAndAnnotations(template corev1.ObjectReference, clusterName string) (*unstructured.Unstructured, error) {
@@ -1020,7 +1020,7 @@ func assertLabelsAndAnnotations(got client.Object, clusterName string) error {
 	if err := assertClusterTopologyOwnedLabel(got); err != nil {
 		return err
 	}
-	if err := assertClusterLabelName(got, clusterName); err != nil {
+	if err := assertClusterNameLabel(got, clusterName); err != nil {
 		return err
 	}
 	if err := assertTemplateClonedFromNameAnnotation(got); err != nil {
@@ -1029,7 +1029,7 @@ func assertLabelsAndAnnotations(got client.Object, clusterName string) error {
 	return nil
 }
 
-// assertClusterTopologyOwnedLabel  asserts the label exists.
+// assertClusterTopologyOwnedLabel asserts the label exists.
 func assertClusterTopologyOwnedLabel(got client.Object) error {
 	_, ok := got.GetLabels()[clusterv1.ClusterTopologyOwnedLabel]
 	if !ok {
@@ -1038,14 +1038,14 @@ func assertClusterTopologyOwnedLabel(got client.Object) error {
 	return nil
 }
 
-// assertClusterTopologyOwnedLabel asserts the label exists and is set to the correct value.
-func assertClusterLabelName(got client.Object, clusterName string) error {
-	v, ok := got.GetLabels()[clusterv1.ClusterLabelName]
+// assertClusterNameLabel asserts the label exists and is set to the correct value.
+func assertClusterNameLabel(got client.Object, clusterName string) error {
+	v, ok := got.GetLabels()[clusterv1.ClusterNameLabel]
 	if !ok {
-		return fmt.Errorf("%v not found in %v: %v", clusterv1.ClusterLabelName, got.GetObjectKind().GroupVersionKind().Kind, got.GetName())
+		return fmt.Errorf("%v not found in %v: %v", clusterv1.ClusterNameLabel, got.GetObjectKind().GroupVersionKind().Kind, got.GetName())
 	}
 	if v != clusterName {
-		return fmt.Errorf("%v %v does not match expected %v", clusterv1.ClusterLabelName, v, clusterName)
+		return fmt.Errorf("%v %v does not match expected %v", clusterv1.ClusterNameLabel, v, clusterName)
 	}
 	return nil
 }

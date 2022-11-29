@@ -1238,7 +1238,7 @@ kubernetesVersion: metav1.16.1`,
 		kubeadmCM.DeepCopy(),
 		corednsDepl.DeepCopy(),
 	)
-	expectedLabels := map[string]string{clusterv1.ClusterLabelName: "foo"}
+	expectedLabels := map[string]string{clusterv1.ClusterNameLabel: "foo"}
 	r := &KubeadmControlPlaneReconciler{
 		Client:    fakeClient,
 		APIReader: fakeClient,
@@ -1638,7 +1638,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 				Name:      "worker",
 				Namespace: cluster.Namespace,
 				Labels: map[string]string{
-					clusterv1.ClusterLabelName: cluster.Name,
+					clusterv1.ClusterNameLabel: cluster.Name,
 				},
 			},
 		}
@@ -1669,7 +1669,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{
-			clusterv1.MachineControlPlaneLabelName: "",
+			clusterv1.MachineControlPlaneLabel: "",
 		}
 		g.Expect(fakeClient.List(ctx, &controlPlaneMachines, client.MatchingLabels(labels))).To(Succeed())
 		g.Expect(controlPlaneMachines.Items).To(HaveLen(3))
@@ -1687,7 +1687,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 				Name:      "worker",
 				Namespace: cluster.Namespace,
 				Labels: map[string]string{
-					clusterv1.ClusterLabelName: cluster.Name,
+					clusterv1.ClusterNameLabel: cluster.Name,
 				},
 			},
 		}
@@ -1718,7 +1718,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		labels := map[string]string{
-			clusterv1.MachineControlPlaneLabelName: "",
+			clusterv1.MachineControlPlaneLabel: "",
 		}
 		g.Expect(fakeClient.List(ctx, &controlPlaneMachines, client.MatchingLabels(labels))).To(Succeed())
 		g.Expect(controlPlaneMachines.Items).To(HaveLen(3))

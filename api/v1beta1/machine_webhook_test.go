@@ -42,7 +42,7 @@ func TestMachineDefault(t *testing.T) {
 	t.Run("for Machine", utildefaulting.DefaultValidateTest(m))
 	m.Default()
 
-	g.Expect(m.Labels[ClusterLabelName]).To(Equal(m.Spec.ClusterName))
+	g.Expect(m.Labels[ClusterNameLabel]).To(Equal(m.Spec.ClusterName))
 	g.Expect(m.Spec.Bootstrap.ConfigRef.Namespace).To(Equal(m.Namespace))
 	g.Expect(m.Spec.InfrastructureRef.Namespace).To(Equal(m.Namespace))
 	g.Expect(*m.Spec.Version).To(Equal("v1.17.5"))

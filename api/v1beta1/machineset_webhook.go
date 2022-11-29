@@ -48,7 +48,7 @@ func (m *MachineSet) Default() {
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
-	m.Labels[ClusterLabelName] = m.Spec.ClusterName
+	m.Labels[ClusterNameLabel] = m.Spec.ClusterName
 
 	if m.Spec.DeletePolicy == "" {
 		randomPolicy := string(RandomMachineSetDeletePolicy)
@@ -64,8 +64,8 @@ func (m *MachineSet) Default() {
 	}
 
 	if len(m.Spec.Selector.MatchLabels) == 0 && len(m.Spec.Selector.MatchExpressions) == 0 {
-		m.Spec.Selector.MatchLabels[MachineSetLabelName] = m.Name
-		m.Spec.Template.Labels[MachineSetLabelName] = m.Name
+		m.Spec.Selector.MatchLabels[MachineSetNameLabel] = m.Name
+		m.Spec.Template.Labels[MachineSetNameLabel] = m.Name
 	}
 
 	if m.Spec.Template.Spec.Version != nil && !strings.HasPrefix(*m.Spec.Template.Spec.Version, "v") {

@@ -544,7 +544,7 @@ func TestMachineSetToMachines(t *testing.T) {
 				Selector: metav1.LabelSelector{
 					MatchLabels: map[string]string{
 						"foo":                      "bar",
-						clusterv1.ClusterLabelName: testClusterName,
+						clusterv1.ClusterNameLabel: testClusterName,
 					},
 				},
 			},
@@ -556,7 +556,7 @@ func TestMachineSetToMachines(t *testing.T) {
 			Name:      "withOwnerRef",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: testClusterName,
+				clusterv1.ClusterNameLabel: testClusterName,
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -572,7 +572,7 @@ func TestMachineSetToMachines(t *testing.T) {
 			Name:      "noOwnerRefNoLabels",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: testClusterName,
+				clusterv1.ClusterNameLabel: testClusterName,
 			},
 		},
 	}
@@ -582,7 +582,7 @@ func TestMachineSetToMachines(t *testing.T) {
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
 				"foo":                      "bar",
-				clusterv1.ClusterLabelName: testClusterName,
+				clusterv1.ClusterNameLabel: testClusterName,
 			},
 		},
 	}
@@ -773,7 +773,7 @@ func newMachineSet(name, cluster string, replicas int32) *clusterv1.MachineSet {
 			Name:      name,
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: cluster,
+				clusterv1.ClusterNameLabel: cluster,
 			},
 		},
 		Spec: clusterv1.MachineSetSpec{
@@ -782,13 +782,13 @@ func newMachineSet(name, cluster string, replicas int32) *clusterv1.MachineSet {
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: cluster,
+						clusterv1.ClusterNameLabel: cluster,
 					},
 				},
 			},
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					clusterv1.ClusterLabelName: cluster,
+					clusterv1.ClusterNameLabel: cluster,
 				},
 			},
 		},
@@ -811,7 +811,7 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 			Name:      "ms-foo",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: cluster.Name,
+				clusterv1.ClusterNameLabel: cluster.Name,
 			},
 		},
 		Spec: clusterv1.MachineSetSpec{
@@ -820,7 +820,7 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: cluster.Name,
+						clusterv1.ClusterNameLabel: cluster.Name,
 					},
 				},
 				Spec: clusterv1.MachineSpec{
@@ -836,7 +836,7 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 			},
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					clusterv1.ClusterLabelName: cluster.Name,
+					clusterv1.ClusterNameLabel: cluster.Name,
 				},
 			},
 		},
@@ -891,7 +891,7 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 					Name:      "machine-a",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: cluster.Name,
+						clusterv1.ClusterNameLabel: cluster.Name,
 					},
 				},
 			},

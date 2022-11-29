@@ -281,7 +281,7 @@ func byClusterOptions(name, namespace string) []client.ListOption {
 	return []client.ListOption{
 		client.InNamespace(namespace),
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName: name,
+			clusterv1.ClusterNameLabel: name,
 		},
 	}
 }

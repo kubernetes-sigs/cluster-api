@@ -55,7 +55,7 @@ users:
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test1-kubeconfig",
 				Namespace: "test",
-				Labels:    map[string]string{clusterv1.ClusterLabelName: "test1"},
+				Labels:    map[string]string{clusterv1.ClusterNameLabel: "test1"},
 			},
 			Data: map[string][]byte{
 				secret.KubeconfigDataName: []byte(validKubeConfig),

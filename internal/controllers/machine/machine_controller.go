@@ -197,7 +197,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
-	m.Labels[clusterv1.ClusterLabelName] = m.Spec.ClusterName
+	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
 	// Add finalizer first if not exist to avoid the race condition between init and delete
 	if !controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer) {
@@ -764,7 +764,7 @@ func (r *Reconciler) shouldAdopt(m *clusterv1.Machine) bool {
 	// MachineSet/ControlPlane controller are racing to adopt Machines, see https://github.com/kubernetes-sigs/cluster-api/issues/7529
 
 	// If the Machine is originated by a MachineSet, it should not be adopted directly by the Cluster as a stand-alone Machine.
-	if _, ok := m.Labels[clusterv1.MachineSetLabelName]; ok {
+	if _, ok := m.Labels[clusterv1.MachineSetNameLabel]; ok {
 		return false
 	}
 
@@ -807,7 +807,7 @@ func (r *Reconciler) nodeToMachine(o client.Object) []reconcile.Request {
 	// Match by clusterName when the node has the annotation.
 	if clusterName, ok := node.GetAnnotations()[clusterv1.ClusterNameAnnotation]; ok {
 		filters = append(filters, client.MatchingLabels{
-			clusterv1.ClusterLabelName: clusterName,
+			clusterv1.ClusterNameLabel: clusterName,
 		})
 	}
 

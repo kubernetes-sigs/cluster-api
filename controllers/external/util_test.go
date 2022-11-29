@@ -177,7 +177,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 		OwnerRef:    owner.DeepCopy(),
 		Labels: map[string]string{
 			"precedence":               "input",
-			clusterv1.ClusterLabelName: "should-be-overwritten",
+			clusterv1.ClusterNameLabel: "should-be-overwritten",
 		},
 		Annotations: map[string]string{
 			"precedence": "input",
@@ -206,7 +206,7 @@ func TestCloneTemplateResourceFound(t *testing.T) {
 	g.Expect(cloneSpec).To(Equal(expectedSpec))
 
 	cloneLabels := clone.GetLabels()
-	g.Expect(cloneLabels).To(HaveKeyWithValue(clusterv1.ClusterLabelName, testClusterName))
+	g.Expect(cloneLabels).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, testClusterName))
 	g.Expect(cloneLabels).To(HaveKeyWithValue("test-template", "label"))
 	g.Expect(cloneLabels).To(HaveKeyWithValue("precedence", "input"))
 
@@ -252,7 +252,7 @@ func TestCloneTemplateResourceFoundNoOwner(t *testing.T) {
 
 	expectedKind := "Yellow"
 	expectedAPIVersion := templateAPIVersion
-	expectedLabels := map[string]string{clusterv1.ClusterLabelName: testClusterName}
+	expectedLabels := map[string]string{clusterv1.ClusterNameLabel: testClusterName}
 
 	expectedSpec, ok, err := unstructured.NestedMap(template.UnstructuredContent(), "spec", "template", "spec")
 	g.Expect(err).NotTo(HaveOccurred())

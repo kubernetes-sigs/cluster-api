@@ -454,8 +454,8 @@ func ScaleAndWaitMachineDeploymentTopology(ctx context.Context, input ScaleAndWa
 		return input.ClusterProxy.GetClient().List(ctx, deploymentList,
 			client.InNamespace(input.Cluster.Namespace),
 			client.MatchingLabels{
-				clusterv1.ClusterLabelName:                          input.Cluster.Name,
-				clusterv1.ClusterTopologyMachineDeploymentLabelName: mdTopology.Name,
+				clusterv1.ClusterNameLabel:                          input.Cluster.Name,
+				clusterv1.ClusterTopologyMachineDeploymentNameLabel: mdTopology.Name,
 			},
 		)
 	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineDeployments object for Cluster %s", klog.KRef(input.Cluster.Namespace, input.Cluster.Name))

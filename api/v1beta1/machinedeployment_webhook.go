@@ -149,7 +149,7 @@ func PopulateDefaultsMachineDeployment(d *MachineDeployment) {
 	if d.Labels == nil {
 		d.Labels = make(map[string]string)
 	}
-	d.Labels[ClusterLabelName] = d.Spec.ClusterName
+	d.Labels[ClusterNameLabel] = d.Spec.ClusterName
 
 	if d.Spec.MinReadySeconds == nil {
 		d.Spec.MinReadySeconds = pointer.Int32(0)
@@ -197,10 +197,10 @@ func PopulateDefaultsMachineDeployment(d *MachineDeployment) {
 	// If no selector has been provided, add label and selector for the
 	// MachineDeployment's name as a default way of providing uniqueness.
 	if len(d.Spec.Selector.MatchLabels) == 0 && len(d.Spec.Selector.MatchExpressions) == 0 {
-		d.Spec.Selector.MatchLabels[MachineDeploymentLabelName] = d.Name
-		d.Spec.Template.Labels[MachineDeploymentLabelName] = d.Name
+		d.Spec.Selector.MatchLabels[MachineDeploymentNameLabel] = d.Name
+		d.Spec.Template.Labels[MachineDeploymentNameLabel] = d.Name
 	}
 	// Make sure selector and template to be in the same cluster.
-	d.Spec.Selector.MatchLabels[ClusterLabelName] = d.Spec.ClusterName
-	d.Spec.Template.Labels[ClusterLabelName] = d.Spec.ClusterName
+	d.Spec.Selector.MatchLabels[ClusterNameLabel] = d.Spec.ClusterName
+	d.Spec.Template.Labels[ClusterNameLabel] = d.Spec.ClusterName
 }

@@ -53,9 +53,9 @@ var (
 		{"metadata", "namespace"},
 		// uid is optional for a server side apply intent but sets the expectation of an object getting created or a specific one updated.
 		{"metadata", "uid"},
-		// the topology controller controls/has an opinion for the labels ClusterLabelName
+		// the topology controller controls/has an opinion for the labels ClusterNameLabel
 		// and ClusterTopologyOwnedLabel as well as infrastructureRef and controlPlaneRef in spec.
-		{"metadata", "labels", clusterv1.ClusterLabelName},
+		{"metadata", "labels", clusterv1.ClusterNameLabel},
 		{"metadata", "labels", clusterv1.ClusterTopologyOwnedLabel},
 		{"spec", "infrastructureRef"},
 		{"spec", "controlPlaneRef"},

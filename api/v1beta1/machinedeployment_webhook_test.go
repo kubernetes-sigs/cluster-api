@@ -44,13 +44,13 @@ func TestMachineDeploymentDefault(t *testing.T) {
 	t.Run("for MachineDeployment", utildefaulting.DefaultValidateTest(md))
 	md.Default()
 
-	g.Expect(md.Labels[ClusterLabelName]).To(Equal(md.Spec.ClusterName))
+	g.Expect(md.Labels[ClusterNameLabel]).To(Equal(md.Spec.ClusterName))
 	g.Expect(md.Spec.MinReadySeconds).To(Equal(pointer.Int32(0)))
 	g.Expect(md.Spec.RevisionHistoryLimit).To(Equal(pointer.Int32(1)))
 	g.Expect(md.Spec.ProgressDeadlineSeconds).To(Equal(pointer.Int32(600)))
 	g.Expect(md.Spec.Strategy).ToNot(BeNil())
-	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(MachineDeploymentLabelName, "test-md"))
-	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(MachineDeploymentLabelName, "test-md"))
+	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(MachineDeploymentNameLabel, "test-md"))
+	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(MachineDeploymentNameLabel, "test-md"))
 	g.Expect(md.Spec.Strategy.Type).To(Equal(RollingUpdateMachineDeploymentStrategyType))
 	g.Expect(md.Spec.Strategy.RollingUpdate).ToNot(BeNil())
 	g.Expect(md.Spec.Strategy.RollingUpdate.MaxSurge.IntValue()).To(Equal(1))
@@ -259,8 +259,8 @@ func TestMachineDeploymentWithSpec(t *testing.T) {
 	}
 
 	md.Default()
-	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(ClusterLabelName, "test-cluster"))
-	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(ClusterLabelName, "test-cluster"))
+	g.Expect(md.Spec.Selector.MatchLabels).To(HaveKeyWithValue(ClusterNameLabel, "test-cluster"))
+	g.Expect(md.Spec.Template.Labels).To(HaveKeyWithValue(ClusterNameLabel, "test-cluster"))
 }
 
 func TestMachineDeploymentClusterNameImmutable(t *testing.T) {

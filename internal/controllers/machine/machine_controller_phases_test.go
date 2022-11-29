@@ -62,7 +62,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			Name:      "machine-test",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabelName: "",
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 		},
 		Spec: clusterv1.MachineSpec{
@@ -138,12 +138,12 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(r.Client.Get(ctx, types.NamespacedName{Name: bootstrapConfig.GetName(), Namespace: bootstrapConfig.GetNamespace()}, bootstrapConfig)).To(Succeed())
 
 		g.Expect(bootstrapConfig.GetOwnerReferences()).To(HaveLen(1))
-		g.Expect(bootstrapConfig.GetLabels()[clusterv1.ClusterLabelName]).To(BeEquivalentTo("test-cluster"))
+		g.Expect(bootstrapConfig.GetLabels()[clusterv1.ClusterNameLabel]).To(BeEquivalentTo("test-cluster"))
 
 		g.Expect(r.Client.Get(ctx, types.NamespacedName{Name: infraConfig.GetName(), Namespace: infraConfig.GetNamespace()}, infraConfig)).To(Succeed())
 
 		g.Expect(infraConfig.GetOwnerReferences()).To(HaveLen(1))
-		g.Expect(infraConfig.GetLabels()[clusterv1.ClusterLabelName]).To(BeEquivalentTo("test-cluster"))
+		g.Expect(infraConfig.GetLabels()[clusterv1.ClusterNameLabel]).To(BeEquivalentTo("test-cluster"))
 	})
 
 	t.Run("Should set `Pending` with a new Machine", func(t *testing.T) {
@@ -541,9 +541,9 @@ func TestReconcileMachinePhases(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		// Set Cluster label.
-		machine.Labels[clusterv1.ClusterLabelName] = machine.Spec.ClusterName
+		machine.Labels[clusterv1.ClusterNameLabel] = machine.Spec.ClusterName
 		machine.ResourceVersion = "999"
-		machineSecond.Labels[clusterv1.ClusterLabelName] = machine.Spec.ClusterName
+		machineSecond.Labels[clusterv1.ClusterNameLabel] = machine.Spec.ClusterName
 		machineSecond.Name = "SecondMachine"
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
@@ -596,7 +596,7 @@ func TestReconcileBootstrap(t *testing.T) {
 			Name:      "machine-test",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: "test-cluster",
+				clusterv1.ClusterNameLabel: "test-cluster",
 			},
 		},
 		Spec: clusterv1.MachineSpec{
@@ -896,7 +896,7 @@ func TestReconcileInfrastructure(t *testing.T) {
 			Name:      "machine-test",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: "test-cluster",
+				clusterv1.ClusterNameLabel: "test-cluster",
 			},
 		},
 		Spec: clusterv1.MachineSpec{
@@ -1171,7 +1171,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 					Name:      "bootstrap-test-existing",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "",
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 				},
 				Spec: clusterv1.MachineSpec{
@@ -1189,7 +1189,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 					Name:      "bootstrap-test-existing",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "",
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 				},
 				Spec: clusterv1.MachineSpec{
@@ -1213,7 +1213,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 					Name:      "bootstrap-test-existing",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "",
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 				},
 				Spec: clusterv1.MachineSpec{
@@ -1237,7 +1237,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 					Name:      "bootstrap-test-existing",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "",
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 					Annotations: map[string]string{
 						clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString,
@@ -1264,7 +1264,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 					Name:      "bootstrap-test-existing",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "",
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 					Annotations: map[string]string{
 						clusterv1.MachineCertificatesExpiryDateAnnotation: fakeTimeString2,
@@ -1291,7 +1291,7 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 					Name:      "bootstrap-test-existing",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "",
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 				},
 				Spec: clusterv1.MachineSpec{

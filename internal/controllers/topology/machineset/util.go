@@ -37,7 +37,7 @@ func GetMachineSetsForDeployment(ctx context.Context, c client.Reader, md types.
 	// List MachineSets based on the MachineDeployment label.
 	msList := &clusterv1.MachineSetList{}
 	if err := c.List(ctx, msList,
-		client.InNamespace(md.Namespace), client.MatchingLabels{clusterv1.MachineDeploymentLabelName: md.Name}); err != nil {
+		client.InNamespace(md.Namespace), client.MatchingLabels{clusterv1.MachineDeploymentNameLabel: md.Name}); err != nil {
 		return nil, errors.Wrapf(err, "failed to list MachineSets for MachineDeployment/%s", md.Name)
 	}
 

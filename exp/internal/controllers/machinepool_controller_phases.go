@@ -135,7 +135,7 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	labels[clusterv1.ClusterLabelName] = m.Spec.ClusterName
+	labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 	obj.SetLabels(labels)
 
 	// Always attempt to Patch the external object.

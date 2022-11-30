@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -73,12 +74,8 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 		return ctrl.Result{}, errors.Wrap(err, "failed to retrieve kubeconfig Secret")
 	}
 
-	// check if the kubeconfig secret was created by v1alpha2 controllers, and thus it has the Cluster as the owner instead of KCP;
-	// if yes, adopt it.
-	if util.IsOwnedByObject(configSecret, cluster) && !util.IsControlledBy(configSecret, kcp) {
-		if err := r.adoptKubeconfigSecret(ctx, cluster, configSecret, controllerOwnerRef); err != nil {
-			return ctrl.Result{}, err
-		}
+	if err := r.adoptKubeconfigSecret(ctx, cluster, configSecret, kcp); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// only do rotation on owned secrets
@@ -101,21 +98,45 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 	return ctrl.Result{}, nil
 }
 
-func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster, configSecret *corev1.Secret, controllerOwnerRef metav1.OwnerReference) error {
+// Ensure the KubeadmConfigSecret has an owner reference to the control plane if it is not a user-provided secret.
+func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster, configSecret *corev1.Secret, kcp *controlplanev1.KubeadmControlPlane) error {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("Adopting KubeConfig secret created by v1alpha2 controllers", "Name", configSecret.Name)
+	controller := metav1.GetControllerOf(configSecret)
 
+	// If the Type doesn't match the CAPI-created secret type this is a no-op.
+	if configSecret.Type != clusterv1.ClusterSecretType {
+		return nil
+	}
+	// If the secret is already controlled by KCP this is a no-op.
+	if controller != nil && controller.Kind == "KubeadmControlPlane" {
+		return nil
+	}
+	log.Info("Adopting KubeConfig secret", "Secret", klog.KObj(configSecret))
 	patch, err := patch.NewHelper(configSecret, r.Client)
 	if err != nil {
 		return errors.Wrap(err, "failed to create patch helper for the kubeconfig secret")
 	}
-	configSecret.OwnerReferences = util.RemoveOwnerRef(configSecret.OwnerReferences, metav1.OwnerReference{
-		APIVersion: clusterv1.GroupVersion.String(),
-		Kind:       "Cluster",
-		Name:       cluster.Name,
-		UID:        cluster.UID,
-	})
-	configSecret.OwnerReferences = util.EnsureOwnerRef(configSecret.OwnerReferences, controllerOwnerRef)
+
+	// If the kubeconfig secret was created by v1alpha2 controllers, and thus it has the Cluster as the owner instead of KCP.
+	// In this case remove the ownerReference to the Cluster.
+	if util.IsOwnedByObject(configSecret, cluster) {
+		configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.OwnerReferences, metav1.OwnerReference{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Cluster",
+			Name:       cluster.Name,
+			UID:        cluster.UID,
+		}))
+	}
+
+	// Remove the current controller if one exists.
+	if controller != nil {
+		configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.OwnerReferences, *controller))
+	}
+
+	// Add the KubeadmControlPlane as the controller for this secret.
+	configSecret.OwnerReferences = util.EnsureOwnerRef(configSecret.OwnerReferences,
+		*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")))
+
 	if err := patch.Patch(ctx, configSecret); err != nil {
 		return errors.Wrap(err, "failed to patch the kubeconfig secret")
 	}

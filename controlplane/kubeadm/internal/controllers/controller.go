@@ -310,6 +310,9 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		err = r.adoptMachines(ctx, kcp, adoptableMachines, cluster)
 		return ctrl.Result{}, err
 	}
+	if err := ensureCertificatesOwnerRef(ctx, r.Client, util.ObjectKey(cluster), certificates, *controllerRef); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	ownedMachines := controlPlaneMachines.Filter(collections.OwnedMachines(kcp))
 	if len(ownedMachines) != len(controlPlaneMachines) {
@@ -712,5 +715,35 @@ func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, k
 		}
 	}
 
+	return nil
+}
+
+// ensureCertificatesOwnerRef ensures an ownerReference to the owner is added on the Secrets holding certificates.
+func ensureCertificatesOwnerRef(ctx context.Context, ctrlclient client.Client, clusterKey client.ObjectKey, certificates secret.Certificates, owner metav1.OwnerReference) error {
+	for _, c := range certificates {
+		s := &corev1.Secret{}
+		secretKey := client.ObjectKey{Namespace: clusterKey.Namespace, Name: secret.Name(clusterKey.Name, c.Purpose)}
+		if err := ctrlclient.Get(ctx, secretKey, s); err != nil {
+			return errors.Wrapf(err, "failed to get Secret %s", secretKey)
+		}
+		// If the Type doesn't match the type used for secrets created by core components, KCP included
+		if s.Type != clusterv1.ClusterSecretType {
+			continue
+		}
+		patchHelper, err := patch.NewHelper(s, ctrlclient)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create patchHelper for Secret %s", secretKey)
+		}
+
+		// Remove the current controller if one exists.
+		if controller := metav1.GetControllerOf(s); controller != nil {
+			s.SetOwnerReferences(util.RemoveOwnerRef(s.OwnerReferences, *controller))
+		}
+
+		s.OwnerReferences = util.EnsureOwnerRef(s.OwnerReferences, owner)
+		if err := patchHelper.Patch(ctx, s); err != nil {
+			return errors.Wrapf(err, "failed to patch Secret %s with ownerReference %s", secretKey, owner.String())
+		}
+	}
 	return nil
 }

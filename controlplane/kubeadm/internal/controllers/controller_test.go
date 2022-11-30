@@ -824,9 +824,6 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 
 	t.Run("replace non-KCP controller with KCP controller reference", func(t *testing.T) {
 		objs := []client.Object{fakeGenericMachineTemplateCRD, cluster.DeepCopy(), kcp.DeepCopy(), tmpl.DeepCopy()}
-		// A simulacrum of the various Certificate and kubeconfig secrets
-		// it's a little weird that this is one per KubeadmConfig rather than just whichever config was "first,"
-		// but the intent is to ensure that the owner is changed regardless of which Machine we start with
 		for _, purpose := range []secret.Purpose{secret.ClusterCA, secret.FrontProxyCA, secret.ServiceAccount, secret.EtcdCA} {
 			s := clusterSecret.DeepCopy()
 			// Set the secret name to the purpose

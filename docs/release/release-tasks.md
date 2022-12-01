@@ -289,6 +289,8 @@ The goal of this task to make the book for the current release available under e
     6. Sort entries within a section alphabetically. 
     7. Write highlights section based on the initial release notes doc.
     8. Add Kubernetes version support section.
+    9. Modify `Changes since v1.x.y` to `Changes since v1.x`
+       <br>**Note**: The release notes tool includes all merges since the previous release branch was branched of.
 4. Iterate until the GA release by generating incremental release notes and modifying the release notes in hackmd accordingly:
    ```bash
    # PREVIOUS_TAG should be the tag from which the previous release notes have been generated, e.g.:

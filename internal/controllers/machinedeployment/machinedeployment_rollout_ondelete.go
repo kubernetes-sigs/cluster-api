@@ -93,13 +93,13 @@ func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs
 		if oldMS.Annotations == nil {
 			oldMS.Annotations = map[string]string{}
 		}
-		if _, ok := oldMS.Annotations[clusterv1.DisableMachineCreate]; !ok {
+		if _, ok := oldMS.Annotations[clusterv1.DisableMachineCreateAnnotation]; !ok {
 			log.V(4).Info("setting annotation on old MachineSet to disable machine creation")
 			patchHelper, err := patch.NewHelper(oldMS, r.Client)
 			if err != nil {
 				return err
 			}
-			oldMS.Annotations[clusterv1.DisableMachineCreate] = "true"
+			oldMS.Annotations[clusterv1.DisableMachineCreateAnnotation] = "true"
 			if err := patchHelper.Patch(ctx, oldMS); err != nil {
 				return err
 			}
@@ -169,13 +169,13 @@ func (r *Reconciler) reconcileNewMachineSetOnDelete(ctx context.Context, allMSs 
 	log := ctrl.LoggerFrom(ctx, "MachineSet", klog.KObj(newMS))
 
 	if newMS.Annotations != nil {
-		if _, ok := newMS.Annotations[clusterv1.DisableMachineCreate]; ok {
+		if _, ok := newMS.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok {
 			log.V(4).Info("removing annotation on latest MachineSet to enable machine creation")
 			patchHelper, err := patch.NewHelper(newMS, r.Client)
 			if err != nil {
 				return err
 			}
-			delete(newMS.Annotations, clusterv1.DisableMachineCreate)
+			delete(newMS.Annotations, clusterv1.DisableMachineCreateAnnotation)
 			err = patchHelper.Patch(ctx, newMS)
 			if err != nil {
 				return err

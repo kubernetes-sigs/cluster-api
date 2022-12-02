@@ -217,8 +217,8 @@ func ControlPlaneSelectorForCluster(clusterName string) labels.Selector {
 		return *r
 	}
 	return labels.NewSelector().Add(
-		must(labels.NewRequirement(clusterv1.ClusterLabelName, selection.Equals, []string{clusterName})),
-		must(labels.NewRequirement(clusterv1.MachineControlPlaneLabelName, selection.Exists, []string{})),
+		must(labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Equals, []string{clusterName})),
+		must(labels.NewRequirement(clusterv1.MachineControlPlaneLabel, selection.Exists, []string{})),
 	)
 }
 

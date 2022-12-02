@@ -176,7 +176,7 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 			WithBootstrapTemplate(mdBT).
 			WithInfrastructureTemplate(mdIMT).
 			WithLabels(map[string]string{
-				clusterv1.MachineDeploymentLabelName: md.Name,
+				clusterv1.MachineDeploymentNameLabel: md.Name,
 			}).
 			Build()
 

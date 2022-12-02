@@ -179,15 +179,15 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, d *clusterv1.MachineD
 
 	// Set the labels from newMSTemplate as top-level labels for the new MS.
 	// Note: We can't just set `newMSTemplate.Labels` directly and thus "share" the labels map between top-level and
-	// .spec.template.metadata.labels. This would mean that adding the MachineDeploymentLabelName later top-level
+	// .spec.template.metadata.labels. This would mean that adding the MachineDeploymentNameLabel later top-level
 	// would also add the label to .spec.template.metadata.labels.
 	for k, v := range newMSTemplate.Labels {
 		newMS.Labels[k] = v
 	}
 
-	// Enforce that the MachineDeploymentLabelName label is set
-	// Note: the MachineDeploymentLabelName is added by the default webhook to MachineDeployment.spec.template.labels if spec.selector is empty.
-	newMS.Labels[clusterv1.MachineDeploymentLabelName] = d.Name
+	// Enforce that the MachineDeploymentNameLabel label is set
+	// Note: the MachineDeploymentNameLabel is added by the default webhook to MachineDeployment.spec.template.labels if spec.selector is empty.
+	newMS.Labels[clusterv1.MachineDeploymentNameLabel] = d.Name
 
 	if d.Spec.Strategy.RollingUpdate.DeletePolicy != nil {
 		newMS.Spec.DeletePolicy = *d.Spec.Strategy.RollingUpdate.DeletePolicy

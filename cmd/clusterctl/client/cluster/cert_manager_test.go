@@ -144,9 +144,9 @@ func Test_getManifestObjs(t *testing.T) {
 			for i := range got {
 				o := &got[i]
 				// Assert Get adds clusterctl labels.
-				g.Expect(o.GetLabels()).To(HaveKey(clusterctlv1.ClusterctlLabelName))
-				g.Expect(o.GetLabels()).To(HaveKey(clusterctlv1.ClusterctlCoreLabelName))
-				g.Expect(o.GetLabels()[clusterctlv1.ClusterctlCoreLabelName]).To(Equal(clusterctlv1.ClusterctlCoreLabelCertManagerValue))
+				g.Expect(o.GetLabels()).To(HaveKey(clusterctlv1.ClusterctlLabel))
+				g.Expect(o.GetLabels()).To(HaveKey(clusterctlv1.ClusterctlCoreLabel))
+				g.Expect(o.GetLabels()[clusterctlv1.ClusterctlCoreLabel]).To(Equal(clusterctlv1.ClusterctlCoreLabelCertManagerValue))
 
 				// Assert Get adds clusterctl annotations.
 				g.Expect(o.GetAnnotations()).To(HaveKey(clusterctlv1.CertManagerVersionAnnotation))
@@ -461,7 +461,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Name:   "foo",
-							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 						},
 					},
 				},
@@ -480,7 +480,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Name:   "foo",
-							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 						},
 					},
 				},
@@ -499,7 +499,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Name:   "foo",
-							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 						},
 					},
 				},
@@ -518,7 +518,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Name:   "foo",
-							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 						},
 					},
 				},
@@ -537,7 +537,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Name:   "foo",
-							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 						},
 					},
 					&appsv1.Deployment{
@@ -547,7 +547,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 						},
 						ObjectMeta: metav1.ObjectMeta{
 							Name:   "bar",
-							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+							Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 						},
 					},
 				},
@@ -566,7 +566,7 @@ func Test_certManagerClient_deleteObjs(t *testing.T) {
 				proxy:               proxy,
 			}
 
-			objBefore, err := proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue})
+			objBefore, err := proxy.ListResources(map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue})
 			g.Expect(err).ToNot(HaveOccurred())
 
 			err = cm.deleteObjs(objBefore)
@@ -621,7 +621,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:   "cert-manager",
-						Labels: map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+						Labels: map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 					},
 				},
 			},
@@ -642,7 +642,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "cert-manager",
-						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 						Annotations: map[string]string{clusterctlv1.CertManagerVersionAnnotation: "v0.10.2"},
 					},
 				},
@@ -664,7 +664,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "cert-manager",
-						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 						Annotations: map[string]string{clusterctlv1.CertManagerVersionAnnotation: config.CertManagerDefaultVersion},
 					},
 				},
@@ -686,7 +686,7 @@ func Test_certManagerClient_PlanUpgrade(t *testing.T) {
 					},
 					ObjectMeta: metav1.ObjectMeta{
 						Name:        "cert-manager",
-						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
+						Labels:      map[string]string{clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelCertManagerValue},
 						Annotations: map[string]string{clusterctlv1.CertManagerVersionAnnotation: "bad-sem-ver"},
 					},
 				},

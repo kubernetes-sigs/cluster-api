@@ -22,9 +22,9 @@ import (
 )
 
 const (
-	// ClusterLabelName is the label set on machines linked to a cluster and
+	// ClusterNameLabel is the label set on machines linked to a cluster and
 	// external objects(bootstrap and infrastructure providers).
-	ClusterLabelName = "cluster.x-k8s.io/cluster-name"
+	ClusterNameLabel = "cluster.x-k8s.io/cluster-name"
 
 	// ClusterTopologyOwnedLabel is the label set on all the object which are managed as part of a ClusterTopology.
 	ClusterTopologyOwnedLabel = "topology.cluster.x-k8s.io/owned"
@@ -45,18 +45,18 @@ const (
 	// When removing also remove from staticcheck exclude-rules for SA1019 in golangci.yml.
 	ClusterTopologyManagedFieldsAnnotation = "topology.cluster.x-k8s.io/managed-field-paths"
 
-	// ClusterTopologyMachineDeploymentLabelName is the label set on the generated  MachineDeployment objects
+	// ClusterTopologyMachineDeploymentNameLabel is the label set on the generated  MachineDeployment objects
 	// to track the name of the MachineDeployment topology it represents.
-	ClusterTopologyMachineDeploymentLabelName = "topology.cluster.x-k8s.io/deployment-name"
+	ClusterTopologyMachineDeploymentNameLabel = "topology.cluster.x-k8s.io/deployment-name"
 
 	// ClusterTopologyUnsafeUpdateClassNameAnnotation can be used to disable the webhook check on
 	// update that disallows a pre-existing Cluster to be populated with Topology information and Class.
 	ClusterTopologyUnsafeUpdateClassNameAnnotation = "unsafe.topology.cluster.x-k8s.io/disable-update-class-name-check"
 
-	// ProviderLabelName is the label set on components in the provider manifest.
+	// ProviderNameLabel is the label set on components in the provider manifest.
 	// This label allows to easily identify all the components belonging to a provider; the clusterctl
 	// tool uses this label for implementing provider's lifecycle operations.
-	ProviderLabelName = "cluster.x-k8s.io/provider"
+	ProviderNameLabel = "cluster.x-k8s.io/provider"
 
 	// ClusterNameAnnotation is the annotation set on nodes identifying the name of the cluster the node belongs to.
 	ClusterNameAnnotation = "cluster.x-k8s.io/cluster-name"
@@ -80,10 +80,10 @@ const (
 	// on the reconciled object.
 	PausedAnnotation = "cluster.x-k8s.io/paused"
 
-	// DisableMachineCreate is an annotation that can be used to signal a MachineSet to stop creating new machines.
+	// DisableMachineCreateAnnotation is an annotation that can be used to signal a MachineSet to stop creating new machines.
 	// It is utilized in the OnDelete MachineDeploymentStrategy to allow the MachineDeployment controller to scale down
 	// older MachineSets when Machines are deleted and add the new replicas to the latest MachineSet.
-	DisableMachineCreate = "cluster.x-k8s.io/disable-machine-create"
+	DisableMachineCreateAnnotation = "cluster.x-k8s.io/disable-machine-create"
 
 	// WatchLabel is a label othat can be applied to any Cluster API object.
 	//

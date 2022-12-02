@@ -454,7 +454,7 @@ func TestComputeControlPlane(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 
 		expectedLabels := mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels)
-		expectedLabels[clusterv1.ClusterLabelName] = cluster.Name
+		expectedLabels[clusterv1.ClusterNameLabel] = cluster.Name
 		expectedLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
 		g.Expect(gotMetadata).To(Equal(&clusterv1.ObjectMeta{
 			Labels:      expectedLabels,
@@ -1294,7 +1294,7 @@ func TestComputeCluster(t *testing.T) {
 	// ObjectMeta
 	g.Expect(obj.Name).To(Equal(cluster.Name))
 	g.Expect(obj.Namespace).To(Equal(cluster.Namespace))
-	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterLabelName, cluster.Name))
+	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, cluster.Name))
 	g.Expect(obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyOwnedLabel, ""))
 
 	// Spec
@@ -1414,14 +1414,14 @@ func TestComputeMachineDeployment(t *testing.T) {
 		actual, err := computeMachineDeployment(ctx, scope, nil, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(actual.BootstrapTemplate.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
+		g.Expect(actual.BootstrapTemplate.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
 
 		// Ensure Cluster ownership is added to generated BootstrapTemplate.
 		g.Expect(actual.BootstrapTemplate.GetOwnerReferences()).To(HaveLen(1))
 		g.Expect(actual.BootstrapTemplate.GetOwnerReferences()[0].Kind).To(Equal("Cluster"))
 		g.Expect(actual.BootstrapTemplate.GetOwnerReferences()[0].Name).To(Equal(cluster.Name))
 
-		g.Expect(actual.InfrastructureMachineTemplate.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
+		g.Expect(actual.InfrastructureMachineTemplate.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
 
 		// Ensure Cluster ownership is added to generated InfrastructureMachineTemplate.
 		g.Expect(actual.InfrastructureMachineTemplate.GetOwnerReferences()).To(HaveLen(1))
@@ -1440,11 +1440,11 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Name).To(ContainSubstring("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("big-pool-of-machines"))
 
-		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
+		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
 		g.Expect(actualMd.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
 
 		g.Expect(actualMd.Spec.Selector.MatchLabels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
-		g.Expect(actualMd.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
+		g.Expect(actualMd.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
 
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("foo", "baz"))
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("fizz", "buzz"))
@@ -1520,7 +1520,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
 		g.Expect(actualMd.Name).To(Equal("existing-deployment-1"))
 
-		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentLabelName, "big-pool-of-machines"))
+		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
 		g.Expect(actualMd.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
 
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("foo", "baz"))
@@ -1679,7 +1679,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actual.MachineHealthCheck.Spec.ClusterName).To(Equal(cluster.Name))
 		g.Expect(actual.MachineHealthCheck.Spec.Selector).To(Equal(metav1.LabelSelector{MatchLabels: map[string]string{
 			clusterv1.ClusterTopologyOwnedLabel:                 actual.Object.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyOwnedLabel],
-			clusterv1.ClusterTopologyMachineDeploymentLabelName: actual.Object.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName],
+			clusterv1.ClusterTopologyMachineDeploymentNameLabel: actual.Object.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel],
 		}}))
 
 		// Check that the NodeStartupTime is set as expected.
@@ -2001,7 +2001,7 @@ func assertTemplateToObject(g *WithT, in assertTemplateInput) {
 		g.Expect(in.obj.GetName()).To(HavePrefix(in.cluster.Name))
 	}
 	g.Expect(in.obj.GetNamespace()).To(Equal(in.cluster.Namespace))
-	g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterLabelName, in.cluster.Name))
+	g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, in.cluster.Name))
 	g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyOwnedLabel, ""))
 	for k, v := range in.labels {
 		g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(k, v))
@@ -2036,7 +2036,7 @@ func assertTemplateToTemplate(g *WithT, in assertTemplateInput) {
 		g.Expect(in.obj.GetName()).To(HavePrefix(in.cluster.Name))
 	}
 	g.Expect(in.obj.GetNamespace()).To(Equal(in.cluster.Namespace))
-	g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterLabelName, in.cluster.Name))
+	g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterNameLabel, in.cluster.Name))
 	g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyOwnedLabel, ""))
 	for k, v := range in.labels {
 		g.Expect(in.obj.GetLabels()).To(HaveKeyWithValue(k, v))

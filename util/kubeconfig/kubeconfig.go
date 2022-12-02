@@ -136,7 +136,7 @@ func GenerateSecretWithOwner(clusterName client.ObjectKey, data []byte, owner me
 			Name:      secret.Name(clusterName.Name, secret.Kubeconfig),
 			Namespace: clusterName.Namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName.Name,
+				clusterv1.ClusterNameLabel: clusterName.Name,
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				owner,

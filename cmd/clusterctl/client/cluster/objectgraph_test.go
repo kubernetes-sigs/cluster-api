@@ -155,7 +155,7 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 					WithObjs(
 						func() client.Object {
 							crd := test.FakeNamespacedCustomResourceDefinition("foo", "Bar", "v1")
-							crd.Labels[clusterctlv1.ClusterctlMoveLabelName] = ""
+							crd.Labels[clusterctlv1.ClusterctlMoveLabel] = ""
 							return crd
 						}(),
 					),
@@ -189,7 +189,7 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 					WithObjs(
 						func() client.Object {
 							crd := test.FakeNamespacedCustomResourceDefinition("foo", "Bar", "v1")
-							crd.Labels[clusterctlv1.ClusterctlMoveHierarchyLabelName] = ""
+							crd.Labels[clusterctlv1.ClusterctlMoveHierarchyLabel] = ""
 							return crd
 						}(),
 					),

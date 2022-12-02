@@ -174,7 +174,7 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	if mp.Labels == nil {
 		mp.Labels = make(map[string]string)
 	}
-	mp.Labels[clusterv1.ClusterLabelName] = mp.Spec.ClusterName
+	mp.Labels[clusterv1.ClusterNameLabel] = mp.Spec.ClusterName
 
 	// Add finalizer first if not exist to avoid the race condition between init and delete
 	if !controllerutil.ContainsFinalizer(mp, expv1.MachinePoolFinalizer) {

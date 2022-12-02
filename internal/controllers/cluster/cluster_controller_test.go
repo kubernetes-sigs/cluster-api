@@ -310,7 +310,7 @@ func TestClusterReconciler(t *testing.T) {
 				GenerateName: "test6-",
 				Namespace:    ns.Name,
 				Labels: map[string]string{
-					clusterv1.MachineControlPlaneLabelName: "",
+					clusterv1.MachineControlPlaneLabel: "",
 				},
 			},
 			Spec: clusterv1.MachineSpec{
@@ -423,8 +423,8 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 				Name:      "controlPlaneWithNoderef",
 				Namespace: "test",
 				Labels: map[string]string{
-					clusterv1.ClusterLabelName:             cluster.Name,
-					clusterv1.MachineControlPlaneLabelName: "",
+					clusterv1.ClusterNameLabel:         cluster.Name,
+					clusterv1.MachineControlPlaneLabel: "",
 				},
 			},
 			Spec: clusterv1.MachineSpec{
@@ -445,8 +445,8 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 				Name:      "controlPlaneWithoutNoderef",
 				Namespace: "test",
 				Labels: map[string]string{
-					clusterv1.ClusterLabelName:             cluster.Name,
-					clusterv1.MachineControlPlaneLabelName: "",
+					clusterv1.ClusterNameLabel:         cluster.Name,
+					clusterv1.MachineControlPlaneLabel: "",
 				},
 			},
 			Spec: clusterv1.MachineSpec{
@@ -461,7 +461,7 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 				Name:      "nonControlPlaneWitNoderef",
 				Namespace: "test",
 				Labels: map[string]string{
-					clusterv1.ClusterLabelName: cluster.Name,
+					clusterv1.ClusterNameLabel: cluster.Name,
 				},
 			},
 			Spec: clusterv1.MachineSpec{
@@ -482,7 +482,7 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 				Name:      "nonControlPlaneWithoutNoderef",
 				Namespace: "test",
 				Labels: map[string]string{
-					clusterv1.ClusterLabelName: cluster.Name,
+					clusterv1.ClusterNameLabel: cluster.Name,
 				},
 			},
 			Spec: clusterv1.MachineSpec{
@@ -609,7 +609,7 @@ func (b *machineBuilder) ownedBy(c *clusterv1.Cluster) *machineBuilder {
 }
 
 func (b *machineBuilder) controlPlane() *machineBuilder {
-	b.m.Labels = map[string]string{clusterv1.MachineControlPlaneLabelName: ""}
+	b.m.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
 	return b
 }
 

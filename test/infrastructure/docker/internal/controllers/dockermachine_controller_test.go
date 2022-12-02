@@ -104,7 +104,7 @@ func newMachine(clusterName, machineName string, dockerMachine *infrav1.DockerMa
 		ObjectMeta: metav1.ObjectMeta{
 			Name: machineName,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 	}

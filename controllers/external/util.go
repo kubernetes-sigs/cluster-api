@@ -238,7 +238,7 @@ func GenerateTemplate(in *GenerateTemplateInput) (*unstructured.Unstructured, er
 	for key, value := range in.Labels {
 		labels[key] = value
 	}
-	labels[clusterv1.ClusterLabelName] = in.ClusterName
+	labels[clusterv1.ClusterNameLabel] = in.ClusterName
 	to.SetLabels(labels)
 
 	// Set the owner reference.

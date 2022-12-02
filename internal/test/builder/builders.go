@@ -1237,10 +1237,10 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 		obj.Spec.Template.Spec.ClusterName = m.clusterName
 		obj.Spec.ClusterName = m.clusterName
 		obj.Spec.Selector.MatchLabels = map[string]string{
-			clusterv1.ClusterLabelName: m.clusterName,
+			clusterv1.ClusterNameLabel: m.clusterName,
 		}
 		obj.Spec.Template.Labels = map[string]string{
-			clusterv1.ClusterLabelName: m.clusterName,
+			clusterv1.ClusterNameLabel: m.clusterName,
 		}
 	}
 	if m.defaulter {
@@ -1396,7 +1396,7 @@ func (m *MachineBuilder) Build() *clusterv1.Machine {
 		if len(m.labels) == 0 {
 			machine.Labels = map[string]string{}
 		}
-		machine.ObjectMeta.Labels[clusterv1.ClusterLabelName] = m.clusterName
+		machine.ObjectMeta.Labels[clusterv1.ClusterNameLabel] = m.clusterName
 	}
 	return machine
 }
@@ -1532,7 +1532,7 @@ func (m *MachineHealthCheckBuilder) Build() *clusterv1.MachineHealthCheck {
 		},
 	}
 	if m.clusterName != "" {
-		mhc.Labels = map[string]string{clusterv1.ClusterLabelName: m.clusterName}
+		mhc.Labels = map[string]string{clusterv1.ClusterNameLabel: m.clusterName}
 	}
 	if m.defaulter {
 		mhc.Default()

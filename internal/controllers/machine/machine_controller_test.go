@@ -132,7 +132,7 @@ func TestWatches(t *testing.T) {
 			GenerateName: "machine-created-",
 			Namespace:    ns.Name,
 			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabelName: "",
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 		},
 		Spec: clusterv1.MachineSpec{
@@ -445,7 +445,7 @@ func TestMachineOwnerReference(t *testing.T) {
 			Name:      "machine3",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: "valid-cluster",
+				clusterv1.ClusterNameLabel: "valid-cluster",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -469,8 +469,8 @@ func TestMachineOwnerReference(t *testing.T) {
 			Name:      "machine4",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName:             "valid-cluster",
-				clusterv1.MachineControlPlaneLabelName: "",
+				clusterv1.ClusterNameLabel:         "valid-cluster",
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -691,7 +691,7 @@ func TestReconcileRequest(t *testing.T) {
 					Name:      "deleted",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "",
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 					Finalizers:        []string{clusterv1.MachineFinalizer},
 					DeletionTimestamp: &time,
@@ -800,7 +800,7 @@ func TestMachineConditions(t *testing.T) {
 			Name:      "blah",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabelName: "",
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 			Finalizers: []string{clusterv1.MachineFinalizer},
 		},
@@ -1384,7 +1384,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Name:      "created",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "test-cluster",
+						clusterv1.ClusterNameLabel: "test-cluster",
 					},
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
@@ -1410,7 +1410,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Name:      "created",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "test-cluster",
+						clusterv1.ClusterNameLabel: "test-cluster",
 					},
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
@@ -1440,8 +1440,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Name:      "created",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName:             "test-cluster",
-						clusterv1.MachineControlPlaneLabelName: "",
+						clusterv1.ClusterNameLabel:         "test-cluster",
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 					Finalizers:        []string{clusterv1.MachineFinalizer},
 					DeletionTimestamp: &metav1.Time{Time: time.Now().UTC()},
@@ -1472,7 +1472,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Name:      "created",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "test-cluster",
+						clusterv1.ClusterNameLabel: "test-cluster",
 					},
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
@@ -1522,7 +1522,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Name:      "created",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "test-cluster",
+						clusterv1.ClusterNameLabel: "test-cluster",
 					},
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
@@ -1560,7 +1560,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Name:      "created",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "test-cluster",
+						clusterv1.ClusterNameLabel: "test-cluster",
 					},
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
@@ -1598,7 +1598,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Name:      "created",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "test-cluster",
+						clusterv1.ClusterNameLabel: "test-cluster",
 					},
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
@@ -1660,7 +1660,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Name:      "cp1",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "test-cluster",
+						clusterv1.ClusterNameLabel: "test-cluster",
 					},
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
@@ -1680,7 +1680,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Name:      "cp2",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.ClusterLabelName: "test-cluster",
+						clusterv1.ClusterNameLabel: "test-cluster",
 					},
 					Finalizers: []string{clusterv1.MachineFinalizer},
 				},
@@ -1697,8 +1697,8 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 			}
 			// For isDeleteNodeAllowed to be true we assume a healthy control plane.
 			if tc.expectedError == nil {
-				m1.Labels[clusterv1.MachineControlPlaneLabelName] = ""
-				m2.Labels[clusterv1.MachineControlPlaneLabelName] = ""
+				m1.Labels[clusterv1.MachineControlPlaneLabel] = ""
+				m2.Labels[clusterv1.MachineControlPlaneLabel] = ""
 			}
 
 			mr := &Reconciler{
@@ -1849,7 +1849,7 @@ func TestNodeToMachine(t *testing.T) {
 			GenerateName: "machine-created-",
 			Namespace:    ns.Name,
 			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabelName: "",
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 		},
 		Spec: clusterv1.MachineSpec{
@@ -1888,7 +1888,7 @@ func TestNodeToMachine(t *testing.T) {
 			GenerateName: "machine-created-",
 			Namespace:    ns.Name,
 			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabelName: "",
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 		},
 		Spec: clusterv1.MachineSpec{
@@ -2021,7 +2021,7 @@ func TestNodeDeletion(t *testing.T) {
 			Name:      "test",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.MachineControlPlaneLabelName: "",
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 			Annotations: map[string]string{
 				"machine.cluster.x-k8s.io/exclude-node-draining": "",
@@ -2050,8 +2050,8 @@ func TestNodeDeletion(t *testing.T) {
 			Name:      "cp1",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName:             "test-cluster",
-				clusterv1.MachineControlPlaneLabelName: "",
+				clusterv1.ClusterNameLabel:         "test-cluster",
+				clusterv1.MachineControlPlaneLabel: "",
 			},
 			Finalizers: []string{clusterv1.MachineFinalizer},
 		},

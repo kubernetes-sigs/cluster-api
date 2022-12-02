@@ -244,8 +244,8 @@ func (k *proxy) ListResources(labels map[string]string, namespaces ...string) ([
 		return nil, errors.Wrap(err, "failed to list CRDs")
 	}
 	for _, crd := range crdList.Items {
-		component, isCoreComponent := labels[clusterctlv1.ClusterctlCoreLabelName]
-		_, isProviderResource := crd.Labels[clusterv1.ProviderLabelName]
+		component, isCoreComponent := labels[clusterctlv1.ClusterctlCoreLabel]
+		_, isProviderResource := crd.Labels[clusterv1.ProviderNameLabel]
 		if (isCoreComponent && component == clusterctlv1.ClusterctlCoreLabelCertManagerValue) || isProviderResource {
 			for _, version := range crd.Spec.Versions {
 				crdsToExclude.Insert(metav1.GroupVersionKind{

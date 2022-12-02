@@ -50,7 +50,7 @@ func (m *Machine) Default() {
 	if m.Labels == nil {
 		m.Labels = make(map[string]string)
 	}
-	m.Labels[ClusterLabelName] = m.Spec.ClusterName
+	m.Labels[ClusterNameLabel] = m.Spec.ClusterName
 
 	if m.Spec.Bootstrap.ConfigRef != nil && m.Spec.Bootstrap.ConfigRef.Namespace == "" {
 		m.Spec.Bootstrap.ConfigRef.Namespace = m.Namespace

@@ -715,7 +715,7 @@ func workloadTask(name, workloadType, binaryName, containerName string, ts *tilt
 			if labels == nil {
 				labels = map[string]string{}
 			}
-			labels[clusterctlv1.ClusterctlLabelName] = ""
+			labels[clusterctlv1.ClusterctlLabel] = ""
 			o.SetLabels(labels)
 		}
 
@@ -870,14 +870,14 @@ func getProviderObj(prefix string, objs []unstructured.Unstructured) (*unstructu
 		}
 
 		namespace = objs[i].GetName()
-		manifestLabel = objs[i].GetLabels()[clusterv1.ProviderLabelName]
+		manifestLabel = objs[i].GetLabels()[clusterv1.ProviderNameLabel]
 		break
 	}
 
 	if manifestLabel == "" {
 		return nil, errors.Errorf(
 			"Could not find any Namespace object with label %s and therefore failed to deduce provider name and type",
-			clusterv1.ProviderLabelName)
+			clusterv1.ProviderNameLabel)
 	}
 
 	providerType := string(clusterctlv1.CoreProviderType)
@@ -912,9 +912,9 @@ func getProviderObj(prefix string, objs []unstructured.Unstructured) (*unstructu
 			Name:      manifestLabel,
 			Namespace: namespace,
 			Labels: map[string]string{
-				clusterv1.ProviderLabelName:          manifestLabel,
-				clusterctlv1.ClusterctlLabelName:     "",
-				clusterctlv1.ClusterctlCoreLabelName: clusterctlv1.ClusterctlCoreLabelInventoryValue,
+				clusterv1.ProviderNameLabel:      manifestLabel,
+				clusterctlv1.ClusterctlLabel:     "",
+				clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelInventoryValue,
 			},
 		},
 		ProviderName: providerName,

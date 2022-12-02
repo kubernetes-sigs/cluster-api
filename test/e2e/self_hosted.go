@@ -213,7 +213,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 			ctx,
 			preMoveMachineList,
 			client.InNamespace(namespace.Name),
-			client.MatchingLabels{clusterv1.ClusterLabelName: workloadClusterName},
+			client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
 		)
 		Expect(err).NotTo(HaveOccurred(), "Failed to list machines before move")
 
@@ -268,7 +268,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				ctx,
 				postMoveMachineList,
 				client.InNamespace(namespace.Name),
-				client.MatchingLabels{clusterv1.ClusterLabelName: workloadClusterName},
+				client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
 			)
 			Expect(err).NotTo(HaveOccurred(), "Failed to list machines after move")
 			return matchUnstructuredLists(preMoveMachineList, postMoveMachineList)

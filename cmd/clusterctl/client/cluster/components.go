@@ -134,8 +134,8 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	// Fetch all the components belonging to a provider.
 	// We want that the delete operation is able to clean-up everything.
 	labels := map[string]string{
-		clusterctlv1.ClusterctlLabelName: "",
-		clusterv1.ProviderLabelName:      options.Provider.ManifestLabel(),
+		clusterctlv1.ClusterctlLabel: "",
+		clusterv1.ProviderNameLabel:  options.Provider.ManifestLabel(),
 	}
 
 	namespaces := []string{options.Provider.Namespace}

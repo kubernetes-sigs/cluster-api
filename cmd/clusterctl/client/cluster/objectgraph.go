@@ -286,10 +286,10 @@ func (o *objectGraph) objInfoToNode(obj *unstructured.Unstructured, n *node) err
 
 func (o *objectGraph) objMetaToNode(obj *unstructured.Unstructured, n *node) {
 	n.identity.Namespace = obj.GetNamespace()
-	if _, ok := obj.GetLabels()[clusterctlv1.ClusterctlMoveLabelName]; ok {
+	if _, ok := obj.GetLabels()[clusterctlv1.ClusterctlMoveLabel]; ok {
 		n.forceMove = true
 	}
-	if _, ok := obj.GetLabels()[clusterctlv1.ClusterctlMoveHierarchyLabelName]; ok {
+	if _, ok := obj.GetLabels()[clusterctlv1.ClusterctlMoveHierarchyLabel]; ok {
 		n.forceMoveHierarchy = true
 	}
 
@@ -341,14 +341,14 @@ func (o *objectGraph) getDiscoveryTypes() error {
 			if crd.Spec.Group == addonsv1.GroupVersion.Group && crd.Spec.Names.Kind == "ClusterResourceSet" {
 				forceMoveHierarchy = true
 			}
-			if _, ok := crd.Labels[clusterctlv1.ClusterctlMoveHierarchyLabelName]; ok {
+			if _, ok := crd.Labels[clusterctlv1.ClusterctlMoveHierarchyLabel]; ok {
 				forceMoveHierarchy = true
 			}
 
 			// If a CRD is with as force move, keep track of this so all the objects of this type could be moved.
 			// NOTE: if a kind is set for force move-hierarchy, it is also automatically force moved.
 			forceMove := forceMoveHierarchy
-			if _, ok := crd.Labels[clusterctlv1.ClusterctlMoveLabelName]; ok {
+			if _, ok := crd.Labels[clusterctlv1.ClusterctlMoveLabel]; ok {
 				forceMove = true
 			}
 
@@ -391,7 +391,7 @@ func getCRDList(proxy Proxy, crdList *apiextensionsv1.CustomResourceDefinitionLi
 		return err
 	}
 
-	if err := c.List(ctx, crdList, client.HasLabels{clusterctlv1.ClusterctlLabelName}); err != nil {
+	if err := c.List(ctx, crdList, client.HasLabels{clusterctlv1.ClusterctlLabel}); err != nil {
 		return errors.Wrap(err, "failed to get the list of CRDs required for the move discovery phase")
 	}
 	return nil

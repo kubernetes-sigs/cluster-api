@@ -198,7 +198,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		d.Spec.Template.Labels = make(map[string]string)
 	}
 
-	d.Labels[clusterv1.ClusterLabelName] = d.Spec.ClusterName
+	d.Labels[clusterv1.ClusterNameLabel] = d.Spec.ClusterName
 
 	// Set the MachineDeployment as directly owned by the Cluster (if not already present).
 	if r.shouldAdopt(d) {
@@ -234,17 +234,17 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	// to all MachineSets created by a MachineDeployment or if a user manually removed the label.
 	for idx := range msList {
 		machineSet := msList[idx]
-		if name, ok := machineSet.Labels[clusterv1.MachineDeploymentLabelName]; ok && name == d.Name {
+		if name, ok := machineSet.Labels[clusterv1.MachineDeploymentNameLabel]; ok && name == d.Name {
 			continue
 		}
 
 		helper, err := patch.NewHelper(machineSet, r.Client)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentLabelName, machineSet.Name)
+			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
 		}
-		machineSet.Labels[clusterv1.MachineDeploymentLabelName] = d.Name
+		machineSet.Labels[clusterv1.MachineDeploymentNameLabel] = d.Name
 		if err := helper.Patch(ctx, machineSet); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentLabelName, machineSet.Name)
+			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
 		}
 	}
 

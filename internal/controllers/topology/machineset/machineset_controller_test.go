@@ -53,7 +53,7 @@ func TestMachineSetTopologyFinalizer(t *testing.T) {
 			},
 		}).
 		WithLabels(map[string]string{
-			clusterv1.MachineDeploymentLabelName: mdName,
+			clusterv1.MachineDeploymentNameLabel: mdName,
 			clusterv1.ClusterTopologyOwnedLabel:  "",
 		})
 
@@ -131,7 +131,7 @@ func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 		WithBootstrapTemplate(msBT).
 		WithInfrastructureTemplate(msIMT).
 		WithLabels(map[string]string{
-			clusterv1.MachineDeploymentLabelName: mdName,
+			clusterv1.MachineDeploymentNameLabel: mdName,
 		}).
 		Build()
 	ms.SetDeletionTimestamp(&deletionTimeStamp)
@@ -173,7 +173,7 @@ func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 		msWithoutBootstrapTemplate := builder.MachineSet(metav1.NamespaceDefault, "msWithoutBootstrapTemplate").
 			WithInfrastructureTemplate(msWithoutBootstrapTemplateIMT).
 			WithLabels(map[string]string{
-				clusterv1.MachineDeploymentLabelName: mdName,
+				clusterv1.MachineDeploymentNameLabel: mdName,
 			}).
 			Build()
 		msWithoutBootstrapTemplate.SetDeletionTimestamp(&deletionTimeStamp)
@@ -247,7 +247,7 @@ func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 			WithBootstrapTemplate(msBT).
 			WithInfrastructureTemplate(msIMT).
 			WithLabels(map[string]string{
-				clusterv1.MachineDeploymentLabelName: mdName,
+				clusterv1.MachineDeploymentNameLabel: mdName,
 			}).
 			Build()
 		anotherMS.SetOwnerReferences([]metav1.OwnerReference{

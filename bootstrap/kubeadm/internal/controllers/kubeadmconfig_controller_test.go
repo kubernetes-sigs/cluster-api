@@ -935,7 +935,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 			Name:      workerJoinConfig.Name,
 			Namespace: workerJoinConfig.Namespace,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: cluster.Name,
+				clusterv1.ClusterNameLabel: cluster.Name,
 			},
 			OwnerReferences: []metav1.OwnerReference{
 				{
@@ -2179,13 +2179,13 @@ func newWorkerMachineForCluster(cluster *clusterv1.Cluster) *clusterv1.Machine {
 		Build()
 }
 
-// newControlPlaneMachine returns a Machine with the passed Cluster information and a MachineControlPlaneLabelName.
+// newControlPlaneMachine returns a Machine with the passed Cluster information and a MachineControlPlaneLabel.
 func newControlPlaneMachine(cluster *clusterv1.Cluster, name string) *clusterv1.Machine {
 	m := builder.Machine(cluster.Namespace, name).
 		WithVersion("v1.19.1").
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(metav1.NamespaceDefault, "cfg").Unstructured()).
 		WithClusterName(cluster.Name).
-		WithLabels(map[string]string{clusterv1.MachineControlPlaneLabelName: ""}).
+		WithLabels(map[string]string{clusterv1.MachineControlPlaneLabel: ""}).
 		Build()
 	return m
 }
@@ -2194,7 +2194,7 @@ func newControlPlaneMachine(cluster *clusterv1.Cluster, name string) *clusterv1.
 func newMachinePool(cluster *clusterv1.Cluster, name string) *expv1.MachinePool {
 	m := builder.MachinePool(cluster.Namespace, name).
 		WithClusterName(cluster.Name).
-		WithLabels(map[string]string{clusterv1.ClusterLabelName: cluster.Name}).
+		WithLabels(map[string]string{clusterv1.ClusterNameLabel: cluster.Name}).
 		WithBootstrapTemplate(bootstrapbuilder.KubeadmConfig(cluster.Namespace, "conf1").Unstructured()).
 		WithVersion("1.19.1").
 		Build()

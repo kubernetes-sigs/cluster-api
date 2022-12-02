@@ -399,7 +399,7 @@ func (r *Reconciler) listDescendants(ctx context.Context, cluster *clusterv1.Clu
 
 	listOptions := []client.ListOption{
 		client.InNamespace(cluster.Namespace),
-		client.MatchingLabels(map[string]string{clusterv1.ClusterLabelName: cluster.Name}),
+		client.MatchingLabels(map[string]string{clusterv1.ClusterNameLabel: cluster.Name}),
 	}
 
 	if err := r.Client.List(ctx, &descendants.machineDeployments, listOptions...); err != nil {

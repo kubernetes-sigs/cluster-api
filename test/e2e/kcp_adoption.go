@@ -172,8 +172,8 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 			ctrlclient.InNamespace(namespace.Name),
 			ctrlclient.MatchingLabelsSelector{
 				Selector: labels.NewSelector().
-					Add(must(labels.NewRequirement(clusterv1.MachineControlPlaneLabelName, selection.Exists, []string{}))).
-					Add(must(labels.NewRequirement(clusterv1.ClusterLabelName, selection.Equals, []string{clusterName}))),
+					Add(must(labels.NewRequirement(clusterv1.MachineControlPlaneLabel, selection.Exists, []string{}))).
+					Add(must(labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Equals, []string{clusterName}))),
 			},
 		)).To(Succeed())
 
@@ -196,13 +196,13 @@ func KCPAdoptionSpec(ctx context.Context, inputGetter func() KCPAdoptionSpecInpu
 		Expect(client.List(ctx, &bootstrap,
 			ctrlclient.InNamespace(namespace.Name),
 			ctrlclient.MatchingLabels{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			})).To(Succeed())
 
 		By("Taking ownership of the cluster's PKI material")
 		secrets := corev1.SecretList{}
 		Expect(client.List(ctx, &secrets, ctrlclient.InNamespace(namespace.Name), ctrlclient.MatchingLabels{
-			clusterv1.ClusterLabelName: cluster.Name,
+			clusterv1.ClusterNameLabel: cluster.Name,
 		})).To(Succeed())
 
 		bootstrapSecrets := map[string]bootstrapv1.KubeadmConfig{}

@@ -259,13 +259,13 @@ func machineListForTestGetMachinesForCluster() *clusterv1.MachineList {
 				Name:      name,
 				Namespace: metav1.NamespaceDefault,
 				Labels: map[string]string{
-					clusterv1.ClusterLabelName: "my-cluster",
+					clusterv1.ClusterNameLabel: "my-cluster",
 				},
 			},
 		}
 	}
 	controlPlaneMachine := machine("first-machine")
-	controlPlaneMachine.ObjectMeta.Labels[clusterv1.MachineControlPlaneLabelName] = ""
+	controlPlaneMachine.ObjectMeta.Labels[clusterv1.MachineControlPlaneLabel] = ""
 	controlPlaneMachine.OwnerReferences = ownedRef
 
 	return &clusterv1.MachineList{

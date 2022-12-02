@@ -312,7 +312,7 @@ func (c *Certificate) AsSecret(clusterName client.ObjectKey, owner metav1.OwnerR
 			Namespace: clusterName.Namespace,
 			Name:      Name(clusterName.Name, c.Purpose),
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName.Name,
+				clusterv1.ClusterNameLabel: clusterName.Name,
 			},
 		},
 		Data: map[string][]byte{

@@ -135,12 +135,12 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(r.Client.Get(ctx, types.NamespacedName{Name: bootstrapConfig.GetName(), Namespace: bootstrapConfig.GetNamespace()}, bootstrapConfig)).To(Succeed())
 
 		g.Expect(bootstrapConfig.GetOwnerReferences()).To(HaveLen(1))
-		g.Expect(bootstrapConfig.GetLabels()[clusterv1.ClusterLabelName]).To(BeEquivalentTo(clusterName))
+		g.Expect(bootstrapConfig.GetLabels()[clusterv1.ClusterNameLabel]).To(BeEquivalentTo(clusterName))
 
 		g.Expect(r.Client.Get(ctx, types.NamespacedName{Name: infraConfig.GetName(), Namespace: infraConfig.GetNamespace()}, infraConfig)).To(Succeed())
 
 		g.Expect(infraConfig.GetOwnerReferences()).To(HaveLen(1))
-		g.Expect(infraConfig.GetLabels()[clusterv1.ClusterLabelName]).To(BeEquivalentTo(clusterName))
+		g.Expect(infraConfig.GetLabels()[clusterv1.ClusterNameLabel]).To(BeEquivalentTo(clusterName))
 	})
 
 	t.Run("Should set `Pending` with a new MachinePool", func(t *testing.T) {
@@ -479,7 +479,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			Name:      "machinepool-test",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 		Spec: expv1.MachinePoolSpec{
@@ -725,7 +725,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 			Name:      "machinepool-test",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: clusterName,
+				clusterv1.ClusterNameLabel: clusterName,
 			},
 		},
 		Spec: expv1.MachinePoolSpec{

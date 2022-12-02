@@ -256,7 +256,7 @@ func (p *inventoryClient) createObj(o unstructured.Unstructured) error {
 	if labels == nil {
 		labels = map[string]string{}
 	}
-	labels[clusterctlv1.ClusterctlCoreLabelName] = clusterctlv1.ClusterctlCoreLabelInventoryValue
+	labels[clusterctlv1.ClusterctlCoreLabel] = clusterctlv1.ClusterctlCoreLabelInventoryValue
 	o.SetLabels(labels)
 
 	if err := c.Create(ctx, &o); err != nil {

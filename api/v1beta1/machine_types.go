@@ -27,8 +27,8 @@ const (
 	// MachineFinalizer is set on PrepareForCreate callback.
 	MachineFinalizer = "machine.cluster.x-k8s.io"
 
-	// MachineControlPlaneLabelName is the label set on machines or related objects that are part of a control plane.
-	MachineControlPlaneLabelName = "cluster.x-k8s.io/control-plane"
+	// MachineControlPlaneLabel is the label set on machines or related objects that are part of a control plane.
+	MachineControlPlaneLabel = "cluster.x-k8s.io/control-plane"
 
 	// ExcludeNodeDrainingAnnotation annotation explicitly skips node draining if set.
 	ExcludeNodeDrainingAnnotation = "machine.cluster.x-k8s.io/exclude-node-draining"
@@ -36,11 +36,11 @@ const (
 	// ExcludeWaitForNodeVolumeDetachAnnotation annotation explicitly skips the waiting for node volume detaching if set.
 	ExcludeWaitForNodeVolumeDetachAnnotation = "machine.cluster.x-k8s.io/exclude-wait-for-node-volume-detach"
 
-	// MachineSetLabelName is the label set on machines if they're controlled by MachineSet.
-	MachineSetLabelName = "cluster.x-k8s.io/set-name"
+	// MachineSetNameLabel is the label set on machines if they're controlled by MachineSet.
+	MachineSetNameLabel = "cluster.x-k8s.io/set-name"
 
-	// MachineDeploymentLabelName is the label set on machines if they're controlled by MachineDeployment.
-	MachineDeploymentLabelName = "cluster.x-k8s.io/deployment-name"
+	// MachineDeploymentNameLabel is the label set on machines if they're controlled by MachineDeployment.
+	MachineDeploymentNameLabel = "cluster.x-k8s.io/deployment-name"
 
 	// MachineControlPlaneNameLabel is the label set on machines if they're controlled by a ControlPlane.
 	MachineControlPlaneNameLabel = "cluster.x-k8s.io/control-plane-name"

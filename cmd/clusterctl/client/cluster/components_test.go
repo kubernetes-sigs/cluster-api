@@ -37,7 +37,7 @@ import (
 
 func Test_providerComponents_Delete(t *testing.T) {
 	labels := map[string]string{
-		clusterv1.ProviderLabelName: "infrastructure-infra",
+		clusterv1.ProviderNameLabel: "infrastructure-infra",
 	}
 
 	crd := unstructured.Unstructured{}
@@ -340,7 +340,7 @@ func Test_providerComponents_DeleteCoreProviderWebhookNamespace(t *testing.T) {
 
 func Test_providerComponents_Create(t *testing.T) {
 	labelsOne := map[string]string{
-		clusterv1.ProviderLabelName: "infrastructure-infra",
+		clusterv1.ProviderNameLabel: "infrastructure-infra",
 	}
 	commonObjects := []client.Object{
 		// Namespace for the provider

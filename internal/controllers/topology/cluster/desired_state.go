@@ -234,7 +234,7 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 		if machineLabels == nil {
 			machineLabels = map[string]string{}
 		}
-		machineLabels[clusterv1.ClusterLabelName] = cluster.Name
+		machineLabels[clusterv1.ClusterNameLabel] = cluster.Name
 		machineLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
 		if err := contract.ControlPlane().MachineTemplate().Metadata().Set(controlPlane,
 			&clusterv1.ObjectMeta{
@@ -460,7 +460,7 @@ func computeCluster(_ context.Context, s *scope.Scope, infrastructureCluster, co
 	if cluster.Labels == nil {
 		cluster.Labels = map[string]string{}
 	}
-	cluster.Labels[clusterv1.ClusterLabelName] = cluster.Name
+	cluster.Labels[clusterv1.ClusterNameLabel] = cluster.Name
 	cluster.Labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 
 	// Set the references to the infrastructureCluster and controlPlane objects.
@@ -572,7 +572,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		bootstrapTemplateLabels = map[string]string{}
 	}
 	// Add ClusterTopologyMachineDeploymentLabel to the generated Bootstrap template
-	bootstrapTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
+	bootstrapTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
 	desiredMachineDeployment.BootstrapTemplate.SetLabels(bootstrapTemplateLabels)
 
 	// Compute the Infrastructure template.
@@ -597,7 +597,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 		infraMachineTemplateLabels = map[string]string{}
 	}
 	// Add ClusterTopologyMachineDeploymentLabel to the generated InfrastructureMachine template
-	infraMachineTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
+	infraMachineTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
 	desiredMachineDeployment.InfrastructureMachineTemplate.SetLabels(infraMachineTemplateLabels)
 	version, err := computeMachineDeploymentVersion(s, desiredControlPlaneState, currentMachineDeployment)
 	if err != nil {
@@ -687,18 +687,18 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	// NOTE: On top of all the labels applied to managed objects we are applying the ClusterTopologyMachineDeploymentLabel
 	// keeping track of the MachineDeployment name from the Topology; this will be used to identify the object in next reconcile loops.
 	labels := map[string]string{}
-	labels[clusterv1.ClusterLabelName] = s.Current.Cluster.Name
+	labels[clusterv1.ClusterNameLabel] = s.Current.Cluster.Name
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
-	labels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
+	labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
 	desiredMachineDeploymentObj.SetLabels(labels)
 
 	// Set the selector with the subset of labels identifying controlled machines.
 	// NOTE: this prevents the web hook to add cluster.x-k8s.io/deployment-name label, that is
 	// redundant for managed MachineDeployments given that we already have topology.cluster.x-k8s.io/deployment-name.
 	desiredMachineDeploymentObj.Spec.Selector.MatchLabels = map[string]string{}
-	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterLabelName] = s.Current.Cluster.Name
+	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = s.Current.Cluster.Name
 	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
-	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
+	desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
 
 	// Also set the labels in .spec.template.labels so that they are propagated to
 	// MachineSet.labels and MachineSet.spec.template.labels and thus to Machine.labels.
@@ -706,9 +706,9 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	if desiredMachineDeploymentObj.Spec.Template.Labels == nil {
 		desiredMachineDeploymentObj.Spec.Template.Labels = map[string]string{}
 	}
-	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterLabelName] = s.Current.Cluster.Name
+	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterNameLabel] = s.Current.Cluster.Name
 	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterTopologyOwnedLabel] = ""
-	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName] = machineDeploymentTopology.Name
+	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
 
 	// Set the desired replicas.
 	desiredMachineDeploymentObj.Spec.Replicas = machineDeploymentTopology.Replicas
@@ -849,7 +849,7 @@ func templateToObject(in templateToInput) (*unstructured.Unstructured, error) {
 	// NOTE: The cluster label is added at creation time so this object could be read by the ClusterTopology
 	// controller immediately after creation, even before other controllers are going to add the label (if missing).
 	labels := map[string]string{}
-	labels[clusterv1.ClusterLabelName] = in.cluster.Name
+	labels[clusterv1.ClusterNameLabel] = in.cluster.Name
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 
 	// Generate the object from the template.
@@ -901,7 +901,7 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	if labels == nil {
 		labels = map[string]string{}
 	}
-	labels[clusterv1.ClusterLabelName] = in.cluster.Name
+	labels[clusterv1.ClusterNameLabel] = in.cluster.Name
 	labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 	template.SetLabels(labels)
 
@@ -995,8 +995,8 @@ func selectorForControlPlaneMHC() *metav1.LabelSelector {
 	// It does not include any labels set in ClusterClass, Cluster Topology or elsewhere.
 	return &metav1.LabelSelector{
 		MatchLabels: map[string]string{
-			clusterv1.ClusterTopologyOwnedLabel:    "",
-			clusterv1.MachineControlPlaneLabelName: "",
+			clusterv1.ClusterTopologyOwnedLabel: "",
+			clusterv1.MachineControlPlaneLabel:  "",
 		},
 	}
 }
@@ -1006,7 +1006,7 @@ func selectorForMachineDeploymentMHC(md *clusterv1.MachineDeployment) *metav1.La
 	// It does not include any labels set in ClusterClass, Cluster Topology or elsewhere.
 	return &metav1.LabelSelector{MatchLabels: map[string]string{
 		clusterv1.ClusterTopologyOwnedLabel:                 "",
-		clusterv1.ClusterTopologyMachineDeploymentLabelName: md.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentLabelName],
+		clusterv1.ClusterTopologyMachineDeploymentNameLabel: md.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel],
 	},
 	}
 }

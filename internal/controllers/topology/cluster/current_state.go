@@ -164,7 +164,7 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 	md := &clusterv1.MachineDeploymentList{}
 	err := r.APIReader.List(ctx, md,
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName:          cluster.Name,
+			clusterv1.ClusterNameLabel:          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel: "",
 		},
 		client.InNamespace(cluster.Namespace),
@@ -180,16 +180,16 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 
 		// Retrieve the name which is assigned in Cluster's topology
 		// from a well-defined label.
-		mdTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentLabelName]
+		mdTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]
 		if !ok || mdTopologyName == "" {
-			return nil, fmt.Errorf("failed to find label %s in %s", clusterv1.ClusterTopologyMachineDeploymentLabelName, tlog.KObj{Obj: m})
+			return nil, fmt.Errorf("failed to find label %s in %s", clusterv1.ClusterTopologyMachineDeploymentNameLabel, tlog.KObj{Obj: m})
 		}
 
 		// Make sure that the name of the MachineDeployment stays unique.
 		// If we've already seen a MachineDeployment with the same name
 		// this is an error, probably caused from manual modifications or a race condition.
 		if _, ok := state[mdTopologyName]; ok {
-			return nil, fmt.Errorf("duplicate %s found for label %s: %s", tlog.KObj{Obj: m}, clusterv1.ClusterTopologyMachineDeploymentLabelName, mdTopologyName)
+			return nil, fmt.Errorf("duplicate %s found for label %s: %s", tlog.KObj{Obj: m}, clusterv1.ClusterTopologyMachineDeploymentNameLabel, mdTopologyName)
 		}
 
 		// Gets the bootstrapRef.

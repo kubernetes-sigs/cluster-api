@@ -32,8 +32,8 @@ import (
 
 func Test_ObjectRollbacker(t *testing.T) {
 	labels := map[string]string{
-		clusterv1.ClusterLabelName:           "test",
-		clusterv1.MachineDeploymentLabelName: "test-md-0",
+		clusterv1.ClusterNameLabel:           "test",
+		clusterv1.MachineDeploymentNameLabel: "test-md-0",
 	}
 	currentVersion := "v1.19.3"
 	rollbackVersion := "v1.19.1"
@@ -45,7 +45,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 			Name:      "test-md-0",
 			Namespace: "default",
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: "test",
+				clusterv1.ClusterNameLabel: "test",
 			},
 			Annotations: map[string]string{
 				clusterv1.RevisionAnnotation: "2",
@@ -55,7 +55,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 			ClusterName: "test",
 			Selector: metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					clusterv1.ClusterLabelName: "test",
+					clusterv1.ClusterNameLabel: "test",
 				},
 			},
 			Template: clusterv1.MachineTemplateSpec{
@@ -106,7 +106,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 								*metav1.NewControllerRef(deployment, clusterv1.GroupVersion.WithKind("MachineDeployment")),
 							},
 							Labels: map[string]string{
-								clusterv1.ClusterLabelName: "test",
+								clusterv1.ClusterNameLabel: "test",
 							},
 							Annotations: map[string]string{
 								clusterv1.RevisionAnnotation: "2",
@@ -124,7 +124,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 								*metav1.NewControllerRef(deployment, clusterv1.GroupVersion.WithKind("MachineDeployment")),
 							},
 							Labels: map[string]string{
-								clusterv1.ClusterLabelName: "test",
+								clusterv1.ClusterNameLabel: "test",
 							},
 							Annotations: map[string]string{
 								clusterv1.RevisionAnnotation: "999",
@@ -134,7 +134,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 							ClusterName: "test",
 							Selector: metav1.LabelSelector{
 								MatchLabels: map[string]string{
-									clusterv1.ClusterLabelName: "test",
+									clusterv1.ClusterNameLabel: "test",
 								},
 							},
 							Template: clusterv1.MachineTemplateSpec{
@@ -185,7 +185,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 								*metav1.NewControllerRef(deployment, clusterv1.GroupVersion.WithKind("MachineDeployment")),
 							},
 							Labels: map[string]string{
-								clusterv1.ClusterLabelName: "test",
+								clusterv1.ClusterNameLabel: "test",
 							},
 							Annotations: map[string]string{
 								clusterv1.RevisionAnnotation: "2",
@@ -218,7 +218,7 @@ func Test_ObjectRollbacker(t *testing.T) {
 								*metav1.NewControllerRef(deployment, clusterv1.GroupVersion.WithKind("MachineDeployment")),
 							},
 							Labels: map[string]string{
-								clusterv1.ClusterLabelName: "test",
+								clusterv1.ClusterNameLabel: "test",
 							},
 							Annotations: map[string]string{
 								clusterv1.RevisionAnnotation: "2",

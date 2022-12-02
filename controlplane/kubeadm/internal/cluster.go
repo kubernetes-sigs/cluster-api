@@ -88,7 +88,7 @@ func (m *Management) GetMachinePoolsForCluster(ctx context.Context, cluster *clu
 	selectors := []client.ListOption{
 		client.InNamespace(cluster.GetNamespace()),
 		client.MatchingLabels{
-			clusterv1.ClusterLabelName: cluster.GetName(),
+			clusterv1.ClusterNameLabel: cluster.GetName(),
 		},
 	}
 	machinePoolList := &expv1.MachinePoolList{}

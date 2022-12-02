@@ -19,23 +19,23 @@ package v1alpha3
 import "fmt"
 
 const (
-	// ClusterctlLabelName is applied to all components managed by clusterctl.
-	ClusterctlLabelName = "clusterctl.cluster.x-k8s.io"
+	// ClusterctlLabel is applied to all components managed by clusterctl.
+	ClusterctlLabel = "clusterctl.cluster.x-k8s.io"
 
-	// ClusterctlCoreLabelName is applied to all the core objects managed by clusterctl.
-	ClusterctlCoreLabelName = "clusterctl.cluster.x-k8s.io/core"
+	// ClusterctlCoreLabel is applied to all the core objects managed by clusterctl.
+	ClusterctlCoreLabel = "clusterctl.cluster.x-k8s.io/core"
 
-	// ClusterctlCoreLabelInventoryValue define the value for ClusterctlCoreLabelName to be used for inventory objects.
+	// ClusterctlCoreLabelInventoryValue define the value for ClusterctlCoreLabel to be used for inventory objects.
 	ClusterctlCoreLabelInventoryValue = "inventory"
 
-	// ClusterctlCoreLabelCertManagerValue define the value for ClusterctlCoreLabelName to be used for cert-manager objects.
+	// ClusterctlCoreLabelCertManagerValue define the value for ClusterctlCoreLabel to be used for cert-manager objects.
 	ClusterctlCoreLabelCertManagerValue = "cert-manager"
 
-	// ClusterctlMoveLabelName can be set on CRDs that providers wish to move but that are not part of a Cluster.
-	ClusterctlMoveLabelName = "clusterctl.cluster.x-k8s.io/move"
+	// ClusterctlMoveLabel can be set on CRDs that providers wish to move but that are not part of a Cluster.
+	ClusterctlMoveLabel = "clusterctl.cluster.x-k8s.io/move"
 
-	// ClusterctlMoveHierarchyLabelName can be set on CRDs that providers wish to move with their entire hierarchy, but that are not part of a Cluster.
-	ClusterctlMoveHierarchyLabelName = "clusterctl.cluster.x-k8s.io/move-hierarchy"
+	// ClusterctlMoveHierarchyLabel can be set on CRDs that providers wish to move with their entire hierarchy, but that are not part of a Cluster.
+	ClusterctlMoveHierarchyLabel = "clusterctl.cluster.x-k8s.io/move-hierarchy"
 )
 
 // ManifestLabel returns the cluster.x-k8s.io/provider label value for a provider/type.

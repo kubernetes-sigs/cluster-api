@@ -174,7 +174,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 			Name:      "machinePool3",
 			Namespace: metav1.NamespaceDefault,
 			Labels: map[string]string{
-				clusterv1.ClusterLabelName: "valid-cluster",
+				clusterv1.ClusterNameLabel: "valid-cluster",
 			},
 		},
 		Spec: expv1.MachinePoolSpec{
@@ -379,7 +379,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Name:      "deleted",
 					Namespace: metav1.NamespaceDefault,
 					Labels: map[string]string{
-						clusterv1.MachineControlPlaneLabelName: "",
+						clusterv1.MachineControlPlaneLabel: "",
 					},
 					Finalizers:        []string{expv1.MachinePoolFinalizer},
 					DeletionTimestamp: &time,

@@ -102,7 +102,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	labels[clusterv1.ClusterLabelName] = cluster.Name
+	labels[clusterv1.ClusterNameLabel] = cluster.Name
 	obj.SetLabels(labels)
 
 	// Always attempt to Patch the external object.

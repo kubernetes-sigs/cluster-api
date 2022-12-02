@@ -235,7 +235,7 @@ metadata:
 		testCluster.SetLabels(labels)
 		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
 
-		t.Log("Verifying ClusterResourceSetBinding is created with cluster owner reference")
+		t.Log("Verifying ClusterResourceSetBinding is created with cluster name")
 		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 			clusterResourceSetBindingKey := client.ObjectKey{
@@ -247,12 +247,7 @@ metadata:
 				return false
 			}
 
-			return util.HasOwnerRef(binding.GetOwnerReferences(), metav1.OwnerReference{
-				APIVersion: clusterv1.GroupVersion.String(),
-				Kind:       "Cluster",
-				Name:       testCluster.Name,
-				UID:        testCluster.UID,
-			})
+			return binding.Spec.ClusterName == testCluster.Name
 		}, timeout).Should(BeTrue())
 
 		// Wait until ClusterResourceSetBinding is created for the Cluster
@@ -528,8 +523,8 @@ metadata:
 			if err != nil {
 				return false
 			}
-			return len(binding.Spec.Bindings) == 2 && len(binding.OwnerReferences) == 3
-		}, timeout).Should(BeTrue(), "Expected 2 ClusterResourceSets and 3 OwnerReferences")
+			return len(binding.Spec.Bindings) == 2 && len(binding.OwnerReferences) == 2
+		}, timeout).Should(BeTrue(), "Expected 2 ClusterResourceSets and 2 OwnerReferences")
 
 		t.Log("Verifying deleted CRS is deleted from ClusterResourceSetBinding")
 		// Delete one of the CRS instances and wait until it is removed from the binding list.
@@ -544,8 +539,8 @@ metadata:
 			if err != nil {
 				return false
 			}
-			return len(binding.Spec.Bindings) == 1 && len(binding.OwnerReferences) == 2
-		}, timeout).Should(BeTrue(), "ClusterResourceSetBinding should have 1 ClusterResourceSet and 2 OwnerReferences")
+			return len(binding.Spec.Bindings) == 1 && len(binding.OwnerReferences) == 1
+		}, timeout).Should(BeTrue(), "ClusterResourceSetBinding should have 1 ClusterResourceSet and 1 OwnerReferences")
 
 		t.Log("Verifying ClusterResourceSetBinding is deleted after deleting all matching CRS objects")
 		// Delete one of the CRS instances and wait until it is removed from the binding list.
@@ -940,12 +935,7 @@ func clusterResourceSetBindingReady(env *envtest.Environment, cluster *clusterv1
 			return false
 		}
 
-		return util.HasOwnerRef(binding.GetOwnerReferences(), metav1.OwnerReference{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-			Name:       cluster.Name,
-			UID:        cluster.UID,
-		})
+		return binding.Spec.ClusterName == cluster.Name
 	}
 }
 

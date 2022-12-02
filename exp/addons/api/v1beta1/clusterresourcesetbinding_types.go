@@ -133,6 +133,11 @@ type ClusterResourceSetBindingSpec struct {
 	// Bindings is a list of ClusterResourceSets and their resources.
 	// +optional
 	Bindings []*ResourceSetBinding `json:"bindings,omitempty"`
+
+	// ClusterName is the name of the Cluster this binding applies to.
+	// Note: this field mandatory in v1beta2.
+	// +optional
+	ClusterName string `json:"clusterName,omitempty"`
 }
 
 // ANCHOR_END: ClusterResourceSetBindingSpec

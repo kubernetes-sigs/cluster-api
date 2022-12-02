@@ -272,6 +272,10 @@ spec:
                   - clusterResourceSetName
                   type: object
                 type: array
+              clusterName:
+                description: 'ClusterName is the name of the Cluster this binding
+                  applies to. Note: this field mandatory in v1beta2.'
+                type: string
             type: object
         type: object
     served: true

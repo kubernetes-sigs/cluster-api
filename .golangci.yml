@@ -165,7 +165,7 @@ linters-settings:
       - name: error-strings
       - name: error-naming
       - name: exported
-      #- name: if-return  # TODO This is a recommended rule with many findings which may require it's own pr.
+      - name: if-return
       - name: increment-decrement
       - name: var-naming
       - name: var-declaration
@@ -269,16 +269,28 @@ issues:
     text: "SA1019: in.(.+) is deprecated"
     path: .*(api|types)\/.*\/conversion.*\.go$
   - linters:
+      - revive
+    # Checking if an error is nil to just after return the error or nil is redundant
+    text: "if-return: redundant if ...; err != nil check, just return error instead"
+    # Ignoring stylistic checks for generated code
+    path: .*(api|types|test)\/.*\/conversion.*\.go$
+  - linters:
     - revive
+    # Exported function and methods should have comments. This warns on undocumented exported functions and methods.
     text: exported (method|function|type|const) (.+) should have comment or be unexported
+    # Ignoring stylistic checks for generated code
     path: .*(api|types|test)\/.*\/conversion.*\.go$
   - linters:
     - revive
+    # This rule warns when initialism, variable or package naming conventions are not followed.
     text: "var-naming: don't use underscores in Go names;"
+    # Ignoring stylistic checks for generated code
     path: .*(api|types|test)\/.*\/conversion.*\.go$
   - linters:
     - revive
+    # By convention, receiver names in a method should reflect their identity.
     text: "receiver-naming: receiver name"
+    # Ignoring stylistic checks for generated code
     path: .*(api|types)\/.*\/conversion.*\.go$
   - linters:
     - stylecheck

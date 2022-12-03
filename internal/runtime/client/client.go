@@ -108,10 +108,7 @@ type client struct {
 }
 
 func (c *client) WarmUp(extensionConfigList *runtimev1.ExtensionConfigList) error {
-	if err := c.registry.WarmUp(extensionConfigList); err != nil {
-		return err
-	}
-	return nil
+	return c.registry.WarmUp(extensionConfigList)
 }
 
 func (c *client) IsReady() bool {

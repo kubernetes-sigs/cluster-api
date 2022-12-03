@@ -190,13 +190,10 @@ func (k *proxy) CheckClusterAvailable() error {
 	}
 
 	connectBackoff := newShortConnectBackoff()
-	if err := retryWithExponentialBackoff(connectBackoff, func() error {
+	return retryWithExponentialBackoff(connectBackoff, func() error {
 		_, err := client.New(config, client.Options{Scheme: localScheme})
 		return err
-	}); err != nil {
-		return err
-	}
-	return nil
+	})
 }
 
 // ListResources lists namespaced and cluster-wide resources for a component matching the labels. Namespaced resources are only listed

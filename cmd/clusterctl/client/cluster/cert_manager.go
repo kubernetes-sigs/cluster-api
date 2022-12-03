@@ -289,11 +289,7 @@ func (cm *certManagerClient) migrateCRDs() error {
 		return err
 	}
 
-	if err := newCRDMigrator(c).Run(ctx, objs); err != nil {
-		return err
-	}
-
-	return nil
+	return newCRDMigrator(c).Run(ctx, objs)
 }
 
 func (cm *certManagerClient) deleteObjs(objs []unstructured.Unstructured) error {

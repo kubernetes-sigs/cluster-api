@@ -190,11 +190,7 @@ func (r *Reconciler) callAfterHooks(ctx context.Context, s *scope.Scope) error {
 		return err
 	}
 
-	if err := r.callAfterClusterUpgrade(ctx, s); err != nil {
-		return err
-	}
-
-	return nil
+	return r.callAfterClusterUpgrade(ctx, s)
 }
 
 func (r *Reconciler) callAfterControlPlaneInitialized(ctx context.Context, s *scope.Scope) error {

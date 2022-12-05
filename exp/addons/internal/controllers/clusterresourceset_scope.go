@@ -69,28 +69,18 @@ func newResourceReconcileScope(
 	normalizedData [][]byte,
 	objs []unstructured.Unstructured,
 ) resourceReconcileScope {
+	base := baseResourceReconcileScope{
+		clusterResourceSet: clusterResourceSet,
+		resourceRef:        resourceRef,
+		resourceSetBinding: resourceSetBinding,
+		data:               normalizedData,
+		normalizedObjs:     objs,
+		computedHash:       computeHash(normalizedData),
+	}
 	if clusterResourceSet.IsStrategy(addonsv1.ClusterResourceSetStrategyApplyOnce) {
-		return &reconcileApplyOnceScope{
-			baseResourceReconcileScope{
-				clusterResourceSet: clusterResourceSet,
-				resourceRef:        resourceRef,
-				resourceSetBinding: resourceSetBinding,
-				data:               normalizedData,
-				normalizedObjs:     objs,
-				computedHash:       computeHash(normalizedData),
-			},
-		}
+		return &reconcileApplyOnceScope{base}
 	} else if clusterResourceSet.IsStrategy(addonsv1.ClusterResourceSetStrategyReconcile) {
-		return &reconcileStrategyScope{
-			baseResourceReconcileScope{
-				clusterResourceSet: clusterResourceSet,
-				resourceRef:        resourceRef,
-				resourceSetBinding: resourceSetBinding,
-				data:               normalizedData,
-				normalizedObjs:     objs,
-				computedHash:       computeHash(normalizedData),
-			},
-		}
+		return &reconcileStrategyScope{base}
 	}
 
 	return nil

@@ -31,7 +31,7 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 		want  bool
 	}{
 		{
-			name: "not binding",
+			name: "no ResourceBinding",
 			scope: &reconcileStrategyScope{
 				baseResourceReconcileScope: baseResourceReconcileScope{
 					resourceSetBinding: &addonsv1.ResourceSetBinding{},
@@ -44,7 +44,7 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "not applied binding",
+			name: "not applied ResourceBinding",
 			scope: &reconcileStrategyScope{
 				baseResourceReconcileScope: baseResourceReconcileScope{
 					resourceSetBinding: &addonsv1.ResourceSetBinding{
@@ -67,7 +67,7 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "applied binding and different hash",
+			name: "applied ResourceBinding and different hash",
 			scope: &reconcileStrategyScope{
 				baseResourceReconcileScope: baseResourceReconcileScope{
 					resourceSetBinding: &addonsv1.ResourceSetBinding{
@@ -92,7 +92,7 @@ func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "applied binding and same hash",
+			name: "applied ResourceBinding and same hash",
 			scope: &reconcileStrategyScope{
 				baseResourceReconcileScope: baseResourceReconcileScope{
 					resourceSetBinding: &addonsv1.ResourceSetBinding{
@@ -132,7 +132,7 @@ func TestReconcileApplyOnceScopeNeedsApply(t *testing.T) {
 		want  bool
 	}{
 		{
-			name: "not applied binding",
+			name: "not applied ResourceBinding",
 			scope: &reconcileApplyOnceScope{
 				baseResourceReconcileScope: baseResourceReconcileScope{
 					resourceSetBinding: &addonsv1.ResourceSetBinding{
@@ -155,7 +155,7 @@ func TestReconcileApplyOnceScopeNeedsApply(t *testing.T) {
 			want: true,
 		},
 		{
-			name: "applied binding",
+			name: "applied ResourceBinding",
 			scope: &reconcileApplyOnceScope{
 				baseResourceReconcileScope: baseResourceReconcileScope{
 					resourceSetBinding: &addonsv1.ResourceSetBinding{

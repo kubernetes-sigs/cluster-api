@@ -93,10 +93,10 @@ type Client interface {
 	Unregister(extensionConfig *runtimev1.ExtensionConfig) error
 
 	// CallAllExtensions calls all the ExtensionHandler registered for the hook.
-	CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtime.Object, response runtimehooksv1.ResponseObject) error
+	CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error
 
 	// CallExtension calls the ExtensionHandler with the given name.
-	CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtime.Object, response runtimehooksv1.ResponseObject) error
+	CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error
 }
 
 var _ Client = &client{}
@@ -193,7 +193,7 @@ func (c *client) Unregister(extensionConfig *runtimev1.ExtensionConfig) error {
 // This ensures we don't end up waiting for timeout from multiple unreachable Extensions.
 // See CallExtension for more details on when an ExtensionHandler returns an error.
 // The aggregated result of the ExtensionHandlers is updated into the response object passed to the function.
-func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtime.Object, response runtimehooksv1.ResponseObject) error {
+func (c *client) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error {
 	hookName := runtimecatalog.HookName(hook)
 	log := ctrl.LoggerFrom(ctx).WithValues("hook", hookName)
 	ctx = ctrl.LoggerInto(ctx, log)
@@ -287,7 +287,7 @@ func aggregateSuccessfulResponses(aggregatedResponse runtimehooksv1.ResponseObje
 // Nb. FailurePolicy does not affect the following kinds of errors:
 // - Internal errors. Examples: hooks is incompatible with ExtensionHandler, ExtensionHandler information is missing.
 // - Error when ExtensionHandler returns a response with `Status` set to `Failure`.
-func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtime.Object, response runtimehooksv1.ResponseObject) error {
+func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, forObject metav1.Object, name string, request runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error {
 	log := ctrl.LoggerFrom(ctx).WithValues("extensionHandler", name, "hook", runtimecatalog.HookName(hook))
 	ctx = ctrl.LoggerInto(ctx, log)
 	hookGVH, err := c.catalog.GroupVersionHook(hook)
@@ -326,6 +326,10 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	if registration.TimeoutSeconds != nil {
 		timeoutDuration = time.Duration(*registration.TimeoutSeconds) * time.Second
 	}
+
+	// Prepare the request by merging the settings in the registration with the settings in the request.
+	request = cloneAndAddSettings(request, registration.Settings)
+
 	opts := &httpCallOptions{
 		catalog:         c.catalog,
 		config:          registration.ClientConfig,
@@ -366,6 +370,23 @@ func (c *client) CallExtension(ctx context.Context, hook runtimecatalog.Hook, fo
 	// Received a successful response from the extension handler. The `response` object
 	// has been populated with the result. Return no error.
 	return nil
+}
+
+// cloneAndAddSettings creates a new request object and adds settings to it.
+func cloneAndAddSettings(request runtimehooksv1.RequestObject, registrationSettings map[string]string) runtimehooksv1.RequestObject {
+	// Merge the settings from registration with the settings in the request.
+	// The values in request take precedence over the values in the registration.
+	// Create a deepcopy object to avoid side-effects on the request object.
+	request = request.DeepCopyObject().(runtimehooksv1.RequestObject)
+	settings := map[string]string{}
+	for k, v := range registrationSettings {
+		settings[k] = v
+	}
+	for k, v := range request.GetSettings() {
+		settings[k] = v
+	}
+	request.SetSettings(settings)
+	return request
 }
 
 type httpCallOptions struct {

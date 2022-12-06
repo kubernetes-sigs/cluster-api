@@ -835,6 +835,13 @@ spec:
                           description: GenerateExtension references an extension which
                             is called to generate patches.
                           type: string
+                        settings:
+                          additionalProperties:
+                            type: string
+                          description: Settings defines key value pairs to be passed
+                            to the extensions. Values defined here take precedence
+                            over the values defined in the corresponding ExtensionConfig.
+                          type: object
                         validateExtension:
                           description: ValidateExtension references an extension which
                             is called to validate the topology.

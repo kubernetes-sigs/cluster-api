@@ -48,6 +48,16 @@ func (e externalPatchGenerator) Generate(ctx context.Context, forObject client.O
 	if !feature.Gates.Enabled(feature.RuntimeSDK) {
 		return nil, errors.Errorf("can not use external patch %q if RuntimeSDK feature flag is disabled", *e.patch.External.GenerateExtension)
 	}
+
+	// Set the settings defined in external patch definition on the request object.
+	// These settings will override overlapping keys defined in ExtensionConfig settings.
+	req.Settings = e.patch.External.Settings
+	// The req object is re-used across multiple calls to the patch generator.
+	// Reset the settings so that the request does not remain modified here.
+	defer func() {
+		req.Settings = nil
+	}()
+
 	resp := &runtimehooksv1.GeneratePatchesResponse{}
 	err := e.runtimeClient.CallExtension(ctx, runtimehooksv1.GeneratePatches, forObject, *e.patch.External.GenerateExtension, req, resp)
 	if err != nil {

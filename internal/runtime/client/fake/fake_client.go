@@ -23,7 +23,6 @@ import (
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 
 	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
@@ -92,7 +91,7 @@ type RuntimeClient struct {
 }
 
 // CallAllExtensions implements Client.
-func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, _ metav1.Object, _ runtime.Object, response runtimehooksv1.ResponseObject) error {
+func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecatalog.Hook, _ metav1.Object, _ runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error {
 	defer func() {
 		fc.callAllTracker[runtimecatalog.HookName(hook)]++
 	}()
@@ -120,7 +119,7 @@ func (fc *RuntimeClient) CallAllExtensions(ctx context.Context, hook runtimecata
 }
 
 // CallExtension implements Client.
-func (fc *RuntimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hook, _ metav1.Object, name string, _ runtime.Object, response runtimehooksv1.ResponseObject) error {
+func (fc *RuntimeClient) CallExtension(ctx context.Context, _ runtimecatalog.Hook, _ metav1.Object, name string, _ runtimehooksv1.RequestObject, response runtimehooksv1.ResponseObject) error {
 	expectedResponse, ok := fc.callResponses[name]
 	if !ok {
 		// This should actually panic because an error here would mean a mistake in the test setup.

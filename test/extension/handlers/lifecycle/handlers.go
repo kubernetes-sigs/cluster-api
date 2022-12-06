@@ -64,7 +64,7 @@ func (m *ExtensionHandlers) DoBeforeClusterCreate(ctx context.Context, request *
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("BeforeClusterCreate is called")
 
-	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.BeforeClusterCreate, response); err != nil {
+	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.BeforeClusterCreate, request.GetSettings(), response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
@@ -83,7 +83,7 @@ func (m *ExtensionHandlers) DoBeforeClusterUpgrade(ctx context.Context, request 
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("BeforeClusterUpgrade is called")
 
-	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.BeforeClusterUpgrade, response); err != nil {
+	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.BeforeClusterUpgrade, request.GetSettings(), response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
@@ -103,7 +103,7 @@ func (m *ExtensionHandlers) DoAfterControlPlaneInitialized(ctx context.Context, 
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("AfterControlPlaneInitialized is called")
 
-	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.AfterControlPlaneInitialized, response); err != nil {
+	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.AfterControlPlaneInitialized, request.GetSettings(), response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
@@ -123,7 +123,7 @@ func (m *ExtensionHandlers) DoAfterControlPlaneUpgrade(ctx context.Context, requ
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("AfterControlPlaneUpgrade is called")
 
-	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.AfterControlPlaneUpgrade, response); err != nil {
+	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.AfterControlPlaneUpgrade, request.GetSettings(), response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
@@ -143,7 +143,7 @@ func (m *ExtensionHandlers) DoAfterClusterUpgrade(ctx context.Context, request *
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("AfterClusterUpgrade is called")
 
-	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.AfterClusterUpgrade, response); err != nil {
+	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.AfterClusterUpgrade, request.GetSettings(), response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
@@ -163,7 +163,7 @@ func (m *ExtensionHandlers) DoBeforeClusterDelete(ctx context.Context, request *
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("BeforeClusterDelete is called")
 
-	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.BeforeClusterDelete, response); err != nil {
+	if err := m.readResponseFromConfigMap(ctx, &request.Cluster, runtimehooksv1.BeforeClusterDelete, request.GetSettings(), response); err != nil {
 		response.Status = runtimehooksv1.ResponseStatusFailure
 		response.Message = err.Error()
 		return
@@ -176,13 +176,19 @@ func (m *ExtensionHandlers) DoBeforeClusterDelete(ctx context.Context, request *
 	// TODO: consider if to cleanup the ConfigMap after gating Cluster deletion.
 }
 
-func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, cluster *clusterv1.Cluster, hook runtimecatalog.Hook, response runtimehooksv1.ResponseObject) error {
+func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, cluster *clusterv1.Cluster, hook runtimecatalog.Hook, settings map[string]string, response runtimehooksv1.ResponseObject) error {
 	hookName := runtimecatalog.HookName(hook)
 	configMap := &corev1.ConfigMap{}
 	configMapName := fmt.Sprintf("%s-test-extension-hookresponses", cluster.Name)
 	if err := m.client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: configMapName}, configMap); err != nil {
 		if apierrors.IsNotFound(err) {
-			configMap = responsesConfigMap(cluster)
+			// A ConfigMap of responses does not exist. Create one now.
+			// The ConfigMap is created with blocking responses if "defaultAllHandlersToBlocking" is set to "true"
+			// in the settings.
+			// This allows the test-extension to have non-blocking behavior by default but can be switched to blocking
+			// as needed, example: during E2E testing.
+			defaultAllHandlersToBlocking := settings["defaultAllHandlersToBlocking"] == "true"
+			configMap = responsesConfigMap(cluster, defaultAllHandlersToBlocking)
 			if err := m.client.Create(ctx, configMap); err != nil {
 				return errors.Wrapf(err, "failed to create the ConfigMap %s", klog.KRef(cluster.Namespace, configMapName))
 			}
@@ -201,8 +207,12 @@ func (m *ExtensionHandlers) readResponseFromConfigMap(ctx context.Context, clust
 }
 
 // responsesConfigMap generates a ConfigMap with preloaded responses for the test extension.
-func responsesConfigMap(cluster *clusterv1.Cluster) *corev1.ConfigMap {
-	// TODO: introduce an annotation on cluster so E2E test defaults to blocking, Tilt test defaults to non blocking.
+// If defaultAllHandlersToBlocking is set to true, all the preloaded responses are set to blocking.
+func responsesConfigMap(cluster *clusterv1.Cluster, defaultAllHandlersToBlocking bool) *corev1.ConfigMap {
+	retryAfterSeconds := 0
+	if defaultAllHandlersToBlocking {
+		retryAfterSeconds = 5
+	}
 
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
@@ -212,10 +222,10 @@ func responsesConfigMap(cluster *clusterv1.Cluster) *corev1.ConfigMap {
 		// Set the initial preloadedResponses for each of the tested hooks.
 		Data: map[string]string{
 			// Blocking hooks are set to return RetryAfterSeconds initially. These will be changed during the test.
-			"BeforeClusterCreate-preloadedResponse":      `{"Status": "Success", "RetryAfterSeconds": 5}`,
-			"BeforeClusterUpgrade-preloadedResponse":     `{"Status": "Success", "RetryAfterSeconds": 5}`,
-			"AfterControlPlaneUpgrade-preloadedResponse": `{"Status": "Success", "RetryAfterSeconds": 5}`,
-			"BeforeClusterDelete-preloadedResponse":      `{"Status": "Success", "RetryAfterSeconds": 5}`,
+			"BeforeClusterCreate-preloadedResponse":      fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d}`, retryAfterSeconds),
+			"BeforeClusterUpgrade-preloadedResponse":     fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d}`, retryAfterSeconds),
+			"AfterControlPlaneUpgrade-preloadedResponse": fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d}`, retryAfterSeconds),
+			"BeforeClusterDelete-preloadedResponse":      fmt.Sprintf(`{"Status": "Success", "RetryAfterSeconds": %d}`, retryAfterSeconds),
 
 			// Non-blocking hooks are set to Status:Success.
 			"AfterControlPlaneInitialized-preloadedResponse": `{"Status": "Success"}`,

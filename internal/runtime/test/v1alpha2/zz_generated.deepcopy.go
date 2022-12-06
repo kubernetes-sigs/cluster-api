@@ -29,6 +29,7 @@ import (
 func (in *FakeRequest) DeepCopyInto(out *FakeRequest) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
+	in.CommonRequest.DeepCopyInto(&out.CommonRequest)
 	in.Cluster.DeepCopyInto(&out.Cluster)
 }
 

@@ -532,6 +532,12 @@ type ExternalPatchDefinition struct {
 	// ValidateExtension references an extension which is called to validate the topology.
 	// +optional
 	ValidateExtension *string `json:"validateExtension,omitempty"`
+
+	// Settings defines key value pairs to be passed to the extensions.
+	// Values defined here take precedence over the values defined in the
+	// corresponding ExtensionConfig.
+	// +optional
+	Settings map[string]string `json:"settings,omitempty"`
 }
 
 // LocalObjectTemplate defines a template for a topology Class.

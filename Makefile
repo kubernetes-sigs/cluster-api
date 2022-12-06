@@ -470,7 +470,7 @@ generate-modules: ## Run go mod tidy to ensure modules are up to date
 	cd $(TEST_DIR); go mod tidy
 
 .PHONY: generate-e2e-templates
-generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1alpha3 v1alpha4 v1.2 v1beta1) ## Generate cluster templates for all versions
+generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v1alpha3 v1alpha4 v1.2 v1.3 v1beta1) ## Generate cluster templates for all versions
 
 DOCKER_TEMPLATES := test/e2e/data/infrastructure-docker
 
@@ -496,6 +496,11 @@ generate-e2e-templates-v1alpha4: $(KUSTOMIZE)
 generate-e2e-templates-v1.2: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/v1.2/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1beta1/v1.2/cluster-template.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/v1.2/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1beta1/v1.2/cluster-template-topology.yaml
+
+.PHONY: generate-e2e-templates-v1.3
+generate-e2e-templates-v1.3: $(KUSTOMIZE)
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/v1.3/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1beta1/v1.3/cluster-template.yaml
+	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1beta1/v1.3/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1beta1/v1.3/cluster-template-topology.yaml
 
 .PHONY: generate-e2e-templates-v1beta1
 generate-e2e-templates-v1beta1: $(KUSTOMIZE)

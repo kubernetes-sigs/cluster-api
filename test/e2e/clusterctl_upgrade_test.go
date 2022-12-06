@@ -66,7 +66,22 @@ var _ = Describe("When testing clusterctl upgrades (v1.2=>current)", func() {
 			BootstrapClusterProxy:     bootstrapClusterProxy,
 			ArtifactFolder:            artifactFolder,
 			SkipCleanup:               skipCleanup,
-			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.5/clusterctl-{OS}-{ARCH}",
+			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.7/clusterctl-{OS}-{ARCH}",
+			InitWithProvidersContract: "v1beta1",
+			InitWithKubernetesVersion: "v1.25.3",
+		}
+	})
+})
+
+var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:                 e2eConfig,
+			ClusterctlConfigPath:      clusterctlConfigPath,
+			BootstrapClusterProxy:     bootstrapClusterProxy,
+			ArtifactFolder:            artifactFolder,
+			SkipCleanup:               skipCleanup,
+			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			InitWithKubernetesVersion: "v1.25.3",
 		}
@@ -81,7 +96,23 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.2=>cur
 			BootstrapClusterProxy:     bootstrapClusterProxy,
 			ArtifactFolder:            artifactFolder,
 			SkipCleanup:               skipCleanup,
-			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.5/clusterctl-{OS}-{ARCH}",
+			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.7/clusterctl-{OS}-{ARCH}",
+			InitWithProvidersContract: "v1beta1",
+			InitWithKubernetesVersion: "v1.25.3",
+			WorkloadFlavor:            "topology",
+		}
+	})
+})
+
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>current) [ClusterClass]", func() {
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:                 e2eConfig,
+			ClusterctlConfigPath:      clusterctlConfigPath,
+			BootstrapClusterProxy:     bootstrapClusterProxy,
+			ArtifactFolder:            artifactFolder,
+			SkipCleanup:               skipCleanup,
+			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			InitWithKubernetesVersion: "v1.25.3",
 			WorkloadFlavor:            "topology",

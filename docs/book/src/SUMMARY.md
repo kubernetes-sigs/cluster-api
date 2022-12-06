@@ -85,6 +85,7 @@
           - [v1.0 to v1.1](./developer/providers/v1.0-to-v1.1.md)
           - [v1.1 to v1.2](./developer/providers/v1.1-to-v1.2.md)
           - [v1.2 to v1.3](./developer/providers/v1.2-to-v1.3.md)
+          - [v1.3 to v1.4](./developer/providers/v1.3-to-v1.4.md)
         - [Provider contracts](./developer/providers/contracts.md)
           - [Cluster Infrastructure](./developer/providers/cluster-infrastructure.md)
           - [Machine Infrastructure](./developer/providers/machine-infrastructure.md)

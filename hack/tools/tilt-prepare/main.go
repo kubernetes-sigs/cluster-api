@@ -919,7 +919,7 @@ func getProviderObj(prefix string, objs []unstructured.Unstructured) (*unstructu
 		},
 		ProviderName: providerName,
 		Type:         providerType,
-		Version:      "v1.3.99",
+		Version:      "v1.4.99",
 	}
 
 	providerObj := &unstructured.Unstructured{}

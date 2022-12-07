@@ -33,6 +33,8 @@ API calls to the GitHub API. It is possible to configure the go proxy url using 
 for go itself (defaults to `https://proxy.golang.org`).
 To immediately fallback to the GitHub client and not use a go proxy, the environment variable could get set to
 `GOPROXY=off` or `GOPROXY=direct`.
+If a provider does not follow Go's semantic versioning, `clusterctl` may fail when detecting the correct version.
+In such cases, disabling the go proxy functionality via `GOPROXY=off` should be considered.
 
 # Installing clusterctl
 Instructions are available in the [Quick Start](../user/quick-start.md#install-clusterctl).

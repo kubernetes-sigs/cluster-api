@@ -21,20 +21,18 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
-	"net/url"
 	"os"
-	"path"
 	"reflect"
-	"sort"
 	"strings"
 
 	"github.com/blang/semver"
 	"golang.org/x/tools/go/vcs"
 	"sigs.k8s.io/kubebuilder/docs/book/utils/plugin"
+
+	"sigs.k8s.io/cluster-api/internal/goproxy"
 )
 
 // ReleaseLink responds to {{#releaselink <args>}} input. It asks for a `gomodule` parameter
@@ -58,35 +56,25 @@ func (l ReleaseLink) Process(input *plugin.Input) error {
 		versionRange := semver.MustParseRange(tags.Get("version"))
 		includePrereleases := tags.Get("prereleases") == "true"
 
+		scheme, host, err := goproxy.GetSchemeAndHost(os.Getenv("GOPROXY"))
+		if err != nil {
+			return "", err
+		}
+		if scheme == "" || host == "" {
+			return "", fmt.Errorf("releaselink does not support disabling the go proxy: GOPROXY=%q", os.Getenv("GOPROXY"))
+		}
+
+		goproxyClient := goproxy.NewClient(scheme, host)
+
 		repo, err := vcs.RepoRootForImportPath(gomodule, false)
 		if err != nil {
 			return "", err
 		}
 
-		rawURL := url.URL{
-			Scheme: "https",
-			Host:   "proxy.golang.org",
-			Path:   path.Join(gomodule, "@v", "/list"),
-		}
-
-		resp, err := http.Get(rawURL.String()) //nolint:noctx // NB: as we're just implementing an external interface we won't be able to get a context here.
+		parsedTags, err := goproxyClient.GetVersions(context.Background(), gomodule)
 		if err != nil {
 			return "", err
 		}
-		defer resp.Body.Close()
-
-		out, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return "", err
-		}
-
-		parsedTags := semver.Versions{}
-		for _, line := range strings.Split(string(out), "\n") {
-			if strings.HasPrefix(line, "v") {
-				parsedTags = append(parsedTags, semver.MustParse(strings.TrimPrefix(line, "v")))
-			}
-		}
-		sort.Sort(parsedTags)
 
 		var picked semver.Version
 		for i, tag := range parsedTags {

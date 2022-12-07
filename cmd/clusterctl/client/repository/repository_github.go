@@ -23,10 +23,12 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/google/go-github/v45/github"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
@@ -36,6 +38,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
+	"sigs.k8s.io/cluster-api/internal/goproxy"
 )
 
 const (
@@ -70,7 +73,7 @@ type gitHubRepository struct {
 	rootPath                 string
 	componentsPath           string
 	injectClient             *github.Client
-	injectGoproxyClient      *goproxyClient
+	injectGoproxyClient      *goproxy.Client
 }
 
 var _ Repository = &gitHubRepository{}
@@ -83,7 +86,7 @@ func injectGithubClient(c *github.Client) githubRepositoryOption {
 	}
 }
 
-func injectGoproxyClient(c *goproxyClient) githubRepositoryOption {
+func injectGoproxyClient(c *goproxy.Client) githubRepositoryOption {
 	return func(g *gitHubRepository) {
 		g.injectGoproxyClient = c
 	}
@@ -110,10 +113,19 @@ func (g *gitHubRepository) GetVersions() ([]string, error) {
 
 	var versions []string
 	if goProxyClient != nil {
-		versions, err = goProxyClient.getVersions(context.TODO(), githubDomain, g.owner, g.repository)
+		// A goproxy is also able to handle the github repository path instead of the actual go module name.
+		gomodulePath := path.Join(githubDomain, g.owner, g.repository)
+
+		var parsedVersions semver.Versions
+		parsedVersions, err = goProxyClient.GetVersions(context.TODO(), gomodulePath)
+
 		// Log the error before fallback to github repository client happens.
 		if err != nil {
 			log.V(5).Info("error using Goproxy client to list versions for repository, falling back to github client", "owner", g.owner, "repository", g.repository, "error", err)
+		}
+
+		for _, v := range parsedVersions {
+			versions = append(versions, "v"+v.String())
 		}
 	}
 
@@ -239,11 +251,11 @@ func (g *gitHubRepository) getClient() *github.Client {
 // getGoproxyClient returns a go proxy client.
 // It returns nil, nil if the environment variable is set to `direct` or `off`
 // to skip goproxy requests.
-func (g *gitHubRepository) getGoproxyClient() (*goproxyClient, error) {
+func (g *gitHubRepository) getGoproxyClient() (*goproxy.Client, error) {
 	if g.injectGoproxyClient != nil {
 		return g.injectGoproxyClient, nil
 	}
-	scheme, host, err := getGoproxyHost(os.Getenv("GOPROXY"))
+	scheme, host, err := goproxy.GetSchemeAndHost(os.Getenv("GOPROXY"))
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +263,7 @@ func (g *gitHubRepository) getGoproxyClient() (*goproxyClient, error) {
 	if scheme == "" && host == "" {
 		return nil, nil
 	}
-	return newGoproxyClient(scheme, host), nil
+	return goproxy.NewClient(scheme, host), nil
 }
 
 // setClientToken sets authenticatingHTTPClient field of gitHubRepository struct.

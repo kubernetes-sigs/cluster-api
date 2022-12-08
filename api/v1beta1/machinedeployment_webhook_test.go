@@ -67,14 +67,45 @@ func TestMachineDeploymentValidation(t *testing.T) {
 
 	goodMaxSurgeInt := intstr.FromInt(1)
 	goodMaxUnavailableInt := intstr.FromInt(0)
-
 	tests := []struct {
 		name      string
+		md        MachineDeployment
+		mdName    string
 		selectors map[string]string
 		labels    map[string]string
 		strategy  MachineDeploymentStrategy
 		expectErr bool
 	}{
+		{
+			name:      "pass with name of under 63 characters",
+			mdName:    "short-name",
+			expectErr: false,
+		},
+		{
+			name:      "pass with _, -, . characters in name",
+			mdName:    "thisNameContains.A_Non-Alphanumeric",
+			expectErr: false,
+		},
+		{
+			name:      "error with name of more than 63 characters",
+			mdName:    "thisNameIsReallyMuchLongerThanTheMaximumLengthOfSixtyThreeCharacters",
+			expectErr: true,
+		},
+		{
+			name:      "error when name starts with NonAlphanumeric character",
+			mdName:    "-thisNameStartsWithANonAlphanumeric",
+			expectErr: true,
+		},
+		{
+			name:      "error when name ends with NonAlphanumeric character",
+			mdName:    "thisNameEndsWithANonAlphanumeric.",
+			expectErr: true,
+		},
+		{
+			name:      "error when name contains invalid NonAlphanumeric character",
+			mdName:    "thisNameContainsInvalid!@NonAlphanumerics",
+			expectErr: true,
+		},
 		{
 			name:      "should return error on mismatch",
 			selectors: map[string]string{"foo": "bar"},
@@ -163,6 +194,9 @@ func TestMachineDeploymentValidation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			md := &MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: tt.mdName,
+				},
 				Spec: MachineDeploymentSpec{
 					Strategy: &tt.strategy,
 					Selector: metav1.LabelSelector{

@@ -125,13 +125,9 @@ func assertInfrastructureClusterTemplate(ctx context.Context, actualClusterClass
 	}
 
 	// Assert the ClusterClass has the expected APIVersion and Kind of to the infrastructure cluster template
-	if err := referenceExistsWithCorrectKindAndAPIVersion(actualClusterClass.Spec.Infrastructure.Ref,
+	return referenceExistsWithCorrectKindAndAPIVersion(actualClusterClass.Spec.Infrastructure.Ref,
 		builder.GenericInfrastructureClusterTemplateKind,
-		builder.InfrastructureGroupVersion); err != nil {
-		return err
-	}
-
-	return nil
+		builder.InfrastructureGroupVersion)
 }
 
 func assertControlPlaneTemplate(ctx context.Context, actualClusterClass *clusterv1.ClusterClass, ns *corev1.Namespace) error {
@@ -224,13 +220,9 @@ func assertMachineDeploymentClass(ctx context.Context, actualClusterClass *clust
 	}
 
 	// Assert the MachineDeploymentClass has the expected APIVersion and Kind to the bootstrap template
-	if err := referenceExistsWithCorrectKindAndAPIVersion(mdClass.Template.Bootstrap.Ref,
+	return referenceExistsWithCorrectKindAndAPIVersion(mdClass.Template.Bootstrap.Ref,
 		builder.GenericBootstrapConfigTemplateKind,
-		builder.BootstrapGroupVersion); err != nil {
-		return err
-	}
-
-	return nil
+		builder.BootstrapGroupVersion)
 }
 
 func assertHasOwnerReference(obj client.Object, ownerRef metav1.OwnerReference) error {

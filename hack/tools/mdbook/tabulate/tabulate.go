@@ -75,13 +75,9 @@ func (l Tabulate) Process(input *plugin.Input) error {
 		return err
 	}
 
-	if err := plugin.EachCommand(&input.Book, "/tabs", func(chapter *plugin.BookChapter, args string) (string, error) {
+	return plugin.EachCommand(&input.Book, "/tabs", func(chapter *plugin.BookChapter, args string) (string, error) {
 		return "</div></div>", nil
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	})
 }
 
 func main() {

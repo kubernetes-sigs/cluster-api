@@ -837,12 +837,9 @@ func assertClusterReconcile(cluster *clusterv1.Cluster) error {
 	}
 
 	// Check if ControlPlaneRef exists is of the expected Kind and APIVersion.
-	if err := referenceExistsWithCorrectKindAndAPIVersion(cluster.Spec.ControlPlaneRef,
+	return referenceExistsWithCorrectKindAndAPIVersion(cluster.Spec.ControlPlaneRef,
 		builder.TestControlPlaneKind,
-		builder.ControlPlaneGroupVersion); err != nil {
-		return err
-	}
-	return nil
+		builder.ControlPlaneGroupVersion)
 }
 
 // assertInfrastructureClusterReconcile checks if the infrastructureCluster object:
@@ -1023,10 +1020,7 @@ func assertLabelsAndAnnotations(got client.Object, clusterName string) error {
 	if err := assertClusterNameLabel(got, clusterName); err != nil {
 		return err
 	}
-	if err := assertTemplateClonedFromNameAnnotation(got); err != nil {
-		return err
-	}
-	return nil
+	return assertTemplateClonedFromNameAnnotation(got)
 }
 
 // assertClusterTopologyOwnedLabel asserts the label exists.

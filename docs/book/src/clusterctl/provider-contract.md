@@ -317,11 +317,19 @@ Templates writers should use the common variables to ensure consistency across p
 | ---------------------- | ----------------- | ------------------------------------------- |
 |`--target-namespace`| `${NAMESPACE}` | The namespace where the workload cluster should be deployed |
 |`--kubernetes-version`| `${KUBERNETES_VERSION}` | The Kubernetes version to use for the workload cluster |
-|`--controlplane-machine-count`| `${CONTROL_PLANE_MACHINE_COUNT}` | The number of control plane machines to be added to the workload cluster |
+|`--controlplane-machine-count`| `${CONTROL_PLANE_MACHINE_COUNT}` | The number of control plane machines to be added to the workload cluster. See ** warning below. |
 |`--worker-machine-count`| `${WORKER_MACHINE_COUNT}` | The number of worker machines to be added to the workload cluster |
 
 Additionally, the value of the command argument to `clusterctl generate cluster <cluster-name>` (`<cluster-name>` in this case), will
 be applied to every occurrence of the `${ CLUSTER_NAME }` variable.
+
+<aside class="note warning">
+
+<h1> Warning! </h1>
+
+** `--controlplane-machine-count` today allows a value of 1 which is [not recommended for production](https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/#single-node-etcd-cluster) and in the future [being considered to not be supported with clusterctl code](https://github.com/kubernetes-sigs/cluster-api/issues/3425).  Instead it is recommended to [specify a value of 5](https://kubernetes.io/docs/tasks/administer-cluster/configure-upgrade-etcd/#multi-node-etcd-cluster) or only utilize a control plane from a provider.
+
+</aside>
 
 ### ClusterClass definitions
 

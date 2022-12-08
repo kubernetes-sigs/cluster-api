@@ -136,6 +136,12 @@ const (
 	// instead of being a source of truth for eventual consistency.
 	// This annotation can be used to inform MachinePool status during in-progress scaling scenarios.
 	ReplicasManagedByAnnotation = "cluster.x-k8s.io/replicas-managed-by"
+
+	// ClusterAutoscaler Annotations are applied under the NodePool metadata. These annotations will be percolated to
+	// the correspoding MachineDeployment.These annotations provide the range within which a particular
+	// MachineDeployment can be scaled out/in.
+	ClusterAutoscalerMinAnnotation = "cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size"
+	ClusterAutoscalerMaxAnnotation = "cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size"
 )
 
 const (

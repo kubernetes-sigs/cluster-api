@@ -527,7 +527,7 @@ func computeMachineDeployments(ctx context.Context, s *scope.Scope, desiredContr
 // computeMachineDeployment computes the desired state for a MachineDeploymentTopology.
 // The generated machineDeployment object is calculated using the values from the machineDeploymentTopology and
 // the machineDeployment class.
-func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState, machineDeploymentTopology clusterv1.MachineDeploymentTopology) (*scope.MachineDeploymentState, error) {
+func computeMachineDeployment(ctx context.Context, s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState, machineDeploymentTopology clusterv1.MachineDeploymentTopology) (*scope.MachineDeploymentState, error) {
 	desiredMachineDeployment := &scope.MachineDeploymentState{}
 
 	// Gets the blueprint for the MachineDeployment class.
@@ -710,8 +710,12 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterTopologyOwnedLabel] = ""
 	desiredMachineDeploymentObj.Spec.Template.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
 
-	// Set the desired replicas.
-	desiredMachineDeploymentObj.Spec.Replicas = machineDeploymentTopology.Replicas
+	// Set the desired replicas only if external autoscaler is not controlling the MD replica count.
+	_, ok1 := machineDeploymentTopology.Metadata.Annotations[clusterv1.ClusterAutoscalerMaxAnnotation]
+	_, ok2 := machineDeploymentTopology.Metadata.Annotations[clusterv1.ClusterAutoscalerMinAnnotation]
+	if !ok1 || !ok2 {
+		desiredMachineDeploymentObj.Spec.Replicas = machineDeploymentTopology.Replicas
+	}
 
 	desiredMachineDeployment.Object = desiredMachineDeploymentObj
 

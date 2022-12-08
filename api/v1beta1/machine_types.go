@@ -34,12 +34,14 @@ const (
 	ExcludeNodeDrainingAnnotation = "machine.cluster.x-k8s.io/exclude-node-draining"
 
 	// MachineSetLabelName is the label set on machines if they're controlled by MachineSet.
+	// Note: The value of this label may be a hash if the MachineSet name is longer than 63 characters.
 	MachineSetLabelName = "cluster.x-k8s.io/set-name"
 
 	// MachineDeploymentLabelName is the label set on machines if they're controlled by MachineDeployment.
 	MachineDeploymentLabelName = "cluster.x-k8s.io/deployment-name"
 
 	// MachineControlPlaneNameLabel is the label set on machines if they're controlled by a ControlPlane.
+	// Note: The value of this label may be a hash if the control plane name is longer than 63 characters.
 	MachineControlPlaneNameLabel = "cluster.x-k8s.io/control-plane-name"
 
 	// PreDrainDeleteHookAnnotationPrefix annotation specifies the prefix we

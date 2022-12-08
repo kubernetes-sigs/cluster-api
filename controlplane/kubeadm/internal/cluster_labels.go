@@ -19,6 +19,7 @@ package internal
 import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	capilabels "sigs.k8s.io/cluster-api/internal/labels"
 )
 
 // ControlPlaneMachineLabelsForCluster returns a set of labels to add to a control plane machine for this specific cluster.
@@ -34,6 +35,7 @@ func ControlPlaneMachineLabelsForCluster(kcp *controlplanev1.KubeadmControlPlane
 	// Always force these labels over the ones coming from the spec.
 	labels[clusterv1.ClusterLabelName] = clusterName
 	labels[clusterv1.MachineControlPlaneLabelName] = ""
-	labels[clusterv1.MachineControlPlaneNameLabel] = kcp.Name
+	// Note: MustFormatValue is used here as the label value can be a hash if the control plane name is longer than 63 characters.
+	labels[clusterv1.MachineControlPlaneNameLabel] = capilabels.MustFormatValue(kcp.Name)
 	return labels
 }

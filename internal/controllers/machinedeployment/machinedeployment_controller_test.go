@@ -225,7 +225,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		for _, m := range machines.Items {
 			g.Expect(m.Labels[clusterv1.ClusterLabelName]).To(Equal(testCluster.Name))
 			g.Expect(m.Labels[clusterv1.MachineDeploymentLabelName]).To(Equal(deployment.Name))
-			g.Expect(m.Labels[clusterv1.MachineSetLabelName]).To(Equal(firstMachineSet.Name))
+			g.Expect(m.Labels[clusterv1.MachineSetNameLabel]).To(Equal(firstMachineSet.Name))
 		}
 
 		//

@@ -764,7 +764,7 @@ func (r *Reconciler) shouldAdopt(m *clusterv1.Machine) bool {
 	// MachineSet/ControlPlane controller are racing to adopt Machines, see https://github.com/kubernetes-sigs/cluster-api/issues/7529
 
 	// If the Machine is originated by a MachineSet, it should not be adopted directly by the Cluster as a stand-alone Machine.
-	if _, ok := m.Labels[clusterv1.MachineSetLabelName]; ok {
+	if _, ok := m.Labels[clusterv1.MachineSetNameLabel]; ok {
 		return false
 	}
 

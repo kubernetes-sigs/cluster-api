@@ -819,7 +819,10 @@ PREVIOUS_TAG ?= $(shell git tag -l | grep -E "^v[0-9]+\.[0-9]+\.[0-9]+$$" | sort
 RELEASE_ALIAS_TAG := $(PULL_BASE_REF)
 RELEASE_DIR := out
 RELEASE_NOTES_DIR := _releasenotes
-USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4)
+USER_FORK ?= $(shell git config --get remote.origin.url | cut -d/ -f4) # only works on https://github.com/<username>/cluster-api.git style URLs
+ifeq ($(USER_FORK),)
+USER_FORK := $(shell git config --get remote.origin.url | cut -d: -f2 | cut -d/ -f1) # for git@github.com:<username>/cluster-api.git style URLs
+endif
 IMAGE_REVIEWERS ?= $(shell ./hack/get-project-maintainers.sh)
 
 .PHONY: $(RELEASE_DIR)

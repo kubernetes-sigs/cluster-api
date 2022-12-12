@@ -375,6 +375,11 @@ func Test_parseUpgradeItem(t *testing.T) {
 	type args struct {
 		provider string
 	}
+
+	configClient := newFakeConfig()
+	clusterClient := newFakeCluster(cluster.Kubeconfig{Path: "cluster1"}, configClient)
+	clusterClient.WithProviderInventory("best-provider", clusterctlv1.CoreProviderType, "v1.0.0", "best-provider-system")
+
 	tests := []struct {
 		name    string
 		args    args
@@ -418,9 +423,35 @@ func Test_parseUpgradeItem(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "namespace missing",
+			name: "provider:version",
 			args: args{
-				provider: "provider:version",
+				provider: "best-provider:v1.0.0",
+			},
+			want: &cluster.UpgradeItem{
+				Provider: clusterctlv1.Provider{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "best-provider-system",
+						Name:      clusterctlv1.ManifestLabel("best-provider", clusterctlv1.CoreProviderType),
+					},
+					ProviderName: "best-provider",
+					Type:         string(clusterctlv1.CoreProviderType),
+				},
+				NextVersion: "v1.0.0",
+			},
+			wantErr: false,
+		},
+		{
+			name: "provider: with no version",
+			args: args{
+				provider: "provider:",
+			},
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name: "provider with no version",
+			args: args{
+				provider: "provider",
 			},
 			want:    nil,
 			wantErr: true,
@@ -438,7 +469,7 @@ func Test_parseUpgradeItem(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := parseUpgradeItem(tt.args.provider, clusterctlv1.CoreProviderType)
+			got, err := parseUpgradeItem(clusterClient, tt.args.provider, clusterctlv1.CoreProviderType)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

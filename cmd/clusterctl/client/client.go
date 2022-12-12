@@ -127,7 +127,7 @@ type RepositoryClientFactoryInput struct {
 // RepositoryClientFactory is a factory of repository.Client from a given input.
 type RepositoryClientFactory func(RepositoryClientFactoryInput) (repository.Client, error)
 
-// ClusterClientFactoryInput reporesents the inputs required by the factory.
+// ClusterClientFactoryInput represents the inputs required by the factory.
 type ClusterClientFactoryInput struct {
 	Kubeconfig Kubeconfig
 	Processor  Processor

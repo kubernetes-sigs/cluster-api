@@ -66,6 +66,13 @@ The upgrade process is composed by three steps:
 Please note that clusterctl does not upgrade Cluster API objects (Clusters, MachineDeployments, Machine etc.); upgrading
 such objects are the responsibility of the provider's controllers.
 
+It is also possible to explicitly upgrade one or more components to specific versions.
+```bash
+clusterctl upgrade apply \
+    --core cluster-api:v1.2.4 \
+    --infrastructure docker:v1.2.4
+```
+
 <aside class="note warning">
 
 <h1>Warning!</h1>
@@ -86,10 +93,10 @@ the following:
 
 ```bash
 clusterctl upgrade apply \
-    --core capi-system/cluster-api:v1.0.0 \
-    --bootstrap capi-kubeadm-bootstrap-system/kubeadm:v1.0.0 \
-    --control-plane capi-kubeadm-control-plane-system/kubeadm:v1.0.0 \
-    --infrastructure capd-system/docker:v1.0.0-rc.0
+    --core cluster-api:v1.0.0 \
+    --bootstrap kubeadm:v1.0.0 \
+    --control-plane kubeadm:v1.0.0 \
+    --infrastructure docker:v1.0.0-rc.0
 ```
 
 In this case, all the provider's versions must be explicitly stated.

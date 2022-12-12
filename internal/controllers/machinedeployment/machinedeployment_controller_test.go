@@ -404,7 +404,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			}
 
 			return len(machineSets.Items)
-		}, timeout*5).Should(BeEquivalentTo(0))
+		}, timeout*10).Should(BeEquivalentTo(0))
 
 		t.Log("Verifying MachineDeployment has correct Conditions")
 		g.Eventually(func() bool {

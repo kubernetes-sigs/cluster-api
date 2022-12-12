@@ -31,6 +31,7 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
+	"sigs.k8s.io/cluster-api/internal/goproxy"
 )
 
 func Test_gitHubRepository_GetVersions(t *testing.T) {
@@ -63,6 +64,21 @@ func Test_gitHubRepository_GetVersions(t *testing.T) {
 		fmt.Fprint(w, "v0.3.1\n")
 	})
 
+	// setup an handler for returning 3 different major fake releases
+	muxGoproxy.HandleFunc("/github.com/o/r3/@v/list", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, "v1.0.0\n")
+		fmt.Fprint(w, "v0.1.0\n")
+	})
+	muxGoproxy.HandleFunc("/github.com/o/r3/v2/@v/list", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, "v2.0.0\n")
+	})
+	muxGoproxy.HandleFunc("/github.com/o/r3/v3/@v/list", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		fmt.Fprint(w, "v3.0.0\n")
+	})
+
 	configVariablesClient := test.NewFakeVariableClient()
 
 	tests := []struct {
@@ -81,6 +97,12 @@ func Test_gitHubRepository_GetVersions(t *testing.T) {
 			name:           "use goproxy",
 			providerConfig: config.NewProvider("test", "https://github.com/o/r2/releases/v0.4.0/path", clusterctlv1.CoreProviderType),
 			want:           []string{"v0.3.1", "v0.3.2", "v0.4.0", "v0.5.0"},
+			wantErr:        false,
+		},
+		{
+			name:           "use goproxy having multiple majors",
+			providerConfig: config.NewProvider("test", "https://github.com/o/r3/releases/v3.0.0/path", clusterctlv1.CoreProviderType),
+			want:           []string{"v0.1.0", "v1.0.0", "v2.0.0", "v3.0.0"},
 			wantErr:        false,
 		},
 		{
@@ -812,7 +834,7 @@ func resetCaches() {
 // newFakeGoproxy sets up a test HTTP server along with a github.Client that is
 // configured to talk to that test server. Tests should register handlers on
 // mux which provide mock responses for the API method being tested.
-func newFakeGoproxy() (client *goproxyClient, mux *http.ServeMux, teardown func()) {
+func newFakeGoproxy() (client *goproxy.Client, mux *http.ServeMux, teardown func()) {
 	// mux is the HTTP request multiplexer used with the test server.
 	mux = http.NewServeMux()
 
@@ -824,5 +846,5 @@ func newFakeGoproxy() (client *goproxyClient, mux *http.ServeMux, teardown func(
 
 	// client is the GitHub client being tested and is configured to use test server.
 	url, _ := url.Parse(server.URL + "/")
-	return &goproxyClient{scheme: url.Scheme, host: url.Host}, mux, server.Close
+	return goproxy.NewClient(url.Scheme, url.Host), mux, server.Close
 }

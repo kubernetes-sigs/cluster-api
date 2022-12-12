@@ -646,7 +646,7 @@ The output of `clusterctl init` is similar to this:
 
 ```bash
 Fetching providers
-Installing cert-manager Version="v1.9.1"
+Installing cert-manager Version="v1.10.1"
 Waiting for cert-manager to be available...
 Installing Provider="cluster-api" Version="v1.0.0" TargetNamespace="capi-system"
 Installing Provider="bootstrap-kubeadm" Version="v1.0.0" TargetNamespace="capi-kubeadm-bootstrap-system"

@@ -21,7 +21,7 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@d0a58c1c4d2b25278816e339b944508c875f3613 # tag=v3.4.0
         with:
           go-version: '^1.18'
       - name: generate release artifacts
@@ -31,7 +31,7 @@ jobs:
         run: |
           make release-notes
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # tag=v1
         with:
           draft: true
           files: out/*

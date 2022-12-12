@@ -39,7 +39,7 @@ superseded-by:
     * [Adding Cluster info to request vs providing only the Cluster name](#adding-cluster-info-to-request-vs-providing-only-the-cluster-name)
     * [Embedding CAPI types in request vs using runtime.RawExtension](#embedding-capi-types-in-request-vs-using-runtimerawextension)
 * [Upgrade Strategy](#upgrade-strategy)
-    * [Cluster API version upgrade](#clusterapi-version-upgrade)
+    * [Cluster API version upgrade](#cluster-api-version-upgrade)
     * [Kubernetes version upgrade](#kubernetes-version-upgrade)
 * [Additional Details](#additional-details)
     * [Test Plan](#test-plan)

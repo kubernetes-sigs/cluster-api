@@ -446,6 +446,9 @@ def cluster_templates():
     })
 
     for provider, provider_dirs in template_dirs.items():
+        if provider not in get_providers():
+            continue
+
         p = providers.get(provider)
         label = p.get("label", provider)
 

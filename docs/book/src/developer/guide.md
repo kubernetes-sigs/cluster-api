@@ -228,7 +228,7 @@ information on each suite.
 Now you can [create CAPI objects][qs]!
 To test another iteration, you'll need to follow the steps to build, push, update the manifests, and apply.
 
-[qs]: ../user/quick-start.md#usage
+[qs]: ../user/quick-start.md
 
 ## Videos explaining CAPI architecture and code walkthroughs
 

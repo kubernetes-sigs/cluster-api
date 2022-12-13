@@ -141,6 +141,8 @@ GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
 HADOLINT_VER := v2.10.0
 HADOLINT_FAILURE_THRESHOLD = warning
 
+SHELLCHECK_VER := v0.9.0
+
 KPROMO_VER := v3.4.5
 KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
@@ -616,7 +618,7 @@ verify-boilerplate: ## Verify boilerplate text exists in each file
 
 .PHONY: verify-shellcheck
 verify-shellcheck: ## Verify shell files
-	TRACE=$(TRACE) ./hack/verify-shellcheck.sh
+	TRACE=$(TRACE) ./hack/verify-shellcheck.sh $(SHELLCHECK_VER)
 
 .PHONY: verify-tiltfile
 verify-tiltfile: ## Verify Tiltfile format

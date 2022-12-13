@@ -139,7 +139,7 @@ func Test_clusterctlClient_Move(t *testing.T) {
 	}
 }
 
-func Test_clusterctlClient_Backup(t *testing.T) {
+func Test_clusterctlClient_ToDirectory(t *testing.T) {
 	dir, err := os.MkdirTemp("/tmp", "cluster-api")
 	if err != nil {
 		t.Error(err)
@@ -152,7 +152,7 @@ func Test_clusterctlClient_Backup(t *testing.T) {
 	// These tests are checking the Backup scaffolding
 	// The internal library handles the backup logic and tests can be found there
 	type args struct {
-		options BackupOptions
+		options MoveOptions
 	}
 	tests := []struct {
 		name    string
@@ -166,9 +166,9 @@ func Test_clusterctlClient_Backup(t *testing.T) {
 				client: fakeClientForMove(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
 			},
 			args: args{
-				options: BackupOptions{
+				options: MoveOptions{
 					FromKubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					Directory:      dir,
+					ToDirectory:    dir,
 				},
 			},
 			wantErr: false,
@@ -179,9 +179,9 @@ func Test_clusterctlClient_Backup(t *testing.T) {
 				client: fakeClientForMove(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
 			},
 			args: args{
-				options: BackupOptions{
+				options: MoveOptions{
 					FromKubeconfig: Kubeconfig{Path: "kubeconfig", Context: "does-not-exist"},
-					Directory:      dir,
+					ToDirectory:    dir,
 				},
 			},
 			wantErr: true,
@@ -192,7 +192,7 @@ func Test_clusterctlClient_Backup(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.fields.client.Backup(tt.args.options)
+			err := tt.fields.client.Move(tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

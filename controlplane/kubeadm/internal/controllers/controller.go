@@ -43,6 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/labels"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -338,8 +339,10 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// NOTE: cluster.x-k8s.io/control-plane is already set at this stage (it is used when reading controlPlane.Machines).
 	for i := range controlPlane.Machines {
 		machine := controlPlane.Machines[i]
-		if value, ok := machine.Labels[clusterv1.MachineControlPlaneNameLabel]; !ok || value != kcp.Name {
-			machine.Labels[clusterv1.MachineControlPlaneNameLabel] = kcp.Name
+		// Note: MustEqualValue and MustFormatValue is used here as the label value can be a hash if the control plane
+		// name is longer than 63 characters.
+		if value, ok := machine.Labels[clusterv1.MachineControlPlaneNameLabel]; !ok || !labels.MustEqualValue(kcp.Name, value) {
+			machine.Labels[clusterv1.MachineControlPlaneNameLabel] = labels.MustFormatValue(kcp.Name)
 		}
 	}
 

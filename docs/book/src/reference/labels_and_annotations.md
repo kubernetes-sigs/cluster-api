@@ -1,18 +1,19 @@
 **Supported Labels:**
 
 
-| Label     | Note     |
-|:--------|:--------|
-| cluster.x-k8s.io/cluster-name| It is set on machines linked to a cluster and external objects(bootstrap and infrastructure providers). |
-| topology.cluster.x-k8s.io/owned| It is set on all the object which are managed as part of a ClusterTopology. |
-|topology.cluster.x-k8s.io/deployment-name | It is set on the generated MachineDeployment objects to track the name of the MachineDeployment topology it represents. |
-| cluster.x-k8s.io/provider| It is set on components in the provider manifest. The label allows one to easily identify all the components belonging to a provider. The clusterctl tool uses this label for implementing provider's lifecycle operations. |
-| cluster.x-k8s.io/watch-filter | It can be applied to any Cluster API object. Controllers which allow for selective reconciliation may check this label and proceed with reconciliation of the object only if this label and a configured value is present. |
-| cluster.x-k8s.io/interruptible| It is used to mark the nodes that run on interruptible instances. |
-|cluster.x-k8s.io/control-plane | It is set on machines or related objects that are part of a control plane. |
-| cluster.x-k8s.io/set-name| It is set on machines if they're controlled by MachineSet. |
-| cluster.x-k8s.io/deployment-name| It is set on machines if they're controlled by a MachineDeployment. |
-| machine-template-hash| It is applied to Machines in a MachineDeployment containing the hash of the template. |
+| Label                                             | Note                                                                                                                                                                                                                        |
+|:--------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| cluster.x-k8s.io/cluster-name                     | It is set on machines linked to a cluster and external objects(bootstrap and infrastructure providers).                                                                                                                     |
+| topology.cluster.x-k8s.io/owned                   | It is set on all the object which are managed as part of a ClusterTopology.                                                                                                                                                 |
+| topology.cluster.x-k8s.io/deployment-name         | It is set on the generated MachineDeployment objects to track the name of the MachineDeployment topology it represents.                                                                                                     |
+| cluster.x-k8s.io/provider                         | It is set on components in the provider manifest. The label allows one to easily identify all the components belonging to a provider. The clusterctl tool uses this label for implementing provider's lifecycle operations. |
+| cluster.x-k8s.io/watch-filter                     | It can be applied to any Cluster API object. Controllers which allow for selective reconciliation may check this label and proceed with reconciliation of the object only if this label and a configured value is present.  |
+| cluster.x-k8s.io/interruptible                    | It is used to mark the nodes that run on interruptible instances.                                                                                                                                                           |
+| cluster.x-k8s.io/control-plane                    | It is set on machines or related objects that are part of a control plane.                                                                                                                                                  |
+| cluster.x-k8s.io/set-name                         | It is set on machines if they're controlled by MachineSet. The value of this label may be a hash if the MachineSet name is longer than 63 characters.                                                                       |
+| cluster.x-k8s.io/control-plane-name               | It is set on machines if they're controlled by a contorl plane. The value of this label may be a hash if the control plane name is longer than 63 characters.                                                               |
+| cluster.x-k8s.io/deployment-name                  | It is set on machines if they're controlled by a MachineDeployment.                                                                                                                                                         |
+| machine-template-hash                             | It is applied to Machines in a MachineDeployment containing the hash of the template.                                                                                                                                       |
 <br>
 
 

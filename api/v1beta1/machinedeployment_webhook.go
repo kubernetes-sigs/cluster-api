@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -76,6 +77,19 @@ func (m *MachineDeployment) ValidateDelete() error {
 
 func (m *MachineDeployment) validate(old *MachineDeployment) error {
 	var allErrs field.ErrorList
+	// The MachineDeployment name is used as a label value. This check ensures names which are not be valid label values are rejected.
+	if errs := validation.IsValidLabelValue(m.Name); len(errs) != 0 {
+		for _, err := range errs {
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					field.NewPath("metadata", "name"),
+					m.Name,
+					fmt.Sprintf("must be a valid label value: %s", err),
+				),
+			)
+		}
+	}
 	specPath := field.NewPath("spec")
 	selector, err := metav1.LabelSelectorAsSelector(&m.Spec.Selector)
 	if err != nil {

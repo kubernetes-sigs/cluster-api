@@ -518,6 +518,36 @@ func TestClusterValidation(t *testing.T) {
 							CIDRBlocks: []string{"10.10.10.10", "11.11.11.11"}}}).
 					Build(),
 			},
+			{
+				name:      "pass with name of under 63 characters",
+				expectErr: false,
+				in:        builder.Cluster("fooNamespace", "short-name").Build(),
+			},
+			{
+				name:      "pass with _, -, . characters in name",
+				in:        builder.Cluster("fooNamespace", "thisNameContains.A_Non-Alphanumeric").Build(),
+				expectErr: false,
+			},
+			{
+				name:      "fails if cluster name is longer than 63 characters",
+				in:        builder.Cluster("fooNamespace", "thisNameIsReallyMuchLongerThanTheMaximumLengthOfSixtyThreeCharacters").Build(),
+				expectErr: true,
+			},
+			{
+				name:      "error when name starts with NonAlphanumeric character",
+				in:        builder.Cluster("fooNamespace", "-thisNameStartsWithANonAlphanumeric").Build(),
+				expectErr: true,
+			},
+			{
+				name:      "error when name ends with NonAlphanumeric character",
+				in:        builder.Cluster("fooNamespace", "thisNameEndsWithANonAlphanumeric.").Build(),
+				expectErr: true,
+			},
+			{
+				name:      "error when name contains invalid NonAlphanumeric character",
+				in:        builder.Cluster("fooNamespace", "thisNameContainsInvalid!@NonAlphanumerics").Build(),
+				expectErr: true,
+			},
 		}
 	)
 	for _, tt := range tests {

@@ -164,6 +164,8 @@ echoerr() {
   echo "$@" 1>&2
 }
 log_prefix() {
+  # Invoked indirectly
+  # shellcheck disable=SC2317
   echo "$0"
 }
 _logp=6
@@ -227,7 +229,7 @@ uname_arch() {
     armv6*) arch="armv6" ;;
     armv7*) arch="armv7" ;;
   esac
-  echo ${arch}
+  echo "${arch}"
 }
 uname_os_check() {
   os=$(uname_os)

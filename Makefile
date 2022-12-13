@@ -110,6 +110,8 @@ GO_APIDIFF_BIN := go-apidiff
 GO_APIDIFF := $(abspath $(TOOLS_BIN_DIR)/$(GO_APIDIFF_BIN)-$(GO_APIDIFF_VER))
 GO_APIDIFF_PKG := github.com/joelanford/go-apidiff
 
+SHELLCHECK_VER := v0.9.0
+
 KPROMO_VER := v3.4.4
 KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
@@ -494,7 +496,7 @@ verify-boilerplate: ## Verify boilerplate text exists in each file
 
 .PHONY: verify-shellcheck
 verify-shellcheck: ## Verify shell files
-	./hack/verify-shellcheck.sh
+	./hack/verify-shellcheck.sh $(SHELLCHECK_VER)
 
 .PHONY: verify-tiltfile
 verify-tiltfile: ## Verify Tiltfile format

@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -149,6 +150,19 @@ func (webhook *Cluster) ValidateDelete(_ context.Context, _ runtime.Object) erro
 
 func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster) error {
 	var allErrs field.ErrorList
+	// The Cluster name is used as a label value. This check ensures that names which are not valid label values are rejected.
+	if errs := validation.IsValidLabelValue(newCluster.Name); len(errs) != 0 {
+		for _, err := range errs {
+			allErrs = append(
+				allErrs,
+				field.Invalid(
+					field.NewPath("metadata", "name"),
+					newCluster.Name,
+					fmt.Sprintf("must be a valid label value %s", err),
+				),
+			)
+		}
+	}
 	specPath := field.NewPath("spec")
 	if newCluster.Spec.InfrastructureRef != nil && newCluster.Spec.InfrastructureRef.Namespace != newCluster.Namespace {
 		allErrs = append(

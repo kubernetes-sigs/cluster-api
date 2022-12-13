@@ -266,7 +266,7 @@ Download the latest binary of `clusterawsadm` from the [AWS provider releases].
 
 Download the latest release; on linux, type:
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-linux-amd64" version:"1.x"}} -o clusterawsadm
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-linux-amd64" version:">=1.0.0"}} -o clusterawsadm
 ```
 
 Make it executable
@@ -288,12 +288,12 @@ clusterawsadm version
 
 Download the latest release; on macOs, type:
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-amd64" version:"1.x"}} -o clusterawsadm
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-amd64" version:">=1.0.0"}} -o clusterawsadm
 ```
 
 Or if your Mac has an M1 CPU (”Apple Silicon”):
 ```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-arm64" version:"1.x"}} -o clusterawsadm
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-arm64" version:">=1.0.0"}} -o clusterawsadm
 ```
 
 Make it executable

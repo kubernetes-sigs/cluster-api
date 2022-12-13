@@ -918,7 +918,9 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 	detectedExpiry := time.Now().Add(25 * 24 * time.Hour)
 
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
-	kcp := &controlplanev1.KubeadmControlPlane{}
+	kcp := &controlplanev1.KubeadmControlPlane{
+		Status: controlplanev1.KubeadmControlPlaneStatus{Initialized: true},
+	}
 	machineWithoutExpiryAnnotation := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "machineWithoutExpiryAnnotation",

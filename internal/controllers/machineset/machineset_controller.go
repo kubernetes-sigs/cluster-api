@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/controllers/machine"
+	capilabels "sigs.k8s.io/cluster-api/internal/labels"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -298,7 +299,8 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		mdNameOnMachineSet, mdNameSetOnMachineSet := machineSet.Labels[clusterv1.MachineDeploymentLabelName]
 		mdNameOnMachine := machine.Labels[clusterv1.MachineDeploymentLabelName]
 
-		if msName, ok := machine.Labels[clusterv1.MachineSetLabelName]; ok && msName == machineSet.Name &&
+		// Note: MustEqualValue is used here as the value of this label will be a hash if the MachineSet name is longer than 63 characters.
+		if msNameLabelValue, ok := machine.Labels[clusterv1.MachineSetLabelName]; ok && capilabels.MustEqualValue(machineSet.Name, msNameLabelValue) &&
 			(!mdNameSetOnMachineSet || mdNameOnMachineSet == mdNameOnMachine) {
 			// Continue if the MachineSet name label is already set correctly and
 			// either the MachineDeployment name label is not set on the MachineSet or
@@ -310,7 +312,8 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		if err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to Machine %q", clusterv1.MachineSetLabelName, machine.Name)
 		}
-		machine.Labels[clusterv1.MachineSetLabelName] = machineSet.Name
+		// Note: MustFormatValue is used here as the value of this label will be a hash if the MachineSet name is longer than 63 characters.
+		machine.Labels[clusterv1.MachineSetLabelName] = capilabels.MustFormatValue(machineSet.Name)
 		// Propagate the MachineDeploymentLabelName from MachineSet to Machine if it is set on the MachineSet.
 		if mdNameSetOnMachineSet {
 			machine.Labels[clusterv1.MachineDeploymentLabelName] = mdNameOnMachineSet
@@ -558,8 +561,8 @@ func (r *Reconciler) getNewMachine(machineSet *clusterv1.MachineSet) *clusterv1.
 
 	// Enforce that the MachineSetLabelName label is set
 	// Note: the MachineSetLabelName is added by the default webhook to MachineSet.spec.template.labels if a spec.selector is empty.
-	machine.Labels[clusterv1.MachineSetLabelName] = machineSet.Name
-	// Propagate the MachineDeploymentLabelName from MachineSet to Machine if it exists.
+	machine.Labels[clusterv1.MachineSetLabelName] = capilabels.MustFormatValue(machineSet.Name)
+	// Propagate the MachineDeploymentNameLabel from MachineSet to Machine if it exists.
 	if mdName, ok := machineSet.Labels[clusterv1.MachineDeploymentLabelName]; ok {
 		machine.Labels[clusterv1.MachineDeploymentLabelName] = mdName
 	}

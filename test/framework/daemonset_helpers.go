@@ -42,12 +42,12 @@ func WaitForKubeProxyUpgrade(ctx context.Context, input WaitForKubeProxyUpgradeI
 	parsedVersion, err := semver.ParseTolerant(input.KubernetesVersion)
 	Expect(err).ToNot(HaveOccurred())
 
-	// Beginning with kubernetes v1.25, kubernetes images including kube-proxy get published to registry.k8s.io instead of k8s.gcr.io.
-	// This ensures that the imageRepository setting gets patched to registry.k8s.io when upgrading from v1.24 or lower,
-	// but only if there was no imageRespository explicitly set at the KubeadmControlPlanes ClusterConfiguration.
+	// Beginning with kubernetes v1.22, kubernetes images including kube-proxy get published to registry.k8s.io.
+	// This ensures that the imageRepository setting gets patched to registry.k8s.io when upgrading from v1.21 or lower,
+	// but only if there was no imageRepository explicitly set at the KubeadmControlPlanes ClusterConfiguration.
 	// This follows the behavior of `kubeadm upgrade`.
 	wantKubeProxyRegistry := "registry.k8s.io"
-	if parsedVersion.LT(semver.Version{Major: 1, Minor: 25, Patch: 0, Pre: []semver.PRVersion{{VersionStr: "alpha"}}}) {
+	if parsedVersion.LT(semver.Version{Major: 1, Minor: 22, Patch: 0, Pre: []semver.PRVersion{{VersionStr: "alpha"}}}) {
 		wantKubeProxyRegistry = "k8s.gcr.io"
 	}
 	wantKubeProxyImage := wantKubeProxyRegistry + "/kube-proxy:" + containerutil.SemverToOCIImageTag(input.KubernetesVersion)

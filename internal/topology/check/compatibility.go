@@ -23,6 +23,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -277,6 +278,19 @@ func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *cluste
 	machineDeploymentClasses := classNamesFromWorkerClass(clusterClass.Spec.Workers)
 	names := sets.String{}
 	for i, md := range desired.Spec.Topology.Workers.MachineDeployments {
+		if errs := validation.IsValidLabelValue(md.Name); len(errs) != 0 {
+			for _, err := range errs {
+				allErrs = append(
+					allErrs,
+					field.Invalid(
+						field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("name"),
+						md.Name,
+						fmt.Sprintf("must be a valid label value %s", err),
+					),
+				)
+			}
+		}
+
 		if !machineDeploymentClasses.Has(md.Class) {
 			allErrs = append(allErrs,
 				field.Invalid(

@@ -101,7 +101,11 @@ func getLoadBalancerImage(dockerCluster *infrav1.DockerCluster) string {
 
 // ContainerName is the name of the docker container with the load balancer.
 func (s *LoadBalancer) containerName() string {
-	return fmt.Sprintf("%s-lb", s.name)
+	lbName := s.name
+	if len(s.name) > 57 {
+		lbName = s.name[:57]
+	}
+	return fmt.Sprintf("%s-lb", lbName)
 }
 
 // Create creates a docker container hosting a load balancer for the cluster.

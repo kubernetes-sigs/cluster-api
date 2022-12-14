@@ -19,6 +19,7 @@ package labels
 
 import (
 	"encoding/base64"
+	"fmt"
 	"hash/fnv"
 
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -41,7 +42,7 @@ func MustFormatValue(str string) string {
 		// If this changes in a future go version this function will panic.
 		panic(err)
 	}
-	return base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(hasher.Sum(nil))
+	return fmt.Sprintf("hash_%s_z", base64.URLEncoding.WithPadding(base64.NoPadding).EncodeToString(hasher.Sum(nil)))
 }
 
 // MustEqualValue returns true if the actualLabelValue equals either the inputLabelValue or the hashed

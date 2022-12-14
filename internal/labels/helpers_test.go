@@ -37,7 +37,7 @@ func TestNameLabelValue(t *testing.T) {
 		{
 			name:           "return  for a name with more than 63 characters",
 			machineSetName: "machineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetName",
-			want:           "FR_ghQ",
+			want:           "hash_FR_ghQ_z",
 		},
 	}
 	for _, tt := range tests {
@@ -71,13 +71,13 @@ func TestMustMatchLabelValueForName(t *testing.T) {
 		{
 			name:           "don't match labels when MachineSet name is long",
 			machineSetName: "machineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetName",
-			labelValue:     "Nx4RdE",
+			labelValue:     "hash_Nx4RdE_z",
 			want:           false,
 		},
 		{
 			name:           "match labels when MachineSet name is long",
 			machineSetName: "machineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetNamemachineSetName",
-			labelValue:     "FR_ghQ",
+			labelValue:     "hash_FR_ghQ_z",
 			want:           true,
 		},
 	}

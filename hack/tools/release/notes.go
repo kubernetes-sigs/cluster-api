@@ -142,6 +142,7 @@ func run() int {
 
 	commits := []*commit{}
 	outLines := strings.Split(string(out), "\n")
+	releaseNote := false
 	for _, line := range outLines {
 		line = strings.TrimSpace(line)
 		last := len(commits) - 1
@@ -152,8 +153,18 @@ func run() int {
 			commits[last].merge = line
 			continue
 		case line == "":
+		case line == "```release-note":
+			// grab everything between this and the terminating ```
+			releaseNote = true
+		case line == "```":
+			releaseNote = false
 		default:
-			commits[last].body = line
+			if releaseNote {
+				// if multiple lines the ' ' will replace the \n
+				commits[last].note = fmt.Sprintf("%s %s", commits[last].note, line)
+			} else {
+				commits[last].body = line
+			}
 		}
 	}
 
@@ -211,6 +222,25 @@ func run() int {
 	fmt.Printf("- %d bugs fixed 🐛\n", len(merges[bugs]))
 	fmt.Println()
 
+	// Add release note callouts
+	printedTitle := false
+	for _, c := range commits {
+		var prNumber, fork string
+		if c.note != "" && strings.TrimSpace(strings.ToUpper((c.note))) != "NONE" {
+			if !printedTitle {
+				fmt.Printf("Release notes:\n")
+				printedTitle = true
+			}
+
+			_, err = fmt.Sscanf(c.merge, "Merge pull request %s from %s", &prNumber, &fork)
+			if err != nil {
+				fmt.Printf("- %s\n\n", c.note)
+			} else {
+				fmt.Printf("- %s (%s)\n\n", c.note, prNumber)
+			}
+		}
+	}
+
 	for _, key := range outputOrder {
 		mergeslice := merges[key]
 		if len(mergeslice) == 0 {
@@ -249,6 +279,7 @@ func trimTitle(title string) string {
 type commit struct {
 	merge string
 	body  string
+	note  string
 }
 
 func formatMerge(line, prNumber string) string {

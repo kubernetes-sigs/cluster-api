@@ -624,6 +624,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context
 		return ctrl.Result{}, nil
 	}
 
+	// Return if KCP is not yet initialized (no API server to contact for checking certificate expiration).
+	if !controlPlane.KCP.Status.Initialized {
+		return ctrl.Result{}, nil
+	}
+
 	// Ignore machines which are being deleted.
 	machines := controlPlane.Machines.Filter(collections.Not(collections.HasDeletionTimestamp))
 

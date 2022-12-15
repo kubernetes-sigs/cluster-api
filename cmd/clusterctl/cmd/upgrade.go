@@ -25,9 +25,10 @@ import (
 )
 
 var upgradeCmd = &cobra.Command{
-	Use:   "upgrade",
-	Short: "Upgrade core and provider components in a management cluster",
-	Args:  cobra.NoArgs,
+	Use:     "upgrade",
+	GroupID: groupManagement,
+	Short:   "Upgrade core and provider components in a management cluster",
+	Args:    cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		return cmd.Help()
 	},

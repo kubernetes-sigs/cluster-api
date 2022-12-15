@@ -21,9 +21,10 @@ import (
 )
 
 var alphaCmd = &cobra.Command{
-	Use:   "alpha",
-	Short: "Commands for features in alpha",
-	Long:  `These commands correspond to alpha features in clusterctl.`,
+	Use:     "alpha",
+	GroupID: groupOther,
+	Short:   "Commands for features in alpha",
+	Long:    `These commands correspond to alpha features in clusterctl.`,
 }
 
 func init() {

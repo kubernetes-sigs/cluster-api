@@ -40,8 +40,9 @@ type deleteOptions struct {
 var dd = &deleteOptions{}
 
 var deleteCmd = &cobra.Command{
-	Use:   "delete [providers]",
-	Short: "Delete one or more providers from the management cluster",
+	Use:     "delete [providers]",
+	GroupID: groupManagement,
+	Short:   "Delete one or more providers from the management cluster",
 	Long: LongDesc(`
 		Delete one or more providers from the management cluster.`),
 

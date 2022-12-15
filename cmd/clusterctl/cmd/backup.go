@@ -33,8 +33,9 @@ type backupOptions struct {
 var buo = &backupOptions{}
 
 var backupCmd = &cobra.Command{
-	Use:   "backup",
-	Short: "Backup Cluster API objects and all dependencies from a management cluster",
+	Use:     "backup",
+	GroupID: groupManagement,
+	Short:   "Backup Cluster API objects and all dependencies from a management cluster",
 	Long: LongDesc(`
 		Backup Cluster API objects and all dependencies from a management cluster.`),
 

@@ -21,9 +21,10 @@ import (
 )
 
 var generateCmd = &cobra.Command{
-	Use:   "generate",
-	Short: "Generate yaml using clusterctl yaml processor",
-	Long:  `Generate yaml using clusterctl yaml processor.`,
+	Use:     "generate",
+	GroupID: groupManagement,
+	Short:   "Generate yaml using clusterctl yaml processor",
+	Long:    `Generate yaml using clusterctl yaml processor.`,
 }
 
 func init() {

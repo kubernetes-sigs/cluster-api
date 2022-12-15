@@ -37,6 +37,12 @@ type stackTracer interface {
 	StackTrace() errors.StackTrace
 }
 
+const (
+	groupDebug      = "group-debug"
+	groupManagement = "group-management"
+	groupOther      = "group-other"
+)
+
 var (
 	cfgFile   string
 	verbosity *int
@@ -117,6 +123,23 @@ func init() {
 	RootCmd.PersistentFlags().AddGoFlagSet(flag.CommandLine)
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "",
 		"Path to clusterctl configuration (default is `$HOME/.cluster-api/clusterctl.yaml`) or to a remote location (i.e. https://example.com/clusterctl.yaml)")
+
+	RootCmd.AddGroup(
+		&cobra.Group{
+			ID:    groupManagement,
+			Title: "Cluster Management Commands:",
+		},
+		&cobra.Group{
+			ID:    groupDebug,
+			Title: "Troubleshooting and Debugging Commands:",
+		},
+		&cobra.Group{
+			ID:    groupOther,
+			Title: "Other Commands:",
+		})
+
+	RootCmd.SetHelpCommandGroupID(groupOther)
+	RootCmd.SetCompletionCommandGroupID(groupOther)
 
 	cobra.OnInitialize(initConfig, registerCompletionFuncForCommonFlags)
 }

@@ -23,6 +23,7 @@ updated info about which API version they are supporting.
 - [Azure Stack HCI](https://github.com/microsoft/cluster-api-provider-azurestackhci)
 - [BYOH](https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost)
 - [CloudStack](https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack)
+- [CoxEdge](https://github.com/coxedge/cluster-api-provider-coxedge)
 - [DigitalOcean](https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean)
 - [Equinix Metal (formerly Packet)](https://github.com/kubernetes-sigs/cluster-api-provider-packet)
 - [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp)

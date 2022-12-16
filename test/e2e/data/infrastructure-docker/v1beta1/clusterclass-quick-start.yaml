@@ -207,6 +207,7 @@ spec:
         nodeDrainTimeout: 1s
       kubeadmConfigSpec:
         clusterConfiguration:
+          imageRepository: registry.k8s.io
           controllerManager:
             extraArgs: { enable-hostpath-provisioner: 'true' }
           apiServer:

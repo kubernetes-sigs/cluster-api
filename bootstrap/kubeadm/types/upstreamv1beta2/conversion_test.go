@@ -66,6 +66,7 @@ func fuzzFuncs(_ runtimeserializer.CodecFactory) []interface{} {
 		clusterConfigurationFuzzer,
 		kubeadmInitConfigurationFuzzer,
 		kubeadmJoinConfigurationFuzzer,
+		kubeadmNodeRegistrationOptionsFuzzer,
 	}
 }
 
@@ -119,4 +120,13 @@ func kubeadmJoinConfigurationFuzzer(obj *bootstrapv1.JoinConfiguration, c fuzz.C
 	// JoinConfiguration.SkipPhases does not exist in kubeadm v1beta1 API, so setting it to nil in order to avoid
 	// v1beta1 --> upstream v1beta2 -> v1beta1 round trip errors.
 	obj.SkipPhases = nil
+}
+
+func kubeadmNodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptions, c fuzz.Continue) {
+	c.FuzzNoCustom(obj)
+
+	// NodeRegistrationOptions.ImagePullPolicy does not exist in
+	// kubeadm v1beta2 API, so setting it to empty in order to
+	// avoid round trip errors.
+	obj.ImagePullPolicy = ""
 }

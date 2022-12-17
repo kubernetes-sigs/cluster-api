@@ -1860,6 +1860,20 @@ spec:
                                     items:
                                       type: string
                                     type: array
+                                  imagePullPolicy:
+                                    default: IfNotPresent
+                                    description: ImagePullPolicy specifies the policy
+                                      for image pulling during kubeadm "init" and
+                                      "join" operations. The value of this field must
+                                      be one of "Always", "IfNotPresent" or "Never".
+                                      Defaults to "IfNotPresent". This can be used
+                                      only with Kubernetes version equal to 1.22 and
+                                      later.
+                                    enum:
+                                    - Always
+                                    - IfNotPresent
+                                    - Never
+                                    type: string
                                   kubeletExtraArgs:
                                     additionalProperties:
                                       type: string
@@ -2096,6 +2110,20 @@ spec:
                                     items:
                                       type: string
                                     type: array
+                                  imagePullPolicy:
+                                    default: IfNotPresent
+                                    description: ImagePullPolicy specifies the policy
+                                      for image pulling during kubeadm "init" and
+                                      "join" operations. The value of this field must
+                                      be one of "Always", "IfNotPresent" or "Never".
+                                      Defaults to "IfNotPresent". This can be used
+                                      only with Kubernetes version equal to 1.22 and
+                                      later.
+                                    enum:
+                                    - Always
+                                    - IfNotPresent
+                                    - Never
+                                    type: string
                                   kubeletExtraArgs:
                                     additionalProperties:
                                       type: string

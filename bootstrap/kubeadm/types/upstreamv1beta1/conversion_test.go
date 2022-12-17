@@ -88,6 +88,11 @@ func kubeadmNodeRegistrationOptionsFuzzer(obj *bootstrapv1.NodeRegistrationOptio
 	// NodeRegistrationOptions.IgnorePreflightErrors does not exist in kubeadm v1beta1 API, so setting it to nil in order to avoid
 	// v1alpha4 --> v1beta1 -> v1alpha4 round trip errors.
 	obj.IgnorePreflightErrors = nil
+
+	// NodeRegistrationOptions.ImagePullPolicy does not exist in
+	// kubeadm v1beta1 API, so setting it to empty in order to
+	// avoid round trip errors.
+	obj.ImagePullPolicy = ""
 }
 
 func kubeadmInitConfigurationFuzzer(obj *bootstrapv1.InitConfiguration, c fuzz.Continue) {

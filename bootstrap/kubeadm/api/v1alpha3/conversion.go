@@ -79,6 +79,20 @@ func (src *KubeadmConfig) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.JoinConfiguration.SkipPhases = restored.Spec.JoinConfiguration.SkipPhases
 	}
 
+	if restored.Spec.JoinConfiguration != nil && restored.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy != "" {
+		if dst.Spec.JoinConfiguration == nil {
+			dst.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
+		dst.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy
+	}
+
+	if restored.Spec.InitConfiguration != nil && restored.Spec.InitConfiguration.NodeRegistration.ImagePullPolicy != "" {
+		if dst.Spec.InitConfiguration == nil {
+			dst.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
+		}
+		dst.Spec.InitConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.InitConfiguration.NodeRegistration.ImagePullPolicy
+	}
+
 	return nil
 }
 
@@ -161,6 +175,20 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		}
 		dst.Spec.Template.Spec.JoinConfiguration.Patches = restored.Spec.Template.Spec.JoinConfiguration.Patches
 		dst.Spec.Template.Spec.JoinConfiguration.SkipPhases = restored.Spec.Template.Spec.JoinConfiguration.SkipPhases
+	}
+
+	if restored.Spec.Template.Spec.JoinConfiguration != nil && restored.Spec.Template.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy != "" {
+		if dst.Spec.Template.Spec.JoinConfiguration == nil {
+			dst.Spec.Template.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+		}
+		dst.Spec.Template.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.Template.Spec.JoinConfiguration.NodeRegistration.ImagePullPolicy
+	}
+
+	if restored.Spec.Template.Spec.InitConfiguration != nil && restored.Spec.Template.Spec.InitConfiguration.NodeRegistration.ImagePullPolicy != "" {
+		if dst.Spec.Template.Spec.InitConfiguration == nil {
+			dst.Spec.Template.Spec.InitConfiguration = &bootstrapv1.InitConfiguration{}
+		}
+		dst.Spec.Template.Spec.InitConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.Template.Spec.InitConfiguration.NodeRegistration.ImagePullPolicy
 	}
 
 	return nil

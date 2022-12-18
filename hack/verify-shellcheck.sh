@@ -73,7 +73,7 @@ fi
 
 echo "Running shellcheck..."
 cd "${ROOT_PATH}" || exit
-IGNORE_FILES=$(find . -name "*.sh" | grep "tilt_modules")
+IGNORE_FILES=$(find . -name "*.sh" | { grep "tilt_modules" || true; })
 echo "Ignoring shellcheck on ${IGNORE_FILES}"
 FILES=$(find . -name "*.sh" -not -path "./tilt_modules/*")
 while read -r file; do

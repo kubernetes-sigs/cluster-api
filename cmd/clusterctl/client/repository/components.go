@@ -256,14 +256,6 @@ func NewComponents(input ComponentsInput) (Components, error) {
 		return nil, errors.Wrap(err, "failed to set the TargetNamespace on the components")
 	}
 
-	// ensures all the ClusterRole and ClusterRoleBinding have the name prefixed with the namespace name and that
-	// all the clusterRole/clusterRoleBinding namespaced subjects refers to targetNamespace
-	// Nb. Making all the RBAC rules "namespaced" is required for supporting multi-tenancy
-	objs, err = fixRBAC(objs, input.Options.TargetNamespace)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to fix ClusterRoleBinding names")
-	}
-
 	// Add common labels.
 	objs = addCommonLabels(objs, input.Provider)
 
@@ -336,21 +328,59 @@ func fixTargetNamespace(objs []unstructured.Unstructured, targetNamespace string
 			o.SetNamespace(targetNamespace)
 		}
 
-		if o.GetKind() == mutatingWebhookConfigurationKind || o.GetKind() == validatingWebhookConfigurationKind || o.GetKind() == customResourceDefinitionKind {
+		switch o.GetKind() {
+		case clusterRoleBindingKind:
+			// Convert Unstructured into a typed object
+			binding := &rbacv1.ClusterRoleBinding{}
+			if err := scheme.Scheme.Convert(&o, binding, nil); err != nil {
+				return nil, err
+			}
+
+			// ensure that namespaced subjects refers to targetNamespace
+			for s := range binding.Subjects {
+				if binding.Subjects[s].Namespace != "" {
+					binding.Subjects[s].Namespace = targetNamespace
+				}
+			}
+
+			// Convert ClusterRoleBinding back to Unstructured
+			if err := scheme.Scheme.Convert(binding, &o, nil); err != nil {
+				return nil, err
+			}
+
+		case roleBindingKind:
+			binding := &rbacv1.RoleBinding{}
+			if err := scheme.Scheme.Convert(&o, binding, nil); err != nil {
+				return nil, err
+			}
+
+			// ensure that namespaced subjects refers to targetNamespace
+			for k := range binding.Subjects {
+				if binding.Subjects[k].Namespace != "" {
+					binding.Subjects[k].Namespace = targetNamespace
+				}
+			}
+
+			// Convert RoleBinding back to Unstructured
+			if err := scheme.Scheme.Convert(binding, &o, nil); err != nil {
+				return nil, err
+			}
+
+		case mutatingWebhookConfigurationKind, validatingWebhookConfigurationKind, customResourceDefinitionKind:
 			var err error
 			o, err = fixWebhookNamespaceReferences(o, targetNamespace)
 			if err != nil {
 				return nil, err
 			}
-		}
 
-		if o.GetKind() == certificateKind {
+		case certificateKind:
 			var err error
 			o, err = fixCertificate(o, originalNamespace, targetNamespace)
 			if err != nil {
 				return nil, err
 			}
 		}
+
 		objs[i] = o
 	}
 	return objs, nil
@@ -491,78 +521,6 @@ func fixCertificate(o unstructured.Unstructured, originalNamespace, targetNamesp
 	}
 
 	return o, nil
-}
-
-// fixRBAC ensures all the ClusterRole and ClusterRoleBinding have the name prefixed with the namespace name and that
-// all the clusterRole/clusterRoleBinding namespaced subjects refers to targetNamespace.
-func fixRBAC(objs []unstructured.Unstructured, targetNamespace string) ([]unstructured.Unstructured, error) {
-	renamedClusterRoles := map[string]string{}
-	for _, o := range objs {
-		// if the object has Kind ClusterRole
-		if o.GetKind() == clusterRoleKind {
-			// assign a namespaced name
-			currentName := o.GetName()
-			newName := fmt.Sprintf("%s-%s", targetNamespace, currentName)
-			o.SetName(newName)
-
-			renamedClusterRoles[currentName] = newName
-		}
-	}
-
-	for i := range objs {
-		o := objs[i]
-		switch o.GetKind() {
-		case clusterRoleBindingKind: // if the object has Kind ClusterRoleBinding
-			// Convert Unstructured into a typed object
-			b := &rbacv1.ClusterRoleBinding{}
-			if err := scheme.Scheme.Convert(&o, b, nil); err != nil {
-				return nil, err
-			}
-
-			// assign a namespaced name
-			b.Name = fmt.Sprintf("%s-%s", targetNamespace, b.Name)
-
-			// ensure that namespaced subjects refers to targetNamespace
-			for k := range b.Subjects {
-				if b.Subjects[k].Namespace != "" {
-					b.Subjects[k].Namespace = targetNamespace
-				}
-			}
-
-			// if the referenced ClusterRole was renamed, change the RoleRef
-			if newName, ok := renamedClusterRoles[b.RoleRef.Name]; ok {
-				b.RoleRef.Name = newName
-			}
-
-			// Convert ClusterRoleBinding back to Unstructured
-			if err := scheme.Scheme.Convert(b, &o, nil); err != nil {
-				return nil, err
-			}
-			objs[i] = o
-
-		case roleBindingKind: // if the object has Kind RoleBinding
-			// Convert Unstructured into a typed object
-			b := &rbacv1.RoleBinding{}
-			if err := scheme.Scheme.Convert(&o, b, nil); err != nil {
-				return nil, err
-			}
-
-			// ensure that namespaced subjects refers to targetNamespace
-			for k := range b.Subjects {
-				if b.Subjects[k].Namespace != "" {
-					b.Subjects[k].Namespace = targetNamespace
-				}
-			}
-
-			// Convert RoleBinding back to Unstructured
-			if err := scheme.Scheme.Convert(b, &o, nil); err != nil {
-				return nil, err
-			}
-			objs[i] = o
-		}
-	}
-
-	return objs, nil
 }
 
 // addCommonLabels ensures all the provider components have a consistent set of labels.

@@ -607,7 +607,7 @@ Note: Builtin variables are defined in [Builtin variables](#builtin-variables) b
       Name string `json:"name"`
 
       // The number of worker nodes belonging to this set.
-      // If the value is nil, the MachineDeployment is created without the number of Replicas (defaulting to zero)
+      // If the value is nil, the MachineDeployment is created without the number of Replicas (defaulting to 1)
       // and it's assumed that an external entity (like cluster autoscaler) is responsible for the management
       // of this value.
       // +optional

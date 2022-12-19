@@ -55,6 +55,9 @@ If you prefer JSON, you can create a `tilt-settings.json` file instead. YAML wil
 
 </aside>
 
+### Using a local image registry
+You can use with a local registry on your machine. Such a registry can be created by running `make kind-cluster`. You can then configure `default_registry: localhost:5000` in your `tilt-settings.json` file.
+
 #### tilt-settings fields
 
 **allowed_contexts** (Array, default=[]): A list of kubeconfig contexts Tilt is allowed to use. See the Tilt documentation on

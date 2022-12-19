@@ -68,7 +68,6 @@ vendor
 tilt.d
 tilt-settings.json
 tilt-settings.yaml
-tilt_modules
 .tiltbuild
 
 # User-supplied clusterctl hacks settings

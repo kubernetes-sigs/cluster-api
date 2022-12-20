@@ -17,7 +17,13 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-VERSION="v0.7.0"
+
+if [ $# -ne 1 ]; then
+  echo 1>&2 "$0: usage: ./verify-shellcheck.sh <version>"
+  exit 2
+fi
+
+VERSION=${1}
 
 OS="unknown"
 if [[ "${OSTYPE}" == "linux"* ]]; then

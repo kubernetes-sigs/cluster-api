@@ -44,7 +44,11 @@ func WaitForKubeProxyUpgrade(ctx context.Context, input WaitForKubeProxyUpgradeI
 		if err := input.Getter.Get(ctx, client.ObjectKey{Name: "kube-proxy", Namespace: metav1.NamespaceSystem}, ds); err != nil {
 			return false, err
 		}
-		if ds.Spec.Template.Spec.Containers[0].Image == "k8s.gcr.io/kube-proxy:"+containerutil.SemverToOCIImageTag(input.KubernetesVersion) {
+		image, err := containerutil.ImageFromString(ds.Spec.Template.Spec.Containers[0].Image)
+		if err != nil {
+			return false, err
+		}
+		if image.Name == "kube-proxy" && image.Tag == containerutil.SemverToOCIImageTag(input.KubernetesVersion) {
 			return true, nil
 		}
 		return false, nil

@@ -153,11 +153,24 @@ The clusterctl CLI tool handles the lifecycle of a Cluster API management cluste
 {{#tabs name:"install-clusterctl" tabs:"linux,macOS,homebrew,Windows"}}
 {{#tab linux}}
 
-#### Install clusterctl binary with curl on linux
-Download the latest release; on linux, type:
+#### Install clusterctl binary with curl on Linux
+If you are unsure you can determine your computers architecture by running `uname -a`
+
+Download for AMD64:
 ```bash
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-amd64" version:"1.3.x"}} -o clusterctl
 ```
+
+Download for ARM64:
+```bash
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-arm64" version:"1.3.x"}} -o clusterctl
+```
+
+Download for PPC64LE:
+```bash
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-linux-ppc64le" version:"1.3.x"}} -o clusterctl
+```
+
 Install clusterctl:
 ```bash
 sudo install -o root -g root -m 0755 clusterctl /usr/local/bin/clusterctl
@@ -171,12 +184,14 @@ clusterctl version
 {{#tab macOS}}
 
 #### Install clusterctl binary with curl on macOS
-Download the latest release; on macOS, type:
+If you are unsure you can determine your computers architecture by running `uname -a`
+
+Download for AMD64:
 ```bash
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-amd64" version:"1.3.x"}} -o clusterctl
 ```
 
-Or if your Mac has an M1 CPU ("Apple Silicon"):
+Download for M1 CPU ("Apple Silicon") / ARM64:
 ```bash
 curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api" asset:"clusterctl-darwin-arm64" version:"1.3.x"}} -o clusterctl
 ```

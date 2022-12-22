@@ -9,6 +9,8 @@ metadata:
 spec:
   group: infrastructure.cluster.x-k8s.io
   names:
+    categories:
+    - cluster-api
     kind: DockerClusterTemplate
     listKind: DockerClusterTemplateList
     plural: dockerclustertemplates

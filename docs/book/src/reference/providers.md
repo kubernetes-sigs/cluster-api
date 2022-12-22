@@ -6,7 +6,7 @@ are also sponsored by SIG Cluster Lifecycle. Check provider's documentation for
 updated info about which API version they are supporting.
 
 ## Bootstrap
-- [EKS](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/bootstrap/eks)
+- [Amazon Elastic Kubernetes Service (EKS)](https://github.com/kubernetes-sigs/cluster-api-provider-aws/tree/main/bootstrap/eks)
 - [Kubeadm](https://github.com/kubernetes-sigs/cluster-api/tree/main/bootstrap/kubeadm)
 - [MicroK8s](https://github.com/canonical/cluster-api-bootstrap-provider-microk8s)
 - [Talos](https://github.com/siderolabs/cluster-api-bootstrap-provider-talos)
@@ -21,12 +21,12 @@ updated info about which API version they are supporting.
 - [AWS](https://cluster-api-aws.sigs.k8s.io/)
 - [Azure](https://github.com/kubernetes-sigs/cluster-api-provider-azure)
 - [Azure Stack HCI](https://github.com/microsoft/cluster-api-provider-azurestackhci)
-- [BYOH](https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost)
+- [Bring Your Own Host (BYOH)](https://github.com/vmware-tanzu/cluster-api-provider-bringyourownhost)
 - [CloudStack](https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack)
 - [CoxEdge](https://github.com/coxedge/cluster-api-provider-coxedge)
 - [DigitalOcean](https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean)
 - [Equinix Metal (formerly Packet)](https://github.com/kubernetes-sigs/cluster-api-provider-packet)
-- [GCP](https://github.com/kubernetes-sigs/cluster-api-provider-gcp)
+- [Google Cloud Platform (GCP)](https://github.com/kubernetes-sigs/cluster-api-provider-gcp)
 - [Hetzner](https://github.com/syself/cluster-api-provider-hetzner)
 - [IBM Cloud](https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud)
 - [KubeKey](https://github.com/kubesphere/kubekey)
@@ -36,7 +36,7 @@ updated info about which API version they are supporting.
 - [Microvm](https://github.com/weaveworks-liquidmetal/cluster-api-provider-microvm)
 - [Nested](https://github.com/kubernetes-sigs/cluster-api-provider-nested)
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix)
-- [OCI](https://github.com/oracle/cluster-api-provider-oci)
+- [Oracle Cloud Infrastructure (OCI)](https://github.com/oracle/cluster-api-provider-oci)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
 - [Outscale](https://github.com/outscale-dev/cluster-api-provider-outscale)
 - [Sidero](https://github.com/siderolabs/sidero)

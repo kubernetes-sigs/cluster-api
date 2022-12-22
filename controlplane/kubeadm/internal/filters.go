@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"reflect"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -39,6 +40,18 @@ func MatchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, mach
 		collections.MatchesKubernetesVersion(kcp.Spec.Version),
 		MatchesKubeadmBootstrapConfig(machineConfigs, kcp),
 		MatchesTemplateClonedFrom(infraConfigs, kcp),
+	)
+}
+
+// NeedsRollout returns a filter to determine if a machine needs rollout.
+func NeedsRollout(reconciliationTime, rolloutAfter *metav1.Time, rolloutBefore *controlplanev1.RolloutBefore, infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) func(machine *clusterv1.Machine) bool {
+	return collections.Or(
+		// Machines whose certificates are about to expire.
+		collections.ShouldRolloutBefore(reconciliationTime, rolloutBefore),
+		// Machines that are scheduled for rollout (KCP.Spec.RolloutAfter set, the RolloutAfter deadline is expired, and the machine was created before the deadline).
+		collections.ShouldRolloutAfter(reconciliationTime, rolloutAfter),
+		// Machines that do not match with KCP config.
+		collections.Not(MatchesMachineSpec(infraConfigs, machineConfigs, kcp)),
 	)
 }
 

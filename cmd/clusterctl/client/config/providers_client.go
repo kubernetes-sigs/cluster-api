@@ -61,6 +61,7 @@ const (
 	KubeKeyProviderName        = "kubekey"
 	VclusterProviderName       = "vcluster"
 	VirtinkProviderName        = "virtink"
+	CoxEdgeProviderName        = "coxedge"
 )
 
 // Bootstrap providers.
@@ -201,6 +202,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         MAASProviderName,
 			url:          "https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         CoxEdgeProviderName,
+			url:          "https://github.com/coxedge/cluster-api-provider-coxedge/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

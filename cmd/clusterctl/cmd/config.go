@@ -21,9 +21,10 @@ import (
 )
 
 var configCmd = &cobra.Command{
-	Use:   "config",
-	Short: "Display clusterctl configuration",
-	Long:  `Display clusterctl configuration.`,
+	Use:     "config",
+	GroupID: groupOther,
+	Short:   "Display clusterctl configuration",
+	Long:    `Display clusterctl configuration.`,
 }
 
 func init() {

@@ -32,8 +32,9 @@ type restoreOptions struct {
 var ro = &restoreOptions{}
 
 var restoreCmd = &cobra.Command{
-	Use:   "restore",
-	Short: "Restore Cluster API objects from file by glob. Object files are searched in config directory",
+	Use:     "restore",
+	GroupID: groupManagement,
+	Short:   "Restore Cluster API objects from file by glob. Object files are searched in config directory",
 	Long: LongDesc(`
 		Restore Cluster API objects from file by glob. Object files are searched in the default config directory
 		or in the provided directory.`),

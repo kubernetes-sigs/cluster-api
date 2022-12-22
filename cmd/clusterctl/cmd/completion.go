@@ -80,6 +80,7 @@ var (
 
 	completionCmd = &cobra.Command{
 		Use:     "completion [bash|zsh]",
+		GroupID: groupOther,
 		Short:   "Output shell completion code for the specified shell (bash or zsh)",
 		Long:    LongDesc(completionLong),
 		Example: completionExample,

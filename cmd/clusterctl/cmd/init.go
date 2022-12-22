@@ -44,8 +44,9 @@ type initOptions struct {
 var initOpts = &initOptions{}
 
 var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize a management cluster",
+	Use:     "init",
+	GroupID: groupManagement,
+	Short:   "Initialize a management cluster",
 	Long: LongDesc(`
 		Initialize a management cluster.
 

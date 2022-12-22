@@ -37,8 +37,9 @@ type moveOptions struct {
 var mo = &moveOptions{}
 
 var moveCmd = &cobra.Command{
-	Use:   "move",
-	Short: "Move Cluster API objects and all dependencies between management clusters",
+	Use:     "move",
+	GroupID: groupManagement,
+	Short:   "Move Cluster API objects and all dependencies between management clusters",
 	Long: LongDesc(`
 		Move Cluster API objects and all dependencies between management clusters.
 

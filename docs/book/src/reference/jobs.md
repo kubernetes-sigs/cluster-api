@@ -27,7 +27,7 @@ Prow Presubmits:
   * GINKGO_FOCUS: `[IPv6] [PR-Informing]`, IP_FAMILY: `IPv6`
 * ✳️️ ✴️ [pull-cluster-api-e2e-full-main] `./scripts/ci-e2e.sh`
   * GINKGO_SKIP: `[PR-Blocking] [Conformance] [K8s-Upgrade] [IPv6]` (i.e. "no tags")
-* ✳️️ ✴️ [pull-cluster-api-e2e-workload-upgrade-1-25-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.25` TO: `ci/latest-1.26`
+* ✳️️ ✴️ [pull-cluster-api-e2e-workload-upgrade-1-26-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.26` TO: `ci/latest-1.27`
   * GINKGO_FOCUS: `[K8s-Upgrade]`
 
 GitHub Presubmit Workflows:
@@ -37,7 +37,7 @@ GitHub Presubmit Workflows:
   * Verifies the PR titles have a valid format, i.e. contains one of the valid icons.
   * Verifies the PR description is valid, i.e. is long enough.
 * Check PR Markdown links (run when markdown files changed)
-  * Checks markdown for broken links. 
+  * Checks markdown for broken links.
 * dependabot (run on dependabot PRs)
   * Regenerates Go modules and code.
 * release (run on tags)
@@ -60,7 +60,7 @@ Prow Postsubmits:
 Prow Periodics:
 * [periodic-cluster-api-test-main] `./scripts/ci-test.sh`
 * [periodic-cluster-api-test-mink8s-main] `./scripts/ci-test.sh`
-  * KUBEBUILDER_ENVTEST_KUBERNETES_VERSION: `1.20.2` 
+  * KUBEBUILDER_ENVTEST_KUBERNETES_VERSION: `1.20.2`
 * [periodic-cluster-api-e2e-main] `./scripts/ci-e2e.sh`
   * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]|[IPv6]`
 * [periodic-cluster-api-e2e-mink8s-main] `./scripts/ci-e2e.sh`
@@ -80,18 +80,20 @@ Prow Periodics:
   * GINKGO_FOCUS: `[K8s-Upgrade]`
 * [periodic-cluster-api-e2e-workload-upgrade-1-24-1-25-main] `./scripts/ci-e2e.sh` FROM: `stable-1.24` TO: `stable-1.25`
   * GINKGO_FOCUS: `[K8s-Upgrade]`
-* [periodic-cluster-api-e2e-workload-upgrade-1-25-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.25` TO: `ci/latest-1.26`
+* [periodic-cluster-api-e2e-workload-upgrade-1-25-1-26-main] `./scripts/ci-e2e.sh` FROM: `stable-1.25` TO: `stable-1.26`
+  * GINKGO_FOCUS: `[K8s-Upgrade]`
+* [periodic-cluster-api-e2e-workload-upgrade-1-26-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.26` TO: `ci/latest-1.27`
   * GINKGO_FOCUS: `[K8s-Upgrade]`
 * [cluster-api-push-images-nightly] Google Cloud Build: `make release-staging-nightly`
 
 ## Test-infra configuration
 
 * config/jobs/image-pushing/k8s-staging-cluster-api.yaml
-  * Configures nightly and postsubmit jobs to push images and manifests. 
+  * Configures nightly and postsubmit jobs to push images and manifests.
 * config/jobs/kubernetes-sigs/cluster-api/
   * Configures Cluster API  presubmit and periodic jobs.
 * config/testgrids/kubernetes/sig-cluster-lifecycle/config.yaml
-  * Configures Cluster API testgrid dashboards.  
+  * Configures Cluster API testgrid dashboards.
 * config/prow/config.yaml
   * `branch-protection` and `tide` are configured to make the golangci-lint GitHub action mandatory for merge
 * config/prow/plugins.yaml
@@ -103,7 +105,7 @@ Prow Periodics:
   * `plugins`: enables `milestone`, `override` and `require-matching-label` plugins
   * `external_plugins`: enables `cherrypicker`
 * label_sync/labels.yaml
-  * Configures labels for the `cluster-api` repository. 
+  * Configures labels for the `cluster-api` repository.
 
 
 <!-- links -->
@@ -116,7 +118,7 @@ Prow Periodics:
 [pull-cluster-api-e2e-informing-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-informing-main
 [pull-cluster-api-e2e-informing-ipv6-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-informing-ipv6-main
 [pull-cluster-api-e2e-full-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-full-main
-[pull-cluster-api-e2e-workload-upgrade-1-25-latest-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main-1-25-latest
+[pull-cluster-api-e2e-workload-upgrade-1-26-latest-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main-1-26-latest
 [periodic-cluster-api-test-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-test-main
 [periodic-cluster-api-test-mink8s-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-test-mink8s-main
 [periodic-cluster-api-e2e-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main
@@ -130,6 +132,7 @@ Prow Periodics:
 [periodic-cluster-api-e2e-workload-upgrade-1-22-1-23-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-22-1-23
 [periodic-cluster-api-e2e-workload-upgrade-1-23-1-24-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-23-1-24
 [periodic-cluster-api-e2e-workload-upgrade-1-24-1-25-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-24-1-25
-[periodic-cluster-api-e2e-workload-upgrade-1-25-latest-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-25-latest
+[periodic-cluster-api-e2e-workload-upgrade-1-25-1-26-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-25-1-26
+[periodic-cluster-api-e2e-workload-upgrade-1-26-latest-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-26-latest
 [cluster-api-push-images-nightly]: https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#cluster-api-push-images-nightly
 [post-cluster-api-push-images]: https://testgrid.k8s.io/sig-cluster-lifecycle-image-pushes#post-cluster-api-push-images

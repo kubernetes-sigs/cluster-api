@@ -354,3 +354,86 @@ func Test_clusterctlClient_RolloutResume(t *testing.T) {
 		})
 	}
 }
+
+func Test_clusterctlClient_RolloutHistory(t *testing.T) {
+	type fields struct {
+		client *fakeClient
+	}
+	type args struct {
+		options RolloutHistoryOptions
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "return an error if machinedeployment is not found",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutHistoryOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"machinedeployment/foo"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "return error if one of the machinedeployments is not found",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutHistoryOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"machinedeployment/md-1", "machinedeployment/md-does-not-exist"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "return error if unknown resource specified",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutHistoryOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"foo/bar"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "return error if no resource specified",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutHistoryOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			err := tt.fields.client.RolloutHistory(ctx, tt.args.options)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+		})
+	}
+}

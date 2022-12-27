@@ -63,6 +63,9 @@ If you prefer JSON, you can create a `tilt-settings.json` file instead. YAML wil
 **default_registry** (String, default=""): The image registry to use if you need to push images. See the [Tilt
 documentation](https://docs.tilt.dev/api.html#api.default_registry) for more details.
 
+**build_engine** (String, default="docker"): The engine used to build images. Can either be `docker` or `podman`.
+NB: the default is dynamic and will be "podman" if the string "Podman Engine" is found in `docker version` (or in `podman version` if the command fails).
+
 **kind_cluster_name** (String, default="capi-test"): The name of the kind cluster to use when preloading images.
 
 **provider_repos** (Array[]String, default=[]): A list of paths to all the providers you want to use. Each provider must have a
@@ -458,3 +461,13 @@ syntax highlighting and auto-formatting. To enable it for Tiltfile a file associ
   "Tiltfile": "starlark",
 },
 ```
+
+## Using Podman
+
+[Podman](https://podman.io) can be used instead of docker by following these actions:
+
+1. Enable the podman unix socket (eg. `systemctl --user enable --now podman.socket` on Fedora)
+1. Set `build_engine` to `podman` in `tilt-settings.yaml` (optional, only if both docker & podman are installed)
+1. Define the env variable `DOCKER_HOST` to the right socket while running tilt (eg. `DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock tilt up`)
+
+NB: The socket defined by `DOCKER_HOST` is used only for the `hack/tools/tilt-prepare` command, the image build is running the `podman build`/`podman push` commands.

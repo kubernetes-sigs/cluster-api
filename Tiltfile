@@ -4,11 +4,16 @@ envsubst_cmd = "./hack/tools/bin/envsubst"
 clusterctl_cmd = "./bin/clusterctl"
 kubectl_cmd = "kubectl"
 kubernetes_version = "v1.25.3"
+default_build_engine = "docker"
 
 if str(local("command -v " + kubectl_cmd + " || true", quiet = True)) == "":
     fail("Required command '" + kubectl_cmd + "' not found in PATH")
 
 load("ext://uibutton", "cmd_button", "location", "text_input")
+
+# detect if docker images should be built using podman
+if "Podman Engine" in str(local("docker version || podman version", quiet = True)):
+    default_build_engine = "podman"
 
 # set defaults
 version_settings(True, ">=0.30.8")
@@ -17,6 +22,7 @@ settings = {
     "enable_providers": ["docker"],
     "kind_cluster_name": os.getenv("CAPI_KIND_CLUSTER_NAME", "capi-test"),
     "debug": {},
+    "build_engine": default_build_engine,
 }
 
 # global settings
@@ -252,18 +258,40 @@ def build_docker_image(image, context, binary_name, additional_docker_build_comm
 
     # Set up an image build for the provider. The live update configuration syncs the output from the local_resource
     # build into the container.
-    docker_build(
-        ref = image,
-        context = context + "/.tiltbuild/bin/",
-        dockerfile_contents = dockerfile_contents,
-        build_args = {"binary_name": binary_name},
-        target = "tilt",
-        only = binary_name,
-        live_update = [
-            sync(context + "/.tiltbuild/bin/" + binary_name, "/" + binary_name),
-            run("sh /restart.sh"),
-        ],
-    )
+    if settings.get("build_engine") == "podman":
+        bin_context = context + "/.tiltbuild/bin/"
+
+        # Write dockerfile_contents to a Dockerfile as custom_build doesn't support dockerfile_contents nor stdin.
+        # The Dockerfile is in the context path to simplify the below podman command.
+        local("tee %s/Dockerfile" % (shlex.quote(bin_context)), quiet = True, stdin = dockerfile_contents)
+
+        custom_build(
+            ref = image,
+            command = (
+                "set -ex\n" +
+                "podman build -t $EXPECTED_REF --build-arg binary_name=%s --target tilt %s\n" +
+                "podman push --format=docker $EXPECTED_REF\n"
+            ) % (binary_name, shlex.quote(bin_context)),
+            deps = [bin_context],
+            skips_local_docker = True,
+            live_update = [
+                sync(bin_context + binary_name, "/" + binary_name),
+                run("sh /restart.sh"),
+            ],
+        )
+    else:
+        docker_build(
+            ref = image,
+            context = context + "/.tiltbuild/bin/",
+            dockerfile_contents = dockerfile_contents,
+            build_args = {"binary_name": binary_name},
+            target = "tilt",
+            only = binary_name,
+            live_update = [
+                sync(context + "/.tiltbuild/bin/" + binary_name, "/" + binary_name),
+                run("sh /restart.sh"),
+            ],
+        )
 
 def get_port_forwards(debug):
     port_forwards = []

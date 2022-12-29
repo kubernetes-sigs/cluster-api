@@ -52,7 +52,7 @@ while doing the move operation, and possible race conditions happening while the
 remediating etc. has never been investigated nor addressed.
 
 In order to avoid further confusion about this point, `clusterctl backup` and `clusterctl restore` commands have been
-deprecated because they were built on top of `clusterctl move` logic and they were sharing he same limitations. 
+removed because they were built on top of `clusterctl move` logic and they were sharing he same limitations.
 User can use `clusterctl move --to-directory` and `clusterctl move --from-directory` instead; this will hopefully
 make it clear those operation have the same limitations of the move command.
 

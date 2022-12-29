@@ -1,9 +1,3 @@
-# clusterctl backup
-
-**DEPRECATED. Please use `clusterctl move --to-directory` instead.**
-
-Backup Cluster API objects and all dependencies from a management cluster.
-
 # clusterctl config repositories
 
 Display the list of providers and their repository configurations.

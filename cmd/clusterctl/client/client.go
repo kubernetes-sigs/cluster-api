@@ -54,11 +54,6 @@ type Client interface {
 	// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
 	Move(options MoveOptions) error
 
-	// Backup saves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
-	//
-	// Deprecated: This will be dropped in a future release. Please use Move.
-	Backup(options BackupOptions) error
-
 	// Restore restores all the Cluster API objects existing in a configured directory based on a glob to a target management cluster.
 	//
 	// Deprecated: This will be dropped in a future release. Please use Move.

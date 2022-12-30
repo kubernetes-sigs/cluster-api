@@ -502,6 +502,10 @@ verify-shellcheck: ## Verify shell files
 verify-tiltfile: ## Verify Tiltfile format
 	./hack/verify-starlark.sh
 
+.PHONY: verify-container-images
+verify-container-images: ## Verify container images
+	TRACE=$(TRACE) ./hack/verify-container-images.sh
+
 ## --------------------------------------
 ## Binaries
 ## --------------------------------------

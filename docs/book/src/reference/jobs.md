@@ -43,6 +43,13 @@ GitHub Presubmit Workflows:
 * release (run on tags)
   * Creates a GitHub release with release notes for the tag.
 
+
+GitHub Weekly Workflows:
+* golangci-lint: golangci/golangci-lint-action
+  * Weekly check all Markdown links
+* scan-images:
+  * Scan all images for vulnerabilities. Can be run locally via `make verify-container-images`
+
 ### Postsubmits
 
 Prow Postsubmits:

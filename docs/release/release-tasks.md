@@ -12,38 +12,39 @@ This document details the responsibilities and tasks for each role in the releas
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 **Table of Contents**
 
-- [Release Lead](#release-lead)
-  - [Responsibilities](#responsibilities)
-  - [Tasks](#tasks)
-    - [Set a tentative release date for the minor release](#set-a-tentative-release-date-for-the-minor-release)
-    - [Assemble release team](#assemble-release-team)
-    - [Finalize release schedule and team](#finalize-release-schedule-and-team)
-    - [Prepare main branch for development of the new release](#prepare-main-branch-for-development-of-the-new-release)
-    - [Create a new GitHub milestone for the next release](#create-a-new-github-milestone-for-the-next-release)
-    - [[Track] Remove previously deprecated code](#track-remove-previously-deprecated-code)
-    - [[Track] Bump dependencies](#track-bump-dependencies)
-    - [Create a release branch](#create-a-release-branch)
-    - [[Continuously] Maintain the GitHub release milestone](#continuously-maintain-the-github-release-milestone)
-    - [[Repeatedly] Cut a release](#repeatedly-cut-a-release)
-    - [[Optional] [Track] Bump the Cluster API apiVersion](#optional-track-bump-the-cluster-api-apiversion)
-    - [[Optional] [Track] Bump the Kubernetes version](#optional-track-bump-the-kubernetes-version)
-- [Communications/Docs/Release Notes Manager](#communicationsdocsrelease-notes-manager)
-  - [Responsibilities](#responsibilities-1)
-  - [Tasks](#tasks-1)
-    - [Add docs to collect release notes for users and migration notes for provider implementers](#add-docs-to-collect-release-notes-for-users-and-migration-notes-for-provider-implementers)
-    - [Update supported versions](#update-supported-versions)
-    - [Ensure the book for the new release is available](#ensure-the-book-for-the-new-release-is-available)
-    - [Polish release notes](#polish-release-notes)
-    - [Change production branch in Netlify to the new release branch](#change-production-branch-in-netlify-to-the-new-release-branch)
-    - [Update clusterctl links in the quickstart](#update-clusterctl-links-in-the-quickstart)
-    - [Continuously: Communicate key dates to the community](#continuously-communicate-key-dates-to-the-community)
-- [CI Signal/Bug Triage/Automation Manager](#ci-signalbug-triageautomation-manager)
-  - [Responsibilities](#responsibilities-2)
-  - [Tasks](#tasks-2)
-    - [Setup jobs and dashboards for a new release branch](#setup-jobs-and-dashboards-for-a-new-release-branch)
-    - [[Continuously] Monitor CI signal](#continuously-monitor-ci-signal)
-    - [[Continuously] Reduce the amount of flaky tests](#continuously-reduce-the-amount-of-flaky-tests)
-    - [[Continuously] Bug triage](#continuously-bug-triage)
+- [Release Tasks](#release-tasks)
+  - [Release Lead](#release-lead)
+    - [Responsibilities](#responsibilities)
+    - [Tasks](#tasks)
+      - [Set a tentative release date for the minor release](#set-a-tentative-release-date-for-the-minor-release)
+      - [Assemble release team](#assemble-release-team)
+      - [Finalize release schedule and team](#finalize-release-schedule-and-team)
+      - [Prepare main branch for development of the new release](#prepare-main-branch-for-development-of-the-new-release)
+      - [Create a new GitHub milestone for the next release](#create-a-new-github-milestone-for-the-next-release)
+      - [\[Track\] Remove previously deprecated code](#track-remove-previously-deprecated-code)
+      - [\[Track\] Bump dependencies](#track-bump-dependencies)
+      - [Create a release branch](#create-a-release-branch)
+      - [\[Continuously\] Maintain the GitHub release milestone](#continuously-maintain-the-github-release-milestone)
+      - [\[Repeatedly\] Cut a release](#repeatedly-cut-a-release)
+      - [\[Optional\] \[Track\] Bump the Cluster API apiVersion](#optional-track-bump-the-cluster-api-apiversion)
+      - [\[Optional\] \[Track\] Bump the Kubernetes version](#optional-track-bump-the-kubernetes-version)
+  - [Communications/Docs/Release Notes Manager](#communicationsdocsrelease-notes-manager)
+    - [Responsibilities](#responsibilities-1)
+    - [Tasks](#tasks-1)
+      - [Add docs to collect release notes for users and migration notes for provider implementers](#add-docs-to-collect-release-notes-for-users-and-migration-notes-for-provider-implementers)
+      - [Update supported versions](#update-supported-versions)
+      - [Ensure the book for the new release is available](#ensure-the-book-for-the-new-release-is-available)
+      - [Polish release notes](#polish-release-notes)
+      - [Change production branch in Netlify to the new release branch](#change-production-branch-in-netlify-to-the-new-release-branch)
+      - [Update clusterctl links in the quickstart](#update-clusterctl-links-in-the-quickstart)
+      - [Continuously: Communicate key dates to the community](#continuously-communicate-key-dates-to-the-community)
+  - [CI Signal/Bug Triage/Automation Manager](#ci-signalbug-triageautomation-manager)
+    - [Responsibilities](#responsibilities-2)
+    - [Tasks](#tasks-2)
+      - [Setup jobs and dashboards for a new release branch](#setup-jobs-and-dashboards-for-a-new-release-branch)
+      - [\[Continuously\] Monitor CI signal](#continuously-monitor-ci-signal)
+      - [\[Continuously\] Reduce the amount of flaky tests](#continuously-reduce-the-amount-of-flaky-tests)
+      - [\[Continuously\] Bug triage](#continuously-bug-triage)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -155,6 +156,7 @@ This can be done by:
 #### [Repeatedly] Cut a release
 
 1. Ensure CI is stable before cutting the release (e.g. by checking with the CI manager)
+   Note: special attention should be given to image scan results, so we can avoid cutting a release with CVE or document known CVEs in release notes.
 2. Create and push the release tags to the GitHub repository:
    ```bash 
    # Export the tag of the release to be cut, e.g.:
@@ -388,6 +390,8 @@ The goal of this task is to keep our tests running in CI stable.
     1. Create an issue using an appropriate template (failing-test) in the Cluster API repository to surface the CI failure.
     2. Identify if the issue is a known issue, new issue or a regression.
     3. Mark the issue as `release-blocking` if applicable.
+4. Triage periodic GitHub actions failures, with special attention to image scan results;
+   Eventually open issues as described above.
 
 #### [Continuously] Reduce the amount of flaky tests
 

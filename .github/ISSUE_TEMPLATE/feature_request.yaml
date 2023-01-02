@@ -7,7 +7,6 @@ body:
     attributes:
       label: What would you like to be added (User Story)?
       description: |
-        Feature requests are unlikely to make progress as issues. Please consider engaging with maintainers on slack, office hours and mailing lists, instead.
         A large proposal that works through the design along with the implications of the change can be opened as a CAEP.
         See https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#proposal-process-caep
       placeholder: "As a [developer/user/operator] I would like to [high level description] for [reasons]."
@@ -17,7 +16,7 @@ body:
   - type: textarea
     id: detailed_feature_description
     attributes:
-      label: What would you like to be added (User Story)?
+      label: Detailed Description
       placeholder: "[A clear and concise description of what you want to happen.]"
     validations:
       required: true
@@ -26,3 +25,4 @@ body:
     id: additional
     attributes:
       label: Anything else you would like to add?
+      placeholder: "[Miscellaneous information that will assist in solving the issue.]"

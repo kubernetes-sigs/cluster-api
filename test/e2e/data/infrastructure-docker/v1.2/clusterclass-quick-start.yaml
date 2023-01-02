@@ -230,8 +230,9 @@ metadata:
 spec:
   template:
     spec:
-      rolloutBefore:
-        certificatesExpiryDays: 21
+      # Can't be used as this field doesn't exist in v1.2.x.
+      #rolloutBefore:
+      #  certificatesExpiryDays: 21
       machineTemplate:
         nodeDrainTimeout: 1s
       kubeadmConfigSpec:
@@ -289,4 +290,3 @@ spec:
           criSocket: unix:///var/run/containerd/containerd.sock
           kubeletExtraArgs:
             eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-

@@ -293,9 +293,9 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			input.E2EConfig.GetProviderLatestVersionsByContract(initContract, config.KubeadmControlPlaneProviderName))
 		infrastructureProviders = getValueOrFallback(input.InitWithInfrastructureProviders,
 			input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.InfrastructureProviders()...))
-		ipamProviders = getValueOrFallback(input.IPAMProviders,
+		ipamProviders = getValueOrFallback(input.InitWithIPAMProviders,
 			input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.IPAMProviders()...))
-		runtimeExtensionProviders = getValueOrFallback(input.RuntimeExtensionProviders,
+		runtimeExtensionProviders = getValueOrFallback(input.InitWithRuntimeExtensionProviders,
 			input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.RuntimeExtensionProviders()...))
 
 		clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
@@ -735,7 +735,7 @@ func matchUnstructuredLists(l1 *unstructured.UnstructuredList, l2 *unstructured.
 
 // getValueOrFallback returns the input value unless it is empty, then it returns the fallback input.
 func getValueOrFallback(value []string, fallback []string) []string {
-	if len(value) > 0 {
+	if value != nil {
 		return value
 	}
 	return fallback

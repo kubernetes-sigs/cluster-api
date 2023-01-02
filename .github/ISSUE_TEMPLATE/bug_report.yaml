@@ -8,7 +8,7 @@ body:
       label: What steps did you take and what happened?
       description: |
         Please provide as much info as possible. Not doing so may result in your bug not being addressed in a timely manner.
-        If this matter is security related, please follow the guidelines described in https://github.com/kubernetes-sigs/cluster-api/blob/main/SECURITY_CONTACTS 
+        If this matter is security related, please follow the guidelines described in https://github.com/kubernetes-sigs/cluster-api/blob/main/SECURITY_CONTACTS
     validations:
       required: true
 

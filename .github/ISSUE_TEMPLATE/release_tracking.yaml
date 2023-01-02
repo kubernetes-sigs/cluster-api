@@ -16,8 +16,8 @@ body:
     attributes:
       value: |
           **Notes:**
-          - Weeks are only specified to give some orientation.
-          - The following is based on the v1.4 release cycle. Modify according to the tracked release cycle.
+            - Weeks are only specified to give some orientation.
+            - The following is based on the v1.4 release cycle. Modify according to the tracked release cycle.
 
   - type: checkboxes
     id: week-3-to-1
@@ -143,11 +143,10 @@ body:
         - label: (Communications Manager) [Update clusterctl links in the quickstart](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#update-clusterctl-links-in-the-quickstart)
           required: false
 
-  - type: textarea
+  - type: markdown
     attributes:
-      label: "Continuously:"
-      description: |
-        Notes:
+    value: |
+        "Continuously:":
           - [Release lead] [Maintain the GitHub release milestone](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#continuously-maintain-the-github-release-milestone)
           - [Communications Manager] [Communicate key dates to the community](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#continuously-communicate-key-dates-to-the-community)
           - [Communications Manager] Improve release process documentation

@@ -50,10 +50,12 @@ body:
       label: Kubernetes version
       value: |
         <details>
+
         ```console
         $ kubectl version
         # paste output here
         ```
+
         </details>
     validations:
       required: true
@@ -75,6 +77,7 @@ body:
       label: OS version
       value: |
         <details>
+
         ```console
         # On Linux:
         $ cat /etc/os-release

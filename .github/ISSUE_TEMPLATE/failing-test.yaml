@@ -7,7 +7,7 @@ body:
     attributes:
       label: Which jobs are failing?
       placeholder: |
-        Please only use this template for submitting reports about continuously failing tests or jobs in Kubernetes CI.
+        Please only use this template for submitting reports about continuously failing tests or jobs in Cluster API CI.
     validations:
       required: true
 

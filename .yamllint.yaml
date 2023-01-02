@@ -1,0 +1,10 @@
+yaml-files:
+  - '*.yaml'
+  - '*.yml'
+  - '.yamllint'
+
+rules:
+  trailing-spaces: enable
+  key-duplicates: enable
+  truthy:
+    allowed-values: ['true', 'false', 'yes', 'no', 'on']

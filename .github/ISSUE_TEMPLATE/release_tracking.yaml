@@ -7,12 +7,10 @@ body:
       value: |
         Please see the corresponding section in [release-tasks.md](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md) for documentation of individual tasks.
   
-  - type: textarea
-    id: tasks
+- type: markdown
     attributes:
-      label: Tasks
-    validations:
-      required: false
+      value: |
+        **Tasks**
 
   - type: markdown
     attributes:

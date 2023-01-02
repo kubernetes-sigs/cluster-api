@@ -9,8 +9,8 @@ body:
 
   - type: markdown
     attributes:
-      label: "Notes:"
       value: |
+          Notes:
           - Weeks are only specified to give some orientation.
           - The following is based on the v1.4 release cycle. Modify according to the tracked release cycle.
 

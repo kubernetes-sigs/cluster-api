@@ -12,7 +12,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
-	github.com/valyala/fastjson v1.6.3
+	github.com/valyala/fastjson v1.6.4
 	golang.org/x/tools v0.1.12
 	google.golang.org/api v0.102.0
 	helm.sh/helm/v3 v3.10.3

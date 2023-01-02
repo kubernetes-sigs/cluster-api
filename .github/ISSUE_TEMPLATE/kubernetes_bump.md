@@ -53,7 +53,7 @@ run the Cluster API controllers on the new Kubernetes version.
 * [ ] Update our Prow jobs for the `main` branch to use the correct `kubekins-e2e` image
   * It is recommended to have one PR for presubmit and one for periodic jobs to reduce the risk of breaking the periodic jobs.
   * Prior art: presubmit jobs: https://github.com/kubernetes/test-infra/pull/27311
-  * Prior art: periodic jobs: https://github.com/kubernetes/test-infra/pull/27311
+  * Prior art: periodic jobs: https://github.com/kubernetes/test-infra/pull/27326
 * [ ] Bump the Go version in Cluster API: (if Kubernetes is using a new Go minor version)
   * Search for the currently used Go version across the repository and update it
   * We have to at least modify it in: `.github/workflows`, `hack/ensure-go.sh`, `.golangci.yml`, `cloudbuild*.yaml`, `go.mod`, `Makefile`, `netlify.toml`, `Tiltfile`

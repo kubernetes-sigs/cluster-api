@@ -9,6 +9,7 @@ body:
       description: |
         Please provide as much info as possible. Not doing so may result in your bug not being addressed in a timely manner.
         If this matter is security related, please follow the guidelines described in https://github.com/kubernetes-sigs/cluster-api/blob/main/SECURITY_CONTACTS
+      placeholder: "[A clear and concise description on how to REPRODUCE the bug.]"
     validations:
       required: true
 
@@ -30,6 +31,7 @@ body:
     id: additional
     attributes:
       label: Anything else you would like to add?
+      placeholder: "[Miscellaneous information that will assist in solving the issue.]"
 
   - type: textarea
     id: capiVersion

@@ -10,12 +10,12 @@ body:
   - type: markdown
     attributes:
       value: |
-        **Tasks**
+        **TASKS**
 
   - type: markdown
     attributes:
       value: |
-          Notes:
+          **Notes:**
           - Weeks are only specified to give some orientation.
           - The following is based on the v1.4 release cycle. Modify according to the tracked release cycle.
 

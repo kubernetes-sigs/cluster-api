@@ -1,0 +1,23 @@
+name: 🚋 Release cycle tracking
+description: [Only for release team lead] Create an issue to track tasks for a Cluster API minor release."
+title: Tasks for v<release-tag> release cycle
+body:
+  - type: textarea
+    attributes:
+      label: Tasks
+      description: |
+        Notes:
+          - Weeks are only specified to give some orientation.
+          - The following is based on the v1.4 release cycle. Modify according to the tracked release cycle.
+      render: markdown
+
+  - type: checkboxes
+    id: week-3-to-1
+    attributes:
+      label: Week -3 to 1
+      description: Set a tentative release date for the minor release
+      options:
+        - label: [Release Lead] [Set a tentative release date for the minor release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#set-a-tentative-release-date-for-the-minor-release)
+          required: false
+        - label: [Release Lead] [Assemble release team](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#assemble-release-team)
+          required: false

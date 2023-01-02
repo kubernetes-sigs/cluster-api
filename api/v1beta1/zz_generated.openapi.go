@@ -673,7 +673,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterStatus(ref common.Reference
 					"infrastructureReady": {
 						SchemaProps: spec.SchemaProps{
 							Description: "InfrastructureReady is the state of the infrastructure provider.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -681,7 +680,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterStatus(ref common.Reference
 					"controlPlaneReady": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ControlPlaneReady defines if the control plane is ready.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -1661,7 +1659,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStatus(ref common
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Total number of non-terminated machines targeted by this deployment (their labels match the selector).",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -1669,7 +1666,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStatus(ref common
 					"updatedReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Total number of non-terminated machines targeted by this deployment that have the desired template spec.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -1677,7 +1673,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStatus(ref common
 					"readyReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Total number of ready machines targeted by this deployment.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -1685,7 +1680,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStatus(ref common
 					"availableReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Total number of available machines (ready for at least minReadySeconds) targeted by this deployment.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -1693,7 +1687,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentStatus(ref common
 					"unavailableReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Total number of unavailable machines targeted by this deployment. This is the total number of machines that are still required for the deployment to have 100% available capacity. They may either be machines that are running but not yet available or machines that still have not been created.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2112,7 +2105,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckStatus(ref commo
 					"expectedMachines": {
 						SchemaProps: spec.SchemaProps{
 							Description: "total number of machines counted by this machine health check",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2120,7 +2112,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckStatus(ref commo
 					"currentHealthy": {
 						SchemaProps: spec.SchemaProps{
 							Description: "total number of healthy machines counted by this machine health check",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2128,7 +2119,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineHealthCheckStatus(ref commo
 					"remediationsAllowed": {
 						SchemaProps: spec.SchemaProps{
 							Description: "RemediationsAllowed is the number of further remediations allowed by this machine health check before maxUnhealthy short circuiting will be applied",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2493,7 +2483,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetStatus(ref common.Refere
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Replicas is the most recently observed number of replicas.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2501,7 +2490,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetStatus(ref common.Refere
 					"fullyLabeledReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "The number of replicas that have labels matching the labels of the machine template of the MachineSet.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2509,7 +2497,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetStatus(ref common.Refere
 					"readyReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "The number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is \"Ready\".",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2517,7 +2504,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineSetStatus(ref common.Refere
 					"availableReplicas": {
 						SchemaProps: spec.SchemaProps{
 							Description: "The number of available replicas (ready for at least minReadySeconds) for this MachineSet.",
-							Default:     0,
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -2710,7 +2696,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref common.Reference
 					"bootstrapReady": {
 						SchemaProps: spec.SchemaProps{
 							Description: "BootstrapReady is the state of the bootstrap provider.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -2718,7 +2703,6 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineStatus(ref common.Reference
 					"infrastructureReady": {
 						SchemaProps: spec.SchemaProps{
 							Description: "InfrastructureReady is the state of the infrastructure provider.",
-							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},

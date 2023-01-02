@@ -128,19 +128,19 @@ type MachineSetStatus struct {
 
 	// Replicas is the most recently observed number of replicas.
 	// +optional
-	Replicas int32 `json:"replicas"`
+	Replicas int32 `json:"replicas,omitempty"`
 
 	// The number of replicas that have labels matching the labels of the machine template of the MachineSet.
 	// +optional
-	FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
+	FullyLabeledReplicas int32 `json:"fullyLabeledReplicas,omitempty"`
 
 	// The number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
 	// +optional
-	ReadyReplicas int32 `json:"readyReplicas"`
+	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
 
 	// The number of available replicas (ready for at least minReadySeconds) for this MachineSet.
 	// +optional
-	AvailableReplicas int32 `json:"availableReplicas"`
+	AvailableReplicas int32 `json:"availableReplicas,omitempty"`
 
 	// ObservedGeneration reflects the generation of the most recently observed MachineSet.
 	// +optional

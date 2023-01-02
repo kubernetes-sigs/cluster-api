@@ -166,7 +166,7 @@ type KubeadmControlPlaneStatus struct {
 	// Total number of non-terminated machines targeted by this control plane
 	// (their labels match the selector).
 	// +optional
-	Replicas int32 `json:"replicas"`
+	Replicas int32 `json:"replicas,omitempty"`
 
 	// Version represents the minimum Kubernetes version for the control plane machines
 	// in the cluster.
@@ -176,11 +176,11 @@ type KubeadmControlPlaneStatus struct {
 	// Total number of non-terminated machines targeted by this control plane
 	// that have the desired template spec.
 	// +optional
-	UpdatedReplicas int32 `json:"updatedReplicas"`
+	UpdatedReplicas int32 `json:"updatedReplicas,omitempty"`
 
 	// Total number of fully running and ready control plane machines.
 	// +optional
-	ReadyReplicas int32 `json:"readyReplicas"`
+	ReadyReplicas int32 `json:"readyReplicas,omitempty"`
 
 	// Total number of unavailable machines targeted by this control plane.
 	// This is the total number of machines that are still required for
@@ -188,17 +188,17 @@ type KubeadmControlPlaneStatus struct {
 	// be machines that are running but not yet ready or machines
 	// that still have not been created.
 	// +optional
-	UnavailableReplicas int32 `json:"unavailableReplicas"`
+	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"`
 
 	// Initialized denotes whether or not the control plane has the
 	// uploaded kubeadm-config configmap.
 	// +optional
-	Initialized bool `json:"initialized"`
+	Initialized bool `json:"initialized,omitempty"`
 
 	// Ready denotes that the KubeadmControlPlane API Server is ready to
 	// receive requests.
 	// +optional
-	Ready bool `json:"ready"`
+	Ready bool `json:"ready,omitempty"`
 
 	// FailureReason indicates that there is a terminal problem reconciling the
 	// state, and will be set to a token value suitable for

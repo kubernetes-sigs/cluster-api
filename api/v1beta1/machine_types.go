@@ -197,11 +197,11 @@ type MachineStatus struct {
 
 	// BootstrapReady is the state of the bootstrap provider.
 	// +optional
-	BootstrapReady bool `json:"bootstrapReady"`
+	BootstrapReady bool `json:"bootstrapReady,omitempty"`
 
 	// InfrastructureReady is the state of the infrastructure provider.
 	// +optional
-	InfrastructureReady bool `json:"infrastructureReady"`
+	InfrastructureReady bool `json:"infrastructureReady,omitempty"`
 
 	// ObservedGeneration is the latest generation observed by the controller.
 	// +optional

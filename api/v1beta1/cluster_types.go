@@ -328,11 +328,11 @@ type ClusterStatus struct {
 
 	// InfrastructureReady is the state of the infrastructure provider.
 	// +optional
-	InfrastructureReady bool `json:"infrastructureReady"`
+	InfrastructureReady bool `json:"infrastructureReady,omitempty"`
 
 	// ControlPlaneReady defines if the control plane is ready.
 	// +optional
-	ControlPlaneReady bool `json:"controlPlaneReady"`
+	ControlPlaneReady bool `json:"controlPlaneReady,omitempty"`
 
 	// Conditions defines current service state of the cluster.
 	// +optional

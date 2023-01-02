@@ -78,12 +78,12 @@ type Mount struct {
 type DockerMachineStatus struct {
 	// Ready denotes that the machine (docker container) is ready
 	// +optional
-	Ready bool `json:"ready"`
+	Ready bool `json:"ready,omitempty"`
 
 	// LoadBalancerConfigured denotes that the machine has been
 	// added to the load balancer
 	// +optional
-	LoadBalancerConfigured bool `json:"loadBalancerConfigured"`
+	LoadBalancerConfigured bool `json:"loadBalancerConfigured,omitempty"`
 
 	// Addresses contains the associated addresses for the docker machine.
 	// +optional

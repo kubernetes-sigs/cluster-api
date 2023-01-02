@@ -2,6 +2,11 @@ name: 🚋 Release cycle tracking
 description: (Only for release team lead). Create an issue to track tasks for a Cluster API minor release.
 title: Tasks for v<release-tag> release cycle
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Please see the corresponding section in [release-tasks.md](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md) for documentation of individual tasks.
+
   - type: textarea
     attributes:
       label: Tasks
@@ -9,15 +14,151 @@ body:
         Notes:
           - Weeks are only specified to give some orientation.
           - The following is based on the v1.4 release cycle. Modify according to the tracked release cycle.
-      render: markdown
 
   - type: checkboxes
     id: week-3-to-1
     attributes:
-      label: Week -3 to 1
-      description: Set a tentative release date for the minor release
+      label: "Week -3 to 1:"
       options:
         - label: (Release Lead) [Set a tentative release date for the minor release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#set-a-tentative-release-date-for-the-minor-release)
           required: false
         - label: (Release Lead) [Assemble release team](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#assemble-release-team)
+          required: false
+
+  - type: checkboxes
+    id: week-1
+    attributes:
+      label: "Week 1:"
+      options:
+        - label: (Release Lead) [Finalize release schedule and team](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#finalize-release-schedule-and-team)
+          required: false
+        - label: (Release Lead) [Prepare main branch for development of the new release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#prepare-main-branch-for-development-of-the-new-release)
+          required: false
+        - label: (Communications Manager) [Add docs to collect release notes for users and migration notes for provider implementers](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#add-docs-to-collect-release-notes-for-users-and-migration-notes-for-provider-implementers)
+          required: false
+        - label: (Communications Manager) [Update supported versions](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#update-supported-versions)
+          required: false
+
+  - type: checkboxes
+    id: week-1-to-4
+    attributes:
+      label: "Week 1 to 4:"
+      options:
+        - label: (Release Lead) (Track) [Remove previously deprecated code](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#track-remove-previously-deprecated-code)
+          required: false
+
+  - type: checkboxes
+    id: week-6
+    attributes:
+      label: "Week 6:"
+      options:
+        - label: (Release Lead) [Cut the v1.3.1 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)
+          required: false
+
+  - type: checkboxes
+    id: week-9
+    attributes:
+      label: "Week 9:"
+      options:
+        - label: (Release Lead) [Cut the v1.3.2 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)
+          required: false
+
+  - type: checkboxes
+    id: week-11-to-12
+    attributes:
+      label: "Week 11 to 12:"
+      options:
+        - label: (Release Lead) (Track) [Bump dependencies](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#track-bump-dependencies)
+          required: false
+
+  - type: checkboxes
+    id: week-13
+    attributes:
+      label: "Week 13:"
+      options:
+        - label: (Release Lead) [Cut the v1.4.0-beta.0 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)
+          required: false
+        - label: (Release Lead) [Cut the v1.3.3 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)
+          required: false
+        - label: (Release Lead) [Create a new GitHub milestone for the next release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#create-a-new-github-milestone-for-the-next-release)
+          required: false
+
+  - type: checkboxes
+    id: week-14
+    attributes:
+      label: "Week 14:"
+      options:
+        - label: (Release Lead) [Cut the v1.4.0-beta.1 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)
+          required: false
+        - label: (Release Lead) Select release lead for the next release cycle
+          required: false
+
+  - type: checkboxes
+    id: week-15
+    attributes:
+      label: "Week 15:"
+      options:
+        - label: (Release Lead) [Create the release-1.4 release branch](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#create-a-release-branch)
+          required: false
+        - label: (Release Lead) [Cut the v1.4.0-rc.0 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)
+          required: false
+        - label: (CI Manager) [Setup jobs and dashboards for the release-1.4 release branch](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#setup-jobs-and-dashboards-for-a-new-release-branch)
+          required: false
+        - label: (Communications Manager) [Ensure the book for the new release is available](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#ensure-the-book-for-the-new-release-is-available)
+          required: false
+
+  - type: checkboxes
+    id: week-15-to-17
+    attributes:
+      label: "Week 15 to 17:"
+      options:
+        - label: (Communications Manager) [Polish release notes](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#polish-release-notes)
+          required: false
+
+  - type: checkboxes
+    id: week-16
+    attributes:
+      label: "Week 16:"
+      options:
+        - label: (Release Lead) [Cut the v1.4.0-rc.1 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)
+          required: false
+
+  - type: checkboxes
+    id: week-17
+    attributes:
+      label: "Week 17:"
+      options:
+        - label: (Release Lead) [Cut the v1.4.0 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)
+          required: false
+        - label: (Release Lead) [Cut the v1.3.4 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)
+          required: false
+        - label: (Release Lead) Organize release retrospective
+          required: false
+        - label: (Communications Manager) [Change production branch in Netlify to the new release branch](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#change-production-branch-in-netlify-to-the-new-release-branch)
+          required: false
+        - label: (Communications Manager) [Update clusterctl links in the quickstart](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#update-clusterctl-links-in-the-quickstart)
+          required: false
+
+  - type: textarea
+    attributes:
+      label: "Continuously:"
+      description: |
+        Notes:
+          - [Release lead] [Maintain the GitHub release milestone](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#continuously-maintain-the-github-release-milestone)
+          - [Communications Manager] [Communicate key dates to the community](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#continuously-communicate-key-dates-to-the-community)
+          - [Communications Manager] Improve release process documentation
+          - [Communications Manager] Maintain and improve user facing documentation about releases, release policy and release calendar
+          - [CI Manager] [Monitor CI signal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#continuously-monitor-ci-signal)
+          - [CI Manager] [Reduce the amount of flaky tests](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#continuously-reduce-the-amount-of-flaky-tests)
+          - [CI Manager] [Bug triage](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#continuously-bug-triage)
+          - [CI Manager] Maintain and improve release automation, tooling & related developer docs
+
+  - type: checkboxes
+    id: if-and-when-necessary
+    attributes:
+      label: "If and when necessary:"
+      options:
+        - label: (Release Lead) [Bump the Cluster API apiVersion](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#optional-track-bump-the-cluster-api-apiversion)
+          required: false
+        - label: (Release Lead) [Bump the Kubernetes version](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#optional-track-bump-the-kubernetes-version)
           required: false

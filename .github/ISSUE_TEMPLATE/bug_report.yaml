@@ -37,6 +37,7 @@ body:
       label: Cluster-api version
       value: |
         <details>
+
         </details>
     validations:
       required: true
@@ -61,19 +62,10 @@ body:
       label: Minikube/Kind version
       value: |
         <details>
+
         </details>
     validations:
       required: true
-
-  - type: checkboxes
-    id: os
-    attributes:
-      label: Which operating system is used?
-      description: You may select more than one.
-      options:
-        - label: macOS
-        - label: Windows
-        - label: Linux
 
   - type: textarea
     id: osVersion

@@ -5,6 +5,6 @@ image:
   name: cluster-api-visualizer
   pullPolicy: Always
 
-label: 
+label:
   key: app
   value: visualizer

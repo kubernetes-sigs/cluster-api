@@ -112,7 +112,7 @@ metadata:
 spec:
   template:
     spec:
-      preLoadImages: 
+      preLoadImages:
       - gcr.io/kakaraparthy-devel/kindest/kindnetd:0.5.4
       extraMounts:
       - containerPath: "/var/run/docker.sock"
@@ -126,7 +126,7 @@ metadata:
 spec:
   template:
     spec:
-      preLoadImages: 
+      preLoadImages:
       - gcr.io/kakaraparthy-devel/kindest/kindnetd:0.5.4
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1

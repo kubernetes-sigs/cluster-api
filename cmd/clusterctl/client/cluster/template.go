@@ -51,6 +51,7 @@ type templateClient struct {
 	configClient        config.Client
 	gitHubClientFactory func(configVariablesClient config.VariablesClient) (*github.Client, error)
 	processor           yaml.Processor
+	httpClient          *http.Client
 }
 
 // ensure templateClient implements TemplateClient.
@@ -70,6 +71,7 @@ func newTemplateClient(input TemplateClientInput) *templateClient {
 		configClient:        input.configClient,
 		gitHubClientFactory: getGitHubClient,
 		processor:           input.processor,
+		httpClient:          http.DefaultClient,
 	}
 }
 
@@ -143,8 +145,11 @@ func (t *templateClient) getURLContent(templateURL string) ([]byte, error) {
 		return nil, errors.Wrapf(err, "failed to parse %q", templateURL)
 	}
 
-	if rURL.Scheme == "https" && rURL.Host == "github.com" {
-		return t.getGitHubFileContent(rURL)
+	if rURL.Scheme == "https" {
+		if rURL.Host == "github.com" {
+			return t.getGitHubFileContent(rURL)
+		}
+		return t.getRawURLFileContent(templateURL)
 	}
 
 	if rURL.Scheme == "file" || rURL.Scheme == "" {
@@ -207,6 +212,30 @@ func (t *templateClient) getGitHubFileContent(rURL *url.URL) ([]byte, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to decode file %q", rURL.Path)
 	}
+	return content, nil
+}
+
+func (t *templateClient) getRawURLFileContent(rURL string) ([]byte, error) {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, rURL, http.NoBody)
+	if err != nil {
+		return nil, err
+	}
+
+	response, err := t.httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("failed to get file, got %d", response.StatusCode)
+	}
+
+	content, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+
 	return content, nil
 }
 

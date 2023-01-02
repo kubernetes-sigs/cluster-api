@@ -135,4 +135,6 @@ func TestCreateExternalLoadBalancerNode(t *testing.T) {
 	g.Expect(runConfig).ToNot(BeNil())
 	g.Expect(runConfig.Labels).To(HaveLen(2))
 	g.Expect(runConfig.Labels["io.x-k8s.kind.role"]).To(Equal(constants.ExternalLoadBalancerNodeRoleValue))
+	g.Expect(runConfig.PortMappings).To(HaveLen(1))
+	g.Expect(runConfig.PortMappings[0].ContainerPort).To(Equal(int32(ControlPlanePort)))
 }

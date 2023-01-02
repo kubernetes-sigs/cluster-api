@@ -61,7 +61,11 @@ func (c *DockerCluster) ValidateDelete() error {
 	return nil
 }
 
-func defaultDockerClusterSpec(_ *DockerClusterSpec) {}
+func defaultDockerClusterSpec(s *DockerClusterSpec) {
+	if s.ControlPlaneEndpoint.Port == 0 {
+		s.ControlPlaneEndpoint.Port = 6443
+	}
+}
 
 func validateDockerClusterSpec(_ DockerClusterSpec) field.ErrorList {
 	return nil

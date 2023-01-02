@@ -38,11 +38,12 @@ type lbCreator interface {
 
 // LoadBalancer manages the load balancer for a specific docker cluster.
 type LoadBalancer struct {
-	name      string
-	image     string
-	container *types.Node
-	ipFamily  clusterv1.ClusterIPFamily
-	lbCreator lbCreator
+	name             string
+	image            string
+	container        *types.Node
+	ipFamily         clusterv1.ClusterIPFamily
+	lbCreator        lbCreator
+	controlPlanePort int
 }
 
 // NewLoadBalancer returns a new helper for managing a docker loadbalancer with a given name.
@@ -71,11 +72,12 @@ func NewLoadBalancer(ctx context.Context, cluster *clusterv1.Cluster, dockerClus
 	image := getLoadBalancerImage(dockerCluster)
 
 	return &LoadBalancer{
-		name:      cluster.Name,
-		image:     image,
-		container: container,
-		ipFamily:  ipFamily,
-		lbCreator: &Manager{},
+		name:             cluster.Name,
+		image:            image,
+		container:        container,
+		ipFamily:         ipFamily,
+		lbCreator:        &Manager{},
+		controlPlanePort: dockerCluster.Spec.ControlPlaneEndpoint.Port,
 	}, nil
 }
 
@@ -166,7 +168,7 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 	}
 
 	loadBalancerConfig, err := loadbalancer.Config(&loadbalancer.ConfigData{
-		ControlPlanePort: 6443,
+		ControlPlanePort: s.controlPlanePort,
 		BackendServers:   backendServers,
 		IPv6:             s.ipFamily == clusterv1.IPv6IPFamily,
 	})

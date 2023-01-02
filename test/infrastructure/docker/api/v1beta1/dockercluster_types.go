@@ -91,6 +91,7 @@ type APIEndpoint struct {
 	Host string `json:"host"`
 
 	// Port is the port on which the API server is serving.
+	// Defaults to 6443 if not set.
 	Port int `json:"port"`
 }
 

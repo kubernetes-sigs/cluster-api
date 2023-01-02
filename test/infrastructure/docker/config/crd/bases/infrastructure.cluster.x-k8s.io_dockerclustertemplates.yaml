@@ -181,7 +181,7 @@ spec:
                             type: string
                           port:
                             description: Port is the port on which the API server
-                              is serving.
+                              is serving. Defaults to 6443 if not set.
                             type: integer
                         required:
                         - host

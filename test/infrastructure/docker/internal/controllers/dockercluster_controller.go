@@ -153,9 +153,10 @@ func (r *DockerClusterReconciler) reconcileNormal(ctx context.Context, dockerClu
 		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the load balancer")
 	}
 
-	dockerCluster.Spec.ControlPlaneEndpoint = infrav1.APIEndpoint{
-		Host: lbIP,
-		Port: 6443,
+	if dockerCluster.Spec.ControlPlaneEndpoint.Host == "" {
+		// Surface the control plane endpoint
+		// Note: the control plane port is already set by the user or defaulted by the dockerCluster webhook.
+		dockerCluster.Spec.ControlPlaneEndpoint.Host = lbIP
 	}
 
 	// Mark the dockerCluster ready

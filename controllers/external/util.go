@@ -59,65 +59,6 @@ func Delete(ctx context.Context, c client.Writer, ref *corev1.ObjectReference) e
 	return nil
 }
 
-// CloneTemplateInput is the input to CloneTemplate.
-//
-// Deprecated: use CreateFromTemplateInput instead. This type will be removed in a future release.
-type CloneTemplateInput struct {
-	// Client is the controller runtime client.
-	Client client.Client
-
-	// TemplateRef is a reference to the template that needs to be cloned.
-	TemplateRef *corev1.ObjectReference
-
-	// Namespace is the Kubernetes namespace the cloned object should be created into.
-	Namespace string
-
-	// ClusterName is the cluster this object is linked to.
-	ClusterName string
-
-	// OwnerRef is an optional OwnerReference to attach to the cloned object.
-	// +optional
-	OwnerRef *metav1.OwnerReference
-
-	// Labels is an optional map of labels to be added to the object.
-	// +optional
-	Labels map[string]string
-
-	// Annotations is an optional map of annotations to be added to the object.
-	// +optional
-	Annotations map[string]string
-}
-
-// CloneTemplate uses the client and the reference to create a new object from the template.
-//
-// Deprecated: use CreateFromTemplate instead. This function will be removed in a future release.
-func CloneTemplate(ctx context.Context, in *CloneTemplateInput) (*corev1.ObjectReference, error) {
-	from, err := Get(ctx, in.Client, in.TemplateRef, in.Namespace)
-	if err != nil {
-		return nil, err
-	}
-	generateTemplateInput := &GenerateTemplateInput{
-		Template:    from,
-		TemplateRef: in.TemplateRef,
-		Namespace:   in.Namespace,
-		ClusterName: in.ClusterName,
-		OwnerRef:    in.OwnerRef,
-		Labels:      in.Labels,
-		Annotations: in.Annotations,
-	}
-	to, err := GenerateTemplate(generateTemplateInput)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create the external clone.
-	if err := in.Client.Create(ctx, to); err != nil {
-		return nil, err
-	}
-
-	return GetObjectReference(to), nil
-}
-
 // CreateFromTemplateInput is the input to CreateFromTemplate.
 type CreateFromTemplateInput struct {
 	// Client is the controller runtime client.

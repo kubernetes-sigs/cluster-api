@@ -68,7 +68,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.2=>current)", func() {
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.7/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
-			InitWithKubernetesVersion: "v1.25.3",
+			InitWithKubernetesVersion: "v1.26.0",
 		}
 	})
 })
@@ -83,7 +83,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
-			InitWithKubernetesVersion: "v1.25.3",
+			InitWithKubernetesVersion: "v1.26.0",
 		}
 	})
 })
@@ -98,7 +98,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.2=>cur
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.7/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
-			InitWithKubernetesVersion: "v1.25.3",
+			InitWithKubernetesVersion: "v1.26.0",
 			WorkloadFlavor:            "topology",
 		}
 	})
@@ -114,7 +114,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>cur
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
-			InitWithKubernetesVersion: "v1.25.3",
+			InitWithKubernetesVersion: "v1.26.0",
 			WorkloadFlavor:            "topology",
 		}
 	})

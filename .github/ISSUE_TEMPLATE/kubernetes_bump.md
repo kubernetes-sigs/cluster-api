@@ -17,8 +17,8 @@ Prerequisites:
 
 ### Supporting managing and running on the new Kubernetes version
 
-This section contains tasks to update our book, e2e testing and CI to use and test the new Kubernetes version 
-as well as changes to Cluster API that we might have to make to support the new Kubernetes version. All of these 
+This section contains tasks to update our book, e2e testing and CI to use and test the new Kubernetes version
+as well as changes to Cluster API that we might have to make to support the new Kubernetes version. All of these
 changes should be cherry-picked to all release series that will support the new Kubernetes version.
 
 * [ ] Modify quickstart and CAPD to use the new Kubernetes release:
@@ -28,8 +28,9 @@ changes should be cherry-picked to all release series that will support the new 
   * Ensure the latest available kind version is used (including the latest images for this kind release)
   * Verify the quickstart manually
   * Prior art: #7156
+  * bump `InitWithKubernetesVersion` in `clusterctl_upgrade_test.go`
 * [ ] Job configurations:
-  * For all releases which will support the new Kubernetes version: 
+  * For all releases which will support the new Kubernetes version:
     * Update `INIT_WITH_KUBERNETES_VERSION`.
     * Add new periodic upgrade jobs .
     * Adjust presubmit jobs so that we have the latest upgrade jobs available on PRs.
@@ -39,12 +40,12 @@ changes should be cherry-picked to all release series that will support the new 
   * Update job documentation in `jobs.md`
   * Prior art: #7194 #7196
 * [ ] Issues specific to the Kubernetes minor release:
-  * Sometimes there are adjustments that we have to make in Cluster API to be able to support 
+  * Sometimes there are adjustments that we have to make in Cluster API to be able to support
     a new Kubernetes minor version. Please add these issues here when they are identified.
 
 ### Using new Kubernetes dependencies
 
-This section contains tasks to update Cluster API to use the latest Kubernetes Go dependencies and related topics 
+This section contains tasks to update Cluster API to use the latest Kubernetes Go dependencies and related topics
 like using the right Go version and build images. These changes are only made on the main branch. We don't
 need them in older releases as they are not necessary to manage workload clusters of the new Kubernetes version or
 run the Cluster API controllers on the new Kubernetes version.
@@ -64,5 +65,5 @@ run the Cluster API controllers on the new Kubernetes version.
   * **Note**: This PR should be cherry-picked as well. It is part of this section as it depends on kubebuilder/controller-runtime
     releases and is not strictly necessary for [Supporting managing and running on the new Kubernetes version](#supporting-managing-and-running-on-the-new-kubernetes-version).
   * Prior art: #7193
-* [ ] Bump conversion-gen via `CONVERSION_GEN_VER` in `Makefile` 
+* [ ] Bump conversion-gen via `CONVERSION_GEN_VER` in `Makefile`
   * Prior art: #7118

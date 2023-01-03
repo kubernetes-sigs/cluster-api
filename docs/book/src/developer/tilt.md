@@ -185,7 +185,7 @@ kustomize_substitutions:
 {{#/tabs }}
 
 **deploy_observability** ([string], default=[]): If set, installs on the dev cluster one of more observability
-tools. 
+tools.
 Important! This feature requires the `helm` command to be available in the user's path.
 
 Supported values are:
@@ -315,7 +315,7 @@ Custom values for variable substitutions can be set using `kustomize_substitutio
 ```yaml
 kustomize_substitutions:
   NAMESPACE: default
-  KUBERNETES_VERSION: v1.25.3
+  KUBERNETES_VERSION: v1.26.0
   CONTROL_PLANE_MACHINE_COUNT: 1
   WORKER_MACHINE_COUNT: 3
 ```

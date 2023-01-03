@@ -25,7 +25,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v48/github"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	corev1 "k8s.io/api/core/v1"

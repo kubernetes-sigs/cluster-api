@@ -136,12 +136,6 @@ const (
 	// In the event that the health check fails it will be set to False.
 	MachineHealthCheckSucceededCondition ConditionType = "HealthCheckSucceeded"
 
-	// MachineHealthCheckSuccededCondition is set on machines that have passed a healthcheck by the MachineHealthCheck controller.
-	// In the event that the health check fails it will be set to False.
-	//
-	// Deprecated: This const is going to be removed in a next release. Use MachineHealthCheckSucceededCondition instead.
-	MachineHealthCheckSuccededCondition ConditionType = "HealthCheckSucceeded"
-
 	// MachineHasFailureReason is the reason used when a machine has either a FailureReason or a FailureMessage set on its status.
 	MachineHasFailureReason = "MachineHasFailure"
 

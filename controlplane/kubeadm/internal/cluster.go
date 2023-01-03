@@ -53,6 +53,7 @@ type Management struct {
 	Client          client.Reader
 	Tracker         *remote.ClusterCacheTracker
 	EtcdDialTimeout time.Duration
+	EtcdCallTimeout time.Duration
 }
 
 // RemoteClusterConnectionError represents a failure to connect to a remote cluster.
@@ -163,7 +164,7 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 		restConfig:          restConfig,
 		Client:              c,
 		CoreDNSMigrator:     &CoreDNSMigrator{},
-		etcdClientGenerator: NewEtcdClientGenerator(restConfig, tlsConfig, m.EtcdDialTimeout),
+		etcdClientGenerator: NewEtcdClientGenerator(restConfig, tlsConfig, m.EtcdDialTimeout, m.EtcdCallTimeout),
 	}, nil
 }
 

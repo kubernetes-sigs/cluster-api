@@ -43,7 +43,7 @@ type clientCreator func(ctx context.Context, endpoints []string) (*etcd.Client, 
 var errEtcdNodeConnection = errors.New("failed to connect to etcd node")
 
 // NewEtcdClientGenerator returns a new etcdClientGenerator instance.
-func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcdDialTimeout time.Duration) *EtcdClientGenerator {
+func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcdDialTimeout, etcdCallTimeout time.Duration) *EtcdClientGenerator {
 	ecg := &EtcdClientGenerator{restConfig: restConfig, tlsConfig: tlsConfig}
 
 	ecg.createClient = func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
@@ -58,6 +58,7 @@ func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcd
 			Proxy:       p,
 			TLSConfig:   tlsConfig,
 			DialTimeout: etcdDialTimeout,
+			CallTimeout: etcdCallTimeout,
 		})
 	}
 

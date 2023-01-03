@@ -42,6 +42,8 @@ type generateClusterOptions struct {
 	configMapDataKey   string
 
 	listVariables bool
+
+	output string
 }
 
 var gc = &generateClusterOptions{}
@@ -137,6 +139,7 @@ func init() {
 	// other flags
 	generateClusterClusterCmd.Flags().BoolVar(&gc.listVariables, "list-variables", false,
 		"Returns the list of variables expected by the template instead of the template yaml")
+	generateClusterClusterCmd.Flags().StringVar(&gc.output, "write-to", "", "Specify the output file to write the template to, defaults to STDOUT if the flag is not set")
 
 	generateCmd.AddCommand(generateClusterClusterCmd)
 }
@@ -192,5 +195,5 @@ func runGenerateClusterTemplate(cmd *cobra.Command, name string) error {
 		return printVariablesOutput(template, templateOptions)
 	}
 
-	return printYamlOutput(template)
+	return printYamlOutput(template, gc.output)
 }

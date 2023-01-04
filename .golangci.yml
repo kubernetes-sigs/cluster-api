@@ -222,7 +222,7 @@ issues:
   # Specific exclude rules for deprecated fields that are still part of the codebase. These should be removed as the referenced deprecated item is removed from the project.
   - linters:
       - staticcheck
-    text: "SA1019: (bootstrapv1.ClusterStatus|clusterv1.ClusterTopologyManagedFieldsAnnotation|scope.Config.Spec.UseExperimentalRetryJoin|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped) is deprecated"
+    text: "SA1019: (bootstrapv1.ClusterStatus|scope.Config.Spec.UseExperimentalRetryJoin|DockerMachine.Spec.Bootstrapped|machineStatus.Bootstrapped) is deprecated"
   - linters:
     - revive
     text: "exported: exported method .*\\.(Reconcile|SetupWithManager|SetupWebhookWithManager) should have comment or be unexported"

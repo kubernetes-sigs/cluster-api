@@ -17,7 +17,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -35,7 +34,6 @@ type initOptions struct {
 	ipamProviders             []string
 	runtimeExtensionProviders []string
 	targetNamespace           string
-	listImages                bool
 	validate                  bool
 	waitProviders             bool
 	waitProviderTimeout       int
@@ -114,10 +112,6 @@ func init() {
 	initCmd.Flags().BoolVar(&initOpts.validate, "validate", true,
 		"If true, clusterctl will validate that the deployments will succeed on the management cluster.")
 
-	initCmd.Flags().BoolVar(&initOpts.listImages, "list-images", false,
-		"Lists the container images required for initializing the management cluster (without actually installing the providers)")
-	_ = initCmd.Flags().MarkDeprecated("list-images", "use 'clusterctl init list-images' instead.")
-
 	initCmd.AddCommand(initListImagesCmd)
 	RootCmd.AddCommand(initCmd)
 }
@@ -141,18 +135,6 @@ func runInit() error {
 		WaitProviders:             initOpts.waitProviders,
 		WaitProviderTimeout:       time.Duration(initOpts.waitProviderTimeout) * time.Second,
 		IgnoreValidationErrors:    !initOpts.validate,
-	}
-
-	if initOpts.listImages {
-		images, err := c.InitImages(options)
-		if err != nil {
-			return err
-		}
-
-		for _, i := range images {
-			fmt.Println(i)
-		}
-		return nil
 	}
 
 	if _, err := c.Init(options); err != nil {

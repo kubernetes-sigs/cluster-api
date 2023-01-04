@@ -70,13 +70,6 @@ type Options struct {
 	CertDir string
 }
 
-// NewServer creates a new runtime webhook server based on the given Options.
-//
-// Deprecated: use New instead.
-func NewServer(options Options) (*Server, error) {
-	return New(options)
-}
-
 // New creates a new runtime webhook server based on the given Options.
 func New(options Options) (*Server, error) {
 	if options.Catalog == nil {

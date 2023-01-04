@@ -284,15 +284,11 @@ func WaitForDNSUpgrade(ctx context.Context, input WaitForDNSUpgradeInput, interv
 
 		// NOTE: coredns image name has changed over time (k8s.gcr.io/coredns,
 		// k8s.gcr.io/coredns/coredns), so we are checking if the version actually changed.
-		if strings.HasSuffix(d.Spec.Template.Spec.Containers[0].Image, fmt.Sprintf(":%s", input.DNSVersion)) {
+		if strings.HasSuffix(d.Spec.Template.Spec.Containers[0].Image, fmt.Sprintf(":%s", input.DNSVersion)) &&
+			// Also check whether the upgraded CoreDNS replicas are available and ready for use.
+			d.Status.ObservedGeneration >= d.Generation &&
+			d.Spec.Replicas != nil && d.Status.UpdatedReplicas == *d.Spec.Replicas && d.Status.AvailableReplicas == *d.Spec.Replicas {
 			return true, nil
-		}
-
-		// check whether the upgraded CoreDNS replicas are available and ready for use.
-		if d.Status.ObservedGeneration >= d.Generation {
-			if d.Spec.Replicas != nil && d.Status.UpdatedReplicas == *d.Spec.Replicas && d.Status.AvailableReplicas == *d.Spec.Replicas {
-				return true, nil
-			}
 		}
 
 		return false, nil

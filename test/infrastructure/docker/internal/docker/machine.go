@@ -357,7 +357,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstr
 		if err != nil {
 			log.Info("Failed running command", "instance", m.Name(), "command", command, "stdout", outStd.String(), "stderr", outErr.String(), "bootstrap data", data)
 			logContainerDebugInfo(ctx, log, m.ContainerName())
-			return errors.Wrap(errors.WithStack(err), "failed to run cloud config")
+			return errors.Wrapf(err, "failed to run cloud config: stdout: %s stderr: %s", outStd.String(), outErr.String())
 		}
 	}
 

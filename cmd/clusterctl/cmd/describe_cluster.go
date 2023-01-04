@@ -62,7 +62,6 @@ type describeClusterOptions struct {
 	showClusterResourceSets bool
 	showTemplates           bool
 	echo                    bool
-	disableNoEcho           bool
 	grouping                bool
 	disableGrouping         bool
 	color                   bool
@@ -92,9 +91,9 @@ var describeClusterClusterCmd = &cobra.Command{
 		# e.g. un-group all the machines with Ready=true instead of showing a single group node.
 		clusterctl describe cluster test-1 --grouping=false
 
-		# Describe the cluster named test-1 disabling automatic echo suppression
-        # e.g. show the infrastructure machine objects, no matter if the current state is already reported by the machine's Ready condition.
-		clusterctl describe cluster test-1 --disable-no-echo`),
+		# Describe the cluster named test-1 showing the MachineInfrastructure and BootstrapConfig objects
+		# also when their status is the same as the status of the corresponding machine object.
+		clusterctl describe cluster test-1 --echo`),
 
 	Args: func(cmd *cobra.Command, args []string) error {
 		if len(args) != 1 {
@@ -126,10 +125,6 @@ func init() {
 
 	describeClusterClusterCmd.Flags().BoolVar(&dc.echo, "echo", false, ""+
 		"Show MachineInfrastructure and BootstrapConfig when ready condition is true or it has the Status, Severity and Reason of the machine's object.")
-	describeClusterClusterCmd.Flags().BoolVar(&dc.disableNoEcho, "disable-no-echo", false, ""+
-		"Disable hiding of a MachineInfrastructure and BootstrapConfig when ready condition is true or it has the Status, Severity and Reason of the machine's object.")
-	_ = describeClusterClusterCmd.Flags().MarkDeprecated("disable-no-echo",
-		"use --echo instead.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.grouping, "grouping", true,
 		"Groups machines when ready condition has the same Status, Severity and Reason.")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.disableGrouping, "disable-grouping", false,
@@ -165,7 +160,7 @@ func runDescribeCluster(cmd *cobra.Command, name string) error {
 		ShowTemplates:           dc.showTemplates,
 		ShowMachineSets:         dc.showMachineSets,
 		AddTemplateVirtualNode:  true,
-		Echo:                    dc.echo || dc.disableNoEcho,
+		Echo:                    dc.echo,
 		Grouping:                dc.grouping && !dc.disableGrouping,
 	})
 	if err != nil {

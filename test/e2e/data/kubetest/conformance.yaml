@@ -6,3 +6,6 @@ ginkgo.slowSpecThreshold: 120.0
 ginkgo.flakeAttempts: 3
 ginkgo.trace: true
 ginkgo.v: true
+# Use 5m instead of the default 10m to fail faster
+# if kube-system Pods are not coming up.
+system-pods-startup-timeout: 5m

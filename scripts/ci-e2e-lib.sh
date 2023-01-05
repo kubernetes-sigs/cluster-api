@@ -99,6 +99,7 @@ k8s::resolveVersion() {
 
   resolveVersion=$version
   if [[ "$version" =~ ^v ]]; then
+    echo "+ $variableName=\"$version\" already a version, no need to resolve"
     return
   fi
 

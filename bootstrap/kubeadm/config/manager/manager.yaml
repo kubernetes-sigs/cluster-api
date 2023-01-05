@@ -16,27 +16,35 @@ spec:
         control-plane: controller-manager
     spec:
       containers:
-      - command:
-        - /manager
-        args:
-        - "--leader-elect"
-        - "--metrics-bind-addr=localhost:8080"
-        - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},KubeadmBootstrapFormatIgnition=${EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION:=false}"
-        - "--bootstrap-token-ttl=${KUBEADM_BOOTSTRAP_TOKEN_TTL:=15m}"
-        image: controller:latest
-        name: manager
-        ports:
-        - containerPort: 9440
-          name: healthz
-          protocol: TCP
-        readinessProbe:
-          httpGet:
-            path: /readyz
-            port: healthz
-        livenessProbe:
-          httpGet:
-            path: /healthz
-            port: healthz
+        - command:
+            - /manager
+          args:
+            - "--leader-elect"
+            - "--metrics-bind-addr=localhost:8080"
+            - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},KubeadmBootstrapFormatIgnition=${EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION:=false}"
+            - "--bootstrap-token-ttl=${KUBEADM_BOOTSTRAP_TOKEN_TTL:=15m}"
+          image: controller:latest
+          name: manager
+          ports:
+            - containerPort: 9440
+              name: healthz
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: healthz
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: healthz
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            privileged: false
+            runAsUser: 65532
+            runAsGroup: 65532
       terminationGracePeriodSeconds: 10
       serviceAccountName: manager
       tolerations:
@@ -44,3 +52,7 @@ spec:
           key: node-role.kubernetes.io/master
         - effect: NoSchedule
           key: node-role.kubernetes.io/control-plane
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault

@@ -775,6 +775,12 @@ func prepareWorkload(name, prefix, binaryName, containerName string, objs []unst
 			cmd := []string{"sh", "/start.sh", "/" + binaryName}
 			args := append(container.Args, []string(ts.ExtraArgs[name])...)
 
+			// remove securityContext for tilt live_update, see https://github.com/tilt-dev/tilt/issues/3060
+			container.SecurityContext = nil
+			// ensure it's also removed from the pod template matching this container
+			// setting this outside the loop would means altering every deployments
+			d.Spec.Template.Spec.SecurityContext = nil
+
 			// alter deployment for working nicely with delve debugger;
 			// most specifically, configuring delve, starting the manager with profiling enabled, dropping liveness and
 			// readiness probes and disabling leader election.

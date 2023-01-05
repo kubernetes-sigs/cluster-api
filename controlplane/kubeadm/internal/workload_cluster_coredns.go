@@ -35,6 +35,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -47,11 +48,8 @@ const (
 	coreDNSVolumeKey       = "config-volume"
 	coreDNSClusterRoleName = "system:coredns"
 
-	// kubernetesImageRepository is the default Kubernetes image repository for build artifacts.
-	kubernetesImageRepository    = "registry.k8s.io"
-	oldKubernetesImageRepository = "k8s.gcr.io"
-	oldCoreDNSImageName          = "coredns"
-	coreDNSImageName             = "coredns/coredns"
+	oldCoreDNSImageName = "coredns"
+	coreDNSImageName    = "coredns/coredns"
 
 	oldControlPlaneTaint = "node-role.kubernetes.io/master" // Deprecated: https://github.com/kubernetes/kubeadm/issues/2200
 	controlPlaneTaint    = "node-role.kubernetes.io/control-plane"
@@ -200,11 +198,11 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 	toImageRepository := parsedImage.Repository
 	// Overwrite the image repository if a value was explicitly set or an upgrade is required.
 	if imageRegistryRepository := ImageRepositoryFromClusterConfig(clusterConfig, version); imageRegistryRepository != "" {
-		if imageRegistryRepository == kubernetesImageRepository {
-			// Only patch to KubernetesImageRepository if oldKubernetesImageRepository is set as prefix.
-			if strings.HasPrefix(toImageRepository, oldKubernetesImageRepository) {
-				// Ensure to keep the repository subpaths when patching from oldKubernetesImageRepository to new KubernetesImageRepository.
-				toImageRepository = strings.TrimSuffix(imageRegistryRepository+strings.TrimPrefix(toImageRepository, oldKubernetesImageRepository), "/")
+		if imageRegistryRepository == kubeadm.DefaultImageRepository {
+			// Only patch to DefaultImageRepository if OldDefaultImageRepository is set as prefix.
+			if strings.HasPrefix(toImageRepository, kubeadm.OldDefaultImageRepository) {
+				// Ensure to keep the repository subpaths when patching from OldDefaultImageRepository to new DefaultImageRepository.
+				toImageRepository = strings.TrimSuffix(imageRegistryRepository+strings.TrimPrefix(toImageRepository, kubeadm.OldDefaultImageRepository), "/")
 			}
 		} else {
 			toImageRepository = strings.TrimSuffix(imageRegistryRepository, "/")
@@ -235,7 +233,7 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 	// * "registry.k8s.io/coredns" to "registry.k8s.io/coredns/coredns" or
 	// * "k8s.gcr.io/coredns" to "k8s.gcr.io/coredns/coredns"
 	toImageName := parsedImage.Name
-	if (toImageRepository == oldKubernetesImageRepository || toImageRepository == kubernetesImageRepository) &&
+	if (toImageRepository == kubeadm.OldDefaultImageRepository || toImageRepository == kubeadm.DefaultImageRepository) &&
 		toImageName == oldCoreDNSImageName && targetMajorMinorPatch.GTE(semver.MustParse("1.8.0")) {
 		toImageName = coreDNSImageName
 	}

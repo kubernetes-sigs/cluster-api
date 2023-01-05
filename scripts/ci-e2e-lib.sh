@@ -37,6 +37,19 @@ capi:buildDockerImages () {
 # k8s::prepareKindestImages checks all the e2e test variables representing a Kubernetes version,
 # and makes sure a corresponding kindest/node image is available locally.
 k8s::prepareKindestImages() {
+
+  # Build non-existent images for tests
+  kind::prepareKindestImage "v1.22.16"
+  kind::prepareKindestImage "v1.22.17"
+
+  kind::prepareKindestImage "v1.23.14"
+  kind::prepareKindestImage "v1.23.15"
+
+  kind::prepareKindestImage "v1.24.8"
+  kind::prepareKindestImage "v1.24.9"
+
+
+
   if [ -n "${KUBERNETES_VERSION_MANAGEMENT:-}" ]; then
     k8s::resolveVersion "KUBERNETES_VERSION_MANAGEMENT" "$KUBERNETES_VERSION_MANAGEMENT"
     export KUBERNETES_VERSION_MANAGEMENT=$resolveVersion
@@ -115,6 +128,15 @@ kind::prepareKindestImage() {
 # the func expect an input parameter defining the image tag to be used.
 kind::buildNodeImage() {
   local version=$1
+
+  # Create the Kubernetes repo if it doesn't exist (apparently it doesn't in e2e-main).
+  if [ ! -d "$GOPATH/src/k8s.io/kubernetes" ]; then
+    mkdir -p "$GOPATH/src/k8s.io"
+    cd "$GOPATH/src/k8s.io" || exit
+    git clone https://github.com/kubernetes/kubernetes/
+    # move back to Cluster API
+    cd "$REPO_ROOT" || exit
+  fi
 
   # move to the Kubernetes repository.
   echo "KUBE_ROOT $GOPATH/src/k8s.io/kubernetes"

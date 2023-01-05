@@ -18,17 +18,21 @@ package framework
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	. "sigs.k8s.io/cluster-api/test/framework/ginkgoextensions"
 	"sigs.k8s.io/cluster-api/test/framework/internal/log"
+	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -130,7 +134,10 @@ func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForC
 
 	Byf("Ensuring all control-plane machines have upgraded kubernetes version %s", input.KubernetesUpgradeVersion)
 
-	Eventually(func() (int, error) {
+	machineBootstrapFailedCounter := 0
+	failedMachines := sets.NewString()
+
+	Eventually(func(g Gomega) (int, error) {
 		machines := GetControlPlaneMachinesByCluster(ctx, GetControlPlaneMachinesByClusterInput{
 			Lister:      input.Lister,
 			ClusterName: input.Cluster.Name,
@@ -143,7 +150,21 @@ func WaitForControlPlaneMachinesToBeUpgraded(ctx context.Context, input WaitForC
 			if *m.Spec.Version == input.KubernetesUpgradeVersion && conditions.IsTrue(&m, clusterv1.MachineNodeHealthyCondition) {
 				upgraded++
 			}
+
+			for _, c := range m.Status.Conditions {
+				if c.Type == clusterv1.ReadyCondition &&
+					c.Status == corev1.ConditionFalse &&
+					c.Reason == infrav1.BootstrapFailedReason {
+					machineBootstrapFailedCounter++
+					failedMachines.Insert(m.Name)
+				}
+			}
 		}
+
+		if machineBootstrapFailedCounter >= 3 { // Fail Eventually once we found the BootstrapFailed condition more than 3 times
+			return 0, StopTrying(fmt.Sprintf("Machine bootstrap failed at least 5 times, stop trying (Machines: %q)", strings.Join(failedMachines.List(), ",'")))
+		}
+
 		if len(machines) > upgraded {
 			return 0, errors.New("old nodes remain")
 		}

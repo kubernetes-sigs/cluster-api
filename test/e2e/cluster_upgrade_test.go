@@ -26,6 +26,200 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+var _ = Describe("When upgrading a workload cluster v1.18.20 => v1.19.16 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.18.20",
+		KubernetesVersionUpgradeTo:   "v1.19.16",
+		EtcdVersionUpgradeTo:         "3.4.13-0",
+		CoreDNSVersionUpgradeTo:      "1.7.0",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.19.16 => v1.20.15 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.19.16",
+		KubernetesVersionUpgradeTo:   "v1.20.15",
+		EtcdVersionUpgradeTo:         "3.4.13-0",
+		CoreDNSVersionUpgradeTo:      "1.7.0",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.20.15 => v1.21.14 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.20.15",
+		KubernetesVersionUpgradeTo:   "v1.21.14",
+		EtcdVersionUpgradeTo:         "3.4.13-0",
+		CoreDNSVersionUpgradeTo:      "v1.8.0",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.21.14 => v1.22.16 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.21.14",
+		KubernetesVersionUpgradeTo:   "v1.22.16",
+		EtcdVersionUpgradeTo:         "3.5.3-0",
+		CoreDNSVersionUpgradeTo:      "v1.8.4",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.21.14 => v1.22.17 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.21.14",
+		KubernetesVersionUpgradeTo:   "v1.22.17",
+		EtcdVersionUpgradeTo:         "3.5.3-0",
+		CoreDNSVersionUpgradeTo:      "v1.8.4",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.22.16 => v1.23.14 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.22.16",
+		KubernetesVersionUpgradeTo:   "v1.23.14",
+		EtcdVersionUpgradeTo:         "3.5.3-0",
+		CoreDNSVersionUpgradeTo:      "v1.8.6",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.22.16 => v1.23.15 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.22.16",
+		KubernetesVersionUpgradeTo:   "v1.23.15",
+		EtcdVersionUpgradeTo:         "3.5.3-0",
+		CoreDNSVersionUpgradeTo:      "v1.8.6",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.22.17 => v1.23.14 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.22.17",
+		KubernetesVersionUpgradeTo:   "v1.23.14",
+		EtcdVersionUpgradeTo:         "3.5.3-0",
+		CoreDNSVersionUpgradeTo:      "v1.8.6",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.22.17 => v1.23.15 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.22.17",
+		KubernetesVersionUpgradeTo:   "v1.23.15",
+		EtcdVersionUpgradeTo:         "3.5.3-0",
+		CoreDNSVersionUpgradeTo:      "v1.8.6",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.23.14 => v1.24.8 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.23.14",
+		KubernetesVersionUpgradeTo:   "v1.24.8",
+		EtcdVersionUpgradeTo:         "3.5.3-0",
+		CoreDNSVersionUpgradeTo:      "v1.8.6",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.23.14 => v1.24.9 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.23.14",
+		KubernetesVersionUpgradeTo:   "v1.24.9",
+		EtcdVersionUpgradeTo:         "3.5.3-0",
+		CoreDNSVersionUpgradeTo:      "v1.8.6",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.23.15 => v1.24.8 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.23.15",
+		KubernetesVersionUpgradeTo:   "v1.24.8",
+		EtcdVersionUpgradeTo:         "3.5.3-0",
+		CoreDNSVersionUpgradeTo:      "v1.8.6",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.23.15 => v1.24.9 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.23.15",
+		KubernetesVersionUpgradeTo:   "v1.24.9",
+		EtcdVersionUpgradeTo:         "3.5.3-0",
+		CoreDNSVersionUpgradeTo:      "v1.8.6",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.24.8 => v1.25.3 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.24.8",
+		KubernetesVersionUpgradeTo:   "v1.25.3",
+		EtcdVersionUpgradeTo:         "3.5.4-0",
+		CoreDNSVersionUpgradeTo:      "v1.9.3",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.24.9 => v1.25.3 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.24.9",
+		KubernetesVersionUpgradeTo:   "v1.25.3",
+		EtcdVersionUpgradeTo:         "3.5.4-0",
+		CoreDNSVersionUpgradeTo:      "v1.9.3",
+	})
+})
+
+var _ = Describe("When upgrading a workload cluster v1.25.3 => v1.26.0 [ClusterClass] [PR-Blocking]", func() {
+	upgradeSpec(upgradeSpecInput{
+		KubernetesVersionUpgradeFrom: "v1.25.3",
+		KubernetesVersionUpgradeTo:   "v1.26.0",
+		EtcdVersionUpgradeTo:         "3.5.4-0",
+		CoreDNSVersionUpgradeTo:      "v1.9.3",
+	})
+})
+
+type upgradeSpecInput struct {
+	KubernetesVersionUpgradeFrom string
+	KubernetesVersionUpgradeTo   string
+	EtcdVersionUpgradeTo         string
+	CoreDNSVersionUpgradeTo      string
+}
+
+func upgradeSpec(input upgradeSpecInput) {
+	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
+		// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
+		flavor := pointer.String("upgrades")
+		// For KubernetesVersionUpgradeFrom < v1.24 we have to use upgrades-cgroupfs flavor.
+		// This is because kind and CAPD only support:
+		// * cgroupDriver cgroupfs for Kubernetes < v1.24
+		// * cgroupDriver systemd for Kubernetes >= v1.24.
+		// Notes:
+		// * We always use a ClusterClass-based cluster-template for the upgrade test
+		// * The ClusterClass will automatically adjust the cgroupDriver for KCP and MDs.
+		// * We have to handle the MachinePool ourselves
+		// * The upgrades-cgroupfs flavor uses an MP which is pinned to cgroupfs
+		// * During the upgrade UpgradeMachinePoolAndWait automatically drops the cgroupfs pinning
+		//   when the target version is >= v1.24.
+		// We can remove this as soon as we don't test upgrades from Kubernetes < v1.24 anymore with CAPD
+		// or MachinePools are supported in ClusterClass.
+		version, err := semver.ParseTolerant(input.KubernetesVersionUpgradeFrom)
+		Expect(err).ToNot(HaveOccurred(), "Invalid argument, KUBERNETES_VERSION_UPGRADE_FROM is not a valid version")
+		if version.LT(semver.MustParse("1.24.0")) {
+			// "upgrades-cgroupfs" is the same as the "topology" flavor but with an additional MachinePool
+			// with pinned cgroupDriver to cgroupfs.
+			flavor = pointer.String("upgrades-cgroupfs")
+		}
+
+		return ClusterUpgradeConformanceSpecInput{
+			E2EConfig:                    e2eConfig,
+			ClusterctlConfigPath:         clusterctlConfigPath,
+			BootstrapClusterProxy:        bootstrapClusterProxy,
+			ArtifactFolder:               artifactFolder,
+			SkipCleanup:                  skipCleanup,
+			Flavor:                       flavor,
+			SkipConformanceTests:         true,
+			ControlPlaneMachineCount:     pointer.Int64(1),
+			WorkerMachineCount:           pointer.Int64(1),
+			KubernetesVersionUpgradeFrom: &(input.KubernetesVersionUpgradeFrom),
+			KubernetesVersionUpgradeTo:   &(input.KubernetesVersionUpgradeTo),
+			EtcdVersionUpgradeTo:         &(input.EtcdVersionUpgradeTo),
+			CoreDNSVersionUpgradeTo:      &(input.CoreDNSVersionUpgradeTo),
+		}
+	})
+}
+
 var _ = Describe("When upgrading a workload cluster using ClusterClass and testing K8S conformance [Conformance] [K8s-Upgrade] [ClusterClass]", func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.

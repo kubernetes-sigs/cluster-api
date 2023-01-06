@@ -152,6 +152,147 @@ func TestAddAnnotations(t *testing.T) {
 	}
 }
 
+func TestExternallyManagedAnnotation(t *testing.T) {
+	tests := []struct {
+		name     string
+		obj      metav1.Object
+		expected bool
+	}{
+		{
+			name: "annotation exists with non false value",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/managed-by": "xyz",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			expected: true,
+		},
+		{
+			name: "annotation exists with  false value",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/managed-by": "false",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			expected: false,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ret := IsExternallyManaged(tt.obj)
+			if tt.expected {
+				g.Expect(ret).To(BeTrue())
+			} else {
+				g.Expect(ret).To(BeFalse())
+			}
+		})
+	}
+}
+
+func TestPausedAnnotation(t *testing.T) {
+	tests := []struct {
+		name     string
+		obj      metav1.Object
+		expected bool
+	}{
+		{
+			name: "annotation exists with non false value",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/paused": "xyz",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			expected: true,
+		},
+		{
+			name: "annotation exists with  false value",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/paused": "false",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			expected: false,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ret := HasPaused(tt.obj)
+			if tt.expected {
+				g.Expect(ret).To(BeTrue())
+			} else {
+				g.Expect(ret).To(BeFalse())
+			}
+		})
+	}
+}
+
+func TestHasSkipAnnotation(t *testing.T) {
+	tests := []struct {
+		name     string
+		obj      metav1.Object
+		expected bool
+	}{
+		{
+			name: "annotation exists with non false value",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/skip-remediation": "xyz",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			expected: true,
+		},
+		{
+			name: "annotation exists with  false value",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						"cluster.x-k8s.io/skip-remediation": "false",
+					},
+				},
+				Spec:   corev1.NodeSpec{},
+				Status: corev1.NodeStatus{},
+			},
+			expected: false,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ret := HasSkipRemediation(tt.obj)
+			if tt.expected {
+				g.Expect(ret).To(BeTrue())
+			} else {
+				g.Expect(ret).To(BeFalse())
+			}
+		})
+	}
+}
+
 func TestHasTruthyAnnotationValue(t *testing.T) {
 	tests := []struct {
 		name          string

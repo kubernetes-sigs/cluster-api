@@ -187,7 +187,7 @@ func ResourceNotPausedAndHasFilterLabel(logger logr.Logger, labelValue string) p
 func processIfNotPaused(logger logr.Logger, obj client.Object) bool {
 	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
 	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
-	if annotations.HasPaused(obj) {
+	if annotations.HasPausedValue(obj) {
 		log.V(4).Info("Resource is paused, will not attempt to map resource")
 		return false
 	}
@@ -235,7 +235,7 @@ func ResourceIsNotExternallyManaged(logger logr.Logger) predicate.Funcs {
 func processIfNotExternallyManaged(logger logr.Logger, obj client.Object) bool {
 	kind := strings.ToLower(obj.GetObjectKind().GroupVersionKind().Kind)
 	log := logger.WithValues("namespace", obj.GetNamespace(), kind, obj.GetName())
-	if annotations.IsExternallyManaged(obj) {
+	if annotations.IsExternallyManagedValue(obj) {
 		log.V(4).Info("Resource is externally managed, will not attempt to map resource")
 		return false
 	}

@@ -222,7 +222,7 @@ func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersion
 			return nil
 		}
 
-		if annotations.IsExternallyManaged(providerCluster) {
+		if annotations.IsExternallyManagedValue(providerCluster) {
 			log.V(4).Info(fmt.Sprintf("%T is externally managed, skipping mapping", providerCluster))
 			return nil
 		}

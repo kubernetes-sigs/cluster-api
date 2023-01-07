@@ -118,7 +118,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// Return early if the ExtensionConfig is paused.
-	if annotations.HasPaused(extensionConfig) {
+	if annotations.HasPausedValue(extensionConfig) {
 		log.Info("Reconciliation is paused for this object")
 		return ctrl.Result{}, nil
 	}

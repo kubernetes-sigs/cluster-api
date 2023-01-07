@@ -345,11 +345,11 @@ func minDuration(durations []time.Duration) time.Duration {
 // shouldSkipRemediation checks if the machine should be skipped for remediation.
 // Returns true if it should be skipped along with the reason for skipping.
 func shouldSkipRemediation(m *clusterv1.Machine) (bool, string) {
-	if annotations.HasPaused(m) {
+	if annotations.HasPausedValue(m) {
 		return true, fmt.Sprintf("machine has %q annotation", clusterv1.PausedAnnotation)
 	}
 
-	if annotations.HasSkipRemediation(m) {
+	if annotations.HasSkipRemediationValue(m) {
 		return true, fmt.Sprintf("machine has %q annotation", clusterv1.MachineSkipRemediationAnnotation)
 	}
 

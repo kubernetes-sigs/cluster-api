@@ -189,7 +189,7 @@ func TestExternallyManagedAnnotation(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			ret := IsExternallyManaged(tt.obj)
+			ret := IsExternallyManagedValue(tt.obj)
 			if tt.expected {
 				g.Expect(ret).To(BeTrue())
 			} else {
@@ -236,7 +236,7 @@ func TestPausedAnnotation(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			ret := HasPaused(tt.obj)
+			ret := HasPausedValue(tt.obj)
 			if tt.expected {
 				g.Expect(ret).To(BeTrue())
 			} else {
@@ -283,7 +283,7 @@ func TestHasSkipAnnotation(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			ret := HasSkipRemediation(tt.obj)
+			ret := HasSkipRemediationValue(tt.obj)
 			if tt.expected {
 				g.Expect(ret).To(BeTrue())
 			} else {

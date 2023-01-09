@@ -126,10 +126,9 @@ func (r *reconcileStrategyScope) apply(ctx context.Context, c client.Client, obj
 	if err != nil {
 		return errors.Wrapf(
 			err,
-			"reading object %s %s/%s",
+			"reading object %s %s",
 			obj.GroupVersionKind(),
-			obj.GetNamespace(),
-			obj.GetName(),
+			klog.Obj(obj),
 		)
 	}
 

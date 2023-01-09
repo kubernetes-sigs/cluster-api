@@ -110,10 +110,9 @@ func createUnstructured(ctx context.Context, c client.Client, obj *unstructured.
 	if err := c.Create(ctx, obj); err != nil {
 		return errors.Wrapf(
 			err,
-			"creating object %s %s/%s",
+			"creating object %s %s",
 			obj.GroupVersionKind(),
-			obj.GetNamespace(),
-			obj.GetName(),
+			klog.Obj(obj),
 		)
 	}
 

@@ -115,11 +115,6 @@ func (m *ClusterResourceSet) SetConditions(conditions clusterv1.Conditions) {
 	m.Status.Conditions = conditions
 }
 
-// IsStrategy compares the ClusterResourceSet strategy to the given ClusterResourceSetStrategy.
-func (m *ClusterResourceSet) IsStrategy(s ClusterResourceSetStrategy) bool {
-	return m.Spec.Strategy == string(s)
-}
-
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=clusterresourcesets,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status

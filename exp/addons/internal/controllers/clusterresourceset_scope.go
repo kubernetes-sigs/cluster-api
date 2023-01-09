@@ -77,13 +77,15 @@ func newResourceReconcileScope(
 		normalizedObjs:     objs,
 		computedHash:       computeHash(normalizedData),
 	}
-	if clusterResourceSet.IsStrategy(addonsv1.ClusterResourceSetStrategyApplyOnce) {
-		return &reconcileApplyOnceScope{base}
-	} else if clusterResourceSet.IsStrategy(addonsv1.ClusterResourceSetStrategyReconcile) {
-		return &reconcileStrategyScope{base}
-	}
 
-	return nil
+	switch addonsv1.ClusterResourceSetStrategy(clusterResourceSet.Spec.Strategy) {
+	case addonsv1.ClusterResourceSetStrategyApplyOnce:
+		return &reconcileApplyOnceScope{base}
+	case addonsv1.ClusterResourceSetStrategyReconcile:
+		return &reconcileStrategyScope{base}
+	default:
+		return nil
+	}
 }
 
 type baseResourceReconcileScope struct {

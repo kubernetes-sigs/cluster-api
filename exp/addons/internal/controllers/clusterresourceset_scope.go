@@ -108,7 +108,7 @@ type reconcileStrategyScope struct {
 }
 
 func (r *reconcileStrategyScope) needsApply() bool {
-	resourceBinding := r.resourceSetBinding.GetResourceBinding(r.resourceRef)
+	resourceBinding := r.resourceSetBinding.GetResource(r.resourceRef)
 
 	return resourceBinding == nil || !resourceBinding.Applied || resourceBinding.Hash != r.computedHash
 }

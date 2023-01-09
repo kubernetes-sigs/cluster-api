@@ -150,8 +150,8 @@ a target [management cluster] on the selected [infrastructure provider].
 ### Install clusterctl
 The clusterctl CLI tool handles the lifecycle of a Cluster API management cluster.
 
-{{#tabs name:"install-clusterctl" tabs:"linux,macOS,homebrew,Windows"}}
-{{#tab linux}}
+{{#tabs name:"install-clusterctl" tabs:"Linux,macOS,homebrew,Windows"}}
+{{#tab Linux}}
 
 #### Install clusterctl binary with curl on Linux
 If you are unsure you can determine your computers architecture by running `uname -a`
@@ -211,7 +211,7 @@ clusterctl version
 {{#/tab }}
 {{#tab homebrew}}
 
-#### Install clusterctl with homebrew on macOS and linux
+#### Install clusterctl with homebrew on macOS and Linux
 
 Install the latest release using homebrew:
 
@@ -271,40 +271,14 @@ before getting started with Cluster API. See below for the expected settings for
 {{#tabs name:"tab-installation-infrastructure" tabs:"AWS,Azure,CloudStack,DigitalOcean,Docker,Equinix Metal,GCP,Hetzner,IBM Cloud,KubeKey,KubeVirt,Metal3,Nutanix,OCI,OpenStack,Outscale,VCD,vcluster,Virtink,vSphere"}}
 {{#tab AWS}}
 
-Download the latest binary of `clusterawsadm` from the [AWS provider releases].
-{{#tabs name:"install-clusterawsadm" tabs:"linux,macOS,homebrew"}}
-{{#tab linux}}
+Download the latest binary of `clusterawsadm` from the [AWS provider releases]. The [clusterawsadm] command line utility assists with identity and access management (IAM) for [Cluster API Provider AWS][capa].
 
-Download the latest release; on linux, type:
-```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-linux-amd64" version:">=1.0.0"}} -o clusterawsadm
-```
+{{#tabs name:"install-clusterawsadm" tabs:"Linux,macOS,homebrew,Windows"}}
+{{#tab Linux}}
 
-Make it executable
+Download the latest release; on Linux, type:
 ```
-chmod +x clusterawsadm
-```
-
-Move the binary to a directory present in your PATH
-```
-sudo mv clusterawsadm /usr/local/bin
-```
-
-Check version to confirm installation
-```
-clusterawsadm version
-```
-{{#/tab }}
-{{#tab macOS}}
-
-Download the latest release; on macOs, type:
-```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-amd64" version:">=1.0.0"}} -o clusterawsadm
-```
-
-Or if your Mac has an M1 CPU (”Apple Silicon”):
-```
-curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-arm64" version:">=1.0.0"}} -o clusterawsadm
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-linux-amd64" version:">=2.0.0"}} -o clusterawsadm
 ```
 
 Make it executable
@@ -321,24 +295,8 @@ Check version to confirm installation
 ```
 clusterawsadm version
 ```
-{{#/tab }}
-{{#tab homebrew}}
 
-Install the latest release using homebrew:
-```
-brew install clusterawsadm
-```
-
-Check version to confirm installation
-```
-clusterawsadm version
-```
-
-{{#/tab }}
-{{#/tabs }}
-
-The [clusterawsadm] command line utility assists with identity and access management (IAM) for [Cluster API Provider AWS][capa].
-
+**Example Usage**
 ```bash
 export AWS_REGION=us-east-1 # This is used to help encode your environment variables
 export AWS_ACCESS_KEY_ID=<your-access-key>
@@ -358,6 +316,125 @@ export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-a
 # Finally, initialize the management cluster
 clusterctl init --infrastructure aws
 ```
+
+{{#/tab }}
+{{#tab macOS}}
+
+Download the latest release; on macOs, type:
+```
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-amd64" version:">=2.0.0"}} -o clusterawsadm
+```
+
+Or if your Mac has an M1 CPU (”Apple Silicon”):
+```
+curl -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-darwin-arm64" version:">=2.0.0"}} -o clusterawsadm
+```
+
+Make it executable
+```
+chmod +x clusterawsadm
+```
+
+Move the binary to a directory present in your PATH
+```
+sudo mv clusterawsadm /usr/local/bin
+```
+
+Check version to confirm installation
+```
+clusterawsadm version
+```
+
+**Example Usage**
+```bash
+export AWS_REGION=us-east-1 # This is used to help encode your environment variables
+export AWS_ACCESS_KEY_ID=<your-access-key>
+export AWS_SECRET_ACCESS_KEY=<your-secret-access-key>
+export AWS_SESSION_TOKEN=<session-token> # If you are using Multi-Factor Auth.
+
+# The clusterawsadm utility takes the credentials that you set as environment
+# variables and uses them to create a CloudFormation stack in your AWS account
+# with the correct IAM resources.
+clusterawsadm bootstrap iam create-cloudformation-stack
+
+# Create the base64 encoded credentials using clusterawsadm.
+# This command uses your environment variables and encodes
+# them in a value to be stored in a Kubernetes Secret.
+export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
+
+# Finally, initialize the management cluster
+clusterctl init --infrastructure aws
+```
+{{#/tab }}
+{{#tab homebrew}}
+
+Install the latest release using homebrew:
+```
+brew install clusterawsadm
+```
+
+Check version to confirm installation
+```
+clusterawsadm version
+```
+
+**Example Usage**
+```bash
+export AWS_REGION=us-east-1 # This is used to help encode your environment variables
+export AWS_ACCESS_KEY_ID=<your-access-key>
+export AWS_SECRET_ACCESS_KEY=<your-secret-access-key>
+export AWS_SESSION_TOKEN=<session-token> # If you are using Multi-Factor Auth.
+
+# The clusterawsadm utility takes the credentials that you set as environment
+# variables and uses them to create a CloudFormation stack in your AWS account
+# with the correct IAM resources.
+clusterawsadm bootstrap iam create-cloudformation-stack
+
+# Create the base64 encoded credentials using clusterawsadm.
+# This command uses your environment variables and encodes
+# them in a value to be stored in a Kubernetes Secret.
+export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
+
+# Finally, initialize the management cluster
+clusterctl init --infrastructure aws
+```
+
+{{#/tab }}
+{{#tab Windows}}
+
+Download the latest release; on Windows, type:
+```
+curl.exe -L {{#releaselink gomodule:"sigs.k8s.io/cluster-api-provider-aws" asset:"clusterawsadm-windows-amd64" version:">=2.0.0"}} -o clusterawsadm.exe
+```
+
+Append or prepend the path of that directory to the `PATH` environment variable.
+Check version to confirm installation
+```
+clusterawsadm.exe version
+```
+
+**Example Usage in Powershell**
+```bash
+$Env:AWS_REGION="us-east-1" # This is used to help encode your environment variables
+$Env:AWS_ACCESS_KEY_ID="<your-access-key>"
+$Env:AWS_SECRET_ACCESS_KEY="<your-secret-access-key>"
+$Env:AWS_SESSION_TOKEN="<session-token>" # If you are using Multi-Factor Auth.
+
+# The clusterawsadm utility takes the credentials that you set as environment
+# variables and uses them to create a CloudFormation stack in your AWS account
+# with the correct IAM resources.
+clusterawsadm bootstrap iam create-cloudformation-stack
+
+# Create the base64 encoded credentials using clusterawsadm.
+# This command uses your environment variables and encodes
+# them in a value to be stored in a Kubernetes Secret.
+$Env:AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-as-profile)
+
+# Finally, initialize the management cluster
+clusterctl init --infrastructure aws
+```
+{{#/tab }}
+{{#/tabs }}
 
 See the [AWS provider prerequisites] document for more details.
 

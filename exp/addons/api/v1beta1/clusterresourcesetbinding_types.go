@@ -59,11 +59,7 @@ type ResourceSetBinding struct {
 // IsApplied returns true if the resource is applied to the cluster by checking the cluster's binding.
 func (r *ResourceSetBinding) IsApplied(resourceRef ResourceRef) bool {
 	resourceBinding := r.GetResource(resourceRef)
-	if resourceBinding == nil {
-		return false
-	}
-
-	return resourceBinding.Applied
+	return resourceBinding != nil && resourceBinding.Applied
 }
 
 // GetResource returns a ResourceBinding for a resource ref if present.

@@ -9,11 +9,16 @@ permissions: {}
 
 jobs:
   scan:
+    strategy:
+      matrix:
+        branch: [ main, release-1.3, release-1.2 ]
     name: Trivy
     runs-on: ubuntu-latest
     steps:
     - name: Check out code
-      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # tag=v3.1.0
+      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # tag=v3.3.0
+      with:
+        ref: ${{ matrix.branch }}
     - name: Setup go
       uses: actions/setup-go@d0a58c1c4d2b25278816e339b944508c875f3613 # tag=v3.4.0
       with:

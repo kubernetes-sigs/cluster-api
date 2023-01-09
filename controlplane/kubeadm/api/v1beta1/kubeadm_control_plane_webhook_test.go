@@ -451,14 +451,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	kubernetesVersion := before.DeepCopy()
 	kubernetesVersion.Spec.KubeadmConfigSpec.ClusterConfiguration.KubernetesVersion = "some kubernetes version"
 
-	prevKCPWithVersion := func(version string) *KubeadmControlPlane {
-		prev := before.DeepCopy()
-		prev.Spec.Version = version
-		return prev
-	}
-	skipMinorControlPlaneVersion := prevKCPWithVersion("v1.18.1")
-	emptyControlPlaneVersion := prevKCPWithVersion("")
-
 	controlPlaneEndpoint := before.DeepCopy()
 	controlPlaneEndpoint.Spec.KubeadmConfigSpec.ClusterConfiguration.ControlPlaneEndpoint = "some control plane endpoint"
 
@@ -610,13 +602,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	afterEtcdLocalDirAddition.Spec.KubeadmConfigSpec.ClusterConfiguration.Etcd.Local = &bootstrapv1.LocalEtcd{
 		DataDir: "/data",
 	}
-
-	disallowedUpgrade118Prev := prevKCPWithVersion("v1.18.8")
-	disallowedUpgrade119Version := before.DeepCopy()
-	disallowedUpgrade119Version.Spec.Version = "v1.19.0"
-
-	disallowedUpgrade120AlphaVersion := before.DeepCopy()
-	disallowedUpgrade120AlphaVersion.Spec.Version = "v1.20.0-alpha.0.734_ba502ee555924a"
 
 	updateNTPServers := before.DeepCopy()
 	updateNTPServers.Spec.KubeadmConfigSpec.NTP.Servers = []string{"new-server"}
@@ -926,36 +911,6 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			kcp:       afterEtcdLocalDirAddition,
 		},
 		{
-			name:      "should fail when skipping control plane minor versions",
-			expectErr: true,
-			before:    before,
-			kcp:       skipMinorControlPlaneVersion,
-		},
-		{
-			name:      "should fail when no control plane version is passed",
-			expectErr: true,
-			before:    before,
-			kcp:       emptyControlPlaneVersion,
-		},
-		{
-			name:      "should pass if control plane version is the same",
-			expectErr: false,
-			before:    before,
-			kcp:       before.DeepCopy(),
-		},
-		{
-			name:      "should return error when trying to upgrade to v1.19.0",
-			expectErr: true,
-			before:    disallowedUpgrade118Prev,
-			kcp:       disallowedUpgrade119Version,
-		},
-		{
-			name:      "should return error when trying to upgrade two minor versions",
-			expectErr: true,
-			before:    disallowedUpgrade118Prev,
-			kcp:       disallowedUpgrade120AlphaVersion,
-		},
-		{
 			name:      "should not return an error when maxSurge value is updated to 0",
 			expectErr: false,
 			before:    before,
@@ -1051,6 +1006,162 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	}
 }
 
+func TestValidateVersion(t *testing.T) {
+	tests := []struct {
+		name                 string
+		clusterConfiguration *bootstrapv1.ClusterConfiguration
+		oldVersion           string
+		newVersion           string
+		expectErr            bool
+	}{
+		// Basic validation of old and new version.
+		{
+			name:       "error when old version is empty",
+			oldVersion: "",
+			newVersion: "v1.16.6",
+			expectErr:  true,
+		},
+		{
+			name:       "error when old version is invalid",
+			oldVersion: "invalid-version",
+			newVersion: "v1.18.1",
+			expectErr:  true,
+		},
+		{
+			name:       "error when new version is empty",
+			oldVersion: "v1.16.6",
+			newVersion: "",
+			expectErr:  true,
+		},
+		{
+			name:       "error when new version is invalid",
+			oldVersion: "v1.18.1",
+			newVersion: "invalid-version",
+			expectErr:  true,
+		},
+		// Validation that we block upgrade to v1.19.0.
+		// Note: Upgrading to v1.19.0 is not supported, because of issues in v1.19.0,
+		// see: https://github.com/kubernetes-sigs/cluster-api/issues/3564
+		{
+			name:       "error when upgrading to v1.19.0",
+			oldVersion: "v1.18.8",
+			newVersion: "v1.19.0",
+			expectErr:  true,
+		},
+		{
+			name:       "pass when both versions are v1.19.0",
+			oldVersion: "v1.19.0",
+			newVersion: "v1.19.0",
+			expectErr:  false,
+		},
+		// Validation for skip-level upgrades.
+		{
+			name:       "error when upgrading two minor versions",
+			oldVersion: "v1.18.8",
+			newVersion: "v1.20.0-alpha.0.734_ba502ee555924a",
+			expectErr:  true,
+		},
+		{
+			name:       "pass when upgrading one minor version",
+			oldVersion: "v1.20.1",
+			newVersion: "v1.21.18",
+			expectErr:  false,
+		},
+		// Validation for usage of the old registry.
+		// Notes:
+		// * kubeadm versions < v1.22 are always using the old registry.
+		// * kubeadm versions >= v1.25.0 are always using the new registry.
+		// * kubeadm versions in between are using the new registry
+		//   starting with certain patch versions.
+		// This test validates that we don't block upgrades for < v1.22.0 and >= v1.25.0
+		// and block upgrades to kubeadm versions in between with the old registry.
+		{
+			name: "pass when imageRepository is set",
+			clusterConfiguration: &bootstrapv1.ClusterConfiguration{
+				ImageRepository: "k8s.gcr.io",
+			},
+			oldVersion: "v1.21.1",
+			newVersion: "v1.22.16",
+			expectErr:  false,
+		},
+		{
+			name:       "pass when version didn't change",
+			oldVersion: "v1.22.16",
+			newVersion: "v1.22.16",
+			expectErr:  false,
+		},
+		{
+			name:       "pass when new version is < v1.22.0",
+			oldVersion: "v1.20.10",
+			newVersion: "v1.21.5",
+			expectErr:  false,
+		},
+		{
+			name:       "error when new version is using old registry (v1.22.0 <= version <= v1.22.16)",
+			oldVersion: "v1.21.1",
+			newVersion: "v1.22.16", // last patch release using old registry
+			expectErr:  true,
+		},
+		{
+			name:       "pass when new version is using new registry (>= v1.22.17)",
+			oldVersion: "v1.21.1",
+			newVersion: "v1.22.17", // first patch release using new registry
+			expectErr:  false,
+		},
+		{
+			name:       "error when new version is using old registry (v1.23.0 <= version <= v1.23.14)",
+			oldVersion: "v1.22.17",
+			newVersion: "v1.23.14", // last patch release using old registry
+			expectErr:  true,
+		},
+		{
+			name:       "pass when new version is using new registry (>= v1.23.15)",
+			oldVersion: "v1.22.17",
+			newVersion: "v1.23.15", // first patch release using new registry
+			expectErr:  false,
+		},
+		{
+			name:       "error when new version is using old registry (v1.24.0 <= version <= v1.24.8)",
+			oldVersion: "v1.23.1",
+			newVersion: "v1.24.8", // last patch release using old registry
+			expectErr:  true,
+		},
+		{
+			name:       "pass when new version is using new registry (>= v1.24.9)",
+			oldVersion: "v1.23.1",
+			newVersion: "v1.24.9", // first patch release using new registry
+			expectErr:  false,
+		},
+		{
+			name:       "pass when new version is using new registry (>= v1.25.0)",
+			oldVersion: "v1.24.8",
+			newVersion: "v1.25.0", // uses new registry
+			expectErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			kcp := KubeadmControlPlane{
+				Spec: KubeadmControlPlaneSpec{
+					KubeadmConfigSpec: bootstrapv1.KubeadmConfigSpec{
+						ClusterConfiguration: tt.clusterConfiguration,
+					},
+					Version: tt.newVersion,
+				},
+			}
+
+			allErrs := kcp.validateVersion(tt.oldVersion)
+			if tt.expectErr {
+				g.Expect(allErrs).ToNot(HaveLen(0))
+			} else {
+				g.Expect(allErrs).To(HaveLen(0))
+			}
+		})
+	}
+}
 func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 	before := &KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{

@@ -80,7 +80,7 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass [ClusterC
 	})
 })
 
-var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane [ClusterClass]", func() {
+var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane [ClusterClass] [PR-Blocking]", func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
 			E2EConfig:             e2eConfig,

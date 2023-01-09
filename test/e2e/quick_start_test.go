@@ -24,7 +24,7 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", func() {
+var _ = Describe("When following the Cluster API quick-start", func() {
 	QuickStartSpec(ctx, func() QuickStartSpecInput {
 		return QuickStartSpecInput{
 			E2EConfig:             e2eConfig,

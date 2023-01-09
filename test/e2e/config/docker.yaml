@@ -62,7 +62,7 @@ providers:
     value: ../../../config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
-      new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
+      new: "--metrics-bind-addr=:8080"
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
 
@@ -100,7 +100,7 @@ providers:
     value: ../../../bootstrap/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
-      new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
+      new: "--metrics-bind-addr=:8080"
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
 
@@ -138,7 +138,7 @@ providers:
     value: ../../../controlplane/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
-      new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
+      new: "--metrics-bind-addr=:8080"
     files:
     - sourcePath: "../data/shared/main/metadata.yaml"
 
@@ -181,7 +181,7 @@ providers:
     value: ../../../test/infrastructure/docker/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
-      new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
+      new: "--metrics-bind-addr=:8080"
     files:
     # Add cluster templates
     - sourcePath: "../data/infrastructure-docker/main/cluster-template.yaml"

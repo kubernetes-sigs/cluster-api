@@ -142,7 +142,7 @@ The set of Kubernetes services that form the basis of a cluster. See also [https
 
 ### Control plane provider
 
-Refers to a [provider](#provider) that implements a solution for the management of a Kubernetes [control plane][#control-plane].
+Refers to a [provider](#provider) that implements a solution for the management of a Kubernetes [control plane](#control-plane).
 Control plane provider's interaction with Cluster API is based on what is defined in the [Cluster API contract](#contract).
 
 See [KCP](#KCP).
@@ -172,9 +172,7 @@ A feature implementation offered as part of the Cluster API project and maintain
 
 ### External patch extension
 
-A [runtime extension] that implements a [topology mutation hook]
-
-See [Runtime Extension](#runtime-extension), [topology mutation hook](#topology-mutation-hook)
+A [runtime extension](#runtime-extension) that implements a [topology mutation hook](#topology-mutation-hook).
 
 # H
 ---
@@ -199,8 +197,7 @@ Infrastructure provider's interaction with Cluster API is based on what is defin
 Clouds infrastructure providers include AWS, Azure, or Google; while VMware, MAAS, or metal3.io can be defined as bare metal providers.
 When there is more than one way to obtain resources from the same infrastructure provider (e.g. EC2 vs. EKS in AWS) each way is referred to as a variant.
 
-See e.g. [CAPA][#CAPA], [CAPC][#CAPC], [CAPD][#CAPD], [CAPG][#CAPG], [CAPH][#CAPH], [CAPIBM][#CAPIBM], [CAPN][#CAPN],
-[CAPX][#CAPX], [CAPK][#CAPK], [CAPO][#CAPO], [CAPOCI][#CAPOCI], [CAPV][#CAPV], [CAPVC][#CAPVC], [CAPVCD][#CAPVCD], [CAPZ][#CAPZ]
+For a complete list of providers see [Provider Implementations](providers.md).
 
 ### Inline patch 
 

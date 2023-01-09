@@ -70,7 +70,7 @@ func TestRunCmdRun(t *testing.T) {
 				},
 			},
 			expectedCmds: []provisioning.Cmd{
-				{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --ignore-preflight-errors=SystemVerification,Swap,FileContent--proc-sys-net-bridge-bridge-nf-call-iptables --config /run/kubeadm/kubeadm.yaml"}},
+				{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --ignore-preflight-errors=all --config /run/kubeadm/kubeadm.yaml"}},
 			},
 		},
 	}
@@ -100,11 +100,11 @@ runcmd:
 
 	r.Cmds[0] = hackKubeadmIgnoreErrors(r.Cmds[0])
 
-	expected0 := provisioning.Cmd{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --ignore-preflight-errors=SystemVerification,Swap,FileContent--proc-sys-net-bridge-bridge-nf-call-iptables --config=/run/kubeadm/kubeadm.yaml"}}
+	expected0 := provisioning.Cmd{Cmd: "/bin/sh", Args: []string{"-c", "kubeadm init --ignore-preflight-errors=all --config=/run/kubeadm/kubeadm.yaml"}}
 	g.Expect(r.Cmds[0]).To(Equal(expected0))
 
 	r.Cmds[1] = hackKubeadmIgnoreErrors(r.Cmds[1])
 
-	expected1 := provisioning.Cmd{Cmd: "kubeadm", Args: []string{"join", "--ignore-preflight-errors=SystemVerification,Swap,FileContent--proc-sys-net-bridge-bridge-nf-call-iptables", "--config=/run/kubeadm/kubeadm-controlplane-join-config.yaml"}}
+	expected1 := provisioning.Cmd{Cmd: "kubeadm", Args: []string{"join", "--ignore-preflight-errors=all", "--config=/run/kubeadm/kubeadm-controlplane-join-config.yaml"}}
 	g.Expect(r.Cmds[1]).To(Equal(expected1))
 }

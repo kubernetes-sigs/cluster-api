@@ -33,7 +33,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -92,19 +91,6 @@ func isJSONList(data []byte) (bool, error) {
 	}
 	trim := bytes.TrimLeftFunc(b, unicode.IsSpace)
 	return bytes.HasPrefix(trim, jsonListPrefix), nil
-}
-
-// apply reconciles all objects defined by a resource from a ClusterResourceSet
-// delegating on the reconcileScope for the applying strategy.
-func apply(ctx context.Context, c client.Client, scope resourceReconcileScope) error {
-	errList := []error{}
-	objs := scope.objs()
-	for i := range objs {
-		if err := scope.apply(ctx, c, &objs[i]); err != nil {
-			errList = append(errList, err)
-		}
-	}
-	return kerrors.NewAggregate(errList)
 }
 
 func createUnstructured(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error {

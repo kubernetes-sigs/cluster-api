@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -34,11 +35,8 @@ type resourceReconcileScope interface {
 	// needsApply determines if a resource needs to be applied to the target cluster
 	// based on the strategy.
 	needsApply() bool
-	// apply reconciles the resource to the target cluster following a different process
-	// depending on the strategy.
-	apply(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error
-	// objs returns all the Kubernetes objects defined in the resource.
-	objs() []unstructured.Unstructured
+	// apply reconciles all objects defined by the resource following the proper strategy for the CRS.
+	apply(ctx context.Context, c client.Client) error
 	// hash returns a computed hash of the defined objects in the resource. It is consistent
 	// between runs.
 	hash() string
@@ -116,7 +114,11 @@ func (r *reconcileStrategyScope) needsApply() bool {
 	return resourceBinding == nil || !resourceBinding.Applied || resourceBinding.Hash != r.computedHash
 }
 
-func (r *reconcileStrategyScope) apply(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error {
+func (r *reconcileStrategyScope) apply(ctx context.Context, c client.Client) error {
+	return apply(ctx, c, r.applyObj, r.objs())
+}
+
+func (r *reconcileStrategyScope) applyObj(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error {
 	currentObj := &unstructured.Unstructured{}
 	currentObj.SetAPIVersion(obj.GetAPIVersion())
 	currentObj.SetKind(obj.GetKind())
@@ -156,11 +158,28 @@ func (r *reconcileApplyOnceScope) needsApply() bool {
 	return !r.resourceSetBinding.IsApplied(r.resourceRef)
 }
 
-func (r *reconcileApplyOnceScope) apply(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error {
+func (r *reconcileApplyOnceScope) apply(ctx context.Context, c client.Client) error {
+	return apply(ctx, c, r.applyObj, r.objs())
+}
+
+func (r *reconcileApplyOnceScope) applyObj(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error {
 	// The create call is idempotent, so if the object already exists
 	// then do not consider it to be an error.
 	if err := createUnstructured(ctx, c, obj); !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 	return nil
+}
+
+type applyObj func(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error
+
+// apply reconciles unstructured objects using applyObj and aggreates the error if present.
+func apply(ctx context.Context, c client.Client, applyObj applyObj, objs []unstructured.Unstructured) error {
+	errList := []error{}
+	for i := range objs {
+		if err := applyObj(ctx, c, &objs[i]); err != nil {
+			errList = append(errList, err)
+		}
+	}
+	return kerrors.NewAggregate(errList)
 }

@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -112,7 +113,7 @@ func createUnstructured(ctx context.Context, c client.Client, obj *unstructured.
 			err,
 			"creating object %s %s",
 			obj.GroupVersionKind(),
-			klog.Obj(obj),
+			klog.KObj(obj),
 		)
 	}
 

@@ -22,6 +22,7 @@ import (
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
@@ -128,7 +129,7 @@ func (r *reconcileStrategyScope) apply(ctx context.Context, c client.Client, obj
 			err,
 			"reading object %s %s",
 			obj.GroupVersionKind(),
-			klog.Obj(obj),
+			klog.KObj(obj),
 		)
 	}
 

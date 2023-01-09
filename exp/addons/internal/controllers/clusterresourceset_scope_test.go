@@ -17,11 +17,16 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
-
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestReconcileStrategyScopeNeedsApply(t *testing.T) {
@@ -182,6 +187,64 @@ func TestReconcileApplyOnceScopeNeedsApply(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 			gs.Expect(tt.scope.needsApply()).To(Equal(tt.want))
+		})
+	}
+}
+
+func TestReconcileApplyOnceScopeApply(t *testing.T) {
+	tests := []struct {
+		name         string
+		existingObjs []client.Object
+		obj          *unstructured.Unstructured
+		wantErr      string
+	}{
+		{
+			name: "object doesn't exist",
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ConfigMap",
+					"metadata": map[string]interface{}{
+						"name":      "my-cm",
+						"namespace": "that-ns",
+					},
+				},
+			},
+		},
+		{
+			name: "object exists",
+			existingObjs: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "my-cm",
+						Namespace: "that-ns",
+					},
+				},
+			},
+			obj: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"apiVersion": "v1",
+					"kind":       "ConfigMap",
+					"metadata": map[string]interface{}{
+						"name":      "my-cm",
+						"namespace": "that-ns",
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gs := NewWithT(t)
+			ctx := context.Background()
+			client := fake.NewClientBuilder().WithObjects(tt.existingObjs...).Build()
+			scope := &reconcileApplyOnceScope{}
+			err := scope.apply(ctx, client, tt.obj)
+			if tt.wantErr == "" {
+				gs.Expect(err).NotTo(HaveOccurred())
+			} else {
+				gs.Expect(err).To(MatchError(ContainSubstring(tt.wantErr)))
+			}
 		})
 	}
 }

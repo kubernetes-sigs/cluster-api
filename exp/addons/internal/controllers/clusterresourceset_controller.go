@@ -298,8 +298,8 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			errList = append(errList, err)
 		}
 
-		resourceScope, scopeError := reconcileScopeForResource(clusterResourceSet, resource, resourceSetBinding, unstructuredObj)
-		if scopeError == nil && !resourceScope.needsApply() {
+		resourceScope, err := reconcileScopeForResource(clusterResourceSet, resource, resourceSetBinding, unstructuredObj)
+		if err == nil && !resourceScope.needsApply() {
 			continue
 		}
 
@@ -312,8 +312,8 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
 		})
 
-		if scopeError != nil {
-			errList = append(errList, scopeError)
+		if err != nil {
+			errList = append(errList, err)
 			continue
 		}
 

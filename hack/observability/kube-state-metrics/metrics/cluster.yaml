@@ -35,6 +35,22 @@
             - spec
             - controlPlaneEndpoint
             - port
+            control_plane_reference_kind:
+            - spec
+            - controlPlaneRef
+            - kind
+            control_plane_reference_name:
+            - spec
+            - controlPlaneRef
+            - name
+            infrastructure_reference_kind:
+            - spec
+            - infrastructureRef
+            - kind
+            infrastructure_reference_name:
+            - spec
+            - infrastructureRef
+            - name
         type: Info
     - name: spec_paused
       help: Whether the cluster is paused and any of its resources will not be processed by the controllers.

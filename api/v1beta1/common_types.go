@@ -146,7 +146,7 @@ const (
 
 // MachineAddress contains information for the node's address.
 type MachineAddress struct {
-	// Machine address type, one of Hostname, ExternalIP or InternalIP.
+	// Machine address type, one of Hostname, ExternalIP, InternalIP, ExternalDNS or InternalDNS.
 	Type MachineAddressType `json:"type"`
 
 	// The machine address.

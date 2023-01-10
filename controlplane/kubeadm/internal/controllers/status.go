@@ -18,6 +18,8 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -59,6 +61,13 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 	kcp.Status.Replicas = replicas
 	kcp.Status.ReadyReplicas = 0
 	kcp.Status.UnavailableReplicas = replicas
+
+	log.Info(fmt.Sprintf("STEFAN: updateStatus: spec.replias %d status.replicas %d status.readyReplicas %d status.updateReplicas %d", kcp.Spec.Replicas, kcp.Status.Replicas, kcp.Status.ReadyReplicas, kcp.Status.UpdatedReplicas))
+	machineNames := []string{}
+	for _, m := range ownedMachines {
+		machineNames = append(machineNames, m.Name)
+	}
+	log.Info(fmt.Sprintf("STEFAN: updateStatus: machines: %s", strings.Join(machineNames, ",")))
 
 	// Return early if the deletion timestamp is set, because we don't want to try to connect to the workload cluster
 	// and we don't want to report resize condition (because it is set to deleting into reconcile delete).

@@ -332,5 +332,7 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 	if err := r.Client.Create(ctx, machine); err != nil {
 		return errors.Wrap(err, "failed to create machine")
 	}
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("STEFAN: Machine created", "machine", klog.KObj(machine))
 	return nil
 }

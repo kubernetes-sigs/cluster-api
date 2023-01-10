@@ -335,6 +335,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 	// control plane is provisioned.
 	if cpProvisioning {
 		s.UpgradeTracker.ControlPlane.IsProvisioning = true
+		log.Infof("STEFAN: Holding back version upgrade because control plane is provisioning")
 		return *currentVersion, nil
 	}
 
@@ -349,6 +350,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 	// after the control plane is stable.
 	if cpUpgrading {
 		s.UpgradeTracker.ControlPlane.IsUpgrading = true
+		log.Infof("STEFAN: Holding back version upgrade because control plane is upgrading")
 		return *currentVersion, nil
 	}
 
@@ -403,6 +405,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 		}
 		if cpScaling {
 			s.UpgradeTracker.ControlPlane.IsScaling = true
+			log.Infof("STEFAN: Holding back version upgrade because control plane is scaling")
 			return *currentVersion, nil
 		}
 	}
@@ -412,6 +415,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 	// If the MachineDeployments are rolling out (still completing a previous upgrade), then do not pick
 	// up the desiredVersion yet. We will pick up the new version after the MachineDeployments are stable.
 	if s.Current.MachineDeployments.IsAnyRollingOut() {
+		log.Infof("STEFAN: Holding back version upgrade because of MD rolling out")
 		return *currentVersion, nil
 	}
 
@@ -444,6 +448,7 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 
 	// Control plane and machine deployments are stable. All the required hook are called.
 	// Ready to pick up the topology version.
+	log.Infof("STEFAN: Rolling out version %s", desiredVersion)
 	return desiredVersion, nil
 }
 

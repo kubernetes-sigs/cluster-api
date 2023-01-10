@@ -27,12 +27,9 @@ jobs:
       - name: generate release artifacts
         run: |
           make release
-      - name: generate release notes
-        run: |
-          make release-notes
       - name: Release
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # tag=v1
         with:
           draft: true
           files: out/*
-          body_path: _releasenotes/${{ env.RELEASE_TAG }}.md
+          body: "TODO: Copy release notes shared by the comms team"

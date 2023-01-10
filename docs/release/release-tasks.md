@@ -198,9 +198,10 @@ This can be done by:
 5. Publish `clusterctl` to Homebrew by bumping the version in [clusterctl.rb](https://github.com/Homebrew/homebrew-core/blob/master/Formula/clusterctl.rb).
    <br>**Notes**:
     * This is only done for new latest stable releases, not for beta / RC releases and not for previous release branches.
-    * For an example please see: [PR: clusterctl 1.1.5](https://github.com/Homebrew/homebrew-core/pull/105075/files).
-    * Homebrew has [conventions for commit messages](https://docs.brew.sh/Formula-Cookbook#commit) usually
-      the commit message for us should look like: `clusterctl 1.1.5`.
+    * Check if homebrew already has a PR to update the version (homebrew introduced automation that picks it up). Open one if no PR exists. 
+      * For an example please see: [PR: clusterctl 1.1.5](https://github.com/Homebrew/homebrew-core/pull/105075/files).
+      * Homebrew has [conventions for commit messages](https://docs.brew.sh/Formula-Cookbook#commit) usually
+        the commit message for us should look like: `clusterctl 1.1.5`.
 6. Set EOL date for previous release (prior art: https://github.com/kubernetes-sigs/cluster-api/issues/7146).
 
 Additional information:

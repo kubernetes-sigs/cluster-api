@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -133,6 +134,9 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		}
 		return ctrl.Result{Requeue: true}, nil
 	}
+
+	kcpJSON, _ := json.Marshal(kcp)
+	log.Info(fmt.Sprintf("STEFAN: Reconcile: %s", string(kcpJSON)))
 
 	// Fetch the Cluster.
 	cluster, err := util.GetOwnerCluster(ctx, r.Client, kcp.ObjectMeta)

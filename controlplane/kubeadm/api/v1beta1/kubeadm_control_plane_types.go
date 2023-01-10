@@ -60,6 +60,11 @@ type KubeadmControlPlaneSpec struct {
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Version defines the desired Kubernetes version.
+	// Please note that if kubeadmConfigSpec.ClusterConfiguration.imageRepository is not set
+	// we don't allow upgrades to versions >= v1.22.0 for which kubeadm uses the old registry (k8s.gcr.io).
+	// Please use a newer patch version with the new registry instead. The default registries of kubeadm are:
+	//   * registry.k8s.io (new registry): >= v1.22.17, >= v1.23.15, >= v1.24.9, >= v1.25.0
+	//   * k8s.gcr.io (old registry): all older versions
 	Version string `json:"version"`
 
 	// MachineTemplate contains information about how machines

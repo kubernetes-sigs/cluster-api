@@ -310,6 +310,9 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 		return desiredVersion, nil
 	}
 
+	json, _ := s.Current.ControlPlane.Object.MarshalJSON()
+	log.Infof("STEFAN: Calculating control plane version: %s", string(json))
+
 	// Get the current currentVersion of the control plane.
 	currentVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
 	if err != nil {
@@ -448,7 +451,25 @@ func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Sc
 
 	// Control plane and machine deployments are stable. All the required hook are called.
 	// Ready to pick up the topology version.
-	log.Infof("STEFAN: Rolling out version %s", desiredVersion)
+	versionString := ""
+	desiredReplicas, _ := contract.ControlPlane().Replicas().Get(s.Current.ControlPlane.Object)
+	if desiredReplicas != nil {
+		versionString += fmt.Sprintf("desiredReplicas: %d ", *desiredReplicas)
+	}
+	statusReplicas, _ := contract.ControlPlane().StatusReplicas().Get(s.Current.ControlPlane.Object)
+	if statusReplicas != nil {
+		versionString += fmt.Sprintf("statusReplicas: %d ", *statusReplicas)
+	}
+	updatedReplicas, _ := contract.ControlPlane().UpdatedReplicas().Get(s.Current.ControlPlane.Object)
+	if updatedReplicas != nil {
+		versionString += fmt.Sprintf("updatedReplicas: %d ", *updatedReplicas)
+	}
+	readyReplicas, _ := contract.ControlPlane().ReadyReplicas().Get(s.Current.ControlPlane.Object)
+	if readyReplicas != nil {
+		versionString += fmt.Sprintf("readyReplicas: %d ", *readyReplicas)
+	}
+
+	log.Infof("STEFAN: Rolling out version %s (current KCP: %s)", desiredVersion, versionString)
 	return desiredVersion, nil
 }
 

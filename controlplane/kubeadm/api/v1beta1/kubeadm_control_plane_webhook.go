@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
 	"sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -601,7 +602,10 @@ func (in *KubeadmControlPlane) validateVersion(previousVersion string) (allErrs 
 		return allErrs
 	}
 
-	// Since upgrades to the next minor version are allowed, irrespective of the patch version.
+	// Validate that the update is upgrading at most one minor version.
+	// Note: Skipping a minor version is not allowed.
+	// Note: Checking against this ceilVersion allows upgrading to the next minor
+	// version irrespective of the patch version.
 	ceilVersion := semver.Version{
 		Major: fromVersion.Major,
 		Minor: fromVersion.Minor + 2,
@@ -612,6 +616,31 @@ func (in *KubeadmControlPlane) validateVersion(previousVersion string) (allErrs 
 			field.Forbidden(
 				field.NewPath("spec", "version"),
 				fmt.Sprintf("cannot update Kubernetes version from %s to %s", previousVersion, in.Spec.Version),
+			),
+		)
+	}
+
+	// The Kubernetes ecosystem has been requested to move users to the new registry due to cost issues.
+	// This validation enforces the move to the new registry by forcing users to upgrade to kubeadm versions
+	// with the new registry.
+	// NOTE: This only affects users relying on the community maintained registry.
+	// NOTE: Pinning to the upstream registry is not recommended because it could lead to issues
+	// given how the migration has been implemented in kubeadm.
+	//
+	// Block if imageRepository is not set (i.e. the default registry should be used),
+	if (in.Spec.KubeadmConfigSpec.ClusterConfiguration == nil ||
+		in.Spec.KubeadmConfigSpec.ClusterConfiguration.ImageRepository == "") &&
+		// the version changed (i.e. we have an upgrade),
+		toVersion.NE(fromVersion) &&
+		// the version is >= v1.22.0 and < v1.26.0
+		toVersion.GTE(kubeadm.MinKubernetesVersionImageRegistryMigration) &&
+		toVersion.LT(kubeadm.NextKubernetesVersionImageRegistryMigration) &&
+		// and the default registry of the new Kubernetes/kubeadm version is the old default registry.
+		kubeadm.GetDefaultRegistry(toVersion) == kubeadm.OldDefaultImageRepository {
+		allErrs = append(allErrs,
+			field.Forbidden(
+				field.NewPath("spec", "version"),
+				"cannot upgrade to a Kubernetes/kubeadm version which is using the old default registry. Please use a newer Kubernetes patch release which is using the new default registry (>= v1.22.17, >= v1.23.15, >= v1.24.9)",
 			),
 		)
 	}

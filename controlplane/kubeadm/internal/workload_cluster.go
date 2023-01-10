@@ -47,6 +47,7 @@ import (
 	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
+	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
@@ -84,14 +85,6 @@ var (
 	//
 	// NOTE: The following assumes that kubeadm version equals to Kubernetes version.
 	minVerUnversionedKubeletConfig = semver.MustParse("1.24.0")
-
-	// minKubernetesVersionImageRegistryMigration is first kubernetes version where
-	// the default image registry is registry.k8s.io instead of k8s.gcr.io.
-	minKubernetesVersionImageRegistryMigration = semver.MustParse("1.22.0")
-
-	// nextKubernetesVersionImageRegistryMigration is the next minor version after
-	// the default image registry changed to registry.k8s.io.
-	nextKubernetesVersionImageRegistryMigration = semver.MustParse("1.26.0")
 
 	// ErrControlPlaneMinNodes signals that a cluster doesn't meet the minimum required nodes
 	// to remove an etcd member.
@@ -623,12 +616,15 @@ func yamlToUnstructured(rawYAML []byte) (*unstructured.Unstructured, error) {
 }
 
 // ImageRepositoryFromClusterConfig returns the image repository to use. It returns:
-// * clusterConfig.ImageRepository if set.
-// * "registry.k8s.io" if v1.22 <= version < v1.26 to migrate to the new registry
-// * "" otherwise.
-// Beginning with kubernetes v1.22, the default registry for kubernetes is registry.k8s.io
-// instead of k8s.gcr.io which is why references should get migrated when upgrading to v1.22.
-// The migration follows the behavior of `kubeadm upgrade`.
+//   - clusterConfig.ImageRepository if set.
+//   - else either k8s.gcr.io or registry.k8s.io depending on the default registry of the kubeadm
+//     binary of the given kubernetes version. This is only done for Kubernetes versions >= v1.22.0
+//     and < v1.26.0 because in this version range the default registry was changed.
+//
+// Note: Please see the following issue for more context: https://github.com/kubernetes-sigs/cluster-api/issues/7833
+// tl;dr is that the imageRepository must be in sync with the default registry of kubeadm.
+// Otherwise kubeadm preflight checks will fail because kubeadm is trying to pull the CoreDNS image
+// from the wrong repository (<registry>/coredns instead of <registry>/coredns/coredns).
 func ImageRepositoryFromClusterConfig(clusterConfig *bootstrapv1.ClusterConfiguration, kubernetesVersion semver.Version) string {
 	// If ImageRepository is explicitly specified, return early.
 	if clusterConfig != nil &&
@@ -636,11 +632,11 @@ func ImageRepositoryFromClusterConfig(clusterConfig *bootstrapv1.ClusterConfigur
 		return clusterConfig.ImageRepository
 	}
 
-	// If v1.22 <= version < v1.26 return the default Kubernetes image repository to
-	// migrate to the new location and not cause changes else.
-	if kubernetesVersion.GTE(minKubernetesVersionImageRegistryMigration) &&
-		kubernetesVersion.LT(nextKubernetesVersionImageRegistryMigration) {
-		return kubernetesImageRepository
+	// If v1.22.0 <= version < v1.26.0 return the default registry of the
+	// corresponding kubeadm binary.
+	if kubernetesVersion.GTE(kubeadm.MinKubernetesVersionImageRegistryMigration) &&
+		kubernetesVersion.LT(kubeadm.NextKubernetesVersionImageRegistryMigration) {
+		return kubeadm.GetDefaultRegistry(kubernetesVersion)
 	}
 
 	// Use defaulting or current values otherwise.

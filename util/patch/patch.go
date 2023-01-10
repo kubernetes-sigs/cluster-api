@@ -19,6 +19,7 @@ package patch
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/pkg/errors"
@@ -28,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
@@ -165,7 +167,20 @@ func (h *Helper) patchStatus(ctx context.Context, obj client.Object) error {
 	if err != nil {
 		return err
 	}
-	return h.client.Status().Patch(ctx, afterObject, client.MergeFrom(beforeObject))
+
+	log := ctrl.LoggerFrom(ctx)
+
+	beforeData, _ := json.Marshal(beforeObject)
+	log.Info(fmt.Sprintf("STEFAN: patchHelper:patchStatus beforeObject: %s", string(beforeData)))
+
+	afterData, _ := json.Marshal(afterObject)
+	log.Info(fmt.Sprintf("STEFAN: patchHelper:patchStatus afterObject: %s", string(afterData)))
+
+	patch := client.MergeFrom(beforeObject)
+	patchData, err := patch.Data(afterObject)
+	log.Info(fmt.Sprintf("STEFAN: patchHelper:patchStatus data: %s: %v", string(patchData), err))
+
+	return h.client.Status().Patch(ctx, afterObject, patch)
 }
 
 // patchStatusConditions issues a patch if there are any changes to the conditions slice under

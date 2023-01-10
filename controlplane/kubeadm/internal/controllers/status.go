@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -118,7 +119,9 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 		kcp.Status.Ready = true
 	}
 
-	log.Info(fmt.Sprintf("STEFAN: updateStatus: spec.replicas %d status.replicas %d status.readyReplicas %d status.updateReplicas %d", *kcp.Spec.Replicas, kcp.Status.Replicas, kcp.Status.ReadyReplicas, kcp.Status.UpdatedReplicas))
+	kcpJSON, _ := json.Marshal(kcp)
+	log.Info(fmt.Sprintf("STEFAN: updateStatus: %s", string(kcpJSON)))
+	log.Info(fmt.Sprintf("STEFAN: updateStatus: spec.replicas %d status.replicas %d status.readyReplicas %d status.updatedReplicas %d status.unavailableReplicas %d", *kcp.Spec.Replicas, kcp.Status.Replicas, kcp.Status.ReadyReplicas, kcp.Status.UpdatedReplicas, kcp.Status.UnavailableReplicas))
 	machineNames := []string{}
 	for _, m := range ownedMachines {
 		machineNames = append(machineNames, m.Name)

@@ -263,6 +263,10 @@ See also: [Server](#server)
 
 Perform create, scale, upgrade, or destroy operations on the cluster.
 
+### Managed Topology
+
+See [Topology](#Topology)
+
 ### Management cluster
 
 The cluster where one or more Infrastructure Providers run, and where resources (e.g. Machines) are stored. Typically referred to when you are provisioning multiple workload clusters.
@@ -378,6 +382,7 @@ The infrastructure that backs a [Machine Resource](#machine), typically either a
 ### Topology
 
 A field in the Cluster object spec that allows defining and managing the shape of the Cluster's control plane and worker machines from a single point of control. The Cluster's topology is based on a [ClusterClass](#clusterclass).
+Sometimes it is also referred as a managed topology.
 
 See [ClusterClass](#clusterclass)
 

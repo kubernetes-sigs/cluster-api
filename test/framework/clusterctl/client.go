@@ -61,16 +61,8 @@ type InitInput struct {
 
 // Init calls clusterctl init with the list of providers defined in the local repository.
 func Init(_ context.Context, input InitInput) {
-	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s --ipam %s --runtime-extension %s --config %s --kubeconfig %s",
-		input.CoreProvider,
-		strings.Join(input.BootstrapProviders, ","),
-		strings.Join(input.ControlPlaneProviders, ","),
-		strings.Join(input.InfrastructureProviders, ","),
-		strings.Join(input.IPAMProviders, ","),
-		strings.Join(input.RuntimeExtensionProviders, ","),
-		input.ClusterctlConfigPath,
-		input.KubeconfigPath,
-	)
+	args := calculateClusterCtlInitArgs(input)
+	log.Logf("clusterctl %s", strings.Join(args, " "))
 
 	initOpt := clusterctlclient.InitOptions{
 		Kubeconfig: clusterctlclient.Kubeconfig{
@@ -96,33 +88,8 @@ func Init(_ context.Context, input InitInput) {
 
 // InitWithBinary uses clusterctl binary to run init with the list of providers defined in the local repository.
 func InitWithBinary(_ context.Context, binary string, input InitInput) {
-	log.Logf("clusterctl init --core %s --bootstrap %s --control-plane %s --infrastructure %s --ipam %s --runtime-extension %s --config %s --kubeconfig %s",
-		input.CoreProvider,
-		strings.Join(input.BootstrapProviders, ","),
-		strings.Join(input.ControlPlaneProviders, ","),
-		strings.Join(input.InfrastructureProviders, ","),
-		strings.Join(input.IPAMProviders, ","),
-		strings.Join(input.RuntimeExtensionProviders, ","),
-		input.ClusterctlConfigPath,
-		input.KubeconfigPath,
-	)
-
-	args := []string{"init", "--config", input.ClusterctlConfigPath, "--kubeconfig", input.KubeconfigPath}
-	if input.CoreProvider != "" {
-		args = append(args, "--core", input.CoreProvider)
-	}
-	if len(input.BootstrapProviders) > 0 {
-		args = append(args, "--bootstrap", strings.Join(input.BootstrapProviders, ","))
-	}
-	if len(input.InfrastructureProviders) > 0 {
-		args = append(args, "--infrastructure", strings.Join(input.InfrastructureProviders, ","))
-	}
-	if len(input.IPAMProviders) > 0 {
-		args = append(args, "--ipam", strings.Join(input.IPAMProviders, ","))
-	}
-	if len(input.RuntimeExtensionProviders) > 0 {
-		args = append(args, "--runtime-extension", strings.Join(input.RuntimeExtensionProviders, ","))
-	}
+	args := calculateClusterCtlInitArgs(input)
+	log.Logf("clusterctl %s", strings.Join(args, " "))
 
 	cmd := exec.Command(binary, args...) //nolint:gosec // We don't care about command injection here.
 
@@ -135,6 +102,29 @@ func InitWithBinary(_ context.Context, binary string, input InitInput) {
 		}
 	}
 	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl init:\nstdout:\n%s\nstderr:\n%s", string(out), stdErr)
+}
+
+func calculateClusterCtlInitArgs(input InitInput) []string {
+	args := []string{"init", "--config", input.ClusterctlConfigPath, "--kubeconfig", input.KubeconfigPath}
+	if input.CoreProvider != "" {
+		args = append(args, "--core", input.CoreProvider)
+	}
+	if len(input.BootstrapProviders) > 0 {
+		args = append(args, "--bootstrap", strings.Join(input.BootstrapProviders, ","))
+	}
+	if len(input.ControlPlaneProviders) > 0 {
+		args = append(args, "--control-plane", strings.Join(input.ControlPlaneProviders, ","))
+	}
+	if len(input.InfrastructureProviders) > 0 {
+		args = append(args, "--infrastructure", strings.Join(input.InfrastructureProviders, ","))
+	}
+	if len(input.IPAMProviders) > 0 {
+		args = append(args, "--ipam", strings.Join(input.IPAMProviders, ","))
+	}
+	if len(input.RuntimeExtensionProviders) > 0 {
+		args = append(args, "--runtime-extension", strings.Join(input.RuntimeExtensionProviders, ","))
+	}
+	return args
 }
 
 // UpgradeInput is the input for Upgrade.

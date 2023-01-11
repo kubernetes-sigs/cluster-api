@@ -1,8 +1,0 @@
-bases:
-  - ../bases/cluster-with-kcp.yaml
-  - ../bases/md.yaml
-  - ../bases/crs.yaml
-
-patchesStrategicMerge:
-  - ./md-ipv6.yaml
-  - ./kcp-ipv6.yaml

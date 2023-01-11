@@ -53,7 +53,7 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1alpha4",
-			InitWithKubernetesVersion: "v1.25.3",
+			InitWithKubernetesVersion: "v1.23.13",
 		}
 	})
 })

@@ -259,7 +259,6 @@ configs](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastru
 These can be customized for your specific needs.
 
 <aside class="note">
-
 <h1>Use of clusterctl</h1>
 
 When the worker cluster has been created using tilt, `clusterctl` should not be used for management

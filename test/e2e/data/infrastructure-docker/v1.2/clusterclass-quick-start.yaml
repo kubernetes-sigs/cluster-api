@@ -290,4 +290,3 @@ spec:
           criSocket: unix:///var/run/containerd/containerd.sock
           kubeletExtraArgs:
             eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-

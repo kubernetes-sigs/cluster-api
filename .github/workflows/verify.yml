@@ -14,9 +14,6 @@ jobs:
     steps:
     - name: Verifier action
       id: verifier
-      uses: kubernetes-sigs/kubebuilder-release-tools@v0.2.0
-      # Don't run this step on PRs created by the cherry-pick bot,
-      # as the PR description is too short, but otherwise the PRs are fine.
-      if: ${{ github.event.pull_request.head.repo.owner.login != 'k8s-infra-cherrypick-robot' }}
+      uses: kubernetes-sigs/kubebuilder-release-tools@e90dee822876042e99b7584f99a9cc9f9d74ed17 # tag=v0.3.0
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}

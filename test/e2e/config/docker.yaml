@@ -39,7 +39,7 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1alpha3/metadata.yaml"
+    - sourcePath: "../data/shared/v0.3/metadata.yaml"
   - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/core-components.yaml"
     type: "url"
@@ -48,7 +48,7 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
+    - sourcePath: "../data/shared/v0.4/metadata.yaml"
   - name: v1.1.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/core-components.yaml"
     type: "url"
@@ -57,14 +57,14 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    - sourcePath: "../data/shared/main/metadata.yaml"
   - name: v1.2.99 # next; use manifest from source files
     value: ../../../config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
       new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
     files:
-    - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    - sourcePath: "../data/shared/main/metadata.yaml"
 
 - name: kubeadm
   type: BootstrapProvider
@@ -77,7 +77,7 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1alpha3/metadata.yaml"
+    - sourcePath: "../data/shared/v0.3/metadata.yaml"
   - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/bootstrap-components.yaml"
     type: "url"
@@ -86,7 +86,7 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
+    - sourcePath: "../data/shared/v0.4/metadata.yaml"
   - name: v1.1.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/bootstrap-components.yaml"
     type: "url"
@@ -95,14 +95,14 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    - sourcePath: "../data/shared/main/metadata.yaml"
   - name: v1.2.99 # next; use manifest from source files
     value: ../../../bootstrap/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
       new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
     files:
-    - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    - sourcePath: "../data/shared/main/metadata.yaml"
 
 - name: kubeadm
   type: ControlPlaneProvider
@@ -115,7 +115,7 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1alpha3/metadata.yaml"
+    - sourcePath: "../data/shared/v0.3/metadata.yaml"
   - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/control-plane-components.yaml"
     type: "url"
@@ -124,7 +124,7 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
+    - sourcePath: "../data/shared/v0.4/metadata.yaml"
   - name: v1.1.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/control-plane-components.yaml"
     type: "url"
@@ -133,14 +133,14 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    - sourcePath: "../data/shared/main/metadata.yaml"
   - name: v1.2.99 # next; use manifest from source files
     value: ../../../controlplane/kubeadm/config/default
     replacements:
     - old: --metrics-bind-addr=localhost:8080
       new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
     files:
-    - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    - sourcePath: "../data/shared/main/metadata.yaml"
 
 - name: docker
   type: InfrastructureProvider
@@ -153,8 +153,8 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1alpha3/metadata.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1alpha3/cluster-template.yaml"
+    - sourcePath: "../data/shared/v0.3/metadata.yaml"
+    - sourcePath: "../data/infrastructure-docker/v0.3/cluster-template.yaml"
   - name: v0.4.4 # latest published release in the v1alpha4 series; this is used for v1alpha4 --> v1beta1 clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.4/infrastructure-components-development.yaml"
     type: "url"
@@ -163,8 +163,8 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1alpha4/metadata.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1alpha4/cluster-template.yaml"
+    - sourcePath: "../data/shared/v0.4/metadata.yaml"
+    - sourcePath: "../data/infrastructure-docker/v0.4/cluster-template.yaml"
   - name: v1.1.0 # latest published release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
     value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.1.0/infrastructure-components-development.yaml"
     type: "url"
@@ -173,8 +173,8 @@ providers:
     - old: --metrics-addr=127.0.0.1:8080
       new: --metrics-addr=:8080
     files:
-    - sourcePath: "../data/shared/v1beta1/metadata.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template.yaml"
+    - sourcePath: "../data/shared/main/metadata.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template.yaml"
   - name: v1.2.99 # next; use manifest from source files
     value: ../../../test/infrastructure/docker/config/default
     replacements:
@@ -182,24 +182,24 @@ providers:
       new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
     files:
     # Add cluster templates
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-md-remediation.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-kcp-remediation.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-kcp-adoption.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-machine-pool.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-node-drain.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-upgrades.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-upgrades-cgroupfs.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-upgrades-runtimesdk.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-upgrades-runtimesdk-cgroupfs.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-kcp-scale-in.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-ipv6.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-topology.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-topology-changes.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/cluster-template-ignition.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/clusterclass-quick-start.yaml"
-    - sourcePath: "../data/infrastructure-docker/v1beta1/clusterclass-quick-start-runtimesdk.yaml"
-    - sourcePath: "../data/shared/v1beta1/metadata.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-md-remediation.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-remediation.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-adoption.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-machine-pool.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-node-drain.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-upgrades.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-upgrades-cgroupfs.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-upgrades-runtimesdk.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-upgrades-runtimesdk-cgroupfs.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-scale-in.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-ipv6.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-changes.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-ignition.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-runtimesdk.yaml"
+    - sourcePath: "../data/shared/main/metadata.yaml"
 
 variables:
   # Default variables for the e2e test; those values could be overridden via env variables, thus

@@ -22,6 +22,7 @@ import (
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -195,9 +196,29 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, 
 		return false, errors.Wrap(err, "failed to get control plane status readyReplicas")
 	}
 
+	unavailableReplicas, err := c.UnavailableReplicas().Get(obj)
+	if err != nil && !errors.Is(err, errNotFound) {
+		if !errors.Is(err, errNotFound) {
+			return false, errors.Wrap(err, "failed to get control plane status unavailableReplicas")
+		}
+		// If unavailableReplicas is not set on the control plane we assume it is 0.
+		// We have to do this as the following happens after clusterctl move with KCP:
+		// * clusterctl move creates the KCP object without status
+		// * the KCP controller won't patch the field to 0 if it doesn't exist
+		//   * This is because the patchHelper marshals before/after object to JSON to calculate a diff
+		//     and as the unavailableReplicas field is not a pointer, not set and 0 are both rendered as 0.
+		//     If before/after of the field is the same (i.e. 0), there is no diff and thus also no patch to set it to 0.
+		unavailableReplicas = pointer.Int64(0)
+	}
+
+	// Control plane is still scaling if:
+	// * .spec.replicas, .status.replicas, .status.updatedReplicas,
+	//   .status.readyReplicas are not equal and
+	// * unavailableReplicas > 0
 	if *statusReplicas != *desiredReplicas ||
 		*updatedReplicas != *desiredReplicas ||
-		*readyReplicas != *desiredReplicas {
+		*readyReplicas != *desiredReplicas ||
+		*unavailableReplicas > 0 {
 		return true, nil
 	}
 	return false, nil

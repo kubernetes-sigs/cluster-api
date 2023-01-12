@@ -98,6 +98,13 @@ func (c *ControlPlaneContract) ReadyReplicas() *Int64 {
 	}
 }
 
+// UnavailableReplicas provide access to the status.unavailableReplicas field in a ControlPlane object, if any. Applies to implementations using replicas.
+func (c *ControlPlaneContract) UnavailableReplicas() *Int64 {
+	return &Int64{
+		path: []string{"status", "unavailableReplicas"},
+	}
+}
+
 // IsProvisioning returns true if the control plane is being created for the first time.
 // Returns false, if the control plane was already previously provisioned.
 func (c *ControlPlaneContract) IsProvisioning(obj *unstructured.Unstructured) (bool, error) {
@@ -157,6 +164,7 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 // - spec.replicas != status.replicas.
 // - spec.replicas != status.updatedReplicas.
 // - spec.replicas != status.readyReplicas.
+// - status.unavailableReplicas > 0.
 func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, error) {
 	desiredReplicas, err := c.Replicas().Get(obj)
 	if err != nil {
@@ -197,7 +205,7 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, 
 	}
 
 	unavailableReplicas, err := c.UnavailableReplicas().Get(obj)
-	if err != nil && !errors.Is(err, errNotFound) {
+	if err != nil {
 		if !errors.Is(err, errNotFound) {
 			return false, errors.Wrap(err, "failed to get control plane status unavailableReplicas")
 		}

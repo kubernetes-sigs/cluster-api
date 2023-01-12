@@ -436,6 +436,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		}
 
 		// After the upgrade check that there were no unexpected rollouts.
+		log.Logf("Verify there are no unexpected rollouts")
 		Consistently(func() bool {
 			postUpgradeMachineList := &unstructured.UnstructuredList{}
 			postUpgradeMachineList.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineList"))

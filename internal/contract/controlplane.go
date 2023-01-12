@@ -207,6 +207,7 @@ func (c *ControlPlaneContract) IsUpgrading(obj *unstructured.Unstructured) (bool
 // - spec.replicas != status.replicas.
 // - spec.replicas != status.updatedReplicas.
 // - spec.replicas != status.readyReplicas.
+// - status.unavailableReplicas > 0.
 func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, error) {
 	desiredReplicas, err := c.Replicas().Get(obj)
 	if err != nil {
@@ -247,7 +248,7 @@ func (c *ControlPlaneContract) IsScaling(obj *unstructured.Unstructured) (bool, 
 	}
 
 	unavailableReplicas, err := c.UnavailableReplicas().Get(obj)
-	if err != nil && !errors.Is(err, errNotFound) {
+	if err != nil {
 		if !errors.Is(err, errNotFound) {
 			return false, errors.Wrap(err, "failed to get control plane status unavailableReplicas")
 		}

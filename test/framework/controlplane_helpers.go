@@ -22,7 +22,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -164,20 +163,34 @@ type WaitForControlPlaneToBeReadyInput struct {
 func WaitForControlPlaneToBeReady(ctx context.Context, input WaitForControlPlaneToBeReadyInput, intervals ...interface{}) {
 	By("Waiting for the control plane to be ready")
 	controlplane := &controlplanev1.KubeadmControlPlane{}
-	Eventually(func() (controlplanev1.KubeadmControlPlane, error) {
+	Eventually(func() (bool, error) {
 		key := client.ObjectKey{
 			Namespace: input.ControlPlane.GetNamespace(),
 			Name:      input.ControlPlane.GetName(),
 		}
 		if err := input.Getter.Get(ctx, key, controlplane); err != nil {
-			return *controlplane, errors.Wrapf(err, "failed to get KCP")
+			return false, errors.Wrapf(err, "failed to get KCP")
 		}
-		return *controlplane, nil
-	}, intervals...).Should(MatchFields(IgnoreExtras, Fields{
-		"Status": MatchFields(IgnoreExtras, Fields{
-			"Ready": BeTrue(),
-		}),
-	}), PrettyPrint(controlplane)+"\n")
+
+		desiredReplicas := controlplane.Spec.Replicas
+		statusReplicas := controlplane.Status.Replicas
+		updatedReplicas := controlplane.Status.UpdatedReplicas
+		readyReplicas := controlplane.Status.ReadyReplicas
+		unavailableReplicas := controlplane.Status.UnavailableReplicas
+
+		// Control plane is still rolling out (and thus not ready) if:
+		// * .spec.replicas, .status.replicas, .status.updatedReplicas,
+		//   .status.readyReplicas are not equal and
+		// * unavailableReplicas > 0
+		if statusReplicas != *desiredReplicas ||
+			updatedReplicas != *desiredReplicas ||
+			readyReplicas != *desiredReplicas ||
+			unavailableReplicas > 0 {
+			return false, nil
+		}
+
+		return true, nil
+	}, intervals...).Should(BeTrue(), PrettyPrint(controlplane)+"\n")
 }
 
 // AssertControlPlaneFailureDomainsInput is the input for AssertControlPlaneFailureDomains.

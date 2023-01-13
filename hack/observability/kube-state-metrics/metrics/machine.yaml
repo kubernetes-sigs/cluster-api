@@ -22,24 +22,48 @@
       each:
         info:
           labelsFromPath:
+            container_runtime_version:
+            - status
+            - nodeInfo
+            - containerRuntimeVersion
             failure_domain:
             - spec
             - failureDomain
-            internal_ip:
+            kernel_version:
             - status
-            - addresses
-            - "[type=InternalIP]"
-            - address
+            - nodeInfo
+            - kernelVersion
+            kubelet_version:
+            - status
+            - nodeInfo
+            - kubeletVersion
+            kube_proxy_version:
+            - status
+            - nodeInfo
+            - kubeProxyVersion
+            os_image:
+            - status
+            - nodeInfo
+            - osImage
             provider_id:
             - spec
             - providerID
             version:
             - spec
             - version
-            containerRuntimeVersion:
-            - status
-            - nodeInfo
-            - containerRuntimeVersion
+        type: Info
+    - name: addresses
+      help: Address information about a machine.
+      each:
+        info:
+          path:
+          - status
+          - addresses
+          labelsFromPath:
+            type:
+            - type
+            address:
+            - address
         type: Info
     - name: status_noderef
       help: Information about the node reference of a machine.

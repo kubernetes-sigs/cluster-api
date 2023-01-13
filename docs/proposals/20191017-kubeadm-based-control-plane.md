@@ -472,12 +472,20 @@ When `MaxSurge` is set to 0 the rollout algorithm is as follows:
   for additional details. When there are multiple machines that are marked for remediation, the oldest one will be remediated first.
 
 - Following rules should be satisfied in order to start remediation
-  - The cluster MUST have at least two control plane machines, because this is the smallest cluster size that can be remediated.
-  - The number of replicas MUST be equal to or greater than the desired replicas. This rule ensures that when the cluster
-    is missing replicas, we skip remediation and instead perform regular scale up/rollout operations first.
+  - One of the following apply:
+    - The cluster MUST not be initialized yet (the failure happens before KCP reaches the initialized state) 
+    - The cluster MUST have at least two control plane machines, because this is the smallest cluster size that can be remediated.
+  - Previous remediation (delete and re-create) MUST have been completed. This rule prevents KCP to remediate more machines while the
+    replacement for the previous machine is not yet created. 
   - The cluster MUST have no machines with a deletion timestamp. This rule prevents KCP taking actions while the cluster is in a transitional state.
   - Remediation MUST preserve etcd quorum. This rule ensures that we will not remove a member that would result in etcd
-    losing a majority of members and thus become unable to field new requests.
+    losing a majority of members and thus become unable to field new requests (note: this rule applies only to CP with at least replicas)
+
+- Additionally following opt-in safeguards will be put in place:
+  - If we are remediating the same machine (delete, re-create, replacement machine gets unhealthy), it will be possible
+    to define a maximum number of retries, thus preventing unnecessary load on infrastructure provider e.g. in case of quota problems.
+  - If we are remediating the same machine (delete, re-create, replacement machine gets unhealthy), it will be possible
+    to define a delay between each retry, thus allowing the infrastructure provider to stabilize in case of temporary problems.
 
 - When all the conditions for starting remediation are satisfied, KCP temporarily suspend any operation in progress
   in order to perform remediation.
@@ -634,4 +642,5 @@ For the purposes of designing upgrades, two existing lifecycle managers were exa
 - [x] 12/04/2019: Initial stubbed KubeadmControlPlane controller added [#1826](https://github.com/kubernetes-sigs/cluster-api/pull/1826)
 - [x] 07/09/2020: Document updated to reflect changes up to v0.3.9 release
 - [x] 22/09/2020: KCP remediation added
-- [x] XX/XX/2020: KCP rollout strategies added
+- [x] 10/05/2021: Support for remediation of failures while upgrading 1 node CP
+- [x] 05/01/2022: Support for remediation while provisioning the CP (both first CP and CP machines while current replica < desired replica); Allow control of remediation retry behavior.

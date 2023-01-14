@@ -34,6 +34,7 @@ type generateProvidersOptions struct {
 	targetNamespace          string
 	textOutput               bool
 	raw                      bool
+	outputFile               string
 }
 
 var gpo = &generateProvidersOptions{}
@@ -95,6 +96,8 @@ func init() {
 	generateProviderCmd.Flags().BoolVar(&gpo.raw, "raw", false,
 		"Generate configuration without variable substitution in a yaml format.")
 
+	generateProviderCmd.Flags().StringVar(&gpo.outputFile, "write-to", "", "Specify the output file to write the template to, defaults to STDOUT if the flag is not set")
+
 	generateCmd.AddCommand(generateProviderCmd)
 }
 
@@ -122,7 +125,7 @@ func runGenerateProviderComponents() error {
 		return printComponentsAsText(components)
 	}
 
-	return printYamlOutput(components)
+	return printYamlOutput(components, gpo.outputFile)
 }
 
 // parseProvider parses command line flags and returns the provider name and type.

@@ -38,6 +38,10 @@ type MoveOptions struct {
 	// namespace will be used.
 	Namespace string
 
+	// ToNamespace where the objects are moved to in target environment. If multiple clusters (across namespaces)
+	// are being moved, all of them will be relocated to same namespace.
+	ToNamespace string
+
 	// FromDirectory apply configuration from directory.
 	FromDirectory string
 
@@ -106,7 +110,7 @@ func (c *clusterctlClient) move(options MoveOptions) error {
 		}
 	}
 
-	return fromCluster.ObjectMover().Move(options.Namespace, toCluster, options.DryRun)
+	return fromCluster.ObjectMover().Move(options.Namespace, options.ToNamespace, toCluster, options.DryRun)
 }
 
 func (c *clusterctlClient) fromDirectory(options MoveOptions) error {

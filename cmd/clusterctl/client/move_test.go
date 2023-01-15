@@ -123,6 +123,21 @@ func Test_clusterctlClient_Move(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "does not return an error when ToNamespace is specified",
+			fields: fields{
+				client: fakeClientForMove(),
+			},
+			args: args{
+				options: MoveOptions{
+					FromKubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					ToKubeconfig:   Kubeconfig{Path: "kubeconfig", Context: "worker-context"},
+					ToNamespace:    "tonamespace",
+					DryRun:         false,
+				},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -298,7 +313,7 @@ type fakeObjectMover struct {
 	fromDirectoryErr error
 }
 
-func (f *fakeObjectMover) Move(_ string, _ cluster.Client, _ bool) error {
+func (f *fakeObjectMover) Move(_, _ string, _ cluster.Client, _ bool) error {
 	return f.moveErr
 }
 

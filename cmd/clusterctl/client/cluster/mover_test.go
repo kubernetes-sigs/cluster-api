@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -1088,6 +1089,195 @@ func Test_getMoveSequence(t *testing.T) {
 	}
 }
 
+func Test_objectMover_updateObjectNamespaceReferences(t *testing.T) {
+	type args struct {
+		obj       map[string]interface{}
+		namespace string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string]interface{}
+		wantErr bool
+	}{
+		{
+			"ignores invalid object",
+			args{
+				obj:       nil,
+				namespace: "foobar",
+			},
+			nil,
+			false,
+		},
+		{
+			"fails when expected fields are not present",
+			args{
+				obj:       map[string]interface{}{"kind": "Cluster"},
+				namespace: "foobar",
+			},
+			nil,
+			true,
+		},
+		{
+			"does not update/fail when namespace is empty",
+			args{
+				obj:       map[string]interface{}{"kind": "Cluster"},
+				namespace: "",
+			},
+			map[string]interface{}{"kind": "Cluster"},
+			false,
+		},
+		{
+			"updates the namespace (and just the namespace) for unknown type",
+			args{
+				obj:       map[string]interface{}{"kind": "FoobarCluster"},
+				namespace: "foobar",
+			},
+			map[string]interface{}{
+				"kind": "FoobarCluster",
+				"metadata": map[string]interface{}{
+					"namespace": "foobar",
+				},
+			},
+			false,
+		},
+		{
+			"succeeds updating all known fields for Cluster",
+			args{
+				obj: map[string]interface{}{
+					"kind": "Cluster",
+					"metadata": map[string]interface{}{
+						"namespace": "will-be-foolbar",
+					},
+					"spec": map[string]interface{}{
+						"controlPlaneRef": map[string]interface{}{
+							"namespace": "will-be-foolbar",
+						},
+						"infrastructureRef": map[string]interface{}{
+							"namespace": "will-be-foolbar",
+						},
+					},
+				},
+				namespace: "foobar",
+			},
+			map[string]interface{}{
+				"kind": "Cluster",
+				"metadata": map[string]interface{}{
+					"namespace": "foobar",
+				},
+				"spec": map[string]interface{}{
+					"controlPlaneRef": map[string]interface{}{
+						"namespace": "foobar",
+					},
+					"infrastructureRef": map[string]interface{}{
+						"namespace": "foobar",
+					},
+				},
+			},
+			false,
+		},
+		{
+			"succeeds updating all known fields for KubeadmControlPlane",
+			args{
+				obj: map[string]interface{}{
+					"kind": "KubeadmControlPlane",
+					"metadata": map[string]interface{}{
+						"namespace": "will-be-foolbar",
+					},
+					"spec": map[string]interface{}{
+						"machineTemplate": map[string]interface{}{
+							"infrastructureRef": map[string]interface{}{
+								"namespace": "will-be-foolbar",
+							},
+						},
+						"futureField": map[string]interface{}{
+							"namespace": "will-be-same",
+						},
+					},
+				},
+				namespace: "foobar",
+			},
+			map[string]interface{}{
+				"kind": "KubeadmControlPlane",
+				"metadata": map[string]interface{}{
+					"namespace": "foobar",
+				},
+				"spec": map[string]interface{}{
+					"machineTemplate": map[string]interface{}{
+						"infrastructureRef": map[string]interface{}{
+							"namespace": "foobar",
+						},
+					},
+					"futureField": map[string]interface{}{
+						"namespace": "will-be-same",
+					},
+				},
+			},
+			false,
+		},
+		{
+			"succeeds updating all known fields for Machine",
+			args{
+				obj: map[string]interface{}{
+					"kind": "Machine",
+					"metadata": map[string]interface{}{
+						"namespace": "will-be-foolbar",
+						"labels": map[string]interface{}{
+							"namespace": "will-be-same",
+						},
+					},
+					"spec": map[string]interface{}{
+						"bootstrap": map[string]interface{}{
+							"configRef": map[string]interface{}{
+								"namespace": "will-be-foolbar",
+							},
+						},
+						"infrastructureRef": map[string]interface{}{
+							"namespace": "will-be-foolbar",
+						},
+					},
+				},
+				namespace: "foobar",
+			},
+			map[string]interface{}{
+				"kind": "Machine",
+				"metadata": map[string]interface{}{
+					"namespace": "foobar",
+					"labels": map[string]interface{}{
+						"namespace": "will-be-same",
+					},
+				},
+				"spec": map[string]interface{}{
+					"bootstrap": map[string]interface{}{
+						"configRef": map[string]interface{}{
+							"namespace": "foobar",
+						},
+					},
+					"infrastructureRef": map[string]interface{}{
+						"namespace": "foobar",
+					},
+				},
+			},
+			false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mover := newObjectMover(nil, nil)
+			u := &unstructured.Unstructured{}
+			u.Object = tt.args.obj
+			err := mover.updateObjectNamespaceReferences(u, tt.args.namespace)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(reflect.DeepEqual(tt.want, u.Object)).To(BeTrue(), fmt.Sprintf("%#v\n%#v", tt.want, u.Object))
+		})
+	}
+}
+
 func Test_objectMover_move_dryRun(t *testing.T) {
 	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
 	for _, tt := range moveTests {
@@ -1112,7 +1302,7 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 				dryRun:    true,
 			}
 
-			err := mover.move(graph, toProxy)
+			err := mover.move(graph, toProxy, "")
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1184,7 +1374,7 @@ func Test_objectMover_move(t *testing.T) {
 				fromProxy: graph.proxy,
 			}
 
-			err := mover.move(graph, toProxy)
+			err := mover.move(graph, toProxy, "")
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1932,7 +2122,7 @@ func Test_createTargetObject(t *testing.T) {
 				fromProxy: tt.args.fromProxy,
 			}
 
-			err := mover.createTargetObject(tt.args.node, tt.args.toProxy)
+			err := mover.createTargetObject(tt.args.node, tt.args.toProxy, "")
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

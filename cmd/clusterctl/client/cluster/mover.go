@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -45,7 +46,7 @@ import (
 // ObjectMover defines methods for moving Cluster API objects to another management cluster.
 type ObjectMover interface {
 	// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
-	Move(namespace string, toCluster Client, dryRun bool) error
+	Move(namespace, toNamespace string, toCluster Client, dryRun bool) error
 
 	// ToDirectory writes all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target directory.
 	ToDirectory(namespace string, directory string) error
@@ -61,15 +62,16 @@ type ObjectMover interface {
 
 // objectMover implements the ObjectMover interface.
 type objectMover struct {
-	fromProxy             Proxy
-	fromProviderInventory InventoryClient
-	dryRun                bool
+	fromProxy                       Proxy
+	fromProviderInventory           InventoryClient
+	dryRun                          bool
+	namespaceRefFieldsForKnownKinds map[string][][]string
 }
 
 // ensure objectMover implements the ObjectMover interface.
 var _ ObjectMover = &objectMover{}
 
-func (o *objectMover) Move(namespace string, toCluster Client, dryRun bool) error {
+func (o *objectMover) Move(namespace, toNamespace string, toCluster Client, dryRun bool) error {
 	log := logf.Log
 	log.Info("Performing move...")
 	o.dryRun = dryRun
@@ -97,7 +99,7 @@ func (o *objectMover) Move(namespace string, toCluster Client, dryRun bool) erro
 		proxy = toCluster.Proxy()
 	}
 
-	return o.move(objectGraph, proxy)
+	return o.move(objectGraph, proxy, toNamespace)
 }
 
 func (o *objectMover) ToDirectory(namespace string, directory string) error {
@@ -223,6 +225,19 @@ func newObjectMover(fromProxy Proxy, fromProviderInventory InventoryClient) *obj
 	return &objectMover{
 		fromProxy:             fromProxy,
 		fromProviderInventory: fromProviderInventory,
+		namespaceRefFieldsForKnownKinds: map[string][][]string{
+			"Cluster": {
+				{"spec", "controlPlaneRef", "namespace"},
+				{"spec", "infrastructureRef", "namespace"},
+			},
+			"KubeadmControlPlane": {
+				{"spec", "machineTemplate", "infrastructureRef", "namespace"},
+			},
+			"Machine": {
+				{"spec", "bootstrap", "configRef", "namespace"},
+				{"spec", "infrastructureRef", "namespace"},
+			},
+		},
 	}
 }
 
@@ -320,7 +335,7 @@ func getMachineObj(proxy Proxy, machine *node, machineObj *clusterv1.Machine) er
 }
 
 // Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
-func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
+func (o *objectMover) move(graph *objectGraph, toProxy Proxy, toNamespace string) error {
 	log := logf.Log
 
 	clusters := graph.getClusters()
@@ -345,6 +360,11 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 	if err := o.ensureNamespaces(graph, toProxy); err != nil {
 		return err
 	}
+	if toNamespace != "" {
+		if err := o.ensureNamespace(toProxy, toNamespace); err != nil {
+			return err
+		}
+	}
 
 	// Define the move sequence by processing the ownerReference chain, so we ensure that a Kubernetes object is moved only after its owners.
 	// The sequence is bases on object graph nodes, each one representing a Kubernetes object; nodes are grouped, so bulk of nodes can be moved in parallel. e.g.
@@ -356,7 +376,7 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 	// Create all objects group by group, ensuring all the ownerReferences are re-created.
 	log.Info("Creating objects in the target cluster")
 	for groupIndex := 0; groupIndex < len(moveSequence.groups); groupIndex++ {
-		if err := o.createGroup(moveSequence.getGroup(groupIndex), toProxy); err != nil {
+		if err := o.createGroup(moveSequence.getGroup(groupIndex), toProxy, toNamespace); err != nil {
 			return err
 		}
 	}
@@ -366,6 +386,14 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 	for groupIndex := len(moveSequence.groups) - 1; groupIndex >= 0; groupIndex-- {
 		if err := o.deleteGroup(moveSequence.getGroup(groupIndex)); err != nil {
 			return err
+		}
+	}
+
+	// Override the namespace in nodes AFTER they have been deleted in the source location as we no longer need to retain the source namespace.
+	if toNamespace != "" {
+		nodes := graph.getMoveNodes()
+		for idx := range nodes {
+			nodes[idx].identity.Namespace = toNamespace
 		}
 	}
 
@@ -769,7 +797,7 @@ func (o *objectMover) ensureNamespace(toProxy Proxy, namespace string) error {
 }
 
 // createGroup creates all the Kubernetes objects into the target management cluster corresponding to the object graph nodes in a moveGroup.
-func (o *objectMover) createGroup(group moveGroup, toProxy Proxy) error {
+func (o *objectMover) createGroup(group moveGroup, toProxy Proxy, toNamespace string) error {
 	createTargetObjectBackoff := newWriteBackoff()
 	errList := []error{}
 
@@ -777,7 +805,7 @@ func (o *objectMover) createGroup(group moveGroup, toProxy Proxy) error {
 		// Creates the Kubernetes object corresponding to the nodeToCreate.
 		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
 		err := retryWithExponentialBackoff(createTargetObjectBackoff, func() error {
-			return o.createTargetObject(nodeToCreate, toProxy)
+			return o.createTargetObject(nodeToCreate, toProxy, toNamespace)
 		})
 		if err != nil {
 			errList = append(errList, err)
@@ -836,9 +864,13 @@ func (o *objectMover) restoreGroup(group moveGroup, toProxy Proxy) error {
 }
 
 // createTargetObject creates the Kubernetes object in the target Management cluster corresponding to the object graph node, taking care of restoring the OwnerReference with the owner nodes, if any.
-func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) error {
+func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy, toNamespace string) error {
 	log := logf.Log
-	log.V(1).Info("Creating", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
+	creationNamespace := nodeToCreate.identity.Namespace
+	if toNamespace != "" {
+		creationNamespace = toNamespace
+	}
+	log.V(1).Info("Creating", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", creationNamespace)
 
 	if o.dryRun {
 		return nil
@@ -869,7 +901,7 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 	// Removes current OwnerReferences
 	obj.SetOwnerReferences(nil)
 
-	// Rebuild the owne reference chain
+	// Rebuild the owner reference chain
 	o.buildOwnerChain(obj, nodeToCreate)
 
 	// FIXME Workaround for https://github.com/kubernetes/kubernetes/issues/32220. Remove when the issue is fixed.
@@ -884,6 +916,9 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 		return err
 	}
 
+	if err := o.updateObjectNamespaceReferences(obj, toNamespace); err != nil {
+		return err
+	}
 	oldManagedFields := obj.GetManagedFields()
 	if err := cTo.Create(ctx, obj); err != nil {
 		if !apierrors.IsAlreadyExists(err) {
@@ -923,6 +958,29 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy) erro
 		return errors.Wrap(err, "error patching the managed fields")
 	}
 
+	return nil
+}
+
+func (o *objectMover) updateObjectNamespaceReferences(obj *unstructured.Unstructured, namespace string) error {
+	if namespace == "" {
+		return nil
+	}
+	obj.SetNamespace(namespace)
+	if fields, knownKind := o.namespaceRefFieldsForKnownKinds[obj.GetKind()]; knownKind {
+		for _, nsField := range fields {
+			_, exists, err := unstructured.NestedFieldNoCopy(obj.Object, nsField...)
+			if err != nil {
+				return errors.Wrapf(err, "error updating %q field of %s",
+					strings.Join(nsField, "."), obj.GetKind())
+			}
+			if !exists {
+				return fmt.Errorf("expected %s to contain field %q", obj.GetKind(), strings.Join(nsField, "."))
+			}
+			if err := unstructured.SetNestedField(obj.Object, namespace, nsField...); err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 

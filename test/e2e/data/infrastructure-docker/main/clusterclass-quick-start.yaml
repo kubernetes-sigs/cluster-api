@@ -137,7 +137,7 @@ spec:
         matchResources:
           machineDeploymentClass:
             names:
-            - default-worker
+            - '*-worker'
       jsonPatches:
       - op: add
         path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cgroup-driver"

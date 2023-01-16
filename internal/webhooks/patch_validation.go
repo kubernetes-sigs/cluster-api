@@ -23,10 +23,11 @@ import (
 	"strings"
 	"text/template"
 
-	sprig "github.com/Masterminds/sprig/v3"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -198,8 +199,45 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 	if selector.MatchResources.MachineDeploymentClass != nil && len(selector.MatchResources.MachineDeploymentClass.Names) > 0 {
 		for i, name := range selector.MatchResources.MachineDeploymentClass.Names {
 			match := false
+			if strings.Contains(name, "*") {
+				// selector can at most have a single * rune
+				if strings.Count(name, "*") > 1 {
+					allErrs = append(allErrs, field.Invalid(
+						path.Child("matchResources", "machineDeploymentClass", "names").Index(i),
+						name,
+						"selector can at most contain a single \"*\" rune"))
+					break
+				}
+
+				// the * rune can appear only at the beginning, or ending of the selector.
+				if strings.Contains(name, "*") && !(strings.HasPrefix(name, "*") || strings.HasSuffix(name, "*")) {
+					// templateMDClass can only have "*" rune at the start or end of the string
+					allErrs = append(allErrs, field.Invalid(
+						path.Child("matchResources", "machineDeploymentClass", "names").Index(i),
+						name,
+						"\"*\" rune can only appear at the beginning, or ending of the selector"))
+					break
+				}
+				// a valid selector without "*" should comply with Kubernetes naming standards.
+				if validation.IsQualifiedName(strings.ReplaceAll(name, "*", "a")) != nil {
+					allErrs = append(allErrs, field.Invalid(
+						path.Child("matchResources", "machineDeploymentClass", "names").Index(i),
+						name,
+						"selector does not comply with the Kubernetes naming standards"))
+					break
+				}
+			}
 			for _, md := range class.Spec.Workers.MachineDeployments {
-				if md.Class == name {
+				var matches bool
+				if md.Class == name || name == "*" {
+					matches = true
+				} else if strings.HasPrefix(name, "*") && strings.HasSuffix(md.Class, strings.TrimPrefix(name, "*")) {
+					matches = true
+				} else if strings.HasSuffix(name, "*") && strings.HasPrefix(md.Class, strings.TrimSuffix(name, "*")) {
+					matches = true
+				}
+
+				if matches {
 					if selectorMatchTemplate(selector, md.Template.Infrastructure.Ref) ||
 						selectorMatchTemplate(selector, md.Template.Bootstrap.Ref) {
 						match = true

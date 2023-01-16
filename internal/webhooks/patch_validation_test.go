@@ -1810,6 +1810,156 @@ func Test_validateSelectors(t *testing.T) {
 				Build(),
 			wantErr: true,
 		},
+		{
+			name: "error if selector targets an empty MachineDeploymentClass InfrastructureTemplate",
+			selector: clusterv1.PatchSelector{
+				APIVersion:     "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:           "InfrastructureMachineTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{},
+			},
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachineTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+					*builder.MachineDeploymentClass("bb").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "NonMatchingInfrastructureMachineTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "error if selector targets a bad pattern for matching MachineDeploymentClass InfrastructureTemplate",
+			selector: clusterv1.PatchSelector{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "InfrastructureMachineTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+						Names: []string{"a*a"},
+					},
+				},
+			},
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("a-something-a").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachineTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "pass if selector targets an existing MachineDeploymentClass InfrastructureTemplate with prefix *",
+			selector: clusterv1.PatchSelector{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "InfrastructureMachineTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+						Names: []string{"a-*"},
+					},
+				},
+			},
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("a-something-a").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachineTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				Build(),
+		},
+		{
+			name: "pass if selector targets an existing MachineDeploymentClass InfrastructureTemplate with suffix *",
+			selector: clusterv1.PatchSelector{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "InfrastructureMachineTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+						Names: []string{"*-a"},
+					},
+				},
+			},
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("a-something-a").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachineTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				Build(),
+		},
+		{
+			name: "pass if selector targets all existing MachineDeploymentClass InfrastructureTemplate with *",
+			selector: clusterv1.PatchSelector{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "InfrastructureMachineTemplate",
+				MatchResources: clusterv1.PatchSelectorMatch{
+					MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+						Names: []string{"*"},
+					},
+				},
+			},
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("a-something-a").
+						WithInfrastructureTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+								Kind:       "InfrastructureMachineTemplate",
+							})).
+						WithBootstrapTemplate(
+							refToUnstructured(&corev1.ObjectReference{
+								APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+								Kind:       "BootstrapTemplate",
+							})).
+						Build(),
+				).
+				Build(),
+		},
 		// The following tests have selectors which match multiple resources at the same time.
 		{
 			name: "fail if selector targets a matching infrastructureCluster reference and a not matching control plane",

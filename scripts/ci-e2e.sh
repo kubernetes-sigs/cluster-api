@@ -86,6 +86,16 @@ cleanup() {
   ctr -n moby containers list > "${ARTIFACTS_LOCAL}/containerd-containers.txt" || true
   ctr -n moby images list > "${ARTIFACTS_LOCAL}/containerd-images.txt" || true
   ctr -n moby version > "${ARTIFACTS_LOCAL}/containerd-version.txt" || true
+
+  # Verify that no containers are running at this time
+  # Note: This verifies that all our tests clean up clusters correctly.
+  if [[ ! "$(docker ps -q | wc -l)" -eq "0" ]]
+  then
+     echo "ERROR: Found unexpected running containers:"
+     echo ""
+     docker ps
+     exit 1
+  fi
 }
 trap "cleanup" EXIT SIGINT
 

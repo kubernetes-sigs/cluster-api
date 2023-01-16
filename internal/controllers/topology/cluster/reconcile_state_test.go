@@ -498,10 +498,11 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			"spec.replicas": int64(2),
 		}).
 		WithStatusFields(map[string]interface{}{
-			"status.version":         topologyVersion,
-			"status.replicas":        int64(2),
-			"status.updatedReplicas": int64(2),
-			"status.readyReplicas":   int64(2),
+			"status.version":             topologyVersion,
+			"status.replicas":            int64(2),
+			"status.updatedReplicas":     int64(2),
+			"status.readyReplicas":       int64(2),
+			"status.unavailableReplicas": int64(0),
 		}).
 		Build()
 	controlPlaneStableAtLowerVersion := builder.ControlPlane("test1", "cp1").
@@ -510,10 +511,11 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			"spec.replicas": int64(2),
 		}).
 		WithStatusFields(map[string]interface{}{
-			"status.version":         lowerVersion,
-			"status.replicas":        int64(2),
-			"status.updatedReplicas": int64(2),
-			"status.readyReplicas":   int64(2),
+			"status.version":             lowerVersion,
+			"status.replicas":            int64(2),
+			"status.updatedReplicas":     int64(2),
+			"status.readyReplicas":       int64(2),
+			"status.unavailableReplicas": int64(0),
 		}).
 		Build()
 	controlPlaneUpgrading := builder.ControlPlane("test1", "cp1").
@@ -522,10 +524,11 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			"spec.replicas": int64(2),
 		}).
 		WithStatusFields(map[string]interface{}{
-			"status.version":         lowerVersion,
-			"status.replicas":        int64(2),
-			"status.updatedReplicas": int64(2),
-			"status.readyReplicas":   int64(2),
+			"status.version":             lowerVersion,
+			"status.replicas":            int64(2),
+			"status.updatedReplicas":     int64(2),
+			"status.readyReplicas":       int64(2),
+			"status.unavailableReplicas": int64(0),
 		}).
 		Build()
 	controlPlaneScaling := builder.ControlPlane("test1", "cp1").
@@ -534,10 +537,11 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			"spec.replicas": int64(2),
 		}).
 		WithStatusFields(map[string]interface{}{
-			"status.version":         topologyVersion,
-			"status.replicas":        int64(1),
-			"status.updatedReplicas": int64(1),
-			"status.readyReplicas":   int64(1),
+			"status.version":             topologyVersion,
+			"status.replicas":            int64(1),
+			"status.updatedReplicas":     int64(1),
+			"status.readyReplicas":       int64(1),
+			"status.unavailableReplicas": int64(0),
 		}).
 		Build()
 

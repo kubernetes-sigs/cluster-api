@@ -353,9 +353,10 @@ func TestControlPlaneIsScaling(t *testing.T) {
 					"replicas": int64(2),
 				},
 				"status": map[string]interface{}{
-					"replicas":        int64(2),
-					"updatedReplicas": int64(2),
-					"readyReplicas":   int64(2),
+					"replicas":            int64(2),
+					"updatedReplicas":     int64(2),
+					"readyReplicas":       int64(2),
+					"unavailableReplicas": int64(0),
 				},
 			}},
 			wantScaling: false,
@@ -370,53 +371,117 @@ func TestControlPlaneIsScaling(t *testing.T) {
 			wantScaling: true,
 		},
 		{
-			name: "should return true if status.replicas is not set on control plane",
-			obj: &unstructured.Unstructured{Object: map[string]interface{}{
-				"spec": map[string]interface{}{
-					"replicas": int64(2),
-				},
-				"status": map[string]interface{}{},
-			}},
-			wantScaling: true,
-		},
-		{
-			name: "should return true if spec and status replicas do not match",
+			name: "should return true if status replicas is not set on control plane",
 			obj: &unstructured.Unstructured{Object: map[string]interface{}{
 				"spec": map[string]interface{}{
 					"replicas": int64(2),
 				},
 				"status": map[string]interface{}{
-					"replicas":        int64(1),
-					"updatedReplicas": int64(2),
-					"readyReplicas":   int64(2),
+					"updatedReplicas":     int64(2),
+					"readyReplicas":       int64(2),
+					"unavailableReplicas": int64(0),
 				},
 			}},
 			wantScaling: true,
 		},
 		{
-			name: "should return true if spec and status updatedReplicas do not match",
+			name: "should return true if spec replicas and status replicas do not match",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"replicas": int64(2),
+				},
+				"status": map[string]interface{}{
+					"replicas":            int64(1),
+					"updatedReplicas":     int64(2),
+					"readyReplicas":       int64(2),
+					"unavailableReplicas": int64(0),
+				},
+			}},
+			wantScaling: true,
+		},
+		{
+			name: "should return true if status updatedReplicas is not set on control plane",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"replicas": int64(2),
+				},
+				"status": map[string]interface{}{
+					"replicas":            int64(2),
+					"readyReplicas":       int64(2),
+					"unavailableReplicas": int64(0),
+				},
+			}},
+			wantScaling: true,
+		},
+		{
+			name: "should return true if spec replicas and status updatedReplicas do not match",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"replicas": int64(2),
+				},
+				"status": map[string]interface{}{
+					"replicas":            int64(2),
+					"updatedReplicas":     int64(1),
+					"readyReplicas":       int64(2),
+					"unavailableReplicas": int64(0),
+				},
+			}},
+			wantScaling: true,
+		},
+		{
+			name: "should return true if status readyReplicas is not set on control plane",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"replicas": int64(2),
+				},
+				"status": map[string]interface{}{
+					"replicas":            int64(2),
+					"updatedReplicas":     int64(2),
+					"unavailableReplicas": int64(0),
+				},
+			}},
+			wantScaling: true,
+		},
+		{
+			name: "should return true if spec replicas and status readyReplicas do not match",
+			obj: &unstructured.Unstructured{Object: map[string]interface{}{
+				"spec": map[string]interface{}{
+					"replicas": int64(2),
+				},
+				"status": map[string]interface{}{
+					"replicas":            int64(2),
+					"updatedReplicas":     int64(2),
+					"readyReplicas":       int64(1),
+					"unavailableReplicas": int64(0),
+				},
+			}},
+			wantScaling: true,
+		},
+		{
+			name: "should return false if status unavailableReplicas is not set on control plane",
 			obj: &unstructured.Unstructured{Object: map[string]interface{}{
 				"spec": map[string]interface{}{
 					"replicas": int64(2),
 				},
 				"status": map[string]interface{}{
 					"replicas":        int64(2),
-					"updatedReplicas": int64(1),
+					"updatedReplicas": int64(2),
 					"readyReplicas":   int64(2),
 				},
 			}},
-			wantScaling: true,
+			wantScaling: false,
 		},
 		{
-			name: "should return true if spec and status readyReplicas do not match",
+			name: "should return true if status unavailableReplicas is > 0",
 			obj: &unstructured.Unstructured{Object: map[string]interface{}{
 				"spec": map[string]interface{}{
 					"replicas": int64(2),
 				},
 				"status": map[string]interface{}{
-					"replicas":        int64(2),
-					"updatedReplicas": int64(2),
-					"readyReplicas":   int64(1),
+					"replicas":            int64(2),
+					"updatedReplicas":     int64(2),
+					"readyReplicas":       int64(2),
+					"unavailableReplicas": int64(1),
 				},
 			}},
 			wantScaling: true,

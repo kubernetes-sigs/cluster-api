@@ -611,7 +611,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 		defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
 
 		// Note: the version used by the machine deployments does
-		// not affect how we determining the control plane version.
+		// not affect how we're determining the control plane version.
 		// We only want to know if the machine deployments are stable.
 		//
 		// A machine deployment is considered stable if all the following are true:
@@ -706,10 +706,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 						"spec.replicas": int64(2),
 					}).
 					WithStatusFields(map[string]interface{}{
-						"status.version":         "v1.2.2",
-						"status.replicas":        int64(2),
-						"status.updatedReplicas": int64(2),
-						"status.readyReplicas":   int64(2),
+						"status.version":             "v1.2.2",
+						"status.replicas":            int64(2),
+						"status.updatedReplicas":     int64(2),
+						"status.readyReplicas":       int64(2),
+						"status.unavailableReplicas": int64(0),
 					}).
 					Build(),
 				expectedVersion: "v1.2.3",
@@ -739,10 +740,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 						"spec.replicas": int64(2),
 					}).
 					WithStatusFields(map[string]interface{}{
-						"status.version":         "v1.2.2",
-						"status.replicas":        int64(1),
-						"status.updatedReplicas": int64(1),
-						"status.readyReplicas":   int64(1),
+						"status.version":             "v1.2.2",
+						"status.replicas":            int64(1),
+						"status.updatedReplicas":     int64(1),
+						"status.readyReplicas":       int64(1),
+						"status.unavailableReplicas": int64(0),
 					}).
 					Build(),
 				expectedVersion: "v1.2.2",
@@ -756,10 +758,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 						"spec.replicas": int64(2),
 					}).
 					WithStatusFields(map[string]interface{}{
-						"status.version":         "v1.2.2",
-						"status.replicas":        int64(2),
-						"status.updatedReplicas": int64(2),
-						"status.readyReplicas":   int64(2),
+						"status.version":             "v1.2.2",
+						"status.replicas":            int64(2),
+						"status.updatedReplicas":     int64(2),
+						"status.readyReplicas":       int64(2),
+						"status.unavailableReplicas": int64(0),
 					}).
 					Build(),
 				machineDeploymentsState: scope.MachineDeploymentsStateMap{
@@ -778,10 +781,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 						"spec.replicas": int64(2),
 					}).
 					WithStatusFields(map[string]interface{}{
-						"status.version":         "v1.2.2",
-						"status.replicas":        int64(2),
-						"status.updatedReplicas": int64(2),
-						"status.readyReplicas":   int64(2),
+						"status.version":             "v1.2.2",
+						"status.replicas":            int64(2),
+						"status.updatedReplicas":     int64(2),
+						"status.readyReplicas":       int64(2),
+						"status.unavailableReplicas": int64(0),
 					}).
 					Build(),
 				machineDeploymentsState: scope.MachineDeploymentsStateMap{
@@ -800,10 +804,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 						"spec.replicas": int64(2),
 					}).
 					WithStatusFields(map[string]interface{}{
-						"status.version":         "v1.2.2",
-						"status.replicas":        int64(2),
-						"status.updatedReplicas": int64(2),
-						"status.readyReplicas":   int64(2),
+						"status.version":             "v1.2.2",
+						"status.replicas":            int64(2),
+						"status.updatedReplicas":     int64(2),
+						"status.readyReplicas":       int64(2),
+						"status.unavailableReplicas": int64(0),
 					}).
 					Build(),
 				machineDeploymentsState: scope.MachineDeploymentsStateMap{
@@ -822,10 +827,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 						"spec.replicas": int64(2),
 					}).
 					WithStatusFields(map[string]interface{}{
-						"status.version":         "v1.2.2",
-						"status.replicas":        int64(2),
-						"status.updatedReplicas": int64(2),
-						"status.readyReplicas":   int64(2),
+						"status.version":             "v1.2.2",
+						"status.replicas":            int64(2),
+						"status.updatedReplicas":     int64(2),
+						"status.readyReplicas":       int64(2),
+						"status.unavailableReplicas": int64(0),
 					}).
 					Build(),
 				machineDeploymentsState: scope.MachineDeploymentsStateMap{
@@ -1211,10 +1217,11 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				"spec.replicas": int64(2),
 			}).
 			WithStatusFields(map[string]interface{}{
-				"status.version":         "v1.2.2",
-				"status.replicas":        int64(2),
-				"status.updatedReplicas": int64(2),
-				"status.readyReplicas":   int64(2),
+				"status.version":             "v1.2.2",
+				"status.replicas":            int64(2),
+				"status.updatedReplicas":     int64(2),
+				"status.readyReplicas":       int64(2),
+				"status.unavailableReplicas": int64(0),
 			}).
 			Build()
 
@@ -1697,10 +1704,11 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			"spec.replicas": int64(2),
 		}).
 		WithStatusFields(map[string]interface{}{
-			"status.version":         "v1.2.2",
-			"status.replicas":        int64(2),
-			"status.updatedReplicas": int64(2),
-			"status.readyReplicas":   int64(2),
+			"status.version":             "v1.2.2",
+			"status.replicas":            int64(2),
+			"status.updatedReplicas":     int64(2),
+			"status.readyReplicas":       int64(2),
+			"status.unavailableReplicas": int64(0),
 		}).
 		Build()
 	controlPlaneStable123 := builder.ControlPlane("test1", "cp1").
@@ -1709,10 +1717,11 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			"spec.replicas": int64(2),
 		}).
 		WithStatusFields(map[string]interface{}{
-			"status.version":         "v1.2.3",
-			"status.replicas":        int64(2),
-			"status.updatedReplicas": int64(2),
-			"status.readyReplicas":   int64(2),
+			"status.version":             "v1.2.3",
+			"status.replicas":            int64(2),
+			"status.updatedReplicas":     int64(2),
+			"status.readyReplicas":       int64(2),
+			"status.unavailableReplicas": int64(0),
 		}).
 		Build()
 	controlPlaneUpgrading := builder.ControlPlane("test1", "cp1").
@@ -1729,10 +1738,11 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			"spec.replicas": int64(2),
 		}).
 		WithStatusFields(map[string]interface{}{
-			"status.version":         "v1.2.3",
-			"status.replicas":        int64(1),
-			"status.updatedReplicas": int64(1),
-			"status.readyReplicas":   int64(1),
+			"status.version":             "v1.2.3",
+			"status.replicas":            int64(1),
+			"status.updatedReplicas":     int64(1),
+			"status.readyReplicas":       int64(1),
+			"status.unavailableReplicas": int64(0),
 		}).
 		Build()
 	controlPlaneDesired := builder.ControlPlane("test1", "cp1").

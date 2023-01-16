@@ -36,7 +36,17 @@ kubectl cluster-info --context kind-capi-test
 
 ### Create a tilt-settings file
 
-Next, create a `tilt-settings.yaml` file and place it in your local copy of `cluster-api`. Here is an example:
+Next, create a `tilt-settings.yaml` file and place it in your local copy of `cluster-api`. Here is an example that uses the components from the CAPI repo:
+
+```yaml
+default_registry: gcr.io/your-project-name-here
+enable_providers:
+- docker
+- kubeadm-bootstrap
+- kubeadm-control-plane
+```
+
+To use tilt to launch a provider with its own repo, using Cluster API Provider AWS here, `tilt-settings.yaml` should look like: 
 
 ```yaml
 default_registry: gcr.io/your-project-name-here
@@ -44,7 +54,6 @@ provider_repos:
 - ../cluster-api-provider-aws
 enable_providers:
 - aws
-- docker
 - kubeadm-bootstrap
 - kubeadm-control-plane
 ```

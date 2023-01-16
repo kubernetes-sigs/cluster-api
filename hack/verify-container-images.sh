@@ -54,6 +54,8 @@ rm ${TOOL_BIN}/trivy.tar.gz
 
 # Builds all the container images to be scanned and cleans up changes to ./*manager_image_patch.yaml ./*manager_pull_policy.yaml.
 make REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent TAG=dev docker-build
+make REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent TAG=dev docker-capd-build
+make REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent TAG=dev docker-build-test-extension
 make clean-release-git
 
 # Scan the images

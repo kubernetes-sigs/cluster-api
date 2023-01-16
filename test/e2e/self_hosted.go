@@ -201,6 +201,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		Expect(controlPlane).ToNot(BeNil())
 
 		// After the move check that there were no unexpected rollouts.
+		log.Logf("Verify there are no unexpected rollouts")
 		Consistently(func() bool {
 			postMoveMachineList := &unstructured.UnstructuredList{}
 			postMoveMachineList.SetGroupVersionKind(clusterv1.GroupVersion.WithKind("MachineList"))

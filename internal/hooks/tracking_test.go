@@ -103,9 +103,10 @@ func TestIsPending(t *testing.T) {
 
 func TestMarkAsPending(t *testing.T) {
 	tests := []struct {
-		name string
-		obj  client.Object
-		hook runtimecatalog.Hook
+		name               string
+		obj                client.Object
+		hook               runtimecatalog.Hook
+		expectedAnnotation string
 	}{
 		{
 			name: "should add the marker if not already marked as pending",
@@ -115,7 +116,8 @@ func TestMarkAsPending(t *testing.T) {
 					Namespace: "test-ns",
 				},
 			},
-			hook: runtimehooksv1.AfterClusterUpgrade,
+			hook:               runtimehooksv1.AfterClusterUpgrade,
+			expectedAnnotation: "AfterClusterUpgrade",
 		},
 		{
 			name: "should add the marker if not already marked as pending - other hooks are present",
@@ -128,7 +130,8 @@ func TestMarkAsPending(t *testing.T) {
 					},
 				},
 			},
-			hook: runtimehooksv1.AfterClusterUpgrade,
+			hook:               runtimehooksv1.AfterClusterUpgrade,
+			expectedAnnotation: "AfterClusterUpgrade,AfterControlPlaneUpgrade",
 		},
 		{
 			name: "should pass if the marker is already marked as pending",
@@ -141,7 +144,22 @@ func TestMarkAsPending(t *testing.T) {
 					},
 				},
 			},
-			hook: runtimehooksv1.AfterClusterUpgrade,
+			hook:               runtimehooksv1.AfterClusterUpgrade,
+			expectedAnnotation: "AfterClusterUpgrade",
+		},
+		{
+			name: "should pass if the marker is already marked as pending and remove empty string entry",
+			obj: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+					Annotations: map[string]string{
+						runtimev1.PendingHooksAnnotation: ",AfterClusterUpgrade",
+					},
+				},
+			},
+			hook:               runtimehooksv1.AfterClusterUpgrade,
+			expectedAnnotation: "AfterClusterUpgrade",
 		},
 	}
 
@@ -153,15 +171,17 @@ func TestMarkAsPending(t *testing.T) {
 			g.Expect(MarkAsPending(ctx, fakeClient, tt.obj, tt.hook)).To(Succeed())
 			annotations := tt.obj.GetAnnotations()
 			g.Expect(annotations[runtimev1.PendingHooksAnnotation]).To(ContainSubstring(runtimecatalog.HookName(tt.hook)))
+			g.Expect(annotations[runtimev1.PendingHooksAnnotation]).To(Equal(tt.expectedAnnotation))
 		})
 	}
 }
 
 func TestMarkAsDone(t *testing.T) {
 	tests := []struct {
-		name string
-		obj  client.Object
-		hook runtimecatalog.Hook
+		name               string
+		obj                client.Object
+		hook               runtimecatalog.Hook
+		expectedAnnotation string
 	}{
 		{
 			name: "should pass if the marker is not already present",
@@ -171,7 +191,8 @@ func TestMarkAsDone(t *testing.T) {
 					Namespace: "test-ns",
 				},
 			},
-			hook: runtimehooksv1.AfterClusterUpgrade,
+			hook:               runtimehooksv1.AfterClusterUpgrade,
+			expectedAnnotation: "",
 		},
 		{
 			name: "should remove if the marker is already present",
@@ -184,7 +205,8 @@ func TestMarkAsDone(t *testing.T) {
 					},
 				},
 			},
-			hook: runtimehooksv1.AfterClusterUpgrade,
+			hook:               runtimehooksv1.AfterClusterUpgrade,
+			expectedAnnotation: "",
 		},
 		{
 			name: "should remove if the marker is already present among multiple hooks",
@@ -197,7 +219,22 @@ func TestMarkAsDone(t *testing.T) {
 					},
 				},
 			},
-			hook: runtimehooksv1.AfterClusterUpgrade,
+			hook:               runtimehooksv1.AfterClusterUpgrade,
+			expectedAnnotation: "AfterControlPlaneUpgrade",
+		},
+		{
+			name: "should remove empty string entry",
+			obj: &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster",
+					Namespace: "test-ns",
+					Annotations: map[string]string{
+						runtimev1.PendingHooksAnnotation: ",AfterClusterUpgrade,AfterControlPlaneUpgrade",
+					},
+				},
+			},
+			hook:               runtimehooksv1.AfterClusterUpgrade,
+			expectedAnnotation: "AfterControlPlaneUpgrade",
 		},
 	}
 
@@ -209,6 +246,7 @@ func TestMarkAsDone(t *testing.T) {
 			g.Expect(MarkAsDone(ctx, fakeClient, tt.obj, tt.hook)).To(Succeed())
 			annotations := tt.obj.GetAnnotations()
 			g.Expect(annotations[runtimev1.PendingHooksAnnotation]).NotTo(ContainSubstring(runtimecatalog.HookName(tt.hook)))
+			g.Expect(annotations[runtimev1.PendingHooksAnnotation]).To(Equal(tt.expectedAnnotation))
 		})
 	}
 }

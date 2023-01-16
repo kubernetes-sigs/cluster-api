@@ -232,7 +232,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		// object. The Cluster object has special processing for the paused field during the move to
 		// avoid having clusterctl as the manager of the field.
 		log.Logf("Ensure clusterctl does not take ownership on any fields on the self-hosted cluster")
-		selfHostedCluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
+		selfHostedCluster = framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
 			Getter:    selfHostedClusterProxy.GetClient(),
 			Name:      cluster.Name,
 			Namespace: selfHostedNamespace.Name,

@@ -310,6 +310,9 @@ spec:
   # NamespaceSelector decides whether to run the webhook on a Cluster based on whether the namespace for that Cluster matches the selector.
   # If not specified, the WebHook runs for all the namespaces.
   namespaceSelector: {}
+  # settings is a map[string]string which is sent with each request to a Runtime Extension. These settings can be used by
+  # to modify the behaviour of a Runtime Extension.
+  settings: {}
 ```
 
 Once the extension is registered the [discovery hook](#discovery-hook) is called and the above CR is updated with the list

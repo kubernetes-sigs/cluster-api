@@ -292,6 +292,16 @@ controllers processing those resource that might impact system stability.
 
 </aside>
 
+### Settings
+
+Settings can be added to the ExtensionConfig object in the form of a map with string keys and values. These settings are
+sent with each request to hooks registered by that ExtensionConfig. Extension developers can implement behavior in their
+extensions to alter behavior based on these settings. Settings should be well documented by extension developers so that 
+ClusterClass authors can understand usage and expected behaviour.
+
+Settings can be provided for individual external patches by providing them in the ClusterClass `.spec.patches[*].external.settings`.
+This can be used to overwrite settings at the ExtensionConfig level for that patch.
+
 ### Error management
 
 In case a Runtime Extension returns an error, the error will be handled according to the corresponding failure policy

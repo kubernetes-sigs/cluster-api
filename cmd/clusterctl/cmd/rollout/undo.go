@@ -76,7 +76,7 @@ func runUndo(cfgFile string, args []string) error {
 		return err
 	}
 
-	return c.RolloutUndo(client.RolloutOptions{
+	return c.RolloutUndo(client.RolloutUndoOptions{
 		Kubeconfig: client.Kubeconfig{Path: undoOpt.kubeconfig, Context: undoOpt.kubeconfigContext},
 		Namespace:  undoOpt.namespace,
 		Resources:  undoOpt.resources,

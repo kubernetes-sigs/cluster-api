@@ -76,7 +76,7 @@ func runResume(cfgFile string, args []string) error {
 		return err
 	}
 
-	return c.RolloutResume(client.RolloutOptions{
+	return c.RolloutResume(client.RolloutResumeOptions{
 		Kubeconfig: client.Kubeconfig{Path: resumeOpt.kubeconfig, Context: resumeOpt.kubeconfigContext},
 		Namespace:  resumeOpt.namespace,
 		Resources:  resumeOpt.resources,

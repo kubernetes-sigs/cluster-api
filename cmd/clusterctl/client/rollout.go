@@ -26,8 +26,50 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/util"
 )
 
-// RolloutOptions carries the base set of options supported by rollout command.
-type RolloutOptions struct {
+// RolloutRestartOptions carries the options supported by RolloutRestart.
+type RolloutRestartOptions struct {
+	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty,
+	// default rules for kubeconfig discovery will be used.
+	Kubeconfig Kubeconfig
+
+	// Resources for the rollout command
+	Resources []string
+
+	// Namespace where the resource(s) live. If unspecified, the namespace name will be inferred
+	// from the current configuration.
+	Namespace string
+}
+
+// RolloutPauseOptions carries the options supported by RolloutPause.
+type RolloutPauseOptions struct {
+	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty,
+	// default rules for kubeconfig discovery will be used.
+	Kubeconfig Kubeconfig
+
+	// Resources for the rollout command
+	Resources []string
+
+	// Namespace where the resource(s) live. If unspecified, the namespace name will be inferred
+	// from the current configuration.
+	Namespace string
+}
+
+// RolloutResumeOptions carries the options supported by RolloutResume.
+type RolloutResumeOptions struct {
+	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty,
+	// default rules for kubeconfig discovery will be used.
+	Kubeconfig Kubeconfig
+
+	// Resources for the rollout command
+	Resources []string
+
+	// Namespace where the resource(s) live. If unspecified, the namespace name will be inferred
+	// from the current configuration.
+	Namespace string
+}
+
+// RolloutUndoOptions carries the options supported by RolloutUndo.
+type RolloutUndoOptions struct {
 	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty,
 	// default rules for kubeconfig discovery will be used.
 	Kubeconfig Kubeconfig
@@ -40,16 +82,15 @@ type RolloutOptions struct {
 	Namespace string
 
 	// Revision number to rollback to when issuing the undo command.
-	// Revision number of a specific revision when issuing the history command.
 	ToRevision int64
 }
 
-func (c *clusterctlClient) RolloutRestart(options RolloutOptions) error {
+func (c *clusterctlClient) RolloutRestart(options RolloutRestartOptions) error {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
 	}
-	objRefs, err := getObjectRefs(clusterClient, options)
+	objRefs, err := getObjectRefs(clusterClient, options.Namespace, options.Resources)
 	if err != nil {
 		return err
 	}
@@ -61,12 +102,12 @@ func (c *clusterctlClient) RolloutRestart(options RolloutOptions) error {
 	return nil
 }
 
-func (c *clusterctlClient) RolloutPause(options RolloutOptions) error {
+func (c *clusterctlClient) RolloutPause(options RolloutPauseOptions) error {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
 	}
-	objRefs, err := getObjectRefs(clusterClient, options)
+	objRefs, err := getObjectRefs(clusterClient, options.Namespace, options.Resources)
 	if err != nil {
 		return err
 	}
@@ -78,12 +119,12 @@ func (c *clusterctlClient) RolloutPause(options RolloutOptions) error {
 	return nil
 }
 
-func (c *clusterctlClient) RolloutResume(options RolloutOptions) error {
+func (c *clusterctlClient) RolloutResume(options RolloutResumeOptions) error {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
 	}
-	objRefs, err := getObjectRefs(clusterClient, options)
+	objRefs, err := getObjectRefs(clusterClient, options.Namespace, options.Resources)
 	if err != nil {
 		return err
 	}
@@ -95,12 +136,12 @@ func (c *clusterctlClient) RolloutResume(options RolloutOptions) error {
 	return nil
 }
 
-func (c *clusterctlClient) RolloutUndo(options RolloutOptions) error {
+func (c *clusterctlClient) RolloutUndo(options RolloutUndoOptions) error {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
 	}
-	objRefs, err := getObjectRefs(clusterClient, options)
+	objRefs, err := getObjectRefs(clusterClient, options.Namespace, options.Resources)
 	if err != nil {
 		return err
 	}
@@ -112,21 +153,21 @@ func (c *clusterctlClient) RolloutUndo(options RolloutOptions) error {
 	return nil
 }
 
-func getObjectRefs(clusterClient cluster.Client, options RolloutOptions) ([]corev1.ObjectReference, error) {
+func getObjectRefs(clusterClient cluster.Client, namespace string, resources []string) ([]corev1.ObjectReference, error) {
 	// If the option specifying the Namespace is empty, try to detect it.
-	if options.Namespace == "" {
+	if namespace == "" {
 		currentNamespace, err := clusterClient.Proxy().CurrentNamespace()
 		if err != nil {
 			return []corev1.ObjectReference{}, err
 		}
-		options.Namespace = currentNamespace
+		namespace = currentNamespace
 	}
 
-	if len(options.Resources) == 0 {
+	if len(resources) == 0 {
 		return []corev1.ObjectReference{}, fmt.Errorf("required resource not specified")
 	}
-	normalized := normalizeResources(options.Resources)
-	objRefs, err := util.GetObjectReferences(options.Namespace, normalized...)
+	normalized := normalizeResources(resources)
+	objRefs, err := util.GetObjectReferences(namespace, normalized...)
 	if err != nil {
 		return []corev1.ObjectReference{}, err
 	}

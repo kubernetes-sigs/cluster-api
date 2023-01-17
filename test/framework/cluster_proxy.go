@@ -24,8 +24,10 @@ import (
 	"os"
 	"path"
 	goruntime "runtime"
+	"sync"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -35,6 +37,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/clientcmd/api"
 	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -51,6 +54,8 @@ const (
 	// failed leader election and thus controller restarts lead to longer taking retries.
 	// The timeout occurs when listing machines in `GetControlPlaneMachinesByCluster`.
 	retryableOperationTimeout = 3 * time.Minute
+
+	initialCacheSyncTimeout = time.Minute
 )
 
 // ClusterProxy defines the behavior of a type that acts as an intermediary with an existing Kubernetes cluster.
@@ -75,6 +80,9 @@ type ClusterProxy interface {
 
 	// GetRESTConfig returns the REST config for direct use with client-go if needed.
 	GetRESTConfig() *rest.Config
+
+	// GetCache returns a controller-runtime cache to create informer from.
+	GetCache(ctx context.Context) cache.Cache
 
 	// GetLogCollector returns the machine log collector for the Kubernetes cluster.
 	GetLogCollector() ClusterLogCollector
@@ -118,6 +126,8 @@ type clusterProxy struct {
 	scheme                  *runtime.Scheme
 	shouldCleanupKubeconfig bool
 	logCollector            ClusterLogCollector
+	cache                   cache.Cache
+	onceCache               sync.Once
 }
 
 // NewClusterProxy returns a clusterProxy given a KubeconfigPath and the scheme defining the types hosted in the cluster.
@@ -204,6 +214,29 @@ func (p *clusterProxy) GetClientSet() *kubernetes.Clientset {
 	Expect(err).ToNot(HaveOccurred(), "Failed to get client-go client")
 
 	return cs
+}
+
+func (p *clusterProxy) GetCache(ctx context.Context) cache.Cache {
+	p.onceCache.Do(func() {
+		var err error
+		p.cache, err = cache.New(p.GetRESTConfig(), cache.Options{
+			Scheme: p.scheme,
+			Mapper: p.GetClient().RESTMapper(),
+		})
+		Expect(err).ToNot(HaveOccurred(), "Failed to create controller-runtime cache")
+
+		go func() {
+			defer GinkgoRecover()
+			Expect(p.cache.Start(ctx)).To(Succeed())
+		}()
+
+		cacheSyncCtx, cacheSyncCtxCancel := context.WithTimeout(ctx, initialCacheSyncTimeout)
+		defer cacheSyncCtxCancel()
+		Expect(p.cache.WaitForCacheSync(cacheSyncCtx)).
+			To(BeTrue(), fmt.Sprintf("failed waiting for cache for cluster proxy to sync: %v", ctx.Err()))
+	})
+
+	return p.cache
 }
 
 // Apply wraps `kubectl apply ...` and prints the output so we can see what gets applied to the cluster.

@@ -109,6 +109,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 		// Start streaming logs from all controller providers
 		framework.WatchDeploymentLogsByName(ctx, framework.WatchDeploymentLogsByNameInput{
 			GetLister:  client,
+			Cache:      input.ClusterProxy.GetCache(ctx),
 			ClientSet:  input.ClusterProxy.GetClientSet(),
 			Deployment: deployment,
 			LogPath:    filepath.Join(input.LogFolder, "logs", deployment.GetNamespace()),
@@ -186,14 +187,6 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 			Getter:     client,
 			Deployment: deployment,
 		}, intervals...)
-
-		// Start streaming logs from all controller providers
-		framework.WatchDeploymentLogsByName(ctx, framework.WatchDeploymentLogsByNameInput{
-			GetLister:  client,
-			ClientSet:  input.ClusterProxy.GetClientSet(),
-			Deployment: deployment,
-			LogPath:    filepath.Join(input.LogFolder, "logs", deployment.GetNamespace()),
-		})
 
 		framework.WatchPodMetrics(ctx, framework.WatchPodMetricsInput{
 			GetLister:   client,

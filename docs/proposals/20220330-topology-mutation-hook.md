@@ -140,7 +140,9 @@ Once the extension is registered the discovery hook is called and the Extension 
 
 A ClusterClass author can use an External Patch Extension by referencing it in a ClusterClass and adding the corresponding variable definitions.
 
-A ClusterClass can have external patches, inline patches or both. The patches will then be applied in the order in which they are defined. The extension fields of the external patch must match the unique name of RuntimeExtensions assigned during discovery.
+A ClusterClass can have external patches, inline patches or both. The patches will then be applied in the order in which 
+they are defined. The extension fields of the external patch must match the unique name of RuntimeExtensions assigned during discovery.
+External patches can provide settings in map with key and string values. Settings and their usage are defined by GeneratePatch hook authors.
 
 ```yaml
 apiVersion: cluster.x-k8s.io/v1beta1
@@ -154,7 +156,10 @@ spec:
     external:
       generateExtension: "http-proxy.my-awesome-patch"
       validateExtension: "http-proxy-validate.my-awesome-patch"
-  # inline patch
+      settings:
+        firstSetting: "red"
+        secondSettings: "blue"
+    # inline patch
   - name: region
     definitions:
     ...

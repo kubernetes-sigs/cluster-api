@@ -46,6 +46,7 @@ determine/prepare add-ons for the Cluster and block the creation of those object
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: BeforeClusterCreateRequest
+settings: <Runtime Extension settings>
 cluster:
   apiVersion: cluster.x-k8s.io/v1beta1
   kind: Cluster
@@ -84,6 +85,7 @@ possible once the Control Plane is available. This hook does not block any furth
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: AfterControlPlaneInitializedRequest
+settings: <Runtime Extension settings>
 cluster:
   apiVersion: cluster.x-k8s.io/v1beta1
   kind: Cluster
@@ -118,6 +120,7 @@ can use this hook to execute pre-upgrade add-on tasks and block upgrades of the 
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: BeforeClusterUpgradeRequest
+settings: <Runtime Extension settings>
 cluster:
   apiVersion: cluster.x-k8s.io/v1beta1
   kind: Cluster
@@ -160,6 +163,7 @@ until everything is ready.
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: AfterControlPlaneUpgradeRequest
+settings: <Runtime Extension settings>
 cluster:
   apiVersion: cluster.x-k8s.io/v1beta1
   kind: Cluster
@@ -196,6 +200,7 @@ This hook does not block any further changes or upgrades to the Cluster.
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: AfterClusterUpgradeRequest
+settings: <Runtime Extension settings>
 cluster:
   apiVersion: cluster.x-k8s.io/v1beta1
   kind: Cluster
@@ -231,6 +236,7 @@ cleanup tasks for the add-ons and block deletion of the Cluster and descendant o
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: BeforeClusterDeleteRequest
+settings: <Runtime Extension settings>
 cluster:
   apiVersion: cluster.x-k8s.io/v1beta1
   kind: Cluster

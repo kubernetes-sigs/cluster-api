@@ -88,6 +88,7 @@ templates, the global variables and the template-specific variables. The respons
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: GeneratePatchesRequest
+settings: <Runtime Extension settings>
 variables:
 - name: <variable-name>
   value: <variable-value>
@@ -151,6 +152,7 @@ contains the result of the validation.
 ```yaml
 apiVersion: hooks.runtime.cluster.x-k8s.io/v1alpha1
 kind: ValidateTopologyRequest
+settings: <Runtime Extension settings>
 variables:
 - name: <variable-name>
   value: <variable-value>

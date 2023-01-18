@@ -348,6 +348,52 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 		}`)
 	})
 
+	mux.HandleFunc("/repos/some-owner/some-repo/releases/tags/v1.0.0", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{
+		  "tag_name": "v1.0.0",
+		  "name": "v1.0.0",
+		  "id": 12345678,
+		  "url": "https://api.github.com/repos/some-owner/some-repo/releases/12345678",
+		  "assets": [
+			{
+			  "id": 87654321,
+			  "name": "cluster-template.yaml"
+			}
+		  ]
+		}`)
+	})
+
+	mux.HandleFunc("/repos/some-owner/some-repo/releases/assets/87654321", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, template)
+	})
+
+	mux.HandleFunc("/repos/some-owner/some-repo/releases/tags/v2.0.0", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `{
+		  "tag_name": "v2.0.0",
+		  "name": "v2.0.0",
+		  "id": 12345678,
+		  "url": "https://api.github.com/repos/some-owner/some-repo/releases/12345678",
+		  "assets": [
+			{
+			  "id": 22222222,
+			  "name": "cluster-template.yaml"
+			}
+		  ]
+		}`)
+	})
+
+	// redirect asset
+	mux.HandleFunc("/repos/some-owner/some-repo/releases/assets/22222222", func(w http.ResponseWriter, r *http.Request) {
+		// add the "/api-v3" prefix to match the prefix of the fake github server
+		w.Header().Add("Location", "/api-v3/redirected/22222222")
+		w.WriteHeader(http.StatusFound)
+	})
+
+	// redirect location
+	mux.HandleFunc("/redirected/22222222", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, template)
+	})
+
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
 	g.Expect(os.WriteFile(path, []byte(template), 0600)).To(Succeed())
 
@@ -387,6 +433,36 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 			},
 			want:    template,
 			wantErr: false,
+		},
+		{
+			name: "Get asset from GitHub release",
+			args: args{
+				templateURL:         "https://github.com/some-owner/some-repo/releases/download/v1.0.0/cluster-template.yaml",
+				targetNamespace:     "",
+				skipTemplateProcess: false,
+			},
+			want:    template,
+			wantErr: false,
+		},
+		{
+			name: "Get asset from GitHub release + redirect",
+			args: args{
+				templateURL:         "https://github.com/some-owner/some-repo/releases/download/v2.0.0/cluster-template.yaml",
+				targetNamespace:     "",
+				skipTemplateProcess: false,
+			},
+			want:    template,
+			wantErr: false,
+		},
+		{
+			name: "Get asset from GitHub release with a wrong URL",
+			args: args{
+				templateURL:         "https://github.com/some-owner/some-repo/releases/wrong/v1.0.0/cluster-template.yaml",
+				targetNamespace:     "",
+				skipTemplateProcess: false,
+			},
+			want:    "",
+			wantErr: true,
 		},
 		{
 			name: "Get from stdin",

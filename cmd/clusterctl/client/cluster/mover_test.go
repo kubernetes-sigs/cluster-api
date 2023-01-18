@@ -1101,7 +1101,7 @@ func Test_objectMover_updateObjectNamespaceReferences(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			"ignores invalid object",
+			"ignores nil object",
 			args{
 				obj:       nil,
 				namespace: "foobar",

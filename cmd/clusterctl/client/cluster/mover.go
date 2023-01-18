@@ -961,22 +961,22 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy, toNa
 	return nil
 }
 
-func (o *objectMover) updateObjectNamespaceReferences(obj *unstructured.Unstructured, namespace string) error {
-	if namespace == "" {
+func (o *objectMover) updateObjectNamespaceReferences(u *unstructured.Unstructured, namespace string) error {
+	if u == nil || u.Object == nil || namespace == "" {
 		return nil
 	}
-	obj.SetNamespace(namespace)
-	if fields, knownKind := o.namespaceRefFieldsForKnownKinds[obj.GetKind()]; knownKind {
+	u.SetNamespace(namespace)
+	if fields, knownKind := o.namespaceRefFieldsForKnownKinds[u.GetKind()]; knownKind {
 		for _, nsField := range fields {
-			_, exists, err := unstructured.NestedFieldNoCopy(obj.Object, nsField...)
+			_, exists, err := unstructured.NestedFieldNoCopy(u.Object, nsField...)
 			if err != nil {
 				return errors.Wrapf(err, "error updating %q field of %s",
-					strings.Join(nsField, "."), obj.GetKind())
+					strings.Join(nsField, "."), u.GetKind())
 			}
 			if !exists {
-				return fmt.Errorf("expected %s to contain field %q", obj.GetKind(), strings.Join(nsField, "."))
+				return fmt.Errorf("expected %s to contain field %q", u.GetKind(), strings.Join(nsField, "."))
 			}
-			if err := unstructured.SetNestedField(obj.Object, namespace, nsField...); err != nil {
+			if err := unstructured.SetNestedField(u.Object, namespace, nsField...); err != nil {
 				return err
 			}
 		}

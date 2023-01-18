@@ -29,6 +29,7 @@ type moveOptions struct {
 	toKubeconfig          string
 	toKubeconfigContext   string
 	namespace             string
+	toNamespace           string
 	fromDirectory         string
 	toDirectory           string
 	dryRun                bool
@@ -48,6 +49,9 @@ var moveCmd = &cobra.Command{
 	Example: Examples(`
 		Move Cluster API objects and all dependencies between management clusters.
 		clusterctl move --to-kubeconfig=target-kubeconfig.yaml
+
+		Move Cluster API objects and all dependencies and override the namespace during move.
+		clusterctl move --to-kubeconfig=target-kubeconfig.yaml --to-namespace=target-namespace
 
 		Write Cluster API objects and all dependencies from a management cluster to directory.
 		clusterctl move --to-directory /tmp/backup-directory
@@ -72,6 +76,8 @@ func init() {
 		"Context to be used within the kubeconfig file for the destination management cluster. If empty, current context will be used.")
 	moveCmd.Flags().StringVarP(&mo.namespace, "namespace", "n", "",
 		"The namespace where the workload cluster is hosted. If unspecified, the current context's namespace is used.")
+	moveCmd.Flags().StringVar(&mo.toNamespace, "to-namespace", "",
+		"The namespace where the workload cluster is to be relocated. If unspecified, the namespace on origination cluster is used.")
 	moveCmd.Flags().BoolVar(&mo.dryRun, "dry-run", false,
 		"Enable dry run, don't really perform the move actions")
 	moveCmd.Flags().StringVar(&mo.toDirectory, "to-directory", "",
@@ -82,6 +88,8 @@ func init() {
 	moveCmd.MarkFlagsMutuallyExclusive("to-directory", "to-kubeconfig")
 	moveCmd.MarkFlagsMutuallyExclusive("from-directory", "to-directory")
 	moveCmd.MarkFlagsMutuallyExclusive("from-directory", "kubeconfig")
+	moveCmd.MarkFlagsMutuallyExclusive("from-directory", "to-namespace")
+	moveCmd.MarkFlagsMutuallyExclusive("to-directory", "to-namespace")
 
 	RootCmd.AddCommand(moveCmd)
 }
@@ -105,6 +113,7 @@ func runMove() error {
 		FromDirectory:  mo.fromDirectory,
 		ToDirectory:    mo.toDirectory,
 		Namespace:      mo.namespace,
+		ToNamespace:    mo.toNamespace,
 		DryRun:         mo.dryRun,
 	})
 }

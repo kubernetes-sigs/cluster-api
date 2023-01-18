@@ -190,6 +190,8 @@ func Run(ctx context.Context, input RunInput) error {
 		EnvironmentVars: env,
 		CommandArgs:     args,
 		Entrypoint:      []string{"/usr/local/bin/ginkgo"},
+		// We don't want the conformance test container to restart once ginkgo exits.
+		RestartPolicy: "no",
 	}, ginkgo.GinkgoWriter)
 	if err != nil {
 		return errors.Wrap(err, "Unable to run conformance tests")

@@ -974,7 +974,7 @@ func Test_objectMover_filesToObjs(t *testing.T) {
 	}
 }
 
-func Test_objectMover_restore(t *testing.T) {
+func Test_objectMover_fromDirectory(t *testing.T) {
 	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
 	for _, tt := range backupRestoreTests {
 		t.Run(tt.name, func(t *testing.T) {

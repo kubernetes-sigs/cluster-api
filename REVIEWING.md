@@ -25,7 +25,7 @@ feedback and suggestions.
 ## Resources
 
 - [Writing inclusive documentation](https://developers.google.com/style/inclusive-documentation)
-- [Contributor Summit NA 2019: Keeping the Bar High - How to be a bad ass Code Reviewer](https://www.youtube.com/watch?v=OZVv7-o8i40)
+- [Contributor Summit NA 2019: Keeping the Bar High - How to be a bad-ass Code Reviewer](https://www.youtube.com/watch?v=OZVv7-o8i40)
 - [Code Review Developer Guide - Google](https://google.github.io/eng-practices/review/)
 - [The Gentle Art Of Patch Review](https://sage.thesharps.us/2014/09/01/the-gentle-art-of-patch-review/)
 
@@ -128,7 +128,7 @@ to help troubleshooting issues.
 
 ### Testing
 
-Testing plays an crucial role in ensuring the long term maintainability of the project.
+Testing plays a crucial role in ensuring the long term maintainability of the project.
 
 In Cluster API we are committed to have a good test coverage and also to have a nice and consistent style in implementing
 tests. For more information see [testing Cluster API](https://cluster-api.sigs.k8s.io/developer/testing.html).  

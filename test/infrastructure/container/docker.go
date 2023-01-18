@@ -372,6 +372,11 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 		Volumes:      map[string]struct{}{},
 	}
 
+	restartPolicy := runConfig.RestartPolicy
+	if restartPolicy == "" {
+		restartPolicy = "unless-stopped"
+	}
+
 	hostConfig := dockercontainer.HostConfig{
 		// Running containers in a container requires privileges.
 		// NOTE: we could try to replicate this with --cap-add, and use less
@@ -383,7 +388,7 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 		NetworkMode:   dockercontainer.NetworkMode(runConfig.Network),
 		Tmpfs:         runConfig.Tmpfs,
 		PortBindings:  nat.PortMap{},
-		RestartPolicy: dockercontainer.RestartPolicy{Name: "unless-stopped"},
+		RestartPolicy: dockercontainer.RestartPolicy{Name: restartPolicy},
 	}
 	networkConfig := network.NetworkingConfig{}
 

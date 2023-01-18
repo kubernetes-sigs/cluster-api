@@ -38,7 +38,7 @@ var (
 
 func TestNewEtcdClientGenerator(t *testing.T) {
 	g := NewWithT(t)
-	subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0)
+	subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0, 0)
 	g.Expect(subject.createClient).To(Not(BeNil()))
 }
 
@@ -90,7 +90,7 @@ func TestFirstAvailableNode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0)
+			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0, 0)
 			subject.createClient = tt.cc
 
 			client, err := subject.forFirstAvailableNode(ctx, tt.nodes)
@@ -212,7 +212,7 @@ func TestForLeader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0)
+			subject = NewEtcdClientGenerator(&rest.Config{}, &tls.Config{MinVersion: tls.VersionTLS12}, 0, 0)
 			subject.createClient = tt.cc
 
 			client, err := subject.forLeader(ctx, tt.nodes)

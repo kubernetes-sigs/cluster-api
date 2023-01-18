@@ -70,6 +70,7 @@ type KubeadmControlPlaneReconciler struct {
 	recorder        record.EventRecorder
 	Tracker         *remote.ClusterCacheTracker
 	EtcdDialTimeout time.Duration
+	EtcdCallTimeout time.Duration
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -112,6 +113,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 			Client:          r.Client,
 			Tracker:         r.Tracker,
 			EtcdDialTimeout: r.EtcdDialTimeout,
+			EtcdCallTimeout: r.EtcdCallTimeout,
 		}
 	}
 

@@ -49,7 +49,7 @@ func TestEtcdMembers_WithErrors(t *testing.T) {
 		ErrorResponse:        errors.New("something went wrong"),
 	}
 
-	client, err := newEtcdClient(ctx, fakeEtcdClient)
+	client, err := newEtcdClient(ctx, fakeEtcdClient, DefaultCallTimeout)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	members, err := client.Members(ctx)
@@ -86,7 +86,7 @@ func TestEtcdMembers_WithSuccess(t *testing.T) {
 		StatusResponse:       &clientv3.StatusResponse{},
 	}
 
-	client, err := newEtcdClient(ctx, fakeEtcdClient)
+	client, err := newEtcdClient(ctx, fakeEtcdClient, DefaultCallTimeout)
 	g.Expect(err).NotTo(HaveOccurred())
 
 	members, err := client.Members(ctx)

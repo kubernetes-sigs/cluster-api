@@ -48,7 +48,7 @@ body:
       placeholder: "Miscellaneous information that will assist in solving the issue."
 
   - type: textarea
-      id: labels
+      id: template label
       attributes:
         label: Relevant label
         value: kind/bug

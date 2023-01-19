@@ -25,6 +25,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -46,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
+	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -173,9 +175,26 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
+	// Get ClusterClass.
+	clusterClass := &clusterv1.ClusterClass{}
+	key := client.ObjectKey{Name: cluster.Spec.Topology.Class, Namespace: cluster.Namespace}
+	if err := r.Client.Get(ctx, key, clusterClass); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve ClusterClass %s", cluster.Spec.Topology.Class)
+	}
+	// Default and Validate the Cluster based on information from the ClusterClass.
+	// This step is needed as if the ClusterClass does not exist at Cluster creation some fields may not be defaulted or
+	// validated in the webhook.
+	if errs := webhooks.DefaultVariables(cluster, clusterClass); len(errs) > 0 {
+		return ctrl.Result{}, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, errs)
+	}
+	if errs := webhooks.ValidateClusterForClusterClass(cluster, clusterClass, field.NewPath("spec", "topology")); len(errs) > 0 {
+		return ctrl.Result{}, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, errs)
+	}
+
 	// Create a scope initialized with only the cluster; during reconcile
 	// additional information will be added about the Cluster blueprint, current state and desired state.
 	s := scope.New(cluster)
+	s.Blueprint.ClusterClass = clusterClass
 
 	defer func() {
 		if err := r.reconcileConditions(s, cluster, reterr); err != nil {
@@ -204,7 +223,7 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 
 	// Gets the blueprint with the ClusterClass and the referenced templates
 	// and store it in the request scope.
-	s.Blueprint, err = r.getBlueprint(ctx, s.Current.Cluster)
+	s.Blueprint, err = r.getBlueprint(ctx, s.Current.Cluster, s.Blueprint.ClusterClass)
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "error reading the ClusterClass")
 	}

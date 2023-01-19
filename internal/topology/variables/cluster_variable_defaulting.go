@@ -35,8 +35,8 @@ func DefaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clust
 }
 
 // DefaultMachineDeploymentVariables defaults MachineDeploymentVariables.
-func DefaultMachineDeploymentVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) ([]clusterv1.ClusterVariable, field.ErrorList) {
-	return defaultClusterVariables(clusterVariables, clusterClassVariables, false, fldPath)
+func DefaultMachineDeploymentVariables(machineDeploymentVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) ([]clusterv1.ClusterVariable, field.ErrorList) {
+	return defaultClusterVariables(machineDeploymentVariables, clusterClassVariables, false, fldPath)
 }
 
 // defaultClusterVariables defaults variables.

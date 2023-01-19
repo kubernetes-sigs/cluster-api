@@ -378,7 +378,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 	_ = wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
 		var redirect string
 		var downloadReleaseError error
-		reader, redirect, downloadReleaseError = client.Repositories.DownloadReleaseAsset(context.TODO(), g.owner, g.repository, *assetID, http.DefaultClient)
+		reader, redirect, downloadReleaseError = client.Repositories.DownloadReleaseAsset(ctx, g.owner, g.repository, *assetID, http.DefaultClient)
 		if downloadReleaseError != nil {
 			retryError = g.handleGithubErr(downloadReleaseError, "failed to download file %q from %q release", *release.TagName, fileName)
 			// return immediately if we are rate limited
@@ -388,19 +388,11 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 			return false, nil
 		}
 		if redirect != "" {
-			req, err := http.NewRequestWithContext(ctx, http.MethodGet, redirect, http.NoBody)
-			if err != nil {
-				retryError = errors.Wrapf(err, "failed to download file %q from %q release via redirect location %q: failed to create request", *release.TagName, fileName, redirect)
-				return false, nil
-			}
-
-			response, err := http.DefaultClient.Do(req) //nolint:bodyclose // (NB: The reader is actually closed in a defer)
-			if err != nil {
-				retryError = errors.Wrapf(err, "failed to download file %q from %q release via redirect location %q", *release.TagName, fileName, redirect)
-				return false, nil
-			}
-			reader = response.Body
+			// NOTE: DownloadReleaseAsset should not return a redirect address when used with the DefaultClient
+			retryError = errors.New("unexpected redirect while downloading the release asset")
+			return true, retryError
 		}
+
 		retryError = nil
 		return true, nil
 	})

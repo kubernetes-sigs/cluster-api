@@ -719,7 +719,8 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
-	providerConfig := config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/file.yaml", clusterctlv1.CoreProviderType) // tree/main/path not relevant for the test
+	providerConfig := config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/file.yaml", clusterctlv1.CoreProviderType)                           // tree/main/path not relevant for the test
+	providerConfigWithRedirect := config.NewProvider("test", "https://github.com/o/r-with-redirect/releases/v0.4.1/file.yaml", clusterctlv1.CoreProviderType) // tree/main/path not relevant for the test
 
 	// test.NewFakeGitHub an handler for returning a fake release asset
 	mux.HandleFunc("/repos/o/r/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
@@ -727,6 +728,11 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 		w.Header().Set("Content-Type", "application/octet-stream")
 		w.Header().Set("Content-Disposition", "attachment; filename=file.yaml")
 		fmt.Fprint(w, "content")
+	})
+	// handler which redirects to a different location
+	mux.HandleFunc("/repos/o/r-with-redirect/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
+		testMethod(t, r, "GET")
+		http.Redirect(w, r, "/api-v3/repos/o/r/releases/assets/1", http.StatusFound)
 	})
 
 	configVariablesClient := test.NewFakeVariableClient()
@@ -741,10 +747,11 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 		fileName string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    []byte
-		wantErr bool
+		name           string
+		args           args
+		providerConfig config.Provider
+		want           []byte
+		wantErr        bool
 	}{
 		{
 			name: "Pass if file exists",
@@ -760,8 +767,27 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 				},
 				fileName: file,
 			},
-			want:    []byte("content"),
-			wantErr: false,
+			providerConfig: providerConfig,
+			want:           []byte("content"),
+			wantErr:        false,
+		},
+		{
+			name: "Pass if file exists with redirect",
+			args: args{
+				release: &github.RepositoryRelease{
+					TagName: &tagName,
+					Assets: []*github.ReleaseAsset{
+						{
+							ID:   &id1,
+							Name: &file,
+						},
+					},
+				},
+				fileName: file,
+			},
+			providerConfig: providerConfigWithRedirect,
+			want:           []byte("content"),
+			wantErr:        false,
 		},
 		{
 			name: "Fails if file does not exists",
@@ -777,7 +803,8 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 				},
 				fileName: "another file",
 			},
-			wantErr: true,
+			providerConfig: providerConfig,
+			wantErr:        true,
 		},
 		{
 			name: "Fails if file does not exists",
@@ -793,7 +820,8 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 				},
 				fileName: "another file",
 			},
-			wantErr: true,
+			providerConfig: providerConfig,
+			wantErr:        true,
 		},
 	}
 	for _, tt := range tests {
@@ -801,7 +829,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gRepo, err := NewGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
+			gRepo, err := NewGitHubRepository(tt.providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).NotTo(HaveOccurred())
 
 			got, err := gRepo.(*gitHubRepository).downloadFilesFromRelease(tt.args.release, tt.args.fileName)

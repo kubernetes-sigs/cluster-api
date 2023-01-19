@@ -202,7 +202,7 @@ func Test_clusterctlClient_ToDirectory(t *testing.T) {
 	}
 }
 
-func Test_clusterctlClient_Restore(t *testing.T) {
+func Test_clusterctlClient_FromDirectory(t *testing.T) {
 	dir, err := os.MkdirTemp("/tmp", "cluster-api")
 	if err != nil {
 		t.Error(err)
@@ -215,7 +215,7 @@ func Test_clusterctlClient_Restore(t *testing.T) {
 	// These tests are checking the Restore scaffolding
 	// The internal library handles the restore logic and tests can be found there
 	type args struct {
-		options RestoreOptions
+		options MoveOptions
 	}
 	tests := []struct {
 		name    string
@@ -229,9 +229,9 @@ func Test_clusterctlClient_Restore(t *testing.T) {
 				client: fakeClientForMove(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
 			},
 			args: args{
-				options: RestoreOptions{
-					ToKubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					Directory:    dir,
+				options: MoveOptions{
+					ToKubeconfig:  Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					FromDirectory: dir,
 				},
 			},
 			wantErr: false,
@@ -242,9 +242,9 @@ func Test_clusterctlClient_Restore(t *testing.T) {
 				client: fakeClientForMove(), // core v1.0.0 (v1.0.1 available), infra v2.0.0 (v2.0.1 available)
 			},
 			args: args{
-				options: RestoreOptions{
-					ToKubeconfig: Kubeconfig{Path: "kubeconfig", Context: "does-not-exist"},
-					Directory:    dir,
+				options: MoveOptions{
+					ToKubeconfig:  Kubeconfig{Path: "kubeconfig", Context: "does-not-exist"},
+					FromDirectory: dir,
 				},
 			},
 			wantErr: true,
@@ -255,7 +255,7 @@ func Test_clusterctlClient_Restore(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.fields.client.Restore(tt.args.options)
+			err := tt.fields.client.Move(tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

@@ -108,10 +108,6 @@ func (f fakeClient) Move(options MoveOptions) error {
 	return f.internalClient.Move(options)
 }
 
-func (f fakeClient) Restore(options RestoreOptions) error {
-	return f.internalClient.Restore(options)
-}
-
 func (f fakeClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error) {
 	return f.internalClient.PlanUpgrade(options)
 }

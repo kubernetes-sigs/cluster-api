@@ -54,11 +54,6 @@ type Client interface {
 	// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
 	Move(options MoveOptions) error
 
-	// Restore restores all the Cluster API objects existing in a configured directory based on a glob to a target management cluster.
-	//
-	// Deprecated: This will be dropped in a future release. Please use Move.
-	Restore(options RestoreOptions) error
-
 	// PlanUpgrade returns a set of suggested Upgrade plans for the cluster, and more specifically:
 	// - Upgrade to the latest version in the v1alpha3 series: ....
 	// - Upgrade to the latest version in the v1alpha4 series: ....

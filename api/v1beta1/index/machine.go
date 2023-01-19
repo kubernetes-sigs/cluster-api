@@ -43,7 +43,7 @@ const (
 func ByMachineNode(ctx context.Context, mgr ctrl.Manager) error {
 	if err := mgr.GetCache().IndexField(ctx, &clusterv1.Machine{},
 		MachineNodeNameField,
-		machineByNodeName,
+		MachineByNodeName,
 	); err != nil {
 		return errors.Wrap(err, "error setting index field")
 	}
@@ -51,7 +51,8 @@ func ByMachineNode(ctx context.Context, mgr ctrl.Manager) error {
 	return nil
 }
 
-func machineByNodeName(o client.Object) []string {
+// MachineByNodeName contains the logic to index Machines by Node name.
+func MachineByNodeName(o client.Object) []string {
 	machine, ok := o.(*clusterv1.Machine)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Machine but got a %T", o))

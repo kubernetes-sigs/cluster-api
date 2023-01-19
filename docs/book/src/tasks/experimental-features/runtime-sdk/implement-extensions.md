@@ -46,8 +46,8 @@ import (
 	"github.com/spf13/pflag"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	logsv1 "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
@@ -75,7 +75,7 @@ func init() {
 func InitFlags(fs *pflag.FlagSet) {
 	// Initialize logs flags using Kubernetes component-base machinery.
 	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
-	logOptions.AddFlags(fs)
+	logsv1.AddFlags(logOptions, fs)
 
 	// Add test-extension specific flags
 	fs.StringVar(&profilerAddress, "profiler-address", "",
@@ -99,7 +99,7 @@ func main() {
 	pflag.Parse()
 
 	// Validates logs flags using Kubernetes component-base machinery and applies them
-	if err := logOptions.ValidateAndApply(nil); err != nil {
+	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
 		setupLog.Error(err, "unable to start extension")
 		os.Exit(1)
 	}
@@ -128,17 +128,17 @@ func main() {
 
 	// Register extension handlers.
 	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
-		Hook:           runtimehooksv1.BeforeClusterCreate,
-		Name:           "before-cluster-create",
-		HandlerFunc:    DoBeforeClusterCreate,
+		Hook:        runtimehooksv1.BeforeClusterCreate,
+		Name:        "before-cluster-create",
+		HandlerFunc: DoBeforeClusterCreate,
 	}); err != nil {
 		setupLog.Error(err, "error adding handler")
 		os.Exit(1)
 	}
 	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
-		Hook:           runtimehooksv1.BeforeClusterUpgrade,
-		Name:           "before-cluster-upgrade",
-		HandlerFunc:    DoBeforeClusterUpgrade,
+		Hook:        runtimehooksv1.BeforeClusterUpgrade,
+		Name:        "before-cluster-upgrade",
+		HandlerFunc: DoBeforeClusterUpgrade,
 	}); err != nil {
 		setupLog.Error(err, "error adding handler")
 		os.Exit(1)

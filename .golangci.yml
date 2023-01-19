@@ -269,6 +269,10 @@ issues:
     text: "SA1019: in.(.+) is deprecated"
     path: .*(api|types)\/.*\/conversion.*\.go$
   - linters:
+    - staticcheck
+    text: "SA1019: sets.String is deprecated"
+    path: .*(cmd|controllers|controlplane|internal)\/.*\.go$
+  - linters:
       - revive
     # Checking if an error is nil to just after return the error or nil is redundant
     text: "if-return: redundant if ...; err != nil check, just return error instead"

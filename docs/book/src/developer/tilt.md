@@ -365,7 +365,7 @@ A provider must supply a `tilt-provider.yaml` file describing how to build it. H
 ```yaml
 name: aws
 config:
-  image: "gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller",
+  image: "gcr.io/k8s-staging-cluster-api-aws/cluster-api-aws-controller"
   live_reload_deps: ["main.go", "go.mod", "go.sum", "api", "cmd", "controllers", "pkg"]
   label: CAPA
 ```

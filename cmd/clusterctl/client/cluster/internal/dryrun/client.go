@@ -303,6 +303,11 @@ func (c *Client) RESTMapper() meta.RESTMapper {
 	return c.fakeClient.RESTMapper()
 }
 
+// SubResource returns the sub resource this client is using.
+func (c *Client) SubResource(subResource string) client.SubResourceClient {
+	return c.fakeClient.SubResource(subResource)
+}
+
 // Changes generates a summary of all the changes observed from the creation of the dry run client
 // to when this function is called.
 func (c *Client) Changes(ctx context.Context) (*ChangeSummary, error) {

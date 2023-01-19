@@ -136,7 +136,13 @@ func MarkAsOkToDelete(ctx context.Context, c client.Client, obj client.Object) e
 
 func addToCommaSeparatedList(list string, items ...string) string {
 	set := sets.NewString(strings.Split(list, ",")...)
+
+	// Remove empty strings (that might have been introduced by splitting an empty list)
+	// from the hook list
+	set.Delete("")
+
 	set.Insert(items...)
+
 	return strings.Join(set.List(), ",")
 }
 
@@ -147,6 +153,11 @@ func isInCommaSeparatedList(list, item string) bool {
 
 func removeFromCommaSeparatedList(list string, items ...string) string {
 	set := sets.NewString(strings.Split(list, ",")...)
+
+	// Remove empty strings (that might have been introduced by splitting an empty list)
+	// from the hook list
+	set.Delete("")
+
 	set.Delete(items...)
 	return strings.Join(set.List(), ",")
 }

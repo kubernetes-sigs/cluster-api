@@ -20,8 +20,10 @@ from environment variables.
 Current usage of the command is as follows:
 ```bash
 # Generates a configuration file with variable values using a template from a
-# specific URL.
+# specific URL as well as a GitHub URL.
 clusterctl generate yaml --from https://github.com/foo-org/foo-repository/blob/main/cluster-template.yaml
+
+clusterctl generate yaml --from https://foo.bar/cluster-template.yaml
 
 # Generates a configuration file with variable values using
 # a template stored locally.

@@ -488,8 +488,12 @@ func httpCall(ctx context.Context, request, response runtime.Object, opts *httpC
 	})
 
 	resp, err := client.Do(httpRequest)
+
 	// Create http request metric.
-	runtimemetrics.RequestsTotal.Observe(httpRequest, resp, opts.hookGVH, err)
+	defer func() {
+		runtimemetrics.RequestsTotal.Observe(httpRequest, resp, opts.hookGVH, err, response)
+	}()
+
 	if err != nil {
 		return errCallingExtensionHandler(
 			errors.Wrapf(err, "http call failed"),

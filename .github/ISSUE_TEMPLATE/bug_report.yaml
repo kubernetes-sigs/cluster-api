@@ -48,13 +48,13 @@ body:
       placeholder: "Miscellaneous information that will assist in solving the issue."
 
   - type: textarea
-      id: template label
-      attributes:
-        label: Relevant label
-        value: kind/bug
+    id: template label
+    attributes:
+      label: Relevant label
+      value: kind/bug
 
   - type: textarea
-      id: area labels
-      attributes:
-        label: Area labels
-        value: [One or more /area label. See https://github.com/kubernetes-sigs/cluster-api/labels?q=area for the list of labels]
+    id: area labels
+    attributes:
+      label: Area labels
+      value: [One or more /area label. See https://github.com/kubernetes-sigs/cluster-api/labels?q=area for the list of labels]

@@ -98,7 +98,6 @@ var (
 
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
-	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
 	logsv1.AddFlags(logOptions, fs)
 
 	fs.StringVar(&metricsBindAddr, "metrics-bind-addr", "localhost:8080",

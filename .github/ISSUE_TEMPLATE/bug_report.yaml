@@ -38,8 +38,6 @@ body:
     attributes:
       label: Kubernetes version
       placeholder: "$kubectl version"
-    validations:
-      required: true
 
   - type: textarea
     id: additional

@@ -9,7 +9,7 @@ body:
       description: |
         Please provide as much info as possible. Not doing so may result in your bug not being addressed in a timely manner.
         If this matter is security related, please follow the guidelines described in https://github.com/kubernetes-sigs/cluster-api/blob/main/SECURITY_CONTACTS
-      placeholder: "[A clear and concise description on how to REPRODUCE the bug.]"
+      placeholder: "A clear and concise description on how to REPRODUCE the bug."
     validations:
       required: true
 
@@ -24,23 +24,12 @@ body:
     id: repro
     attributes:
       label: How can we reproduce it (as minimally and precisely as possible)?
-    validations:
-      required: false
-
-  - type: textarea
-    id: additional
-    attributes:
-      label: Anything else you would like to add?
-      placeholder: "[Miscellaneous information that will assist in solving the issue.]"
 
   - type: textarea
     id: capiVersion
     attributes:
       label: Cluster-api version
-      value: |
-        <details>
-
-        </details>
+      placeholder: "The version of the Cluster-api used in the environment."
     validations:
       required: true
 
@@ -48,44 +37,24 @@ body:
     id: kubeVersion
     attributes:
       label: Kubernetes version
-      value: |
-        <details>
-
-        ```console
-        $ kubectl version
-        # paste output here
-        ```
-
-        </details>
+      placeholder: "$kubectl version"
     validations:
       required: true
 
   - type: textarea
-    id: tools
+    id: additional
     attributes:
-      label: Minikube/Kind version
-      value: |
-        <details>
-
-        </details>
-    validations:
-      required: false
+      label: Anything else you would like to add?
+      placeholder: "Miscellaneous information that will assist in solving the issue."
 
   - type: textarea
-    id: osVersion
-    attributes:
-      label: OS version
-      value: |
-        <details>
+      id: labels
+      attributes:
+        label: Relevant label
+        value: kind/bug
 
-        ```console
-        # On Linux:
-        $ cat /etc/os-release
-        # paste output here
-        $ uname -a
-        # paste output here
-        # On Windows:
-        C:\> wmic os get Caption, Version, BuildNumber, OSArchitecture
-        # paste output here
-        ```
-        </details>
+  - type: textarea
+      id: area labels
+      attributes:
+        label: Area labels
+        value: [One or more /area label. See https://github.com/kubernetes-sigs/cluster-api/labels?q=area for the list of labels]

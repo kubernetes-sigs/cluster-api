@@ -40,4 +40,4 @@ body:
     id: additional
     attributes:
       label: Anything else we need to know?
-      placeholder: "[Miscellaneous information that will assist in fixing the flaking test.]"
+      placeholder: "Miscellaneous information that will assist in fixing the flaking test."

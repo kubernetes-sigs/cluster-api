@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
@@ -73,6 +74,7 @@ func TestClusterClassDefaultNamespaces(t *testing.T) {
 
 	fakeClient := fake.NewClientBuilder().
 		WithScheme(fakeScheme).
+		WithIndex(&clusterv1.Cluster{}, index.ClusterClassNameField, index.ClusterByClusterClassClassName).
 		Build()
 
 	// Create the webhook and add the fakeClient as its client.
@@ -1148,6 +1150,7 @@ func TestClusterClassValidation(t *testing.T) {
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(fakeScheme).
+				WithIndex(&clusterv1.Cluster{}, index.ClusterClassNameField, index.ClusterByClusterClassClassName).
 				Build()
 
 			// Create the webhook and add the fakeClient as its client.
@@ -1625,6 +1628,7 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(fakeScheme).
 				WithObjects(tt.clusters...).
+				WithIndex(&clusterv1.Cluster{}, index.ClusterClassNameField, index.ClusterByClusterClassClassName).
 				Build()
 
 			// Create the webhook and add the fakeClient as its client.
@@ -2753,6 +2757,7 @@ func TestClusterClassValidationWithVariableChecks(t *testing.T) {
 			fakeClient := fake.NewClientBuilder().
 				WithScheme(fakeScheme).
 				WithObjects(tt.clusters...).
+				WithIndex(&clusterv1.Cluster{}, index.ClusterClassNameField, index.ClusterByClusterClassClassName).
 				Build()
 
 			// Create the webhook and add the fakeClient as its client.

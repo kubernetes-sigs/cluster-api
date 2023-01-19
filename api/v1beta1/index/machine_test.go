@@ -55,7 +55,7 @@ func TestIndexMachineByNodeName(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got := machineByNodeName(tc.object)
+			got := MachineByNodeName(tc.object)
 			g.Expect(got).To(ConsistOf(tc.expected))
 		})
 	}

@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -283,7 +284,9 @@ func TestReconcileMachinePhases(t *testing.T) {
 				bootstrapConfig,
 				infraConfig,
 				defaultKubeconfigSecret,
-			).Build()
+			).
+			WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
+			Build()
 		r := &Reconciler{
 			Client:  cl,
 			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
@@ -349,7 +352,9 @@ func TestReconcileMachinePhases(t *testing.T) {
 				bootstrapConfig,
 				infraConfig,
 				defaultKubeconfigSecret,
-			).Build()
+			).
+			WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
+			Build()
 		r := &Reconciler{
 			Client:  cl,
 			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
@@ -425,7 +430,9 @@ func TestReconcileMachinePhases(t *testing.T) {
 				bootstrapConfig,
 				infraConfig,
 				defaultKubeconfigSecret,
-			).Build()
+			).
+			WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
+			Build()
 		r := &Reconciler{
 			Client:  cl,
 			Tracker: remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
@@ -484,7 +491,9 @@ func TestReconcileMachinePhases(t *testing.T) {
 				builder.GenericInfrastructureMachineCRD.DeepCopy(),
 				bootstrapConfig,
 				infraConfig,
-			).Build()
+			).
+			WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
+			Build()
 
 		r := &Reconciler{
 			Client:  cl,

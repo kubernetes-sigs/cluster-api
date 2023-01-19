@@ -144,7 +144,7 @@ func WatchNamespaceEvents(ctx context.Context, input WatchNamespaceEventsInput) 
 		informers.WithNamespace(input.Name),
 	)
 	eventInformer := informerFactory.Core().V1().Events().Informer()
-	eventInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+	_, err = eventInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			e := obj.(*corev1.Event)
 			_, _ = f.WriteString(fmt.Sprintf("[New Event] %s\n\tresource: %s/%s/%s\n\treason: %s\n\tmessage: %s\n\tfull: %#v\n",
@@ -157,6 +157,7 @@ func WatchNamespaceEvents(ctx context.Context, input WatchNamespaceEventsInput) 
 		},
 		DeleteFunc: func(obj interface{}) {},
 	})
+	Expect(err).NotTo(HaveOccurred())
 
 	stopInformer := make(chan struct{})
 	defer close(stopInformer)

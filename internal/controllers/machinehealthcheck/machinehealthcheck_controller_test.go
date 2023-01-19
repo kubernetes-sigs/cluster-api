@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
@@ -1957,7 +1958,9 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 }
 
 func TestNodeToMachineHealthCheck(t *testing.T) {
-	fakeClient := fake.NewClientBuilder().Build()
+	fakeClient := fake.NewClientBuilder().
+		WithIndex(&clusterv1.Machine{}, index.MachineNodeNameField, index.MachineByNodeName).
+		Build()
 
 	r := &Reconciler{
 		Client: fakeClient,

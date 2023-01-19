@@ -52,7 +52,7 @@ func TestClusterByClassName(t *testing.T) {
 	for _, test := range testCases {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
-			got := clusterByClassName(test.object)
+			got := ClusterByClusterClassClassName(test.object)
 			g.Expect(got).To(Equal(test.expected))
 		})
 	}

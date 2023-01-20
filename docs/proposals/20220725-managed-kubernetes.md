@@ -319,7 +319,7 @@ type GCPManagedClusterSpec struct {
 }
 ```
 
-**This is the design pattern used by AKS in CAPZ**. [An example of how ManagedCluster watches ControlPlane in CAPZ.](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/main/exp/controllers/azuremanagedcluster_controller.go#L165)
+**This is the design pattern used by AKS in CAPZ**. [An example of how ManagedCluster watches ControlPlane in CAPZ.](https://github.com/kubernetes-sigs/cluster-api-provider-azure/blob/5c69b44ed847365525504b242da83b5e5da75e4f/controllers/azuremanagedcluster_controller.go#L71)
 
 **Pros**
 

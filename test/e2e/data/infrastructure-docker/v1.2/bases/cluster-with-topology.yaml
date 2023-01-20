@@ -16,7 +16,11 @@ spec:
     class: "quick-start"
     version: "${KUBERNETES_VERSION}"
     controlPlane:
-      metadata: {}
+      metadata:
+        labels:
+          label-from-cluster-topology: "value-from-cluster-topology"
+        annotations:
+          annotation-from-cluster-topology: "value-from-cluster-topology"
       # Can't be used as this field doesn't exist in v1.2.x.
       #nodeDeletionTimeout: "30s"
       replicas: ${CONTROL_PLANE_MACHINE_COUNT}
@@ -24,6 +28,11 @@ spec:
       machineDeployments:
       - class: "default-worker"
         name: "md-0"
+        metadata:
+          labels:
+            label-from-cluster-topology: "value-from-cluster-topology"
+          annotations:
+            annotation-from-cluster-topology: "value-from-cluster-topology"
         # Can't be used as this field doesn't exist in v1.2.x.
         #nodeDeletionTimeout: "30s"
         replicas: ${WORKER_MACHINE_COUNT}

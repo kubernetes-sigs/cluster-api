@@ -317,6 +317,8 @@ func TestComputeControlPlane(t *testing.T) {
 			template:    blueprint.ControlPlane.Template,
 			currentRef:  nil,
 			obj:         obj,
+			labels:      mergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: mergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
@@ -406,6 +408,8 @@ func TestComputeControlPlane(t *testing.T) {
 			template:    blueprint.ControlPlane.Template,
 			currentRef:  nil,
 			obj:         obj,
+			labels:      mergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: mergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
@@ -449,6 +453,8 @@ func TestComputeControlPlane(t *testing.T) {
 			template:    blueprint.ControlPlane.Template,
 			currentRef:  nil,
 			obj:         obj,
+			labels:      mergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: mergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 		gotMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -501,6 +507,8 @@ func TestComputeControlPlane(t *testing.T) {
 			template:    blueprint.ControlPlane.Template,
 			currentRef:  scope.Current.Cluster.Spec.ControlPlaneRef,
 			obj:         obj,
+			labels:      mergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: mergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 	})
 	t.Run("Should choose the correct version for control plane", func(t *testing.T) {
@@ -1449,6 +1457,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
 		g.Expect(actualMd.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
+		for k, v := range mergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels) {
+			g.Expect(actualMd.Labels).To(HaveKeyWithValue(k, v))
+		}
 
 		g.Expect(actualMd.Spec.Selector.MatchLabels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
 		g.Expect(actualMd.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
@@ -1529,6 +1540,9 @@ func TestComputeMachineDeployment(t *testing.T) {
 
 		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
 		g.Expect(actualMd.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
+		for k, v := range mergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels) {
+			g.Expect(actualMd.Labels).To(HaveKeyWithValue(k, v))
+		}
 
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("foo", "baz"))
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("fizz", "buzz"))

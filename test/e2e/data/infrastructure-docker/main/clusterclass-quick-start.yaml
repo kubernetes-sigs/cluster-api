@@ -4,6 +4,11 @@ metadata:
   name: quick-start
 spec:
   controlPlane:
+    metadata:
+      labels:
+        label-from-clusterclass: "value-from-clusterclass"
+      annotations:
+        annotation-from-clusterclass: "value-from-clusterclass"
     ref:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta1
       kind: KubeadmControlPlaneTemplate
@@ -28,6 +33,11 @@ spec:
     machineDeployments:
     - class: default-worker
       template:
+        metadata:
+          labels:
+            label-from-clusterclass: "value-from-clusterclass"
+          annotations:
+            annotation-from-clusterclass: "value-from-clusterclass"
         bootstrap:
           ref:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta1

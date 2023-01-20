@@ -22,6 +22,8 @@ package e2e
 import (
 	. "github.com/onsi/ginkgo/v2"
 	"k8s.io/utils/pointer"
+
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
 var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", func() {
@@ -72,6 +74,51 @@ var _ = Describe("When following the Cluster API quick-start with Ignition", fun
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 			Flavor:                pointer.String("ignition"),
+		}
+	})
+})
+
+var _ = Describe("When following the Cluster API quick-start check owner references are correctly reconciled and rereconciled if deleted", func() {
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName,
+					framework.CoreTypeOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+			},
+		}
+	})
+})
+
+var _ = Describe("When following the Cluster API quick-start with ClusterClass check owner references are correctly reconciled and rereconciled if deleted [ClusterClass]", func() {
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			Flavor:                pointer.String("topology"),
+			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName,
+					framework.CoreTypeOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+			},
 		}
 	})
 })

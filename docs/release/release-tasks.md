@@ -111,7 +111,7 @@ This comes down to changing occurrences of the old version to the new version, e
    5. Modify the test specs in `test/e2e/clusterctl_upgrade_test.go` (according to the versions we want to test described above).
       Please note that `InitWithKubernetesVersion` should be the highest mgmt cluster version supported by the respective Cluster API version. 
 2. Update `create-local-repository.py` and `tools/tilt-prepare/main.go`: `v1.3.99` => `v1.4.99`.
-3. Update `.github/workflows/scan.yml` to setup Trivy scanning for the currently supported branches.
+3. Update `.github/workflows/scan.yml` - to setup Trivy scanning - and `.github/workflows/lint-docs-weekly.yml` - to setup link checking in the CAPI book - for the currently supported branches.
 4. Make sure all tests are green (also run `pull-cluster-api-e2e-full-main` and `pull-cluster-api-e2e-workload-upgrade-1-23-latest-main`).
 
 Prior art: https://github.com/kubernetes-sigs/cluster-api/pull/6834/files

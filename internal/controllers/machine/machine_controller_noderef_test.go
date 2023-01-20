@@ -227,3 +227,29 @@ func TestSummarizeNodeConditions(t *testing.T) {
 		})
 	}
 }
+
+func TestGetManagedLabels(t *testing.T) {
+	// Create managedLabels map from known managed prefixes.
+	managedLabels := map[string]string{}
+	managedLabels[clusterv1.ManagedNodeLabelDomain] = ""
+	managedLabels["custom-prefix."+clusterv1.NodeRestrictionLabelDomain] = ""
+	managedLabels["custom-prefix."+clusterv1.NodeRestrictionLabelDomain+"/anything"] = ""
+	managedLabels[clusterv1.NodeRoleLabelPrefix+"/anything"] = ""
+
+	// Append arbitrary labels.
+	allLabels := map[string]string{
+		"foo":                               "",
+		"bar":                               "",
+		"company.xyz/node.cluster.x-k8s.io": "not-managed",
+		"gpu-node.cluster.x-k8s.io":         "not-managed",
+		"company.xyz/node-restriction.kubernetes.io": "not-managed",
+		"gpu-node-restriction.kubernetes.io":         "not-managed",
+	}
+	for k, v := range managedLabels {
+		allLabels[k] = v
+	}
+
+	g := NewWithT(t)
+	got := getManagedLabels(allLabels)
+	g.Expect(got).To(BeEquivalentTo(managedLabels))
+}

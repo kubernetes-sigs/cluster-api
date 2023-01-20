@@ -64,6 +64,13 @@ const (
 	// This annotation can be set on BootstrapConfig or Machine objects. The value set on the Machine object takes precedence.
 	// This annotation can only be used on Control Plane Machines.
 	MachineCertificatesExpiryDateAnnotation = "machine.cluster.x-k8s.io/certificates-expiry"
+
+	// NodeRoleLabelPrefix is one of the CAPI managed Node label prefixes.
+	NodeRoleLabelPrefix = "node-role.kubernetes.io"
+	// NodeRestrictionLabelDomain is one of the CAPI managed Node label domains.
+	NodeRestrictionLabelDomain = "node-restriction.kubernetes.io"
+	// ManagedNodeLabelDomain is one of the CAPI managed Node label domains.
+	ManagedNodeLabelDomain = "node.cluster.x-k8s.io"
 )
 
 // ANCHOR: MachineSpec

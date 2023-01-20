@@ -91,6 +91,7 @@ type Reconciler struct {
 	// nodeDeletionRetryTimeout determines how long the controller will retry deleting a node
 	// during a single reconciliation.
 	nodeDeletionRetryTimeout time.Duration
+	disableNodeLabelSync     bool
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {

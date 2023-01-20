@@ -79,7 +79,6 @@ func InitFlags(fs *pflag.FlagSet) {
 	// Initialize logs flags using Kubernetes component-base machinery.
 	// NOTE: it is not mandatory to use Kubernetes component-base machinery in custom RuntimeExtension, but it is
 	// recommended because it helps in ensuring consistency across different components in the cluster.
-	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
 	logsv1.AddFlags(logOptions, fs)
 
 	// Add test-extension specific flags

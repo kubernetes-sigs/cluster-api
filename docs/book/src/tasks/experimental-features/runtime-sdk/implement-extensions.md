@@ -74,7 +74,6 @@ func init() {
 // InitFlags initializes the flags.
 func InitFlags(fs *pflag.FlagSet) {
 	// Initialize logs flags using Kubernetes component-base machinery.
-	logs.AddFlags(fs, logs.SkipLoggingConfigurationFlags())
 	logsv1.AddFlags(logOptions, fs)
 
 	// Add test-extension specific flags

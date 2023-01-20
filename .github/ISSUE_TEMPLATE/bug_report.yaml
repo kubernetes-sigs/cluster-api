@@ -1,6 +1,5 @@
 name: 🐛 Bug Report
 description: Report a bug encountered while using Cluster API
-labels: kind/bug
 body:
   - type: textarea
     id: problem

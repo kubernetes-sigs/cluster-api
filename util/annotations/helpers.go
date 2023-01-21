@@ -84,14 +84,14 @@ func AddAnnotations(o metav1.Object, desired map[string]string) bool {
 }
 
 // hasAnnotation returns true if the object has the specified annotation.
-func hasAnnotation(o metav1.Object, annotation string) bool {
+/* func hasAnnotation(o metav1.Object, annotation string) bool {
 	annotations := o.GetAnnotations()
 	if annotations == nil {
 		return false
 	}
 	_, ok := annotations[annotation]
 	return ok
-}
+} */
 
 // hasTruthyAnnotationValue returns true if the object has an annotation with a value that is not "false".
 func hasTruthyAnnotationValue(o metav1.Object, annotation string) bool {

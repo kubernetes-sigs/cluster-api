@@ -116,5 +116,33 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 		kcp.Status.Ready = true
 	}
 
+	// Surface lastRemediation data in status.
+	// LastRemediation is the remediation currently in progress, in any, or the
+	// most recent of the remediation we are keeping track on machines.
+	var lastRemediation *RemediationData
+
+	if v, ok := kcp.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
+		remediationData, err := RemediationDataFromAnnotation(v)
+		if err != nil {
+			return err
+		}
+		lastRemediation = remediationData
+	} else {
+		for _, m := range ownedMachines.UnsortedList() {
+			if v, ok := m.Annotations[controlplanev1.RemediationForAnnotation]; ok {
+				remediationData, err := RemediationDataFromAnnotation(v)
+				if err != nil {
+					return err
+				}
+				if lastRemediation == nil || lastRemediation.Timestamp.Time.Before(remediationData.Timestamp.Time) {
+					lastRemediation = remediationData
+				}
+			}
+		}
+	}
+
+	if lastRemediation != nil {
+		kcp.Status.LastRemediation = lastRemediation.ToStatus()
+	}
 	return nil
 }

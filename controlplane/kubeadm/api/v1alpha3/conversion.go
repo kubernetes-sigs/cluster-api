@@ -99,6 +99,13 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.ImagePullPolicy
 	}
 
+	if restored.Spec.RemediationStrategy != nil {
+		dst.Spec.RemediationStrategy = restored.Spec.RemediationStrategy
+	}
+	if restored.Status.LastRemediation != nil {
+		dst.Status.LastRemediation = restored.Status.LastRemediation
+	}
+
 	return nil
 }
 

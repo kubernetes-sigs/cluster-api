@@ -314,6 +314,13 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 		},
 	}
 
+	// In case this machine is being created as a consequence of a remediation, then add an annotation
+	// tracking remediating data.
+	// NOTE: This is required in order to track remediation retries.
+	if remediationData, ok := kcp.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
+		machine.Annotations[controlplanev1.RemediationForAnnotation] = remediationData
+	}
+
 	// Machine's bootstrap config may be missing ClusterConfiguration if it is not the first machine in the control plane.
 	// We store ClusterConfiguration as annotation here to detect any changes in KCP ClusterConfiguration and rollout the machine if any.
 	clusterConfig, err := json.Marshal(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
@@ -331,5 +338,10 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 	if err := r.Client.Create(ctx, machine); err != nil {
 		return errors.Wrap(err, "failed to create machine")
 	}
+
+	// Remove the annotation tracking that a remediation is in progress (the remediation completed when
+	// the replacement machine has been created above).
+	delete(kcp.Annotations, controlplanev1.RemediationInProgressAnnotation)
+
 	return nil
 }

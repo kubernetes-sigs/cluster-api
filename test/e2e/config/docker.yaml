@@ -290,3 +290,6 @@ intervals:
   node-drain/wait-deployment-available: ["3m", "10s"]
   node-drain/wait-control-plane: ["15m", "10s"]
   node-drain/wait-machine-deleted: ["2m", "10s"]
+  kcp-remediation/wait-machines: ["5m", "10s"]
+  kcp-remediation/check-machines-stable: ["30s", "5s"]
+  kcp-remediation/wait-machine-provisioned: ["5m", "10s"]

@@ -199,15 +199,19 @@ func (r *Reconciler) reconcile(ctx context.Context, logger logr.Logger, cluster 
 		UID:        cluster.UID,
 	})
 
-	// Get the remote cluster cache to use as a client.Reader.
-	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
-	if err != nil {
-		logger.Error(err, "error creating remote cluster cache")
-		return ctrl.Result{}, err
-	}
+	// If the cluster is already initialized, get the remote cluster cache to use as a client.Reader.
+	var remoteClient client.Client
+	if conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		var err error
+		remoteClient, err = r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+		if err != nil {
+			logger.Error(err, "error creating remote cluster cache")
+			return ctrl.Result{}, err
+		}
 
-	if err := r.watchClusterNodes(ctx, cluster); err != nil {
-		return ctrl.Result{}, err
+		if err := r.watchClusterNodes(ctx, cluster); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// fetch all targets

@@ -18,6 +18,7 @@ package cluster
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -1112,7 +1113,7 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 				dryRun:    true,
 			}
 
-			err := mover.move(graph, toProxy)
+			err := mover.move(graph, toProxy, nil)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1163,9 +1164,44 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 
 func Test_objectMover_move(t *testing.T) {
 	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
+	// we use same mutator function for all tests and validate outcome based on input.
+	randSource := rand.NewSource(time.Now().Unix())
 	for _, tt := range moveTests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			toNamespace := "foobar"
+			updateKnownKinds := map[string][][]string{
+				"Cluster": {
+					{"metadata", "namespace"},
+					{"spec", "controlPlaneRef", "namespace"},
+					{"spec", "infrastructureRef", "namespace"},
+					{"unknown", "field", "does", "not", "cause", "errors"},
+				},
+				"KubeadmControlPlane": {
+					{"spec", "machineTemplate", "infrastructureRef", "namespace"},
+				},
+				"Machine": {
+					{"spec", "bootstrap", "configRef", "namespace"},
+					{"spec", "infrastructureRef", "namespace"},
+				},
+			}
+			var namespaceMutator ResourceMutatorFunc = func(u *unstructured.Unstructured) {
+				if u == nil || u.Object == nil {
+					return
+				}
+				if u.GetNamespace() != "" {
+					u.SetNamespace(toNamespace)
+				}
+				if fields, knownKind := updateKnownKinds[u.GetKind()]; knownKind {
+					for _, nsField := range fields {
+						_, exists, err := unstructured.NestedFieldNoCopy(u.Object, nsField...)
+						g.Expect(err).To(BeNil())
+						if exists {
+							g.Expect(unstructured.SetNestedField(u.Object, toNamespace, nsField...)).To(Succeed())
+						}
+					}
+				}
+			}
 
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
 			graph := getObjectGraphWithObjs(tt.fields.objs)
@@ -1184,7 +1220,14 @@ func Test_objectMover_move(t *testing.T) {
 				fromProxy: graph.proxy,
 			}
 
-			err := mover.move(graph, toProxy)
+			// choose to include/exclude mutator randomly
+			includeMutator := randSource.Int63()%2 == 0
+			var mutators []ResourceMutatorFunc
+			if includeMutator {
+				mutators = append(mutators, namespaceMutator)
+			}
+			err := mover.move(graph, toProxy, mutators)
+
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1225,10 +1268,26 @@ func Test_objectMover_move(t *testing.T) {
 				oTo := &unstructured.Unstructured{}
 				oTo.SetAPIVersion(node.identity.APIVersion)
 				oTo.SetKind(node.identity.Kind)
+				if includeMutator {
+					if key.Namespace != "" {
+						key.Namespace = toNamespace
+					}
+				}
 
 				if err := csTo.Get(ctx, key, oTo); err != nil {
 					t.Errorf("error = %v when checking for %v created in target cluster", err, key)
 					continue
+				}
+				if includeMutator {
+					if fields, knownKind := updateKnownKinds[oTo.GetKind()]; knownKind {
+						for _, nsField := range fields {
+							value, exists, err := unstructured.NestedFieldNoCopy(oTo.Object, nsField...)
+							g.Expect(err).To(BeNil())
+							if exists {
+								g.Expect(value).To(Equal(toNamespace))
+							}
+						}
+					}
 				}
 			}
 		})
@@ -1797,6 +1856,11 @@ func Test_createTargetObject(t *testing.T) {
 				},
 			},
 			want: func(g *WithT, toClient client.Client) {
+				ns := &corev1.Namespace{}
+				nsKey := client.ObjectKey{
+					Name: "ns1",
+				}
+				g.Expect(toClient.Get(ctx, nsKey, ns)).To(Succeed())
 				c := &clusterv1.Cluster{}
 				key := client.ObjectKey{
 					Namespace: "ns1",
@@ -1932,7 +1996,7 @@ func Test_createTargetObject(t *testing.T) {
 				fromProxy: tt.args.fromProxy,
 			}
 
-			err := mover.createTargetObject(tt.args.node, tt.args.toProxy)
+			err := mover.createTargetObject(tt.args.node, tt.args.toProxy, nil, nil)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

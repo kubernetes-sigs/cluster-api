@@ -1,7 +1,8 @@
 ---
 # MachineHealthCheck object with
-# - a selector that targets all the machines with label cluster.x-k8s.io/control-plane=""
-# - unhealthyConditions triggering remediation after 10s the condition is set
+# - a selector that targets all the machines with label cluster.x-k8s.io/control-plane="" and the mhc-test: "fail" (the label is used to trigger remediation in a controlled way - by adding CP under MHC control intentionally -)
+# - nodeStartupTimeout: 30s (to force remediation on nodes still provisioning)
+# - unhealthyConditions triggering remediation after 10s the e2e.remediation.condition condition is set to false (to force remediation on nodes already provisioned)
 apiVersion: cluster.x-k8s.io/v1beta1
 kind: MachineHealthCheck
 metadata:
@@ -12,6 +13,8 @@ spec:
   selector:
     matchLabels:
       cluster.x-k8s.io/control-plane: ""
+      mhc-test: "fail"
+  nodeStartupTimeout: 30s
   unhealthyConditions:
     - type: e2e.remediation.condition
       status: "False"

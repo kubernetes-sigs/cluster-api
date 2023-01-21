@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -111,8 +112,9 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 		return true, time.Duration(0)
 	}
 
-	// Don't penalize any Machine/Node if the control plane has not been initialized.
-	if !conditions.IsTrue(t.Cluster, clusterv1.ControlPlaneInitializedCondition) {
+	// Don't penalize any Machine/Node if the control plane has not been initialized
+	// Exception of this rule are control plane machine itself, so the first control plane machine can be remediated.
+	if !conditions.IsTrue(t.Cluster, clusterv1.ControlPlaneInitializedCondition) && !util.IsControlPlaneMachine(t.Machine) {
 		logger.V(3).Info("Not evaluating target health because the control plane has not yet been initialized")
 		// Return a nextCheck time of 0 because we'll get requeued when the Cluster is updated.
 		return false, 0
@@ -218,16 +220,18 @@ func (r *Reconciler) getTargetsFromMHC(ctx context.Context, logger logr.Logger, 
 			Machine:     &machines[k],
 			patchHelper: patchHelper,
 		}
-		node, err := r.getNodeFromMachine(ctx, clusterClient, target.Machine)
-		if err != nil {
-			if !apierrors.IsNotFound(err) {
-				return nil, errors.Wrap(err, "error getting node")
-			}
+		if clusterClient != nil {
+			node, err := r.getNodeFromMachine(ctx, clusterClient, target.Machine)
+			if err != nil {
+				if !apierrors.IsNotFound(err) {
+					return nil, errors.Wrap(err, "error getting node")
+				}
 
-			// A node has been seen for this machine, but it no longer exists
-			target.nodeMissing = true
+				// A node has been seen for this machine, but it no longer exists
+				target.nodeMissing = true
+			}
+			target.Node = node
 		}
-		target.Node = node
 		targets = append(targets, target)
 	}
 	return targets, nil

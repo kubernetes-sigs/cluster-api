@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -49,6 +51,23 @@ const (
 	// KubeadmClusterConfigurationAnnotation is a machine annotation that stores the json-marshalled string of KCP ClusterConfiguration.
 	// This annotation is used to detect any changes in ClusterConfiguration and trigger machine rollout in KCP.
 	KubeadmClusterConfigurationAnnotation = "controlplane.cluster.x-k8s.io/kubeadm-cluster-configuration"
+
+	// RemediatingInProgressAnnotation is used to keep track that a KCP remediation is in progress, and more
+	// specifically it tracks that the system is in between having deleted an unhealthy machine and recreating its replacement.
+	// NOTE: if something external to CAPI removes this annotation the system cannot detect the above situation; this can lead to
+	// failures in updating remediation retry or remediation count (both counters restart from zero).
+	RemediatingInProgressAnnotation = "kubeadm.controlplane.cluster.x-k8s.io/remediation-in-progress"
+
+	// MachineRemediationForAnnotation is used to link a new machine to the unhealthy machine it is replacing;
+	// please note that in case of retry, when also the remediating machine fails, the system keep tracks
+	// the first machine of the sequence only.
+	// NOTE: if something external to CAPI removes this annotation the system this can lead to
+	// failures in updating remediation retry (the counter restarts from zero).
+	MachineRemediationForAnnotation = "kubeadm.controlplane.cluster.x-k8s.io/remediation-for"
+
+	// DefaultMinHealthyPeriod defines the default minimum number of seconds before we consider a remediation on a
+	// machine unrelated from the previous remediation.
+	DefaultMinHealthyPeriod = 1 * time.Hour
 )
 
 // KubeadmControlPlaneSpec defines the desired state of KubeadmControlPlane.
@@ -91,6 +110,10 @@ type KubeadmControlPlaneSpec struct {
 	// +optional
 	// +kubebuilder:default={type: "RollingUpdate", rollingUpdate: {maxSurge: 1}}
 	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
+
+	// The RemediationStrategy that controls how control plane machines remediation happens.
+	// +optional
+	RemediationStrategy *RemediationStrategy `json:"remediationStrategy,omitempty"`
 }
 
 // KubeadmControlPlaneMachineTemplate defines the template for Machines
@@ -158,6 +181,40 @@ type RollingUpdate struct {
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty"`
 }
 
+// RemediationStrategy allows to define how control plane machines remediation happens.
+type RemediationStrategy struct {
+	// MaxRetry is the Max number of retry while attempting to remediate an unhealthy machine.
+	// A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.
+	// For example, given a control plane with three machines M1, M2, M3:
+	//
+	//	M1 become unhealthy; remediation happens, and M1bis is created as a replacement.
+	//	If M1-1 (replacement of M1) have problems while bootstrapping it will become unhealthy, and then be
+	//	remediated; such operation is considered a retry, remediation-retry #1.
+	//	If M1-2 (replacement of M1-2) becomes unhealthy, remediation-retry #2 will happen, etc.
+	//
+	// A retry could happen only after RetryPeriod from the previous retry.
+	// If a machine is marked as unhealthy after MinHealthyPeriod from the previous remediation expired,
+	// this is not considered anymore a retry because the new issue is assumed unrelated from the previous one.
+	//
+	// If not set, infinite retry will be attempted.
+	// +optional
+	MaxRetry *int32 `json:"maxRetry,omitempty"`
+
+	// RetryPeriod is the duration that KCP should wait before remediating a machine being created as a replacement
+	// for an unhealthy machine (a retry).
+	//
+	// If not set, a retry will happen immediately.
+	// +optional
+	RetryPeriod metav1.Duration `json:"retryDelaySeconds,omitempty"`
+
+	// MinHealthyPeriod defines the duration after which KCP will consider any failure to a machine unrelated
+	// from the previous one, and thus a new remediation is not considered a retry anymore.
+	//
+	// If not set, this value is defaulted to 1h.
+	// +optional
+	MinHealthyPeriod *metav1.Duration `json:"minHealthySeconds,omitempty"`
+}
+
 // KubeadmControlPlaneStatus defines the observed state of KubeadmControlPlane.
 type KubeadmControlPlaneStatus struct {
 	// Selector is the label selector in string format to avoid introspection
@@ -223,6 +280,25 @@ type KubeadmControlPlaneStatus struct {
 	// Conditions defines current service state of the KubeadmControlPlane.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// LastRemediation stores info about last remediation performed.
+	// +optional
+	LastRemediation *LastRemediationStatus `json:"lastRemediation,omitempty"`
+}
+
+// LastRemediationStatus  stores info about last remediation performed.
+// NOTE: if for any reason information about last remediation are lost, RetryCount is going to restarts from 0 and thus
+// more remediation than expected might happen.
+type LastRemediationStatus struct {
+	// Machine is the machine name of the latest machine being remediated.
+	Machine string `json:"machine"`
+
+	// Timestamp is RFC 3339 date and time at which last remediation happened.
+	Timestamp metav1.Timestamp `json:"timestamp"`
+
+	// RetryCount used to keep track of remediation retry for the last remediated machine.
+	// A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.
+	RetryCount int32 `json:"retryCount"`
 }
 
 // +kubebuilder:object:root=true

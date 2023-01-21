@@ -84,6 +84,13 @@ func (src *KubeadmControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.ImagePullPolicy
 	}
 
+	if restored.Spec.RemediationStrategy != nil {
+		dst.Spec.RemediationStrategy = restored.Spec.RemediationStrategy
+	}
+	if restored.Status.LastRemediation != nil {
+		dst.Status.LastRemediation = restored.Status.LastRemediation
+	}
+
 	return nil
 }
 
@@ -262,5 +269,11 @@ func Convert_v1beta1_KubeadmControlPlaneMachineTemplate_To_v1alpha4_KubeadmContr
 
 func Convert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in *controlplanev1.KubeadmControlPlaneSpec, out *KubeadmControlPlaneSpec, scope apiconversion.Scope) error {
 	// .RolloutBefore was added in v1beta1.
+	// .RemediationStrategy was added in v1beta1.
 	return autoConvert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec(in, out, scope)
+}
+
+func Convert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha4_KubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, scope apiconversion.Scope) error {
+	// .LastRemediation was added in v1beta1.
+	return autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha4_KubeadmControlPlaneStatus(in, out, scope)
 }

@@ -295,7 +295,8 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 
 	// if the machine isn't bootstrapped, only then run bootstrap scripts
 	if !dockerMachine.Spec.Bootstrapped {
-		timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
+		// TODO: make this timeout configurable via DockerMachine API if it is required by the KCP remediation test.
+		timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 		defer cancel()
 
 		// Check for bootstrap success
@@ -305,9 +306,28 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		if err := externalMachine.CheckForBootstrapSuccess(timeoutCtx, false); err != nil {
 			bootstrapData, format, err := r.getBootstrapData(timeoutCtx, machine)
 			if err != nil {
-				log.Error(err, "failed to get bootstrap data")
 				return ctrl.Result{}, err
 			}
+
+			// Setup a go routing to check for the machine being deleted while running bootstrap as a
+			// synchronous process, e.g. due to remediation. The routine stops when timeoutCtx is Done
+			// (either because canceled intentionally due to machine deletion or canceled by the defer cancel()
+			// call when exiting from this func).
+			go func() {
+				for {
+					select {
+					case <-timeoutCtx.Done():
+						return
+					default:
+						updatedDockerMachine := &infrav1.DockerMachine{}
+						if err := r.Client.Get(ctx, client.ObjectKeyFromObject(dockerMachine), updatedDockerMachine); err == nil && !updatedDockerMachine.DeletionTimestamp.IsZero() {
+							cancel()
+							return
+						}
+						time.Sleep(5 * time.Second)
+					}
+				}
+			}()
 
 			// Run the bootstrap script. Simulates cloud-init/Ignition.
 			if err := externalMachine.ExecBootstrap(timeoutCtx, bootstrapData, format); err != nil {
@@ -329,6 +349,13 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	if err := setMachineAddress(ctx, dockerMachine, externalMachine); err != nil {
 		log.Error(err, "failed to set the machine address")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
+	}
+
+	// If the control plane is not yet initialized, there is no API server to contact to get the ProviderID for the Node
+	// hosted on this machine, so return early.
+	// NOTE: we are using RequeueAfter with a short interval in order to make test execution time more stable.
+	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
 	}
 
 	// Usually a cloud provider will do this, but there is no docker-cloud provider.

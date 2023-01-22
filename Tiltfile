@@ -49,7 +49,7 @@ always_enable_providers = ["core"]
 
 providers = {
     "core": {
-        "context": ".",
+        "context": ".",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/cluster-api-controller",
         "live_reload_deps": [
             "main.go",
@@ -68,7 +68,7 @@ providers = {
         "label": "CAPI",
     },
     "kubeadm-bootstrap": {
-        "context": "bootstrap/kubeadm",
+        "context": "bootstrap/kubeadm",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/kubeadm-bootstrap-controller",
         "live_reload_deps": [
             "main.go",
@@ -82,7 +82,7 @@ providers = {
         "label": "CABPK",
     },
     "kubeadm-control-plane": {
-        "context": "controlplane/kubeadm",
+        "context": "controlplane/kubeadm",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/kubeadm-control-plane-controller",
         "live_reload_deps": [
             "main.go",
@@ -95,7 +95,7 @@ providers = {
         "label": "KCP",
     },
     "docker": {
-        "context": "test/infrastructure/docker",
+        "context": "test/infrastructure/docker",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/capd-manager",
         "live_reload_deps": [
             "main.go",
@@ -121,7 +121,7 @@ COPY --from=tilt-helper /usr/bin/kubectl /usr/bin/kubectl
 """,
     },
     "test-extension": {
-        "context": "test/extension",
+        "context": "test/extension",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare
         "image": "gcr.io/k8s-staging-cluster-api/test-extension",
         "live_reload_deps": [
             "main.go",

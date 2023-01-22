@@ -394,6 +394,9 @@ build it.
 **live_reload_deps**: a list of files/directories to watch. If any of them changes, Tilt rebuilds the manager binary
 for the provider and performs a live update of the running container.
 
+**version**: allows to define the version to be used for the Provider CR. If empty, a default version will 
+be used.
+
 **additional_docker_helper_commands** (String, default=""): Additional commands to be run in the helper image
 docker build. e.g.
 

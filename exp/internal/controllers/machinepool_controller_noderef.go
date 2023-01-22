@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -110,9 +111,10 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 			clusterv1.OwnerKindAnnotation:        mp.Kind,
 			clusterv1.OwnerNameAnnotation:        mp.Name,
 		}
-		if annotations.AddAnnotations(node, desired) {
+		// Add annotations and drop NodeUninitializedTaint.
+		if annotations.AddAnnotations(node, desired) || taints.RemoveNodeTaint(node, clusterv1.NodeUninitializedTaint) {
 			if err := patchHelper.Patch(ctx, node); err != nil {
-				log.V(2).Info("Failed patch node to set annotations", "err", err, "node name", node.Name)
+				log.V(2).Info("Failed patch node to set annotations and drop taints", "err", err, "node name", node.Name)
 				return ctrl.Result{}, err
 			}
 		}

@@ -27,6 +27,7 @@ import (
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -458,4 +459,71 @@ func TestGetManagedLabels(t *testing.T) {
 	g := NewWithT(t)
 	got := getManagedLabels(allLabels)
 	g.Expect(got).To(BeEquivalentTo(managedLabels))
+}
+
+func TestReconcileNodeTaints(t *testing.T) {
+	tests := []struct {
+		name string
+		node *corev1.Node
+	}{
+		{
+			name: "if the node has the uninitialized taint it should be dropped from the node",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-node-1",
+				},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{
+						clusterv1.NodeUninitializedTaint,
+					},
+				},
+			},
+		},
+		{
+			name: "if the node is a control plane and has the uninitialized taint it should be dropped from the node",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-node-1",
+				},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{
+						{
+							Key:    "node-role.kubernetes.io/control-plane",
+							Effect: corev1.TaintEffectNoSchedule,
+						},
+						clusterv1.NodeUninitializedTaint,
+					},
+				},
+			},
+		},
+		{
+			name: "if the node does not have the uninitialized taint it should remain absent from the node",
+			node: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-node-1",
+				},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			fakeClient := fake.NewClientBuilder().WithObjects(tt.node).WithScheme(fakeScheme).Build()
+			nodeBefore := tt.node.DeepCopy()
+			r := &Reconciler{}
+			g.Expect(r.reconcileNodeTaints(ctx, fakeClient, tt.node)).Should(Succeed())
+			// Verify the NodeUninitializedTaint is dropped.
+			g.Expect(tt.node.Spec.Taints).ShouldNot(ContainElement(clusterv1.NodeUninitializedTaint))
+			// Verify all other taints are same.
+			for _, taint := range nodeBefore.Spec.Taints {
+				if !taint.MatchTaint(&clusterv1.NodeUninitializedTaint) {
+					g.Expect(tt.node.Spec.Taints).Should(ContainElement(taint))
+				}
+			}
+		})
+	}
 }

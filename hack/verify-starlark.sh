@@ -73,4 +73,3 @@ fi
 echo "Running buildifier..."
 cd "${ROOT_PATH}" || exit
 "${BUILDIFIER}" -mode=${MODE} Tiltfile >> "${OUT}" 2>&1
-

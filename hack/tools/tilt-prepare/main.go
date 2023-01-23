@@ -64,45 +64,73 @@ Example call for tilt up:
 	--tools kustomize,envsubst
 */
 
+const (
+	kustomizePath = "./hack/tools/bin/kustomize"
+	envsubstPath  = "./hack/tools/bin/envsubst"
+)
+
 var (
+	// Defines the default version to be used for the provider CR if no version is specified in the tilt-provider.yaml|json file.
+	defaultProviderVersion = "v1.4.99"
+
+	// This data struct mirrors a subset of info from the providers struct in the tilt file
+	// which is containing "hard-coded" tilt-provider.yaml files for the providers managed in the Cluster API repository.
+	providers = map[string]tiltProviderConfig{
+		"core": {
+			Context: pointer.String("."),
+		},
+		"kubeadm-bootstrap": {
+			Context: pointer.String("bootstrap/kubeadm"),
+		},
+		"kubeadm-control-plane": {
+			Context: pointer.String("controlplane/kubeadm"),
+		},
+		"docker": {
+			Context: pointer.String("test/infrastructure/docker"),
+		},
+		"test-extension": {
+			Context: pointer.String("test/extension"),
+		},
+	}
+
 	rootPath             string
 	tiltBuildPath        string
 	tiltSettingsFileFlag = pflag.String("tilt-settings-file", "./tilt-settings.yaml", "Path to a tilt-settings.(json|yaml) file")
 	toolsFlag            = pflag.StringSlice("tools", []string{}, "list of tools to be created; each value should correspond to a make target")
 )
 
+// Types used to de-serialize the tilt-settings.yaml/json file from the Cluster API repository.
+
 type tiltSettings struct {
-	Debug               map[string]debugConfig `json:"debug,omitempty"`
-	ExtraArgs           map[string]extraArgs   `json:"extra_args,omitempty"`
-	DeployCertManager   *bool                  `json:"deploy_cert_manager,omitempty"`
-	DeployObservability []string               `json:"deploy_observability,omitempty"`
-	EnableProviders     []string               `json:"enable_providers,omitempty"`
-	AllowedContexts     []string               `json:"allowed_contexts,omitempty"`
-	ProviderRepos       []string               `json:"provider_repos,omitempty"`
+	Debug               map[string]tiltSettingsDebugConfig `json:"debug,omitempty"`
+	ExtraArgs           map[string]tiltSettingsExtraArgs   `json:"extra_args,omitempty"`
+	DeployCertManager   *bool                              `json:"deploy_cert_manager,omitempty"`
+	DeployObservability []string                           `json:"deploy_observability,omitempty"`
+	EnableProviders     []string                           `json:"enable_providers,omitempty"`
+	AllowedContexts     []string                           `json:"allowed_contexts,omitempty"`
+	ProviderRepos       []string                           `json:"provider_repos,omitempty"`
 }
 
-type providerSettings struct {
-	Name   string          `json:"name,omitempty"`
-	Config *providerConfig `json:"config,omitempty"`
-}
-
-type providerConfig struct {
-	Context *string `json:"context,omitempty"`
-}
-
-type debugConfig struct {
+type tiltSettingsDebugConfig struct {
 	Continue     *bool `json:"continue"`
 	Port         *int  `json:"port"`
 	ProfilerPort *int  `json:"profiler_port"`
 	MetricsPort  *int  `json:"metrics_port"`
 }
 
-type extraArgs []string
+type tiltSettingsExtraArgs []string
 
-const (
-	kustomizePath = "./hack/tools/bin/kustomize"
-	envsubstPath  = "./hack/tools/bin/envsubst"
-)
+// Types used to de-serialize the tilt-providers.yaml/json file from the provider repositories.
+
+type tiltProvider struct {
+	Name   string              `json:"name,omitempty"`
+	Config *tiltProviderConfig `json:"config,omitempty"`
+}
+
+type tiltProviderConfig struct {
+	Context *string `json:"context,omitempty"`
+	Version *string `json:"version,omitempty"`
+}
 
 func init() {
 	cmd := exec.Command("git", "rev-parse", "--show-toplevel")
@@ -169,12 +197,12 @@ func readTiltSettings(path string) (*tiltSettings, error) {
 		return nil, errors.Wrap(err, "failed to unmarshal tilt-settings content")
 	}
 
-	setDefaults(ts)
+	setTiltSettingsDefaults(ts)
 	return ts, nil
 }
 
-// setDefaults sets default values for debug related fields in tiltSettings.
-func setDefaults(ts *tiltSettings) {
+// setTiltSettingsDefaults sets default values for tiltSettings info.
+func setTiltSettingsDefaults(ts *tiltSettings) {
 	if ts.DeployCertManager == nil {
 		ts.DeployCertManager = pointer.Bool(true)
 	}
@@ -263,22 +291,15 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 		)
 	}
 
-	providerPaths := map[string]string{"core": ".",
-		"kubeadm-bootstrap":     "bootstrap/kubeadm",
-		"kubeadm-control-plane": "controlplane/kubeadm",
-		"docker":                "test/infrastructure/docker",
-		"test-extension":        "test/extension",
-	}
-
-	// Add all the provider paths to the providerpaths map
+	// Add read configurations from provider repos
 	for _, p := range ts.ProviderRepos {
-		providerContexts, err := loadProviders(p)
+		tiltProviderConfigs, err := loadTiltProvider(p)
 		if err != nil {
-			return err
+			return errors.Wrapf(err, "failed to load tilt-provider.yaml/json from %s", p)
 		}
 
-		for name, path := range providerContexts {
-			providerPaths[name] = path
+		for name, config := range tiltProviderConfigs {
+			providers[name] = config
 		}
 	}
 
@@ -294,37 +315,41 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 
 	// Add the provider task for each of the enabled provider
 	for _, providerName := range ts.EnableProviders {
-		path, ok := providerPaths[providerName]
+		config, ok := providers[providerName]
 		if !ok {
-			return errors.Errorf("failed to obtain path for the provider %s", providerName)
+			return errors.Errorf("failed to obtain config for the provider %s, please add the providers path to the provider_repos list in tilt-settings.yaml/json file", providerName)
 		}
-		tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", ts, fmt.Sprintf("%s/config/default", path), getProviderObj)
+		tasks[providerName] = workloadTask(providerName, "provider", "manager", "manager", ts, fmt.Sprintf("%s/config/default", *config.Context), getProviderObj(config.Version))
 	}
 
 	return runTaskGroup(ctx, "resources", tasks)
 }
 
-func loadProviders(r string) (map[string]string, error) {
-	var contextPath string
-	providerData, err := readProviderSettings(r)
+func loadTiltProvider(providerRepository string) (map[string]tiltProviderConfig, error) {
+	tiltProviders, err := readTiltProvider(providerRepository)
 	if err != nil {
 		return nil, err
 	}
 
-	providerContexts := map[string]string{}
-	for _, p := range providerData {
-		if p.Config != nil && p.Config.Context != nil {
-			contextPath = r + "/" + *p.Config.Context
-		} else {
-			contextPath = r
+	ret := make(map[string]tiltProviderConfig)
+	for _, p := range tiltProviders {
+		if p.Config == nil {
+			return nil, errors.Errorf("tilt-provider.yaml/json file from %s does not contain a config section for provider %s", providerRepository, p.Name)
 		}
-		providerContexts[p.Name] = contextPath
+
+		// Resolving context, that is a relative path to the repository where the tilt-provider is defined
+		contextPath := filepath.Join(providerRepository, pointer.StringDeref(p.Config.Context, "."))
+
+		ret[p.Name] = tiltProviderConfig{
+			Context: &contextPath,
+			Version: p.Config.Version,
+		}
 	}
-	return providerContexts, nil
+	return ret, nil
 }
 
-func readProviderSettings(path string) ([]providerSettings, error) {
-	path, err := checkWorkloadFileFormat(path, "provider")
+func readTiltProvider(path string) ([]tiltProvider, error) {
+	path, err := addTiltProviderFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -334,14 +359,14 @@ func readProviderSettings(path string) ([]providerSettings, error) {
 		return nil, err
 	}
 
-	ps := []providerSettings{}
+	ps := []tiltProvider{}
 	// providerSettings file can be an array and this is done to detect arrays
 	if strings.HasPrefix(string(content), "[") || strings.HasPrefix(string(content), "-") {
 		if err := yaml.Unmarshal(content, &ps); err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to read provider path %s tilt file", path))
 		}
 	} else {
-		p := providerSettings{}
+		p := tiltProvider{}
 		if err := yaml.Unmarshal(content, &p); err != nil {
 			return nil, errors.Wrap(err, fmt.Sprintf("failed to read provider path %s tilt file", path))
 		}
@@ -350,14 +375,16 @@ func readProviderSettings(path string) ([]providerSettings, error) {
 	return ps, nil
 }
 
-func checkWorkloadFileFormat(path, workloadType string) (string, error) {
-	if _, err := os.Stat(path + fmt.Sprintf("/tilt-%s.yaml", workloadType)); err == nil {
-		return path + fmt.Sprintf("/tilt-%s.yaml", workloadType), nil
+func addTiltProviderFile(path string) (string, error) {
+	pathAndFile := filepath.Join(path, "tilt-provider.yaml")
+	if _, err := os.Stat(pathAndFile); err == nil {
+		return pathAndFile, nil
 	}
-	if _, err := os.Stat(path + fmt.Sprintf("/tilt-%s.json", workloadType)); err == nil {
-		return path + fmt.Sprintf("/tilt-%s.json", workloadType), nil
+	pathAndFile = filepath.Join(path, "tilt-provider.json")
+	if _, err := os.Stat(pathAndFile); err == nil {
+		return pathAndFile, nil
 	}
-	return "", fmt.Errorf("unable to find a tilt %s file under %s", workloadType, path)
+	return "", errors.Errorf("unable to find a tilt-provider.yaml|json file under %s", path)
 }
 
 type taskFunction func(ctx context.Context, prefix string, errors chan error)
@@ -867,70 +894,72 @@ func updateDeployment(prefix string, objs []unstructured.Unstructured, f updateD
 	return nil
 }
 
-func getProviderObj(prefix string, objs []unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	namespace := ""
-	manifestLabel := ""
-	for i := range objs {
-		if objs[i].GetKind() != "Namespace" {
-			continue
+func getProviderObj(version *string) func(prefix string, objs []unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	return func(prefix string, objs []unstructured.Unstructured) (*unstructured.Unstructured, error) {
+		namespace := ""
+		manifestLabel := ""
+		for i := range objs {
+			if objs[i].GetKind() != "Namespace" {
+				continue
+			}
+
+			namespace = objs[i].GetName()
+			manifestLabel = objs[i].GetLabels()[clusterv1.ProviderNameLabel]
+			break
 		}
 
-		namespace = objs[i].GetName()
-		manifestLabel = objs[i].GetLabels()[clusterv1.ProviderNameLabel]
-		break
-	}
+		if manifestLabel == "" {
+			return nil, errors.Errorf(
+				"Could not find any Namespace object with label %s and therefore failed to deduce provider name and type",
+				clusterv1.ProviderNameLabel)
+		}
 
-	if manifestLabel == "" {
-		return nil, errors.Errorf(
-			"Could not find any Namespace object with label %s and therefore failed to deduce provider name and type",
-			clusterv1.ProviderNameLabel)
-	}
+		providerType := string(clusterctlv1.CoreProviderType)
+		providerName := manifestLabel
+		if strings.HasPrefix(manifestLabel, "infrastructure-") {
+			providerType = string(clusterctlv1.InfrastructureProviderType)
+			providerName = manifestLabel[len("infrastructure-"):]
+		}
+		if strings.HasPrefix(manifestLabel, "bootstrap-") {
+			providerType = string(clusterctlv1.BootstrapProviderType)
+			providerName = manifestLabel[len("bootstrap-"):]
+		}
+		if strings.HasPrefix(manifestLabel, "control-plane-") {
+			providerType = string(clusterctlv1.ControlPlaneProviderType)
+			providerName = manifestLabel[len("control-plane-"):]
+		}
+		if strings.HasPrefix(manifestLabel, "ipam-") {
+			providerType = string(clusterctlv1.IPAMProviderType)
+			providerName = manifestLabel[len("ipam-"):]
+		}
+		if strings.HasPrefix(manifestLabel, "runtime-extension-") {
+			providerType = string(clusterctlv1.RuntimeExtensionProviderType)
+			providerName = manifestLabel[len("runtime-extension-"):]
+		}
 
-	providerType := string(clusterctlv1.CoreProviderType)
-	providerName := manifestLabel
-	if strings.HasPrefix(manifestLabel, "infrastructure-") {
-		providerType = string(clusterctlv1.InfrastructureProviderType)
-		providerName = manifestLabel[len("infrastructure-"):]
-	}
-	if strings.HasPrefix(manifestLabel, "bootstrap-") {
-		providerType = string(clusterctlv1.BootstrapProviderType)
-		providerName = manifestLabel[len("bootstrap-"):]
-	}
-	if strings.HasPrefix(manifestLabel, "control-plane-") {
-		providerType = string(clusterctlv1.ControlPlaneProviderType)
-		providerName = manifestLabel[len("control-plane-"):]
-	}
-	if strings.HasPrefix(manifestLabel, "ipam-") {
-		providerType = string(clusterctlv1.IPAMProviderType)
-		providerName = manifestLabel[len("ipam-"):]
-	}
-	if strings.HasPrefix(manifestLabel, "runtime-extension-") {
-		providerType = string(clusterctlv1.RuntimeExtensionProviderType)
-		providerName = manifestLabel[len("runtime-extension-"):]
-	}
-
-	provider := &clusterctlv1.Provider{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Provider",
-			APIVersion: clusterctlv1.GroupVersion.String(),
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      manifestLabel,
-			Namespace: namespace,
-			Labels: map[string]string{
-				clusterv1.ProviderNameLabel:      manifestLabel,
-				clusterctlv1.ClusterctlLabel:     "",
-				clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelInventoryValue,
+		provider := &clusterctlv1.Provider{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Provider",
+				APIVersion: clusterctlv1.GroupVersion.String(),
 			},
-		},
-		ProviderName: providerName,
-		Type:         providerType,
-		Version:      "v1.4.99",
-	}
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      manifestLabel,
+				Namespace: namespace,
+				Labels: map[string]string{
+					clusterv1.ProviderNameLabel:      manifestLabel,
+					clusterctlv1.ClusterctlLabel:     "",
+					clusterctlv1.ClusterctlCoreLabel: clusterctlv1.ClusterctlCoreLabelInventoryValue,
+				},
+			},
+			ProviderName: providerName,
+			Type:         providerType,
+			Version:      pointer.StringDeref(version, defaultProviderVersion),
+		}
 
-	providerObj := &unstructured.Unstructured{}
-	if err := scheme.Scheme.Convert(provider, providerObj, nil); err != nil {
-		return nil, errors.Wrapf(err, "[%s] failed to convert Provider to unstructured", prefix)
+		providerObj := &unstructured.Unstructured{}
+		if err := scheme.Scheme.Convert(provider, providerObj, nil); err != nil {
+			return nil, errors.Wrapf(err, "[%s] failed to convert Provider to unstructured", prefix)
+		}
+		return providerObj, nil
 	}
-	return providerObj, nil
 }

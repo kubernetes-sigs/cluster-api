@@ -38,15 +38,15 @@ func printYamlOutput(printer client.YamlPrinter, outputFile string) error {
 	if err != nil {
 		return err
 	}
-	outputFile = filepath.Clean(strings.TrimSpace(outputFile))
 	yaml = append(yaml, '\n')
+	outputFile = strings.TrimSpace(outputFile)
 	if outputFile == "" || outputFile == "-" {
 		if _, err := os.Stdout.Write(yaml); err != nil {
 			return errors.Wrap(err, "failed to write yaml to Stdout")
 		}
 		return nil
 	}
-
+	outputFile = filepath.Clean(outputFile)
 	if err := os.WriteFile(outputFile, yaml, 0600); err != nil {
 		return errors.Wrap(err, "failed to write to destination file")
 	}

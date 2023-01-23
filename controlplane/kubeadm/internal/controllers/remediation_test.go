@@ -113,7 +113,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			KCP: &controlplanev1.KubeadmControlPlane{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						controlplanev1.RemediatingInProgressAnnotation: "true",
+						controlplanev1.RemediationInProgressAnnotation: "true",
 					},
 				},
 			},
@@ -185,7 +185,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(3)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal("m0"))
 
@@ -242,7 +242,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(0)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m1.Name))
 
@@ -302,7 +302,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(0)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m1.Name))
 
@@ -360,7 +360,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(2)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal("m0"))
 
@@ -407,7 +407,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation).To(BeNil())
 
 		assertMachineCondition(ctx, g, m, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate if current replicas are less or equal to 1")
@@ -437,7 +437,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation).To(BeNil())
 
 		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP waiting for control plane machine deletion to complete before triggering remediation")
@@ -479,7 +479,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation).To(BeNil())
 
 		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate this machine because this could result in etcd loosing quorum")
@@ -523,7 +523,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation).To(BeNil())
 
 		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate this machine because this could result in etcd loosing quorum")
@@ -567,7 +567,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(0)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m1.Name))
 
@@ -615,7 +615,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(0)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m1.Name))
 
@@ -634,7 +634,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			mi := createMachine(ctx, g, ns.Name, fmt.Sprintf("m%d-unhealthy-", i), withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(machineRemediatingFor))
 
 			// Simulate KCP dropping RemediationInProgressAnnotation after creating the replacement machine.
-			delete(controlPlane.KCP.Annotations, controlplanev1.RemediatingInProgressAnnotation)
+			delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
 
 			controlPlane.Machines = collections.FromMachines(mi)
 
@@ -649,7 +649,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+			g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 			g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(i - 1)))
 			g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(mi.Name))
 
@@ -703,7 +703,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(0)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m1.Name))
 
@@ -752,7 +752,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(0)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m1.Name))
 
@@ -802,7 +802,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(0)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m1.Name))
 
@@ -849,7 +849,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		_, err = r.reconcileUnhealthyMachines(ctx, controlPlane)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation).To(BeNil())
 
 		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityWarning,
@@ -895,7 +895,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(0)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m1.Name))
 
@@ -914,7 +914,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			mi := createMachine(ctx, g, ns.Name, fmt.Sprintf("m%d-unhealthy-", i), withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(machineRemediatingFor))
 
 			// Simulate KCP dropping RemediationInProgressAnnotation after creating the replacement machine.
-			delete(controlPlane.KCP.Annotations, controlplanev1.RemediatingInProgressAnnotation)
+			delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
 			controlPlane.Machines = collections.FromMachines(mi, m2, m3)
 
 			// Reconcile unhealthy replacements for m1.
@@ -929,7 +929,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+			g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 			g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(i - 4)))
 			g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(mi.Name))
 
@@ -999,7 +999,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(0)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m1.Name))
 
@@ -1016,7 +1016,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		// NOTE: scale up also resets remediation in progress and remediation counts.
 
 		m2 := createMachine(ctx, g, ns.Name, "m2-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(m1.Name))
-		delete(controlPlane.KCP.Annotations, controlplanev1.RemediatingInProgressAnnotation)
+		delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
 
 		// Control plane not initialized yet, Second CP is unhealthy and gets remediated (retry 2)
 
@@ -1032,7 +1032,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(1)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m2.Name))
 
@@ -1049,7 +1049,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		// NOTE: scale up also resets remediation in progress and remediation counts.
 
 		m3 := createMachine(ctx, g, ns.Name, "m3-healthy-", withHealthyEtcdMember(), withRemediateForAnnotation(m1.Name))
-		delete(controlPlane.KCP.Annotations, controlplanev1.RemediatingInProgressAnnotation)
+		delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
 
 		g.Expect(env.Cleanup(ctx, m3)).To(Succeed())
 	})
@@ -1104,7 +1104,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(0)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m2.Name))
 
@@ -1121,7 +1121,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		// NOTE: scale up also resets remediation in progress and remediation counts.
 
 		m3 := createMachine(ctx, g, ns.Name, "m3-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(m2.Name))
-		delete(controlPlane.KCP.Annotations, controlplanev1.RemediatingInProgressAnnotation)
+		delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
 
 		// Control plane not initialized yet, Second CP is unhealthy and gets remediated (retry 2)
 
@@ -1137,7 +1137,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(1)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m3.Name))
 
@@ -1154,7 +1154,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		// NOTE: scale up also resets remediation in progress and remediation counts.
 
 		m4 := createMachine(ctx, g, ns.Name, "m4-healthy-", withHealthyEtcdMember(), withRemediateForAnnotation(m1.Name))
-		delete(controlPlane.KCP.Annotations, controlplanev1.RemediatingInProgressAnnotation)
+		delete(controlPlane.KCP.Annotations, controlplanev1.RemediationInProgressAnnotation)
 
 		g.Expect(env.Cleanup(ctx, m1, m4)).To(Succeed())
 	})
@@ -1210,7 +1210,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		g.Expect(ret.IsZero()).To(BeFalse()) // Remediation completed, requeue
 		g.Expect(err).ToNot(HaveOccurred())
 
-		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediatingInProgressAnnotation))
+		g.Expect(controlPlane.KCP.Annotations).To(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.RetryCount).To(Equal(int32(0)))
 		g.Expect(controlPlane.KCP.Status.LastRemediation.Machine).To(Equal(m2.Name))
 
@@ -1668,7 +1668,7 @@ func withRemediateForAnnotation(remediatedFor string) machineOption {
 		if machine.Annotations == nil {
 			machine.Annotations = map[string]string{}
 		}
-		machine.Annotations[controlplanev1.MachineRemediationForAnnotation] = remediatedFor
+		machine.Annotations[controlplanev1.RemediationForAnnotation] = remediatedFor
 	}
 }
 

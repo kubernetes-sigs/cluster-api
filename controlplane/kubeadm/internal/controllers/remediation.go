@@ -72,7 +72,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	}
 
 	// Returns if another remediation is in progress but the new machine is not yet created.
-	if _, ok := controlPlane.KCP.Annotations[controlplanev1.RemediatingInProgressAnnotation]; ok {
+	if _, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
 		return ctrl.Result{}, nil
 	}
 
@@ -214,7 +214,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 	// Set annotations tracking remediation is in progress (remediation will complete when a replacement machine is created).
 	annotations.AddAnnotations(controlPlane.KCP, map[string]string{
-		controlplanev1.RemediatingInProgressAnnotation: "",
+		controlplanev1.RemediationInProgressAnnotation: "",
 	})
 
 	// Stores info about last remediation.
@@ -268,11 +268,11 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	}
 
 	// Check if the machine being remediated has been created as a remediation for a previous unhealthy machine.
-	// NOTE: if someone/something manually removing the MachineRemediationForAnnotation on Machines or one of the LastRemediatedMachineAnnotation
+	// NOTE: if someone/something manually removing the RemediationForAnnotation on Machines or one of the LastRemediatedMachineAnnotation
 	// and LastRemediatedMachineRetryAnnotation on KCP, this could potentially lead to executing more retries than expected,
 	// but this is considered acceptable in such a case.
 	machineRemediatingFor := machineToBeRemediated.Name
-	if remediationFor, ok := machineToBeRemediated.Annotations[controlplanev1.MachineRemediationForAnnotation]; ok {
+	if remediationFor, ok := machineToBeRemediated.Annotations[controlplanev1.RemediationForAnnotation]; ok {
 		// If the remediation is happening before minHealthyPeriod is expired, then KCP considers this
 		// as a remediation for the same previously unhealthy machine.
 		// TODO: add example

@@ -177,7 +177,7 @@ var KubernetesReferenceAssertions = map[string]func([]metav1.OwnerReference) err
 	},
 	configMapKind: func(owners []metav1.OwnerReference) error {
 		// The only configMaps considered here are those owned by a ClusterResourceSet.
-		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterResourceSetGVK}, []schema.GroupVersionKind{})
+		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterResourceSetGVK})
 	},
 }
 

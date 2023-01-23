@@ -71,7 +71,7 @@ const (
 
 var (
 	// Defines the default version to be used for the provider CR if no version is specified in the tilt-provider.yaml|json file.
-	defaultVersion = "v1.4.99"
+	defaultProviderVersion = "v1.4.99"
 
 	// This data struct mirrors a subset of info from the providers struct in the tilt file
 	// which is containing "hard-coded" tilt-provider.yaml files for the providers managed in the Cluster API repository.
@@ -293,8 +293,13 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 
 	// Add read configurations from provider repos
 	for _, p := range ts.ProviderRepos {
-		if err := loadTiltProvider(p); err != nil {
-			return errors.Wrapf(err, "failed to load tile-provider.yaml/json from %s", p)
+		tiltProviderConfigs, err := loadTiltProvider(p)
+		if err != nil {
+			return errors.Wrapf(err, "failed to load tilt-provider.yaml/json from %s", p)
+		}
+
+		for name, config := range tiltProviderConfigs {
+			providers[name] = config
 		}
 	}
 
@@ -320,26 +325,27 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 	return runTaskGroup(ctx, "resources", tasks)
 }
 
-func loadTiltProvider(providerRepository string) error {
+func loadTiltProvider(providerRepository string) (map[string]tiltProviderConfig, error) {
 	tiltProviders, err := readTiltProvider(providerRepository)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
+	ret := make(map[string]tiltProviderConfig)
 	for _, p := range tiltProviders {
 		if p.Config == nil {
-			return errors.Errorf("tilt-provider.yaml/json file from %s does not contain a config section for provider %s", providerRepository, p.Name)
+			return nil, errors.Errorf("tilt-provider.yaml/json file from %s does not contain a config section for provider %s", providerRepository, p.Name)
 		}
 
 		// Resolving context, that is a relative path to the repository where the tilt-provider is defined
 		contextPath := filepath.Join(providerRepository, pointer.StringDeref(p.Config.Context, "."))
 
-		providers[p.Name] = tiltProviderConfig{
+		ret[p.Name] = tiltProviderConfig{
 			Context: &contextPath,
 			Version: p.Config.Version,
 		}
 	}
-	return nil
+	return ret, nil
 }
 
 func readTiltProvider(path string) ([]tiltProvider, error) {
@@ -947,7 +953,7 @@ func getProviderObj(version *string) func(prefix string, objs []unstructured.Uns
 			},
 			ProviderName: providerName,
 			Type:         providerType,
-			Version:      pointer.StringDeref(version, defaultVersion),
+			Version:      pointer.StringDeref(version, defaultProviderVersion),
 		}
 
 		providerObj := &unstructured.Unstructured{}

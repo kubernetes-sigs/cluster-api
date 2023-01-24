@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 )
 
@@ -179,6 +180,32 @@ type HolderReference struct {
 // ValidateTopology validates the Cluster topology after all patches have been applied.
 func ValidateTopology(*ValidateTopologyRequest, *ValidateTopologyResponse) {}
 
+// DiscoverVariablesRequest is the request of the DiscoverVariables hook.
+// +kubebuilder:object:root=true
+type DiscoverVariablesRequest struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// CommonRequest contains Settings field common to all request types.
+	CommonRequest `json:",inline"`
+}
+
+// DiscoverVariablesResponse is the response of the DiscoverVariables hook.
+// +kubebuilder:object:root=true
+type DiscoverVariablesResponse struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// CommonResponse contains Status and Message fields common to all response types.
+	CommonResponse `json:",inline"`
+
+	// Variables are variable schemas for variables defined by the DiscoverVariables hook.
+	Variables []clusterv1.ClusterClassVariable `json:"variables"`
+}
+
+var _ ResponseObject = &DiscoverVariablesResponse{}
+
+// DiscoverVariables returns variable schemas defined by a Runtime Extension.
+func DiscoverVariables(*DiscoverVariablesRequest, *DiscoverVariablesResponse) {}
+
 func init() {
 	catalogBuilder.RegisterHook(GeneratePatches, &runtimecatalog.HookMeta{
 		Tags:    []string{"Topology Mutation Hook"},
@@ -202,5 +229,14 @@ func init() {
 			"Notes:\n" +
 			"- The call's request contains all templates, the global variables and the template-specific variables used while computing patches\n" +
 			"- The response must contain the result of the validation",
+	})
+
+	catalogBuilder.RegisterHook(DiscoverVariables, &runtimecatalog.HookMeta{
+		Tags:    []string{"Topology Mutation Hook"},
+		Summary: "Cluster API Runtime will call this hook when ClusterClass variables are being computed",
+		Description: "Cluster API Runtime will call this hook when ClusterClass variables are being computed " +
+			"during the ClusterClass reconcile loop." +
+			"Notes:\n" +
+			"- The response must contain the schemas of all variables defined by the patch.",
 	})
 }

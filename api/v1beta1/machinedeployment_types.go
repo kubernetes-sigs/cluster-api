@@ -67,10 +67,24 @@ type MachineDeploymentSpec struct {
 	// +kubebuilder:validation:MinLength=1
 	ClusterName string `json:"clusterName"`
 
-	// Number of desired machines. Defaults to 1.
+	// Number of desired machines.
 	// This is a pointer to distinguish between explicit zero and not specified.
+	//
+	// Defaults to:
+	// * if the Kubernetes autoscaler min size and max size annotations are set:
+	//   - if it's a new MachineDeployment, use min size
+	//   - if the replicas field of the old MachineDeployment is < min size, use min size
+	//   - if the replicas field of the old MachineDeployment is > max size, use max size
+	//   - if the replicas field of the old MachineDeployment is in the (min size, max size) range, keep the value from the oldMD
+	// * otherwise use 1
+	// Note: Defaulting will be run whenever the replicas field is not set:
+	// * A new MachineDeployment is created with replicas not set.
+	// * On an existing MachineDeployment the replicas field was first set and is now unset.
+	// Those cases are especially relevant for the following Kubernetes autoscaler use cases:
+	// * A new MachineDeployment is created and replicas should be managed by the autoscaler
+	// * An existing MachineDeployment which initially wasn't controlled by the autoscaler
+	//   should be later controlled by the autoscaler
 	// +optional
-	// +kubebuilder:default=1
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// Label selector for machines. Existing MachineSets whose machines are

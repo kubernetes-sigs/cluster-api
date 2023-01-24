@@ -92,6 +92,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.VariableSchema":                           schema_sigsk8sio_cluster_api_api_v1beta1_VariableSchema(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.WorkersClass":                             schema_sigsk8sio_cluster_api_api_v1beta1_WorkersClass(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.WorkersTopology":                          schema_sigsk8sio_cluster_api_api_v1beta1_WorkersTopology(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.machineDeploymentDefaulter":               schema_sigsk8sio_cluster_api_api_v1beta1_machineDeploymentDefaulter(ref),
 	}
 }
 
@@ -1682,7 +1683,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentSpec(ref common.R
 					},
 					"replicas": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Number of desired machines. Defaults to 1. This is a pointer to distinguish between explicit zero and not specified.",
+							Description: "Number of desired machines. This is a pointer to distinguish between explicit zero and not specified.\n\nDefaults to: * if the Kubernetes autoscaler min size and max size annotations are set:\n  - if it's a new MachineDeployment, use min size\n  - if the replicas field of the old MachineDeployment is < min size, use min size\n  - if the replicas field of the old MachineDeployment is > max size, use max size\n  - if the replicas field of the old MachineDeployment is in the (min size, max size) range, keep the value from the oldMD\n* otherwise use 1 Note: Defaulting will be run whenever the replicas field is not set: * A new MachineDeployment is created with replicas not set. * On an existing MachineDeployment the replicas field was first set and is now unset. Those cases are especially relevant for the following Kubernetes autoscaler use cases: * A new MachineDeployment is created and replicas should be managed by the autoscaler * An existing MachineDeployment which initially wasn't controlled by the autoscaler\n  should be later controlled by the autoscaler",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
@@ -3279,5 +3280,26 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_WorkersTopology(ref common.Referen
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/cluster-api/api/v1beta1.MachineDeploymentTopology"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_machineDeploymentDefaulter(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "machineDeploymentDefaulter implements a defaulting webhook for MachineDeployment.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"decoder": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("sigs.k8s.io/controller-runtime/pkg/webhook/admission.Decoder"),
+						},
+					},
+				},
+				Required: []string{"decoder"},
+			},
+		},
+		Dependencies: []string{
+			"sigs.k8s.io/controller-runtime/pkg/webhook/admission.Decoder"},
 	}
 }

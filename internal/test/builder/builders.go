@@ -17,14 +17,17 @@ limitations under the License.
 package builder
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
@@ -1244,7 +1247,18 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 		}
 	}
 	if m.defaulter {
-		obj.Default()
+		scheme, err := clusterv1.SchemeBuilder.Build()
+		if err != nil {
+			panic(err)
+		}
+		ctx := admission.NewContextWithRequest(context.Background(), admission.Request{
+			AdmissionRequest: admissionv1.AdmissionRequest{
+				Operation: admissionv1.Create,
+			},
+		})
+		if err := clusterv1.MachineDeploymentDefaulter(scheme).Default(ctx, obj); err != nil {
+			panic(err)
+		}
 	}
 	return obj
 }

@@ -9,3 +9,20 @@ The following instructions are a reproduction of the Cluster API provider specif
 from the [Autoscaler project documentation](https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler/cloudprovider/clusterapi).
 
 {{#embed-github repo:"kubernetes/autoscaler" path:"cluster-autoscaler/cloudprovider/clusterapi/README.md" }}
+
+<aside class="note warning">
+
+<h1>Defaulting of the MachineDeployment replicas field</h1>
+
+Please note that the MachineDeployment replicas field has special defaulting logic to provide a smooth integration with the autoscaler.
+The replica field is defaulted based on the autoscaler min and max size annotations.The goal is to pick a default value which is inside 
+the (min size, max size) range so the autoscaler can take control of the replicase field.
+
+The defaulting logic is as follows:
+* if the autoscaler min size and max size annotations are set:
+  * if it's a new MachineDeployment, use min size
+  * if the replicas field of the old MachineDeployment is < min size, use min size
+  * if the replicas field of the old MachineDeployment is > max size, use max size
+  * if the replicas field of the old MachineDeployment is in the (min size, max size) range, keep the value from the oldMD
+* otherwise, use 1
+</aside>

@@ -19,7 +19,7 @@ package defaulting
 import (
 	"testing"
 
-	"github.com/onsi/gomega"
+	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -43,20 +43,20 @@ func DefaultValidateTest(object DefaultingValidator) func(*testing.T) {
 		defaultingUpdateCopy := updateCopy.DeepCopyObject().(DefaultingValidator)
 
 		t.Run("validate-on-create", func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 			createCopy.Default()
-			g.Expect(createCopy.ValidateCreate()).To(gomega.Succeed())
+			g.Expect(createCopy.ValidateCreate()).To(Succeed())
 		})
 		t.Run("validate-on-update", func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 			defaultingUpdateCopy.Default()
 			updateCopy.Default()
-			g.Expect(defaultingUpdateCopy.ValidateUpdate(updateCopy)).To(gomega.Succeed())
+			g.Expect(defaultingUpdateCopy.ValidateUpdate(updateCopy)).To(Succeed())
 		})
 		t.Run("validate-on-delete", func(t *testing.T) {
-			g := gomega.NewWithT(t)
+			g := NewWithT(t)
 			deleteCopy.Default()
-			g.Expect(deleteCopy.ValidateDelete()).To(gomega.Succeed())
+			g.Expect(deleteCopy.ValidateDelete()).To(Succeed())
 		})
 	}
 }

@@ -33,6 +33,7 @@ const (
 	// RollingUpdateStrategyType replaces the old control planes by new one using rolling update
 	// i.e. gradually scale up or down the old control planes and scale up or down the new one.
 	RollingUpdateStrategyType RolloutStrategyType = "RollingUpdate"
+	InPlaceUpdateStrategyType RolloutStrategyType = "InPlaceUpdate"
 )
 
 const (

@@ -31,6 +31,10 @@ const (
 type MachineDeploymentStrategyType string
 
 const (
+        // InPlaceUpdateMachineDeploymentStrategyType replaces the old MachineSet by new one using in-place update
+        // i.e. honoring the maxUnavailable parameter, drain and update each node
+        InPlaceUpdateMachineDeploymentStrategyType MachineDeploymentStrategyType = "InPlaceUpdate"
+
 	// RollingUpdateMachineDeploymentStrategyType replaces the old MachineSet by new one using rolling update
 	// i.e. gradually scale down the old MachineSet and scale up the new one.
 	RollingUpdateMachineDeploymentStrategyType MachineDeploymentStrategyType = "RollingUpdate"
@@ -120,7 +124,7 @@ type MachineDeploymentSpec struct {
 type MachineDeploymentStrategy struct {
 	// Type of deployment.
 	// Default is RollingUpdate.
-	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete
+	// +kubebuilder:validation:Enum=RollingUpdate;OnDelete;InPlaceUpdate
 	// +optional
 	Type MachineDeploymentStrategyType `json:"type,omitempty"`
 
@@ -128,6 +132,11 @@ type MachineDeploymentStrategy struct {
 	// MachineDeploymentStrategyType = RollingUpdate.
 	// +optional
 	RollingUpdate *MachineRollingUpdateDeployment `json:"rollingUpdate,omitempty"`
+
+        // In place update config params. Present only if
+        // MachineDeploymentStrategyType = InPlace.
+        // +optional
+        InPlaceUpdate *MachineInPlaceUpdateDeployment `json:"inPlaceUpdate,omitempty"`
 }
 
 // ANCHOR_END: MachineDeploymentStrategy
@@ -176,6 +185,26 @@ type MachineRollingUpdateDeployment struct {
 }
 
 // ANCHOR_END: MachineRollingUpdateDeployment
+
+// MachineInPlaceUpdateDeployment is used to control the desired behavior of rolling update.
+type MachineInPlaceUpdateDeployment struct {
+	// The maximum number of machines that can be unavailable during the update.
+	// Value can be an absolute number (ex: 5) or a percentage of desired
+	// machines (ex: 10%).
+	// Absolute number is calculated from percentage by rounding down.
+	// This can not be 0 if MaxSurge is 0.
+	// Defaults to 0.
+	// Example: when this is set to 30%, the old MachineSet can be scaled
+	// down to 70% of desired machines immediately when the rolling update
+	// starts. Once new machines are ready, old MachineSet can be scaled
+	// down further, followed by scaling up the new MachineSet, ensuring
+	// that the total number of machines available at all times
+	// during the update is at least 70% of desired machines.
+	// +optional
+	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty"`
+}
+
+// ANCHOR_END: MachineInPlaceUpdateDeployment
 
 // ANCHOR: MachineDeploymentStatus
 

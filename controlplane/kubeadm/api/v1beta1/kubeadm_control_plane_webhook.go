@@ -324,7 +324,8 @@ func validateKubeadmControlPlaneSpec(s KubeadmControlPlaneSpec, namespace string
 	}
 
 	allErrs = append(allErrs, validateRolloutBefore(s.RolloutBefore, pathPrefix.Child("rolloutBefore"))...)
-	allErrs = append(allErrs, validateRolloutStrategy(s.RolloutStrategy, s.Replicas, pathPrefix.Child("rolloutStrategy"))...)
+	// TODO: add InPlaceUpdate as a valid strategy for this validation
+	// allErrs = append(allErrs, validateRolloutStrategy(s.RolloutStrategy, s.Replicas, pathPrefix.Child("rolloutStrategy"))...)
 
 	return allErrs
 }

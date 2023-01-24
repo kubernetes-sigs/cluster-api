@@ -43,6 +43,9 @@ import (
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
+
+        "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+        "k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 var (
@@ -267,6 +270,13 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		return ctrl.Result{}, r.rolloutOnDelete(ctx, d, msList)
 	}
 
+        if d.Spec.Strategy.Type == clusterv1.InPlaceMachineDeploymentStrategyType {
+                if d.Spec.Strategy.InPlaceUpdate == nil {
+                        return ctrl.Result{}, errors.Errorf("missing MachineDeployment settings for strategy type: %s", d.Spec.Strategy.Type)
+                }
+                return r.rolloutInPlace(ctx, cluster, msList)
+        }
+
 	return ctrl.Result{}, errors.Errorf("unexpected deployment strategy type: %s", d.Spec.Strategy.Type)
 }
 
@@ -426,4 +436,179 @@ func reconcileExternalTemplateReference(ctx context.Context, c client.Client, ap
 	}))
 
 	return patchHelper.Patch(ctx, obj)
+}
+
+func(r *Reconciler) rolloutInPlace(
+	ctx context.Context,
+	cluster *clusterv1.Cluster,
+	machineSets []*clusterv1.MachineSet,
+) (ctrl.Result, error) {
+	logger := ctrl.LoggerFrom(ctx)
+	for idx := range machineSets {
+		machineSet := machineSets[idx]
+		selectorMap, err := metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to convert MachineSet %q label selector to a map", machineSet.Name)
+		}
+
+		allMachines := &clusterv1.MachineList{}
+		err = r.Client.List(ctx,
+			allMachines,
+			client.InNamespace(machineSet.Namespace),
+			client.MatchingLabels(selectorMap),
+		)
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to list machines")
+		}
+
+		// Filter out irrelevant machines (i.e. IsControlledBy something else) and claim orphaned machines.
+		// Machines in deleted state are deliberately not excluded https://github.com/kubernetes-sigs/cluster-api/pull/3434.
+		for idx := range allMachines.Items {
+			machine := &allMachines.Items[idx]
+			logger.Info("************** UPGRADING MD ************************", "Machine Name", machine.Name)
+			_, err = r.inPlaceUpgradeMachine(ctx, cluster, machine)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to upgrade machine %q", machine.Name)
+			}
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) inPlaceUpgradeMachine(
+	ctx context.Context,
+	cluster *clusterv1.Cluster,
+	machineToUpgrade *clusterv1.Machine,
+) (ctrl.Result, error) {
+	logger := ctrl.LoggerFrom(ctx)
+	if machineToUpgrade.Status.NodeRef == nil {
+		return ctrl.Result{}, errors.New("machineToUpgrade does not have NodeRef")
+	} 
+	// check if upgrader pod exists, and check for its status
+	// Using a typed object.
+	pod := &corev1.Pod{}
+	// c is a created client.
+	err := r.Client.Get(ctx, client.ObjectKey{
+		Namespace: "eksa-system",
+		Name:      "md-upgrader-pod",
+	}, pod)
+
+	if err == nil {
+		logger.Info("**************** Found pod", pod.Name, " **********************")
+		for _, contStatus := range pod.Status.ContainerStatuses {
+			if (contStatus.State.Terminated == nil || contStatus.State.Terminated.Reason != "Completed") {
+				return ctrl.Result{}, errors.New("upgrader pod is not ready yet")
+			}
+		}
+	} else {
+		//hostnameLabelValue := r.getHostnameLabelValue(ctx, cluster, machineToUpgrade)
+		u := &unstructured.Unstructured{}
+		u.Object = r.getPodDefinition(ctx, machineToUpgrade)
+		u.SetGroupVersionKind(schema.GroupVersionKind{
+			Kind:    "Pod",
+			Version: "v1",
+		})
+			
+		logger.Info("Creating upgrader pod -- pooja")
+		// c is a created client.
+		err := r.Client.Create(ctx, u)
+
+		if err != nil {
+			return ctrl.Result{}, errors.Wrap(err, "failed to create upgrader pod")
+		} 
+		logger.Info("Done Creating upgrader pod")
+		return ctrl.Result{}, errors.New("waiting for upgrader pod to be ready")
+	}
+	
+	// Wait for the upgrader pod to finish
+
+	patchHelper, err := patch.NewHelper(machineToUpgrade, r.Client)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+	// Now patch the Machine object with the new k8s version from NodeInfo
+	*(machineToUpgrade.Spec.Version) = machineToUpgrade.Status.NodeInfo.KubeletVersion
+
+	if err := patchHelper.Patch(ctx, machineToUpgrade); err != nil {
+		conditions.MarkFalse(machineToUpgrade, clusterv1.MachineNodeHealthyCondition, clusterv1.DeletionFailedReason, clusterv1.ConditionSeverityInfo, "")
+		return ctrl.Result{}, errors.Wrap(err, "failed to patch Machine")
+	}
+
+	logger.Info("Machine Patching Done", "Version", *(machineToUpgrade.Spec.Version))
+	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) getPodDefinition(ctx context.Context, machineToUpgrade *clusterv1.Machine) map[string]interface{}{
+	logger := ctrl.LoggerFrom(ctx)
+	//upgradeCommands := "apt-mark unhold kubelet && apt-get update && apt-get install -y kubelet=1.23.14-00 && apt-mark hold kubelet; apt-mark unhold kubeadm && apt-get update && apt-get install -y kubeadm=1.23.14-00 && apt-mark hold kubeadm; kubeadm version; kubeadm upgrade apply v1.23.14; systemctl daemon-reload; systemctl restart kubelet; systemctl status kubelet"
+
+	newVersionString := "v1.23.15-eks-1-23-11"
+	kubeadmUrl := "https://distro.eks.amazonaws.com/kubernetes-1-23/releases/11/artifacts/kubernetes/v1.23.15/bin/linux/amd64/kubeadm"
+	kubeletUrl := "https://distro.eks.amazonaws.com/kubernetes-1-23/releases/11/artifacts/kubernetes/v1.23.15/bin/linux/amd64/kubelet"
+	corednsURI := "public.ecr.aws\\/eks-distro\\/coredns"
+	etcdURI := "public.ecr.aws\\/eks-distro\\/etcd-io"
+	newCoreDNSImageTag := "v1.8.7-eks-1-23-11"
+	newEtcdImageTag := "v3.5.6-eks-1-23-11"
+
+	upgradeCommands := "/usr/bin/cp /usr/bin/kubeadm /usr/bin/kubeadm.bk && /usr/bin/cp /usr/bin/kubelet /usr/bin/kubelet.bk"
+	upgradeCommands += " && /usr/bin/curl " + kubeadmUrl + " -o /usr/bin/kubeadm"
+	upgradeCommands += " && /usr/bin/cp /var/run/kubeadm/kubeadm.yaml /var/run/kubeadm/kubeadm.yaml.bk"
+	upgradeCommands += " && sed -i -e 's:^kubernetesVersion\\:.*$:kubernetesVersion\\: " + newVersionString + ":g ; /imageRepository: " + corednsURI + "/{n;s/imageTag: .*/imageTag: " + newCoreDNSImageTag + "/} ; /imageRepository: " + etcdURI + "/{n;s/imageTag: .*/imageTag: " + newEtcdImageTag + "/}' /var/run/kubeadm/kubeadm.yaml"
+	upgradeCommands += " && kubeadm init phase addon all --config /var/run/kubeadm/kubeadm.yaml && kubeadm init phase etcd local --config /var/run/kubeadm/kubeadm.yaml"
+	upgradeCommands += " && kubeadm upgrade node"
+	upgradeCommands += "; /usr/bin/curl " + kubeletUrl + " -o /usr/bin/kubelet.new && systemctl stop kubelet && /usr/bin/cp /usr/bin/kubelet.new /usr/bin/kubelet && systemctl daemon-reload; systemctl restart kubelet; systemctl status kubelet"
+		logger.Info("********** Upgrading **********", upgradeCommands)
+	ret := map[string]interface{}{
+		"metadata": map[string]interface{}{
+			"name":      "md-upgrader-pod",
+			"namespace": "eksa-system",
+		},
+		"spec": map[string]interface{}{
+			"nodeName": machineToUpgrade.Status.NodeRef.Name,
+			"containers": []map[string]interface{}{
+				{
+					"name":  "upgrader",
+					"image": "public.ecr.aws/eks-distro-build-tooling/eks-distro-minimal-base-nsenter:latest.2",
+					"command": []string {
+							"nsenter",
+						},
+					"args": []string {
+							"--target",
+							"1",
+							"--mount",
+							"--uts",
+							"--ipc",
+							"--net",
+							"/bin/sh",
+							"-c",
+							upgradeCommands,
+							//"apt-mark unhold kubelet && apt-get update && apt-get install -y kubelet=1.23.14-00 && apt-mark hold kubelet; apt-mark unhold kubeadm && apt-get update && apt-get install -y kubeadm=1.23.14-00 && apt-mark hold kubeadm; kubeadm version; kubeadm upgrade apply v1.23.14 --ignore-preflight-errors=CoreDNSUnsupportedPlugins,CoreDNSMigration; systemctl daemon-reload; systemctl restart kubelet; systemctl status kubelet",
+						},
+					"securityContext": map[string]interface{}{
+						"privileged": true,
+					},
+					"volumeMounts": []map[string]interface{}{
+						{
+							"name": "root",
+							"mountPath": "/newRoot",
+						},
+					},
+				},
+			},
+			"restartPolicy": "Never",
+			"hostPID": true,
+			"volumes": []map[string]interface{}{
+				{
+					"name": "root",
+					"hostPath": map[string]interface{}{
+						"path": "/",
+					},
+				},
+			},
+			/* "nodeSelector": map[string]interface{}{
+				"hostname": hostnameLabelValue,
+			},*/
+		},
+	}
+	return ret
 }

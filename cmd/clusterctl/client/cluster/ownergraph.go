@@ -20,9 +20,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 // OwnerGraph contains a graph with all the objects considered by clusterctl move as nodes and the OwnerReference relationship
@@ -61,12 +58,8 @@ func GetOwnerGraph(namespace, kubeconfigPath string) (OwnerGraph, error) {
 
 	graph := newObjectGraph(p, invClient)
 
-	cl, err := p.NewClient()
-	if err != nil {
-		return OwnerGraph{}, errors.Wrap(err, "failed to create client for ownerGraph")
-	}
 	// Gets all the types defined by the CRDs installed by clusterctl plus the ConfigMap/Secret core types.
-	err = graph.getDiscoveryTypes()
+	err := graph.getDiscoveryTypes()
 	if err != nil {
 		return OwnerGraph{}, errors.Wrap(err, "failed to retrieve discovery types")
 	}
@@ -78,18 +71,8 @@ func GetOwnerGraph(namespace, kubeconfigPath string) (OwnerGraph, error) {
 		return OwnerGraph{}, errors.Wrap(err, "failed to discover the object graph")
 	}
 	owners := OwnerGraph{}
-	for _, v := range graph.uidToNode {
-		// The Discovery function returns all secrets in the Cluster namespace. Ensure a Secret that is not part of the
-		// Cluster is not added to the OwnerGraph.
-		if v.identity.Kind == "Secret" {
-			clusterSecret, err := isClusterSecret(v.identity, cl)
-			if err != nil {
-				return OwnerGraph{}, err
-			}
-			if !clusterSecret {
-				continue
-			}
-		}
+	// Using getMoveNodes here ensures only objects that are part of the Cluster are added to the OwnerGraph.
+	for _, v := range graph.getMoveNodes() {
 		n := OwnerGraphNode{Object: v.identity, Owners: []metav1.OwnerReference{}}
 		for owner, attributes := range v.owners {
 			n.Owners = append(n.Owners, nodeToOwnerRef(owner, attributes))
@@ -97,13 +80,4 @@ func GetOwnerGraph(namespace, kubeconfigPath string) (OwnerGraph, error) {
 		owners[string(v.identity.UID)] = n
 	}
 	return owners, nil
-}
-
-// isClusterSecret checks whether a Secret is related to a CAPI Cluster by checking if the secret type is ClusterSecretType.
-func isClusterSecret(ref corev1.ObjectReference, c client.Client) (bool, error) {
-	s := &corev1.Secret{}
-	if err := c.Get(ctx, client.ObjectKey{Namespace: ref.Namespace, Name: ref.Name}, s); err != nil {
-		return false, err
-	}
-	return s.Type == clusterv1.ClusterSecretType, nil
 }

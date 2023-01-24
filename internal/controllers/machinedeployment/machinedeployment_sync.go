@@ -532,16 +532,20 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, d *clusterv1.M
 
 // We have this as standalone variant to be able to use it from the tests.
 func updateMachineDeployment(ctx context.Context, c client.Client, d *clusterv1.MachineDeployment, modify func(*clusterv1.MachineDeployment)) error {
+	mdObjectKey := util.ObjectKey(d)
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		if err := c.Get(ctx, util.ObjectKey(d), d); err != nil {
+		// Note: We intentionally don't re-use the passed in MachineDeployment d here as that would
+		// overwrite any local changes we might have previously made to the MachineDeployment with the version
+		// we get here from the apiserver.
+		md := &clusterv1.MachineDeployment{}
+		if err := c.Get(ctx, mdObjectKey, md); err != nil {
 			return err
 		}
-		patchHelper, err := patch.NewHelper(d, c)
+		patchHelper, err := patch.NewHelper(md, c)
 		if err != nil {
 			return err
 		}
-		clusterv1.PopulateDefaultsMachineDeployment(d)
-		modify(d)
-		return patchHelper.Patch(ctx, d)
+		modify(md)
+		return patchHelper.Patch(ctx, md)
 	})
 }

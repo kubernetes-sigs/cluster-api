@@ -68,6 +68,7 @@ Week 17:
 
 Continuously:
 * [Release lead] [Maintain the GitHub release milestone](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#continuously-maintain-the-github-release-milestone)
+* [Release lead] [Bump the Go version](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#continuously-bump-the-go-version)
 * [Communications Manager] [Communicate key dates to the community](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#continuously-communicate-key-dates-to-the-community)
 * [Communications Manager] Improve release process documentation
 * [Communications Manager] Maintain and improve user facing documentation about releases, release policy and release calendar

@@ -86,7 +86,7 @@ status:
     variables:
       - name: no-proxy
         definitions:
-          - namespace: inline
+          - from: inline
             required: true
             schema:
               openAPIV3Schema:
@@ -95,15 +95,17 @@ status:
                 example: "internal.com"
                 description: "comma-separated list of machine or domain names excluded from using the proxy."
       - name: http-proxy
+        # definitionsConflict is true if there are non-equal definitions for a variable.
+        definitionsConflict: true
         definitions:
-          - namespace: inline
+          - from: inline
             schema:
               openAPIV3Schema:
                 type: string
                 default: "proxy.example.com"
                 example: "proxy.example.com"
                 description: "proxy for http calls."
-          - namespace: lbImageRepository
+          - from: lbImageRepository
             schema:
               openAPIV3Schema:
                 type: string
@@ -112,19 +114,19 @@ status:
                 description: "proxy for http calls."
 ```
 
-### Variable namespacing
+### Variable definition conflicts
 Variable definitions can be inline in the ClusterClass or from any number of external DiscoverVariables hooks. The source 
-of a variable definition is recorded in the `namespace` field in ClusterClass `.status.variables`.
-Variables that are defined by an external DiscoverVariables hook will have the name of the patch they are associated with as their namespace.
-Variables that are defined in the ClusterClass `.spec.variables` will have the namespace `inline`.
-Note: `inline` is a reserved namespace. It can not be used as the name of an external patch to avoid conflicts.
+of a variable definition is recorded in the `from` field in ClusterClass `.status.variables`.
+Variables that are defined by an external DiscoverVariables hook will have the name of the patch they are associated with as the value of `from`.
+Variables that are defined in the ClusterClass `.spec.variables` will have `inline` as the value of `from`.
+Note: `inline` is a reserved name for patches. It can not be used as the name of an external patch to avoid conflicts.
 
-If all variables that share a name have equivalent schemas the variables are considered `global` . `global` variables can
-be set without providing a namespace - [see below](#setting-values-for-variables-in-the-cluster). The CAPI components will
+If all variables that share a name have equivalent schemas the variable definitions are not in conflict. These variables can
+be set without providing `definitionFrom` value - [see below](#setting-values-for-variables-in-the-cluster). The CAPI components will
 consider variable definitions to be equivalent when they share a name and their schema is exactly equal.
 
 ### Setting values for variables in the Cluster
-Setting variables that are defined with external variable definitions requires attention to be paid to variable namespacing, as exposed in the ClusterClass status. 
+Setting variables that are defined with external variable definitions requires attention to be paid to variable definition conflicts, as exposed in the ClusterClass status. 
 Variable values are set in Cluster `.spec.topology.variables`.
 
 ```yaml
@@ -134,15 +136,15 @@ kind: Cluster
 spec:
     topology:
       variables:
-        # namespace is not needed as this variable is global.
+        # `definitionFrom` is not needed as this variable does not have conflicting definitions.
         - name: no-proxy
           value: "internal.domain.com"
-        # namespaced variables require values for each individual schema.
+        # variables with the same name but different definitions require values for each individual schema.
         - name: http-proxy
-          namespace: inline
+          definitionFrom: inline
           value: http://proxy.example2.com:1234
         - name: http-proxy
-          namespace: lbImageRepository
+          definitionFrom: lbImageRepository
           value:
             host: proxy.example2.com
             port: 1234

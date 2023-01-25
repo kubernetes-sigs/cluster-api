@@ -602,7 +602,7 @@ func patchCluster(proxy Proxy, n *node, patch client.Patch, mutators []ResourceM
 	// Get the ClusterClass from the server
 	clusterObj := &unstructured.Unstructured{}
 	clusterObj.SetAPIVersion(clusterv1.GroupVersion.String())
-	clusterObj.SetKind(clusterv1.KindCluster)
+	clusterObj.SetKind(clusterv1.ClusterKind)
 	clusterObj.SetName(n.identity.Name)
 	clusterObj.SetNamespace(n.identity.Namespace)
 	for _, mutator := range mutators {
@@ -631,7 +631,7 @@ func pauseClusterClass(proxy Proxy, n *node, pause bool, mutators []ResourceMuta
 	// Get the ClusterClass from the server
 	clusterClass := &unstructured.Unstructured{}
 	clusterClass.SetAPIVersion(clusterv1.GroupVersion.String())
-	clusterClass.SetKind(clusterv1.KindClusterClass)
+	clusterClass.SetKind(clusterv1.ClusterClassKind)
 	clusterClass.SetName(n.identity.Name)
 	clusterClass.SetNamespace(n.identity.Namespace)
 	for _, mutator := range mutators {
@@ -774,12 +774,12 @@ func (o *objectMover) createGroup(group moveGroup, toProxy Proxy, mutators []Res
 
 	// Maintain a cache of namespaces that have been verified to already exist.
 	// Nb. This prevents us from making repetitive (and expensive) calls in listing all namespaces to ensure a namespace exists before creating a resource.
-	ensuredNamespaces := sets.New[string]()
+	existingNamespaces := sets.New[string]()
 	for _, nodeToCreate := range group {
 		// Creates the Kubernetes object corresponding to the nodeToCreate.
 		// Nb. The operation is wrapped in a retry loop to make move more resilient to unexpected conditions.
 		err := retryWithExponentialBackoff(createTargetObjectBackoff, func() error {
-			return o.createTargetObject(nodeToCreate, toProxy, mutators, ensuredNamespaces)
+			return o.createTargetObject(nodeToCreate, toProxy, mutators, existingNamespaces)
 		})
 		if err != nil {
 			errList = append(errList, err)
@@ -838,7 +838,7 @@ func (o *objectMover) restoreGroup(group moveGroup, toProxy Proxy) error {
 }
 
 // createTargetObject creates the Kubernetes object in the target Management cluster corresponding to the object graph node, taking care of restoring the OwnerReference with the owner nodes, if any.
-func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy, mutators []ResourceMutatorFunc, ensuredNamespaces sets.Set[string]) error {
+func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy, mutators []ResourceMutatorFunc, existingNamespaces sets.Set[string]) error {
 	log := logf.Log
 	log.V(1).Info("Creating", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
 
@@ -890,7 +890,7 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy, muta
 		mutator(obj)
 	}
 	// Applying mutators MAY change the namespace, so ensure the namespace exists before creating the resource.
-	if !nodeToCreate.isGlobal && !ensuredNamespaces.Has(obj.GetNamespace()) {
+	if !nodeToCreate.isGlobal && !existingNamespaces.Has(obj.GetNamespace()) {
 		if err = o.ensureNamespace(toProxy, obj.GetNamespace()); err != nil {
 			return err
 		}

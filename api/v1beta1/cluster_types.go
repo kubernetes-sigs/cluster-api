@@ -35,8 +35,8 @@ const (
 	// cleanup the cluster resources when a Cluster is being deleted.
 	ClusterFinalizer = "cluster.cluster.x-k8s.io"
 
-	// KindCluster represents the Kind of Cluster.
-	KindCluster = "Cluster"
+	// ClusterKind represents the Kind of Cluster.
+	ClusterKind = "Cluster"
 )
 
 // ANCHOR: ClusterSpec

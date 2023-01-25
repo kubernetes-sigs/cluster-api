@@ -25,8 +25,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
-// KindClusterClass represents the Kind of ClusterClass.
-const KindClusterClass = "ClusterClass"
+// ClusterClassKind represents the Kind of ClusterClass.
+const ClusterClassKind = "ClusterClass"
 
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=clusterclasses,shortName=cc,scope=Namespaced,categories=cluster-api

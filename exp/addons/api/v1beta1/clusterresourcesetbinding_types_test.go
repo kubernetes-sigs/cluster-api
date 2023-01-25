@@ -130,13 +130,13 @@ func TestResourceSetBindingGetResourceBinding(t *testing.T) {
 		want               *ResourceBinding
 	}{
 		{
-			name:               "does't exist",
+			name:               "ResourceRef doesn't exist",
 			resourceSetBinding: crsBinding,
 			resourceRef:        resourceRefNotExist,
 			want:               nil,
 		},
 		{
-			name:               "does't exist",
+			name:               "ResourceRef exists",
 			resourceSetBinding: crsBinding,
 			resourceRef:        resourceRefApplyFailed,
 			want:               &resourceRefApplyFailedBinding,

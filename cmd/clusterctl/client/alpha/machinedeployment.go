@@ -17,13 +17,16 @@ limitations under the License.
 package alpha
 
 import (
+	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -43,10 +46,16 @@ func getMachineDeployment(proxy cluster.Proxy, name, namespace string) (*cluster
 		Name:      name,
 	}
 	if err := c.Get(ctx, mdObjKey, mdObj); err != nil {
-		return nil, errors.Wrapf(err, "error reading MachineDeployment %s/%s",
+		return nil, errors.Wrapf(err, "failed to get MachineDeployment %s/%s",
 			mdObjKey.Namespace, mdObjKey.Name)
 	}
 	return mdObj, nil
+}
+
+// setRestartedAtAnnotation sets the restartedAt annotation in the MachineDeployment's spec.template.objectmeta.
+func setRestartedAtAnnotation(proxy cluster.Proxy, name, namespace string) error {
+	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"cluster.x-k8s.io/restartedAt":"%v"}}}}}`, time.Now().Format(time.RFC3339))))
+	return patchMachineDeployment(proxy, name, namespace, patch)
 }
 
 // patchMachineDeployment applies a patch to a machinedeployment.
@@ -61,11 +70,11 @@ func patchMachineDeployment(proxy cluster.Proxy, name, namespace string, patch c
 		Name:      name,
 	}
 	if err := cFrom.Get(ctx, mdObjKey, mdObj); err != nil {
-		return errors.Wrapf(err, "error reading MachineDeployment %s/%s", mdObj.GetNamespace(), mdObj.GetName())
+		return errors.Wrapf(err, "failed to get MachineDeployment %s/%s", mdObj.GetNamespace(), mdObj.GetName())
 	}
 
 	if err := cFrom.Patch(ctx, mdObj, patch); err != nil {
-		return errors.Wrapf(err, "error while patching MachineDeployment %s/%s", mdObj.GetNamespace(), mdObj.GetName())
+		return errors.Wrapf(err, "failed while patching MachineDeployment %s/%s", mdObj.GetNamespace(), mdObj.GetName())
 	}
 	return nil
 }

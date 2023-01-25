@@ -27,6 +27,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
@@ -45,5 +46,6 @@ func init() {
 	_ = admissionregistration.AddToScheme(Scheme)
 	_ = admissionregistrationv1beta1.AddToScheme(Scheme)
 	_ = addonsv1.AddToScheme(Scheme)
+	_ = controlplanev1.AddToScheme(Scheme)
 	_ = expv1.AddToScheme(Scheme)
 }

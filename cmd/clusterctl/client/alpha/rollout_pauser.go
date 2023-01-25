@@ -24,7 +24,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
+	"sigs.k8s.io/cluster-api/util/annotations"
 )
 
 // ObjectPauser will issue a pause on the specified cluster-api resource.
@@ -41,6 +43,17 @@ func (r *rollout) ObjectPauser(proxy cluster.Proxy, ref corev1.ObjectReference) 
 		if err := pauseMachineDeployment(proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
+	case KubeadmControlPlane:
+		kcp, err := getKubeadmControlPlane(proxy, ref.Name, ref.Namespace)
+		if err != nil || kcp == nil {
+			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
+		}
+		if annotations.HasPaused(kcp.GetObjectMeta()) {
+			return errors.Errorf("KubeadmControlPlane is already paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // KubeadmControlPlane is intentionally capitalized.
+		}
+		if err := pauseKubeadmControlPlane(proxy, ref.Name, ref.Namespace); err != nil {
+			return err
+		}
 	default:
 		return errors.Errorf("Invalid resource type %q, valid values are %v", ref.Kind, validResourceTypes)
 	}
@@ -51,4 +64,10 @@ func (r *rollout) ObjectPauser(proxy cluster.Proxy, ref corev1.ObjectReference) 
 func pauseMachineDeployment(proxy cluster.Proxy, name, namespace string) error {
 	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", true)))
 	return patchMachineDeployment(proxy, name, namespace, patch)
+}
+
+// pauseKubeadmControlPlane sets paused annotation to true.
+func pauseKubeadmControlPlane(proxy cluster.Proxy, name, namespace string) error {
+	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"metadata\":{\"annotations\":{%q: \"%t\"}}}", clusterv1.PausedAnnotation, true)))
+	return patchKubeadmControlPlane(proxy, name, namespace, patch)
 }

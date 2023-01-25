@@ -8,7 +8,8 @@ The `clusterctl alpha rollout` command manages the rollout of a Cluster API reso
 
 Currently, only the following Cluster API resources are supported by the rollout command:
 
-- machinedeployment
+- kubeadmcontrolplanes
+- machinedeployments
 
 </aside>
 

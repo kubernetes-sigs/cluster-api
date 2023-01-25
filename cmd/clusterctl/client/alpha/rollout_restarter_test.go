@@ -19,6 +19,7 @@ package alpha
 import (
 	"context"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +28,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
+	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 )
 
 func Test_ObjectRestarter(t *testing.T) {
@@ -35,10 +37,10 @@ func Test_ObjectRestarter(t *testing.T) {
 		ref  corev1.ObjectReference
 	}
 	tests := []struct {
-		name           string
-		fields         fields
-		wantErr        bool
-		wantAnnotation bool
+		name        string
+		fields      fields
+		wantErr     bool
+		wantRollout bool
 	}{
 		{
 			name: "machinedeployment should have restart annotation",
@@ -61,8 +63,8 @@ func Test_ObjectRestarter(t *testing.T) {
 					Namespace: "default",
 				},
 			},
-			wantErr:        false,
-			wantAnnotation: true,
+			wantErr:     false,
+			wantRollout: true,
 		},
 		{
 			name: "paused machinedeployment should not have restart annotation",
@@ -88,8 +90,86 @@ func Test_ObjectRestarter(t *testing.T) {
 					Namespace: "default",
 				},
 			},
-			wantErr:        true,
-			wantAnnotation: false,
+			wantErr:     true,
+			wantRollout: false,
+		},
+		{
+			name: "kubeadmcontrolplane should have rolloutAfter",
+			fields: fields{
+				objs: []client.Object{
+					&controlplanev1.KubeadmControlPlane{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "KubeadmControlPlane",
+							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "default",
+							Name:      "kcp",
+						},
+					},
+				},
+				ref: corev1.ObjectReference{
+					Kind:      KubeadmControlPlane,
+					Name:      "kcp",
+					Namespace: "default",
+				},
+			},
+			wantErr:     false,
+			wantRollout: true,
+		},
+		{
+			name: "paused kubeadmcontrolplane should not have rolloutAfter",
+			fields: fields{
+				objs: []client.Object{
+					&controlplanev1.KubeadmControlPlane{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "KubeadmControlPlane",
+							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "default",
+							Name:      "kcp",
+							Annotations: map[string]string{
+								clusterv1.PausedAnnotation: "true",
+							},
+						},
+					},
+				},
+				ref: corev1.ObjectReference{
+					Kind:      KubeadmControlPlane,
+					Name:      "kcp",
+					Namespace: "default",
+				},
+			},
+			wantErr:     true,
+			wantRollout: false,
+		},
+		{
+			name: "kubeadmcontrolplane with spec.rolloutAfter should not be updatable",
+			fields: fields{
+				objs: []client.Object{
+					&controlplanev1.KubeadmControlPlane{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "KubeadmControlPlane",
+							APIVersion: "controlplane.cluster.x-k8s.io/v1beta1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "default",
+							Name:      "kcp",
+						},
+						Spec: controlplanev1.KubeadmControlPlaneSpec{
+							RolloutAfter: &metav1.Time{Time: time.Now().Local().Add(time.Hour)},
+						},
+					},
+				},
+				ref: corev1.ObjectReference{
+					Kind:      KubeadmControlPlane,
+					Name:      "kcp",
+					Namespace: "default",
+				},
+			},
+			wantErr:     true,
+			wantRollout: false,
 		},
 	}
 	for _, tt := range tests {
@@ -107,13 +187,25 @@ func Test_ObjectRestarter(t *testing.T) {
 				cl, err := proxy.NewClient()
 				g.Expect(err).ToNot(HaveOccurred())
 				key := client.ObjectKeyFromObject(obj)
-				md := &clusterv1.MachineDeployment{}
-				err = cl.Get(context.TODO(), key, md)
-				g.Expect(err).ToNot(HaveOccurred())
-				if tt.wantAnnotation {
-					g.Expect(md.Spec.Template.Annotations).To(HaveKey("cluster.x-k8s.io/restartedAt"))
-				} else {
-					g.Expect(md.Spec.Template.Annotations).ToNot(HaveKey("cluster.x-k8s.io/restartedAt"))
+				switch obj.(type) {
+				case *clusterv1.MachineDeployment:
+					md := &clusterv1.MachineDeployment{}
+					err = cl.Get(context.TODO(), key, md)
+					g.Expect(err).ToNot(HaveOccurred())
+					if tt.wantRollout {
+						g.Expect(md.Spec.Template.Annotations).To(HaveKey("cluster.x-k8s.io/restartedAt"))
+					} else {
+						g.Expect(md.Spec.Template.Annotations).ToNot(HaveKey("cluster.x-k8s.io/restartedAt"))
+					}
+				case *controlplanev1.KubeadmControlPlane:
+					kcp := &controlplanev1.KubeadmControlPlane{}
+					err = cl.Get(context.TODO(), key, kcp)
+					g.Expect(err).ToNot(HaveOccurred())
+					if tt.wantRollout {
+						g.Expect(kcp.Spec.RolloutAfter).NotTo(BeNil())
+					} else {
+						g.Expect(kcp.Spec.RolloutAfter).To(nil)
+					}
 				}
 			}
 		})

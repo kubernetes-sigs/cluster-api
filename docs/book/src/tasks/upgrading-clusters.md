@@ -59,6 +59,12 @@ Note that this field can only be used for triggering a rollout, not for delaying
 a rollout can also happen before the time specified in `RolloutAfter` if any changes are made to
 the spec before that time.
 
+The rollout can be triggered by running the following command:
+
+```shell
+clusterctl alpha rollout restart kubeadmcontrollplane/my-kcp
+```
+
 To do the same for machines managed by a `MachineDeployment` it's enough to make an arbitrary
 change to its `Spec.Template`, one common approach is to run:
 

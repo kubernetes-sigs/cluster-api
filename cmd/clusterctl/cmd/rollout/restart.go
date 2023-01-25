@@ -41,7 +41,10 @@ var (
 
 	restartExample = templates.Examples(`
 		# Restart a machinedeployment
-		clusterctl alpha rollout restart machinedeployment/my-md-0`)
+		clusterctl alpha rollout restart machinedeployment/my-md-0
+
+		# Restart a kubeadmcontrolplane
+		clusterctl alpha rollout restart kubeadmcontrolplane/my-kcp`)
 )
 
 // NewCmdRolloutRestart returns a Command instance for 'rollout restart' sub command.

@@ -299,7 +299,19 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		}
 
 		resourceScope, err := reconcileScopeForResource(clusterResourceSet, resource, resourceSetBinding, unstructuredObj)
-		if err == nil && !resourceScope.needsApply() {
+		if err != nil {
+			resourceSetBinding.SetBinding(addonsv1.ResourceBinding{
+				ResourceRef:     resource,
+				Hash:            "",
+				Applied:         false,
+				LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+			})
+
+			errList = append(errList, err)
+			continue
+		}
+
+		if !resourceScope.needsApply() {
 			continue
 		}
 
@@ -311,11 +323,6 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 			Applied:         false,
 			LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
 		})
-
-		if err != nil {
-			errList = append(errList, err)
-			continue
-		}
 
 		// Apply all values in the key-value pair of the resource to the cluster.
 		// As there can be multiple key-value pairs in a resource, each value may have multiple objects in it.

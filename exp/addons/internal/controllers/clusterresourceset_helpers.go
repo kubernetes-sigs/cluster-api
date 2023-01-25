@@ -198,7 +198,7 @@ func computeHash(dataArr [][]byte) string {
 // normalizeData reads content of the resource (configmap or secret) and returns
 // them serialized with constant order. Secret's data is base64 decoded.
 // This is useful to achieve consistent data  between runs, since the content
-// of the data field is a mapp and its order is non deterministic.
+// of the data field is a map and its order is non-deterministic.
 func normalizeData(resource *unstructured.Unstructured) ([][]byte, error) {
 	// Since maps are not ordered, we need to order them to get the same hash at each reconcile.
 	keys := make([]string, 0)

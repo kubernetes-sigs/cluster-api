@@ -25,6 +25,7 @@ This document details the responsibilities and tasks for each role in the releas
       - [\[Track\] Bump dependencies](#track-bump-dependencies)
       - [Create a release branch](#create-a-release-branch)
       - [\[Continuously\] Maintain the GitHub release milestone](#continuously-maintain-the-github-release-milestone)
+      - [\[Continuously\] Bump the Go version](#continuously-bump-the-go-version)
       - [\[Repeatedly\] Cut a release](#repeatedly-cut-a-release)
       - [\[Optional\] \[Track\] Bump the Cluster API apiVersion](#optional-track-bump-the-cluster-api-apiversion)
       - [\[Optional\] \[Track\] Bump the Kubernetes version](#optional-track-bump-the-kubernetes-version)
@@ -168,6 +169,17 @@ This can be done by:
 1. Regularly checking in with folks implementing an issue in the milestone.
 2. If nobody is working on an issue in the milestone, drop it from the milestone.
 3. Ensuring we have a plan to get `release-blocking` issues implemented in time.
+
+#### [Continuously] Bump the Go version
+
+The goal of this task is to ensure we are always using the latest Go version for our releases.
+
+1. Keep track of new Go versions
+2. Bump the Go version in supported branches if necessary
+   <br>Prior art: [Bump to Go 1.19.5](https://github.com/kubernetes-sigs/cluster-api/pull/7981)
+
+Note: If the Go minor version of one of our supported branches goes out of supported, we should consider bumping 
+to a newer Go minor version according to our [backport policy](./../../CONTRIBUTING.md#backporting-a-patch).
 
 #### [Repeatedly] Cut a release
 

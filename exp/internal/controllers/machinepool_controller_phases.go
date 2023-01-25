@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -103,6 +104,10 @@ func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 // reconcileExternal handles generic unstructured objects referenced by a MachinePool.
 func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *expv1.MachinePool, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
 	log := ctrl.LoggerFrom(ctx)
+
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, ref); err != nil {
+		return external.ReconcileOutput{}, err
+	}
 
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {

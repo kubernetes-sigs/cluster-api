@@ -38,7 +38,7 @@ updated info about which API version they are supporting.
 - [Nutanix](https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix)
 - [OCI](https://github.com/oracle/cluster-api-provider-oci)
 - [OpenStack](https://github.com/kubernetes-sigs/cluster-api-provider-openstack)
-- [Outscale](https://github.com/outscale-dev/cluster-api-provider-outscale)
+- [Outscale](https://github.com/outscale/cluster-api-provider-outscale)
 - [Sidero](https://github.com/siderolabs/sidero)
 - [Tinkerbell](https://github.com/tinkerbell/cluster-api-provider-tinkerbell)
 - [vcluster](https://github.com/loft-sh/cluster-api-provider-vcluster)

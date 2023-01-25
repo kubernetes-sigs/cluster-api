@@ -250,7 +250,10 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		//
 		secondMachineSet := machineSets.Items[0]
 		t.Log("Scaling the MachineDeployment to 3 replicas")
-		modifyFunc := func(d *clusterv1.MachineDeployment) { d.Spec.Replicas = pointer.Int32(3) }
+		desiredMachineDeploymentReplicas := int32(3)
+		modifyFunc := func(d *clusterv1.MachineDeployment) {
+			d.Spec.Replicas = pointer.Int32(desiredMachineDeploymentReplicas)
+		}
 		g.Expect(updateMachineDeployment(ctx, env, deployment, modifyFunc)).To(Succeed())
 		g.Eventually(func() int {
 			key := client.ObjectKey{Name: secondMachineSet.Name, Namespace: secondMachineSet.Namespace}
@@ -258,7 +261,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 				return -1
 			}
 			return int(*secondMachineSet.Spec.Replicas)
-		}, timeout).Should(BeEquivalentTo(3))
+		}, timeout).Should(BeEquivalentTo(desiredMachineDeploymentReplicas))
 
 		//
 		// Update a MachineDeployment, expect Reconcile to be called and a new MachineSet to appear.
@@ -393,7 +396,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 			if err := env.List(ctx, machineSets, listOpts); err != nil {
 				return false
 			}
-			return machineSets.Items[0].Status.Replicas == *deployment.Spec.Replicas
+			return machineSets.Items[0].Status.Replicas == desiredMachineDeploymentReplicas
 		}, timeout*5).Should(BeTrue())
 
 		t.Log("Verifying MachineSets with old labels are deleted")

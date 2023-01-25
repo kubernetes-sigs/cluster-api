@@ -140,10 +140,9 @@ func (r *reconcileStrategyScope) applyObj(ctx context.Context, c client.Client, 
 	if err = c.Patch(ctx, obj, patch); err != nil {
 		return errors.Wrapf(
 			err,
-			"patching object %s %s/%s",
+			"patching object %s %s",
 			obj.GroupVersionKind(),
-			obj.GetNamespace(),
-			obj.GetName(),
+			klog.KObj(obj),
 		)
 	}
 
@@ -165,7 +164,7 @@ func (r *reconcileApplyOnceScope) apply(ctx context.Context, c client.Client) er
 func (r *reconcileApplyOnceScope) applyObj(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error {
 	// The create call is idempotent, so if the object already exists
 	// then do not consider it to be an error.
-	if err := createUnstructured(ctx, c, obj); !apierrors.IsAlreadyExists(err) {
+	if err := createUnstructured(ctx, c, obj); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
 	return nil

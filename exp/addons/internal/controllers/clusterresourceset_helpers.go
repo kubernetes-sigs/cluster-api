@@ -204,7 +204,7 @@ func normalizeData(resource *unstructured.Unstructured) ([][]byte, error) {
 	keys := make([]string, 0)
 	data, ok := resource.UnstructuredContent()["data"]
 	if !ok {
-		return nil, errors.New("failed to get data field from the resource")
+		return nil, errors.Errorf("failed to get data field from resource %s", klog.KObj(resource))
 	}
 
 	unstructuredData := data.(map[string]interface{})
@@ -216,8 +216,11 @@ func normalizeData(resource *unstructured.Unstructured) ([][]byte, error) {
 	dataList := make([][]byte, 0)
 	for _, key := range keys {
 		val, ok, err := unstructured.NestedString(unstructuredData, key)
-		if !ok || err != nil {
-			return nil, errors.New("failed to get value field from the resource")
+		if err != nil {
+			return nil, errors.Wrapf(err, "getting value for field %s in data from resource %s", key, klog.KObj(resource))
+		}
+		if !ok {
+			return nil, errors.Errorf("value for field %s not present in data from resource %s", key, klog.KObj(resource))
 		}
 
 		byteArr := []byte(val)

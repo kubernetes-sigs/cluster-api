@@ -723,11 +723,11 @@ func matchUnstructuredLists(l1 *unstructured.UnstructuredList, l2 *unstructured.
 	if len(l1.Items) != len(l2.Items) {
 		return false
 	}
-	s1 := sets.NewString()
+	s1 := sets.Set[string]{}
 	for _, i := range l1.Items {
 		s1.Insert(types.NamespacedName{Namespace: i.GetNamespace(), Name: i.GetName()}.String())
 	}
-	s2 := sets.NewString()
+	s2 := sets.Set[string]{}
 	for _, i := range l2.Items {
 		s2.Insert(types.NamespacedName{Namespace: i.GetNamespace(), Name: i.GetName()}.String())
 	}

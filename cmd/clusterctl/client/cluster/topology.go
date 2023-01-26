@@ -692,7 +692,7 @@ func clusterClassUsesTemplate(cc *clusterv1.ClusterClass, templateRef *corev1.Ob
 }
 
 func uniqueNamespaces(objs []*unstructured.Unstructured) []string {
-	ns := sets.NewString()
+	ns := sets.Set[string]{}
 	for _, obj := range objs {
 		// Namespace objects do not have metadata.namespace set, but we can add the
 		// name of the obj to the namespace list, as it is another unique namespace.
@@ -707,7 +707,7 @@ func uniqueNamespaces(objs []*unstructured.Unstructured) []string {
 		// objects from different namespaces.
 		ns.Insert(obj.GetNamespace())
 	}
-	return ns.List()
+	return sets.List(ns)
 }
 
 func hasUniqueVersionPerGroupKind(objs []*unstructured.Unstructured) bool {

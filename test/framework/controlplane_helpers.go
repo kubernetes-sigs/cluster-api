@@ -207,7 +207,7 @@ func AssertControlPlaneFailureDomains(ctx context.Context, input AssertControlPl
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling AssertControlPlaneFailureDomains")
 
 	By("Checking all the control plane machines are in the expected failure domains")
-	controlPlaneFailureDomains := sets.NewString()
+	controlPlaneFailureDomains := sets.Set[string]{}
 	for fd, fdSettings := range input.Cluster.Status.FailureDomains {
 		if fdSettings.ControlPlane {
 			controlPlaneFailureDomains.Insert(fd)

@@ -42,7 +42,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 		name          string
 		fields        fields
 		args          args
-		wantProviders sets.String
+		wantProviders sets.Set[string]
 		wantErr       bool
 	}{
 		{
@@ -63,7 +63,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 					DeleteAll:               true, // delete all the providers
 				},
 			},
-			wantProviders: sets.NewString(),
+			wantProviders: sets.Set[string]{},
 			wantErr:       false,
 		},
 		{
@@ -84,7 +84,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 					DeleteAll:               false,
 				},
 			},
-			wantProviders: sets.NewString(
+			wantProviders: sets.Set[string]{}.Insert(
 				capiProviderConfig.Name(),
 				clusterctlv1.ManifestLabel(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type()),
 				clusterctlv1.ManifestLabel(infraProviderConfig.Name(), infraProviderConfig.Type())),
@@ -108,7 +108,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 					DeleteAll:               false,
 				},
 			},
-			wantProviders: sets.NewString(
+			wantProviders: sets.Set[string]{}.Insert(
 				capiProviderConfig.Name(),
 				clusterctlv1.ManifestLabel(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type()),
 				clusterctlv1.ManifestLabel(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type())),
@@ -132,7 +132,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 					DeleteAll:               false,
 				},
 			},
-			wantProviders: sets.NewString(
+			wantProviders: sets.Set[string]{}.Insert(
 				capiProviderConfig.Name(),
 				clusterctlv1.ManifestLabel(bootstrapProviderConfig.Name(), bootstrapProviderConfig.Type()),
 				clusterctlv1.ManifestLabel(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type()),
@@ -157,7 +157,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 					DeleteAll:               false,
 				},
 			},
-			wantProviders: sets.NewString(
+			wantProviders: sets.Set[string]{}.Insert(
 				clusterctlv1.ManifestLabel(controlPlaneProviderConfig.Name(), controlPlaneProviderConfig.Type()),
 				clusterctlv1.ManifestLabel(infraProviderConfig.Name(), infraProviderConfig.Type())),
 			wantErr: false,
@@ -182,7 +182,7 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(c.List(ctx, gotProviders)).To(Succeed())
 
-			gotProvidersSet := sets.NewString()
+			gotProvidersSet := sets.Set[string]{}
 			for _, gotProvider := range gotProviders.Items {
 				gotProvidersSet.Insert(gotProvider.Name)
 			}

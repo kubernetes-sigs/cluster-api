@@ -77,7 +77,7 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 	log := logf.Log
 
 	// Gets the list of version supported by the new CRD
-	newVersions := sets.NewString()
+	newVersions := sets.Set[string]{}
 	for _, version := range newCRD.Spec.Versions {
 		newVersions.Insert(version.Name)
 	}
@@ -105,11 +105,11 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 		return false, errors.Errorf("unable to upgrade CRD %q because the new CRD does not contain the storage version %q of the current CRD, thus not allowing CR migration", newCRD.Name, currentStorageVersion)
 	}
 
-	currentStatusStoredVersions := sets.NewString(currentCRD.Status.StoredVersions...)
+	currentStatusStoredVersions := sets.Set[string]{}.Insert(currentCRD.Status.StoredVersions...)
 
 	// If the new CRD still contains all current stored versions, nothing to do
 	// as no previous storage version will be dropped.
-	if newVersions.HasAll(currentStatusStoredVersions.List()...) {
+	if newVersions.HasAll(currentStatusStoredVersions.UnsortedList()...) {
 		log.V(2).Info("CRD migration check passed", "name", newCRD.Name)
 		return false, nil
 	}
@@ -123,7 +123,7 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 	// exposed by the apiserver.
 	storedVersionsToDelete := currentStatusStoredVersions.Difference(newVersions)
 	storedVersionsToPreserve := currentStatusStoredVersions.Intersection(newVersions)
-	log.Info("CR migration required", "kind", newCRD.Spec.Names.Kind, "storedVersionsToDelete", strings.Join(storedVersionsToDelete.List(), ","), "storedVersionsToPreserve", strings.Join(storedVersionsToPreserve.List(), ","))
+	log.Info("CR migration required", "kind", newCRD.Spec.Names.Kind, "storedVersionsToDelete", strings.Join(sets.List(storedVersionsToDelete), ","), "storedVersionsToPreserve", strings.Join(sets.List(storedVersionsToPreserve), ","))
 
 	if err := m.migrateResourcesForCRD(ctx, currentCRD, currentStorageVersion); err != nil {
 		return false, err

@@ -350,11 +350,11 @@ func simulateInstall(providerList *clusterctlv1.ProviderList, components reposit
 }
 
 func (i *providerInstaller) Images() []string {
-	ret := sets.NewString()
+	ret := sets.Set[string]{}
 	for _, components := range i.installQueue {
 		ret = ret.Insert(components.Images()...)
 	}
-	return ret.List()
+	return sets.List(ret)
 }
 
 func newProviderInstaller(configClient config.Client, repositoryClientFactory RepositoryClientFactory, proxy Proxy, providerMetadata InventoryClient, providerComponents ComponentsClient) *providerInstaller {

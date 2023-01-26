@@ -93,7 +93,7 @@ func (c *EtcdClientGenerator) forLeader(ctx context.Context, nodeNames []string)
 		return nil, errors.New("invalid argument: forLeader can't be called with an empty list of nodes")
 	}
 
-	nodes := sets.NewString()
+	nodes := sets.Set[string]{}
 	for _, n := range nodeNames {
 		nodes.Insert(n)
 	}
@@ -118,7 +118,7 @@ func (c *EtcdClientGenerator) forLeader(ctx context.Context, nodeNames []string)
 // getLeaderClient provides an etcd client connected to the leader. It returns an
 // errEtcdNodeConnection if there was a connection problem with the given etcd
 // node, which should be considered non-fatal by the caller.
-func (c *EtcdClientGenerator) getLeaderClient(ctx context.Context, nodeName string, allNodes sets.String) (*etcd.Client, error) {
+func (c *EtcdClientGenerator) getLeaderClient(ctx context.Context, nodeName string, allNodes sets.Set[string]) (*etcd.Client, error) {
 	// Get a temporary client to the etcd instance hosted on the node.
 	client, err := c.forFirstAvailableNode(ctx, []string{nodeName})
 	if err != nil {

@@ -490,8 +490,8 @@ func (webhook *ClusterClass) validateRemovedMachineDeploymentClassesAreNotUsed(c
 	return allErrs
 }
 
-func (webhook *ClusterClass) removedMachineClasses(oldClusterClass, newClusterClass *clusterv1.ClusterClass) sets.String {
-	removedClasses := sets.NewString()
+func (webhook *ClusterClass) removedMachineClasses(oldClusterClass, newClusterClass *clusterv1.ClusterClass) sets.Set[string] {
+	removedClasses := sets.Set[string]{}
 
 	classes := webhook.classNamesFromWorkerClass(newClusterClass.Spec.Workers)
 	for _, oldClass := range oldClusterClass.Spec.Workers.MachineDeployments {
@@ -503,8 +503,8 @@ func (webhook *ClusterClass) removedMachineClasses(oldClusterClass, newClusterCl
 }
 
 // classNamesFromWorkerClass returns the set of MachineDeployment class names.
-func (webhook *ClusterClass) classNamesFromWorkerClass(w clusterv1.WorkersClass) sets.String {
-	classes := sets.NewString()
+func (webhook *ClusterClass) classNamesFromWorkerClass(w clusterv1.WorkersClass) sets.Set[string] {
+	classes := sets.Set[string]{}
 	for _, class := range w.MachineDeployments {
 		classes.Insert(class.Class)
 	}

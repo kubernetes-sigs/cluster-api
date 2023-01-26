@@ -232,7 +232,7 @@ func (k *proxy) ListResources(labels map[string]string, namespaces ...string) ([
 
 	// Exclude from discovery the objects from the cert-manager/provider's CRDs.
 	// Those objects are not part of the components, and they will eventually be removed when removing the CRD definition.
-	crdsToExclude := sets.String{}
+	crdsToExclude := sets.Set[string]{}
 
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
 	if err := retryWithExponentialBackoff(newReadBackoff(), func() error {

@@ -244,7 +244,7 @@ func allowK8sConfig(ts *tiltSettings) error {
 		return nil
 	}
 
-	allowed := sets.NewString(ts.AllowedContexts...)
+	allowed := sets.Set[string]{}.Insert(ts.AllowedContexts...)
 	if !allowed.Has(config.CurrentContext) {
 		return errors.Errorf("context %s from the KubeConfig file is not allowed", config.CurrentContext)
 	}

@@ -37,7 +37,7 @@ import (
 // validatePatches returns errors if the Patches in the ClusterClass violate any validation rules.
 func validatePatches(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
-	names := sets.String{}
+	names := sets.Set[string]{}
 	for i, patch := range clusterClass.Spec.Patches {
 		allErrs = append(
 			allErrs,
@@ -48,7 +48,7 @@ func validatePatches(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	return allErrs
 }
 
-func validatePatch(patch clusterv1.ClusterClassPatch, names sets.String, clusterClass *clusterv1.ClusterClass, path *field.Path) field.ErrorList {
+func validatePatch(patch clusterv1.ClusterClassPatch, names sets.Set[string], clusterClass *clusterv1.ClusterClass, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 	allErrs = append(allErrs,
 		validatePatchName(patch, names, path)...,
@@ -59,7 +59,7 @@ func validatePatch(patch clusterv1.ClusterClassPatch, names sets.String, cluster
 	return allErrs
 }
 
-func validatePatchName(patch clusterv1.ClusterClassPatch, names sets.String, path *field.Path) field.ErrorList {
+func validatePatchName(patch clusterv1.ClusterClassPatch, names sets.Set[string], path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 	if patch.Name == "" {
 		allErrs = append(allErrs,
@@ -266,7 +266,7 @@ func selectorMatchTemplate(selector clusterv1.PatchSelector, reference *corev1.O
 	return selector.Kind == reference.Kind && selector.APIVersion == reference.APIVersion
 }
 
-var validOps = sets.NewString("add", "replace", "remove")
+var validOps = sets.Set[string]{}.Insert("add", "replace", "remove")
 
 func validateJSONPatches(jsonPatches []clusterv1.JSONPatch, variables []clusterv1.ClusterClassVariable, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
@@ -278,7 +278,7 @@ func validateJSONPatches(jsonPatches []clusterv1.JSONPatch, variables []clusterv
 				field.NotSupported(
 					path.Index(i).Child("op"),
 					prettyPrint(jsonPatch),
-					validOps.List(),
+					sets.List(validOps),
 				))
 		}
 
@@ -412,7 +412,7 @@ func getVariableName(variable string) string {
 
 // This contains a list of all of the valid builtin variables.
 // TODO(killianmuldoon): Match this list to controllers/topology/internal/extensions/patches/variables as those structs become available across the code base i.e. public or top-level internal.
-var builtinVariables = sets.NewString(
+var builtinVariables = sets.Set[string]{}.Insert(
 	"builtin",
 
 	// Cluster builtins.

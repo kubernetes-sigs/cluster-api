@@ -38,7 +38,7 @@ func (r *rollout) ObjectPauser(proxy cluster.Proxy, ref corev1.ObjectReference) 
 			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
 		if deployment.Spec.Paused {
-			return errors.Errorf("MachineDeploymet is already paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // MachineDeployment is intentionally capitalized.
+			return errors.Errorf("MachineDeployment is already paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // MachineDeployment is intentionally capitalized.
 		}
 		if err := pauseMachineDeployment(proxy, ref.Name, ref.Namespace); err != nil {
 			return err

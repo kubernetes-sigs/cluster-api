@@ -24,16 +24,26 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	runtimev1 "sigs.k8s.io/cluster-api/exp/runtime/api/v1alpha1"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/feature"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/conversion"
@@ -53,6 +63,9 @@ type Reconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
+	// RuntimeClient is a client for calling runtime extensions.
+	RuntimeClient runtimeclient.Client
+
 	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
 	// thus allowing to optimize reads for templates or provider specific objects.
 	UnstructuredCachingClient client.Client
@@ -63,8 +76,13 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		For(&clusterv1.ClusterClass{}).
 		Named("clusterclass").
 		WithOptions(options).
+		Watches(
+			&source.Kind{Type: &runtimev1.ExtensionConfig{}},
+			handler.EnqueueRequestsFromMapFunc(r.extensionConfigToClusterClass),
+		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
+
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -177,25 +195,65 @@ func (r *Reconciler) reconcile(ctx context.Context, clusterClass *clusterv1.Clus
 		return ctrl.Result{}, kerrors.NewAggregate(errs)
 	}
 
-	// Ensure the variables are added to the ClusterClass status.
-	clusterClass.Status.Variables = []clusterv1.ClusterClassStatusVariable{}
-	for _, variable := range clusterClass.Spec.Variables {
-		clusterClass.Status.Variables = append(clusterClass.Status.Variables,
-			clusterv1.ClusterClassStatusVariable{
-				Name: variable.Name,
-				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
-					{
-						From:     clusterv1.VariableDefinitionFromInline,
-						Required: variable.Required,
-						Schema:   variable.Schema,
-					},
-				}})
+	// Reconcile variables
+	if err := r.reconcileVariables(ctx, clusterClass); err != nil {
+		return ctrl.Result{}, err
 	}
+
 	reconcileConditions(clusterClass, outdatedRefs)
 
 	return ctrl.Result{}, nil
 }
 
+func (r *Reconciler) reconcileVariables(ctx context.Context, clusterClass *clusterv1.ClusterClass) error {
+	errs := []error{}
+	uniqueVars := map[string]bool{}
+
+	// Add inline variable definitions to the ClusterClass status.
+	clusterClass.Status.Variables = []clusterv1.ClusterClassStatusVariable{}
+	for _, variable := range clusterClass.Spec.Variables {
+		uniqueVars[variable.Name] = true
+		clusterClass.Status.Variables = append(clusterClass.Status.Variables, statusVariableFromClusterClassVariable(variable, clusterv1.VariableDefinitionFromInline))
+	}
+
+	// If RuntimeSDK is enabled call the DiscoverVariables hook for all associated Runtime Extensions and add the variables
+	// to the ClusterClass status.
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		for _, patch := range clusterClass.Spec.Patches {
+			if patch.External == nil || patch.External.DiscoverVariablesExtension == nil {
+				continue
+			}
+			req := &runtimehooksv1.DiscoverVariablesRequest{}
+			req.Settings = patch.External.Settings
+
+			resp := &runtimehooksv1.DiscoverVariablesResponse{}
+			err := r.RuntimeClient.CallExtension(ctx, runtimehooksv1.DiscoverVariables, clusterClass, *patch.External.DiscoverVariablesExtension, req, resp)
+			if err != nil {
+				errs = append(errs, errors.Wrapf(err, "failed to call DiscoverVariables for patch %s", patch.Name))
+				continue
+			}
+			if resp.Status != runtimehooksv1.ResponseStatusSuccess {
+				errs = append(errs, errors.Errorf("patch %s returned status %q with message %q", patch.Name, resp.Status, resp.Message))
+				continue
+			}
+			if resp.Variables != nil {
+				for _, variable := range resp.Variables {
+					// TODO: Variables should be validated and deduplicated based on their provided definition.
+					if _, ok := uniqueVars[variable.Name]; ok {
+						errs = append(errs, errors.Errorf("duplicate variable name %s discovered in patch: %s", variable.Name, patch.Name))
+						continue
+					}
+					uniqueVars[variable.Name] = true
+					clusterClass.Status.Variables = append(clusterClass.Status.Variables, statusVariableFromClusterClassVariable(variable, patch.Name))
+				}
+			}
+		}
+	}
+	if len(errs) > 0 {
+		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to discover variables for ClusterClass %s", clusterClass.Name)
+	}
+	return nil
+}
 func reconcileConditions(clusterClass *clusterv1.ClusterClass, outdatedRefs map[*corev1.ObjectReference]*corev1.ObjectReference) {
 	if len(outdatedRefs) > 0 {
 		var msg []string
@@ -218,6 +276,20 @@ func reconcileConditions(clusterClass *clusterv1.ClusterClass, outdatedRefs map[
 		clusterClass,
 		conditions.TrueCondition(clusterv1.ClusterClassRefVersionsUpToDateCondition),
 	)
+}
+
+func statusVariableFromClusterClassVariable(variable clusterv1.ClusterClassVariable, from string) clusterv1.ClusterClassStatusVariable {
+	return clusterv1.ClusterClassStatusVariable{
+		Name: variable.Name,
+		// TODO: In a future iteration this should be true where definitions are equal.
+		DefinitionsConflict: false,
+		Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+			{
+				From:     from,
+				Required: variable.Required,
+				Schema:   variable.Schema,
+			},
+		}}
 }
 
 func refString(ref *corev1.ObjectReference) string {
@@ -262,4 +334,55 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *cluste
 
 func uniqueObjectRefKey(ref *corev1.ObjectReference) string {
 	return fmt.Sprintf("Name:%s, Namespace:%s, Kind:%s, APIVersion:%s", ref.Name, ref.Namespace, ref.Kind, ref.APIVersion)
+}
+
+// extensionConfigToClusterClass maps an ExtensionConfigs to the corresponding ClusterClass to reconcile them on updates
+// of the ExtensionConfig.
+func (r *Reconciler) extensionConfigToClusterClass(o client.Object) []reconcile.Request {
+	res := []ctrl.Request{}
+
+	ext, ok := o.(*runtimev1.ExtensionConfig)
+	if !ok {
+		panic(fmt.Sprintf("Expected an ExtensionConfig but got a %T", o))
+	}
+
+	clusterClasses := clusterv1.ClusterClassList{}
+	selector, err := metav1.LabelSelectorAsSelector(ext.Spec.NamespaceSelector)
+	if err != nil {
+		return nil
+	}
+	if err := r.Client.List(context.TODO(), &clusterClasses); err != nil {
+		return nil
+	}
+	for _, clusterClass := range clusterClasses.Items {
+		if !matchNamespace(context.TODO(), r.Client, selector, clusterClass.Namespace) {
+			continue
+		}
+		for _, patch := range clusterClass.Spec.Patches {
+			if patch.External != nil && patch.External.DiscoverVariablesExtension != nil {
+				res = append(res, ctrl.Request{NamespacedName: client.ObjectKey{Name: ext.Name}})
+				break
+			}
+		}
+	}
+	return res
+}
+
+// matchNamespace returns true if the passed namespace matches the selector.
+func matchNamespace(ctx context.Context, c client.Client, selector labels.Selector, namespace string) bool {
+	// Return early if the selector is empty.
+	if selector.Empty() {
+		return true
+	}
+
+	ns := &metav1.PartialObjectMetadata{}
+	ns.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "Namespace",
+	})
+	if err := c.Get(ctx, client.ObjectKey{Name: namespace}, ns); err != nil {
+		return false
+	}
+	return selector.Matches(labels.Set(ns.GetLabels()))
 }

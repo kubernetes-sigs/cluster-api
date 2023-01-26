@@ -200,6 +200,9 @@ type ClusterClassReconciler struct {
 	Client    client.Client
 	APIReader client.Reader
 
+	// RuntimeClient is a client for calling runtime extensions.
+	RuntimeClient runtimeclient.Client
+
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
@@ -212,6 +215,7 @@ func (r *ClusterClassReconciler) SetupWithManager(ctx context.Context, mgr ctrl.
 	return (&clusterclasscontroller.Reconciler{
 		Client:                    r.Client,
 		APIReader:                 r.APIReader,
+		RuntimeClient:             r.RuntimeClient,
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
 		WatchFilterValue:          r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)

@@ -483,9 +483,9 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassStatusVariable(ref com
 							Format:      "",
 						},
 					},
-					"defintionsConflict": {
+					"definitionsConflict": {
 						SchemaProps: spec.SchemaProps{
-							Description: "DefintionsConflict specifies whether or not there are conflicting definitions for a single variable name.",
+							Description: "DefinitionsConflict specifies whether or not there are conflicting definitions for a single variable name.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -1042,6 +1042,13 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ExternalPatchDefinition(ref common
 					"validateExtension": {
 						SchemaProps: spec.SchemaProps{
 							Description: "ValidateExtension references an extension which is called to validate the topology.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"discoverVariablesExtension": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DiscoverVariablesExtension references an extension which is called to discover variables.",
 							Type:        []string{"string"},
 							Format:      "",
 						},

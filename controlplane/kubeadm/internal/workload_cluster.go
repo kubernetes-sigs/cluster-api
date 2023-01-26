@@ -137,7 +137,7 @@ var _ WorkloadCluster = &Workload{}
 
 func (w *Workload) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, error) {
 	controlPlaneNodes := &corev1.NodeList{}
-	controlPlaneNodeNames := sets.NewString()
+	controlPlaneNodeNames := sets.Set[string]{}
 
 	for _, label := range []string{labelNodeRoleOldControlPlane, labelNodeRoleControlPlane} {
 		nodes := &corev1.NodeList{}

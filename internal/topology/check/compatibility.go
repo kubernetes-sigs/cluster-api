@@ -248,7 +248,7 @@ func MachineDeploymentClassesAreCompatible(current, desired *clusterv1.ClusterCl
 // MachineDeploymentClassesAreUnique checks that no two MachineDeploymentClasses in a ClusterClass share a name.
 func MachineDeploymentClassesAreUnique(clusterClass *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
-	classes := sets.NewString()
+	classes := sets.Set[string]{}
 	for i, class := range clusterClass.Spec.Workers.MachineDeployments {
 		if classes.Has(class.Class) {
 			allErrs = append(allErrs,
@@ -276,7 +276,7 @@ func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *cluste
 	}
 	// MachineDeployment clusterClass must be defined in the ClusterClass.
 	machineDeploymentClasses := classNamesFromWorkerClass(clusterClass.Spec.Workers)
-	names := sets.String{}
+	names := sets.Set[string]{}
 	for i, md := range desired.Spec.Topology.Workers.MachineDeployments {
 		if errs := validation.IsValidLabelValue(md.Name); len(errs) != 0 {
 			for _, err := range errs {
@@ -350,8 +350,8 @@ func ClusterClassReferencesAreValid(clusterClass *clusterv1.ClusterClass) field.
 }
 
 // classNames returns the set of MachineDeployment class names.
-func classNamesFromWorkerClass(w clusterv1.WorkersClass) sets.String {
-	classes := sets.NewString()
+func classNamesFromWorkerClass(w clusterv1.WorkersClass) sets.Set[string] {
+	classes := sets.Set[string]{}
 	for _, class := range w.MachineDeployments {
 		classes.Insert(class.Class)
 	}

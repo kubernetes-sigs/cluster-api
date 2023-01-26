@@ -138,7 +138,7 @@ func (r *Reconciler) reconcile(ctx context.Context, clusterClass *clusterv1.Clus
 	// For example the same KubeadmConfigTemplate could be referenced in multiple MachineDeployment
 	// classes.
 	errs := []error{}
-	reconciledRefs := sets.NewString()
+	reconciledRefs := sets.Set[string]{}
 	outdatedRefs := map[*corev1.ObjectReference]*corev1.ObjectReference{}
 	for i := range refs {
 		ref := refs[i]

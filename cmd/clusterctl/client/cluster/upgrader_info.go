@@ -149,7 +149,7 @@ func newUpgradeInfo(metadata *clusterctlv1.Metadata, currentVersion *version.Ver
 
 // getContractsForUpgrade return the list of API Version of Cluster API (contract) version available for a provider upgrade.
 func (i *upgradeInfo) getContractsForUpgrade() []string {
-	contractsForUpgrade := sets.NewString()
+	contractsForUpgrade := sets.Set[string]{}
 	for _, releaseSeries := range i.metadata.ReleaseSeries {
 		// Drop the release series if older than the current version, because not relevant for upgrade.
 		if i.currentVersion.Major() > releaseSeries.Major || (i.currentVersion.Major() == releaseSeries.Major && i.currentVersion.Minor() > releaseSeries.Minor) {
@@ -158,7 +158,7 @@ func (i *upgradeInfo) getContractsForUpgrade() []string {
 		contractsForUpgrade.Insert(releaseSeries.Contract)
 	}
 
-	return contractsForUpgrade.List()
+	return sets.List(contractsForUpgrade)
 }
 
 // getLatestNextVersion returns the next available version for a provider within the target API Version of Cluster API (contract).

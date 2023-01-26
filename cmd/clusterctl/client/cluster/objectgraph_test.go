@@ -2337,7 +2337,7 @@ func Test_objectGraph_setGlobalIdentityTenants(t *testing.T) {
 
 func deduplicateObjects(objs []client.Object) []client.Object {
 	res := []client.Object{}
-	uniqueObjectKeys := sets.NewString()
+	uniqueObjectKeys := sets.Set[string]{}
 	for _, o := range objs {
 		if !uniqueObjectKeys.Has(string(o.GetUID())) {
 			res = append(res, o)

@@ -164,7 +164,7 @@ func MergeTemplates(templates ...Template) (Template, error) {
 	}
 
 	for _, tmpl := range templates {
-		merged.variables = sets.NewString(merged.variables...).Union(sets.NewString(tmpl.Variables()...)).List()
+		merged.variables = sets.List(sets.Set[string]{}.Insert(merged.variables...).Union(sets.Set[string]{}.Insert(tmpl.Variables()...)))
 
 		for key, val := range tmpl.VariableMap() {
 			if v, ok := merged.variableMap[key]; !ok || v == nil {

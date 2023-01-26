@@ -257,7 +257,7 @@ func (u *providerUpgrader) createCustomPlan(upgradeItems []UpgradeItem) (*Upgrad
 	}
 
 	// Builds the custom upgrade plan, by adding all the upgrade items after checking consistency with the targetContract.
-	upgradeInstanceNames := sets.NewString()
+	upgradeInstanceNames := sets.Set[string]{}
 	upgradePlan := &UpgradePlan{
 		Contract: targetContract,
 	}

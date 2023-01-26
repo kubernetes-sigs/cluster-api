@@ -669,7 +669,7 @@ func (o *objectMover) ensureNamespaces(graph *objectGraph, toProxy Proxy) error 
 	}
 
 	ensureNamespaceBackoff := newWriteBackoff()
-	namespaces := sets.NewString()
+	namespaces := sets.Set[string]{}
 	for _, node := range graph.getMoveNodes() {
 		// ignore global/cluster-wide objects
 		if node.isGlobal {

@@ -47,7 +47,7 @@ func MemberNames(members []*etcd.Member) []string {
 // This function only checks that set of names of each member
 // within the lists is the same.
 func MemberEqual(members1, members2 []*etcd.Member) bool {
-	names1 := sets.NewString(MemberNames(members1)...)
-	names2 := sets.NewString(MemberNames(members2)...)
+	names1 := sets.Set[string]{}.Insert(MemberNames(members1)...)
+	names2 := sets.Set[string]{}.Insert(MemberNames(members2)...)
 	return names1.Equal(names2)
 }

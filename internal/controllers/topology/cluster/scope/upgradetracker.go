@@ -46,8 +46,8 @@ type ControlPlaneUpgradeTracker struct {
 // MachineDeploymentUpgradeTracker holds the current upgrade status and makes upgrade
 // decisions for MachineDeployments.
 type MachineDeploymentUpgradeTracker struct {
-	pendingNames    sets.String
-	rollingOutNames sets.String
+	pendingNames    sets.Set[string]
+	rollingOutNames sets.Set[string]
 	holdUpgrades    bool
 }
 
@@ -55,8 +55,8 @@ type MachineDeploymentUpgradeTracker struct {
 func NewUpgradeTracker() *UpgradeTracker {
 	return &UpgradeTracker{
 		MachineDeployments: MachineDeploymentUpgradeTracker{
-			pendingNames:    sets.NewString(),
-			rollingOutNames: sets.NewString(),
+			pendingNames:    sets.Set[string]{},
+			rollingOutNames: sets.Set[string]{},
 		},
 	}
 }
@@ -75,7 +75,7 @@ func (m *MachineDeploymentUpgradeTracker) MarkRollingOut(names ...string) {
 // RolloutNames returns the list of machine deployments that are rolling out or
 // are about to rollout.
 func (m *MachineDeploymentUpgradeTracker) RolloutNames() []string {
-	return m.rollingOutNames.List()
+	return sets.List(m.rollingOutNames)
 }
 
 // HoldUpgrades is used to set if any subsequent upgrade operations should be paused,
@@ -107,7 +107,7 @@ func (m *MachineDeploymentUpgradeTracker) MarkPendingUpgrade(name string) {
 // PendingUpgradeNames returns the list of machine deployment names that
 // are pending an upgrade.
 func (m *MachineDeploymentUpgradeTracker) PendingUpgradeNames() []string {
-	return m.pendingNames.List()
+	return sets.List(m.pendingNames)
 }
 
 // PendingUpgrade returns true if any of the machine deployments are pending

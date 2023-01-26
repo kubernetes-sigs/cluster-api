@@ -338,14 +338,14 @@ func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.Provi
 	}
 
 	// Group the providers by name, because we consider more instance of the same provider not relevant for the answer.
-	names := sets.NewString()
+	names := sets.Set[string]{}
 	for _, p := range providerList.FilterByType(providerType) {
 		names.Insert(p.ProviderName)
 	}
 
 	// If there is only one provider, this is the default
 	if names.Len() == 1 {
-		return names.List()[0], nil
+		return sets.List(names)[0], nil
 	}
 
 	// There is no provider or more than one provider of this type; in both cases, a default provider name cannot be decided.
@@ -359,13 +359,13 @@ func (p *inventoryClient) GetProviderVersion(provider string, providerType clust
 	}
 
 	// Group the provider instances by version.
-	versions := sets.NewString()
+	versions := sets.Set[string]{}
 	for _, p := range providerList.FilterByProviderNameAndType(provider, providerType) {
 		versions.Insert(p.Version)
 	}
 
 	if versions.Len() == 1 {
-		return versions.List()[0], nil
+		return sets.List(versions)[0], nil
 	}
 
 	// The default version for this provider cannot be decided.
@@ -379,13 +379,13 @@ func (p *inventoryClient) GetProviderNamespace(provider string, providerType clu
 	}
 
 	// Group the providers by namespace
-	namespaces := sets.NewString()
+	namespaces := sets.Set[string]{}
 	for _, p := range providerList.FilterByProviderNameAndType(provider, providerType) {
 		namespaces.Insert(p.Namespace)
 	}
 
 	if namespaces.Len() == 1 {
-		return namespaces.List()[0], nil
+		return sets.List(namespaces)[0], nil
 	}
 
 	// The default provider namespace cannot be decided.

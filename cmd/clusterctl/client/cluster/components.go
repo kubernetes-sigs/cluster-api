@@ -146,7 +146,7 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 
 	// Filter the resources according to the delete options
 	resourcesToDelete := []unstructured.Unstructured{}
-	namespacesToDelete := sets.NewString()
+	namespacesToDelete := sets.Set[string]{}
 	instanceNamespacePrefix := fmt.Sprintf("%s-", options.Provider.Namespace)
 	for _, obj := range resources {
 		// If the CRDs should NOT be deleted, skip it;

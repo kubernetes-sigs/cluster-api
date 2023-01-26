@@ -194,7 +194,8 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, d *clusterv1.MachineD
 	}
 
 	// Add foregroundDeletion finalizer to MachineSet if the MachineDeployment has it
-	if sets.NewString(d.Finalizers...).Has(metav1.FinalizerDeleteDependents) {
+	finalizerSet := sets.Set[string]{}.Insert(d.Finalizers...)
+	if finalizerSet.Has(metav1.FinalizerDeleteDependents) {
 		controllerutil.AddFinalizer(&newMS, metav1.FinalizerDeleteDependents)
 	}
 

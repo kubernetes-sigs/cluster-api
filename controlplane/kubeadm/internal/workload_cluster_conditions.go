@@ -514,11 +514,11 @@ type aggregateFromMachinesToKCPInput struct {
 func aggregateFromMachinesToKCP(input aggregateFromMachinesToKCPInput) {
 	// Aggregates machines for condition status.
 	// NB. A machine could be assigned to many groups, but only the group with the highest severity will be reported.
-	kcpMachinesWithErrors := sets.NewString()
-	kcpMachinesWithWarnings := sets.NewString()
-	kcpMachinesWithInfo := sets.NewString()
-	kcpMachinesWithTrue := sets.NewString()
-	kcpMachinesWithUnknown := sets.NewString()
+	kcpMachinesWithErrors := sets.Set[string]{}
+	kcpMachinesWithWarnings := sets.Set[string]{}
+	kcpMachinesWithInfo := sets.Set[string]{}
+	kcpMachinesWithTrue := sets.Set[string]{}
+	kcpMachinesWithUnknown := sets.Set[string]{}
 
 	for i := range input.controlPlane.Machines {
 		machine := input.controlPlane.Machines[i]
@@ -545,7 +545,7 @@ func aggregateFromMachinesToKCP(input aggregateFromMachinesToKCPInput) {
 
 	// In case of at least one machine with errors or KCP level errors (nodes without machines), report false, error.
 	if len(kcpMachinesWithErrors) > 0 {
-		input.kcpErrors = append(input.kcpErrors, fmt.Sprintf("Following machines are reporting %s errors: %s", input.note, strings.Join(kcpMachinesWithErrors.List(), ", ")))
+		input.kcpErrors = append(input.kcpErrors, fmt.Sprintf("Following machines are reporting %s errors: %s", input.note, strings.Join(sets.List(kcpMachinesWithErrors), ", ")))
 	}
 	if len(input.kcpErrors) > 0 {
 		conditions.MarkFalse(input.controlPlane.KCP, input.condition, input.unhealthyReason, clusterv1.ConditionSeverityError, strings.Join(input.kcpErrors, "; "))
@@ -554,13 +554,13 @@ func aggregateFromMachinesToKCP(input aggregateFromMachinesToKCPInput) {
 
 	// In case of no errors and at least one machine with warnings, report false, warnings.
 	if len(kcpMachinesWithWarnings) > 0 {
-		conditions.MarkFalse(input.controlPlane.KCP, input.condition, input.unhealthyReason, clusterv1.ConditionSeverityWarning, "Following machines are reporting %s warnings: %s", input.note, strings.Join(kcpMachinesWithWarnings.List(), ", "))
+		conditions.MarkFalse(input.controlPlane.KCP, input.condition, input.unhealthyReason, clusterv1.ConditionSeverityWarning, "Following machines are reporting %s warnings: %s", input.note, strings.Join(sets.List(kcpMachinesWithWarnings), ", "))
 		return
 	}
 
 	// In case of no errors, no warning, and at least one machine with info, report false, info.
 	if len(kcpMachinesWithWarnings) > 0 {
-		conditions.MarkFalse(input.controlPlane.KCP, input.condition, input.unhealthyReason, clusterv1.ConditionSeverityWarning, "Following machines are reporting %s info: %s", input.note, strings.Join(kcpMachinesWithInfo.List(), ", "))
+		conditions.MarkFalse(input.controlPlane.KCP, input.condition, input.unhealthyReason, clusterv1.ConditionSeverityWarning, "Following machines are reporting %s info: %s", input.note, strings.Join(sets.List(kcpMachinesWithInfo), ", "))
 		return
 	}
 
@@ -572,7 +572,7 @@ func aggregateFromMachinesToKCP(input aggregateFromMachinesToKCPInput) {
 
 	// Otherwise, if there is at least one machine with unknown, report unknown.
 	if len(kcpMachinesWithUnknown) > 0 {
-		conditions.MarkUnknown(input.controlPlane.KCP, input.condition, input.unknownReason, "Following machines are reporting unknown %s status: %s", input.note, strings.Join(kcpMachinesWithUnknown.List(), ", "))
+		conditions.MarkUnknown(input.controlPlane.KCP, input.condition, input.unknownReason, "Following machines are reporting unknown %s status: %s", input.note, strings.Join(sets.List(kcpMachinesWithUnknown), ", "))
 		return
 	}
 

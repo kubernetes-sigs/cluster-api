@@ -169,7 +169,7 @@ func (t *ClusterCacheTracker) GetRESTConfig(ctc context.Context, cluster client.
 type clusterAccessor struct {
 	cache   *stoppableCache
 	client  client.Client
-	watches sets.String
+	watches sets.Set[string]
 	config  *rest.Config
 }
 
@@ -338,7 +338,7 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 		cache:   cache,
 		config:  config,
 		client:  delegatingClient,
-		watches: sets.NewString(),
+		watches: sets.Set[string]{},
 	}, nil
 }
 

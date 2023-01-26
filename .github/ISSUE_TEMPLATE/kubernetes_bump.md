@@ -57,7 +57,7 @@ run the Cluster API controllers on the new Kubernetes version.
   * Prior art: periodic jobs: https://github.com/kubernetes/test-infra/pull/27326
 * [ ] Bump the Go version in Cluster API: (if Kubernetes is using a new Go minor version)
   * Search for the currently used Go version across the repository and update it
-  * We have to at least modify it in: `.github/workflows`, `hack/ensure-go.sh`, `.golangci.yml`, `cloudbuild*.yaml`, `go.mod`, `Makefile`, `netlify.toml`, `Tiltfile`
+  * We have to at least modify it in: `hack/ensure-go.sh`, `.golangci.yml`, `cloudbuild*.yaml`, `go.mod`, `Makefile`, `netlify.toml`, `Tiltfile`
   * Prior art: #7135
 * [ ] Bump controller-runtime
 * [ ] Bump controller-tools

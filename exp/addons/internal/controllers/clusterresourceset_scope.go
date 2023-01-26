@@ -167,6 +167,7 @@ func (r *reconcileApplyOnceScope) applyObj(ctx context.Context, c client.Client,
 	if err := createUnstructured(ctx, c, obj); err != nil && !apierrors.IsAlreadyExists(err) {
 		return err
 	}
+
 	return nil
 }
 
@@ -180,5 +181,6 @@ func apply(ctx context.Context, c client.Client, applyObj applyObj, objs []unstr
 			errList = append(errList, err)
 		}
 	}
+
 	return kerrors.NewAggregate(errList)
 }

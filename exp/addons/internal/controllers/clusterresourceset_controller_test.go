@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"crypto/sha1"
 	"fmt"
 	"reflect"
 	"testing"
@@ -34,6 +35,7 @@ import (
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 const (
@@ -724,6 +726,195 @@ metadata:
 		t.Log("Checking resource ConfigMap 2 has been updated")
 		g.Eventually(configMapHasBeenUpdated(env, resourceConfigMap2Key, resourceConfigMap2), timeout).Should(Succeed())
 	})
+
+	t.Run("Should reconcile a ClusterResourceSet with ApplyOnce strategy even when one of the resources already exist", func(t *testing.T) {
+		g := NewWithT(t)
+		ns := setup(t, g)
+		defer teardown(t, g, ns)
+
+		t.Log("Updating the cluster with labels")
+		testCluster.SetLabels(labels)
+		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
+
+		t.Log("Creating resource CM before creating CRS")
+		// This CM is defined in the data of "configmapName", which is included in the
+		// CRS we will create in this test
+		resourceConfigMap1 := configMap(
+			resourceConfigMap1Name,
+			resourceConfigMapsNamespace,
+			map[string]string{
+				"created": "before CRS",
+			},
+		)
+		g.Expect(env.Create(ctx, resourceConfigMap1)).To(Succeed())
+
+		t.Log("Creating a ClusterResourceSet instance that has same labels as selector")
+		clusterResourceSet := &addonsv1.ClusterResourceSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterResourceSetName,
+				Namespace: ns.Name,
+			},
+			Spec: addonsv1.ClusterResourceSetSpec{
+				Strategy: string(addonsv1.ClusterResourceSetStrategyApplyOnce),
+				ClusterSelector: metav1.LabelSelector{
+					MatchLabels: labels,
+				},
+				Resources: []addonsv1.ResourceRef{{Name: configmapName, Kind: "ConfigMap"}, {Name: secretName, Kind: "Secret"}},
+			},
+		}
+
+		g.Expect(env.Create(ctx, clusterResourceSet)).To(Succeed())
+
+		t.Log("Checking resource ConfigMap 1 hasn't been updated")
+		resourceConfigMap1Key := client.ObjectKey{
+			Namespace: resourceConfigMapsNamespace,
+			Name:      resourceConfigMap1Name,
+		}
+		g.Eventually(configMapHasBeenUpdated(env, resourceConfigMap1Key, resourceConfigMap1), timeout).Should(Succeed())
+
+		t.Log("Verifying resource ConfigMap 2 has been created")
+		resourceConfigMap2Key := client.ObjectKey{
+			Namespace: resourceConfigMapsNamespace,
+			Name:      resourceConfigMap2Name,
+		}
+		g.Eventually(func() error {
+			cm := &corev1.ConfigMap{}
+			return env.Get(ctx, resourceConfigMap2Key, cm)
+		}, timeout).Should(Succeed())
+	})
+
+	t.Run("Should reconcile a ClusterResourceSet with ApplyOnce strategy even when there is an error, after the error has been corrected", func(t *testing.T) {
+		// To trigger an error in the middle of the reconciliation, we'll define a an object in a namespace that doesn't yet exist.
+		// We'll expect the CRS to reconcile all other objects except that one and bubble up the error.
+		// Once that happens, we'll go ahead a create the namespace. Then we'll expect the CRS to, eventually, create that remaining object.
+
+		g := NewWithT(t)
+		ns := setup(t, g)
+		defer teardown(t, g, ns)
+
+		t.Log("Updating the cluster with labels")
+		testCluster.SetLabels(labels)
+		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
+
+		t.Log("Updating the test config map with the missing namespace resource")
+		missingNamespace := randomNamespaceForTest(t)
+
+		resourceConfigMap1 := configMap(
+			resourceConfigMap1Name,
+			resourceConfigMapsNamespace,
+			map[string]string{
+				"my_new_config": "some_value",
+			},
+		)
+
+		resourceConfigMap1Content, err := yaml.Marshal(resourceConfigMap1)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		resourceConfigMapWithMissingNamespace := configMap(
+			"cm-missing-namespace",
+			missingNamespace,
+			map[string]string{
+				"my_new_config": "this is all new",
+			},
+		)
+
+		resourceConfigMapMissingNamespaceContent, err := yaml.Marshal(resourceConfigMapWithMissingNamespace)
+		g.Expect(err).NotTo(HaveOccurred())
+
+		testConfigmap := configMap(
+			configmapName,
+			ns.Name,
+			map[string]string{
+				"cm":             string(resourceConfigMap1Content),
+				"problematic_cm": string(resourceConfigMapMissingNamespaceContent),
+			},
+		)
+
+		g.Expect(env.Update(ctx, testConfigmap)).To(Succeed())
+
+		t.Log("Creating a ClusterResourceSet instance that has same labels as selector")
+		clusterResourceSet := &addonsv1.ClusterResourceSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterResourceSetName,
+				Namespace: ns.Name,
+			},
+			Spec: addonsv1.ClusterResourceSetSpec{
+				Strategy: string(addonsv1.ClusterResourceSetStrategyApplyOnce),
+				ClusterSelector: metav1.LabelSelector{
+					MatchLabels: labels,
+				},
+				Resources: []addonsv1.ResourceRef{{Name: testConfigmap.Name, Kind: "ConfigMap"}, {Name: secretName, Kind: "Secret"}},
+			},
+		}
+
+		g.Expect(env.Create(ctx, clusterResourceSet)).To(Succeed())
+
+		t.Log("Verifying resource ConfigMap 1 has been created")
+		resourceConfigMap1Key := client.ObjectKeyFromObject(resourceConfigMap1)
+		g.Eventually(configMapHasBeenUpdated(env, resourceConfigMap1Key, resourceConfigMap1), timeout).Should(Succeed())
+
+		t.Log("Verifying resource ConfigMap 2 has been created")
+		resourceConfigMap2Key := client.ObjectKey{
+			Namespace: resourceConfigMapsNamespace,
+			Name:      resourceConfigMap2Name,
+		}
+		g.Eventually(func() error {
+			cm := &corev1.ConfigMap{}
+			return env.Get(ctx, resourceConfigMap2Key, cm)
+		}, timeout).Should(Succeed())
+
+		t.Log("Verifying CRS Binding failed marked the resource as not applied")
+		g.Eventually(func(g Gomega) {
+			clusterResourceSetBindingKey := client.ObjectKey{
+				Namespace: testCluster.Namespace,
+				Name:      testCluster.Name,
+			}
+			binding := &addonsv1.ClusterResourceSetBinding{}
+			g.Expect(env.Get(ctx, clusterResourceSetBindingKey, binding)).To(Succeed())
+
+			g.Expect(binding.Spec.Bindings).To(HaveLen(1))
+			g.Expect(binding.Spec.Bindings[0].Resources).To(HaveLen(2))
+
+			for _, r := range binding.Spec.Bindings[0].Resources {
+				switch r.ResourceRef.Name {
+				case testConfigmap.Name:
+					g.Expect(r.Applied).To(BeFalse(), "test-configmap should be not applied bc of missing namespace")
+				case secretName:
+					g.Expect(r.Applied).To(BeTrue(), "test-secret should be applied")
+				}
+			}
+		}, timeout).Should(Succeed())
+
+		t.Log("Verifying CRS has a false ResourcesApplied condition")
+		g.Eventually(func(g Gomega) {
+			clusterResourceSetKey := client.ObjectKeyFromObject(clusterResourceSet)
+			crs := &addonsv1.ClusterResourceSet{}
+			g.Expect(env.Get(ctx, clusterResourceSetKey, crs)).To(Succeed())
+
+			appliedCondition := conditions.Get(crs, addonsv1.ResourcesAppliedCondition)
+			g.Expect(appliedCondition).NotTo(BeNil())
+			g.Expect(appliedCondition.Status).To(Equal(corev1.ConditionFalse))
+			g.Expect(appliedCondition.Reason).To(Equal(addonsv1.ApplyFailedReason))
+			g.Expect(appliedCondition.Message).To(ContainSubstring("creating object /v1, Kind=ConfigMap %s/cm-missing-namespace", missingNamespace))
+		}, timeout).Should(Succeed())
+
+		t.Log("Creating missing namespace")
+		missingNs := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: missingNamespace,
+			},
+		}
+		g.Expect(env.Create(ctx, missingNs)).To(Succeed())
+
+		t.Log("Verifying CRS Binding has all resources applied")
+		g.Eventually(clusterResourceSetBindingReady(env, testCluster), timeout).Should(BeTrue())
+
+		t.Log("Verifying resource ConfigMap with previsouly missing namespace has been created")
+		g.Eventually(configMapHasBeenUpdated(env, client.ObjectKeyFromObject(resourceConfigMapWithMissingNamespace), resourceConfigMapWithMissingNamespace), timeout).Should(Succeed())
+
+		g.Expect(env.Delete(ctx, resourceConfigMapWithMissingNamespace)).To(Succeed())
+		g.Expect(env.Delete(ctx, missingNs)).To(Succeed())
+	})
 }
 
 func clusterResourceSetBindingReady(env *envtest.Environment, cluster *clusterv1.Cluster) func() bool {
@@ -785,4 +976,11 @@ func configMap(name, namespace string, data map[string]string) *corev1.ConfigMap
 		},
 		Data: data,
 	}
+}
+
+func randomNamespaceForTest(t testing.TB) string {
+	h := sha1.New()
+	h.Write([]byte(t.Name()))
+	testNameHash := fmt.Sprintf("%x", h.Sum(nil))
+	return "ns-" + testNameHash[:7] + "-" + util.RandomString(6)
 }

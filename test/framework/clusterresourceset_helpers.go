@@ -150,7 +150,7 @@ func WaitForClusterResourceSetToApplyResources(ctx context.Context, input WaitFo
 				continue
 			}
 
-			if len(binding.Spec.Bindings) == 0 || !binding.Spec.Bindings[0].IsApplied(resource) {
+			if len(binding.Spec.Bindings) != 1 || !binding.Spec.Bindings[0].IsApplied(resource) {
 				return false
 			}
 		}

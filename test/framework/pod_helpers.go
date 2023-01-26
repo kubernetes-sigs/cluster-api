@@ -60,8 +60,11 @@ func EtcdImageTagCondition(expectedTag string, expectedCount int) PodListConditi
 	return func(pl *corev1.PodList) error {
 		countWithCorrectTag := 0
 		for _, pod := range pl.Items {
-			if strings.Contains(pod.Spec.Containers[0].Image, expectedTag) {
-				countWithCorrectTag++
+			for _, c := range pod.Spec.Containers {
+				if strings.Contains(c.Image, expectedTag) {
+					countWithCorrectTag++
+					break
+				}
 			}
 		}
 		if countWithCorrectTag != expectedCount {

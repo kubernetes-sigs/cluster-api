@@ -111,6 +111,8 @@ func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMach
 		}
 		if len(ms.Items) == 0 {
 			return 0, errors.New("no machinesets were found")
+		} else if len(ms.Items) > 1 {
+			return 0, errors.New("expected only one matching MachineSet from MachineDeployment selector")
 		}
 		machineSet := ms.Items[0]
 		selectorMap, err = metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
@@ -399,6 +401,8 @@ func ScaleAndWaitMachineDeployment(ctx context.Context, input ScaleAndWaitMachin
 		}
 		if len(ms.Items) == 0 {
 			return -1, errors.New("no machinesets were found")
+		} else if len(ms.Items) > 1 {
+			return -1, errors.New("expected only one matching MachineSet from MachineDeployment selector")
 		}
 		machineSet := ms.Items[0]
 		selectorMap, err = metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
@@ -438,6 +442,7 @@ func ScaleAndWaitMachineDeploymentTopology(ctx context.Context, input ScaleAndWa
 	Expect(input.Cluster.Spec.Topology.Workers).ToNot(BeNil(), "Invalid argument. input.Cluster must have MachineDeployment topologies")
 	Expect(len(input.Cluster.Spec.Topology.Workers.MachineDeployments) >= 1).To(BeTrue(), "Invalid argument. input.Cluster must have at least one MachineDeployment topology")
 
+	// TODO Why are we always only choosing the first MachineDeployment here?
 	mdTopology := input.Cluster.Spec.Topology.Workers.MachineDeployments[0]
 	log.Logf("Scaling machine deployment topology %s from %d to %d replicas", mdTopology.Name, *mdTopology.Replicas, input.Replicas)
 	patchHelper, err := patch.NewHelper(input.Cluster, input.ClusterProxy.GetClient())

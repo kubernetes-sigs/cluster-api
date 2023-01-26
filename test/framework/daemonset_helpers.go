@@ -54,8 +54,10 @@ func WaitForKubeProxyUpgrade(ctx context.Context, input WaitForKubeProxyUpgradeI
 			return false, err
 		}
 
-		if ds.Spec.Template.Spec.Containers[0].Image == wantKubeProxyImage {
-			return true, nil
+		for _, c := range ds.Spec.Template.Spec.Containers {
+			if c.Image == wantKubeProxyImage {
+				return true, nil
+			}
 		}
 		return false, nil
 	}, intervals...).Should(BeTrue())

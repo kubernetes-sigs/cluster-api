@@ -53,6 +53,7 @@ func DiscoverMachineHealthChecksAndWaitForRemediation(ctx context.Context, input
 		Namespace:   input.Cluster.Namespace,
 	})
 
+	// TODO is this correct or can we be more specific and expect a length 1?
 	Expect(machineHealthChecks).NotTo(BeEmpty())
 
 	for _, mhc := range machineHealthChecks {
@@ -65,6 +66,7 @@ func DiscoverMachineHealthChecksAndWaitForRemediation(ctx context.Context, input
 			MachineHealthCheck: mhc,
 		})
 
+		// TODO is this correct or can we be more specific and expect a length 1?
 		Expect(machines).NotTo(BeEmpty())
 
 		fmt.Fprintln(GinkgoWriter, "Patching MachineHealthCheck unhealthy condition to one of the nodes")

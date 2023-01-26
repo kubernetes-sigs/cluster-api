@@ -221,7 +221,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         OutscaleProviderName,
-			url:          "https://github.com/outscale-dev/cluster-api-provider-outscale/releases/latest/infrastructure-components.yaml",
+			url:          "https://github.com/outscale/cluster-api-provider-outscale/releases/latest/infrastructure-components.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

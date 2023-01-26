@@ -21,7 +21,7 @@ This document introduces the concept of a release team with the following goals 
 
 Note that this document is intended to be a starting point for the release team. It is not a complete release process document.
 
-More details on the CAPI release process can be found in [this past issue tracking release tasks](https://github.com/kubernetes-sigs/cluster-api/issues/6615) and the current [release documentation](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/developer/releasing.md).
+More details on the CAPI release process can be found in the [release cycle](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-cycle.md) and [release task](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md) documentation.
 
 ## Duration of Term
 

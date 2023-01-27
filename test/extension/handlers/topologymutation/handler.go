@@ -80,7 +80,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 	log.Info("GeneratePatches is called")
 
 	// FIXME: validate variable values against variable schemas (just like in the webhook/reconciler today).
-	var userVariableValues []clusterv1.ClusterVariable
+	userVariableValues := []clusterv1.ClusterVariable{}
 	for _, v := range req.Variables {
 		if v.Name == patchvariables.BuiltinsName {
 			continue
@@ -90,6 +90,7 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 			Value: v.Value,
 		})
 	}
+	// FIXME: lowerlevel variable (MD) as well
 	errs := variables.ValidateClusterVariables(userVariableValues, api.VariableDefinitions, field.NewPath(""))
 	if len(errs) > 0 {
 		resp.Status = runtimehooksv1.ResponseStatusFailure
@@ -99,20 +100,17 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 	// By using WalkTemplates it is possible to implement patches using typed API objects, which makes code
 	// easier to read and less error prone than using unstructured or working with raw json/yaml.
 	// IMPORTANT: by unit testing this func/nested func properly, it is possible to prevent unexpected rollouts when patches are modified.
-	topologymutation.WalkTemplates(ctx, h.decoder, req, resp, func(ctx context.Context, obj runtime.Object, builtinVariable patchvariables.Builtins, variables interface{}, holderRef runtimehooksv1.HolderReference) error {
+	topologymutation.WalkTemplates(ctx, h.decoder, req, resp, &api.Variables{}, func(ctx context.Context, obj runtime.Object, builtinVariable *patchvariables.Builtins, variables interface{}, holderRef runtimehooksv1.HolderReference) error {
 		log := ctrl.LoggerFrom(ctx)
 
-		vars, ok := variables.(api.Variables)
+		vars, ok := variables.(*api.Variables)
 		if !ok {
 			return errors.Errorf("wrong variable type")
 		}
 
 		switch obj := obj.(type) {
 		case *infrav1.DockerClusterTemplate:
-			if err := patchDockerClusterTemplate(ctx, obj, builtinVariable, vars); err != nil {
-				log.Error(err, "error patching DockerClusterTemplate")
-				return errors.Wrap(err, "error patching DockerClusterTemplate")
-			}
+			patchDockerClusterTemplate(ctx, obj, builtinVariable, vars)
 		case *controlplanev1.KubeadmControlPlaneTemplate:
 			err := patchKubeadmControlPlaneTemplate(ctx, obj, builtinVariable, vars)
 			if err != nil {
@@ -145,11 +143,10 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 // patchDockerClusterTemplate patches the DockerClusterTemplate.
 // It sets the LoadBalancer.ImageRepository if the lbImageRepository variable is provided.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav1.DockerClusterTemplate, builtinVariable patchvariables.Builtins, variables api.Variables) error {
+func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav1.DockerClusterTemplate, _ *patchvariables.Builtins, variables *api.Variables) {
 	if variables.LBImageRepository != "" {
 		dockerClusterTemplate.Spec.Template.Spec.LoadBalancer.ImageRepository = variables.LBImageRepository
 	}
-	return nil
 }
 
 // patchKubeadmControlPlaneTemplate patches the ControlPlaneTemplate.
@@ -157,7 +154,7 @@ func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav
 // to work with older kind images.
 // It also sets the RolloutStrategy.RollingUpdate.MaxSurge if the kubeadmControlPlaneMaxSurge is provided.
 // NOTE: RolloutStrategy.RollingUpdate.MaxSurge patch is not required for any special reason, it is used for testing the patch machinery itself.
-func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlplanev1.KubeadmControlPlaneTemplate, builtinVariable patchvariables.Builtins, variables api.Variables) error {
+func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlplanev1.KubeadmControlPlaneTemplate, builtinVariable *patchvariables.Builtins, variables *api.Variables) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// 1) If the Kubernetes version from builtin.controlPlane.version is below 1.24.0 set "cgroup-driver": "cgroupfs" to
@@ -216,7 +213,7 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlp
 // patchKubeadmConfigTemplate patches the ControlPlaneTemplate.
 // Only for the templates linked to the default-worker MachineDeployment class, It sets KubeletExtraArgs["cgroup-driver"]
 // to cgroupfs for Kubernetes < 1.24; this patch is required for tests to work with older kind images.
-func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfigTemplate, builtinVariable patchvariables.Builtins, variables api.Variables) error {
+func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfigTemplate, builtinVariable *patchvariables.Builtins, _ *api.Variables) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// This is a required variable. Return an error if it's not found.
@@ -259,7 +256,7 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 // patchDockerMachineTemplate patches the DockerMachineTemplate.
 // It sets the CustomImage to an image for the version in use by the controlPlane or by the MachineDeployment
 // the DockerMachineTemplate belongs to. This patch is required to pick up the kind image with the required Kubernetes version.
-func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infrav1.DockerMachineTemplate, builtinVariable patchvariables.Builtins, variables api.Variables) error {
+func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infrav1.DockerMachineTemplate, builtinVariable *patchvariables.Builtins, _ *api.Variables) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// If the DockerMachineTemplate belongs to the ControlPlane, set the images using the ControlPlane version.
@@ -309,9 +306,10 @@ func (h *ExtensionHandlers) ValidateTopology(ctx context.Context, _ *runtimehook
 }
 
 // DiscoverVariables implements the HandlerFunc for the DiscoverVariables hook.
-// # Test via Tilt:
-// ## First terminal: kubectl proxy
-// ## Second terminal: curl -X 'POST' 'http://127.0.0.1:8001/api/v1/namespaces/test-extension-system/services/https:test-extension-webhook-service:443/proxy/hooks.runtime.cluster.x-k8s.io/v1alpha1/discovervariables/discover-variables' -d '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"DiscoverVariablesRequest"}' | jq
+// Can be tested via Tilt:
+// First terminal: kubectl proxy
+// Second terminal: curl -X 'POST' 'http://127.0.0.1:8001/api/v1/namespaces/test-extension-system/services/https:test-extension-webhook-service:443/proxy/hooks.runtime.cluster.x-k8s.io/v1alpha1/discovervariables/discover-variables' -d '{"apiVersion":"hooks.runtime.cluster.x-k8s.io/v1alpha1","kind":"DiscoverVariablesRequest"}' | jq
+// Should return the DiscoveryVariablesResponse.
 func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehooksv1.DiscoverVariablesRequest, resp *runtimehooksv1.DiscoverVariablesResponse) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("DiscoverVariables called")

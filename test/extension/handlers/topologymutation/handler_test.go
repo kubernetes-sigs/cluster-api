@@ -34,6 +34,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
+	"sigs.k8s.io/cluster-api/test/extension/api"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
 
@@ -53,9 +54,9 @@ func Test_patchDockerClusterTemplate(t *testing.T) {
 	tests := []struct {
 		name             string
 		template         *infrav1.DockerClusterTemplate
-		variables        map[string]apiextensionsv1.JSON
+		builtinVariables *variables.Builtins
+		variables        *api.Variables
 		expectedTemplate *infrav1.DockerClusterTemplate
-		expectedErr      bool
 	}{
 		{
 			name:             "no op if lbImageRepository is not set",
@@ -66,8 +67,8 @@ func Test_patchDockerClusterTemplate(t *testing.T) {
 		{
 			name:     "set LoadBalancer.ImageRepository if lbImageRepository is set",
 			template: &infrav1.DockerClusterTemplate{},
-			variables: map[string]apiextensionsv1.JSON{
-				"lbImageRepository": {Raw: toJSON("testImage")},
+			variables: &api.Variables{
+				LBImageRepository: "testImage",
 			},
 			expectedTemplate: &infrav1.DockerClusterTemplate{
 				Spec: infrav1.DockerClusterTemplateSpec{
@@ -86,12 +87,7 @@ func Test_patchDockerClusterTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := patchDockerClusterTemplate(context.Background(), tt.template, tt.variables)
-			if tt.expectedErr {
-				g.Expect(err).To(HaveOccurred())
-			} else {
-				g.Expect(err).ToNot(HaveOccurred())
-			}
+			patchDockerClusterTemplate(context.Background(), tt.template, tt.builtinVariables, tt.variables)
 			g.Expect(tt.template).To(Equal(tt.expectedTemplate))
 		})
 	}
@@ -103,7 +99,8 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 	tests := []struct {
 		name             string
 		template         *controlplanev1.KubeadmControlPlaneTemplate
-		variables        map[string]apiextensionsv1.JSON
+		builtinVariables *variables.Builtins
+		variables        *api.Variables
 		expectedTemplate *controlplanev1.KubeadmControlPlaneTemplate
 		expectedErr      bool
 	}{
@@ -117,12 +114,10 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 		{
 			name:     "sets KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes < 1.24",
 			template: &controlplanev1.KubeadmControlPlaneTemplate{},
-			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					ControlPlane: &variables.ControlPlaneBuiltins{
-						Version: "v1.23.0",
-					},
-				})},
+			builtinVariables: &variables.Builtins{
+				ControlPlane: &variables.ControlPlaneBuiltins{
+					Version: "v1.23.0",
+				},
 			},
 			expectedTemplate: &controlplanev1.KubeadmControlPlaneTemplate{
 				Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
@@ -148,25 +143,20 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 		{
 			name:     "do not set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes >= 1.24",
 			template: &controlplanev1.KubeadmControlPlaneTemplate{},
-			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					ControlPlane: &variables.ControlPlaneBuiltins{
-						Version: "v1.24.0",
-					},
-				})},
+			builtinVariables: &variables.Builtins{
+				ControlPlane: &variables.ControlPlaneBuiltins{
+					Version: "v1.24.0",
+				},
 			},
 			expectedTemplate: &controlplanev1.KubeadmControlPlaneTemplate{},
 		},
 		{
 			name:     "sets RolloutStrategy.RollingUpdate.MaxSurge if the kubeadmControlPlaneMaxSurge is provided",
 			template: &controlplanev1.KubeadmControlPlaneTemplate{},
-			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					ControlPlane: &variables.ControlPlaneBuiltins{
-						Version: "v1.24.0",
-					},
-				})},
-				"kubeadmControlPlaneMaxSurge": {Raw: toJSON("1")},
+			builtinVariables: &variables.Builtins{
+				ControlPlane: &variables.ControlPlaneBuiltins{
+					Version: "v1.24.0",
+				},
 			},
 			expectedTemplate: &controlplanev1.KubeadmControlPlaneTemplate{
 				Spec: controlplanev1.KubeadmControlPlaneTemplateSpec{
@@ -183,7 +173,7 @@ func Test_patchKubeadmControlPlaneTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := patchKubeadmControlPlaneTemplate(context.Background(), tt.template, tt.variables)
+			err := patchKubeadmControlPlaneTemplate(context.Background(), tt.template, tt.builtinVariables, tt.variables)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -200,7 +190,8 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 	tests := []struct {
 		name             string
 		template         *bootstrapv1.KubeadmConfigTemplate
-		variables        map[string]apiextensionsv1.JSON
+		builtinVariables *variables.Builtins
+		variables        *api.Variables
 		expectedTemplate *bootstrapv1.KubeadmConfigTemplate
 		expectedErr      bool
 	}{
@@ -214,24 +205,20 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 		{
 			name:     "no op for MachineDeployment class != default-worker",
 			template: &bootstrapv1.KubeadmConfigTemplate{},
-			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					MachineDeployment: &variables.MachineDeploymentBuiltins{
-						Class: "another-class",
-					},
-				})},
+			builtinVariables: &variables.Builtins{
+				MachineDeployment: &variables.MachineDeploymentBuiltins{
+					Class: "another-class",
+				},
 			},
 			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
 		},
 		{
 			name:     "fails if builtin.machineDeployment.version is not set for MachineDeployment class == default-worker",
 			template: &bootstrapv1.KubeadmConfigTemplate{},
-			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					MachineDeployment: &variables.MachineDeploymentBuiltins{
-						Class: "default-worker",
-					},
-				})},
+			builtinVariables: &variables.Builtins{
+				MachineDeployment: &variables.MachineDeploymentBuiltins{
+					Class: "default-worker",
+				},
 			},
 			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
 			expectedErr:      true,
@@ -239,13 +226,11 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 		{
 			name:     "set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes < 1.24 and MachineDeployment class == default-worker",
 			template: &bootstrapv1.KubeadmConfigTemplate{},
-			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					MachineDeployment: &variables.MachineDeploymentBuiltins{
-						Class:   "default-worker",
-						Version: "v1.23.0",
-					},
-				})},
+			builtinVariables: &variables.Builtins{
+				MachineDeployment: &variables.MachineDeploymentBuiltins{
+					Class:   "default-worker",
+					Version: "v1.23.0",
+				},
 			},
 			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{
 				Spec: bootstrapv1.KubeadmConfigTemplateSpec{
@@ -264,20 +249,18 @@ func Test_patchKubeadmConfigTemplate(t *testing.T) {
 		{
 			name:     "do not set KubeletExtraArgs[cgroup-driver] to cgroupfs for Kubernetes >= 1.24 and MachineDeployment class == default-worker",
 			template: &bootstrapv1.KubeadmConfigTemplate{},
-			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					MachineDeployment: &variables.MachineDeploymentBuiltins{
-						Class:   "default-worker",
-						Version: "v1.24.0",
-					},
-				})},
+			builtinVariables: &variables.Builtins{
+				MachineDeployment: &variables.MachineDeploymentBuiltins{
+					Class:   "default-worker",
+					Version: "v1.24.0",
+				},
 			},
 			expectedTemplate: &bootstrapv1.KubeadmConfigTemplate{},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := patchKubeadmConfigTemplate(context.Background(), tt.template, tt.variables)
+			err := patchKubeadmConfigTemplate(context.Background(), tt.template, tt.builtinVariables, tt.variables)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -294,7 +277,8 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 	tests := []struct {
 		name             string
 		template         *infrav1.DockerMachineTemplate
-		variables        map[string]apiextensionsv1.JSON
+		builtinVariables *variables.Builtins
+		variables        *api.Variables
 		expectedTemplate *infrav1.DockerMachineTemplate
 		expectedErr      bool
 	}{
@@ -308,12 +292,10 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 		{
 			name:     "sets customImage for templates linked to ControlPlane",
 			template: &infrav1.DockerMachineTemplate{},
-			variables: map[string]apiextensionsv1.JSON{
-				variables.BuiltinsName: {Raw: toJSON(variables.Builtins{
-					ControlPlane: &variables.ControlPlaneBuiltins{
-						Version: "v1.23.0",
-					},
-				})},
+			builtinVariables: &variables.Builtins{
+				ControlPlane: &variables.ControlPlaneBuiltins{
+					Version: "v1.23.0",
+				},
 			},
 			expectedTemplate: &infrav1.DockerMachineTemplate{
 				Spec: infrav1.DockerMachineTemplateSpec{
@@ -328,7 +310,7 @@ func Test_patchDockerMachineTemplate(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := patchDockerMachineTemplate(context.Background(), tt.template, tt.variables)
+			err := patchDockerMachineTemplate(context.Background(), tt.template, &variables.Builtins{}, tt.variables)
 			if tt.expectedErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

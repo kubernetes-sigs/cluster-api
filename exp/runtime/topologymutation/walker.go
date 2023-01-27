@@ -31,7 +31,6 @@ import (
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	patchvariables "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
-	"sigs.k8s.io/cluster-api/test/extension/api"
 )
 
 // WalkTemplatesOption is some configuration that modifies WalkTemplates behavior.
@@ -81,8 +80,8 @@ func (d PatchFormat) ApplyToWalkTemplates(in *WalkTemplatesOptions) {
 // Also, by using this func it is possible to ignore most of the details of the GeneratePatchesRequest
 // and GeneratePatchesResponse messages format and focus on writing patches/modifying the templates.
 func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehooksv1.GeneratePatchesRequest,
-	resp *runtimehooksv1.GeneratePatchesResponse, mutateFunc func(ctx context.Context, obj runtime.Object,
-		builtinVariable patchvariables.Builtins, variables interface{}, holderRef runtimehooksv1.HolderReference) error, opts ...WalkTemplatesOption) {
+	resp *runtimehooksv1.GeneratePatchesResponse, variablesType interface{}, mutateFunc func(ctx context.Context, obj runtime.Object,
+		builtinVariable *patchvariables.Builtins, variables interface{}, holderRef runtimehooksv1.HolderReference) error, opts ...WalkTemplatesOption) {
 	log := ctrl.LoggerFrom(ctx)
 	globalVariables := patchvariables.ToMap(req.Variables)
 
@@ -126,9 +125,8 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 			fmt.Println(err)
 		}
 
-		// FIXME: must be generic. Try generics?
-		var variablesValue api.Variables
-		if err := json.Unmarshal(variableValuesJSONAll, &variablesValue); err != nil {
+		// FIXME: just using variablesType directly is probably not clean enough
+		if err := json.Unmarshal(variableValuesJSONAll, &variablesType); err != nil {
 			fmt.Println(err)
 		}
 
@@ -170,7 +168,7 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 		// Calls the mutateFunc.
 		requestItemLog.V(4).Info("Generating patch for template")
 		modified := original.DeepCopyObject()
-		if err := mutateFunc(requestItemCtx, modified, builtinVariableValue, variablesValue, requestItem.HolderReference); err != nil {
+		if err := mutateFunc(requestItemCtx, modified, &builtinVariableValue, variablesType, requestItem.HolderReference); err != nil {
 			resp.Status = runtimehooksv1.ResponseStatusFailure
 			resp.Message = err.Error()
 			return

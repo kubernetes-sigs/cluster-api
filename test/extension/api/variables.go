@@ -29,10 +29,11 @@ var (
 	//go:embed zz_generated.variables.json
 	variableDefinitionsBytes []byte
 
+	// VariableDefinitions contains the variable definitions of this API.
 	VariableDefinitions []clusterv1.ClusterClassVariable
 )
 
-// Variables
+// Variables defines the schemas of the variables.
 // FIXME: how do we generate the schema types that we then want to return during variable discovery
 // * openapi-gen:
 //   - where do we get the following fields from: default, example, MaxItems++
@@ -43,7 +44,7 @@ var (
 //   - // +kubebuilder:validation:Enum
 //
 // * Let's explore which generator covers which fields and if both cover enough, how we can use them
-// * Result should be to get from those structs to clusterv1.JSONSchemaProps (either statically generated or at least at runtime)
+// * Result should be to get from those structs to clusterv1.JSONSchemaProps (either statically generated or at least at runtime).
 type Variables struct {
 	// LBImageRepository is the image repository of the load balancer.
 	// +kubebuilder:validation:Required

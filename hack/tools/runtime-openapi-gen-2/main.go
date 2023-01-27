@@ -41,7 +41,7 @@ var (
 	outputFile = flag.String("output-file", "zz_generated.variables.json", "Output file name.")
 )
 
-// FIXME: re-evaluate if we should still use openapi-gen in the other case
+// FIXME: re-evaluate if we should still use openapi-gen in the other case.
 func main() {
 	flag.Parse()
 
@@ -89,13 +89,6 @@ func run(paths, outputFile string) error {
 	if err = crdGen.RegisterMarkers(collector.Registry); err != nil {
 		return err
 	}
-	def, err := markers.MakeAnyTypeDefinition("kubebuilder:example", markers.DescribesField, Example{})
-	if err != nil {
-		return err
-	}
-	if err := collector.Registry.Register(def); err != nil {
-		return err
-	}
 
 	parser := &crd.Parser{
 		Collector: collector,
@@ -113,7 +106,7 @@ func run(paths, outputFile string) error {
 	}
 
 	kubeKinds := []schema.GroupKind{}
-	for typeIdent, _ := range parser.Types {
+	for typeIdent := range parser.Types {
 		// If we need another way to identify "variable structs": look at: crd.FindKubeKinds(parser, metav1Pkg)
 		if typeIdent.Name == "Variables" {
 			kubeKinds = append(kubeKinds, schema.GroupKind{
@@ -126,7 +119,6 @@ func run(paths, outputFile string) error {
 	// For inspiration: parser.NeedCRDFor(groupKind, nil)
 	var variables []clusterv1.ClusterClassVariable
 	for _, groupKind := range kubeKinds {
-
 		// Get package for the current GroupKind
 		var packages []*loader.Package
 		for pkg, gv := range parser.GroupVersions {
@@ -148,7 +140,7 @@ func run(paths, outputFile string) error {
 
 			parser.NeedFlattenedSchemaFor(typeIdent)
 			fullSchema := parser.FlattenedSchemata[typeIdent]
-			apiExtensionsSchema = &*fullSchema.DeepCopy() // don't mutate the cache (we might be truncating description, etc)
+			apiExtensionsSchema = fullSchema.DeepCopy() // don't mutate the cache (we might be truncating description, etc)
 		}
 
 		if apiExtensionsSchema == nil {
@@ -156,10 +148,10 @@ func run(paths, outputFile string) error {
 		}
 
 		for variableName, variableSchema := range apiExtensionsSchema.Properties {
-
-			openAPIV3Schema, errs := convertToJSONSchemaProps(&variableSchema, field.NewPath("schema"))
+			vs := variableSchema
+			openAPIV3Schema, errs := convertToJSONSchemaProps(&vs, field.NewPath("schema"))
 			if len(errs) > 0 {
-				// FIXME
+				return errs.ToAggregate()
 			}
 
 			variable := clusterv1.ClusterClassVariable{
@@ -179,13 +171,13 @@ func run(paths, outputFile string) error {
 		}
 	}
 
-	res, err := json.Marshal(variables)
+	res, err := json.MarshalIndent(variables, "", "  ")
 	if err != nil {
 		return err
 	}
 
 	if err := os.WriteFile(outputFile, res, 0600); err != nil {
-		return err
+		return errors.Wrapf(err, "failed to write generated file")
 	}
 
 	return nil
@@ -257,8 +249,4 @@ func convertToJSONSchemaProps(schema *apiextensionsv1.JSONSchemaProps, fldPath *
 	}
 
 	return props, allErrs
-}
-
-type Example struct {
-	Value interface{}
 }

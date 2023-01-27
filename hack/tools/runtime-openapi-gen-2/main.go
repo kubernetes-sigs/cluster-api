@@ -184,7 +184,9 @@ func run(paths, outputFile string) error {
 		return err
 	}
 
-	fmt.Println(string(res))
+	if err := os.WriteFile(outputFile, res, 0600); err != nil {
+		return err
+	}
 
 	return nil
 }

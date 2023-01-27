@@ -317,3 +317,11 @@ func (h *ExtensionHandlers) ValidateTopology(ctx context.Context, _ *runtimehook
 
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
 }
+
+// DiscoverVariables implements the HandlerFunc for the DiscoverVariables hook.
+func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehooksv1.ValidateTopologyRequest, resp *runtimehooksv1.ValidateTopologyResponse) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("ValidateTopology called")
+
+	resp.Status = runtimehooksv1.ResponseStatusSuccess
+}

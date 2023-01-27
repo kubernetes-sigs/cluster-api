@@ -131,7 +131,7 @@ COPY --from=tilt-helper /usr/bin/kubectl /usr/bin/kubectl
         # Add the ExtensionConfig for this Runtime extension; given that the ExtensionConfig can be installed only when capi_controller
         # are up and running, it is required to set a resource_deps to ensure proper install order.
         "additional_resources": [
-            "config/tilt/extensionconfig.yaml",
+            "tilt/extensionconfig.yaml",
         ],
         "resource_deps": ["capi_controller"],
     },

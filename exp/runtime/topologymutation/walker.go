@@ -91,6 +91,7 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 
 	// For all the templates in a request.
 	// TODO: add a notion of ordering the patch implementers can rely on. Ideally ordering could be pluggable via options.
+	//  An alternative is to provide functions to retrieve specific "templates", e.g. GetControlPlaneTemplate.
 	for _, requestItem := range req.Items {
 		// Computes the variables that apply to the template, by merging global and template variables.
 		templateVariables, err := patchvariables.MergeVariableMaps(globalVariables, patchvariables.ToMap(requestItem.Variables))

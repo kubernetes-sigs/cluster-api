@@ -75,7 +75,11 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("GeneratePatches is called")
 
-	// TODO: validate variables.
+	// Prereq: we have the variable definitions available in our Cluster API schema types (e.g. clusterv1.JSONSchemaProps)
+	// FIXME: validate variable values against variable schemas (just like in the webhook/reconciler today).
+
+	// FIXME: convert variable values to go types
+	// Note: We have to do this once for the Runtime Extension variables and once for the builtin variables.
 
 	// By using WalkTemplates it is possible to implement patches using typed API objects, which makes code
 	// easier to read and less error prone than using unstructured or working with raw json/yaml.

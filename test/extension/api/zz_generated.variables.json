@@ -1,1 +1,1 @@
-[{"name":"lbImageRepository","required":true,"schema":{"openAPIV3Schema":{"type":"string","default":"kindest"}}},{"name":"imageRepository","required":true,"schema":{"openAPIV3Schema":{"type":"string","default":"registry.k8s.io"}}}]
+[{"name":"lbImageRepository","required":true,"schema":{"openAPIV3Schema":{"type":"string","default":"kindest"}}},{"name":"imageRepository","required":true,"schema":{"openAPIV3Schema":{"type":"string","default":"registry.k8s.io"}}},{"name":"kubeadmControlPlaneMaxSurge","required":false,"schema":{"openAPIV3Schema":{"type":"string","default":""}}}]

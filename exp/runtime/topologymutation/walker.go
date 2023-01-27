@@ -19,6 +19,7 @@ package topologymutation
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	mergepatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
@@ -30,6 +31,7 @@ import (
 
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	patchvariables "sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
+	"sigs.k8s.io/cluster-api/test/extension/api"
 )
 
 // WalkTemplatesOption is some configuration that modifies WalkTemplates behavior.
@@ -80,7 +82,7 @@ func (d PatchFormat) ApplyToWalkTemplates(in *WalkTemplatesOptions) {
 // and GeneratePatchesResponse messages format and focus on writing patches/modifying the templates.
 func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehooksv1.GeneratePatchesRequest,
 	resp *runtimehooksv1.GeneratePatchesResponse, mutateFunc func(ctx context.Context, obj runtime.Object,
-		variables map[string]apiextensionsv1.JSON, holderRef runtimehooksv1.HolderReference) error, opts ...WalkTemplatesOption) {
+		builtinVariable patchvariables.Builtins, variables interface{}, holderRef runtimehooksv1.HolderReference) error, opts ...WalkTemplatesOption) {
 	log := ctrl.LoggerFrom(ctx)
 	globalVariables := patchvariables.ToMap(req.Variables)
 
@@ -99,6 +101,35 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 			resp.Status = runtimehooksv1.ResponseStatusFailure
 			resp.Message = err.Error()
 			return
+		}
+
+		// FIXME: convert variable values to go types
+		// godoc, handle errors, ...
+		variableValuesJSON := map[string]apiextensionsv1.JSON{}
+		var builtinVariableJSON apiextensionsv1.JSON
+		for variableName, variableValue := range templateVariables {
+			if variableName == patchvariables.BuiltinsName {
+				builtinVariableJSON = variableValue
+				continue
+			}
+
+			variableValuesJSON[variableName] = variableValue
+		}
+
+		variableValuesJSONAll, err := json.Marshal(variableValuesJSON)
+		if err != nil {
+			fmt.Println(err)
+		}
+
+		var builtinVariableValue patchvariables.Builtins
+		if err := json.Unmarshal(builtinVariableJSON.Raw, &builtinVariableValue); err != nil {
+			fmt.Println(err)
+		}
+
+		// FIXME: must be generic. Try generics?
+		var variablesValue api.Variables
+		if err := json.Unmarshal(variableValuesJSONAll, &variablesValue); err != nil {
+			fmt.Println(err)
 		}
 
 		// Convert the template object into a typed object.
@@ -139,7 +170,7 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 		// Calls the mutateFunc.
 		requestItemLog.V(4).Info("Generating patch for template")
 		modified := original.DeepCopyObject()
-		if err := mutateFunc(requestItemCtx, modified, templateVariables, requestItem.HolderReference); err != nil {
+		if err := mutateFunc(requestItemCtx, modified, builtinVariableValue, variablesValue, requestItem.HolderReference); err != nil {
 			resp.Status = runtimehooksv1.ResponseStatusFailure
 			resp.Message = err.Error()
 			return

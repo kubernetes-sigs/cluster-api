@@ -50,10 +50,17 @@ type Variables struct {
 	// +kubebuilder:default=kindest
 	LBImageRepository string `json:"lbImageRepository"`
 
-	// imageRepository sets the container registry to pull images from. If empty, `registry.k8s.io` will be used by default.
+	// ImageRepository sets the container registry to pull images from. If empty, `registry.k8s.io` will be used by default.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:default=registry.k8s.io
 	ImageRepository string `json:"imageRepository"`
+
+	// KubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines.
+	// FIXME: example is not supported at the moment
+	// +kubebuilder:default=""
+	// +kubebuilder:example="0"
+	// +optional
+	KubeadmControlPlaneMaxSurge string `json:"kubeadmControlPlaneMaxSurge,omitempty"`
 }
 
 func init() {

@@ -17,4 +17,5 @@ limitations under the License.
 // Package api contains the API of the Runtime Extension which is consists of its variable definitions
 // used for topology mutation hooks.
 // By writing variables as Go types the resulting code is cleaner, typesafe and easily testable.
+// +groupName=variables.cluster.x-k8s.io
 package api

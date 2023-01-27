@@ -18,19 +18,26 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
 
+	"github.com/pkg/errors"
 	flag "github.com/spf13/pflag"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-tools/pkg/crd"
-	"sigs.k8s.io/controller-tools/pkg/genall"
+	"sigs.k8s.io/controller-tools/pkg/loader"
 	"sigs.k8s.io/controller-tools/pkg/markers"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
 var (
-	paths      = flag.String("path", "", "Path with the variable definitions.")
+	paths      = flag.String("paths", "", "Paths with the variable types.")
 	outputFile = flag.String("output-file", "zz_generated.variables.json", "Output file name.")
 )
 
@@ -39,7 +46,7 @@ func main() {
 	flag.Parse()
 
 	if *paths == "" {
-		klog.Exit("--version must be specified")
+		klog.Exit("--paths must be specified")
 	}
 
 	if *outputFile == "" {
@@ -51,88 +58,205 @@ func main() {
 		klog.Exit("--output-file must have 'json' extension")
 	}
 
-	genName := "crd"
-	//var gen genall.Generator
-	gen := crd.Generator{}
-	optionsRegistry := &markers.Registry{}
-
-	// make the generator options marker itself
-	defn := markers.Must(markers.MakeDefinition(genName, markers.DescribesPackage, gen))
-	if err := optionsRegistry.Register(defn); err != nil {
-		panic(err)
-	}
-
 	// FIXME:
 	//  * compare clusterv1.JsonSchemaProps vs kubebuilder marker if something is missing
 	//   * example marker
 	//  * cleanup code here
-	if err := genall.RegisterOptionsMarkers(optionsRegistry); err != nil {
-		panic(err)
-	}
 
-	// otherwise, set up the runtime for actually running the generators
-	rt, err := genall.FromOptions(optionsRegistry, []string{"paths=./api/...", "crd"})
-	if err != nil {
+	if err := run(*paths, *outputFile); err != nil {
 		fmt.Println(err)
-		os.Exit(0)
+		os.Exit(1)
 	}
-
-	run(rt.GenerationContext, gen)
 
 	// FIXME: Current state
 	// * variable go type => apiextensionsv1.CustomResourceDefinition
 	// * apiextensionsv1.CustomResourceDefinition => clusterv1.JsonSchemaProps
 	// * Write schema as go structs to a file
 	// * Validate: existing util (clusterv1.JsonSchemaProps) => validation result
-
-	//
-	//for _, currentGen := range rt.Generators {
-	//	err := (*currentGen).Generate(&rt.GenerationContext)
-	//	if err != nil {
-	//		fmt.Println(err)
-	//	}
-	//}
-	//
-	//if hadErrs := rt.Run(); hadErrs {
-	//	// don't obscure the actual error with a bunch of usage
-	//	fmt.Println("err")
-	//	os.Exit(0)
-	//}
 }
 
-func run(ctx genall.GenerationContext, g crd.Generator) error {
+func run(paths, outputFile string) error {
+	crdGen := crd.Generator{}
+
+	roots, err := loader.LoadRoots(paths)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	collector := &markers.Collector{
+		Registry: &markers.Registry{},
+	}
+	if err = crdGen.RegisterMarkers(collector.Registry); err != nil {
+		return err
+	}
+	def, err := markers.MakeAnyTypeDefinition("kubebuilder:example", markers.DescribesField, Example{})
+	if err != nil {
+		return err
+	}
+	if err := collector.Registry.Register(def); err != nil {
+		return err
+	}
 
 	parser := &crd.Parser{
-		Collector: ctx.Collector,
-		Checker:   ctx.Checker,
-		// Perform defaulting here to avoid ambiguity later
-		IgnoreUnexportedFields: g.IgnoreUnexportedFields != nil && *g.IgnoreUnexportedFields == true,
-		AllowDangerousTypes:    g.AllowDangerousTypes != nil && *g.AllowDangerousTypes == true,
-		// Indicates the parser on whether to register the ObjectMeta type or not
-		GenerateEmbeddedObjectMeta: g.GenerateEmbeddedObjectMeta != nil && *g.GenerateEmbeddedObjectMeta == true,
+		Collector: collector,
+		Checker: &loader.TypeChecker{
+			NodeFilters: []loader.NodeFilter{crdGen.CheckFilter()},
+		},
+		IgnoreUnexportedFields:     true,
+		AllowDangerousTypes:        false,
+		GenerateEmbeddedObjectMeta: false,
 	}
 
 	crd.AddKnownTypes(parser)
-	for _, root := range ctx.Roots {
+	for _, root := range roots {
 		parser.NeedPackage(root)
 	}
 
-	metav1Pkg := crd.FindMetav1(ctx.Roots)
-	if metav1Pkg == nil {
-		// no objects in the roots, since nothing imported metav1
-		return nil
+	kubeKinds := []schema.GroupKind{}
+	for typeIdent, _ := range parser.Types {
+		// If we need another way to identify "variable structs": look at: crd.FindKubeKinds(parser, metav1Pkg)
+		if typeIdent.Name == "Variables" {
+			kubeKinds = append(kubeKinds, schema.GroupKind{
+				Group: parser.GroupVersions[typeIdent.Package].Group,
+				Kind:  typeIdent.Name,
+			})
+		}
 	}
 
-	kubeKinds := crd.FindKubeKinds(parser, metav1Pkg)
-	if len(kubeKinds) == 0 {
-		// no objects in the roots
-		return nil
-	}
+	// For inspiration: parser.NeedCRDFor(groupKind, nil)
+	var variables []clusterv1.ClusterClassVariable
 	for _, groupKind := range kubeKinds {
-		parser.NeedCRDFor(groupKind, g.MaxDescLen)
-		crdRaw := parser.CustomResourceDefinitions[groupKind]
-		fmt.Printf("%#v", crdRaw)
+
+		// Get package for the current GroupKind
+		var packages []*loader.Package
+		for pkg, gv := range parser.GroupVersions {
+			if gv.Group != groupKind.Group {
+				continue
+			}
+			packages = append(packages, pkg)
+		}
+
+		var apiExtensionsSchema *apiextensionsv1.JSONSchemaProps
+		for _, pkg := range packages {
+			typeIdent := crd.TypeIdent{Package: pkg, Name: groupKind.Kind}
+			typeInfo := parser.Types[typeIdent]
+
+			// Didn't find type in pkg.
+			if typeInfo == nil {
+				continue
+			}
+
+			parser.NeedFlattenedSchemaFor(typeIdent)
+			fullSchema := parser.FlattenedSchemata[typeIdent]
+			apiExtensionsSchema = &*fullSchema.DeepCopy() // don't mutate the cache (we might be truncating description, etc)
+		}
+
+		if apiExtensionsSchema == nil {
+			return errors.Errorf("Couldn't find schema for %s", groupKind)
+		}
+
+		for variableName, variableSchema := range apiExtensionsSchema.Properties {
+
+			openAPIV3Schema, errs := convertToJSONSchemaProps(&variableSchema, field.NewPath("schema"))
+			if len(errs) > 0 {
+				// FIXME
+			}
+
+			variable := clusterv1.ClusterClassVariable{
+				Name: variableName,
+				Schema: clusterv1.VariableSchema{
+					OpenAPIV3Schema: *openAPIV3Schema,
+				},
+			}
+
+			for _, requiredVariable := range apiExtensionsSchema.Required {
+				if variableName == requiredVariable {
+					variable.Required = true
+				}
+			}
+
+			variables = append(variables, variable)
+		}
 	}
+
+	res, err := json.Marshal(variables)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(string(res))
 
 	return nil
+}
+
+// JSONSchemaProps converts a apiextensions.JSONSchemaProp to a clusterv1.JSONSchemaProps.
+func convertToJSONSchemaProps(schema *apiextensionsv1.JSONSchemaProps, fldPath *field.Path) (*clusterv1.JSONSchemaProps, field.ErrorList) {
+	var allErrs field.ErrorList
+
+	props := &clusterv1.JSONSchemaProps{
+		Type:             schema.Type,
+		Required:         schema.Required,
+		MaxItems:         schema.MaxItems,
+		MinItems:         schema.MinItems,
+		UniqueItems:      schema.UniqueItems,
+		Format:           schema.Format,
+		MaxLength:        schema.MaxLength,
+		MinLength:        schema.MinLength,
+		Pattern:          schema.Pattern,
+		ExclusiveMaximum: schema.ExclusiveMaximum,
+		ExclusiveMinimum: schema.ExclusiveMinimum,
+		Default:          schema.Default,
+		Enum:             schema.Enum,
+		Example:          schema.Example,
+	}
+
+	if schema.Maximum != nil {
+		f := int64(*schema.Maximum)
+		props.Maximum = &f
+	}
+
+	if schema.Minimum != nil {
+		f := int64(*schema.Minimum)
+		props.Minimum = &f
+	}
+
+	if schema.AdditionalProperties != nil {
+		jsonSchemaProps, err := convertToJSONSchemaProps(schema.AdditionalProperties.Schema, fldPath.Child("additionalProperties"))
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("additionalProperties"), "",
+				fmt.Sprintf("failed to convert schema: %v", err)))
+		} else {
+			props.AdditionalProperties = jsonSchemaProps
+		}
+	}
+
+	if len(schema.Properties) > 0 {
+		props.Properties = map[string]clusterv1.JSONSchemaProps{}
+		for propertyName, propertySchema := range schema.Properties {
+			p := propertySchema
+			jsonSchemaProps, err := convertToJSONSchemaProps(&p, fldPath.Child("properties").Key(propertyName))
+			if err != nil {
+				allErrs = append(allErrs, field.Invalid(fldPath.Child("properties").Key(propertyName), "",
+					fmt.Sprintf("failed to convert schema: %v", err)))
+			} else {
+				props.Properties[propertyName] = *jsonSchemaProps
+			}
+		}
+	}
+
+	if schema.Items != nil {
+		jsonSchemaProps, err := convertToJSONSchemaProps(schema.Items.Schema, fldPath.Child("items"))
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(fldPath.Child("items"), "",
+				fmt.Sprintf("failed to convert schema: %v", err)))
+		} else {
+			props.Items = jsonSchemaProps
+		}
+	}
+
+	return props, allErrs
+}
+
+type Example struct {
+	Value interface{}
 }

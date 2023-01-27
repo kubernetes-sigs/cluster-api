@@ -32,12 +32,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
+	"sigs.k8s.io/cluster-api/internal/topology/variables"
+	"sigs.k8s.io/cluster-api/test/extension/api"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -75,7 +79,20 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("GeneratePatches is called")
 
-	// Prereq: we have the variable definitions available in our Cluster API schema types (e.g. clusterv1.JSONSchemaProps)
+	var userVariables []clusterv1.ClusterVariable
+	for _, variable := range req.Variables {
+		userVariables = append(userVariables, clusterv1.ClusterVariable{
+			Name:  variable.Name,
+			Value: variable.Value,
+		})
+	}
+	errs := variables.ValidateClusterVariables(userVariables, api.VariableDefinitions, field.NewPath(""))
+	if len(errs) > 0 {
+		// FIXME
+	}
+
+	fmt.Println(api.VariableDefinitions)
+
 	// FIXME: validate variable values against variable schemas (just like in the webhook/reconciler today).
 
 	// FIXME: convert variable values to go types
@@ -319,9 +336,10 @@ func (h *ExtensionHandlers) ValidateTopology(ctx context.Context, _ *runtimehook
 }
 
 // DiscoverVariables implements the HandlerFunc for the DiscoverVariables hook.
-func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehooksv1.ValidateTopologyRequest, resp *runtimehooksv1.ValidateTopologyResponse) {
+func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehooksv1.DiscoverVariablesRequest, resp *runtimehooksv1.DiscoverVariablesResponse) {
 	log := ctrl.LoggerFrom(ctx)
-	log.Info("ValidateTopology called")
+	log.Info("DiscoverVariables called")
 
+	resp.Variables = api.VariableDefinitions
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
 }

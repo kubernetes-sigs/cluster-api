@@ -16,6 +16,22 @@ limitations under the License.
 
 package api
 
+import (
+	_ "embed"
+	"encoding/json"
+
+	"github.com/pkg/errors"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+)
+
+var (
+	//go:embed zz_generated.variables.json
+	variableDefinitionsBytes []byte
+
+	VariableDefinitions []clusterv1.ClusterClassVariable
+)
+
 // Variables
 // FIXME: how do we generate the schema types that we then want to return during variable discovery
 // * openapi-gen:
@@ -41,5 +57,7 @@ type Variables struct {
 }
 
 func init() {
-	//Register("lbImageRepository", &Variables{})
+	if err := json.Unmarshal(variableDefinitionsBytes, &VariableDefinitions); err != nil {
+		panic(errors.Wrap(err, "failed to parse variable definitions"))
+	}
 }

@@ -179,7 +179,7 @@ func main() {
 	}
 
 	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
-		Hook:        runtimehooksv1.ValidateTopology, // FIXME once it exists
+		Hook:        runtimehooksv1.DiscoverVariables,
 		Name:        "discover-variables",
 		HandlerFunc: topologyMutationExtensionHandlers.DiscoverVariables,
 	}); err != nil {

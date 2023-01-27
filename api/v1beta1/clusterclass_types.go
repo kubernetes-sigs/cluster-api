@@ -556,6 +556,10 @@ type ClusterClassStatus struct {
 	// Conditions defines current observed state of the ClusterClass.
 	// +optional
 	Conditions Conditions `json:"conditions,omitempty"`
+
+	// ObservedGeneration is the latest generation observed by the controller.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // GetConditions returns the set of conditions for this object.

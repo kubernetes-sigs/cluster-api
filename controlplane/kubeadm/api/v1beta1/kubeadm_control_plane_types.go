@@ -208,7 +208,17 @@ type RemediationStrategy struct {
 	RetryPeriod metav1.Duration `json:"retryPeriod,omitempty"`
 
 	// MinHealthyPeriod defines the duration after which KCP will consider any failure to a machine unrelated
-	// from the previous one, and thus a new remediation is not considered a retry anymore.
+	// from the previous one. In this case the remediation is not considered a retry anymore, and thus the retry
+	// counter restarts from 0. For example, assuming MinHealthyPeriod is set to 1h (default)
+	//
+	//	M1 become unhealthy; remediation happens, and M1-1 is created as a replacement.
+	//	If M1-1 (replacement of M1) has problems within the 1hr after the creation, also
+	//	this machine will be remediated and this operation is considered a retry - a problem related
+	//	to the original issue happened to M1 -.
+	//
+	//	If instead the problem on M1-1 is happening after MinHealthyPeriod expired, e.g. four days after
+	//	m1-1 has been created as a remediation of M1, the problem on M1-1 is considered unrelated to
+	//	the original issue happened to M1.
 	//
 	// If not set, this value is defaulted to 1h.
 	// +optional

@@ -479,7 +479,8 @@ When `MaxSurge` is set to 0 the rollout algorithm is as follows:
     replacement for the previous machine is not yet created. 
   - The cluster MUST have no machines with a deletion timestamp. This rule prevents KCP taking actions while the cluster is in a transitional state.
   - Remediation MUST preserve etcd quorum. This rule ensures that we will not remove a member that would result in etcd
-    losing a majority of members and thus become unable to field new requests (note: this rule applies only to CP with at least replicas)
+    losing a majority of members and thus become unable to field new requests (note: this rule applies only to CP already
+    initialized and with managed etcd)
 
 - Additionally following opt-in safeguards will be put in place:
   - If we are remediating the same machine (delete, re-create, replacement machine gets unhealthy), it will be possible

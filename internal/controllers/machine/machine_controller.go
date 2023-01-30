@@ -216,7 +216,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
 		// the current cluster because of concurrent access.
 		if errors.Is(err, remote.ErrClusterLocked) {
-			log.V(5).Info("Requeueing because another worker has the lock on the ClusterCacheTracker")
+			log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
 			return ctrl.Result{Requeue: true}, nil
 		}
 		return res, err
@@ -227,7 +227,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
 	// the current cluster because of concurrent access.
 	if errors.Is(err, remote.ErrClusterLocked) {
-		log.V(5).Info("Requeueing because another worker has the lock on the ClusterCacheTracker")
+		log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
 		return ctrl.Result{Requeue: true}, nil
 	}
 	return res, err

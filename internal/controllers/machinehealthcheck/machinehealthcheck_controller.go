@@ -79,7 +79,7 @@ type Reconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
-	Filter           predicates.FilterFunc
+	Filter           predicates.Filter
 
 	controller controller.Controller
 	recorder   record.EventRecorder
@@ -132,7 +132,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		log.Error(err, "Failed to fetch MachineHealthCheck")
 		return ctrl.Result{}, err
 	}
-	if r.Filter != nil && !r.Filter(m) {
+	if r.Filter != nil && !r.Filter.Filter(m) {
 		return ctrl.Result{}, nil
 	}
 	log = log.WithValues("Cluster", klog.KRef(m.Namespace, m.Spec.ClusterName))

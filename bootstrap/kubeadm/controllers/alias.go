@@ -44,7 +44,7 @@ type KubeadmConfigReconciler struct {
 	WatchFilterValue string
 
 	// Filter checks if a KubeadmConfig object should be reconciled.
-	Filter predicates.FilterFunc
+	Filter predicates.Filter
 
 	// TokenTTL is the amount of time a bootstrap token (and therefore a KubeadmConfig) will be valid.
 	TokenTTL time.Duration

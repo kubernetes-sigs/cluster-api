@@ -52,7 +52,7 @@ type Reconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
-	Filter           predicates.FilterFunc
+	Filter           predicates.Filter
 
 	// UnstructuredCachingClient provides a client that forces caching of unstructured objects,
 	// thus allowing to optimize reads for templates or provider specific objects.
@@ -83,7 +83,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Error reading the object  - requeue the request.
 		return ctrl.Result{}, err
 	}
-	if r.Filter != nil && !r.Filter(clusterClass) {
+	if r.Filter != nil && !r.Filter.Filter(clusterClass) {
 		return ctrl.Result{}, nil
 	}
 	// Return early if the ClusterClass is paused.

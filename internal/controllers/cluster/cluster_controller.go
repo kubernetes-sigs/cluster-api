@@ -70,7 +70,7 @@ type Reconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
-	Filter           predicates.FilterFunc
+	Filter           predicates.Filter
 
 	recorder        record.EventRecorder
 	externalTracker external.ObjectTracker
@@ -114,7 +114,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	if r.Filter != nil && !r.Filter(cluster) {
+	if r.Filter != nil && !r.Filter.Filter(cluster) {
 		return ctrl.Result{}, nil
 	}
 

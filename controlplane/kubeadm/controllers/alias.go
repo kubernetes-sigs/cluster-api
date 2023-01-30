@@ -41,7 +41,7 @@ type KubeadmControlPlaneReconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 	// Filter checks if a KubeadmControlPlane object should be reconciled.
-	Filter predicates.FilterFunc
+	Filter predicates.Filter
 }
 
 // SetupWithManager sets up the reconciler with the Manager.

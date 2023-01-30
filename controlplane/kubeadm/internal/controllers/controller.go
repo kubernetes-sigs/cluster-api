@@ -75,7 +75,7 @@ type KubeadmControlPlaneReconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
-	Filter predicates.FilterFunc
+	Filter predicates.Filter
 
 	managementCluster         internal.ManagementCluster
 	managementClusterUncached internal.ManagementCluster
@@ -138,7 +138,7 @@ func (r *KubeadmControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.
 		return ctrl.Result{Requeue: true}, nil
 	}
 
-	if r.Filter != nil && !r.Filter(kcp) {
+	if r.Filter != nil && !r.Filter.Filter(kcp) {
 		return ctrl.Result{}, nil
 	}
 

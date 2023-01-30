@@ -86,7 +86,7 @@ type KubeadmConfigReconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
-	Filter predicates.FilterFunc
+	Filter predicates.Filter
 
 	// TokenTTL is the amount of time a bootstrap token (and therefore a KubeadmConfig) will be valid.
 	TokenTTL time.Duration
@@ -162,7 +162,7 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Error(err, "Failed to get config")
 		return ctrl.Result{}, err
 	}
-	if r.Filter != nil && !r.Filter(config) {
+	if r.Filter != nil && !r.Filter.Filter(config) {
 		return ctrl.Result{}, nil
 	}
 

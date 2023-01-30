@@ -63,7 +63,7 @@ type Reconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
-	Filter           predicates.FilterFunc
+	Filter           predicates.Filter
 
 	recorder record.EventRecorder
 }
@@ -119,7 +119,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
-	if r.Filter != nil && !r.Filter(deployment) {
+	if r.Filter != nil && !r.Filter.Filter(deployment) {
 		return ctrl.Result{}, nil
 	}
 	log = log.WithValues("Cluster", klog.KRef(deployment.Namespace, deployment.Spec.ClusterName))

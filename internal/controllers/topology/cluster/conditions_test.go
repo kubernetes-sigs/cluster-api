@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -46,6 +47,26 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			cluster:             &clusterv1.Cluster{},
 			wantConditionStatus: corev1.ConditionFalse,
 			wantConditionReason: clusterv1.TopologyReconcileFailedReason,
+			wantErr:             false,
+		},
+		{
+			name:    "should set the condition to false if the ClusterClass is out of date",
+			cluster: &clusterv1.Cluster{},
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					ClusterClass: &clusterv1.ClusterClass{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:       "class1",
+							Generation: 10,
+						},
+						Status: clusterv1.ClusterClassStatus{
+							ObservedGeneration: 999,
+						},
+					},
+				},
+			},
+			wantConditionStatus: corev1.ConditionFalse,
+			wantConditionReason: clusterv1.TopologyReconciledClusterClassNotReconciledReason,
 			wantErr:             false,
 		},
 		{

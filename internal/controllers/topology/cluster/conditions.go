@@ -37,6 +37,7 @@ func (r *Reconciler) reconcileConditions(s *scope.Scope, cluster *clusterv1.Clus
 // cluster are in sync with the topology defined in the cluster.
 // The condition is false under the following conditions:
 // - An error occurred during the reconcile process of the cluster topology.
+// - The ClusterClass has not been successfully reconciled with its current spec.
 // - The cluster upgrade has not yet propagated to all the components of the cluster.
 //   - For a managed topology cluster the version upgrade is propagated one component at a time.
 //     In such a case, since some of the component's spec would be adrift from the topology the
@@ -53,6 +54,22 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				clusterv1.ConditionSeverityError,
 				// TODO: Add a protection for messages continuously changing leading to Cluster object changes/reconcile.
 				reconcileErr.Error(),
+			),
+		)
+		return nil
+	}
+
+	// If the ClusterClass `metadata.Generation` doesn't match the `status.ObservedGeneration` requeue as the ClusterClass
+	// is not up to date.
+	if s.Blueprint != nil && s.Blueprint.ClusterClass != nil &&
+		s.Blueprint.ClusterClass.GetGeneration() != s.Blueprint.ClusterClass.Status.ObservedGeneration {
+		conditions.Set(
+			cluster,
+			conditions.FalseCondition(
+				clusterv1.TopologyReconciledCondition,
+				clusterv1.TopologyReconciledClusterClassNotReconciledReason,
+				clusterv1.ConditionSeverityInfo,
+				"ClusterClass is outdated. If this condition persists please check ClusterClass status.",
 			),
 		)
 		return nil

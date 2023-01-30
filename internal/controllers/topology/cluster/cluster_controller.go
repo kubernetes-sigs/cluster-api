@@ -175,26 +175,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, err
 	}
 
-	// Get ClusterClass.
-	clusterClass := &clusterv1.ClusterClass{}
-	key := client.ObjectKey{Name: cluster.Spec.Topology.Class, Namespace: cluster.Namespace}
-	if err := r.Client.Get(ctx, key, clusterClass); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve ClusterClass %s", cluster.Spec.Topology.Class)
-	}
-	// Default and Validate the Cluster based on information from the ClusterClass.
-	// This step is needed as if the ClusterClass does not exist at Cluster creation some fields may not be defaulted or
-	// validated in the webhook.
-	if errs := webhooks.DefaultVariables(cluster, clusterClass); len(errs) > 0 {
-		return ctrl.Result{}, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, errs)
-	}
-	if errs := webhooks.ValidateClusterForClusterClass(cluster, clusterClass, field.NewPath("spec", "topology")); len(errs) > 0 {
-		return ctrl.Result{}, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), cluster.Name, errs)
-	}
-
 	// Create a scope initialized with only the cluster; during reconcile
 	// additional information will be added about the Cluster blueprint, current state and desired state.
 	s := scope.New(cluster)
-	s.Blueprint.ClusterClass = clusterClass
 
 	defer func() {
 		if err := r.reconcileConditions(s, cluster, reterr); err != nil {
@@ -221,6 +204,31 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result, error) {
 	var err error
 
+	// Get ClusterClass.
+	clusterClass := &clusterv1.ClusterClass{}
+	key := client.ObjectKey{Name: s.Current.Cluster.Spec.Topology.Class, Namespace: s.Current.Cluster.Namespace}
+	if err := r.Client.Get(ctx, key, clusterClass); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve ClusterClass %s", s.Current.Cluster.Spec.Topology.Class)
+	}
+
+	s.Blueprint.ClusterClass = clusterClass
+	// If the ClusterClass `metadata.Generation` doesn't match the `status.ObservedGeneration` return as the ClusterClass
+	// is not up to date.
+	// Note: This doesn't require requeue as a change to ClusterClass observedGeneration will cause an additional reconcile
+	// in the Cluster.
+	if clusterClass.GetGeneration() != clusterClass.Status.ObservedGeneration {
+		return ctrl.Result{}, nil
+	}
+
+	// Default and Validate the Cluster based on information from the ClusterClass.
+	// This step is needed as if the ClusterClass does not exist at Cluster creation some fields may not be defaulted or
+	// validated in the webhook.
+	if errs := webhooks.DefaultVariables(s.Current.Cluster, clusterClass); len(errs) > 0 {
+		return ctrl.Result{}, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), s.Current.Cluster.Name, errs)
+	}
+	if errs := webhooks.ValidateClusterForClusterClass(s.Current.Cluster, clusterClass, field.NewPath("spec", "topology")); len(errs) > 0 {
+		return ctrl.Result{}, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), s.Current.Cluster.Name, errs)
+	}
 	// Gets the blueprint with the ClusterClass and the referenced templates
 	// and store it in the request scope.
 	s.Blueprint, err = r.getBlueprint(ctx, s.Current.Cluster, s.Blueprint.ClusterClass)

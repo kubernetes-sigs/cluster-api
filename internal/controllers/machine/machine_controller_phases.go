@@ -98,7 +98,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			log.Info("could not find external ref, requeueing", ref.Kind, klog.KRef(m.Namespace, ref.Name))
+			log.Info("could not find external ref, requeuing", ref.Kind, klog.KRef(m.Namespace, ref.Name))
 			return external.ReconcileOutput{RequeueAfter: externalReadyWait}, nil
 		}
 		return external.ReconcileOutput{}, err
@@ -251,7 +251,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 			m.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.InvalidConfigurationMachineError)
 			m.Status.FailureMessage = pointer.String(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
 				m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
-			return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q, requeueing", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
+			return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q, requeuing", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
 		}
 		return ctrl.Result{RequeueAfter: infraReconcileResult.RequeueAfter}, nil
 	}

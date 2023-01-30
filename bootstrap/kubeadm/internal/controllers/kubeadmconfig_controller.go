@@ -368,7 +368,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 
 	// if the machine has not ClusterConfiguration and InitConfiguration, requeue
 	if scope.Config.Spec.InitConfiguration == nil && scope.Config.Spec.ClusterConfiguration == nil {
-		scope.Info("Control plane is not ready, requeing joining control planes until ready.")
+		scope.Info("Control plane is not ready, requeuing joining control planes until ready.")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
@@ -381,7 +381,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 	// as control plane get processed here
 	// if not the first, requeue
 	if !r.KubeadmInitLock.Lock(ctx, scope.Cluster, machine) {
-		scope.Info("A control plane is already being initialized, requeing until control plane is ready")
+		scope.Info("A control plane is already being initialized, requeuing until control plane is ready")
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 

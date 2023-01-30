@@ -806,5 +806,6 @@ func autoConvert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta1_NodeRegistra
 	out.Taints = *(*[]corev1.Taint)(unsafe.Pointer(&in.Taints))
 	out.KubeletExtraArgs = *(*map[string]string)(unsafe.Pointer(&in.KubeletExtraArgs))
 	// WARNING: in.IgnorePreflightErrors requires manual conversion: does not exist in peer-type
+	// WARNING: in.ImagePullPolicy requires manual conversion: does not exist in peer-type
 	return nil
 }

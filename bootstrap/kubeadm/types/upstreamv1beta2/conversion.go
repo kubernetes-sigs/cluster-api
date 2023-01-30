@@ -92,3 +92,9 @@ func Convert_v1beta1_JoinConfiguration_To_upstreamv1beta2_JoinConfiguration(in *
 	// JoinConfiguration.Patches does not exist in kubeadm v1beta2 API
 	return autoConvert_v1beta1_JoinConfiguration_To_upstreamv1beta2_JoinConfiguration(in, out, s)
 }
+
+func Convert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta2_NodeRegistrationOptions(in *bootstrapv1.NodeRegistrationOptions, out *NodeRegistrationOptions, s apimachineryconversion.Scope) error {
+	// NodeRegistrationOptions.ImagePullPolicy does not exit in
+	// kubeadm v1beta2 API.
+	return autoConvert_v1beta1_NodeRegistrationOptions_To_upstreamv1beta2_NodeRegistrationOptions(in, out, s)
+}

@@ -81,7 +81,7 @@ func (d PatchFormat) ApplyToWalkTemplates(in *WalkTemplatesOptions) {
 // and GeneratePatchesResponse messages format and focus on writing patches/modifying the templates.
 func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehooksv1.GeneratePatchesRequest,
 	resp *runtimehooksv1.GeneratePatchesResponse, variablesType interface{}, mutateFunc func(ctx context.Context, obj runtime.Object,
-		builtinVariable *patchvariables.Builtins, variables interface{}, holderRef runtimehooksv1.HolderReference) error, opts ...WalkTemplatesOption) {
+	builtinVariable *patchvariables.Builtins, variables interface{}, holderRef runtimehooksv1.HolderReference) error, opts ...WalkTemplatesOption) {
 	log := ctrl.LoggerFrom(ctx)
 	globalVariables := patchvariables.ToMap(req.Variables)
 
@@ -102,6 +102,7 @@ func WalkTemplates(ctx context.Context, decoder runtime.Decoder, req *runtimehoo
 			return
 		}
 
+		// FIXME: let's do this for all variables before we actually call `mutateFunc`
 		// FIXME: convert variable values to go types
 		// godoc, handle errors, ...
 		variableValuesJSON := map[string]apiextensionsv1.JSON{}

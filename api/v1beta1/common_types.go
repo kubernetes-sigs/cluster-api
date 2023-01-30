@@ -120,6 +120,10 @@ const (
 	// instead of being a source of truth for eventual consistency.
 	// This annotation can be used to inform MachinePool status during in-progress scaling scenarios.
 	ReplicasManagedByAnnotation = "cluster.x-k8s.io/replicas-managed-by"
+
+	// VariableDefinitionFromInline indicates a patch or variable was defined in the `.spec` of a ClusterClass
+	// rather than from an external patch extension.
+	VariableDefinitionFromInline = "inline"
 )
 
 const (

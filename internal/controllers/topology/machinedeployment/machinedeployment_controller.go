@@ -52,6 +52,7 @@ type Reconciler struct {
 	// race conditions caused by an outdated cache.
 	APIReader        client.Reader
 	WatchFilterValue string
+	Filter           predicates.FilterFunc
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -98,7 +99,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get MachineDeployment/%s", req.NamespacedName.Name)
 	}
-
+	if r.Filter != nil && !r.Filter(md) {
+		return ctrl.Result{}, nil
+	}
 	log = log.WithValues("Cluster", klog.KRef(md.Namespace, md.Spec.ClusterName))
 	ctx = ctrl.LoggerInto(ctx, log)
 

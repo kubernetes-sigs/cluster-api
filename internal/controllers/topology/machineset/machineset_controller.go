@@ -54,6 +54,7 @@ type Reconciler struct {
 	// race conditions caused by an outdated cache.
 	APIReader        client.Reader
 	WatchFilterValue string
+	Filter           predicates.FilterFunc
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -98,7 +99,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get MachineSet/%s", req.NamespacedName.Name)
 	}
-
+	if r.Filter != nil && !r.Filter(ms) {
+		return ctrl.Result{}, nil
+	}
 	// AddOwners adds the owners of MachineSet as k/v pairs to the logger.
 	// Specifically, it will add MachineDeployment.
 	ctx, log, err := clog.AddOwners(ctx, r.Client, ms)

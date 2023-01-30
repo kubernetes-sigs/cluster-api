@@ -28,6 +28,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/labels"
 )
 
+type FilterFunc func(object client.Object) bool
+
 // All returns a predicate that returns true only if all given predicates return true.
 func All(logger logr.Logger, predicates ...predicate.Funcs) predicate.Funcs {
 	return predicate.Funcs{

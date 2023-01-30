@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	kubeadmbootstrapcontrollers "sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/controllers"
+	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 // Following types provides access to reconcilers implemented in internal/controllers, thus
@@ -42,6 +43,9 @@ type KubeadmConfigReconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
+	// Filter checks if a KubeadmConfig object should be reconciled.
+	Filter predicates.FilterFunc
+
 	// TokenTTL is the amount of time a bootstrap token (and therefore a KubeadmConfig) will be valid.
 	TokenTTL time.Duration
 }
@@ -51,6 +55,7 @@ func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 	return (&kubeadmbootstrapcontrollers.KubeadmConfigReconciler{
 		Client:           r.Client,
 		WatchFilterValue: r.WatchFilterValue,
+		Filter:           r.Filter,
 		TokenTTL:         r.TokenTTL,
 	}).SetupWithManager(ctx, mgr, options)
 }

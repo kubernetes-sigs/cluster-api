@@ -78,6 +78,7 @@ type Reconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
+	Filter           predicates.FilterFunc
 
 	recorder record.EventRecorder
 }
@@ -130,7 +131,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
-
+	if r.Filter != nil && !r.Filter(machineSet) {
+		return ctrl.Result{}, nil
+	}
 	// AddOwners adds the owners of MachineSet as k/v pairs to the logger.
 	// Specifically, it will add MachineDeployment.
 	ctx, log, err := clog.AddOwners(ctx, r.Client, machineSet)

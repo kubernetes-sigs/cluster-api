@@ -130,7 +130,7 @@ func Test_WalkTemplates(t *testing.T) {
 				CommonResponse: runtimehooksv1.CommonResponse{
 					Status: runtimehooksv1.ResponseStatusFailure,
 					Message: "no kind \"Unknown\" is registered for version \"controlplane.cluster.x-k8s." +
-						"io/v1beta1\" in scheme \"pkg/runtime/scheme.go:100\"",
+						"io/v1beta1\" in scheme",
 				},
 			},
 			options: []WalkTemplatesOption{
@@ -225,7 +225,7 @@ func Test_WalkTemplates(t *testing.T) {
 			WalkTemplates(context.Background(), decoder, request, response, mutatingFunc, tt.options...)
 
 			g.Expect(response.Status).To(Equal(tt.expectedResponse.Status))
-			g.Expect(response.Message).To(Equal(tt.expectedResponse.Message))
+			g.Expect(response.Message).To(ContainSubstring(tt.expectedResponse.Message))
 			for i, item := range response.Items {
 				expectedItem := tt.expectedResponse.Items[i]
 				g.Expect(item.PatchType).To(Equal(expectedItem.PatchType))

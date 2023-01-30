@@ -77,7 +77,7 @@ func runPause(cfgFile string, args []string) error {
 		return err
 	}
 
-	return c.RolloutPause(client.RolloutOptions{
+	return c.RolloutPause(client.RolloutPauseOptions{
 		Kubeconfig: client.Kubeconfig{Path: pauseOpt.kubeconfig, Context: pauseOpt.kubeconfigContext},
 		Namespace:  pauseOpt.namespace,
 		Resources:  pauseOpt.resources,

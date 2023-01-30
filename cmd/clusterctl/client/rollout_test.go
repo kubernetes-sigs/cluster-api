@@ -28,80 +28,6 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
 
-type rolloutTest struct {
-	name    string
-	fields  fields
-	args    args
-	wantErr bool
-}
-type fields struct {
-	client *fakeClient
-}
-type args struct {
-	options RolloutOptions
-}
-
-// genericTestCases are test cases that can be passed to any of the rollout subcommands.
-func genericTestCases() []rolloutTest {
-	return []rolloutTest{
-		{
-			name: "return an error if machinedeployment is not found",
-			fields: fields{
-				client: fakeClientForRollout(),
-			},
-			args: args{
-				options: RolloutOptions{
-					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					Resources:  []string{"machinedeployment/foo"},
-					Namespace:  "default",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "return error if one of the machinedeployments is not found",
-			fields: fields{
-				client: fakeClientForRollout(),
-			},
-			args: args{
-				options: RolloutOptions{
-					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					Resources:  []string{"machinedeployment/md-1", "machinedeployment/md-does-not-exist"},
-					Namespace:  "default",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "return error if unknown resource specified",
-			fields: fields{
-				client: fakeClientForRollout(),
-			},
-			args: args{
-				options: RolloutOptions{
-					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					Resources:  []string{"foo/bar"},
-					Namespace:  "default",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "return error if no resource specified",
-			fields: fields{
-				client: fakeClientForRollout(),
-			},
-			args: args{
-				options: RolloutOptions{
-					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
-					Namespace:  "default",
-				},
-			},
-			wantErr: true,
-		},
-	}
-}
-
 func fakeClientForRollout() *fakeClient {
 	core := config.NewProvider("cluster-api", "https://somewhere.com", clusterctlv1.CoreProviderType)
 	infra := config.NewProvider("infra", "https://somewhere.com", clusterctlv1.InfrastructureProviderType)
@@ -142,15 +68,80 @@ func fakeClientForRollout() *fakeClient {
 }
 
 func Test_clusterctlClient_RolloutRestart(t *testing.T) {
-	tests := genericTestCases()
-	additionalTests := []rolloutTest{
+	type fields struct {
+		client *fakeClient
+	}
+	type args struct {
+		options RolloutRestartOptions
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "return an error if machinedeployment is not found",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutRestartOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"machinedeployment/foo"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "return error if one of the machinedeployments is not found",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutRestartOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"machinedeployment/md-1", "machinedeployment/md-does-not-exist"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "return error if unknown resource specified",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutRestartOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"foo/bar"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "return error if no resource specified",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutRestartOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
 		{
 			name: "do not return error if machinedeployment found",
 			fields: fields{
 				client: fakeClientForRollout(),
 			},
 			args: args{
-				options: RolloutOptions{
+				options: RolloutRestartOptions{
 					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					Resources:  []string{"machinedeployment/md-1"},
 					Namespace:  "default",
@@ -164,7 +155,7 @@ func Test_clusterctlClient_RolloutRestart(t *testing.T) {
 				client: fakeClientForRollout(),
 			},
 			args: args{
-				options: RolloutOptions{
+				options: RolloutRestartOptions{
 					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 					Resources:  []string{"machinedeployment/md-1", "machinedeployment/md-2"},
 					Namespace:  "default",
@@ -173,8 +164,6 @@ func Test_clusterctlClient_RolloutRestart(t *testing.T) {
 			wantErr: false,
 		},
 	}
-
-	tests = append(tests, additionalTests...)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -191,7 +180,74 @@ func Test_clusterctlClient_RolloutRestart(t *testing.T) {
 }
 
 func Test_clusterctlClient_RolloutPause(t *testing.T) {
-	tests := genericTestCases()
+	type fields struct {
+		client *fakeClient
+	}
+	type args struct {
+		options RolloutPauseOptions
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "return an error if machinedeployment is not found",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutPauseOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"machinedeployment/foo"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "return error if one of the machinedeployments is not found",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutPauseOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"machinedeployment/md-1", "machinedeployment/md-does-not-exist"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "return error if unknown resource specified",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutPauseOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"foo/bar"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "return error if no resource specified",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutPauseOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
@@ -207,7 +263,74 @@ func Test_clusterctlClient_RolloutPause(t *testing.T) {
 }
 
 func Test_clusterctlClient_RolloutResume(t *testing.T) {
-	tests := genericTestCases()
+	type fields struct {
+		client *fakeClient
+	}
+	type args struct {
+		options RolloutResumeOptions
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "return an error if machinedeployment is not found",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutResumeOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"machinedeployment/foo"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "return error if one of the machinedeployments is not found",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutResumeOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"machinedeployment/md-1", "machinedeployment/md-does-not-exist"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "return error if unknown resource specified",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutResumeOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Resources:  []string{"foo/bar"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "return error if no resource specified",
+			fields: fields{
+				client: fakeClientForRollout(),
+			},
+			args: args{
+				options: RolloutResumeOptions{
+					Kubeconfig: Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
+					Namespace:  "default",
+				},
+			},
+			wantErr: true,
+		},
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)

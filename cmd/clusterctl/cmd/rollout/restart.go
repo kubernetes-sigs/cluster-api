@@ -76,7 +76,7 @@ func runRestart(cfgFile string, _ *cobra.Command, args []string) error {
 		return err
 	}
 
-	return c.RolloutRestart(client.RolloutOptions{
+	return c.RolloutRestart(client.RolloutRestartOptions{
 		Kubeconfig: client.Kubeconfig{Path: restartOpt.kubeconfig, Context: restartOpt.kubeconfigContext},
 		Namespace:  restartOpt.namespace,
 		Resources:  restartOpt.resources,

@@ -29,3 +29,9 @@ spec:
     variables:
       - name: kubeadmControlPlaneMaxSurge
         value: "1"
+      # imageRepository has definitions for both an inline patch and the test-patch. This value is required in the
+      # test-patch and requires definitionFrom to reflect that.
+      - name: imageRepository
+        definitionFrom: test-patch
+        value: "kindest"
+

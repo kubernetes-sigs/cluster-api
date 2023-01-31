@@ -34,6 +34,7 @@ import (
 	intstrutil "k8s.io/apimachinery/pkg/util/intstr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -119,15 +120,15 @@ func (h *ExtensionHandlers) GeneratePatches(ctx context.Context, req *runtimehoo
 }
 
 // patchDockerClusterTemplate patches the DockerClusterTemplate.
-// It sets the LoadBalancer.ImageRepository if the lbImageRepository variable is provided.
+// It sets the LoadBalancer.ImageRepository if the imageRepository variable is provided.
 // NOTE: this patch is not required for any special reason, it is used for testing the patch machinery itself.
 func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav1.DockerClusterTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
-	lbImageRepo, found, err := topologymutation.GetStringVariable(templateVariables, "lbImageRepository")
+	imageRepo, found, err := topologymutation.GetStringVariable(templateVariables, "imageRepository")
 	if err != nil {
 		return errors.Wrap(err, "could not set DockerClusterTemplate loadBalancer imageRepository")
 	}
 	if found {
-		dockerClusterTemplate.Spec.Template.Spec.LoadBalancer.ImageRepository = lbImageRepo
+		dockerClusterTemplate.Spec.Template.Spec.LoadBalancer.ImageRepository = imageRepo
 	}
 	return nil
 }
@@ -312,4 +313,37 @@ func (h *ExtensionHandlers) ValidateTopology(ctx context.Context, _ *runtimehook
 	log.Info("ValidateTopology called")
 
 	resp.Status = runtimehooksv1.ResponseStatusSuccess
+}
+
+// DiscoverVariables implements the HandlerFunc for the DiscoverVariables hook.
+func (h *ExtensionHandlers) DiscoverVariables(ctx context.Context, _ *runtimehooksv1.DiscoverVariablesRequest, resp *runtimehooksv1.DiscoverVariablesResponse) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("DiscoverVariables called")
+
+	resp.Status = runtimehooksv1.ResponseStatusSuccess
+	resp.Variables = []clusterv1.ClusterClassVariable{
+		{
+			Name:     "kubeadmControlPlaneMaxSurge",
+			Required: false,
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type:        "string",
+					Default:     &apiextensionsv1.JSON{Raw: []byte(`""`)},
+					Example:     &apiextensionsv1.JSON{Raw: []byte(`""`)},
+					Description: "kubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines.",
+				},
+			},
+		},
+		// This variable must be set in the Cluster as it has no default value and is required.
+		{
+			Name:     "imageRepository",
+			Required: true,
+			Schema: clusterv1.VariableSchema{
+				OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+					Type:    "string",
+					Example: &apiextensionsv1.JSON{Raw: []byte(`"kindest"`)},
+				},
+			},
+		},
+	}
 }

@@ -109,17 +109,20 @@ type MachineHealthCheckStatus struct {
 	// total number of machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
 	// +optional
+	// +Metrics:gauge:name="status_expected_machines",help="Total number of machines counted by this machinehealthcheck.",nilIsZero=true
 	ExpectedMachines int32 `json:"expectedMachines"`
 
 	// total number of healthy machines counted by this machine health check
 	// +kubebuilder:validation:Minimum=0
 	// +optional
+	// +Metrics:gauge:name="status_current_healthy",help="Current number of healthy machines.",nilIsZero=true
 	CurrentHealthy int32 `json:"currentHealthy"`
 
 	// RemediationsAllowed is the number of further remediations allowed by this machine health check before
 	// maxUnhealthy short circuiting will be applied
 	// +kubebuilder:validation:Minimum=0
 	// +optional
+	// +Metrics:gauge:name="status_remediations_allowed",help="Number of machine remediations that are currently allowed.",nilIsZero=true
 	RemediationsAllowed int32 `json:"remediationsAllowed"`
 
 	// ObservedGeneration is the latest generation observed by the controller.
@@ -132,6 +135,7 @@ type MachineHealthCheckStatus struct {
 
 	// Conditions defines current service state of the MachineHealthCheck.
 	// +optional
+	// +Metrics:stateset:name="status_condition",help="The condition of a machinehealthcheck.",labelName="status",JSONPath={"status"},list={"True","False","Unknown"},labelsFromPath={"type":{"type"}}
 	Conditions Conditions `json:"conditions,omitempty"`
 }
 
@@ -148,8 +152,16 @@ type MachineHealthCheckStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of MachineHealthCheck"
 
 // MachineHealthCheck is the Schema for the machinehealthchecks API.
+// +Metrics:namePrefix="capi_machinehealthcheck"
+// +Metrics:labelFromPath:name="name",JSONPath={"metadata","name"}
+// +Metrics:labelFromPath:name="namespace",JSONPath={"metadata","namespace"}
+// +Metrics:labelFromPath:name="uid",JSONPath={"metadata","uid"}
+// +Metrics:labelFromPath:name="cluster_name",JSONPath={"spec","clusterName"}
 type MachineHealthCheck struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +Metrics:gauge:name="created",JSONPath={"creationTimestamp"},help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath={"annotations","cluster.x-k8s.io/paused"},help="Whether the machinehealthcheck is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:{}}
+	// +Metrics:info:name="owner",JSONPath={"ownerReferences"},help="Owner references.",labelsFromPath={owner_is_controller:{controller},owner_kind:{kind},owner_name:{name},owner_uid:{uid}}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Specification of machine health check policy

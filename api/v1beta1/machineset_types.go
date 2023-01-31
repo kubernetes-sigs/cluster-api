@@ -44,6 +44,7 @@ type MachineSetSpec struct {
 	// Defaults to 1.
 	// +optional
 	// +kubebuilder:default=1
+	// +Metrics:gauge:name="spec_replicas",help="The number of desired machines for a machineset.",nilIsZero=true
 	Replicas *int32 `json:"replicas,omitempty"`
 
 	// MinReadySeconds is the minimum number of seconds for which a Node for a newly created machine should be ready before considering the replica available.
@@ -128,18 +129,22 @@ type MachineSetStatus struct {
 
 	// Replicas is the most recently observed number of replicas.
 	// +optional
+	// +Metrics:gauge:name="status_replicas",help="The number of replicas per machineset.",nilIsZero=true
 	Replicas int32 `json:"replicas"`
 
 	// The number of replicas that have labels matching the labels of the machine template of the MachineSet.
 	// +optional
+	// +Metrics:gauge:name="status_fully_labeled_replicas",help="The number of fully labeled replicas per machineset.",nilIsZero=true
 	FullyLabeledReplicas int32 `json:"fullyLabeledReplicas"`
 
 	// The number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
 	// +optional
+	// +Metrics:gauge:name="status_ready_replicas",help="The number of ready replicas per machineset.",nilIsZero=true
 	ReadyReplicas int32 `json:"readyReplicas"`
 
 	// The number of available replicas (ready for at least minReadySeconds) for this MachineSet.
 	// +optional
+	// +Metrics:gauge:name="status_available_replicas",help="The number of available replicas per machineset.",nilIsZero=true
 	AvailableReplicas int32 `json:"availableReplicas"`
 
 	// ObservedGeneration reflects the generation of the most recently observed MachineSet.
@@ -170,6 +175,7 @@ type MachineSetStatus struct {
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions defines current service state of the MachineSet.
 	// +optional
+	// +Metrics:stateset:name="status_condition",help="The condition of a machineset.",labelName="status",JSONPath={"status"},list={"True","False","Unknown"},labelsFromPath={"type":{"type"}}
 	Conditions Conditions `json:"conditions,omitempty"`
 }
 
@@ -212,8 +218,16 @@ func (m *MachineSet) Validate() field.ErrorList {
 // +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".spec.template.spec.version",description="Kubernetes version associated with this MachineSet"
 
 // MachineSet is the Schema for the machinesets API.
+// +Metrics:namePrefix="capi_machineset"
+// +Metrics:labelFromPath:name="name",JSONPath={"metadata","name"}
+// +Metrics:labelFromPath:name="namespace",JSONPath={"metadata","namespace"}
+// +Metrics:labelFromPath:name="uid",JSONPath={"metadata","uid"}
+// +Metrics:labelFromPath:name="cluster_name",JSONPath={"spec","clusterName"}
 type MachineSet struct {
-	metav1.TypeMeta   `json:",inline"`
+	metav1.TypeMeta `json:",inline"`
+	// +Metrics:gauge:name="created",JSONPath={"creationTimestamp"},help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath={"annotations","cluster.x-k8s.io/paused"},help="Whether the machineset is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:{}}
+	// +Metrics:info:name="owner",JSONPath={"ownerReferences"},help="Owner references.",labelsFromPath={owner_is_controller:{controller},owner_kind:{kind},owner_name:{name},owner_uid:{uid}}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   MachineSetSpec   `json:"spec,omitempty"`

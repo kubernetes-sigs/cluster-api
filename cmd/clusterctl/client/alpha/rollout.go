@@ -34,6 +34,10 @@ var validResourceTypes = []string{
 	KubeadmControlPlane,
 }
 
+var validRollbackResourceTypes = []string{
+	MachineDeployment,
+}
+
 // Rollout defines the behavior of a rollout implementation.
 type Rollout interface {
 	ObjectRestarter(cluster.Proxy, corev1.ObjectReference) error

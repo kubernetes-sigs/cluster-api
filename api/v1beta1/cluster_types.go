@@ -493,6 +493,7 @@ func (v APIEndpoint) String() string {
 // +Metrics:labelFromPath:name="name",JSONPath={"metadata","name"}
 // +Metrics:labelFromPath:name="namespace",JSONPath={"metadata","namespace"}
 // +Metrics:labelFromPath:name="uid",JSONPath={"metadata","uid"}
+// +Metrics:info:name="info",help="Information about a cluster.",labelsFromPath={topology_version:{"spec","topology","version"},topology_class:{"spec","topology","class"},control_plane_endpoint_host:{"spec","controlPlaneEndpoint","host"},control_plane_endpoint_port:{"spec","controlPlaneEndpoint","port"},control_plane_reference_kind:{"spec","controlPlaneRef","kind"},control_plane_reference_name:{"spec","controlPlaneRef","name"},infrastructure_reference_kind:{"spec","infrastructureRef","kind"},infrastructure_reference_name:{"spec","infrastructureRef","name"}}
 type Cluster struct {
 	metav1.TypeMeta `json:",inline"`
 	// +Metrics:gauge:name="created",JSONPath={"creationTimestamp"},help="Unix creation timestamp."

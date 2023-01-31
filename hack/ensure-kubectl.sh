@@ -22,6 +22,10 @@ if [[ "${TRACE-0}" == "1" ]]; then
     set -o xtrace
 fi
 
+
+# shellcheck source=./hack/utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
+
 GOPATH_BIN="$(go env GOPATH)/bin/"
 MINIMUM_KUBECTL_VERSION=v1.19.0
 goarch="$(go env GOARCH)"
@@ -39,6 +43,7 @@ verify_kubectl_version() {
       echo 'kubectl not found, installing'
       curl -sLo "${GOPATH_BIN}/kubectl" "https://dl.k8s.io/release/${MINIMUM_KUBECTL_VERSION}/bin/${goos}/${goarch}/kubectl"
       chmod +x "${GOPATH_BIN}/kubectl"
+      verify_gopath_bin
     else
       echo "Missing required binary in path: kubectl"
       return 2

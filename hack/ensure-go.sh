@@ -22,6 +22,9 @@ if [[ "${TRACE-0}" == "1" ]]; then
     set -o xtrace
 fi
 
+# shellcheck source=./hack/utils.sh
+source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
+
 # Ensure the go tool exists and is a viable version.
 verify_go_version() {
   if [[ -z "$(command -v go)" ]]; then
@@ -46,7 +49,9 @@ EOF
   fi
 }
 
+
 verify_go_version
+verify_gopath_bin
 
 # Explicitly opt into go modules, even though we're inside a GOPATH directory
 export GO111MODULE=on

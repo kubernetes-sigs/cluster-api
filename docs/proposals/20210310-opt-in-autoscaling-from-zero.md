@@ -13,7 +13,7 @@ reviewers:
   - "@randomvariable"
   - "@joelspeed"
 creation-date: 2021-03-10
-last-updated: 2021-08-24
+last-updated: 2023-01-31
 status: implementable
 ---
 
@@ -221,8 +221,23 @@ metadata:
       capacity.cluster-autoscaler.kubernetes.io/gpu-type: "nvidia.com/gpu"
       capacity.cluster-autoscaler.kubernetes.io/memory: "500mb"
       capacity.cluster-autoscaler.kubernetes.io/cpu: "1"
+      capacity.cluster-autoscaler.kubernetes.io/ephemeral-disk: "100Gi"
 ```
 _Note: the annotations will be defined in the cluster autoscaler, not in cluster-api._
+
+**Node Labels and Taints**
+
+When a user would like to signal that the node being created from a MachineSet or
+MachineDeployment will have specific taints or labels on it, they can use the following
+annotations to specify that information.
+
+```
+kind: <MachineSet or MachineDeployment>
+metadata:
+  annotations:
+    capacity.cluster-autoscaler.kubernetes.io/labels: "key1=value1,key2=value2"
+    capacity.cluster-autoscaler.kubernetes.io/taints: "key1=value1:NoSchedule,key2=value2:NoExecute"
+```
 
 ### Security Model
 
@@ -286,6 +301,7 @@ the cluster autoscaler and Cluster API have resolved more.
 
 ## Implementation History
 
+- [X] 01/31/2023: Updated proposal to include annotation changes
 - [X] 06/10/2021: Proposed idea in an issue or [community meeting]
 - [X] 03/04/2020: Previous pull request for [Add cluster autoscaler scale from zero ux proposal](https://github.com/kubernetes-sigs/cluster-api/pull/2530)
 - [X] 10/07/2020: First round of feedback from community [initial proposal]

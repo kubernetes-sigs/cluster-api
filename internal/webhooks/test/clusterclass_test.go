@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,6 +30,32 @@ import (
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
+const (
+	workerClassName1 = "linux-worker"
+	workerClassName2 = "windows-worker"
+
+	infrastructureClusterTemplateName1 = "infrastructureclustertemplate1"
+	infrastructureClusterTemplateName2 = "infracluster2"
+
+	controlPlaneTemplateName1 = "controlplanetemplate1"
+
+	infrastructureMachineTemplateName1 = "infrastructuremachinetemplate1"
+	infrastructureMachineTemplateName2 = "infrastructuremachinetemplate2"
+
+	clusterClassName1 = "clusterclass1"
+	clusterClassName2 = "clusterclass2"
+	clusterClassName3 = "clusterclass3"
+	clusterClassName4 = "clusterclass4"
+	clusterClassName5 = "clusterclass5"
+
+	clusterName1 = "cluster1"
+	clusterName2 = "cluster2"
+	clusterName3 = "cluster3"
+	clusterName4 = "cluster4"
+
+	bootstrapTemplateName1 = "bootstraptemplate1"
+)
+
 // TestClusterClassWebhook_Succeed_Create tests the correct creation behaviour for a valid ClusterClass.
 func TestClusterClassWebhook_Succeed_Create(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
@@ -36,27 +63,26 @@ func TestClusterClassWebhook_Succeed_Create(t *testing.T) {
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
 	g.Expect(err).ToNot(HaveOccurred())
-
 	// Create the objects needed for the integration test:
 	// - a ClusterClass with all the related templates
-	clusterClass1 := builder.ClusterClass(ns.Name, "class1").
+	clusterClass1 := builder.ClusterClass(ns.Name, clusterClassName1).
 		WithInfrastructureClusterTemplate(
-			builder.InfrastructureClusterTemplate(ns.Name, "inf").Build()).
+			builder.InfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()).
 		WithControlPlaneTemplate(
-			builder.ControlPlaneTemplate(ns.Name, "cp1").
+			builder.ControlPlaneTemplate(ns.Name, controlPlaneTemplateName1).
 				Build()).
 		WithWorkerMachineDeploymentClasses(
 			*builder.MachineDeploymentClass("md1").
 				WithInfrastructureTemplate(
 					builder.InfrastructureMachineTemplate(ns.Name, "OLD_INFRA").Build()).
 				WithBootstrapTemplate(
-					builder.BootstrapTemplate(ns.Name, "bootstrap1").Build()).
+					builder.BootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build(),
 			*builder.MachineDeploymentClass("md2").
 				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate(ns.Name, "infra1").Build()).
+					builder.InfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()).
 				WithBootstrapTemplate(
-					builder.BootstrapTemplate(ns.Name, "bootstrap1").Build()).
+					builder.BootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build()).
 		Build()
 
@@ -79,30 +105,35 @@ func TestClusterClassWebhook_Fail_Create(t *testing.T) {
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
 	g.Expect(err).ToNot(HaveOccurred())
 
+	cleanup, err := createTemplates(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+
 	// Create the objects needed for the integration test:
 	// - a ClusterClass with all the related templates
-	clusterClass1 := builder.ClusterClass(ns.Name, "class1").
+	clusterClass1 := builder.ClusterClass(ns.Name, clusterClassName1).
 		WithInfrastructureClusterTemplate(
-			builder.InfrastructureClusterTemplate(ns.Name, "inf").Build()).
+			builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()).
 		// ControlPlaneTemplate not defined in this ClusterClass making it invalid.
 		WithWorkerMachineDeploymentClasses(
 			*builder.MachineDeploymentClass("md1").
 				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate(ns.Name, "OLD_INFRA").Build()).
+					builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()).
 				WithBootstrapTemplate(
-					builder.BootstrapTemplate(ns.Name, "bootstrap1").Build()).
+					builder.TestBootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build(),
 			*builder.MachineDeploymentClass("md2").
 				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate(ns.Name, "infra1").Build()).
+					builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()).
 				WithBootstrapTemplate(
-					builder.BootstrapTemplate(ns.Name, "bootstrap1").Build()).
+					builder.TestBootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build()).
 		Build()
 
 	// Clean up the resources once the test is finished.
 	t.Cleanup(func() {
-		g.Expect(env.Cleanup(ctx, ns))
+		g.Expect(cleanup()).To(Succeed())
+		g.Expect(env.Cleanup(ctx, clusterClass1)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
 	})
 
 	// Create the ClusterClass in the API server. Expect this to fail because of missing templates.
@@ -118,39 +149,42 @@ func TestClusterWebhook_Succeed_Update(t *testing.T) {
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
 	g.Expect(err).ToNot(HaveOccurred())
 
+	cleanup, err := createTemplates(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+
 	// Create the objects needed for the integration test:
 	// - a ClusterClass with all the related templates
 	// - a Cluster using the above ClusterClass
-	clusterClass := builder.ClusterClass(ns.Name, "class1").
+	clusterClass := builder.ClusterClass(ns.Name, clusterClassName1).
 		WithInfrastructureClusterTemplate(
-			builder.InfrastructureClusterTemplate(ns.Name, "inf").Build()).
+			builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()).
 		WithControlPlaneTemplate(
-			builder.ControlPlaneTemplate(ns.Name, "cp1").
+			builder.TestControlPlaneTemplate(ns.Name, controlPlaneTemplateName1).
 				Build()).
 		WithWorkerMachineDeploymentClasses(
 			*builder.MachineDeploymentClass("NOT_USED").
 				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate(ns.Name, "OLD_INFRA").Build()).
+					builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()).
 				WithBootstrapTemplate(
-					builder.BootstrapTemplate(ns.Name, "bootstrap1").Build()).
+					builder.TestBootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build(),
-			*builder.MachineDeploymentClass("IN_USE").
+			*builder.MachineDeploymentClass(workerClassName1).
 				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate(ns.Name, "infra1").Build()).
+					builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()).
 				WithBootstrapTemplate(
-					builder.BootstrapTemplate(ns.Name, "bootstrap1").Build()).
+					builder.TestBootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build()).
 		Build()
 
-	cluster := builder.Cluster(ns.Name, "cluster1").
+	cluster := builder.Cluster(ns.Name, clusterName1).
 		WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
 		WithTopology(
 			builder.ClusterTopology().
 				WithVersion("v1.20.1").
-				WithClass("class1").
+				WithClass(clusterClassName1).
 				WithMachineDeployment(
-					builder.MachineDeploymentTopology("workers1").
-						WithClass("IN_USE").
+					builder.MachineDeploymentTopology("md1").
+						WithClass(workerClassName1).
 						Build(),
 				).
 				Build()).
@@ -161,28 +195,28 @@ func TestClusterWebhook_Succeed_Update(t *testing.T) {
 
 	// Create a Cluster using the ClusterClass.
 	g.Expect(env.CreateAndWait(ctx, cluster)).To(Succeed())
-
 	// Clean up the resources once the test is finished.
 	t.Cleanup(func() {
-		g.Expect(env.CleanupAndWait(ctx, cluster))
-		g.Expect(env.Cleanup(ctx, clusterClass))
-		g.Expect(env.Cleanup(ctx, ns))
+		g.Expect(cleanup()).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, cluster)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, clusterClass)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
 	})
 
 	// Retrieve the ClusterClass from the API server.
-	actualCluster := &clusterv1.ClusterClass{}
-	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: "class1"}, actualCluster)).To(Succeed())
+	actualClusterClass := &clusterv1.ClusterClass{}
+	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: clusterClassName1}, actualClusterClass)).To(Succeed())
 
-	// Remove MachineDeploymentClass "NOT_USED", which is not used by cluster1 from the clusterClass
-	actualCluster.Spec.Workers.MachineDeployments = []clusterv1.MachineDeploymentClass{
-		actualCluster.Spec.Workers.MachineDeployments[1],
+	// Remove MachineDeploymentClass , which is not used by cluster1 from the clusterClass
+	actualClusterClass.Spec.Workers.MachineDeployments = []clusterv1.MachineDeploymentClass{
+		actualClusterClass.Spec.Workers.MachineDeployments[1],
 	}
 	// Change the template used in the ClusterClass to a compatible alternative (Only name is changed).
-	actualCluster.Spec.Infrastructure.Ref.Name = "NEW_INFRA"
+	actualClusterClass.Spec.Infrastructure.Ref.Name = infrastructureClusterTemplateName2
 
 	// Attempt to update the ClusterClass with the above changes.
 	// Expect no error here as the updates are compatible with the current Clusters using the ClusterClass.
-	g.Expect(env.Update(ctx, actualCluster)).To(Succeed())
+	g.Expect(env.Update(ctx, actualClusterClass)).To(Succeed())
 }
 
 // TestClusterWebhook_Fail_Update tests the correct update behaviour for a ClusterClass with references in existing Clusters.
@@ -194,38 +228,41 @@ func TestClusterWebhook_Fail_Update(t *testing.T) {
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
 	g.Expect(err).ToNot(HaveOccurred())
 
+	cleanup, err := createTemplates(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+
 	// Create the objects needed for the integration test:
 	// - a ClusterClass with all the related templates
 	// - a Cluster using the above ClusterClass
-	clusterClass := builder.ClusterClass(ns.Name, "class1").
+	clusterClass := builder.ClusterClass(ns.Name, clusterClassName1).
 		WithInfrastructureClusterTemplate(
-			builder.InfrastructureClusterTemplate(ns.Name, "inf").Build()).
+			builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()).
 		WithControlPlaneTemplate(
-			builder.ControlPlaneTemplate(ns.Name, "cp1").
+			builder.TestControlPlaneTemplate(ns.Name, controlPlaneTemplateName1).
 				Build()).
 		WithWorkerMachineDeploymentClasses(
 			*builder.MachineDeploymentClass("NOT_USED").
 				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate(ns.Name, "infra1").Build()).
+					builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()).
 				WithBootstrapTemplate(
-					builder.BootstrapTemplate(ns.Name, "bootstrap1").Build()).
+					builder.TestBootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build(),
 			*builder.MachineDeploymentClass("IN_USE").
 				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate(ns.Name, "infra1").Build()).
+					builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()).
 				WithBootstrapTemplate(
-					builder.BootstrapTemplate(ns.Name, "bootstrap1").Build()).
+					builder.TestBootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build()).
 		Build()
 
-	cluster := builder.Cluster(ns.Name, "cluster1").
+	cluster := builder.Cluster(ns.Name, clusterName1).
 		WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
 		WithTopology(
 			builder.ClusterTopology().
 				WithVersion("v1.20.1").
-				WithClass("class1").
+				WithClass(clusterClassName1).
 				WithMachineDeployment(
-					builder.MachineDeploymentTopology("workers1").
+					builder.MachineDeploymentTopology("md1").
 						WithClass("IN_USE").
 						Build(),
 				).
@@ -240,23 +277,24 @@ func TestClusterWebhook_Fail_Update(t *testing.T) {
 
 	// Clean up the resources once the test is finished.
 	t.Cleanup(func() {
-		g.Expect(env.CleanupAndWait(ctx, cluster))
-		g.Expect(env.Cleanup(ctx, clusterClass))
-		g.Expect(env.Cleanup(ctx, ns))
+		g.Expect(cleanup()).To(Succeed())
+		g.Expect(env.CleanupAndWait(ctx, cluster)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, clusterClass)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
 	})
 
 	// Retrieve the clusterClass from the API server.
-	actualCluster := &clusterv1.ClusterClass{}
-	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: "class1"}, actualCluster)).To(Succeed())
+	actualClusterClass := &clusterv1.ClusterClass{}
+	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: clusterClassName1}, actualClusterClass)).To(Succeed())
 
 	// Remove MachineDeploymentClass "IN_USE", which is used by cluster1 from the clusterClass
-	actualCluster.Spec.Workers.MachineDeployments = []clusterv1.MachineDeploymentClass{
-		actualCluster.Spec.Workers.MachineDeployments[0],
+	actualClusterClass.Spec.Workers.MachineDeployments = []clusterv1.MachineDeploymentClass{
+		actualClusterClass.Spec.Workers.MachineDeployments[0],
 	}
 
 	// Attempt to update the ClusterClass with the above changes.
 	// Expect an error here as the updates are incompatible with the Current Clusters using the ClusterClass.
-	g.Expect(env.Update(ctx, actualCluster)).NotTo(Succeed())
+	g.Expect(env.Update(ctx, actualClusterClass)).NotTo(Succeed())
 }
 
 // TestClusterClassWebhook_Fail_Delete tests the correct deletion behaviour for a ClusterClass with references in existing Clusters.
@@ -268,60 +306,63 @@ func TestClusterClassWebhook_Delete(t *testing.T) {
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-webhook")
 	g.Expect(err).ToNot(HaveOccurred())
 
+	cleanup, err := createTemplates(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+
 	// Create the objects needed for the integration test:
 	// - a two ClusterClasses with all the related templates
 	// - a Cluster using one of the ClusterClasses
-	clusterClass1 := builder.ClusterClass(ns.Name, "class1").
+	clusterClass1 := builder.ClusterClass(ns.Name, clusterClassName1).
 		WithInfrastructureClusterTemplate(
-			builder.InfrastructureClusterTemplate(ns.Name, "inf").Build()).
+			builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()).
 		WithControlPlaneTemplate(
-			builder.ControlPlaneTemplate(ns.Name, "cp1").
+			builder.TestControlPlaneTemplate(ns.Name, controlPlaneTemplateName1).
 				Build()).
 		WithWorkerMachineDeploymentClasses(
-			*builder.MachineDeploymentClass("md1").
+			*builder.MachineDeploymentClass(workerClassName1).
 				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate(ns.Name, "OLD_INFRA").Build()).
+					builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()).
 				WithBootstrapTemplate(
-					builder.BootstrapTemplate(ns.Name, "bootstrap1").Build()).
+					builder.TestBootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build(),
-			*builder.MachineDeploymentClass("md2").
+			*builder.MachineDeploymentClass(workerClassName2).
 				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate(ns.Name, "infra1").Build()).
+					builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()).
 				WithBootstrapTemplate(
-					builder.BootstrapTemplate(ns.Name, "bootstrap1").Build()).
+					builder.TestBootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build()).
 		Build()
 
-	clusterClass2 := builder.ClusterClass(ns.Name, "class2").
+	clusterClass2 := builder.ClusterClass(ns.Name, clusterClassName2).
 		WithInfrastructureClusterTemplate(
-			builder.InfrastructureClusterTemplate(ns.Name, "inf").Build()).
+			builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()).
 		WithControlPlaneTemplate(
-			builder.ControlPlaneTemplate(ns.Name, "cp1").
+			builder.TestControlPlaneTemplate(ns.Name, controlPlaneTemplateName1).
 				Build()).
 		WithWorkerMachineDeploymentClasses(
-			*builder.MachineDeploymentClass("md1").
+			*builder.MachineDeploymentClass(workerClassName1).
 				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate(ns.Name, "OLD_INFRA").Build()).
+					builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()).
 				WithBootstrapTemplate(
-					builder.BootstrapTemplate(ns.Name, "bootstrap1").Build()).
+					builder.TestBootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build(),
-			*builder.MachineDeploymentClass("md2").
+			*builder.MachineDeploymentClass(workerClassName2).
 				WithInfrastructureTemplate(
-					builder.InfrastructureMachineTemplate(ns.Name, "infra1").Build()).
+					builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()).
 				WithBootstrapTemplate(
-					builder.BootstrapTemplate(ns.Name, "bootstrap1").Build()).
+					builder.TestBootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()).
 				Build()).
 		Build()
 
-	cluster := builder.Cluster(ns.Name, "cluster2").
+	cluster := builder.Cluster(ns.Name, clusterName2).
 		WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
 		WithTopology(
 			builder.ClusterTopology().
 				WithVersion("v1.20.1").
-				WithClass("class1").
+				WithClass(clusterClassName1).
 				WithMachineDeployment(
-					builder.MachineDeploymentTopology("workers1").
-						WithClass("md1").
+					builder.MachineDeploymentTopology("md1").
+						WithClass(workerClassName1).
 						Build(),
 				).
 				Build()).
@@ -336,8 +377,9 @@ func TestClusterClassWebhook_Delete(t *testing.T) {
 
 	// Clean up the resources once the test is finished.
 	t.Cleanup(func() {
-		g.Expect(env.Cleanup(ctx, cluster))
-		g.Expect(env.Cleanup(ctx, ns))
+		g.Expect(cleanup()).To(Succeed())
+		g.Expect(env.Cleanup(ctx, cluster)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
 	})
 
 	// Attempt to delete ClusterClass "class1" which is in use.
@@ -356,78 +398,80 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 	ns, err := env.CreateNamespace(ctx, "test-clusterclass-webhook")
 	g.Expect(err).ToNot(HaveOccurred())
 
+	cleanup, err := createTemplates(ns)
+	g.Expect(err).ToNot(HaveOccurred())
 	// Create the objects needed for the integration test:
 	// - Five ClusterClasses with all the related templates
 	// - Five Clusters using all ClusterClass except "class1"
 	clusterClasses := []client.Object{
-		builder.ClusterClass(ns.Name, "class1").
+		builder.ClusterClass(ns.Name, clusterClassName1).
 			WithInfrastructureClusterTemplate(
-				builder.InfrastructureClusterTemplate(ns.Name, "inf").Build()).
+				builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()).
 			WithControlPlaneTemplate(
-				builder.ControlPlaneTemplate(ns.Name, "cp1").
+				builder.ControlPlaneTemplate(ns.Name, controlPlaneTemplateName1).
 					Build()).
 			Build(),
-		builder.ClusterClass(ns.Name, "class2").
+		builder.ClusterClass(ns.Name, clusterClassName2).
 			WithInfrastructureClusterTemplate(
-				builder.InfrastructureClusterTemplate(ns.Name, "inf").Build()).
+				builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()).
 			WithControlPlaneTemplate(
-				builder.ControlPlaneTemplate(ns.Name, "cp1").
+				builder.TestControlPlaneTemplate(ns.Name, controlPlaneTemplateName1).
 					Build()).
 			Build(),
-		builder.ClusterClass(ns.Name, "class3").
+		builder.ClusterClass(ns.Name, clusterClassName3).
 			WithInfrastructureClusterTemplate(
-				builder.InfrastructureClusterTemplate(ns.Name, "inf").Build()).
+				builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()).
 			WithControlPlaneTemplate(
-				builder.ControlPlaneTemplate(ns.Name, "cp1").
+				builder.TestControlPlaneTemplate(ns.Name, controlPlaneTemplateName1).
 					Build()).
 			Build(),
-		builder.ClusterClass(ns.Name, "class4").
+		builder.ClusterClass(ns.Name, clusterClassName4).
 			WithInfrastructureClusterTemplate(
-				builder.InfrastructureClusterTemplate(ns.Name, "inf").Build()).
+				builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()).
 			WithControlPlaneTemplate(
-				builder.ControlPlaneTemplate(ns.Name, "cp1").
+				builder.TestControlPlaneTemplate(ns.Name, controlPlaneTemplateName1).
 					Build()).
 			Build(),
-		builder.ClusterClass(ns.Name, "class5").
+		builder.ClusterClass(ns.Name, clusterClassName5).
 			WithInfrastructureClusterTemplate(
-				builder.InfrastructureClusterTemplate(ns.Name, "inf").Build()).
+				builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()).
 			WithControlPlaneTemplate(
-				builder.ControlPlaneTemplate(ns.Name, "cp1").
+				builder.TestControlPlaneTemplate(ns.Name, controlPlaneTemplateName1).
 					Build()).
 			Build(),
 	}
 	clusters := []client.Object{
 		// class1 is not referenced in any of the below Clusters
-		builder.Cluster(ns.Name, "cluster1").
+		builder.Cluster(ns.Name, clusterName1).
 			WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
 			WithTopology(
 				builder.ClusterTopology().
 					WithVersion("v1.20.1").
-					WithClass("class5").
+					WithClass(clusterClassName5).
 					Build()).
 			Build(),
-		builder.Cluster(ns.Name, "cluster2").
+		builder.Cluster(ns.Name, clusterName2).
 			WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
 			WithTopology(
 				builder.ClusterTopology().
 					WithVersion("v1.20.1").
-					WithClass("class2").
+					WithClass(clusterClassName2).
 					Build()).
 			Build(),
-		builder.Cluster(ns.Name, "cluster3").
+		builder.Cluster(ns.Name, clusterName3).
 			WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
 			WithTopology(
 				builder.ClusterTopology().
 					WithVersion("v1.20.1").
-					WithClass("class3").
+					WithClass(clusterClassName3).
 					Build()).
 			Build(),
-		builder.Cluster(ns.Name, "cluster4").
+		builder.Cluster(ns.Name, clusterName4).
 			WithLabels(map[string]string{clusterv1.ClusterTopologyOwnedLabel: ""}).
 			WithTopology(
 				builder.ClusterTopology().
 					WithVersion("v1.20.1").
-					WithClass("class4").
+					WithClass(clusterClassName4).
 					Build()).
 			Build(),
 	}
@@ -444,6 +488,7 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 
 	// defer a function to clean up created resources.
 	defer func() {
+		g.Expect(cleanup()).To(Succeed())
 		// Delete each of the clusters.
 		for _, c := range clusters {
 			g.Expect(env.CleanupAndWait(ctx, c)).To(Succeed())
@@ -464,7 +509,7 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 	}()
 
 	// This is the unused clusterClass to be deleted.
-	classForDeletion = "class1"
+	classForDeletion = clusterClassName1
 
 	class := &clusterv1.ClusterClass{}
 	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: classForDeletion}, class)).To(Succeed())
@@ -474,7 +519,7 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 	g.Expect(env.Delete(ctx, class)).To(Succeed())
 
 	// This is a clusterClass in use to be deleted.
-	classForDeletion = "class3"
+	classForDeletion = clusterClassName3
 
 	class = &clusterv1.ClusterClass{}
 	g.Expect(env.Get(ctx, client.ObjectKey{Namespace: ns.Name, Name: classForDeletion}, class)).To(Succeed())
@@ -482,4 +527,40 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 	// Attempt to delete ClusterClass "class3" which is in use.
 	// Expect an error here as the webhook should not allow the deletion of an existing ClusterClass.
 	g.Expect(env.Delete(ctx, class)).To(Not(Succeed()))
+}
+
+// createTemplates builds and then creates all required ClusterClass templates in the envtest API server.
+func createTemplates(ns *corev1.Namespace) (func() error, error) {
+	// Templates for MachineInfrastructure, ClusterInfrastructure, ControlPlane and Bootstrap.
+	infrastructureMachineTemplate1 := builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName1).Build()
+	infrastructureMachineTemplate2 := builder.TestInfrastructureMachineTemplate(ns.Name, infrastructureMachineTemplateName2).Build()
+	infrastructureClusterTemplate1 := builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName1).Build()
+	infrastructureClusterTemplate2 := builder.TestInfrastructureClusterTemplate(ns.Name, infrastructureClusterTemplateName2).Build()
+	controlPlaneTemplate := builder.TestControlPlaneTemplate(ns.Name, controlPlaneTemplateName1).Build()
+	bootstrapTemplate := builder.TestBootstrapTemplate(ns.Name, bootstrapTemplateName1).Build()
+
+	// Create a set of templates from the objects above to add to the API server when the test environment starts.
+	initObjs := []client.Object{
+		infrastructureClusterTemplate1,
+		infrastructureClusterTemplate2,
+		infrastructureMachineTemplate1,
+		infrastructureMachineTemplate2,
+		bootstrapTemplate,
+		controlPlaneTemplate,
+	}
+	cleanup := func() error {
+		for _, o := range initObjs {
+			if err := env.CleanupAndWait(ctx, o); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	for _, obj := range initObjs {
+		if err := env.CreateAndWait(ctx, obj); err != nil {
+			return cleanup, err
+		}
+	}
+	return cleanup, nil
 }

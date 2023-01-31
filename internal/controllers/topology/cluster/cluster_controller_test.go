@@ -786,16 +786,16 @@ func setupTestEnvForIntegrationTests(ns *corev1.Namespace) (func() error, error)
 	// Create a set of setupTestEnvForIntegrationTests from the objects above to add to the API server when the test environment starts.
 	// The objects are created for every test, though some e.g. infrastructureMachineTemplate2 may not be used in every test.
 	initObjs := []client.Object{
-		clusterClass,
-		clusterClassForRebase,
-		cluster1,
-		cluster2,
 		infrastructureClusterTemplate1,
 		infrastructureClusterTemplate2,
 		infrastructureMachineTemplate1,
 		infrastructureMachineTemplate2,
 		bootstrapTemplate,
 		controlPlaneTemplate,
+		clusterClass,
+		clusterClassForRebase,
+		cluster1,
+		cluster2,
 	}
 	cleanup := func() error {
 		// Delete Objects in reverse, because we cannot delete a ClusterCLass if it is still used by a Cluster.
@@ -1094,13 +1094,18 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 		{
 			name: "Default Cluster variables with values from ClusterClass",
 			clusterClass: classBuilder.DeepCopy().
-				WithVariables(clusterv1.ClusterClassVariable{
-					Name:     "location",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "string",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "location",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
+							},
 						},
 					},
 				}).
@@ -1116,13 +1121,18 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 		{
 			name: "Do not default variable if a value is defined in the Cluster",
 			clusterClass: classBuilder.DeepCopy().
-				WithVariables(clusterv1.ClusterClassVariable{
-					Name:     "location",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "string",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "location",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
+							},
 						},
 					},
 				}).
@@ -1140,30 +1150,40 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 			name: "Default nested values of Cluster variables with values from ClusterClass",
 			clusterClass: classBuilder.DeepCopy().
 				WithWorkerMachineDeploymentClasses(*mdClass1).
-				WithVariables([]clusterv1.ClusterClassVariable{
+				WithStatusVariables([]clusterv1.ClusterClassStatusVariable{
 					{
-						Name:     "location",
-						Required: true,
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-								Type:    "string",
-								Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+						Name: "location",
+						Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+							{
+								Required: true,
+								From:     clusterv1.VariableDefinitionFromInline,
+								Schema: clusterv1.VariableSchema{
+									OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+										Type:    "string",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+									},
+								},
 							},
 						},
 					},
 					{
-						Name:     "httpProxy",
-						Required: true,
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-								Type: "object",
-								Properties: map[string]clusterv1.JSONSchemaProps{
-									"enabled": {
-										Type: "boolean",
-									},
-									"url": {
-										Type:    "string",
-										Default: &apiextensionsv1.JSON{Raw: []byte(`"http://localhost:3128"`)},
+						Name: "httpProxy",
+						Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+							{
+								Required: true,
+								From:     clusterv1.VariableDefinitionFromInline,
+								Schema: clusterv1.VariableSchema{
+									OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+										Type: "object",
+										Properties: map[string]clusterv1.JSONSchemaProps{
+											"enabled": {
+												Type: "boolean",
+											},
+											"url": {
+												Type:    "string",
+												Default: &apiextensionsv1.JSON{Raw: []byte(`"http://localhost:3128"`)},
+											},
+										},
 									},
 								},
 							},
@@ -1241,7 +1261,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 		{
 			name: "Valid cluster should not throw validation error",
 			clusterClass: classBuilder.DeepCopy().
-				WithVariables(clusterv1.ClusterClassVariable{
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
 					Name: "httpProxy",
 				}).
 				Build(),
@@ -1252,9 +1272,14 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 		{
 			name: "Cluster invalid as it does not define a required variable",
 			clusterClass: classBuilder.DeepCopy().
-				WithVariables(clusterv1.ClusterClassVariable{
-					Name:     "httpProxy",
-					Required: true,
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "httpProxy",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+						},
+					},
 				}).
 				Build(),
 			cluster: clusterBuilder.
@@ -1264,9 +1289,14 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 		{
 			name: "Cluster invalid as it defines an MDTopology without a corresponding MDClass",
 			clusterClass: classBuilder.DeepCopy().
-				WithVariables(clusterv1.ClusterClassVariable{
-					Name:     "httpProxy",
-					Required: true,
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "httpProxy",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+						},
+					},
 				}).
 				Build(),
 			cluster: clusterBuilder.WithTopology(

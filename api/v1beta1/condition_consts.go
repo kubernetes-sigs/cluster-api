@@ -55,6 +55,19 @@ const (
 
 // ANCHOR_END: CommonConditions
 
+// Conditions and condition Reasons for the ClusterClass object.
+const (
+	// ClusterClassVariablesReconciledCondition reports if the ClusterClass variables, including both inline and external
+	// variables, have been successfully reconciled.
+	// This signals that the ClusterClass is ready to be used to default and validate variables on Clusters using
+	// this ClusterClass.
+	ClusterClassVariablesReconciledCondition ConditionType = "VariablesReconciled"
+
+	// VariableDiscoveryFailedReason (Severity=Error) documents a ClusterClass with VariableDiscovery extensions that
+	// failed.
+	VariableDiscoveryFailedReason = "VariableDiscoveryFailed"
+)
+
 // Conditions and condition Reasons for the Cluster object.
 
 const (

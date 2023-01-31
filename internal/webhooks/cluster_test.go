@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/internal/webhooks/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func TestClusterDefaultNamespaces(t *testing.T) {
@@ -69,16 +70,21 @@ func TestClusterDefaultVariables(t *testing.T) {
 		{
 			name: "default a single variable to its correct values",
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithVariables(clusterv1.ClusterClassVariable{
-					Name:     "location",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "string",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "location",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
+							},
 						},
 					},
-				}).
+				},
+				).
 				Build(),
 			topology: &clusterv1.Topology{},
 			expect: &clusterv1.Topology{
@@ -95,13 +101,17 @@ func TestClusterDefaultVariables(t *testing.T) {
 		{
 			name: "don't change a variable if it is already set",
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithVariables(clusterv1.ClusterClassVariable{
-					Name:     "location",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "string",
-							Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "location",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
+							},
 						},
 					},
 				},
@@ -131,27 +141,36 @@ func TestClusterDefaultVariables(t *testing.T) {
 		{
 			name: "default many variables to their correct values",
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
-				WithVariables(
-					clusterv1.ClusterClassVariable{
-						Name:     "location",
-						Required: true,
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-								Type:    "string",
-								Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+				WithStatusVariables([]clusterv1.ClusterClassStatusVariable{
+					{
+						Name: "location",
+						Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+							{
+								Required: true,
+								Schema: clusterv1.VariableSchema{
+									OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+										Type:    "string",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+									},
+								},
 							},
 						},
 					},
-					clusterv1.ClusterClassVariable{
-						Name:     "count",
-						Required: true,
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-								Type:    "number",
-								Default: &apiextensionsv1.JSON{Raw: []byte(`0.1`)},
+					{
+						Name: "count",
+						Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+							{
+								Required: true,
+								Schema: clusterv1.VariableSchema{
+									OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+										Type:    "number",
+										Default: &apiextensionsv1.JSON{Raw: []byte(`0.1`)},
+									},
+								},
 							},
 						},
-					}).
+					},
+				}...).
 				Build(),
 			topology: &clusterv1.Topology{},
 			expect: &clusterv1.Topology{
@@ -177,17 +196,20 @@ func TestClusterDefaultVariables(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("default-worker").Build(),
 				).
-				WithVariables(
-					clusterv1.ClusterClassVariable{
-						Name:     "location",
-						Required: true,
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-								Type:    "string",
-								Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "location",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
 							},
 						},
-					}).
+					},
+				}).
 				Build(),
 			topology: &clusterv1.Topology{
 				Workers: &clusterv1.WorkersTopology{
@@ -225,25 +247,28 @@ func TestClusterDefaultVariables(t *testing.T) {
 				WithWorkerMachineDeploymentClasses(
 					*builder.MachineDeploymentClass("default-worker").Build(),
 				).
-				WithVariables(
-					clusterv1.ClusterClassVariable{
-						Name:     "httpProxy",
-						Required: true,
-						Schema: clusterv1.VariableSchema{
-							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-								Type: "object",
-								Properties: map[string]clusterv1.JSONSchemaProps{
-									"enabled": {
-										Type: "boolean",
-									},
-									"url": {
-										Type:    "string",
-										Default: &apiextensionsv1.JSON{Raw: []byte(`"http://localhost:3128"`)},
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "httpProxy",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "object",
+									Properties: map[string]clusterv1.JSONSchemaProps{
+										"enabled": {
+											Type: "boolean",
+										},
+										"url": {
+											Type:    "string",
+											Default: &apiextensionsv1.JSON{Raw: []byte(`"http://localhost:3128"`)},
+										},
 									},
 								},
 							},
 						},
-					}).
+					},
+				}).
 				Build(),
 			topology: &clusterv1.Topology{
 				Workers: &clusterv1.WorkersTopology{
@@ -309,6 +334,9 @@ func TestClusterDefaultVariables(t *testing.T) {
 		cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
 			WithTopology(tt.topology).
 			Build()
+
+		// Mark this condition to true so the webhook sees the ClusterClass as up to date.
+		conditions.MarkTrue(tt.clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
 		fakeClient := fake.NewClientBuilder().
 			WithObjects(tt.clusterClass).
 			WithScheme(fakeScheme).
@@ -343,9 +371,11 @@ func TestClusterDefaultTopologyVersion(t *testing.T) {
 			Build()).
 		Build()
 
+	clusterClass := builder.ClusterClass("fooboo", "foo").Build()
+	conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
 	// Sets up the fakeClient for the test case. This is required because the test uses a Managed Topology.
 	fakeClient := fake.NewClientBuilder().
-		WithObjects(builder.ClusterClass("fooboo", "foo").Build()).
+		WithObjects(clusterClass).
 		WithScheme(fakeScheme).
 		Build()
 
@@ -573,11 +603,11 @@ func TestClusterTopologyValidation(t *testing.T) {
 	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
 
 	tests := []struct {
-		name                  string
-		clusterClassVariables []clusterv1.ClusterClassVariable
-		in                    *clusterv1.Cluster
-		old                   *clusterv1.Cluster
-		expectErr             bool
+		name                        string
+		clusterClassStatusVariables []clusterv1.ClusterClassStatusVariable
+		in                          *clusterv1.Cluster
+		old                         *clusterv1.Cluster
+		expectErr                   bool
 	}{
 		{
 			name:      "should return error when topology does not have class",
@@ -761,13 +791,17 @@ func TestClusterTopologyValidation(t *testing.T) {
 		},
 		{
 			name: "should pass when required variable exists top-level",
-			clusterClassVariables: []clusterv1.ClusterClassVariable{
+			clusterClassStatusVariables: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name:     "cpu",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type: "integer",
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
 						},
 					},
 				},
@@ -787,13 +821,17 @@ func TestClusterTopologyValidation(t *testing.T) {
 		},
 		{
 			name: "should fail when required variable is missing top-level",
-			clusterClassVariables: []clusterv1.ClusterClassVariable{
+			clusterClassStatusVariables: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name:     "cpu",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type: "integer",
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
 						},
 					},
 				},
@@ -808,13 +846,17 @@ func TestClusterTopologyValidation(t *testing.T) {
 		},
 		{
 			name: "should fail when top-level variable is invalid",
-			clusterClassVariables: []clusterv1.ClusterClassVariable{
+			clusterClassStatusVariables: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name:     "cpu",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type: "integer",
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
 						},
 					},
 				},
@@ -833,13 +875,17 @@ func TestClusterTopologyValidation(t *testing.T) {
 		},
 		{
 			name: "should pass when top-level variable and override are valid",
-			clusterClassVariables: []clusterv1.ClusterClassVariable{
+			clusterClassStatusVariables: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name:     "cpu",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type: "integer",
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
 						},
 					},
 				},
@@ -865,13 +911,17 @@ func TestClusterTopologyValidation(t *testing.T) {
 		},
 		{
 			name: "should fail when variable override is invalid",
-			clusterClassVariables: []clusterv1.ClusterClassVariable{
+			clusterClassStatusVariables: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name:     "cpu",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type: "integer",
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
 						},
 					},
 				},
@@ -897,13 +947,17 @@ func TestClusterTopologyValidation(t *testing.T) {
 		},
 		{
 			name: "should pass even when variable override is missing the corresponding top-level variable",
-			clusterClassVariables: []clusterv1.ClusterClassVariable{
+			clusterClassStatusVariables: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name:     "cpu",
-					Required: false,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type: "integer",
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: false,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
 						},
 					},
 				},
@@ -933,8 +987,11 @@ func TestClusterTopologyValidation(t *testing.T) {
 					*builder.MachineDeploymentClass("bb").Build(),
 					*builder.MachineDeploymentClass("aa").Build(),
 				).
-				WithVariables(tt.clusterClassVariables...).
+				WithStatusVariables(tt.clusterClassStatusVariables...).
 				Build()
+
+			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
+			conditions.MarkTrue(class, clusterv1.ClusterClassVariablesReconciledCondition)
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
 				WithObjects(class).
@@ -1213,6 +1270,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
+			conditions.MarkTrue(tt.class, clusterv1.ClusterClassVariablesReconciledCondition)
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
 				WithObjects(tt.class).
@@ -1626,6 +1685,10 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
+			conditions.MarkTrue(tt.firstClass, clusterv1.ClusterClassVariablesReconciledCondition)
+			conditions.MarkTrue(tt.secondClass, clusterv1.ClusterClassVariablesReconciledCondition)
+
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
 				WithObjects(tt.firstClass, tt.secondClass).
@@ -1745,6 +1808,8 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
+			conditions.MarkTrue(tt.clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
 				WithObjects(tt.clusterClass, tt.cluster).

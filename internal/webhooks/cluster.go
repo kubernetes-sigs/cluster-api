@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
 	"sigs.k8s.io/cluster-api/util"
+	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -91,7 +92,7 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 			if apierrors.IsNotFound(err) {
 				return nil
 			}
-			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be defaulted. ClusterClass %s can not be retrieved", cluster.Name, cluster.Spec.Topology.Class))
+			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be defaulted. Valid ClusterClass %s can not be retrieved", cluster.Name, cluster.Spec.Topology.Class))
 		}
 
 		allErrs = append(allErrs, DefaultVariables(cluster, clusterClass)...)
@@ -458,7 +459,10 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 	if clusterClass == nil {
 		return field.ErrorList{field.InternalError(field.NewPath(""), errors.New("ClusterClass can not be nil"))}
 	}
-	defaultedVariables, errs := variables.DefaultClusterVariables(cluster.Spec.Topology.Variables, clusterClass.Spec.Variables,
+
+	defaultedVariables, errs := variables.DefaultClusterVariables(cluster.Spec.Topology.Variables,
+		//TODO: Update this function to directly us ClusterClassStatusVariables to take care of multiple definitions per variable name.
+		clusterClassStatusVariablesToVariables(clusterClass.Status.Variables),
 		field.NewPath("spec", "topology", "variables"))
 	if len(errs) > 0 {
 		allErrs = append(allErrs, errs...)
@@ -472,7 +476,9 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
 				continue
 			}
-			defaultedVariables, errs := variables.DefaultMachineDeploymentVariables(md.Variables.Overrides, clusterClass.Spec.Variables,
+			defaultedVariables, errs := variables.DefaultMachineDeploymentVariables(md.Variables.Overrides,
+				//TODO: Update this function to directly us ClusterClassStatusVariables to take care of multiple definitions per variable name.
+				clusterClassStatusVariablesToVariables(clusterClass.Status.Variables),
 				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))
 			if len(errs) > 0 {
 				allErrs = append(allErrs, errs...)
@@ -495,12 +501,14 @@ func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *cl
 	}
 	allErrs = append(allErrs, check.MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(cluster, clusterClass)...)
 
-	// Check if the variables defined in the ClusterClass are valid.
-	allErrs = append(allErrs, variables.ValidateClusterVariables(cluster.Spec.Topology.Variables, clusterClass.Spec.Variables,
-		fldPath.Child("variables"))...)
-
 	// validate the MachineHealthChecks defined in the cluster topology
 	allErrs = append(allErrs, validateMachineHealthChecks(cluster, clusterClass)...)
+
+	// Check if the variables defined in the ClusterClass are valid.
+	allErrs = append(allErrs, variables.ValidateClusterVariables(cluster.Spec.Topology.Variables,
+		//TODO: Update this function to directly us ClusterClassStatusVariables to take care of multiple definitions per variable name.
+		clusterClassStatusVariablesToVariables(clusterClass.Status.Variables),
+		fldPath.Child("variables"))...)
 
 	if cluster.Spec.Topology.Workers != nil {
 		for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {
@@ -508,7 +516,9 @@ func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *cl
 			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
 				continue
 			}
-			allErrs = append(allErrs, variables.ValidateMachineDeploymentVariables(md.Variables.Overrides, clusterClass.Spec.Variables,
+			allErrs = append(allErrs, variables.ValidateMachineDeploymentVariables(md.Variables.Overrides,
+				//TODO: Update this function to directly us ClusterClassStatusVariables to take care of multiple definitions per variable name.
+				clusterClassStatusVariablesToVariables(clusterClass.Status.Variables),
 				fldPath.Child("workers", "machineDeployments").Index(i).Child("variables", "overrides"))...)
 		}
 	}
@@ -524,7 +534,30 @@ func (webhook *Cluster) pollClusterClassForCluster(ctx context.Context, cluster 
 		if clusterClassGetErr = webhook.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Spec.Topology.Class}, clusterClass); clusterClassGetErr != nil {
 			return false, nil //nolint:nilerr
 		}
+		// Return an error if the ClusterClass has not successfully reconciled either because variables aren't correctly
+		// reconciled or because the observed generation doesn't match the metadata generation.
+		if !conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) ||
+			conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) ||
+			clusterClass.GetGeneration() != clusterClass.Status.ObservedGeneration {
+			clusterClassGetErr = errors.New("ClusterClass is not up to date. If this persists check ClusterClass status")
+			return false, nil
+		}
 		return true, nil
 	})
 	return clusterClass, clusterClassGetErr
+}
+
+// TODO: This function will not be needed once per-definition defaulting and validation is implemented.
+func clusterClassStatusVariablesToVariables(vars []clusterv1.ClusterClassStatusVariable) []clusterv1.ClusterClassVariable {
+	var ccVars []clusterv1.ClusterClassVariable
+	for _, v := range vars {
+		for _, d := range v.Definitions {
+			ccVars = append(ccVars, clusterv1.ClusterClassVariable{
+				Required: d.Required,
+				Schema:   d.Schema,
+				Name:     v.Name,
+			})
+		}
+	}
+	return ccVars
 }

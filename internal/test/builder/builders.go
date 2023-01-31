@@ -255,6 +255,7 @@ type ClusterClassBuilder struct {
 	controlPlaneNodeDeletionTimeout           *metav1.Duration
 	machineDeploymentClasses                  []clusterv1.MachineDeploymentClass
 	variables                                 []clusterv1.ClusterClassVariable
+	statusVariables                           []clusterv1.ClusterClassStatusVariable
 	patches                                   []clusterv1.ClusterClassPatch
 }
 
@@ -317,9 +318,15 @@ func (c *ClusterClassBuilder) WithControlPlaneNodeDeletionTimeout(t *metav1.Dura
 	return c
 }
 
-// WithVariables adds the Variables the ClusterClassBuilder.
+// WithVariables adds the Variables to the ClusterClassBuilder.
 func (c *ClusterClassBuilder) WithVariables(vars ...clusterv1.ClusterClassVariable) *ClusterClassBuilder {
 	c.variables = vars
+	return c
+}
+
+// WithStatusVariables adds the ClusterClassStatusVariables to the ClusterClassBuilder.
+func (c *ClusterClassBuilder) WithStatusVariables(vars ...clusterv1.ClusterClassStatusVariable) *ClusterClassBuilder {
+	c.statusVariables = vars
 	return c
 }
 
@@ -352,6 +359,9 @@ func (c *ClusterClassBuilder) Build() *clusterv1.ClusterClass {
 		Spec: clusterv1.ClusterClassSpec{
 			Variables: c.variables,
 			Patches:   c.patches,
+		},
+		Status: clusterv1.ClusterClassStatus{
+			Variables: c.statusVariables,
 		},
 	}
 	if c.infrastructureClusterTemplate != nil {

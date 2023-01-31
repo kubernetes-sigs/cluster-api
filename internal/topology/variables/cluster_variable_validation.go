@@ -98,7 +98,7 @@ func validateClusterVariablesDefined(clusterVariables []clusterv1.ClusterVariabl
 	for i, clusterVariable := range clusterVariables {
 		if _, ok := clusterClassVariables[clusterVariable.Name]; !ok {
 			return field.ErrorList{field.Invalid(fldPath.Index(i).Child("name"), clusterVariable.Name,
-				fmt.Sprintf("variable with name %q is not defined in the ClusterClass", clusterVariable.Name))} // TODO: consider if to add ClusterClass name
+				fmt.Sprintf("variable with name %q is not defined in ClusterClass `status.variables`", clusterVariable.Name))} // TODO: consider if to add ClusterClass name
 		}
 	}
 

@@ -1017,9 +1017,18 @@ spec:
                       defined in the ClusterClass.
                     items:
                       description: ClusterVariable can be used to customize the Cluster
-                        through patches. It must comply to the corresponding ClusterClassVariable
-                        defined in the ClusterClass.
+                        through patches. Each ClusterVariable is associated with a
+                        Variable definition in the ClusterClass `status` variables.
                       properties:
+                        definitionFrom:
+                          description: 'DefinitionFrom specifies where the definition
+                            of this Variable is from. DefinitionFrom is `inline` when
+                            the definition is from the ClusterClass `.spec.variables`
+                            or the name of a patch defined in the ClusterClass `.spec.patches`
+                            where the patch is external and provides external variables.
+                            This field is mandatory if the variable has `DefinitionsConflict:
+                            true` in ClusterClass `status.variables[]`'
+                          type: string
                         name:
                           description: Name of the variable.
                           type: string
@@ -1334,10 +1343,21 @@ spec:
                                     level variables.
                                   items:
                                     description: ClusterVariable can be used to customize
-                                      the Cluster through patches. It must comply
-                                      to the corresponding ClusterClassVariable defined
-                                      in the ClusterClass.
+                                      the Cluster through patches. Each ClusterVariable
+                                      is associated with a Variable definition in
+                                      the ClusterClass `status` variables.
                                     properties:
+                                      definitionFrom:
+                                        description: 'DefinitionFrom specifies where
+                                          the definition of this Variable is from.
+                                          DefinitionFrom is `inline` when the definition
+                                          is from the ClusterClass `.spec.variables`
+                                          or the name of a patch defined in the ClusterClass
+                                          `.spec.patches` where the patch is external
+                                          and provides external variables. This field
+                                          is mandatory if the variable has `DefinitionsConflict:
+                                          true` in ClusterClass `status.variables[]`'
+                                        type: string
                                       name:
                                         description: Name of the variable.
                                         type: string

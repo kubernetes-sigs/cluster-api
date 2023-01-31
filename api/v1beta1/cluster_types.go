@@ -407,6 +407,7 @@ type ClusterStatus struct {
 	// Phase represents the current phase of cluster actuation.
 	// E.g. Pending, Running, Terminating, Failed etc.
 	// +optional
+	// +Metrics:stateset:name="status_phase",help="The clusters current phase.",labelName="phase",list={"Pending","Provisioning","Provisioned","Deleting","Failed","Unknown"}
 	Phase string `json:"phase,omitempty"`
 
 	// InfrastructureReady is the state of the infrastructure provider.

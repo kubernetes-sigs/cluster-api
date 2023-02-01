@@ -5,7 +5,7 @@ aliases:
   - fabriziopandini
   - justinsb
   - neolit123
-  - timothysc
+  - vincepri
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for Cluster API
@@ -22,14 +22,17 @@ aliases:
   - CecileRobertMichon
   - enxebre
   - fabriziopandini
+  - killianmuldoon
   - sbueringer
   - vincepri
 
   # folks who can review and LGTM any PRs in the repo
   cluster-api-reviewers:
+  - jackfrancis
   - JoelSpeed
-  - sbueringer
+  - richardcase
   - stmcginnis
+  - ykakarap
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for controllers/topology
@@ -37,8 +40,7 @@ aliases:
 
   cluster-api-topology-maintainers:
   cluster-api-topology-reviewers:
-  - ykakarap
-  - killianmuldoon
+  - chrischdi
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for bootstrap/kubeadm
@@ -46,7 +48,7 @@ aliases:
 
   cluster-api-bootstrap-provider-kubeadm-maintainers:
   cluster-api-bootstrap-provider-kubeadm-reviewers:
-    - killianmuldoon
+  - g-gaston
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for bootstrap/kubeadm/internal/ignition
@@ -64,42 +66,49 @@ aliases:
 
   cluster-api-controlplane-provider-kubeadm-maintainers:
   cluster-api-controlplane-provider-kubeadm-reviewers:
+  - g-gaston
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for cmd/clusterctl
   # -----------------------------------------------------------
 
   cluster-api-clusterctl-maintainers:
+  - ykakarap
   cluster-api-clusterctl-reviewers:
   - Jont828
-  - ykakarap
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for test
   # -----------------------------------------------------------
 
-  cluster-api-test-reviewers:
   cluster-api-test-maintainers:
+  cluster-api-test-reviewers:
+  - chrischdi
+  - elmiko
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for test/framework
   # -----------------------------------------------------------
 
-  cluster-api-test-framework-reviewers:
   cluster-api-test-framework-maintainers:
+  cluster-api-test-framework-reviewers:
+  - chrischdi
+  - elmiko
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for test/infrastructure/docker
   # -----------------------------------------------------------
 
-  cluster-api-provider-docker-reviewers:
   cluster-api-provider-docker-maintainers:
+  cluster-api-provider-docker-reviewers:
+  - chrischdi
+  - elmiko
 
   # -----------------------------------------------------------
   # OWNER_ALIASES for docs
   # -----------------------------------------------------------
 
-  cluster-api-docs-reviewers:
-    - killianmuldoon
-    - oscr
   cluster-api-docs-maintainers:
+  - oscr
+  cluster-api-docs-reviewers:
+  - elmiko

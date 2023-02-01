@@ -124,15 +124,13 @@ func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Clust
 		}
 	}
 
-	if !r.disableNodeLabelSync {
-		options := []client.PatchOption{
-			client.FieldOwner("capi-machine"),
-			client.ForceOwnership,
-		}
-		nodePatch := unstructuredNode(node.Name, node.UID, getManagedLabels(machine.Labels))
-		if err := remoteClient.Patch(ctx, nodePatch, client.Apply, options...); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to apply patch label to the node")
-		}
+	options := []client.PatchOption{
+		client.FieldOwner("capi-machine"),
+		client.ForceOwnership,
+	}
+	nodePatch := unstructuredNode(node.Name, node.UID, getManagedLabels(machine.Labels))
+	if err := remoteClient.Patch(ctx, nodePatch, client.Apply, options...); err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to apply patch label to the node")
 	}
 
 	// Do the remaining node health checks, then set the node health to true if all checks pass.

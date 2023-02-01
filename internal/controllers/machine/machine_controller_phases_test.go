@@ -17,28 +17,22 @@ limitations under the License.
 package machine
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
-	"github.com/go-logr/logr"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/log"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/api/v1beta1/index"
-	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
@@ -48,8 +42,6 @@ func init() {
 }
 
 func TestReconcileMachinePhases(t *testing.T) {
-	deletionTimestamp := metav1.Now()
-
 	var defaultKubeconfigSecret *corev1.Secret
 	defaultCluster := &clusterv1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
@@ -112,146 +104,203 @@ func TestReconcileMachinePhases(t *testing.T) {
 	t.Run("Should set OwnerReference and cluster name label on external objects", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
-		machine := defaultMachine.DeepCopy()
+		ns, err := env.CreateNamespace(ctx, "test-reconcile-machine-phases")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		cluster := defaultCluster.DeepCopy()
+		cluster.Namespace = ns.Name
+
 		bootstrapConfig := defaultBootstrap.DeepCopy()
-		infraConfig := defaultInfra.DeepCopy()
+		bootstrapConfig.SetNamespace(ns.Name)
+		infraMachine := defaultInfra.DeepCopy()
+		infraMachine.SetNamespace(ns.Name)
+		machine := defaultMachine.DeepCopy()
+		machine.Namespace = ns.Name
 
-		r := &Reconciler{
-			disableNodeLabelSync: true,
-			Client: fake.NewClientBuilder().
-				WithScheme(scheme.Scheme).
-				WithObjects(defaultCluster,
-					defaultKubeconfigSecret,
-					machine,
-					builder.GenericBootstrapConfigCRD.DeepCopy(),
-					builder.GenericInfrastructureMachineCRD.DeepCopy(),
-					bootstrapConfig,
-					infraConfig,
-				).Build(),
-		}
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
+		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 
-		res, err := r.reconcile(ctx, defaultCluster, machine)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(res.RequeueAfter).To(Equal(externalReadyWait))
+		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
+		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
-		r.reconcilePhase(ctx, machine)
+		// Wait until BootstrapConfig has the ownerReference.
+		g.Eventually(func(g Gomega) bool {
+			if err := env.Get(ctx, client.ObjectKeyFromObject(bootstrapConfig), bootstrapConfig); err != nil {
+				return false
+			}
+			g.Expect(bootstrapConfig.GetOwnerReferences()).To(HaveLen(1))
+			g.Expect(bootstrapConfig.GetLabels()[clusterv1.ClusterNameLabel]).To(BeEquivalentTo("test-cluster"))
+			return true
+		}, 10*time.Second).Should(BeTrue())
 
-		g.Expect(r.Client.Get(ctx, types.NamespacedName{Name: bootstrapConfig.GetName(), Namespace: bootstrapConfig.GetNamespace()}, bootstrapConfig)).To(Succeed())
-
-		g.Expect(bootstrapConfig.GetOwnerReferences()).To(HaveLen(1))
-		g.Expect(bootstrapConfig.GetLabels()[clusterv1.ClusterNameLabel]).To(BeEquivalentTo("test-cluster"))
-
-		g.Expect(r.Client.Get(ctx, types.NamespacedName{Name: infraConfig.GetName(), Namespace: infraConfig.GetNamespace()}, infraConfig)).To(Succeed())
-
-		g.Expect(infraConfig.GetOwnerReferences()).To(HaveLen(1))
-		g.Expect(infraConfig.GetLabels()[clusterv1.ClusterNameLabel]).To(BeEquivalentTo("test-cluster"))
+		// Wait until InfraMachine has the ownerReference.
+		g.Eventually(func() bool {
+			if err := env.Get(ctx, client.ObjectKeyFromObject(infraMachine), infraMachine); err != nil {
+				return false
+			}
+			g.Expect(infraMachine.GetOwnerReferences()).To(HaveLen(1))
+			g.Expect(infraMachine.GetLabels()[clusterv1.ClusterNameLabel]).To(BeEquivalentTo("test-cluster"))
+			return true
+		}, 10*time.Second).Should(BeTrue())
 	})
 
 	t.Run("Should set `Pending` with a new Machine", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
-		machine := defaultMachine.DeepCopy()
+		ns, err := env.CreateNamespace(ctx, "test-reconcile-machine-phases")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		cluster := defaultCluster.DeepCopy()
+		cluster.Namespace = ns.Name
+
 		bootstrapConfig := defaultBootstrap.DeepCopy()
-		infraConfig := defaultInfra.DeepCopy()
+		bootstrapConfig.SetNamespace(ns.Name)
+		infraMachine := defaultInfra.DeepCopy()
+		infraMachine.SetNamespace(ns.Name)
+		machine := defaultMachine.DeepCopy()
+		machine.Namespace = ns.Name
 
-		r := &Reconciler{
-			disableNodeLabelSync: true,
-			Client: fake.NewClientBuilder().
-				WithScheme(scheme.Scheme).
-				WithObjects(defaultCluster,
-					defaultKubeconfigSecret,
-					machine,
-					builder.GenericBootstrapConfigCRD.DeepCopy(),
-					builder.GenericInfrastructureMachineCRD.DeepCopy(),
-					bootstrapConfig,
-					infraConfig,
-				).Build(),
-		}
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
+		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 
-		res, err := r.reconcile(ctx, defaultCluster, machine)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(res.RequeueAfter).To(Equal(externalReadyWait))
+		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
+		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
-		r.reconcilePhase(ctx, machine)
-		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhasePending))
-
-		// LastUpdated should be set as the phase changes
-		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+		// Wait until Machine was reconciled.
+		g.Eventually(func(g Gomega) bool {
+			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+				return false
+			}
+			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhasePending))
+			// LastUpdated should be set as the phase changes
+			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			return true
+		}, 10*time.Second).Should(BeTrue())
 	})
 
 	t.Run("Should set `Provisioning` when bootstrap is ready", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
-		machine := defaultMachine.DeepCopy()
+		ns, err := env.CreateNamespace(ctx, "test-reconcile-machine-phases")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		cluster := defaultCluster.DeepCopy()
+		cluster.Namespace = ns.Name
+
 		bootstrapConfig := defaultBootstrap.DeepCopy()
-		infraConfig := defaultInfra.DeepCopy()
+		bootstrapConfig.SetNamespace(ns.Name)
+		infraMachine := defaultInfra.DeepCopy()
+		infraMachine.SetNamespace(ns.Name)
+		machine := defaultMachine.DeepCopy()
+		machine.Namespace = ns.Name
 
-		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
+		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
+		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
+		modifiedMachine := machine.DeepCopy()
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
 		machine.Status.LastUpdated = &lastUpdated
+		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
-		r := &Reconciler{
-			disableNodeLabelSync: true,
-			Client: fake.NewClientBuilder().
-				WithScheme(scheme.Scheme).
-				WithObjects(defaultCluster,
-					defaultKubeconfigSecret,
-					machine,
-					builder.GenericBootstrapConfigCRD.DeepCopy(),
-					builder.GenericInfrastructureMachineCRD.DeepCopy(),
-					bootstrapConfig,
-					infraConfig,
-				).Build(),
-		}
+		// Set bootstrap ready.
+		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
 
-		res, err := r.reconcile(ctx, defaultCluster, machine)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
-
-		r.reconcilePhase(ctx, machine)
-		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioning))
-
-		// Verify that the LastUpdated timestamp was updated
-		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+		// Wait until Machine was reconciled.
+		g.Eventually(func(g Gomega) bool {
+			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+				return false
+			}
+			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioning))
+			// Verify that the LastUpdated timestamp was updated
+			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			return true
+		}, 10*time.Second).Should(BeTrue())
 	})
 
 	t.Run("Should set `Running` when bootstrap and infra is ready", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
-		machine := defaultMachine.DeepCopy()
+		ns, err := env.CreateNamespace(ctx, "test-reconcile-machine-phases")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		nodeProviderID := fmt.Sprintf("test://%s", util.RandomString(6))
+
+		cluster := defaultCluster.DeepCopy()
+		cluster.Namespace = ns.Name
+
 		bootstrapConfig := defaultBootstrap.DeepCopy()
-		infraConfig := defaultInfra.DeepCopy()
+		bootstrapConfig.SetNamespace(ns.Name)
+		infraMachine := defaultInfra.DeepCopy()
+		infraMachine.SetNamespace(ns.Name)
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, "us-east-2a", "spec", "failureDomain")).To(Succeed())
+		machine := defaultMachine.DeepCopy()
+		machine.Namespace = ns.Name
+
+		// Create Node.
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "machine-test-node-",
+			},
+			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+		}
+		g.Expect(env.Create(ctx, node)).To(Succeed())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, node)).To(Succeed())
+		}()
+
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
+		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
+
+		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
+		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		g.Expect(env.Create(ctx, machine)).To(Succeed())
+
+		modifiedMachine := machine.DeepCopy()
+		// Set NodeRef.
+		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
+		// Set the LastUpdated to be able to verify it is updated when the phase changes
+		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
+		machine.Status.LastUpdated = &lastUpdated
+		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
-		g.Expect(err).NotTo(HaveOccurred())
+		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
 
 		// Set infra ready.
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		err = unstructured.SetNestedField(infraConfig.Object, "us-east-2a", "spec", "failureDomain")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
+		modifiedInfraMachine := infraMachine.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, []interface{}{
 			map[string]interface{}{
 				"type":    "InternalIP",
 				"address": "10.0.0.1",
@@ -260,347 +309,328 @@ func TestReconcileMachinePhases(t *testing.T) {
 				"type":    "InternalIP",
 				"address": "10.0.0.2",
 			},
-		}, "status", "addresses")
-		g.Expect(err).NotTo(HaveOccurred())
+		}, "status", "addresses")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedInfraMachine, client.MergeFrom(infraMachine))).To(Succeed())
 
-		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
-
-		// Set the LastUpdated to be able to verify it is updated when the phase changes
-		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
-		machine.Status.LastUpdated = &lastUpdated
-
-		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machine-test-node",
-			},
-			Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
-		}
-		cl := fake.NewClientBuilder().
-			WithScheme(scheme.Scheme).
-			WithObjects(defaultCluster,
-				machine,
-				node,
-				builder.GenericBootstrapConfigCRD.DeepCopy(),
-				builder.GenericInfrastructureMachineCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-				defaultKubeconfigSecret,
-			).
-			WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
-			Build()
-		r := &Reconciler{
-			disableNodeLabelSync: true,
-			Client:               cl,
-			Tracker:              remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
-		}
-
-		res, err := r.reconcile(ctx, defaultCluster, machine)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
-		g.Expect(machine.Status.Addresses).To(HaveLen(2))
-		g.Expect(*machine.Spec.FailureDomain).To(Equal("us-east-2a"))
-
-		r.reconcilePhase(ctx, machine)
-		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
-
-		// Verify that the LastUpdated timestamp was updated
-		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+		// Wait until Machine was reconciled.
+		g.Eventually(func(g Gomega) bool {
+			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+				return false
+			}
+			g.Expect(machine.Status.Addresses).To(HaveLen(2))
+			g.Expect(*machine.Spec.FailureDomain).To(Equal("us-east-2a"))
+			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+			// Verify that the LastUpdated timestamp was updated
+			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			return true
+		}, 10*time.Second).Should(BeTrue())
 	})
 
 	t.Run("Should set `Running` when bootstrap and infra is ready with no Status.Addresses", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
-		machine := defaultMachine.DeepCopy()
+		ns, err := env.CreateNamespace(ctx, "test-reconcile-machine-phases")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		nodeProviderID := fmt.Sprintf("test://%s", util.RandomString(6))
+
+		cluster := defaultCluster.DeepCopy()
+		cluster.Namespace = ns.Name
+
 		bootstrapConfig := defaultBootstrap.DeepCopy()
-		infraConfig := defaultInfra.DeepCopy()
+		bootstrapConfig.SetNamespace(ns.Name)
+		infraMachine := defaultInfra.DeepCopy()
+		infraMachine.SetNamespace(ns.Name)
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID"))
+		machine := defaultMachine.DeepCopy()
+		machine.Namespace = ns.Name
 
-		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		g.Expect(err).NotTo(HaveOccurred())
+		// Create Node.
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "machine-test-node-",
+			},
+			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+		}
+		g.Expect(env.Create(ctx, node)).To(Succeed())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, node)).To(Succeed())
+		}()
 
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
+		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
 
-		// Set infra ready.
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
+		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
-		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
-		g.Expect(err).NotTo(HaveOccurred())
-
+		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
-
+		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
 		machine.Status.LastUpdated = &lastUpdated
+		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
-		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machine-test-node",
-			},
-			Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
-		}
-		cl := fake.NewClientBuilder().
-			WithScheme(scheme.Scheme).
-			WithObjects(defaultCluster,
-				machine,
-				node,
-				builder.GenericBootstrapConfigCRD.DeepCopy(),
-				builder.GenericInfrastructureMachineCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-				defaultKubeconfigSecret,
-			).
-			WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
-			Build()
-		r := &Reconciler{
-			disableNodeLabelSync: true,
-			Client:               cl,
-			Tracker:              remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
-		}
+		// Set bootstrap ready.
+		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
 
-		res, err := r.reconcile(ctx, defaultCluster, machine)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
-		g.Expect(machine.Status.Addresses).To(BeEmpty())
+		// Set infra ready.
+		modifiedInfraMachine := infraMachine.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedInfraMachine, client.MergeFrom(infraMachine))).To(Succeed())
 
-		r.reconcilePhase(ctx, machine)
-		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
-
-		// Verify that the LastUpdated timestamp was updated
-		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+		// Wait until Machine was reconciled.
+		g.Eventually(func(g Gomega) bool {
+			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+				return false
+			}
+			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+			g.Expect(machine.Status.Addresses).To(HaveLen(0))
+			// Verify that the LastUpdated timestamp was updated
+			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			return true
+		}, 10*time.Second).Should(BeTrue())
 	})
 
 	t.Run("Should set `Running` when bootstrap, infra, and NodeRef is ready", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
-		machine := defaultMachine.DeepCopy()
+		ns, err := env.CreateNamespace(ctx, "test-reconcile-machine-phases")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		nodeProviderID := fmt.Sprintf("test://%s", util.RandomString(6))
+
+		cluster := defaultCluster.DeepCopy()
+		cluster.Namespace = ns.Name
+
 		bootstrapConfig := defaultBootstrap.DeepCopy()
-		infraConfig := defaultInfra.DeepCopy()
+		bootstrapConfig.SetNamespace(ns.Name)
+		infraMachine := defaultInfra.DeepCopy()
+		infraMachine.SetNamespace(ns.Name)
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID"))
+		machine := defaultMachine.DeepCopy()
+		machine.Namespace = ns.Name
 
-		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		// Set infra ready.
-		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
-			map[string]interface{}{
-				"type":    "InternalIP",
-				"address": "10.0.0.1",
+		// Create Node.
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "machine-test-node-",
 			},
-			map[string]interface{}{
-				"type":    "InternalIP",
-				"address": "10.0.0.2",
-			},
-		}, "addresses")
-		g.Expect(err).NotTo(HaveOccurred())
+			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+		}
+		g.Expect(env.Create(ctx, node)).To(Succeed())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, node)).To(Succeed())
+		}()
 
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
+		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
+
+		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
+		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		g.Expect(env.Create(ctx, machine)).To(Succeed())
+
+		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
-
+		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
 		machine.Status.LastUpdated = &lastUpdated
-		node := &corev1.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "machine-test-node",
-			},
-			Spec: corev1.NodeSpec{ProviderID: "test://id-1"},
-		}
-		cl := fake.NewClientBuilder().
-			WithScheme(scheme.Scheme).
-			WithObjects(defaultCluster,
-				machine,
-				node,
-				builder.GenericBootstrapConfigCRD.DeepCopy(),
-				builder.GenericInfrastructureMachineCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-				defaultKubeconfigSecret,
-			).
-			WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
-			Build()
-		r := &Reconciler{
-			disableNodeLabelSync: true,
-			Client:               cl,
-			Tracker:              remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
-		}
+		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
-		res, err := r.reconcile(ctx, defaultCluster, machine)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		// Set bootstrap ready.
+		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
 
-		r.reconcilePhase(ctx, machine)
-		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+		// Set infra ready.
+		modifiedInfraMachine := infraMachine.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedInfraMachine, client.MergeFrom(infraMachine))).To(Succeed())
 
-		// Verify that the LastUpdated timestamp was updated
-		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+		// Wait until Machine was reconciled.
+		g.Eventually(func(g Gomega) bool {
+			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+				return false
+			}
+			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
+			// Verify that the LastUpdated timestamp was updated
+			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			return true
+		}, 10*time.Second).Should(BeTrue())
 	})
 
 	t.Run("Should set `Provisioned` when there is a ProviderID and there is no Node", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
-		machine := defaultMachine.DeepCopy()
+		ns, err := env.CreateNamespace(ctx, "test-reconcile-machine-phases")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		nodeProviderID := fmt.Sprintf("test://%s", util.RandomString(6))
+
+		cluster := defaultCluster.DeepCopy()
+		cluster.Namespace = ns.Name
+
 		bootstrapConfig := defaultBootstrap.DeepCopy()
-		infraConfig := defaultInfra.DeepCopy()
-
-		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		// Set infra ready.
-		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		g.Expect(err).NotTo(HaveOccurred())
-
+		bootstrapConfig.SetNamespace(ns.Name)
+		infraMachine := defaultInfra.DeepCopy()
+		infraMachine.SetNamespace(ns.Name)
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID"))
+		machine := defaultMachine.DeepCopy()
+		machine.Namespace = ns.Name
 		// Set Machine ProviderID.
-		machine.Spec.ProviderID = pointer.String("test://id-1")
+		machine.Spec.ProviderID = pointer.String(nodeProviderID)
 
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
+		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
+
+		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
+		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		g.Expect(env.Create(ctx, machine)).To(Succeed())
+
+		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef to nil.
 		machine.Status.NodeRef = nil
-
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
 		machine.Status.LastUpdated = &lastUpdated
+		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
-		cl := fake.NewClientBuilder().
-			WithScheme(scheme.Scheme).
-			WithObjects(defaultCluster,
-				defaultKubeconfigSecret,
-				machine,
-				builder.GenericBootstrapConfigCRD.DeepCopy(),
-				builder.GenericInfrastructureMachineCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-			).
-			WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
-			Build()
+		// Set bootstrap ready.
+		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
 
-		r := &Reconciler{
-			disableNodeLabelSync: true,
-			Client:               cl,
-			Tracker:              remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
-		}
+		// Set infra ready.
+		modifiedInfraMachine := infraMachine.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedInfraMachine, client.MergeFrom(infraMachine))).To(Succeed())
 
-		res, err := r.reconcile(ctx, defaultCluster, machine)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(res.RequeueAfter).To(Equal(time.Duration(0)))
-
-		r.reconcilePhase(ctx, machine)
-		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
-
-		// Verify that the LastUpdated timestamp was updated
-		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+		// Wait until Machine was reconciled.
+		g.Eventually(func(g Gomega) bool {
+			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+				return false
+			}
+			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
+			// Verify that the LastUpdated timestamp was updated
+			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			return true
+		}, 10*time.Second).Should(BeTrue())
 	})
 
 	t.Run("Should set `Deleting` when Machine is being deleted", func(t *testing.T) {
 		g := NewWithT(t)
 
-		defaultKubeconfigSecret = kubeconfig.GenerateSecret(defaultCluster, kubeconfig.FromEnvTestConfig(&rest.Config{}, defaultCluster))
-		machine := defaultMachine.DeepCopy()
-		// Need the second Machine to allow deletion of one.
-		machineSecond := defaultMachine.DeepCopy()
+		ns, err := env.CreateNamespace(ctx, "test-reconcile-machine-phases")
+		g.Expect(err).ToNot(HaveOccurred())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
+		}()
+
+		nodeProviderID := fmt.Sprintf("test://%s", util.RandomString(6))
+
+		cluster := defaultCluster.DeepCopy()
+		cluster.Namespace = ns.Name
 
 		bootstrapConfig := defaultBootstrap.DeepCopy()
-		infraConfig := defaultInfra.DeepCopy()
+		bootstrapConfig.SetNamespace(ns.Name)
+		infraMachine := defaultInfra.DeepCopy()
+		infraMachine.SetNamespace(ns.Name)
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID"))
+		machine := defaultMachine.DeepCopy()
+		machine.Namespace = ns.Name
+
+		// Create Node.
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				GenerateName: "machine-test-node-",
+			},
+			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+		}
+		g.Expect(env.Create(ctx, node)).To(Succeed())
+		defer func() {
+			g.Expect(env.Cleanup(ctx, node)).To(Succeed())
+		}()
+
+		g.Expect(env.Create(ctx, cluster)).To(Succeed())
+		defaultKubeconfigSecret = kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
+		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
+
+		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
+		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
 		// Set bootstrap ready.
-		err := unstructured.SetNestedField(bootstrapConfig.Object, true, "status", "ready")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		err = unstructured.SetNestedField(bootstrapConfig.Object, "secret-data", "status", "dataSecretName")
-		g.Expect(err).NotTo(HaveOccurred())
+		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(unstructured.SetNestedField(modifiedBootstrapConfig.Object, "secret-data", "status", "dataSecretName")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedBootstrapConfig, client.MergeFrom(bootstrapConfig))).To(Succeed())
 
 		// Set infra ready.
-		err = unstructured.SetNestedField(infraConfig.Object, "test://id-1", "spec", "providerID")
-		g.Expect(err).NotTo(HaveOccurred())
+		modifiedInfraMachine := infraMachine.DeepCopy()
+		g.Expect(unstructured.SetNestedField(modifiedInfraMachine.Object, true, "status", "ready")).To(Succeed())
+		g.Expect(env.Status().Patch(ctx, modifiedInfraMachine, client.MergeFrom(infraMachine))).To(Succeed())
 
-		err = unstructured.SetNestedField(infraConfig.Object, true, "status", "ready")
-		g.Expect(err).NotTo(HaveOccurred())
+		// Wait until the Machine has the Machine finalizer
+		g.Eventually(func() []string {
+			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+				return nil
+			}
+			return machine.Finalizers
+		}, 10*time.Second).Should(HaveLen(1))
 
-		err = unstructured.SetNestedField(infraConfig.Object, []interface{}{
-			map[string]interface{}{
-				"type":    "InternalIP",
-				"address": "10.0.0.1",
-			},
-			map[string]interface{}{
-				"type":    "InternalIP",
-				"address": "10.0.0.2",
-			},
-		}, "addresses")
-		g.Expect(err).NotTo(HaveOccurred())
-
-		// Set Cluster label.
-		machine.Labels[clusterv1.ClusterNameLabel] = machine.Spec.ClusterName
-		machine.ResourceVersion = "999"
-		machineSecond.Labels[clusterv1.ClusterNameLabel] = machine.Spec.ClusterName
-		machineSecond.Name = "SecondMachine"
+		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
-		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: "machine-test-node"}
-
-		// Set Deletion Timestamp.
-		machine.SetDeletionTimestamp(&deletionTimestamp)
-		machine.Finalizers = append(machine.Finalizers, "test")
-
+		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
 		// Set the LastUpdated to be able to verify it is updated when the phase changes
 		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
 		machine.Status.LastUpdated = &lastUpdated
+		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
-		cl := fake.NewClientBuilder().
-			WithScheme(scheme.Scheme).
-			WithObjects(defaultCluster,
-				defaultKubeconfigSecret,
-				machine,
-				machineSecond,
-				builder.GenericBootstrapConfigCRD.DeepCopy(),
-				builder.GenericInfrastructureMachineCRD.DeepCopy(),
-				bootstrapConfig,
-				infraConfig,
-			).Build()
-		r := &Reconciler{
-			disableNodeLabelSync: true,
-			Client:               cl,
-			Tracker:              remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), cl, scheme.Scheme, client.ObjectKey{Name: defaultCluster.Name, Namespace: defaultCluster.Namespace}),
-			recorder:             record.NewFakeRecorder(32),
-		}
+		modifiedMachine = machine.DeepCopy()
+		// Set finalizer so we can check the Machine later, otherwise it would be already gone.
+		modifiedMachine.Finalizers = append(modifiedMachine.Finalizers, "test")
+		g.Expect(env.Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
-		res, err := r.reconcileDelete(ctx, defaultCluster, machine)
-		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(res.Requeue).To(BeFalse())
+		// Delete Machine
+		g.Expect(env.Delete(ctx, machine)).To(Succeed())
 
-		r.reconcilePhase(ctx, machine)
-		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseDeleting))
-
-		nodeHealthyCondition := conditions.Get(machine, clusterv1.MachineNodeHealthyCondition)
-		g.Expect(nodeHealthyCondition.Status).To(Equal(corev1.ConditionFalse))
-		g.Expect(nodeHealthyCondition.Reason).To(Equal(clusterv1.DeletingReason))
-
-		// Verify that the LastUpdated timestamp was updated
-		g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-		g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+		// Wait until Machine was reconciled.
+		g.Eventually(func(g Gomega) bool {
+			if err := env.Get(ctx, client.ObjectKeyFromObject(machine), machine); err != nil {
+				return false
+			}
+			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseDeleting))
+			nodeHealthyCondition := conditions.Get(machine, clusterv1.MachineNodeHealthyCondition)
+			g.Expect(nodeHealthyCondition.Status).To(Equal(corev1.ConditionFalse))
+			g.Expect(nodeHealthyCondition.Reason).To(Equal(clusterv1.DeletingReason))
+			// Verify that the LastUpdated timestamp was updated
+			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
+			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			return true
+		}, 10*time.Second).Should(BeTrue())
 	})
 }
 
@@ -881,7 +911,6 @@ func TestReconcileBootstrap(t *testing.T) {
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
 			r := &Reconciler{
-				disableNodeLabelSync: true,
 				Client: fake.NewClientBuilder().
 					WithObjects(tc.machine,
 						builder.GenericBootstrapConfigCRD.DeepCopy(),
@@ -1092,7 +1121,6 @@ func TestReconcileInfrastructure(t *testing.T) {
 
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
 			r := &Reconciler{
-				disableNodeLabelSync: true,
 				Client: fake.NewClientBuilder().
 					WithObjects(tc.machine,
 						builder.GenericBootstrapConfigCRD.DeepCopy(),
@@ -1334,7 +1362,6 @@ func TestReconcileCertificateExpiry(t *testing.T) {
 			g := NewWithT(t)
 
 			r := &Reconciler{
-				disableNodeLabelSync: true,
 				Client: fake.NewClientBuilder().
 					WithObjects(
 						tc.machine,

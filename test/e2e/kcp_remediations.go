@@ -113,20 +113,20 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 		// Creates the workload cluster.
 		clusterResources = createWorkloadClusterAndWait(ctx, createWorkloadClusterAndWaitInput{
 			E2EConfig:            input.E2EConfig,
-			clusterctlConfigPath: input.ClusterctlConfigPath,
-			proxy:                input.BootstrapClusterProxy,
-			artifactFolder:       input.ArtifactFolder,
-			specName:             specName,
-			flavor:               input.Flavor,
+			ClusterctlConfigPath: input.ClusterctlConfigPath,
+			Proxy:                input.BootstrapClusterProxy,
+			ArtifactFolder:       input.ArtifactFolder,
+			SpecName:             specName,
+			Flavor:               input.Flavor,
 
 			// values to be injected in the template
 
-			namespace: namespace.Name,
+			Namespace: namespace.Name,
 			// Token with credentials to use for accessing the ConfigMap on managements cluster from the workload cluster.
-			// NOTE: this func also setups credentials/RBAC rules and everything necessary to get the authentication authenticationToken.
-			authenticationToken: getAuthenticationToken(ctx, input.BootstrapClusterProxy, namespace.Name),
+			// NOTE: this func also setups credentials/RBAC rules and everything necessary to get the authenticationToken.
+			AuthenticationToken: getAuthenticationToken(ctx, input.BootstrapClusterProxy, namespace.Name),
 			// Address to be used for accessing the management cluster from a workload cluster.
-			serverAddr: getServerAddr(input.BootstrapClusterProxy.GetKubeconfigPath()),
+			ServerAddr: getServerAddr(input.BootstrapClusterProxy.GetKubeconfigPath()),
 		})
 
 		// The first CP machine comes up but it does not complete bootstrap
@@ -135,12 +135,12 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		By("Wait for the cluster to get stuck with the first CP machine not completing the bootstrap")
 		allMachines, newMachines := waitForMachines(ctx, waitForMachinesInput{
-			lister:                          input.BootstrapClusterProxy.GetClient(),
-			namespace:                       namespace.Name,
-			clusterName:                     clusterResources.Cluster.Name,
-			expectedReplicas:                1,
-			waitForMachinesIntervals:        input.E2EConfig.GetIntervals(specName, "wait-machines"),
-			checkMachineListStableIntervals: input.E2EConfig.GetIntervals(specName, "check-machines-stable"),
+			Lister:                          input.BootstrapClusterProxy.GetClient(),
+			Namespace:                       namespace.Name,
+			ClusterName:                     clusterResources.Cluster.Name,
+			ExpectedReplicas:                1,
+			WaitForMachinesIntervals:        input.E2EConfig.GetIntervals(specName, "wait-machines"),
+			CheckMachineListStableIntervals: input.E2EConfig.GetIntervals(specName, "check-machines-stable"),
 		})
 		Expect(allMachines).To(HaveLen(1))
 		Expect(newMachines).To(HaveLen(1))
@@ -166,13 +166,13 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		log.Logf("Wait for the first CP machine to be remediated, and the replacement machine to come up, but again get stuck with the Machine not completing the bootstrap")
 		allMachines, newMachines = waitForMachines(ctx, waitForMachinesInput{
-			lister:                          input.BootstrapClusterProxy.GetClient(),
-			namespace:                       namespace.Name,
-			clusterName:                     clusterResources.Cluster.Name,
-			expectedReplicas:                1,
-			expectedDeletedMachines:         []string{firstMachineName},
-			waitForMachinesIntervals:        input.E2EConfig.GetIntervals(specName, "wait-machines"),
-			checkMachineListStableIntervals: input.E2EConfig.GetIntervals(specName, "check-machines-stable"),
+			Lister:                          input.BootstrapClusterProxy.GetClient(),
+			Namespace:                       namespace.Name,
+			ClusterName:                     clusterResources.Cluster.Name,
+			ExpectedReplicas:                1,
+			ExpectedDeletedMachines:         []string{firstMachineName},
+			WaitForMachinesIntervals:        input.E2EConfig.GetIntervals(specName, "wait-machines"),
+			CheckMachineListStableIntervals: input.E2EConfig.GetIntervals(specName, "check-machines-stable"),
 		})
 		Expect(allMachines).To(HaveLen(1))
 		Expect(newMachines).To(HaveLen(1))
@@ -195,10 +195,10 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		Byf("Unblock bootstrap for Machine %s and wait for it to be provisioned", firstMachineReplacementName)
 		sendSignalToBootstrappingMachine(ctx, sendSignalToBootstrappingMachineInput{
-			client:    input.BootstrapClusterProxy.GetClient(),
-			namespace: namespace.Name,
-			machine:   firstMachineReplacementName,
-			signal:    "pass",
+			Client:    input.BootstrapClusterProxy.GetClient(),
+			Namespace: namespace.Name,
+			Machine:   firstMachineReplacementName,
+			Signal:    "pass",
 		})
 		log.Logf("Waiting for Machine %s to be provisioned", firstMachineReplacementName)
 		Eventually(func() bool {
@@ -213,14 +213,14 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		By("Wait for the cluster to get stuck with the second CP machine not completing the bootstrap")
 		allMachines, newMachines = waitForMachines(ctx, waitForMachinesInput{
-			lister:                          input.BootstrapClusterProxy.GetClient(),
-			namespace:                       namespace.Name,
-			clusterName:                     clusterResources.Cluster.Name,
-			expectedReplicas:                2,
-			expectedDeletedMachines:         []string{},
-			expectedOldMachines:             []string{firstMachineReplacementName},
-			waitForMachinesIntervals:        input.E2EConfig.GetIntervals(specName, "wait-machines"),
-			checkMachineListStableIntervals: input.E2EConfig.GetIntervals(specName, "check-machines-stable"),
+			Lister:                          input.BootstrapClusterProxy.GetClient(),
+			Namespace:                       namespace.Name,
+			ClusterName:                     clusterResources.Cluster.Name,
+			ExpectedReplicas:                2,
+			ExpectedDeletedMachines:         []string{},
+			ExpectedOldMachines:             []string{firstMachineReplacementName},
+			WaitForMachinesIntervals:        input.E2EConfig.GetIntervals(specName, "wait-machines"),
+			CheckMachineListStableIntervals: input.E2EConfig.GetIntervals(specName, "check-machines-stable"),
 		})
 		Expect(allMachines).To(HaveLen(2))
 		Expect(newMachines).To(HaveLen(1))
@@ -246,14 +246,14 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		log.Logf("Wait for the second CP machine to be remediated, and the replacement machine to come up, but again get stuck with the Machine not completing the bootstrap")
 		allMachines, newMachines = waitForMachines(ctx, waitForMachinesInput{
-			lister:                          input.BootstrapClusterProxy.GetClient(),
-			namespace:                       namespace.Name,
-			clusterName:                     clusterResources.Cluster.Name,
-			expectedReplicas:                2,
-			expectedDeletedMachines:         []string{secondMachineName},
-			expectedOldMachines:             []string{firstMachineReplacementName},
-			waitForMachinesIntervals:        input.E2EConfig.GetIntervals(specName, "wait-machines"),
-			checkMachineListStableIntervals: input.E2EConfig.GetIntervals(specName, "check-machines-stable"),
+			Lister:                          input.BootstrapClusterProxy.GetClient(),
+			Namespace:                       namespace.Name,
+			ClusterName:                     clusterResources.Cluster.Name,
+			ExpectedReplicas:                2,
+			ExpectedDeletedMachines:         []string{secondMachineName},
+			ExpectedOldMachines:             []string{firstMachineReplacementName},
+			WaitForMachinesIntervals:        input.E2EConfig.GetIntervals(specName, "wait-machines"),
+			CheckMachineListStableIntervals: input.E2EConfig.GetIntervals(specName, "check-machines-stable"),
 		})
 		Expect(allMachines).To(HaveLen(2))
 		Expect(newMachines).To(HaveLen(1))
@@ -276,10 +276,10 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		Byf("Unblock bootstrap for Machine %s and wait for it to be provisioned", secondMachineReplacementName)
 		sendSignalToBootstrappingMachine(ctx, sendSignalToBootstrappingMachineInput{
-			client:    input.BootstrapClusterProxy.GetClient(),
-			namespace: namespace.Name,
-			machine:   secondMachineReplacementName,
-			signal:    "pass",
+			Client:    input.BootstrapClusterProxy.GetClient(),
+			Namespace: namespace.Name,
+			Machine:   secondMachineReplacementName,
+			Signal:    "pass",
 		})
 		log.Logf("Waiting for Machine %s to be provisioned", secondMachineReplacementName)
 		Eventually(func() bool {
@@ -294,14 +294,14 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		By("Wait for the cluster to get stuck with the third CP machine not completing the bootstrap")
 		allMachines, newMachines = waitForMachines(ctx, waitForMachinesInput{
-			lister:                          input.BootstrapClusterProxy.GetClient(),
-			namespace:                       namespace.Name,
-			clusterName:                     clusterResources.Cluster.Name,
-			expectedReplicas:                3,
-			expectedDeletedMachines:         []string{},
-			expectedOldMachines:             []string{firstMachineReplacementName, secondMachineReplacementName},
-			waitForMachinesIntervals:        input.E2EConfig.GetIntervals(specName, "wait-machines"),
-			checkMachineListStableIntervals: input.E2EConfig.GetIntervals(specName, "check-machines-stable"),
+			Lister:                          input.BootstrapClusterProxy.GetClient(),
+			Namespace:                       namespace.Name,
+			ClusterName:                     clusterResources.Cluster.Name,
+			ExpectedReplicas:                3,
+			ExpectedDeletedMachines:         []string{},
+			ExpectedOldMachines:             []string{firstMachineReplacementName, secondMachineReplacementName},
+			WaitForMachinesIntervals:        input.E2EConfig.GetIntervals(specName, "wait-machines"),
+			CheckMachineListStableIntervals: input.E2EConfig.GetIntervals(specName, "check-machines-stable"),
 		})
 		Expect(allMachines).To(HaveLen(3))
 		Expect(newMachines).To(HaveLen(1))
@@ -318,10 +318,10 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		Byf("Unblock bootstrap for Machine %s and wait for it to be provisioned", thirdMachineName)
 		sendSignalToBootstrappingMachine(ctx, sendSignalToBootstrappingMachineInput{
-			client:    input.BootstrapClusterProxy.GetClient(),
-			namespace: namespace.Name,
-			machine:   thirdMachineName,
-			signal:    "pass",
+			Client:    input.BootstrapClusterProxy.GetClient(),
+			Namespace: namespace.Name,
+			Machine:   thirdMachineName,
+			Signal:    "pass",
 		})
 		log.Logf("Waiting for Machine %s to be provisioned", thirdMachineName)
 		Eventually(func() bool {
@@ -359,14 +359,14 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		log.Logf("Wait for the third CP machine to be remediated, and the replacement machine to come up, but again get stuck with the Machine not completing the bootstrap")
 		allMachines, newMachines = waitForMachines(ctx, waitForMachinesInput{
-			lister:                          input.BootstrapClusterProxy.GetClient(),
-			namespace:                       namespace.Name,
-			clusterName:                     clusterResources.Cluster.Name,
-			expectedReplicas:                3,
-			expectedDeletedMachines:         []string{thirdMachineName},
-			expectedOldMachines:             []string{firstMachineReplacementName, secondMachineReplacementName},
-			waitForMachinesIntervals:        input.E2EConfig.GetIntervals(specName, "wait-machines"),
-			checkMachineListStableIntervals: input.E2EConfig.GetIntervals(specName, "check-machines-stable"),
+			Lister:                          input.BootstrapClusterProxy.GetClient(),
+			Namespace:                       namespace.Name,
+			ClusterName:                     clusterResources.Cluster.Name,
+			ExpectedReplicas:                3,
+			ExpectedDeletedMachines:         []string{thirdMachineName},
+			ExpectedOldMachines:             []string{firstMachineReplacementName, secondMachineReplacementName},
+			WaitForMachinesIntervals:        input.E2EConfig.GetIntervals(specName, "wait-machines"),
+			CheckMachineListStableIntervals: input.E2EConfig.GetIntervals(specName, "check-machines-stable"),
 		})
 		Expect(allMachines).To(HaveLen(3))
 		Expect(newMachines).To(HaveLen(1))
@@ -387,10 +387,10 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		Byf("Unblock bootstrap for Machine %s and wait for it to be provisioned", thirdMachineReplacementName)
 		sendSignalToBootstrappingMachine(ctx, sendSignalToBootstrappingMachineInput{
-			client:    input.BootstrapClusterProxy.GetClient(),
-			namespace: namespace.Name,
-			machine:   thirdMachineReplacementName,
-			signal:    "pass",
+			Client:    input.BootstrapClusterProxy.GetClient(),
+			Namespace: namespace.Name,
+			Machine:   thirdMachineReplacementName,
+			Signal:    "pass",
 		})
 		log.Logf("Waiting for Machine %s to be provisioned", thirdMachineReplacementName)
 		Eventually(func() bool {
@@ -428,182 +428,186 @@ func createConfigMapForMachinesBootstrapSignal(ctx context.Context, writer clien
 
 type createWorkloadClusterAndWaitInput struct {
 	E2EConfig            *clusterctl.E2EConfig
-	clusterctlConfigPath string
-	proxy                framework.ClusterProxy
-	artifactFolder       string
-	specName             string
-	flavor               *string
-	namespace            string
-	authenticationToken  []byte
-	serverAddr           string
+	ClusterctlConfigPath string
+	Proxy                framework.ClusterProxy
+	ArtifactFolder       string
+	SpecName             string
+	Flavor               *string
+	Namespace            string
+	AuthenticationToken  []byte
+	ServerAddr           string
 }
 
-// createWorkloadClusterAndWait creates a workload cluster ard return ass soon as the cluster infrastructure is ready.
+// createWorkloadClusterAndWait creates a workload cluster ard return as soon as the cluster infrastructure is ready.
+// NOTE: we are not using the same func used by other tests because it would fail if the control plane doesn't come up,
+//
+//	which instead is expected in this case.
+//
 // NOTE: clusterResources is filled only partially.
 func createWorkloadClusterAndWait(ctx context.Context, input createWorkloadClusterAndWaitInput) (clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult) {
 	clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 
 	// gets the cluster template
 	log.Logf("Getting the cluster template yaml")
-	clusterName := fmt.Sprintf("%s-%s", input.specName, util.RandomString(6))
+	clusterName := fmt.Sprintf("%s-%s", input.SpecName, util.RandomString(6))
 	workloadClusterTemplate := clusterctl.ConfigCluster(ctx, clusterctl.ConfigClusterInput{
 		// pass the clusterctl config file that points to the local provider repository created for this test,
-		ClusterctlConfigPath: input.clusterctlConfigPath,
+		ClusterctlConfigPath: input.ClusterctlConfigPath,
 		// pass reference to the management cluster hosting this test
-		KubeconfigPath: input.proxy.GetKubeconfigPath(),
+		KubeconfigPath: input.Proxy.GetKubeconfigPath(),
 
 		// select template
-		Flavor: pointer.StringDeref(input.flavor, "kcp-remediation"),
+		Flavor: pointer.StringDeref(input.Flavor, "kcp-remediation"),
 		// define template variables
-		Namespace:                input.namespace,
+		Namespace:                input.Namespace,
 		ClusterName:              clusterName,
 		KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 		ControlPlaneMachineCount: pointer.Int64(3),
 		WorkerMachineCount:       pointer.Int64(0),
 		InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
 		// setup clusterctl logs folder
-		LogFolder: filepath.Join(input.artifactFolder, "clusters", input.proxy.GetName()),
+		LogFolder: filepath.Join(input.ArtifactFolder, "clusters", input.Proxy.GetName()),
 		// Adds authenticationToken, server address and namespace variables to be injected in the cluster template.
 		ClusterctlVariables: map[string]string{
-			"TOKEN":     string(input.authenticationToken),
-			"SERVER":    input.serverAddr,
-			"NAMESPACE": input.namespace,
+			"TOKEN":     string(input.AuthenticationToken),
+			"SERVER":    input.ServerAddr,
+			"NAMESPACE": input.Namespace,
 		},
 	})
 	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
 	Eventually(func() error {
-		return input.proxy.Apply(ctx, workloadClusterTemplate)
+		return input.Proxy.Apply(ctx, workloadClusterTemplate)
 	}, 10*time.Second).Should(Succeed(), "Failed to apply the cluster template")
 
 	log.Logf("Waiting for the cluster infrastructure to be provisioned")
 	clusterResources.Cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
-		Getter:    input.proxy.GetClient(),
-		Namespace: input.namespace,
+		Getter:    input.Proxy.GetClient(),
+		Namespace: input.Namespace,
 		Name:      clusterName,
-	}, input.E2EConfig.GetIntervals(input.specName, "wait-cluster")...)
+	}, input.E2EConfig.GetIntervals(input.SpecName, "wait-cluster")...)
 
 	return clusterResources
 }
 
 type sendSignalToBootstrappingMachineInput struct {
-	client    client.Client
-	namespace string
-	machine   string
-	signal    string
+	Client    client.Client
+	Namespace string
+	Machine   string
+	Signal    string
 }
 
 // sendSignalToBootstrappingMachine sends a signal to a machine stuck during bootstrap.
 func sendSignalToBootstrappingMachine(ctx context.Context, input sendSignalToBootstrappingMachineInput) {
-	log.Logf("Sending bootstrap signal %s to Machine %s", input.signal, input.machine)
+	log.Logf("Sending bootstrap signal %s to Machine %s", input.Signal, input.Machine)
 	cm := &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      configMapName,
-			Namespace: input.namespace,
+			Namespace: input.Namespace,
 		},
 	}
-	Expect(input.client.Get(ctx, client.ObjectKeyFromObject(cm), cm)).To(Succeed(), "failed to get mhc-test config map")
+	Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(cm), cm)).To(Succeed(), "failed to get mhc-test config map")
 
 	cmWithSignal := cm.DeepCopy()
-	cmWithSignal.Data[configMapDataKey] = input.signal
-	Expect(input.client.Patch(ctx, cmWithSignal, client.MergeFrom(cm))).To(Succeed(), "failed to patch mhc-test config map")
+	cmWithSignal.Data[configMapDataKey] = input.Signal
+	Expect(input.Client.Patch(ctx, cmWithSignal, client.MergeFrom(cm))).To(Succeed(), "failed to patch mhc-test config map")
 
-	log.Logf("Waiting for Machine %s to acknowledge signal %s has been received", input.machine, input.signal)
+	log.Logf("Waiting for Machine %s to acknowledge signal %s has been received", input.Machine, input.Signal)
 	Eventually(func() string {
-		_ = input.client.Get(ctx, client.ObjectKeyFromObject(cmWithSignal), cmWithSignal)
+		_ = input.Client.Get(ctx, client.ObjectKeyFromObject(cmWithSignal), cmWithSignal)
 		return cmWithSignal.Data[configMapDataKey]
-	}, "1m", "10s").Should(Equal(fmt.Sprintf("ack-%s", input.signal)), "Failed to get ack signal from machine %s", input.machine)
+	}, "1m", "10s").Should(Equal(fmt.Sprintf("ack-%s", input.Signal)), "Failed to get ack signal from machine %s", input.Machine)
 
 	machine := &clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      input.machine,
-			Namespace: input.namespace,
+			Name:      input.Machine,
+			Namespace: input.Namespace,
 		},
 	}
-	Expect(input.client.Get(ctx, client.ObjectKeyFromObject(machine), machine)).To(Succeed())
+	Expect(input.Client.Get(ctx, client.ObjectKeyFromObject(machine), machine)).To(Succeed())
 
 	// Resetting the signal in the config map
 	cmWithSignal.Data[configMapDataKey] = "hold"
-	Expect(input.client.Patch(ctx, cmWithSignal, client.MergeFrom(cm))).To(Succeed(), "failed to patch mhc-test config map")
+	Expect(input.Client.Patch(ctx, cmWithSignal, client.MergeFrom(cm))).To(Succeed(), "failed to patch mhc-test config map")
 }
 
 type waitForMachinesInput struct {
-	lister                          framework.Lister
-	namespace                       string
-	clusterName                     string
-	expectedReplicas                int
-	expectedOldMachines             []string
-	expectedDeletedMachines         []string
-	waitForMachinesIntervals        []interface{}
-	checkMachineListStableIntervals []interface{}
+	Lister                          framework.Lister
+	Namespace                       string
+	ClusterName                     string
+	ExpectedReplicas                int
+	ExpectedOldMachines             []string
+	ExpectedDeletedMachines         []string
+	WaitForMachinesIntervals        []interface{}
+	CheckMachineListStableIntervals []interface{}
 }
 
 // waitForMachines waits for machines to reach a well known state defined by number of replicas, a list of machines to exists,
-// a list of machines to not exists anymore. The func also check that the state is stable for some time before
+// a list of machines to not exist anymore. The func also check that the state is stable for some time before
 // returning the list of new machines.
 func waitForMachines(ctx context.Context, input waitForMachinesInput) (allMachineNames, newMachineNames []string) {
-	inClustersNamespaceListOption := client.InNamespace(input.namespace)
+	inClustersNamespaceListOption := client.InNamespace(input.Namespace)
 	matchClusterListOption := client.MatchingLabels{
-		clusterv1.ClusterNameLabel:         input.clusterName,
+		clusterv1.ClusterNameLabel:         input.ClusterName,
 		clusterv1.MachineControlPlaneLabel: "",
 	}
 
-	expectedOldMachines := sets.NewString(input.expectedOldMachines...)
-	expectedDeletedMachines := sets.NewString(input.expectedDeletedMachines...)
-	allMachines := sets.NewString()
-	newMachines := sets.NewString()
+	expectedOldMachines := sets.Set[string]{}.Insert(input.ExpectedOldMachines...)
+	expectedDeletedMachines := sets.Set[string]{}.Insert(input.ExpectedDeletedMachines...)
+	allMachines := sets.Set[string]{}
+	newMachines := sets.Set[string]{}
 	machineList := &clusterv1.MachineList{}
 
 	// Waits for the desired set of machines to exist.
-	log.Logf("Waiting for %d machines, must have %s, must not have %s", input.expectedReplicas, expectedOldMachines.List(), expectedDeletedMachines.List())
+	log.Logf("Waiting for %d machines, must have %s, must not have %s", input.ExpectedReplicas, expectedOldMachines.UnsortedList(), expectedDeletedMachines.UnsortedList())
 	Eventually(func() bool {
 		// Gets the list of machines
-		if err := input.lister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
+		if err := input.Lister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
 			return false
 		}
-		allMachines = sets.NewString()
+		allMachines = sets.Set[string]{}
 		for i := range machineList.Items {
 			allMachines.Insert(machineList.Items[i].Name)
 		}
 
 		// Compute new machines (all - old - to be deleted)
 		newMachines = allMachines.Clone()
-		newMachines.Delete(expectedOldMachines.List()...)
-		newMachines.Delete(expectedDeletedMachines.List()...)
+		newMachines.Delete(expectedOldMachines.UnsortedList()...)
+		newMachines.Delete(expectedDeletedMachines.UnsortedList()...)
 
-		log.Logf(" - expected %d, got %d: %s, of which new %s, must have check: %t, must not have check: %t", input.expectedReplicas, allMachines.Len(), allMachines.List(), newMachines.List(), allMachines.HasAll(expectedOldMachines.List()...), !allMachines.HasAny(expectedDeletedMachines.List()...))
+		log.Logf(" - expected %d, got %d: %s, of which new %s, must have check: %t, must not have check: %t", input.ExpectedReplicas, allMachines.Len(), allMachines.UnsortedList(), newMachines.UnsortedList(), allMachines.HasAll(expectedOldMachines.UnsortedList()...), !allMachines.HasAny(expectedDeletedMachines.UnsortedList()...))
 
 		// Ensures all the expected old machines are still there.
-		if !allMachines.HasAll(expectedOldMachines.List()...) {
+		if !allMachines.HasAll(expectedOldMachines.UnsortedList()...) {
 			return false
 		}
 
 		// Ensures none of the machines to be deleted is still there.
-		if allMachines.HasAny(expectedDeletedMachines.List()...) {
+		if allMachines.HasAny(expectedDeletedMachines.UnsortedList()...) {
 			return false
 		}
 
-		return allMachines.Len() == input.expectedReplicas
-	}, input.waitForMachinesIntervals...).Should(BeTrue(), "Failed to get the expected list of machines: got %s (expected %d machines, must have %s, must not have %s)", allMachines.List(), input.expectedReplicas, expectedOldMachines.List(), expectedDeletedMachines.List())
-	log.Logf("Got %d machines: %s", input.expectedReplicas, allMachines.List())
+		return allMachines.Len() == input.ExpectedReplicas
+	}, input.WaitForMachinesIntervals...).Should(BeTrue(), "Failed to get the expected list of machines: got %s (expected %d machines, must have %s, must not have %s)", allMachines.UnsortedList(), input.ExpectedReplicas, expectedOldMachines.UnsortedList(), expectedDeletedMachines.UnsortedList())
+	log.Logf("Got %d machines: %s", allMachines.Len(), allMachines.UnsortedList())
 
 	// Ensures the desired set of machines is stable (no further machines are created or deleted).
 	log.Logf("Checking the list of machines is stable")
-	allMachinesNow := sets.NewString()
+	allMachinesNow := sets.Set[string]{}
 	Consistently(func() bool {
 		// Gets the list of machines
-		if err := input.lister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
+		if err := input.Lister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
 			return false
 		}
-		allMachinesNow = sets.NewString()
+		allMachinesNow = sets.Set[string]{}
 		for i := range machineList.Items {
 			allMachinesNow.Insert(machineList.Items[i].Name)
 		}
 
-		return allMachines.Len() == allMachinesNow.Len() && allMachines.HasAll(allMachinesNow.List()...)
-	}, input.checkMachineListStableIntervals...).Should(BeTrue(), "Expected list of machines is not stable: got %s, expected %s", allMachinesNow.List(), allMachines.List())
+		return allMachines.Equal(allMachinesNow)
+	}, input.CheckMachineListStableIntervals...).Should(BeTrue(), "Expected list of machines is not stable: got %s, expected %s", allMachinesNow.UnsortedList(), allMachines.UnsortedList())
 
-	return allMachines.List(), newMachines.List()
+	return allMachines.UnsortedList(), newMachines.UnsortedList()
 }
 
 // getServerAddr returns the address to be used for accessing the management cluster from a workload cluster.

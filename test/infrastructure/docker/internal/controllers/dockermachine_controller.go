@@ -295,8 +295,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 
 	// if the machine isn't bootstrapped, only then run bootstrap scripts
 	if !dockerMachine.Spec.Bootstrapped {
-		// TODO: make this timeout configurable via DockerMachine API if it is required by the KCP remediation test.
-		timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+		timeoutCtx, cancel := context.WithTimeout(ctx, 3*time.Minute)
 		defer cancel()
 
 		// Check for bootstrap success
@@ -317,10 +316,13 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 				for {
 					select {
 					case <-timeoutCtx.Done():
+						log.Info("Cancelling Bootstrap due to timeout")
 						return
 					default:
 						updatedDockerMachine := &infrav1.DockerMachine{}
-						if err := r.Client.Get(ctx, client.ObjectKeyFromObject(dockerMachine), updatedDockerMachine); err == nil && !updatedDockerMachine.DeletionTimestamp.IsZero() {
+						if err := r.Client.Get(ctx, client.ObjectKeyFromObject(dockerMachine), updatedDockerMachine); err == nil &&
+							!updatedDockerMachine.DeletionTimestamp.IsZero() {
+							log.Info("Cancelling Bootstrap because the underlying machine has been deleted")
 							cancel()
 							return
 						}

@@ -41,7 +41,7 @@ func (r *rollout) ObjectRollbacker(proxy cluster.Proxy, ref corev1.ObjectReferen
 			return err
 		}
 	default:
-		return errors.Errorf("invalid resource type %q, valid values are %v", ref.Kind, validResourceTypes)
+		return errors.Errorf("invalid resource type %q, valid values are %v", ref.Kind, validRollbackResourceTypes)
 	}
 	return nil
 }

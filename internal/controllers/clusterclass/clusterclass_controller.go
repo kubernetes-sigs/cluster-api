@@ -166,7 +166,7 @@ func (r *Reconciler) reconcile(ctx context.Context, clusterClass *clusterv1.Clus
 		// Check if the template reference is outdated, i.e. it is not using the latest apiVersion
 		// for the current CAPI contract.
 		updatedRef := ref.DeepCopy()
-		if err := conversion.UpdateReferenceAPIContract(ctx, r.Client, r.APIReader, updatedRef); err != nil {
+		if err := conversion.UpdateReferenceAPIContract(ctx, r.Client, updatedRef); err != nil {
 			errs = append(errs, err)
 		}
 		if ref.GroupVersionKind().Version != updatedRef.GroupVersionKind().Version {

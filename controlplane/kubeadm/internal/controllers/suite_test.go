@@ -38,7 +38,7 @@ var (
 			Kind:       "CustomResourceDefinition",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "genericmachinetemplate.generic.io",
+			Name: "genericmachinetemplates.generic.io",
 			Labels: map[string]string{
 				"cluster.x-k8s.io/v1beta1": "v1",
 			},

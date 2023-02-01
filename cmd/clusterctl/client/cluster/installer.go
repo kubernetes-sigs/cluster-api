@@ -229,11 +229,11 @@ func (i *providerInstaller) Validate() error {
 
 			gk, err := getCRDGroupKind(obj)
 			if err != nil {
-				return errors.Wrap(err, "Failed to read group and kind from CustomResourceDefinition")
+				return errors.Wrap(err, "failed to read group and kind from CustomResourceDefinition")
 			}
 
 			if err := validateCRDName(obj, gk); err != nil {
-				logf.Log.Info(err.Error())
+				return err
 			}
 		}
 	}
@@ -279,9 +279,9 @@ func validateCRDName(obj unstructured.Unstructured, gk *schema.GroupKind) error 
 		return nil
 	}
 
-	return errors.Errorf("WARNING: CRD name %q is invalid for a CRD referenced in a core Cluster API CRD,"+
-		"it should be %q. Support for CRDs that are referenced in core Cluster API resources with invalid names will be "+
-		"dropped in a future Cluster API release. Note: Please check if this CRD is actually referenced in core Cluster API "+
+	return errors.Errorf("ERROR: CRD name %q is invalid for a CRD referenced in a core Cluster API CRD,"+
+		"it should be %q. Support for CRDs that are referenced in core Cluster API resources with invalid names has been "+
+		"dropped. Note: Please check if this CRD is actually referenced in core Cluster API "+
 		"CRDs. If not, this warning can be hidden by setting the %q' annotation.", obj.GetName(), correctCRDName, clusterctlv1.SkipCRDNamePreflightCheckAnnotation)
 }
 

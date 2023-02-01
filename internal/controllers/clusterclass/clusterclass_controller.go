@@ -177,6 +177,20 @@ func (r *Reconciler) reconcile(ctx context.Context, clusterClass *clusterv1.Clus
 		return ctrl.Result{}, kerrors.NewAggregate(errs)
 	}
 
+	// Ensure the variables are added to the ClusterClass status.
+	clusterClass.Status.Variables = []clusterv1.ClusterClassStatusVariable{}
+	for _, variable := range clusterClass.Spec.Variables {
+		clusterClass.Status.Variables = append(clusterClass.Status.Variables,
+			clusterv1.ClusterClassStatusVariable{
+				Name: variable.Name,
+				Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+					{
+						From:     clusterv1.VariableDefinitionFromInline,
+						Required: variable.Required,
+						Schema:   variable.Schema,
+					},
+				}})
+	}
 	reconcileConditions(clusterClass, outdatedRefs)
 
 	return ctrl.Result{}, nil

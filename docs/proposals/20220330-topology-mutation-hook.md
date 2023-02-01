@@ -235,8 +235,7 @@ Mitigations:
 Variable definitions supplied externally by an External Patch Extension through a Variable Discovery Hook can change when the definition in the External Patch Extension changes. This can lead to a clash where variables that previously had the same name and definition no longer have the same definition.
 
 Mitigations:
-* Variable Discovery Hooks allow addressing variables using namespacing, where the variable value setting in the Cluster
- includes the name of the Patch as a namespace. 
+* Variable Discovery Hooks allow addressing conflicting variables individually by specifying the source of the variable's definition when setting the variable value in the Cluster.
 * ClusterClass authors should pro-actively test any changes to ClusterClasses and associated Runtime Extensions to avoid clashing variable definitions.
 * External Patch extension authors should extensively document their patches, variables and their usage.
 

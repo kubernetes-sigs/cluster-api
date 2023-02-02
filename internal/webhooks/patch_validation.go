@@ -69,6 +69,14 @@ func validatePatchName(patch clusterv1.ClusterClassPatch, names sets.Set[string]
 			),
 		)
 	}
+	if patch.Name == clusterv1.VariableDefinitionFromInline {
+		allErrs = append(allErrs,
+			field.Required(
+				path.Child("name"),
+				fmt.Sprintf("%q can not be used as the name of a patch", clusterv1.VariableDefinitionFromInline),
+			),
+		)
+	}
 
 	if names.Has(patch.Name) {
 		allErrs = append(allErrs,

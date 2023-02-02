@@ -910,6 +910,100 @@ metadata:
 		g.Expect(env.Delete(ctx, resourceConfigMapWithMissingNamespace)).To(Succeed())
 		g.Expect(env.Delete(ctx, missingNs)).To(Succeed())
 	})
+
+	t.Run("Should only create ClusterResourceSetBinding after the remote cluster's Kubernetes API Server Service has been created", func(t *testing.T) {
+		g := NewWithT(t)
+		ns := setup(t, g)
+		defer teardown(t, g, ns)
+
+		kubernetesAPIServerService := &corev1.Service{
+			TypeMeta: metav1.TypeMeta{Kind: "Service", APIVersion: "v1"},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "kubernetes",
+				Namespace: metav1.NamespaceDefault,
+			},
+		}
+
+		fakeService := &corev1.Service{
+			TypeMeta: metav1.TypeMeta{Kind: "Service", APIVersion: "v1"},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "fake",
+				Namespace: metav1.NamespaceDefault,
+			},
+			Spec: corev1.ServiceSpec{
+				Ports: []corev1.ServicePort{
+					{
+						Name: "https",
+						Port: 443,
+					},
+				},
+				Type: "ClusterIP",
+			},
+		}
+
+		t.Log("Verifying Kubernetes API Server Service has been created")
+		g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kubernetesAPIServerService), kubernetesAPIServerService)).To(Succeed())
+
+		fakeService.Spec.ClusterIP = kubernetesAPIServerService.Spec.ClusterIP
+
+		t.Log("Let Kubernetes API Server Service fail to create by occupying its IP")
+		g.Eventually(func() error {
+			err := env.Delete(ctx, kubernetesAPIServerService)
+			if err != nil {
+				return err
+			}
+			err = env.Create(ctx, fakeService)
+			if err != nil {
+				return err
+			}
+			return nil
+		}, timeout).Should(Succeed())
+		g.Expect(apierrors.IsNotFound(env.Get(ctx, client.ObjectKeyFromObject(kubernetesAPIServerService), kubernetesAPIServerService))).To(BeTrue())
+
+		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterResourceSetName,
+				Namespace: ns.Name,
+			},
+			Spec: addonsv1.ClusterResourceSetSpec{
+				ClusterSelector: metav1.LabelSelector{
+					MatchLabels: labels,
+				},
+			},
+		}
+		// Create the ClusterResourceSet.
+		g.Expect(env.Create(ctx, clusterResourceSetInstance)).To(Succeed())
+
+		testCluster.SetLabels(labels)
+		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
+
+		// ClusterResourceSetBinding for the Cluster is not created because the Kubernetes API Server Service doesn't exist.
+		clusterResourceSetBindingKey := client.ObjectKey{
+			Namespace: testCluster.Namespace,
+			Name:      testCluster.Name,
+		}
+		g.Consistently(func() bool {
+			binding := &addonsv1.ClusterResourceSetBinding{}
+
+			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
+			return apierrors.IsNotFound(err)
+		}, timeout).Should(BeTrue())
+
+		t.Log("Make sure Kubernetes API Server Service has been created")
+		g.Expect(env.Delete(ctx, fakeService)).Should(Succeed())
+		g.Eventually(func() bool {
+			err := env.Get(ctx, client.ObjectKeyFromObject(kubernetesAPIServerService), kubernetesAPIServerService)
+			return err == nil
+		}, timeout).Should(BeTrue())
+
+		// Wait until ClusterResourceSetBinding is created for the Cluster
+		g.Eventually(func() bool {
+			binding := &addonsv1.ClusterResourceSetBinding{}
+
+			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
+			return err == nil
+		}, timeout).Should(BeTrue())
+	})
 }
 
 func clusterResourceSetBindingReady(env *envtest.Environment, cluster *clusterv1.Cluster) func() bool {

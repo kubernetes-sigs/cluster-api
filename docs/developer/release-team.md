@@ -21,8 +21,6 @@ This document introduces the concept of a release team with the following goals 
 
 Note that this document is intended to be a starting point for the release team. It is not a complete release process document.
 
-More details on the CAPI release process can be found in the [release cycle](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-cycle.md) and [release task](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md) documentation.
-
 ## Duration of Term
 
 Each release team term will last approximately four months, to align with one minor release cycle. A minor release cycle starts right after a minor release and concludes with the release of the next minor release. There is no limit to the number of terms a release team member can serve, meaning that it's possible for a release team member to serve multiple consecutive terms.

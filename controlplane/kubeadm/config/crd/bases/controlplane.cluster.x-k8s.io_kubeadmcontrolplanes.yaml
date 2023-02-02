@@ -3622,33 +3622,43 @@ spec:
                 type: object
               remediationStrategy:
                 description: The RemediationStrategy that controls how control plane
-                  machines remediation happens.
+                  machine remediation happens.
                 properties:
                   maxRetry:
-                    description: "MaxRetry is the Max number of retry while attempting
+                    description: "MaxRetry is the Max number of retries while attempting
                       to remediate an unhealthy machine. A retry happens when a machine
                       that was created as a replacement for an unhealthy machine also
                       fails. For example, given a control plane with three machines
                       M1, M2, M3: \n M1 become unhealthy; remediation happens, and
-                      M1bis is created as a replacement. If M1-1 (replacement of M1)
-                      have problems while bootstrapping it will become unhealthy,
-                      and then be remediated; such operation is considered a retry,
-                      remediation-retry #1. If M1-2 (replacement of M1-2) becomes
-                      unhealthy, remediation-retry #2 will happen, etc. \n A retry
-                      could happen only after RetryPeriod from the previous retry.
-                      If a machine is marked as unhealthy after MinHealthyPeriod from
-                      the previous remediation expired, this is not considered anymore
-                      a retry because the new issue is assumed unrelated from the
-                      previous one. \n If not set, infinite retry will be attempted."
+                      M1-1 is created as a replacement. If M1-1 (replacement of M1)
+                      has problems while bootstrapping it will become unhealthy, and
+                      then be remediated; such operation is considered a retry, remediation-retry
+                      #1. If M1-2 (replacement of M1-2) becomes unhealthy, remediation-retry
+                      #2 will happen, etc. \n A retry could happen only after RetryPeriod
+                      from the previous retry. If a machine is marked as unhealthy
+                      after MinHealthyPeriod from the previous remediation expired,
+                      this is not considered a retry anymore because the new issue
+                      is assumed unrelated from the previous one. \n If not set, the
+                      remedation will be retried infinitely."
                     format: int32
                     type: integer
-                  minHealthySeconds:
+                  minHealthyPeriod:
                     description: "MinHealthyPeriod defines the duration after which
                       KCP will consider any failure to a machine unrelated from the
-                      previous one, and thus a new remediation is not considered a
-                      retry anymore. \n If not set, this value is defaulted to 1h."
+                      previous one. In this case the remediation is not considered
+                      a retry anymore, and thus the retry counter restarts from 0.
+                      For example, assuming MinHealthyPeriod is set to 1h (default)
+                      \n M1 become unhealthy; remediation happens, and M1-1 is created
+                      as a replacement. If M1-1 (replacement of M1) has problems within
+                      the 1hr after the creation, also this machine will be remediated
+                      and this operation is considered a retry - a problem related
+                      to the original issue happened to M1 -. \n If instead the problem
+                      on M1-1 is happening after MinHealthyPeriod expired, e.g. four
+                      days after m1-1 has been created as a remediation of M1, the
+                      problem on M1-1 is considered unrelated to the original issue
+                      happened to M1. \n If not set, this value is defaulted to 1h."
                     type: string
-                  retryDelaySeconds:
+                  retryPeriod:
                     description: "RetryPeriod is the duration that KCP should wait
                       before remediating a machine being created as a replacement
                       for an unhealthy machine (a retry). \n If not set, a retry will
@@ -3796,27 +3806,10 @@ spec:
                     format: int32
                     type: integer
                   timestamp:
-                    description: Timestamp is RFC 3339 date and time at which last
-                      remediation happened.
-                    properties:
-                      nanos:
-                        description: Non-negative fractions of a second at nanosecond
-                          resolution. Negative second values with fractions must still
-                          have non-negative nanos values that count forward in time.
-                          Must be from 0 to 999,999,999 inclusive. This field may
-                          be limited in precision depending on context.
-                        format: int32
-                        type: integer
-                      seconds:
-                        description: Represents seconds of UTC time since Unix epoch
-                          1970-01-01T00:00:00Z. Must be from 0001-01-01T00:00:00Z
-                          to 9999-12-31T23:59:59Z inclusive.
-                        format: int64
-                        type: integer
-                    required:
-                    - nanos
-                    - seconds
-                    type: object
+                    description: Timestamp is when last remediation happened. It is
+                      represented in RFC3339 form and is in UTC.
+                    format: date-time
+                    type: string
                 required:
                 - machine
                 - retryCount

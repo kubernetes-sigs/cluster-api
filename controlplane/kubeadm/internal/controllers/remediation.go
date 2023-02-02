@@ -43,7 +43,7 @@ import (
 // based on the process described in https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20191017-kubeadm-based-control-plane.md#remediation-using-delete-and-recreate
 func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlane *internal.ControlPlane) (ret ctrl.Result, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
-	reconciliationTime := time.Now()
+	reconciliationTime := time.Now().UTC()
 
 	// Cleanup pending remediation actions not completed for any reasons (e.g. number of current replicas is less or equal to 1)
 	// if the underlying machine is now back to healthy / not deleting.
@@ -223,7 +223,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	// NOTE: Some of those info have been computed above, but they must surface on the object only here, after machine has been deleted.
 	controlPlane.KCP.Status.LastRemediation = &controlplanev1.LastRemediationStatus{
 		Machine:    machineToBeRemediated.Name,
-		Timestamp:  metav1.Timestamp{Seconds: reconciliationTime.Unix()},
+		Timestamp:  metav1.Time{Time: reconciliationTime},
 		RetryCount: retryCount,
 	}
 
@@ -264,9 +264,9 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 		return x
 	}
 
-	lastRemediationTimestamp := reconciliationTime.Add(-2 * max(minHealthyPeriod, retryPeriod)).UTC()
+	lastRemediationTimestamp := reconciliationTime.Add(-2 * max(minHealthyPeriod, retryPeriod))
 	if controlPlane.KCP.Status.LastRemediation != nil {
-		lastRemediationTimestamp = time.Unix(controlPlane.KCP.Status.LastRemediation.Timestamp.Seconds, int64(controlPlane.KCP.Status.LastRemediation.Timestamp.Nanos))
+		lastRemediationTimestamp = controlPlane.KCP.Status.LastRemediation.Timestamp.Time
 	}
 
 	// Check if the machine being remediated has been created as a remediation for a previous unhealthy machine.
@@ -290,7 +290,7 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	}
 
 	// Check if remediation can happen because retryPeriod is passed.
-	if lastRemediationTimestamp.Add(retryPeriod).After(reconciliationTime.UTC()) {
+	if lastRemediationTimestamp.Add(retryPeriod).After(reconciliationTime) {
 		log.Info(fmt.Sprintf("A control plane machine needs remediation, but the operation already failed in the latest %s. Skipping remediation", retryPeriod))
 		conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate this machine because the operation already failed in the latest %s (RetryDelay)", retryPeriod)
 		return machineRemediatingFor, false, 0

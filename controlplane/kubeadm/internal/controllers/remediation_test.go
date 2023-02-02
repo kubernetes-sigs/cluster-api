@@ -161,7 +161,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Initialized: true,
 					LastRemediation: &controlplanev1.LastRemediationStatus{
 						Machine:    "m0",
-						Timestamp:  metav1.Timestamp{Seconds: time.Now().Add(-controlplanev1.DefaultMinHealthyPeriod / 2).Unix()}, // minHealthy not expired yet.
+						Timestamp:  metav1.Time{Time: time.Now().Add(-controlplanev1.DefaultMinHealthyPeriod / 2).UTC()}, // minHealthy not expired yet.
 						RetryCount: 3,
 					},
 				},
@@ -218,7 +218,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Initialized: true,
 					LastRemediation: &controlplanev1.LastRemediationStatus{
 						Machine:    "m0",
-						Timestamp:  metav1.Timestamp{Seconds: time.Now().Add(-2 * controlplanev1.DefaultMinHealthyPeriod).Unix()}, // minHealthyPeriod already expired.
+						Timestamp:  metav1.Time{Time: time.Now().Add(-2 * controlplanev1.DefaultMinHealthyPeriod).UTC()}, // minHealthyPeriod already expired.
 						RetryCount: 3,
 					},
 				},
@@ -278,7 +278,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Initialized: true,
 					LastRemediation: &controlplanev1.LastRemediationStatus{
 						Machine:    "m0",
-						Timestamp:  metav1.Timestamp{Seconds: time.Now().Add(-2 * minHealthyPeriod).Unix()}, // minHealthyPeriod already expired.
+						Timestamp:  metav1.Time{Time: time.Now().Add(-2 * minHealthyPeriod).UTC()}, // minHealthyPeriod already expired.
 						RetryCount: 3,
 					},
 				},
@@ -336,7 +336,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Initialized: true,
 					LastRemediation: &controlplanev1.LastRemediationStatus{
 						Machine:    "m0",
-						Timestamp:  metav1.Timestamp{Seconds: time.Now().Add(-controlplanev1.DefaultMinHealthyPeriod / 2).Unix()}, // minHealthyPeriod not yet expired.
+						Timestamp:  metav1.Time{Time: time.Now().Add(-controlplanev1.DefaultMinHealthyPeriod / 2).UTC()}, // minHealthyPeriod not yet expired.
 						RetryCount: 2,
 					},
 				},

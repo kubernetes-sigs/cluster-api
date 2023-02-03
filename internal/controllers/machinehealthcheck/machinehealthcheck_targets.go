@@ -135,18 +135,18 @@ func (t *healthCheckTarget) needsRemediation(logger logr.Logger, timeoutForMachi
 			return false, 0
 		}
 
-		controlPlaneInitializedTime := conditions.GetLastTransitionTime(t.Cluster, clusterv1.ControlPlaneInitializedCondition).Time
-		clusterInfraReadyTime := conditions.GetLastTransitionTime(t.Cluster, clusterv1.InfrastructureReadyCondition).Time
+		controlPlaneInitialized := conditions.GetLastTransitionTime(t.Cluster, clusterv1.ControlPlaneInitializedCondition)
+		clusterInfraReady := conditions.GetLastTransitionTime(t.Cluster, clusterv1.InfrastructureReadyCondition)
 		machineCreationTime := t.Machine.CreationTimestamp.Time
 
 		// Use the latest of the 3 times
 		comparisonTime := machineCreationTime
-		logger.V(3).Info("Determining comparison time", "machineCreationTime", machineCreationTime, "clusterInfraReadyTime", clusterInfraReadyTime, "controlPlaneInitializedTime", controlPlaneInitializedTime)
-		if controlPlaneInitializedTime.After(comparisonTime) {
-			comparisonTime = controlPlaneInitializedTime
+		logger.V(3).Info("Determining comparison time", "machineCreationTime", machineCreationTime, "clusterInfraReadyTime", clusterInfraReady, "controlPlaneInitializedTime", controlPlaneInitialized)
+		if conditions.IsTrue(t.Cluster, clusterv1.ControlPlaneInitializedCondition) && controlPlaneInitialized != nil && controlPlaneInitialized.Time.After(comparisonTime) {
+			comparisonTime = controlPlaneInitialized.Time
 		}
-		if clusterInfraReadyTime.After(comparisonTime) {
-			comparisonTime = clusterInfraReadyTime
+		if conditions.IsTrue(t.Cluster, clusterv1.InfrastructureReadyCondition) && clusterInfraReady != nil && clusterInfraReady.Time.After(comparisonTime) {
+			comparisonTime = clusterInfraReady.Time
 		}
 		logger.V(3).Info("Using comparison time", "time", comparisonTime)
 

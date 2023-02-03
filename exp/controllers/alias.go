@@ -28,7 +28,8 @@ import (
 
 // MachinePoolReconciler reconciles a MachinePool object.
 type MachinePoolReconciler struct {
-	Client client.Client
+	Client    client.Client
+	APIReader client.Reader
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -37,6 +38,7 @@ type MachinePoolReconciler struct {
 func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&machinepool.MachinePoolReconciler{
 		Client:           r.Client,
+		APIReader:        r.APIReader,
 		WatchFilterValue: r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

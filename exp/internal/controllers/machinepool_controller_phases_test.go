@@ -34,6 +34,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
@@ -69,14 +70,14 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-							Kind:       "BootstrapConfig",
+							APIVersion: builder.BootstrapGroupVersion.String(),
+							Kind:       builder.TestBootstrapConfigKind,
 							Name:       "bootstrap-config1",
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-						Kind:       "InfrastructureConfig",
+						APIVersion: builder.InfrastructureGroupVersion.String(),
+						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "infra-config1",
 					},
 				},
@@ -86,8 +87,8 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 	defaultBootstrap := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "BootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+			"kind":       builder.TestBootstrapConfigKind,
+			"apiVersion": builder.BootstrapGroupVersion.String(),
 			"metadata": map[string]interface{}{
 				"name":      "bootstrap-config1",
 				"namespace": metav1.NamespaceDefault,
@@ -99,8 +100,8 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 	defaultInfra := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "InfrastructureConfig",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"kind":       builder.TestInfrastructureMachineTemplateKind,
+			"apiVersion": builder.InfrastructureGroupVersion.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": metav1.NamespaceDefault,
@@ -123,7 +124,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -152,7 +153,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		infraConfig := defaultInfra.DeepCopy()
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -179,7 +180,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -222,7 +223,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -277,7 +278,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -310,7 +311,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -350,7 +351,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.Status.NodeRefs = []corev1.ObjectReference{{Kind: "Node", Name: "machinepool-test-node"}}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -403,7 +404,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		}
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -461,7 +462,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 		machinepool.SetDeletionTimestamp(&deletionTimestamp)
 
 		r := &MachinePoolReconciler{
-			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 		}
 
 		res, err := r.reconcile(ctx, defaultCluster, machinepool)
@@ -487,8 +488,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-							Kind:       "BootstrapConfig",
+							APIVersion: builder.BootstrapGroupVersion.String(),
+							Kind:       builder.TestBootstrapConfigKind,
 							Name:       "bootstrap-config1",
 						},
 					},
@@ -515,8 +516,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		{
 			name: "new machinepool, bootstrap config ready with data",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestBootstrapConfigKind,
+				"apiVersion": builder.BootstrapGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
@@ -537,8 +538,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		{
 			name: "new machinepool, bootstrap config ready with no data",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestBootstrapConfigKind,
+				"apiVersion": builder.BootstrapGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
@@ -557,8 +558,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		{
 			name: "new machinepool, bootstrap config not ready",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestBootstrapConfigKind,
+				"apiVersion": builder.BootstrapGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
@@ -575,8 +576,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		{
 			name: "new machinepool, bootstrap config is not found",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestBootstrapConfigKind,
+				"apiVersion": builder.BootstrapGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": wrongNamespace,
@@ -592,8 +593,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		{
 			name: "new machinepool, no bootstrap config or data",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestBootstrapConfigKind,
+				"apiVersion": builder.BootstrapGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": wrongNamespace,
@@ -606,8 +607,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		{
 			name: "existing machinepool, bootstrap data should not change",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestBootstrapConfigKind,
+				"apiVersion": builder.BootstrapGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
@@ -628,8 +629,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
 								ConfigRef: &corev1.ObjectReference{
-									APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-									Kind:       "BootstrapConfig",
+									APIVersion: builder.BootstrapGroupVersion.String(),
+									Kind:       builder.TestBootstrapConfigKind,
 									Name:       "bootstrap-config1",
 								},
 								DataSecretName: pointer.String("data"),
@@ -650,8 +651,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 		{
 			name: "existing machinepool, bootstrap provider is to not ready",
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestBootstrapConfigKind,
+				"apiVersion": builder.BootstrapGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
@@ -672,8 +673,8 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
 								ConfigRef: &corev1.ObjectReference{
-									APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-									Kind:       "BootstrapConfig",
+									APIVersion: builder.BootstrapGroupVersion.String(),
+									Kind:       builder.TestBootstrapConfigKind,
 									Name:       "bootstrap-config1",
 								},
 								DataSecretName: pointer.String("data"),
@@ -701,7 +702,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
 			r := &MachinePoolReconciler{
-				Client: fake.NewClientBuilder().WithObjects(tc.machinepool, bootstrapConfig).Build(),
+				Client: fake.NewClientBuilder().WithObjects(tc.machinepool, bootstrapConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 			}
 
 			res, err := r.reconcileBootstrap(ctx, defaultCluster, tc.machinepool)
@@ -734,14 +735,14 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-							Kind:       "BootstrapConfig",
+							APIVersion: builder.BootstrapGroupVersion.String(),
+							Kind:       builder.TestBootstrapConfigKind,
 							Name:       "bootstrap-config1",
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-						Kind:       "InfrastructureConfig",
+						APIVersion: builder.InfrastructureGroupVersion.String(),
+						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "infra-config1",
 					},
 				},
@@ -769,8 +770,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 		{
 			name: "new machinepool, infrastructure config ready",
 			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
@@ -813,14 +814,14 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
 								ConfigRef: &corev1.ObjectReference{
-									APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-									Kind:       "BootstrapConfig",
+									APIVersion: builder.BootstrapGroupVersion.String(),
+									Kind:       builder.TestBootstrapConfigKind,
 									Name:       "bootstrap-config1",
 								},
 							},
 							InfrastructureRef: corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-								Kind:       "InfrastructureConfig",
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Kind:       builder.TestInfrastructureMachineTemplateKind,
 								Name:       "infra-config1",
 							},
 						},
@@ -833,8 +834,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				},
 			},
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestBootstrapConfigKind,
+				"apiVersion": builder.BootstrapGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
@@ -846,8 +847,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				},
 			},
 			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
 				"metadata":   map[string]interface{}{},
 			},
 			expectError:        true,
@@ -862,8 +863,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 		{
 			name: "infrastructure ref is paused",
 			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
@@ -909,14 +910,14 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 						Spec: clusterv1.MachineSpec{
 							Bootstrap: clusterv1.Bootstrap{
 								ConfigRef: &corev1.ObjectReference{
-									APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-									Kind:       "BootstrapConfig",
+									APIVersion: builder.BootstrapGroupVersion.String(),
+									Kind:       builder.TestBootstrapConfigKind,
 									Name:       "bootstrap-config1",
 								},
 							},
 							InfrastructureRef: corev1.ObjectReference{
-								APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-								Kind:       "InfrastructureConfig",
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Kind:       builder.TestInfrastructureMachineTemplateKind,
 								Name:       "infra-config1",
 							},
 						},
@@ -929,8 +930,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				},
 			},
 			bootstrapConfig: map[string]interface{}{
-				"kind":       "BootstrapConfig",
-				"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestBootstrapConfigKind,
+				"apiVersion": builder.BootstrapGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "bootstrap-config1",
 					"namespace": metav1.NamespaceDefault,
@@ -942,8 +943,8 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 				},
 			},
 			infraConfig: map[string]interface{}{
-				"kind":       "InfrastructureConfig",
-				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"kind":       builder.TestInfrastructureMachineTemplateKind,
+				"apiVersion": builder.InfrastructureGroupVersion.String(),
 				"metadata": map[string]interface{}{
 					"name":      "infra-config1",
 					"namespace": metav1.NamespaceDefault,
@@ -989,7 +990,7 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
 			r := &MachinePoolReconciler{
-				Client: fake.NewClientBuilder().WithObjects(tc.machinepool, infraConfig).Build(),
+				Client: fake.NewClientBuilder().WithObjects(tc.machinepool, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 			}
 
 			res, err := r.reconcileInfrastructure(ctx, defaultCluster, tc.machinepool)
@@ -1042,14 +1043,14 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 				Spec: clusterv1.MachineSpec{
 					Bootstrap: clusterv1.Bootstrap{
 						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-							Kind:       "BootstrapConfig",
+							APIVersion: builder.BootstrapGroupVersion.String(),
+							Kind:       builder.TestBootstrapConfigKind,
 							Name:       "bootstrap-config1",
 						},
 					},
 					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-						Kind:       "InfrastructureConfig",
+						APIVersion: builder.InfrastructureGroupVersion.String(),
+						Kind:       builder.TestInfrastructureMachineTemplateKind,
 						Name:       "infra-config1",
 					},
 				},
@@ -1060,8 +1061,8 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 
 	defaultBootstrap := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "BootstrapConfig",
-			"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
+			"kind":       builder.TestBootstrapConfigKind,
+			"apiVersion": builder.BootstrapGroupVersion.String(),
 			"metadata": map[string]interface{}{
 				"name":      "bootstrap-config1",
 				"namespace": ns.Name,
@@ -1076,8 +1077,8 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 
 	defaultInfra := &unstructured.Unstructured{
 		Object: map[string]interface{}{
-			"kind":       "InfrastructureConfig",
-			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"kind":       builder.TestInfrastructureMachineTemplateKind,
+			"apiVersion": builder.InfrastructureGroupVersion.String(),
 			"metadata": map[string]interface{}{
 				"name":      "infra-config1",
 				"namespace": ns.Name,
@@ -1132,7 +1133,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		r := &MachinePoolReconciler{
-			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 			recorder: record.NewFakeRecorder(32),
 		}
 
@@ -1187,7 +1188,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		r := &MachinePoolReconciler{
-			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 			recorder: record.NewFakeRecorder(32),
 		}
 
@@ -1226,7 +1227,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		r := &MachinePoolReconciler{
-			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 			recorder: record.NewFakeRecorder(32),
 		}
 
@@ -1260,7 +1261,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		r := &MachinePoolReconciler{
-			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 			recorder: record.NewFakeRecorder(32),
 		}
 
@@ -1316,7 +1317,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 
 		r := &MachinePoolReconciler{
-			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig).Build(),
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, kubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),
 			recorder: record.NewFakeRecorder(32),
 		}
 

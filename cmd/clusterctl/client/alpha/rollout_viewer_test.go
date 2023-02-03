@@ -146,10 +146,10 @@ func Test_ObjectViewer(t *testing.T) {
 					Namespace: namespace,
 				},
 			},
-			expectedOutput: `REVISION  CHANGE-CAUSE
-1         update to the latest version
-2         <none>
-3         <none>
+			expectedOutput: `  REVISION  CHANGE-CAUSE                  
+  1         update to the latest version  
+  2         <none>                        
+  3         <none>                        
 `,
 		},
 		{
@@ -164,7 +164,7 @@ func Test_ObjectViewer(t *testing.T) {
 					Namespace: namespace,
 				},
 			},
-			expectedOutput: `REVISION  CHANGE-CAUSE
+			expectedOutput: `  REVISION  CHANGE-CAUSE  
 `,
 		},
 		{

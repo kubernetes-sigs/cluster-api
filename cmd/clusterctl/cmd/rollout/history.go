@@ -37,31 +37,41 @@ var (
 		clusterctl alpha rollout history machinedeployment/my-md-0 --revision=3`)
 )
 
+// historyOptions is the start of the data required to perform the operation.
+type historyOptions struct {
+	kubeconfig        string
+	kubeconfigContext string
+	resources         []string
+	namespace         string
+	revision          int64
+}
+
+var historyOpt = historyOptions{}
+
 // NewCmdRolloutHistory returns a Command instance for 'rollout history' sub command.
 func NewCmdRolloutHistory(cfgFile string) *cobra.Command {
-	historyOpt := client.RolloutHistoryOptions{}
 	cmd := &cobra.Command{
 		Use:                   "history RESOURCE",
 		DisableFlagsInUseLine: true,
-		Short:                 "History a cluster-api resource",
+		Short:                 "History of a cluster-api resource",
 		Long:                  historyLong,
 		Example:               historyExample,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return runHistory(cfgFile, args, historyOpt)
+			return runHistory(cfgFile, args)
 		},
 	}
-	cmd.Flags().StringVar(&historyOpt.Kubeconfig.Path, "kubeconfig", "",
+	cmd.Flags().StringVar(&historyOpt.kubeconfig, "kubeconfig", "",
 		"Path to the kubeconfig file to use for accessing the management cluster. If unspecified, default discovery rules apply.")
-	cmd.Flags().StringVar(&historyOpt.Kubeconfig.Context, "kubeconfig-context", "",
+	cmd.Flags().StringVar(&historyOpt.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
-	cmd.Flags().StringVarP(&historyOpt.Namespace, "namespace", "n", "", "Namespace where the resource(s) reside. If unspecified, the defult namespace will be used.")
-	cmd.Flags().Int64Var(&historyOpt.Revision, "revision", historyOpt.Revision, "See the details, including podTemplate of the revision specified.")
+	cmd.Flags().StringVarP(&historyOpt.namespace, "namespace", "n", "", "Namespace where the resource(s) reside. If unspecified, the defult namespace will be used.")
+	cmd.Flags().Int64Var(&historyOpt.revision, "revision", historyOpt.revision, "See the details, including machineTemplate of the revision specified.")
 
 	return cmd
 }
 
-func runHistory(cfgFile string, args []string, historyOpt client.RolloutHistoryOptions) error {
-	historyOpt.Resources = args
+func runHistory(cfgFile string, args []string) error {
+	historyOpt.resources = args
 
 	ctx := context.Background()
 
@@ -70,5 +80,10 @@ func runHistory(cfgFile string, args []string, historyOpt client.RolloutHistoryO
 		return err
 	}
 
-	return c.RolloutHistory(ctx, historyOpt)
+	return c.RolloutHistory(ctx, client.RolloutHistoryOptions{
+		Kubeconfig: client.Kubeconfig{Path: historyOpt.kubeconfig, Context: historyOpt.kubeconfigContext},
+		Namespace:  historyOpt.namespace,
+		Resources:  historyOpt.resources,
+		Revision:   historyOpt.revision,
+	})
 }

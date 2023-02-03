@@ -107,6 +107,10 @@ When running individual tests, it could happen that a testenv is started if this
 However, if the tests you are running don't require testenv (i.e. they are only using fake client), you can skip the testenv
 creation by setting the environment variable `CAPI_DISABLE_TEST_ENV` (to any non-empty value).
 
+To debug testenv unit tests it is possible to use:
+* `CAPI_TEST_ENV_KUBECONFIG` to write out a kubeconfig for the testenv to a file location.
+* `CAPI_TEST_ENV_SKIP_STOP` to skip stopping the testenv after test execution.
+
 </aside>
 
 ## End-to-end tests

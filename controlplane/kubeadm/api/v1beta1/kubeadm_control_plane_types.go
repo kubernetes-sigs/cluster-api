@@ -56,14 +56,14 @@ const (
 	// specifically it tracks that the system is in between having deleted an unhealthy machine and recreating its replacement.
 	// NOTE: if something external to CAPI removes this annotation the system cannot detect the above situation; this can lead to
 	// failures in updating remediation retry or remediation count (both counters restart from zero).
-	RemediationInProgressAnnotation = "kubeadm.controlplane.cluster.x-k8s.io/remediation-in-progress"
+	RemediationInProgressAnnotation = "controlplane.cluster.x-k8s.io/remediation-in-progress"
 
 	// RemediationForAnnotation is used to link a new machine to the unhealthy machine it is replacing;
 	// please note that in case of retry, when also the remediating machine fails, the system keeps track of
 	// the first machine of the sequence only.
 	// NOTE: if something external to CAPI removes this annotation the system this can lead to
 	// failures in updating remediation retry (the counter restarts from zero).
-	RemediationForAnnotation = "kubeadm.controlplane.cluster.x-k8s.io/remediation-for"
+	RemediationForAnnotation = "controlplane.cluster.x-k8s.io/remediation-for"
 
 	// DefaultMinHealthyPeriod defines the default minimum period before we consider a remediation on a
 	// machine unrelated from the previous remediation.

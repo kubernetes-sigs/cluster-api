@@ -511,6 +511,9 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testControlPlane",
 			Namespace: cluster.Namespace,
+			Annotations: map[string]string{
+				controlplanev1.RemediationInProgressAnnotation: "foo",
+			},
 		},
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
@@ -555,6 +558,8 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 	g.Expect(machine.Namespace).To(Equal(kcp.Namespace))
 	g.Expect(machine.OwnerReferences).To(HaveLen(1))
 	g.Expect(machine.OwnerReferences).To(ContainElement(*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))))
+	g.Expect(machine.Annotations).To(HaveKeyWithValue(controlplanev1.RemediationForAnnotation, "foo"))
+	g.Expect(kcp.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 	g.Expect(machine.Spec).To(Equal(expectedMachineSpec))
 
 	// Verify that the machineTemplate.ObjectMeta has been propagated to the Machine.

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -122,11 +123,14 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	// Check if KCP is allowed to remediate considering retry limits:
 	// - Remediation cannot happen because retryPeriod is not yet expired.
 	// - KCP already reached MaxRetries limit.
-	machineRemediatingFor, canRemediate, retryCount := r.checkRetryLimits(log, machineToBeRemediated, controlPlane, reconciliationTime)
+	remediationInProgressData, canRemediate, err := r.checkRetryLimits(log, machineToBeRemediated, controlPlane, reconciliationTime)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
 	if !canRemediate {
+		// NOTE: log lines and conditions surfacing why it is not possible to remediate are set by checkRetryLimits.
 		return ctrl.Result{}, nil
 	}
-	log = log.WithValues("machineRemediatingFor", klog.KRef(controlPlane.KCP.Namespace, machineRemediatingFor), "retryCount", retryCount)
 
 	// Executes checks that applies only if the control plane is already initialized; in this case KCP can
 	// remediate only if it can safely assume that the operation preserves the operation state of the existing cluster (or at least it doesn't make it worst).
@@ -161,7 +165,14 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		}
 	}
 
-	// Remediate the unhealthy control plane machine by deleting it.
+	// Prepare the info for tracking the remediation progress into the RemediationInProgressAnnotation.
+	remediationInProgressValue, err := remediationInProgressData.Marshal()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Start remediating the unhealthy control plane machine by deleting it.
+	// A new machine will come up completing the operation as part of the regular
 
 	// If the control plane is initialized, before deleting the machine:
 	// - if the machine hosts the etcd leader, forward etcd leadership to another machine.
@@ -206,26 +217,21 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		}
 	}
 
+	// Delete the machine
 	if err := r.Client.Delete(ctx, machineToBeRemediated); err != nil {
 		conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationFailedReason, clusterv1.ConditionSeverityError, err.Error())
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete unhealthy machine %s", machineToBeRemediated.Name)
 	}
 
+	// Surface the operation is in progress.
 	log.Info("Remediating unhealthy machine")
 	conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 
-	// Set annotations tracking remediation is in progress (remediation will complete when a replacement machine is created).
+	// Set annotations tracking remediation details so they can be picked up by the machine
+	// that will be created as part of the scale up action that completes the remediation.
 	annotations.AddAnnotations(controlPlane.KCP, map[string]string{
-		controlplanev1.RemediationInProgressAnnotation: "",
+		controlplanev1.RemediationInProgressAnnotation: remediationInProgressValue,
 	})
-
-	// Stores info about last remediation.
-	// NOTE: Some of those info have been computed above, but they must surface on the object only here, after machine has been deleted.
-	controlPlane.KCP.Status.LastRemediation = &controlplanev1.LastRemediationStatus{
-		Machine:    machineToBeRemediated.Name,
-		Timestamp:  metav1.Time{Time: reconciliationTime},
-		RetryCount: retryCount,
-	}
 
 	return ctrl.Result{Requeue: true}, nil
 }
@@ -235,10 +241,26 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 // - KCP already reached the maximum number of retries for a machine.
 // NOTE: Counting the number of retries is required In order to prevent infinite remediation e.g. in case the
 // first Control Plane machine is failing due to quota issue.
-func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machineToBeRemediated *clusterv1.Machine, controlPlane *internal.ControlPlane, reconciliationTime time.Time) (machineRemediatingFor string, canRemediate bool, retryCount int32) {
+func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machineToBeRemediated *clusterv1.Machine, controlPlane *internal.ControlPlane, reconciliationTime time.Time) (*RemediationData, bool, error) {
+	// Get last remediation info from the machine.
+	var lastRemediationData *RemediationData
+	if value, ok := machineToBeRemediated.Annotations[controlplanev1.RemediationForAnnotation]; ok {
+		l, err := RemediationDataFromAnnotation(value)
+		if err != nil {
+			return nil, false, err
+		}
+		lastRemediationData = l
+	}
+
+	remediationInProgressData := &RemediationData{
+		Machine:    machineToBeRemediated.Name,
+		Timestamp:  metav1.Time{Time: reconciliationTime},
+		RetryCount: 0,
+	}
+
 	// If there is no last remediation, this is the first try of a new retry sequence.
-	if controlPlane.KCP.Status.LastRemediation == nil {
-		return "", true, 0
+	if lastRemediationData == nil {
+		return remediationInProgressData, true, nil
 	}
 
 	// Gets MinHealthySeconds and RetryDelaySeconds from the remediation strategy, or use defaults.
@@ -255,8 +277,8 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	// Gets the timestamp of the last remediation; if missing, default to a value
 	// that ensures both MinHealthySeconds and RetryDelaySeconds are expired.
 	// NOTE: this could potentially lead to executing more retries than expected or to executing retries before than
-	// expected, but this is considered acceptable.
-	// when the system recovers from someone/something manually removing the LastRemediatingTimeStampAnnotation.
+	// expected, but this is considered acceptable when the system recovers from someone/something changes or deletes
+	// the RemediationForAnnotation on Machines.
 	max := func(x, y time.Duration) time.Duration {
 		if x < y {
 			return y
@@ -264,52 +286,53 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 		return x
 	}
 
-	lastRemediationTimestamp := reconciliationTime.Add(-2 * max(minHealthyPeriod, retryPeriod))
-	if controlPlane.KCP.Status.LastRemediation != nil {
-		lastRemediationTimestamp = controlPlane.KCP.Status.LastRemediation.Timestamp.Time
+	lastRemediationTime := reconciliationTime.Add(-2 * max(minHealthyPeriod, retryPeriod))
+	if !lastRemediationData.Timestamp.IsZero() {
+		lastRemediationTime = lastRemediationData.Timestamp.Time
 	}
 
 	// Check if the machine being remediated has been created as a remediation for a previous unhealthy machine.
-	// NOTE: if someone/something manually removing the RemediationForAnnotation on Machines or one of the LastRemediatedMachineAnnotation
-	// and LastRemediatedMachineRetryAnnotation on KCP, this could potentially lead to executing more retries than expected,
-	// but this is considered acceptable in such a case.
-	machineRemediatingFor = machineToBeRemediated.Name
-	if remediationFor, ok := machineToBeRemediated.Annotations[controlplanev1.RemediationForAnnotation]; ok {
+	// NOTE: if someone/something changes or deletes the RemediationForAnnotation on Machines, this could potentially
+	// lead to executing more retries than expected, but this is considered acceptable in such a case.
+	machineRemediationFor := remediationInProgressData.Machine
+	if lastRemediationData.Machine != "" {
 		// If the remediation is happening before minHealthyPeriod is expired, then KCP considers this
 		// as a remediation for the same previously unhealthy machine.
-		// TODO: add example
-		if lastRemediationTimestamp.Add(minHealthyPeriod).After(reconciliationTime) {
-			machineRemediatingFor = remediationFor
-			log = log.WithValues("RemediationRetryFor", klog.KRef(machineToBeRemediated.Namespace, machineRemediatingFor))
+		if lastRemediationTime.Add(minHealthyPeriod).After(reconciliationTime) {
+			machineRemediationFor = lastRemediationData.Machine
+			log = log.WithValues("RemediationRetryFor", klog.KRef(machineToBeRemediated.Namespace, machineRemediationFor))
 		}
 	}
 
 	// If remediation is happening for a different machine, this is the first try of a new retry sequence.
-	if controlPlane.KCP.Status.LastRemediation.Machine != machineRemediatingFor {
-		return machineRemediatingFor, true, 0
+	if lastRemediationData.Machine != machineRemediationFor {
+		return remediationInProgressData, true, nil
 	}
 
+	// If the remediation is for the same machine, carry over the retry count.
+	remediationInProgressData.RetryCount = lastRemediationData.RetryCount
+
 	// Check if remediation can happen because retryPeriod is passed.
-	if lastRemediationTimestamp.Add(retryPeriod).After(reconciliationTime) {
+	if lastRemediationTime.Add(retryPeriod).After(reconciliationTime) {
 		log.Info(fmt.Sprintf("A control plane machine needs remediation, but the operation already failed in the latest %s. Skipping remediation", retryPeriod))
 		conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate this machine because the operation already failed in the latest %s (RetryDelay)", retryPeriod)
-		return machineRemediatingFor, false, 0
+		return remediationInProgressData, false, nil
 	}
 
 	// Check if remediation can happen because of maxRetry is not reached yet, if defined.
-	retry := controlPlane.KCP.Status.LastRemediation.RetryCount
-
 	if controlPlane.KCP.Spec.RemediationStrategy != nil && controlPlane.KCP.Spec.RemediationStrategy.MaxRetry != nil {
-		maxRetry := *controlPlane.KCP.Spec.RemediationStrategy.MaxRetry
-		if retry >= maxRetry {
-			log.Info(fmt.Sprintf("A control plane machine needs remediation, but the operation already failed %d times (MaxRetry %d). Skipping remediation", retry, maxRetry))
+		maxRetry := int(*controlPlane.KCP.Spec.RemediationStrategy.MaxRetry)
+		if remediationInProgressData.RetryCount >= maxRetry {
+			log.Info(fmt.Sprintf("A control plane machine needs remediation, but the operation already failed %d times (MaxRetry %d). Skipping remediation", remediationInProgressData.RetryCount, maxRetry))
 			conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate this machine because the operation already failed %d times (MaxRetry)", maxRetry)
-			return machineRemediatingFor, false, 0
+			return remediationInProgressData, false, nil
 		}
 	}
 
-	retryCount = retry + 1
-	return machineRemediatingFor, true, retryCount
+	// All the check passed, increase the remediation number.
+	remediationInProgressData.RetryCount++
+
+	return remediationInProgressData, true, nil
 }
 
 // canSafelyRemoveEtcdMember assess if it is possible to remove the member hosted on the machine to be remediated
@@ -410,4 +433,45 @@ func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Co
 		"canSafelyRemediate", canSafelyRemediate)
 
 	return canSafelyRemediate, nil
+}
+
+// RemediationData struct is used to keep track of information stored in the RemediationInProgressAnnotation in KCP
+// during remediation and then into the RemediationForAnnotation on the replacement machine once it is created.
+type RemediationData struct {
+	// Machine is the machine name of the latest machine being remediated.
+	Machine string `json:"machine"`
+
+	// Timestamp is when last remediation happened. It is represented in RFC3339 form and is in UTC.
+	Timestamp metav1.Time `json:"timestamp"`
+
+	// RetryCount used to keep track of remediation retry for the last remediated machine.
+	// A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.
+	RetryCount int `json:"retryCount"`
+}
+
+// RemediationDataFromAnnotation gets RemediationData from an annotation value.
+func RemediationDataFromAnnotation(value string) (*RemediationData, error) {
+	ret := &RemediationData{}
+	if err := json.Unmarshal([]byte(value), ret); err != nil {
+		return nil, errors.Wrapf(err, "failed to unmarshal value %s for %s annotation", value, clusterv1.RemediationInProgressReason)
+	}
+	return ret, nil
+}
+
+// Marshal an RemediationData into an annotation value.
+func (r *RemediationData) Marshal() (string, error) {
+	b, err := json.Marshal(r)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to marshal value for %s annotation", clusterv1.RemediationInProgressReason)
+	}
+	return string(b), nil
+}
+
+// ToStatus converts a RemediationData into a LastRemediationStatus struct.
+func (r *RemediationData) ToStatus() *controlplanev1.LastRemediationStatus {
+	return &controlplanev1.LastRemediationStatus{
+		Machine:    r.Machine,
+		Timestamp:  r.Timestamp,
+		RetryCount: int32(r.RetryCount),
+	}
 }

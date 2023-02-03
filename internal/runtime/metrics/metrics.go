@@ -24,9 +24,11 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrlmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 )
 
 func init() {
@@ -37,7 +39,8 @@ func init() {
 
 // Metrics subsystem and all of the keys used by the Runtime SDK.
 const (
-	runtimeSDKSubsystem = "capi_runtime_sdk"
+	runtimeSDKSubsystem   = "capi_runtime_sdk"
+	unknownResponseStatus = "Unknown"
 )
 
 var (
@@ -46,8 +49,8 @@ var (
 		prometheus.NewCounterVec(prometheus.CounterOpts{
 			Subsystem: runtimeSDKSubsystem,
 			Name:      "requests_total",
-			Help:      "Number of HTTP requests, partitioned by status code, host and hook.",
-		}, []string{"code", "host", "group", "version", "hook"}),
+			Help:      "Number of HTTP requests, partitioned by status code, host, hook and response status.",
+		}, []string{"code", "host", "group", "version", "hook", "status"}),
 	}
 	// RequestDuration reports the request latency in seconds.
 	RequestDuration = requestDurationObserver{
@@ -55,7 +58,8 @@ var (
 			Subsystem: runtimeSDKSubsystem,
 			Name:      "request_duration_seconds",
 			Help:      "Request duration in seconds, broken down by hook and host.",
-			Buckets:   prometheus.ExponentialBuckets(0.001, 2, 10),
+			Buckets: []float64{0.005, 0.025, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.25, 1.5, 2, 3,
+				4, 5, 6, 8, 10, 15, 20, 30, 45, 60},
 		}, []string{"host", "group", "version", "hook"}),
 	}
 )
@@ -65,8 +69,8 @@ type requestsTotalObserver struct {
 }
 
 // Observe observes a http request result and increments the metric for the given
-// error status code, host and gvh.
-func (m *requestsTotalObserver) Observe(req *http.Request, resp *http.Response, gvh runtimecatalog.GroupVersionHook, err error) {
+// http status code, host, gvh and response.
+func (m *requestsTotalObserver) Observe(req *http.Request, resp *http.Response, gvh runtimecatalog.GroupVersionHook, err error, response runtime.Object) {
 	host := req.URL.Host
 
 	// Errors can be arbitrary strings. Unbound label cardinality is not suitable for a metric
@@ -75,7 +79,13 @@ func (m *requestsTotalObserver) Observe(req *http.Request, resp *http.Response, 
 	if err == nil {
 		code = strconv.Itoa(resp.StatusCode)
 	}
-	m.metric.WithLabelValues(code, host, gvh.Group, gvh.Version, gvh.Hook).Inc()
+
+	status := unknownResponseStatus
+	if responseObject, ok := response.(runtimehooksv1.ResponseObject); ok && responseObject.GetStatus() != "" {
+		status = string(responseObject.GetStatus())
+	}
+
+	m.metric.WithLabelValues(code, host, gvh.Group, gvh.Version, gvh.Hook, status).Inc()
 }
 
 type requestDurationObserver struct {

@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-tools/pkg/crd"
 	"sigs.k8s.io/controller-tools/pkg/loader"
 	"sigs.k8s.io/controller-tools/pkg/markers"
@@ -188,20 +189,22 @@ func convertToJSONSchemaProps(schema *apiextensionsv1.JSONSchemaProps, fldPath *
 	var allErrs field.ErrorList
 
 	props := &clusterv1.JSONSchemaProps{
-		Type:             schema.Type,
-		Required:         schema.Required,
-		MaxItems:         schema.MaxItems,
-		MinItems:         schema.MinItems,
-		UniqueItems:      schema.UniqueItems,
-		Format:           schema.Format,
-		MaxLength:        schema.MaxLength,
-		MinLength:        schema.MinLength,
-		Pattern:          schema.Pattern,
-		ExclusiveMaximum: schema.ExclusiveMaximum,
-		ExclusiveMinimum: schema.ExclusiveMinimum,
-		Default:          schema.Default,
-		Enum:             schema.Enum,
-		Example:          schema.Example,
+		Description:            schema.Description,
+		Type:                   schema.Type,
+		Required:               schema.Required,
+		MaxItems:               schema.MaxItems,
+		MinItems:               schema.MinItems,
+		UniqueItems:            schema.UniqueItems,
+		Format:                 schema.Format,
+		MaxLength:              schema.MaxLength,
+		MinLength:              schema.MinLength,
+		Pattern:                schema.Pattern,
+		ExclusiveMaximum:       schema.ExclusiveMaximum,
+		ExclusiveMinimum:       schema.ExclusiveMinimum,
+		Default:                schema.Default,
+		Enum:                   schema.Enum,
+		Example:                schema.Example,
+		XPreserveUnknownFields: pointer.BoolDeref(schema.XPreserveUnknownFields, false),
 	}
 
 	if schema.Maximum != nil {

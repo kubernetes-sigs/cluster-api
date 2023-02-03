@@ -57,11 +57,29 @@ type Variables struct {
 	ImageRepository string `json:"imageRepository"`
 
 	// KubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines.
-	// FIXME: example is not supported at the moment
-	// +kubebuilder:default=""
 	// +kubebuilder:example="0"
 	// +optional
 	KubeadmControlPlaneMaxSurge string `json:"kubeadmControlPlaneMaxSurge,omitempty"`
+
+	// ControlPlaneCertificateRotation configures cert rotation.
+	// +kubebuilder:default={activate: "true", daysBefore: 90}
+	// +kubebuilder:example={activate: "true", daysBefore: 90}
+	// +optional
+	ControlPlaneCertificateRotation *ControlPlaneCertificateRotation `json:"controlPlaneCertificateRotation,omitempty"`
+}
+
+// ControlPlaneCertificateRotation configures cert rotation.
+type ControlPlaneCertificateRotation struct {
+	// Activate activates cert rotation.
+	// +kubebuilder:default=true
+	// +optional
+	Activate bool `json:"activate"`
+
+	// DaysBefore configures how many days before expiry control plane machines are rotated.
+	// +kubebuilder:default=90
+	// +kubebuilder:validation:Minimum=7
+	// +optional
+	DaysBefore int32 `json:"daysBefore"`
 }
 
 func init() {

@@ -91,7 +91,7 @@ func (r *Reconciler) reconcileNewMachineSet(ctx context.Context, allMSs []*clust
 		return r.scaleMachineSet(ctx, newMS, *(deployment.Spec.Replicas), deployment)
 	}
 
-	newReplicasCount, err := mdutil.NewMSNewReplicas(deployment, allMSs, newMS)
+	newReplicasCount, err := mdutil.NewMSNewReplicas(deployment, allMSs, *newMS.Spec.Replicas)
 	if err != nil {
 		return err
 	}

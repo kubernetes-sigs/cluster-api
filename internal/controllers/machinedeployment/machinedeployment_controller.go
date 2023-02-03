@@ -37,6 +37,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -49,6 +50,9 @@ var (
 	// machineDeploymentKind contains the schema.GroupVersionKind for the MachineDeployment type.
 	machineDeploymentKind = clusterv1.GroupVersion.WithKind("MachineDeployment")
 )
+
+// machineDeploymentManagerName is the manager name used for SSA operations in the MachineDeployment controller.
+const machineDeploymentManagerName = "capi-machinedeployment"
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch
@@ -248,6 +252,19 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		}
 	}
 
+	// Loop over all MachineSets and cleanup managed fields.
+	// We do this so that MachineSets that were created/patched before the controller adopted SSA can also work with SSA.
+	// Otherwise, fields would be co-owned by our "old" "manager" and "capi-machinedeployment" and then we would not be able
+	// to e.g. drop labels and annotations.
+	// Note: We are cleaning up managed fields for all MachineSets, so we're able to remove this code in a few
+	// Cluster API releases. If we do this only for selected MachineSets, we would have to keep this code forever.
+	for idx := range msList {
+		machineSet := msList[idx]
+		if err := ssa.CleanUpManagedFieldsForSSAAdoption(ctx, machineSet, machineDeploymentManagerName, r.Client); err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to clean up managedFields of MachineSet %s", klog.KObj(machineSet))
+		}
+	}
+
 	if d.Spec.Paused {
 		return ctrl.Result{}, r.sync(ctx, d, msList)
 	}
@@ -302,7 +319,7 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, d *cluster
 			continue
 		}
 
-		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
+		// Attempt to adopt MachineSet if it meets previous conditions and it has no controller references.
 		if metav1.GetControllerOf(ms) == nil {
 			if err := r.adoptOrphan(ctx, d, ms); err != nil {
 				log.Error(err, "Failed to adopt MachineSet into MachineDeployment")

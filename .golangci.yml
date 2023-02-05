@@ -25,6 +25,7 @@ linters:
   - errchkjson
   - exportloopref
   - gci
+  - ginkgolinter
   - goconst
   - gocritic
   - godot
@@ -57,16 +58,48 @@ linters:
   - whitespace
 
 linters-settings:
+  gci:
+    local-prefixes: "sigs.k8s.io/cluster-api"
+  ginkgolinter:
+    # Suppress the wrong length assertion warning.
+    suppress-len-assertion: true
+    # Suppress the wrong nil assertion warning.
+    suppress-nil-assertion: false
+    # Suppress the wrong error assertion warning.
+    suppress-err-assertion: true
   godot:
     #   declarations - for top level declaration comments (default);
     #   toplevel     - for top level comments;
     #   all          - for all comments.
     scope: toplevel
     exclude:
-    - '^ \+.*'
-    - '^ ANCHOR.*'
-  gci:
-    local-prefixes: "sigs.k8s.io/cluster-api"
+      - '^ \+.*'
+      - '^ ANCHOR.*'
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - performance
+    disabled-checks:
+      - appendAssign
+      - dupImport # https://github.com/go-critic/go-critic/issues/845
+      - evalOrder
+      - ifElseChain
+      - octalLiteral
+      - regexpSimplify
+      - sloppyReassign
+      - truncateCmp
+      - typeDefFirst
+      - unnamedResult
+      - unnecessaryDefer
+      - whyNoLint
+      - wrapperFunc
+      - rangeValCopy
+      - hugeParam
+  gosec:
+    excludes:
+    - G307 # Deferring unsafe method "Close" on type "\*os.File"
+    - G108 # Profiling endpoint is automatically exposed on /debug/pprof
   importas:
     no-unaliased: true
     alias:
@@ -186,31 +219,6 @@ linters-settings:
       #
       - name: bool-literal-in-expr
       - name: constant-logical-expr
-  gosec:
-    excludes:
-    - G307 # Deferring unsafe method "Close" on type "\*os.File"
-    - G108 # Profiling endpoint is automatically exposed on /debug/pprof
-  gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - performance
-    disabled-checks:
-    - appendAssign
-    - dupImport # https://github.com/go-critic/go-critic/issues/845
-    - evalOrder
-    - ifElseChain
-    - octalLiteral
-    - regexpSimplify
-    - sloppyReassign
-    - truncateCmp
-    - typeDefFirst
-    - unnamedResult
-    - unnecessaryDefer
-    - whyNoLint
-    - wrapperFunc
-    - rangeValCopy
-    - hugeParam
 
 issues:
   max-same-issues: 0

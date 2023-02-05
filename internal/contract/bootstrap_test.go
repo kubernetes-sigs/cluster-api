@@ -37,7 +37,7 @@ func TestBootstrap(t *testing.T) {
 		got, err := Bootstrap().Ready().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(true))
+		g.Expect(*got).To(BeTrue())
 	})
 	t.Run("Manages status.dataSecretName", func(t *testing.T) {
 		g := NewWithT(t)

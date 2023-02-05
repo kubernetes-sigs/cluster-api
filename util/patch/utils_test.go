@@ -169,7 +169,7 @@ func TestUnsafeFocusedUnstructured(t *testing.T) {
 
 		// Validate that the status has been copied, without conditions.
 		g.Expect(newObj.Object["status"]).To(HaveLen(1))
-		g.Expect(newObj.Object["status"].(map[string]interface{})["infrastructureReady"]).To(Equal(true))
+		g.Expect(newObj.Object["status"].(map[string]interface{})["infrastructureReady"]).To(BeTrue())
 		g.Expect(newObj.Object["status"].(map[string]interface{})["conditions"]).To(BeNil())
 
 		// When working with conditions, the inner map is going to be removed from the original object.

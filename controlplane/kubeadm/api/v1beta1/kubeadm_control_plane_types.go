@@ -339,7 +339,6 @@ type LastRemediationStatus struct {
 
 // KubeadmControlPlane is the Schema for the KubeadmControlPlane API.
 // +Metrics:namePrefix="capi_kubeadmcontrolplane"
-// +Metrics:labelFromPath:name="name",JSONPath={"metadata","name"}
 // +Metrics:labelFromPath:name="cluster_name",JSONPath={metadata,ownerReferences,[kind=Cluster],name}
 // +Metrics:labelFromPath:name="name",JSONPath={metadata,name}
 // +Metrics:labelFromPath:name="namespace",JSONPath={metadata,namespace}

@@ -96,6 +96,8 @@ type DockerMachineStatus struct {
 // +kubebuilder:subresource:status
 
 // DockerMachine is the Schema for the dockermachines API.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type DockerMachine struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -117,6 +119,8 @@ func (c *DockerMachine) SetConditions(conditions clusterv1alpha3.Conditions) {
 // +kubebuilder:object:root=true
 
 // DockerMachineList contains a list of DockerMachine.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type DockerMachineList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -35,6 +35,8 @@ type KubeadmConfigTemplateResource struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmConfigTemplate"
 
 // KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates API.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type KubeadmConfigTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -45,6 +47,8 @@ type KubeadmConfigTemplate struct {
 // +kubebuilder:object:root=true
 
 // KubeadmConfigTemplateList contains a list of KubeadmConfigTemplate.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type KubeadmConfigTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

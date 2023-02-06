@@ -196,6 +196,8 @@ type KubeadmControlPlaneStatus struct {
 // +kubebuilder:printcolumn:name="Unavailable",type=integer,JSONPath=".status.unavailableReplicas",description="Total number of unavailable machines targeted by this control plane"
 
 // KubeadmControlPlane is the Schema for the KubeadmControlPlane API.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type KubeadmControlPlane struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -217,6 +219,8 @@ func (in *KubeadmControlPlane) SetConditions(conditions clusterv1alpha3.Conditio
 // +kubebuilder:object:root=true
 
 // KubeadmControlPlaneList contains a list of KubeadmControlPlane.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type KubeadmControlPlaneList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

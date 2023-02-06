@@ -129,6 +129,8 @@ type KubeadmConfigStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmConfig"
 
 // KubeadmConfig is the Schema for the kubeadmconfigs API.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type KubeadmConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -150,6 +152,8 @@ func (c *KubeadmConfig) SetConditions(conditions clusterv1alpha4.Conditions) {
 // +kubebuilder:object:root=true
 
 // KubeadmConfigList contains a list of KubeadmConfig.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type KubeadmConfigList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

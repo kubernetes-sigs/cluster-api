@@ -20,8 +20,8 @@ spec:
   - name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates
-          API.
+        description: "KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates
+          API. \n Deprecated: This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -1002,8 +1002,8 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates
-          API.
+        description: "KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates
+          API. \n Deprecated: This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

@@ -444,7 +444,7 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 
 	// We have to lock the cluster, so that the watch is not created multiple times in parallel.
 	if ok := t.clusterLock.TryLock(input.Cluster); !ok {
-		return errors.Wrapf(ErrClusterLocked, "failed to add %s watch on cluster %s: failed to get lock for cluster", input.Kind, klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
+		return errors.Wrapf(ErrClusterLocked, "failed to add %T watch on cluster %s: failed to get lock for cluster", input.Kind, klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
 	}
 	defer t.clusterLock.Unlock(input.Cluster)
 

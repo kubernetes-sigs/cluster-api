@@ -178,10 +178,11 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachineDeployment("ns1", "md0-abc123").
 								WithReplicas(2).
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(1),
-									UpdatedReplicas:   int32(1),
-									ReadyReplicas:     int32(1),
-									AvailableReplicas: int32(1),
+									Replicas:            int32(1),
+									UpdatedReplicas:     int32(1),
+									ReadyReplicas:       int32(1),
+									AvailableReplicas:   int32(1),
+									UnavailableReplicas: int32(0),
 								}).
 								Build(),
 						},
@@ -220,10 +221,11 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachineDeployment("ns1", "md0-abc123").
 								WithReplicas(2).
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(2),
-									UpdatedReplicas:   int32(2),
-									ReadyReplicas:     int32(2),
-									AvailableReplicas: int32(2),
+									Replicas:            int32(2),
+									UpdatedReplicas:     int32(2),
+									ReadyReplicas:       int32(2),
+									AvailableReplicas:   int32(2),
+									UnavailableReplicas: int32(0),
 								}).
 								Build(),
 						},
@@ -264,10 +266,11 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 							Object: builder.MachineDeployment("ns1", "md0-abc123").
 								WithReplicas(2).
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(2),
-									UpdatedReplicas:   int32(2),
-									ReadyReplicas:     int32(2),
-									AvailableReplicas: int32(2),
+									Replicas:            int32(2),
+									UpdatedReplicas:     int32(2),
+									ReadyReplicas:       int32(2),
+									AvailableReplicas:   int32(2),
+									UnavailableReplicas: int32(0),
 								}).
 								Build(),
 						},
@@ -344,7 +347,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionStatus: corev1.ConditionTrue,
 		},
 		{
-			name:         "should set the condition to false is some machine deployments have not picked the new version because other machine deployments are rolling out",
+			name:         "should set the condition to false is some machine deployments have not picked the new version because other machine deployments are rolling out (not all replicas ready)",
 			reconcileErr: nil,
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
@@ -367,10 +370,12 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.22.0").
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(1),
-									UpdatedReplicas:   int32(1),
-									ReadyReplicas:     int32(1),
-									AvailableReplicas: int32(1),
+									// MD is not ready because we don't have 2 updated, ready and available replicas.
+									Replicas:            int32(2),
+									UpdatedReplicas:     int32(1),
+									ReadyReplicas:       int32(1),
+									AvailableReplicas:   int32(1),
+									UnavailableReplicas: int32(0),
 								}).
 								Build(),
 						},
@@ -379,10 +384,70 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.21.2").
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(2),
-									UpdatedReplicas:   int32(2),
-									ReadyReplicas:     int32(2),
-									AvailableReplicas: int32(2),
+									Replicas:            int32(2),
+									UpdatedReplicas:     int32(2),
+									ReadyReplicas:       int32(2),
+									AvailableReplicas:   int32(2),
+									UnavailableReplicas: int32(0),
+								}).
+								Build(),
+						},
+					},
+				},
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.PendingUpgrade = false
+					ut.MachineDeployments.MarkPendingUpgrade("md1-abc123")
+					return ut
+				}(),
+				HookResponseTracker: scope.NewHookResponseTracker(),
+			},
+			wantConditionStatus: corev1.ConditionFalse,
+			wantConditionReason: clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason,
+		},
+		{
+			name:         "should set the condition to false is some machine deployments have not picked the new version because other machine deployments are rolling out (unavailable replica)",
+			reconcileErr: nil,
+			cluster:      &clusterv1.Cluster{},
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						Version: "v1.22.0",
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: builder.ControlPlane("ns1", "controlplane1").
+							WithVersion("v1.22.0").
+							WithReplicas(3).
+							Build(),
+					},
+					MachineDeployments: scope.MachineDeploymentsStateMap{
+						"md0": &scope.MachineDeploymentState{
+							Object: builder.MachineDeployment("ns1", "md0-abc123").
+								WithReplicas(2).
+								WithVersion("v1.22.0").
+								WithStatus(clusterv1.MachineDeploymentStatus{
+									// MD is not ready because we still have an unavailable replica.
+									Replicas:            int32(2),
+									UpdatedReplicas:     int32(2),
+									ReadyReplicas:       int32(2),
+									AvailableReplicas:   int32(2),
+									UnavailableReplicas: int32(1),
+								}).
+								Build(),
+						},
+						"md1": &scope.MachineDeploymentState{
+							Object: builder.MachineDeployment("ns1", "md1-abc123").
+								WithReplicas(2).
+								WithVersion("v1.21.2").
+								WithStatus(clusterv1.MachineDeploymentStatus{
+									Replicas:            int32(2),
+									UpdatedReplicas:     int32(2),
+									ReadyReplicas:       int32(2),
+									AvailableReplicas:   int32(2),
+									UnavailableReplicas: int32(0),
 								}).
 								Build(),
 						},
@@ -423,10 +488,11 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.22.0").
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(1),
-									UpdatedReplicas:   int32(1),
-									ReadyReplicas:     int32(1),
-									AvailableReplicas: int32(1),
+									Replicas:            int32(1),
+									UpdatedReplicas:     int32(1),
+									ReadyReplicas:       int32(1),
+									AvailableReplicas:   int32(1),
+									UnavailableReplicas: int32(0),
 								}).
 								Build(),
 						},
@@ -435,10 +501,11 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 								WithReplicas(2).
 								WithVersion("v1.22.0").
 								WithStatus(clusterv1.MachineDeploymentStatus{
-									Replicas:          int32(2),
-									UpdatedReplicas:   int32(2),
-									ReadyReplicas:     int32(2),
-									AvailableReplicas: int32(2),
+									Replicas:            int32(2),
+									UpdatedReplicas:     int32(2),
+									ReadyReplicas:       int32(2),
+									AvailableReplicas:   int32(2),
+									UnavailableReplicas: int32(0),
 								}).
 								Build(),
 						},

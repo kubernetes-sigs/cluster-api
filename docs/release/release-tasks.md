@@ -95,7 +95,7 @@ This comes down to changing occurrences of the old version to the new version, e
    1. Goal is that we have clusterctl upgrade tests for the latest stable versions of each contract / for each supported branch. For `v1.4` this means:
       * v1alpha3: `v0.3`
       * v1alpha4: `v0.4`
-      * v1beta1: `v1.2`, `v1.3` (will change with each new release)
+      * v1beta1: `v1.0`, `v1.2`, `v1.3` (will change with each new release)
    2. Update providers in `docker.yaml`:
        1. Add a new `v1.3.0` entry.
        2. Remove providers that are not used anymore (for `v1.4` we don't have to remove any).

@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -515,7 +516,10 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 		Spec: controlplanev1.KubeadmControlPlaneSpec{
 			Version: "v1.16.6",
 			MachineTemplate: controlplanev1.KubeadmControlPlaneMachineTemplate{
-				ObjectMeta: kcpMachineTemplateObjectMeta,
+				ObjectMeta:              kcpMachineTemplateObjectMeta,
+				NodeVolumeDetachTimeout: &metav1.Duration{Duration: 10 * time.Second},
+				NodeDeletionTimeout:     &metav1.Duration{Duration: 10 * time.Second},
+				NodeDrainTimeout:        &metav1.Duration{Duration: 10 * time.Second},
 			},
 		},
 	}
@@ -538,7 +542,10 @@ func TestKubeadmControlPlaneReconciler_generateMachine(t *testing.T) {
 		Bootstrap: clusterv1.Bootstrap{
 			ConfigRef: bootstrapRef.DeepCopy(),
 		},
-		InfrastructureRef: *infraRef.DeepCopy(),
+		InfrastructureRef:       *infraRef.DeepCopy(),
+		NodeVolumeDetachTimeout: &metav1.Duration{Duration: 10 * time.Second},
+		NodeDeletionTimeout:     &metav1.Duration{Duration: 10 * time.Second},
+		NodeDrainTimeout:        &metav1.Duration{Duration: 10 * time.Second},
 	}
 	r := &KubeadmControlPlaneReconciler{
 		Client:            fakeClient,

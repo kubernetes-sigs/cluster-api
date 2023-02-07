@@ -20,7 +20,6 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
@@ -30,17 +29,11 @@ import (
 // getBlueprint gets a ClusterBlueprint with the ClusterClass and the referenced templates to be used for a managed Cluster topology.
 // It also converts and patches all ObjectReferences in ClusterClass and ControlPlane to the latest apiVersion of the current contract.
 // NOTE: This function assumes that cluster.Spec.Topology.Class is set.
-func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluster) (_ *scope.ClusterBlueprint, reterr error) {
+func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) (_ *scope.ClusterBlueprint, reterr error) {
 	blueprint := &scope.ClusterBlueprint{
 		Topology:           cluster.Spec.Topology,
-		ClusterClass:       &clusterv1.ClusterClass{},
+		ClusterClass:       clusterClass,
 		MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{},
-	}
-
-	// Get ClusterClass.
-	key := client.ObjectKey{Name: cluster.Spec.Topology.Class, Namespace: cluster.Namespace}
-	if err := r.Client.Get(ctx, key, blueprint.ClusterClass); err != nil {
-		return nil, errors.Wrapf(err, "failed to retrieve ClusterClass/%s", cluster.Spec.Topology.Class)
 	}
 
 	var err error

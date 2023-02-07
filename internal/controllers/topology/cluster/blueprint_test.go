@@ -82,10 +82,6 @@ func TestGetBlueprint(t *testing.T) {
 		wantErr      bool
 	}{
 		{
-			name:    "Fails if ClusterClass does not exist",
-			wantErr: true,
-		},
-		{
 			name: "Fails if ClusterClass does not have reference to the InfrastructureClusterTemplate",
 			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass1").
 				// No InfrastructureClusterTemplate reference!
@@ -318,7 +314,7 @@ func TestGetBlueprint(t *testing.T) {
 				patchHelperFactory:        dryRunPatchHelperFactory(fakeClient),
 				UnstructuredCachingClient: fakeClient,
 			}
-			got, err := r.getBlueprint(ctx, scope.New(cluster).Current.Cluster)
+			got, err := r.getBlueprint(ctx, scope.New(cluster).Current.Cluster, tt.clusterClass)
 
 			// Checks the return error.
 			if tt.wantErr {

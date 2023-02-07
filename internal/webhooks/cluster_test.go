@@ -967,7 +967,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Accept a cluster with an existing clusterclass named in cluster.spec.topology.class",
+			name: "Accept a cluster with an existing ClusterClass named in cluster.spec.topology.class",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
 					builder.ClusterTopology().
@@ -981,7 +981,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Reject a cluster which has a non-existent clusterclass named in cluster.spec.topology.class",
+			name: "Accept a cluster with non-existent ClusterClass referenced cluster.spec.topology.class",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
 					builder.ClusterTopology().
@@ -992,7 +992,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				Build(),
-			wantErr: true,
+			wantErr: false,
 		},
 		{
 			name: "Reject a cluster that has MHC enabled for control plane but is missing MHC definition in cluster topology and clusterclass",
@@ -1718,6 +1718,29 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 				Build(),
 			updatedTopology: nil,
 			wantErr:         true,
+		},
+		{
+			name: "Reject cluster update if ClusterClass does not exist",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(builder.ClusterTopology().
+					WithClass("class1").
+					WithVersion("v1.22.2").
+					WithControlPlaneReplicas(3).
+					Build()).
+				Build(),
+			clusterClass:
+			// ClusterClass name is different to that in the Cluster `.spec.topology.class`
+			builder.ClusterClass(metav1.NamespaceDefault, "completely-different-class").
+				WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+				WithControlPlaneTemplate(refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref)).
+				Build(),
+			updatedTopology: builder.ClusterTopology().
+				WithClass("class1").
+				WithVersion("v1.22.2").
+				WithControlPlaneReplicas(3).
+				Build(),
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {

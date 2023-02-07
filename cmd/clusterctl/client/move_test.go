@@ -298,7 +298,7 @@ type fakeObjectMover struct {
 	fromDirectoryErr error
 }
 
-func (f *fakeObjectMover) Move(_ string, _ []cluster.ResourceMutatorFunc, _ cluster.Client, _ bool) error {
+func (f *fakeObjectMover) Move(namespace string, toCluster cluster.Client, dryRun bool, mutators ...cluster.ResourceMutatorFunc) error {
 	return f.moveErr
 }
 

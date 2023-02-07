@@ -48,7 +48,7 @@ type ResourceMutatorFunc func(u *unstructured.Unstructured)
 // ObjectMover defines methods for moving Cluster API objects to another management cluster.
 type ObjectMover interface {
 	// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
-	Move(namespace string, mutators []ResourceMutatorFunc, toCluster Client, dryRun bool) error
+	Move(namespace string, toCluster Client, dryRun bool, mutators ...ResourceMutatorFunc) error
 
 	// ToDirectory writes all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target directory.
 	ToDirectory(namespace string, directory string) error
@@ -67,7 +67,7 @@ type objectMover struct {
 // ensure objectMover implements the ObjectMover interface.
 var _ ObjectMover = &objectMover{}
 
-func (o *objectMover) Move(namespace string, mutators []ResourceMutatorFunc, toCluster Client, dryRun bool) error {
+func (o *objectMover) Move(namespace string, toCluster Client, dryRun bool, mutators ...ResourceMutatorFunc) error {
 	log := logf.Log
 	log.Info("Performing move...")
 	o.dryRun = dryRun

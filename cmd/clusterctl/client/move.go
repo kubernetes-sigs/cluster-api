@@ -98,7 +98,7 @@ func (c *clusterctlClient) move(options MoveOptions) error {
 		}
 	}
 
-	return fromCluster.ObjectMover().Move(options.Namespace, options.ExperimentalResourceMutators, toCluster, options.DryRun)
+	return fromCluster.ObjectMover().Move(options.Namespace, toCluster, options.DryRun, options.ExperimentalResourceMutators...)
 }
 
 func (c *clusterctlClient) fromDirectory(options MoveOptions) error {

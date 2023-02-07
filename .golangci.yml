@@ -259,11 +259,13 @@ issues:
   - linters:
     - unparam
     text: always receives
-  # Dot imports for gomega or ginkgo are allowed
-  # within test files.
+  # Dot imports for gomega and ginkgo are allowed
+  # within test files and test utils.
   - path: _test\.go
     text: should not use dot imports
   - path: (framework|e2e)/.*.go
+    text: should not use dot imports
+  - path: util/defaulting/defaulting.go
     text: should not use dot imports
   - path: _test\.go
     text: cyclomatic complexity

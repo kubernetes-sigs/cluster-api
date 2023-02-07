@@ -292,7 +292,7 @@ func TestServerSideApply(t *testing.T) {
 		v3, _, _ := unstructured.NestedString(got.Object, "status", "foo")
 		g.Expect(v3).To(Equal("changed"))
 		v4, _, _ := unstructured.NestedBool(got.Object, "status", "ready")
-		g.Expect(v4).To(Equal(true))
+		g.Expect(v4).To(BeTrue())
 
 		fieldV1 := getTopologyManagedFields(got)
 		g.Expect(fieldV1).ToNot(BeEmpty())
@@ -341,7 +341,7 @@ func TestServerSideApply(t *testing.T) {
 		v3, _, _ := unstructured.NestedString(got.Object, "status", "foo")
 		g.Expect(v3).To(Equal("changed"))
 		v4, _, _ := unstructured.NestedBool(got.Object, "status", "ready")
-		g.Expect(v4).To(Equal(true))
+		g.Expect(v4).To(BeTrue())
 	})
 	t.Run("Topology controller reconcile again with an opinion on a field managed by another controller (co-ownership)", func(t *testing.T) {
 		g := NewWithT(t)

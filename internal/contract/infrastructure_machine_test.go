@@ -52,7 +52,7 @@ func TestInfrastructureMachine(t *testing.T) {
 		got, err := InfrastructureMachine().Ready().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(true))
+		g.Expect(*got).To(BeTrue())
 	})
 	t.Run("Manages optional status.failureReason", func(t *testing.T) {
 		g := NewWithT(t)

@@ -67,7 +67,7 @@ func TestControlPlane(t *testing.T) {
 		got, err := ControlPlane().Ready().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(true))
+		g.Expect(*got).To(BeTrue())
 	})
 	t.Run("Manages status.initialized", func(t *testing.T) {
 		g := NewWithT(t)
@@ -80,7 +80,7 @@ func TestControlPlane(t *testing.T) {
 		got, err := ControlPlane().Initialized().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).ToNot(BeNil())
-		g.Expect(*got).To(Equal(true))
+		g.Expect(*got).To(BeTrue())
 	})
 	t.Run("Manages spec.replicas", func(t *testing.T) {
 		g := NewWithT(t)

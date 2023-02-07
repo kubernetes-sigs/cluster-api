@@ -183,7 +183,10 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 		})
 
 		By("Initializing the workload cluster")
-		clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
+		// watchesCtx is used in log streaming to be able to get canceld via cancelWatches after ending the test suite.
+		watchesCtx, cancelWatches := context.WithCancel(ctx)
+		defer cancelWatches()
+		clusterctl.InitManagementClusterAndWatchControllerLogs(watchesCtx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
 			ClusterProxy:              selfHostedClusterProxy,
 			ClusterctlConfigPath:      input.ClusterctlConfigPath,
 			InfrastructureProviders:   input.E2EConfig.InfrastructureProviders(),

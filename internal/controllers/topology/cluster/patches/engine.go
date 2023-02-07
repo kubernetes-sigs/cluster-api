@@ -19,10 +19,13 @@ package patches
 
 import (
 	"context"
+	"fmt"
+	"runtime/debug"
 	"strings"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
 	"github.com/pkg/errors"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
@@ -99,7 +102,7 @@ func (e *engine) Apply(ctx context.Context, blueprint *scope.ClusterBlueprint, d
 
 		// Apply patches to the request.
 		if err := applyPatchesToRequest(ctx, req, resp); err != nil {
-			return err
+			return errors.Wrapf(err, "failed to apply patches for patch %q", clusterClassPatch.Name)
 		}
 	}
 
@@ -280,54 +283,67 @@ func createPatchGenerator(runtimeClient runtimeclient.Client, patch *clusterv1.C
 // applyPatchesToRequest updates the templates of a GeneratePatchesRequest by applying the patches
 // of a GeneratePatchesResponse.
 func applyPatchesToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatchesRequest, resp *runtimehooksv1.GeneratePatchesResponse) error {
-	log := tlog.LoggerFrom(ctx)
-
 	for _, patch := range resp.Items {
-		log := log.WithValues("uid", patch.UID)
-
-		// Get the request item the patch belongs to.
-		requestItem := getRequestItemByUID(req, patch.UID)
-
-		// If a patch doesn't have a corresponding request item, the patch is invalid.
-		if requestItem == nil {
-			log.Infof("Unable to find corresponding request item with uid %q for the patch", patch.UID)
-			return errors.Errorf("unable to find corresponding request item for patch")
-		}
-
-		// Use the patch to create a patched copy of the template.
-		var patchedTemplate []byte
-		var err error
-
-		switch patch.PatchType {
-		case runtimehooksv1.JSONPatchType:
-			log.V(5).Infof("Accumulating JSON patch: %s", string(patch.Patch))
-			jsonPatch, err := jsonpatch.DecodePatch(patch.Patch)
-			if err != nil {
-				log.Infof("Failed to apply patch with uid %q: error decoding json patch (RFC6902): %s: %s", requestItem.UID, string(patch.Patch), err)
-				return errors.Wrap(err, "failed to apply patch: error decoding json patch (RFC6902)")
-			}
-
-			patchedTemplate, err = jsonPatch.Apply(requestItem.Object.Raw)
-			if err != nil {
-				log.Infof("Failed to apply patch with uid %q: error applying json patch (RFC6902): %s: %s", requestItem.UID, string(patch.Patch), err)
-				return errors.Wrap(err, "failed to apply patch: error applying json patch (RFC6902)")
-			}
-		case runtimehooksv1.JSONMergePatchType:
-			log.V(5).Infof("Accumulating JSON merge patch: %s", string(patch.Patch))
-			patchedTemplate, err = jsonpatch.MergePatch(requestItem.Object.Raw, patch.Patch)
-			if err != nil {
-				log.Infof("Failed to apply patch with uid %q: error applying json merge patch (RFC7386): %s: %s", requestItem.UID, string(patch.Patch), err)
-				return errors.Wrap(err, "failed to apply patch: error applying json merge patch (RFC7386)")
-			}
-		}
-
-		// Overwrite the spec of template.Template with the spec of the patchedTemplate,
-		// to ensure that we only pick up changes to the spec.
-		if err := patchTemplateSpec(&requestItem.Object, patchedTemplate); err != nil {
-			log.Infof("Failed to apply patch to template %s: %s", requestItem.UID, err)
-			return errors.Wrap(err, "failed to apply patch to template")
+		if err := applyPatchToRequest(ctx, req, patch); err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+func applyPatchToRequest(ctx context.Context, req *runtimehooksv1.GeneratePatchesRequest, patch runtimehooksv1.GeneratePatchesResponseItem) (reterr error) {
+	log := tlog.LoggerFrom(ctx).WithValues("uid", patch.UID)
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Infof("Observed a panic when applying patch: %v\n%s", r, string(debug.Stack()))
+			reterr = kerrors.NewAggregate([]error{reterr, fmt.Errorf("observed a panic when applying patch: %v", r)})
+		}
+	}()
+
+	// Get the request item the patch belongs to.
+	requestItem := getRequestItemByUID(req, patch.UID)
+
+	// If a patch doesn't have a corresponding request item, the patch is invalid.
+	if requestItem == nil {
+		log.Infof("Unable to find corresponding request item with uid %q for the patch", patch.UID)
+		return errors.Errorf("unable to find corresponding request item for patch")
+	}
+
+	// Use the patch to create a patched copy of the template.
+	var patchedTemplate []byte
+	var err error
+
+	switch patch.PatchType {
+	case runtimehooksv1.JSONPatchType:
+		log.V(5).Infof("Accumulating JSON patch: %s", string(patch.Patch))
+		jsonPatch, err := jsonpatch.DecodePatch(patch.Patch)
+		if err != nil {
+			log.Infof("Failed to apply patch with uid %q: error decoding json patch (RFC6902): %s: %s", requestItem.UID, string(patch.Patch), err)
+			return errors.Wrap(err, "failed to apply patch: error decoding json patch (RFC6902)")
+		}
+
+		patchedTemplate, err = jsonPatch.Apply(requestItem.Object.Raw)
+		if err != nil {
+			log.Infof("Failed to apply patch with uid %q: error applying json patch (RFC6902): %s: %s", requestItem.UID, string(patch.Patch), err)
+			return errors.Wrap(err, "failed to apply patch: error applying json patch (RFC6902)")
+		}
+	case runtimehooksv1.JSONMergePatchType:
+		log.V(5).Infof("Accumulating JSON merge patch: %s", string(patch.Patch))
+		patchedTemplate, err = jsonpatch.MergePatch(requestItem.Object.Raw, patch.Patch)
+		if err != nil {
+			log.Infof("Failed to apply patch with uid %q: error applying json merge patch (RFC7386): %s: %s", requestItem.UID, string(patch.Patch), err)
+			return errors.Wrap(err, "failed to apply patch: error applying json merge patch (RFC7386)")
+		}
+	}
+
+	// Overwrite the spec of template.Template with the spec of the patchedTemplate,
+	// to ensure that we only pick up changes to the spec.
+	if err := patchTemplateSpec(&requestItem.Object, patchedTemplate); err != nil {
+		log.Infof("Failed to apply patch to template %s: %s", requestItem.UID, err)
+		return errors.Wrap(err, "failed to apply patch to template")
+	}
+
 	return nil
 }
 

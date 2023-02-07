@@ -180,6 +180,10 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.ImagePullPolicy = restored.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration.NodeRegistration.ImagePullPolicy
 	}
 
+	if restored.Spec.Template.Spec.RemediationStrategy != nil {
+		dst.Spec.Template.Spec.RemediationStrategy = restored.Spec.Template.Spec.RemediationStrategy
+	}
+
 	return nil
 }
 

@@ -91,6 +91,10 @@ type KubeadmControlPlaneTemplateResourceSpec struct {
 	// +optional
 	// +kubebuilder:default={type: "RollingUpdate", rollingUpdate: {maxSurge: 1}}
 	RolloutStrategy *RolloutStrategy `json:"rolloutStrategy,omitempty"`
+
+	// The RemediationStrategy that controls how control plane machine remediation happens.
+	// +optional
+	RemediationStrategy *RemediationStrategy `json:"remediationStrategy,omitempty"`
 }
 
 // KubeadmControlPlaneTemplateMachineTemplate defines the template for Machines

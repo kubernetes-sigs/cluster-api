@@ -171,6 +171,8 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, "machineTemplate", "nodeDeletionTimeout"},
 		{spec, "replicas"},
 		{spec, "version"},
+		{spec, "remediationStrategy"},
+		{spec, "remediationStrategy", "*"},
 		{spec, "rolloutAfter"},
 		{spec, "rolloutBefore", "*"},
 		{spec, "rolloutStrategy", "*"},

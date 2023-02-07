@@ -341,7 +341,7 @@ func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp
 	}
 
 	// Remove the annotation tracking that a remediation is in progress (the remediation completed when
-	// the replacement machine have been created above).
+	// the replacement machine has been created above).
 	delete(kcp.Annotations, controlplanev1.RemediationInProgressAnnotation)
 
 	return nil

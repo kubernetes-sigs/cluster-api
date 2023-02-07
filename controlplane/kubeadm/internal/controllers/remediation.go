@@ -73,11 +73,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		return ctrl.Result{}, kerrors.NewAggregate(errList)
 	}
 
-	// Returns if another remediation is in progress but the new machine is not yet created.
-	if _, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
-		return ctrl.Result{}, nil
-	}
-
 	// Gets all machines that have `MachineHealthCheckSucceeded=False` (indicating a problem was detected on the machine)
 	// and `MachineOwnerRemediated` present, indicating that this controller is responsible for performing remediation.
 	unhealthyMachines := controlPlane.UnhealthyMachines()
@@ -96,6 +91,16 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 	// Returns if the machine is in the process of being deleted.
 	if !machineToBeRemediated.ObjectMeta.DeletionTimestamp.IsZero() {
+		return ctrl.Result{}, nil
+	}
+
+	log = log.WithValues("Machine", klog.KObj(machineToBeRemediated), "initialized", controlPlane.KCP.Status.Initialized)
+
+	// Returns if another remediation is in progress but the new Machine is not yet created.
+	// Note: This condition is checked after we check for unhealthy Machines and if machineToBeRemediated
+	// is being deleted to avoid unnecessary logs if no further remediation should be done.
+	if _, ok := controlPlane.KCP.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
+		log.Info("Another remediation is already in progress. Skipping remediation.")
 		return ctrl.Result{}, nil
 	}
 
@@ -118,7 +123,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 
 	// Before starting remediation, run preflight checks in order to verify it is safe to remediate.
 	// If any of the following checks fails, we'll surface the reason in the MachineOwnerRemediated condition.
-	log = log.WithValues("Machine", klog.KObj(machineToBeRemediated), "initialized", controlPlane.KCP.Status.Initialized)
 
 	// Check if KCP is allowed to remediate considering retry limits:
 	// - Remediation cannot happen because retryPeriod is not yet expired.
@@ -132,9 +136,11 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		return ctrl.Result{}, nil
 	}
 
-	// Executes checks that applies only if the control plane is already initialized; in this case KCP can
-	// remediate only if it can safely assume that the operation preserves the operation state of the existing cluster (or at least it doesn't make it worst).
 	if controlPlane.KCP.Status.Initialized {
+		// Executes checks that apply only if the control plane is already initialized; in this case KCP can
+		// remediate only if it can safely assume that the operation preserves the operation state of the
+		// existing cluster (or at least it doesn't make it worse).
+
 		// The cluster MUST have more than one replica, because this is the smallest cluster size that allows any etcd failure tolerance.
 		if controlPlane.Machines.Len() <= 1 {
 			log.Info("A control plane machine needs remediation, but the number of current replicas is less or equal to 1. Skipping remediation", "Replicas", controlPlane.Machines.Len())
@@ -163,22 +169,14 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 				return ctrl.Result{}, nil
 			}
 		}
-	}
 
-	// Prepare the info for tracking the remediation progress into the RemediationInProgressAnnotation.
-	remediationInProgressValue, err := remediationInProgressData.Marshal()
-	if err != nil {
-		return ctrl.Result{}, err
-	}
+		// Start remediating the unhealthy control plane machine by deleting it.
+		// A new machine will come up completing the operation as part of the regular reconcile.
 
-	// Start remediating the unhealthy control plane machine by deleting it.
-	// A new machine will come up completing the operation as part of the regular
-
-	// If the control plane is initialized, before deleting the machine:
-	// - if the machine hosts the etcd leader, forward etcd leadership to another machine.
-	// - delete the etcd member hosted on the machine being deleted.
-	// - remove the etcd member from the kubeadm config map (only for kubernetes version older than v1.22.0)
-	if controlPlane.KCP.Status.Initialized {
+		// If the control plane is initialized, before deleting the machine:
+		// - if the machine hosts the etcd leader, forward etcd leadership to another machine.
+		// - delete the etcd member hosted on the machine being deleted.
+		// - remove the etcd member from the kubeadm config map (only for kubernetes version older than v1.22.0)
 		workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(controlPlane.Cluster))
 		if err != nil {
 			log.Error(err, "Failed to create client to workload cluster")
@@ -227,6 +225,12 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 	log.Info("Remediating unhealthy machine")
 	conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.RemediationInProgressReason, clusterv1.ConditionSeverityWarning, "")
 
+	// Prepare the info for tracking the remediation progress into the RemediationInProgressAnnotation.
+	remediationInProgressValue, err := remediationInProgressData.Marshal()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Set annotations tracking remediation details so they can be picked up by the machine
 	// that will be created as part of the scale up action that completes the remediation.
 	annotations.AddAnnotations(controlPlane.KCP, map[string]string{
@@ -263,49 +267,39 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 		return remediationInProgressData, true, nil
 	}
 
-	// Gets MinHealthySeconds and RetryDelaySeconds from the remediation strategy, or use defaults.
+	// Gets MinHealthyPeriod and RetryPeriod from the remediation strategy, or use defaults.
 	minHealthyPeriod := controlplanev1.DefaultMinHealthyPeriod
 	if controlPlane.KCP.Spec.RemediationStrategy != nil && controlPlane.KCP.Spec.RemediationStrategy.MinHealthyPeriod != nil {
 		minHealthyPeriod = controlPlane.KCP.Spec.RemediationStrategy.MinHealthyPeriod.Duration
 	}
-
 	retryPeriod := time.Duration(0)
 	if controlPlane.KCP.Spec.RemediationStrategy != nil {
 		retryPeriod = controlPlane.KCP.Spec.RemediationStrategy.RetryPeriod.Duration
 	}
 
 	// Gets the timestamp of the last remediation; if missing, default to a value
-	// that ensures both MinHealthySeconds and RetryDelaySeconds are expired.
+	// that ensures both MinHealthyPeriod and RetryPeriod are expired.
 	// NOTE: this could potentially lead to executing more retries than expected or to executing retries before than
 	// expected, but this is considered acceptable when the system recovers from someone/something changes or deletes
 	// the RemediationForAnnotation on Machines.
-	max := func(x, y time.Duration) time.Duration {
-		if x < y {
-			return y
-		}
-		return x
-	}
-
 	lastRemediationTime := reconciliationTime.Add(-2 * max(minHealthyPeriod, retryPeriod))
 	if !lastRemediationData.Timestamp.IsZero() {
 		lastRemediationTime = lastRemediationData.Timestamp.Time
 	}
 
-	// Check if the machine being remediated has been created as a remediation for a previous unhealthy machine.
-	// NOTE: if someone/something changes or deletes the RemediationForAnnotation on Machines, this could potentially
-	// lead to executing more retries than expected, but this is considered acceptable in such a case.
-	machineRemediationFor := remediationInProgressData.Machine
-	if lastRemediationData.Machine != "" {
-		// If the remediation is happening before minHealthyPeriod is expired, then KCP considers this
-		// as a remediation for the same previously unhealthy machine.
-		if lastRemediationTime.Add(minHealthyPeriod).After(reconciliationTime) {
-			machineRemediationFor = lastRemediationData.Machine
-			log = log.WithValues("RemediationRetryFor", klog.KRef(machineToBeRemediated.Namespace, machineRemediationFor))
-		}
+	// Once we get here we already know that there was a last remediation for the Machine.
+	// If the current remediation is happening before minHealthyPeriod is expired, then KCP considers this
+	// as a remediation for the same previously unhealthy machine.
+	// NOTE: If someone/something changes the RemediationForAnnotation on Machines (e.g. changes the Timestamp),
+	// this could potentially lead to executing more retries than expected, but this is considered acceptable in such a case.
+	var retryForSameMachineInProgress bool
+	if lastRemediationTime.Add(minHealthyPeriod).After(reconciliationTime) {
+		retryForSameMachineInProgress = true
+		log = log.WithValues("RemediationRetryFor", klog.KRef(machineToBeRemediated.Namespace, lastRemediationData.Machine))
 	}
 
-	// If remediation is happening for a different machine, this is the first try of a new retry sequence.
-	if lastRemediationData.Machine != machineRemediationFor {
+	// If the retry for the same machine is not in progress, this is the first try of a new retry sequence.
+	if !retryForSameMachineInProgress {
 		return remediationInProgressData, true, nil
 	}
 
@@ -315,7 +309,7 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 	// Check if remediation can happen because retryPeriod is passed.
 	if lastRemediationTime.Add(retryPeriod).After(reconciliationTime) {
 		log.Info(fmt.Sprintf("A control plane machine needs remediation, but the operation already failed in the latest %s. Skipping remediation", retryPeriod))
-		conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate this machine because the operation already failed in the latest %s (RetryDelay)", retryPeriod)
+		conditions.MarkFalse(machineToBeRemediated, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate this machine because the operation already failed in the latest %s (RetryPeriod)", retryPeriod)
 		return remediationInProgressData, false, nil
 	}
 
@@ -329,10 +323,18 @@ func (r *KubeadmControlPlaneReconciler) checkRetryLimits(log logr.Logger, machin
 		}
 	}
 
-	// All the check passed, increase the remediation number.
+	// All the check passed, increase the remediation retry count.
 	remediationInProgressData.RetryCount++
 
 	return remediationInProgressData, true, nil
+}
+
+// max calculates the maximum duration.
+func max(x, y time.Duration) time.Duration {
+	if x < y {
+		return y
+	}
+	return x
 }
 
 // canSafelyRemoveEtcdMember assess if it is possible to remove the member hosted on the machine to be remediated

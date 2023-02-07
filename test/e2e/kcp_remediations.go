@@ -19,16 +19,13 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -117,7 +114,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 			Proxy:                input.BootstrapClusterProxy,
 			ArtifactFolder:       input.ArtifactFolder,
 			SpecName:             specName,
-			Flavor:               input.Flavor,
+			Flavor:               pointer.StringDeref(input.Flavor, "kcp-remediation"),
 
 			// values to be injected in the template
 
@@ -126,7 +123,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 			// NOTE: this func also setups credentials/RBAC rules and everything necessary to get the authenticationToken.
 			AuthenticationToken: getAuthenticationToken(ctx, input.BootstrapClusterProxy, namespace.Name),
 			// Address to be used for accessing the management cluster from a workload cluster.
-			ServerAddr: getServerAddr(input.BootstrapClusterProxy.GetKubeconfigPath()),
+			ServerAddr: getServerAddr(ctx, input.BootstrapClusterProxy),
 		})
 
 		// The first CP machine comes up but it does not complete bootstrap
@@ -235,7 +232,7 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 		Expect(secondMachine.Status.NodeRef).To(BeNil())
 		log.Logf("Machine %s is up but still bootstrapping", secondMachineName)
 
-		// Intentionally trigger remediation on the second CP, and validate and validate also this one is deleted and a replacement should come up.
+		// Intentionally trigger remediation on the second CP and validate that also this one is deleted and a replacement should come up.
 
 		By("REMEDIATING SECOND CONTROL PLANE MACHINE")
 
@@ -432,17 +429,15 @@ type createWorkloadClusterAndWaitInput struct {
 	Proxy                framework.ClusterProxy
 	ArtifactFolder       string
 	SpecName             string
-	Flavor               *string
+	Flavor               string
 	Namespace            string
-	AuthenticationToken  []byte
+	AuthenticationToken  string
 	ServerAddr           string
 }
 
-// createWorkloadClusterAndWait creates a workload cluster ard return as soon as the cluster infrastructure is ready.
+// createWorkloadClusterAndWait creates a workload cluster and return as soon as the cluster infrastructure is ready.
 // NOTE: we are not using the same func used by other tests because it would fail if the control plane doesn't come up,
-//
-//	which instead is expected in this case.
-//
+// which instead is expected in this case.
 // NOTE: clusterResources is filled only partially.
 func createWorkloadClusterAndWait(ctx context.Context, input createWorkloadClusterAndWaitInput) (clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult) {
 	clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
@@ -457,7 +452,7 @@ func createWorkloadClusterAndWait(ctx context.Context, input createWorkloadClust
 		KubeconfigPath: input.Proxy.GetKubeconfigPath(),
 
 		// select template
-		Flavor: pointer.StringDeref(input.Flavor, "kcp-remediation"),
+		Flavor: input.Flavor,
 		// define template variables
 		Namespace:                input.Namespace,
 		ClusterName:              clusterName,
@@ -469,7 +464,7 @@ func createWorkloadClusterAndWait(ctx context.Context, input createWorkloadClust
 		LogFolder: filepath.Join(input.ArtifactFolder, "clusters", input.Proxy.GetName()),
 		// Adds authenticationToken, server address and namespace variables to be injected in the cluster template.
 		ClusterctlVariables: map[string]string{
-			"TOKEN":     string(input.AuthenticationToken),
+			"TOKEN":     input.AuthenticationToken,
 			"SERVER":    input.ServerAddr,
 			"NAMESPACE": input.Namespace,
 		},
@@ -560,11 +555,10 @@ func waitForMachines(ctx context.Context, input waitForMachinesInput) (allMachin
 
 	// Waits for the desired set of machines to exist.
 	log.Logf("Waiting for %d machines, must have %s, must not have %s", input.ExpectedReplicas, expectedOldMachines.UnsortedList(), expectedDeletedMachines.UnsortedList())
-	Eventually(func() bool {
+	Eventually(func(g Gomega) {
 		// Gets the list of machines
-		if err := input.Lister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption); err != nil {
-			return false
-		}
+		g.Expect(input.Lister.List(ctx, machineList, inClustersNamespaceListOption, matchClusterListOption)).To(Succeed())
+
 		allMachines = sets.Set[string]{}
 		for i := range machineList.Items {
 			allMachines.Insert(machineList.Items[i].Name)
@@ -578,17 +572,17 @@ func waitForMachines(ctx context.Context, input waitForMachinesInput) (allMachin
 		log.Logf(" - expected %d, got %d: %s, of which new %s, must have check: %t, must not have check: %t", input.ExpectedReplicas, allMachines.Len(), allMachines.UnsortedList(), newMachines.UnsortedList(), allMachines.HasAll(expectedOldMachines.UnsortedList()...), !allMachines.HasAny(expectedDeletedMachines.UnsortedList()...))
 
 		// Ensures all the expected old machines are still there.
-		if !allMachines.HasAll(expectedOldMachines.UnsortedList()...) {
-			return false
-		}
+		g.Expect(allMachines.HasAll(expectedOldMachines.UnsortedList()...)).To(BeTrue(),
+			"Got machines: %s, must contain all of: %s", allMachines.UnsortedList(), expectedOldMachines.UnsortedList())
 
 		// Ensures none of the machines to be deleted is still there.
-		if allMachines.HasAny(expectedDeletedMachines.UnsortedList()...) {
-			return false
-		}
+		g.Expect(!allMachines.HasAny(expectedDeletedMachines.UnsortedList()...)).To(BeTrue(),
+			"Got machines: %s, must not contain any of: %s", allMachines.UnsortedList(), expectedDeletedMachines.UnsortedList())
 
-		return allMachines.Len() == input.ExpectedReplicas
-	}, input.WaitForMachinesIntervals...).Should(BeTrue(), "Failed to get the expected list of machines: got %s (expected %d machines, must have %s, must not have %s)", allMachines.UnsortedList(), input.ExpectedReplicas, expectedOldMachines.UnsortedList(), expectedDeletedMachines.UnsortedList())
+		g.Expect(allMachines).To(HaveLen(input.ExpectedReplicas), "Got %d machines, must be %d", len(allMachines), input.ExpectedReplicas)
+	}, input.WaitForMachinesIntervals...).Should(Succeed(),
+		"Failed to get the expected list of machines: got %s (expected %d machines, must have %s, must not have %s)",
+		allMachines.UnsortedList(), input.ExpectedReplicas, expectedOldMachines.UnsortedList(), expectedDeletedMachines.UnsortedList())
 	log.Logf("Got %d machines: %s", allMachines.Len(), allMachines.UnsortedList())
 
 	// Ensures the desired set of machines is stable (no further machines are created or deleted).
@@ -611,27 +605,31 @@ func waitForMachines(ctx context.Context, input waitForMachinesInput) (allMachin
 }
 
 // getServerAddr returns the address to be used for accessing the management cluster from a workload cluster.
-func getServerAddr(kubeconfigPath string) string {
-	kubeConfig, err := clientcmd.LoadFromFile(kubeconfigPath)
-	Expect(err).ToNot(HaveOccurred(), "failed to load management cluster's kubeconfig file")
-
-	clusterName := kubeConfig.Contexts[kubeConfig.CurrentContext].Cluster
-	Expect(clusterName).ToNot(BeEmpty(), "failed to identify current cluster name in management cluster's kubeconfig file")
-
-	serverAddr := kubeConfig.Clusters[clusterName].Server
-	Expect(serverAddr).ToNot(BeEmpty(), "failed to identify current server address in management cluster's kubeconfig file")
-
-	// On CAPD, if not running on Linux, we need to use Docker's proxy to connect back to the host
-	// to the CAPD cluster. Moby on Linux doesn't use the host.docker.internal DNS name.
-	if runtime.GOOS != "linux" {
-		serverAddr = strings.ReplaceAll(serverAddr, "127.0.0.1", "host.docker.internal")
+func getServerAddr(ctx context.Context, clusterProxy framework.ClusterProxy) string {
+	// With CAPD, we can't just access the bootstrap cluster via 127.0.0.1:<port> from the
+	// workload cluster. Instead we retrieve the server name from the cluster-info ConfigMap in the bootstrap
+	// cluster (e.g. "https://test-z45p9k-control-plane:6443")
+	// Note: This has been tested with MacOS,Linux and Prow.
+	clusterInfoCM := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "cluster-info",
+			Namespace: metav1.NamespacePublic,
+		},
 	}
-	return serverAddr
+	Expect(clusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(clusterInfoCM), clusterInfoCM)).To(Succeed())
+	Expect(clusterInfoCM.Data).To(HaveKey("kubeconfig"))
+
+	kubeConfigString := clusterInfoCM.Data["kubeconfig"]
+
+	kubeConfig, err := clientcmd.Load([]byte(kubeConfigString))
+	Expect(err).ToNot(HaveOccurred())
+
+	return kubeConfig.Clusters[""].Server
 }
 
 // getAuthenticationToken returns a bearer authenticationToken with minimal RBAC permissions to access the mhc-test ConfigMap that will be used
 // to control machines bootstrap during the remediation tests.
-func getAuthenticationToken(ctx context.Context, managementClusterProxy framework.ClusterProxy, namespace string) []byte {
+func getAuthenticationToken(ctx context.Context, managementClusterProxy framework.ClusterProxy, namespace string) string {
 	sa := &corev1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "mhc-test",
@@ -677,21 +675,13 @@ func getAuthenticationToken(ctx context.Context, managementClusterProxy framewor
 	}
 	Expect(managementClusterProxy.GetClient().Create(ctx, roleBinding)).To(Succeed(), "failed to create mhc-test role binding")
 
-	cmd := exec.CommandContext(ctx, "kubectl", fmt.Sprintf("--kubeconfig=%s", managementClusterProxy.GetKubeconfigPath()), fmt.Sprintf("--namespace=%s", namespace), "create", "token", "mhc-test") //nolint:gosec
-	stdout, err := cmd.StdoutPipe()
-	Expect(err).ToNot(HaveOccurred(), "failed to get stdout for kubectl create authenticationToken")
-	stderr, err := cmd.StderrPipe()
-	Expect(err).ToNot(HaveOccurred(), "failed to get stderr for kubectl create authenticationToken")
+	tokenRequest := &authenticationv1.TokenRequest{
+		Spec: authenticationv1.TokenRequestSpec{
+			ExpirationSeconds: pointer.Int64(2 * 60 * 60), // 2 hours.
+		},
+	}
+	tokenRequest, err := managementClusterProxy.GetClientSet().CoreV1().ServiceAccounts(namespace).CreateToken(ctx, "mhc-test", tokenRequest, metav1.CreateOptions{})
+	Expect(err).ToNot(HaveOccurred())
 
-	Expect(cmd.Start()).To(Succeed(), "failed to run kubectl create authenticationToken")
-
-	output, err := io.ReadAll(stdout)
-	Expect(err).ToNot(HaveOccurred(), "failed to read stdout from kubectl create authenticationToken")
-	errout, err := io.ReadAll(stderr)
-	Expect(err).ToNot(HaveOccurred(), "failed to read stderr from kubectl create authenticationToken")
-
-	Expect(cmd.Wait()).To(Succeed(), "failed to wait kubectl create authenticationToken")
-	Expect(errout).To(BeEmpty())
-
-	return output
+	return tokenRequest.Status.Token
 }

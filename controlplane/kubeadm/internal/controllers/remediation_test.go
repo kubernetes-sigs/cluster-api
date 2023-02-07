@@ -106,7 +106,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 	t.Run("reconcileUnhealthyMachines return early if another remediation is in progress", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m := getDeletingMachine(ns.Name, "m1-unhealthy-deleting-", withMachineHealthCheckFailed())
+		m := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withStuckRemediation())
 		conditions.MarkFalse(m, clusterv1.MachineHealthCheckSucceededCondition, clusterv1.MachineHasFailureReason, clusterv1.ConditionSeverityWarning, "")
 		conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "")
 		controlPlane := &internal.ControlPlane{
@@ -141,6 +141,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 			Machines: collections.FromMachines(m),
 		}
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
+
+		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
 		g.Expect(ret.IsZero()).To(BeTrue()) // Remediation skipped
 		g.Expect(err).ToNot(HaveOccurred())
@@ -309,7 +311,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		removeFinalizer(g, m1)
 		g.Expect(env.Cleanup(ctx, m1, m2, m3)).To(Succeed())
 	})
-	t.Run("Remediation does not happen if RetryDelay is not yet passed", func(t *testing.T) {
+	t.Run("Remediation does not happen if RetryPeriod is not yet passed", func(t *testing.T) {
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed(), withWaitBeforeDeleteFinalizer(), withRemediateForAnnotation(MustMarshalRemediationData(&RemediationData{
@@ -327,7 +329,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 					Version:  "v1.19.1",
 					RemediationStrategy: &controlplanev1.RemediationStrategy{
 						MaxRetry:    utilpointer.Int32(3),
-						RetryPeriod: metav1.Duration{Duration: controlplanev1.DefaultMinHealthyPeriod}, // RetryDelaySeconds not yet expired.
+						RetryPeriod: metav1.Duration{Duration: controlplanev1.DefaultMinHealthyPeriod}, // RetryPeriod not yet expired.
 					},
 				},
 			},
@@ -352,7 +354,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(controlPlane.KCP.Annotations).ToNot(HaveKey(controlplanev1.RemediationInProgressAnnotation))
 
-		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate this machine because the operation already failed in the latest 1h0m0s (RetryDelay)")
+		assertMachineCondition(ctx, g, m1, clusterv1.MachineOwnerRemediatedCondition, corev1.ConditionFalse, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, "KCP can't remediate this machine because the operation already failed in the latest 1h0m0s (RetryPeriod)")
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m1.Namespace, Name: m1.Name}, m1)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -401,7 +403,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 
 		g.Expect(env.Cleanup(ctx, m)).To(Succeed())
 	})
-	t.Run("Remediation does not happen if there is a deleting machine", func(t *testing.T) {
+	t.Run("Remediation does not happen if there is another machine being deleted (not the one to be remediated)", func(t *testing.T) {
 		g := NewWithT(t)
 
 		m1 := createMachine(ctx, g, ns.Name, "m1-unhealthy-", withMachineHealthCheckFailed())
@@ -1146,7 +1148,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 
 		err = env.Get(ctx, client.ObjectKey{Namespace: m3.Namespace, Name: m3.Name}, m3)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(m2.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
+		g.Expect(m3.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
 
 		removeFinalizer(g, m3)
 		g.Expect(env.Cleanup(ctx, m3)).To(Succeed())

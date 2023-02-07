@@ -316,7 +316,6 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 				for {
 					select {
 					case <-timeoutCtx.Done():
-						log.Info("Cancelling Bootstrap due to timeout")
 						return
 					default:
 						updatedDockerMachine := &infrav1.DockerMachine{}
@@ -351,13 +350,6 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	if err := setMachineAddress(ctx, dockerMachine, externalMachine); err != nil {
 		log.Error(err, "failed to set the machine address")
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
-	}
-
-	// If the control plane is not yet initialized, there is no API server to contact to get the ProviderID for the Node
-	// hosted on this machine, so return early.
-	// NOTE: we are using RequeueAfter with a short interval in order to make test execution time more stable.
-	if !conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
-		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
 	}
 
 	// Usually a cloud provider will do this, but there is no docker-cloud provider.

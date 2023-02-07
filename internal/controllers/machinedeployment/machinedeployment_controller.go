@@ -212,12 +212,12 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	}
 
 	// Make sure to reconcile the external infrastructure reference.
-	if err := reconcileExternalTemplateReference(ctx, r.Client, r.APIReader, cluster, &d.Spec.Template.Spec.InfrastructureRef); err != nil {
+	if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, &d.Spec.Template.Spec.InfrastructureRef); err != nil {
 		return ctrl.Result{}, err
 	}
 	// Make sure to reconcile the external bootstrap reference, if any.
 	if d.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
-		if err := reconcileExternalTemplateReference(ctx, r.Client, r.APIReader, cluster, d.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
+		if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, d.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -399,12 +399,12 @@ func (r *Reconciler) shouldAdopt(md *clusterv1.MachineDeployment) bool {
 	return !util.HasOwner(md.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"})
 }
 
-func reconcileExternalTemplateReference(ctx context.Context, c client.Client, apiReader client.Reader, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
+func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
 	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
 		return nil
 	}
 
-	if err := utilconversion.UpdateReferenceAPIContract(ctx, c, apiReader, ref); err != nil {
+	if err := utilconversion.UpdateReferenceAPIContract(ctx, c, ref); err != nil {
 		return err
 	}
 

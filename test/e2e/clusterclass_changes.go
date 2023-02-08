@@ -484,7 +484,7 @@ func deleteMachineDeploymentTopologyAndWait(ctx context.Context, input deleteMac
 	Expect(ctx).NotTo(BeNil(), "ctx is required for deleteMachineDeploymentTopologyAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling deleteMachineDeploymentTopologyAndWait")
 	Expect(input.Cluster).ToNot(BeNil(), "Invalid argument. input.Cluster can't be nil when calling deleteMachineDeploymentTopologyAndWait")
-	Expect(len(input.Cluster.Spec.Topology.Workers.MachineDeployments)).To(BeNumerically(">", 0),
+	Expect(input.Cluster.Spec.Topology.Workers.MachineDeployments).ToNot(BeEmpty(),
 		"Invalid Cluster. deleteMachineDeploymentTopologyAndWait requires at least one MachineDeploymentTopology to be defined in the Cluster topology")
 
 	log.Logf("Removing MachineDeploymentTopology from the Cluster Topology.")

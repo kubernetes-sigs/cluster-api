@@ -103,7 +103,7 @@ func TestComputeInfrastructureCluster(t *testing.T) {
 		})
 
 		// Ensure no ownership is added to generated InfrastructureCluster.
-		g.Expect(obj.GetOwnerReferences()).To(HaveLen(0))
+		g.Expect(obj.GetOwnerReferences()).To(BeEmpty())
 	})
 	t.Run("If there is already a reference to the infrastructureCluster, it preserves the reference name", func(t *testing.T) {
 		g := NewWithT(t)
@@ -329,7 +329,7 @@ func TestComputeControlPlane(t *testing.T) {
 		assertNestedFieldUnset(g, obj, contract.ControlPlane().MachineTemplate().InfrastructureRef().Path()...)
 
 		// Ensure no ownership is added to generated ControlPlane.
-		g.Expect(obj.GetOwnerReferences()).To(HaveLen(0))
+		g.Expect(obj.GetOwnerReferences()).To(BeEmpty())
 	})
 	t.Run("Generates the ControlPlane from the template using ClusterClass defaults", func(t *testing.T) {
 		g := NewWithT(t)

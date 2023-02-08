@@ -262,7 +262,7 @@ func Test_getComponentsByName_withEmptyVariables(t *testing.T) {
 	}
 	components, err := client.GetProviderComponents(repository1Config.Name(), repository1Config.Type(), options)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(components.Variables())).To(Equal(1))
+	g.Expect(components.Variables()).To(HaveLen(1))
 	g.Expect(components.Name()).To(Equal("p1"))
 }
 

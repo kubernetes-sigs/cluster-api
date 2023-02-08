@@ -85,7 +85,7 @@ func TestMarshalData(t *testing.T) {
 		})
 
 		g.Expect(MarshalData(src, dst)).To(Succeed())
-		g.Expect(len(dst.GetAnnotations())).To(Equal(2))
+		g.Expect(dst.GetAnnotations()).To(HaveLen(2))
 	})
 }
 
@@ -125,7 +125,7 @@ func TestUnmarshalData(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		g.Expect(ok).To(BeTrue())
 
-		g.Expect(len(dst.GetLabels())).To(Equal(1))
+		g.Expect(dst.GetLabels()).To(HaveLen(1))
 		g.Expect(dst.GetName()).To(Equal("test-1"))
 		g.Expect(dst.GetLabels()).To(HaveKeyWithValue("label1", ""))
 		g.Expect(dst.GetAnnotations()).To(BeEmpty())
@@ -151,6 +151,6 @@ func TestUnmarshalData(t *testing.T) {
 		g.Expect(ok).To(BeTrue())
 
 		g.Expect(src.GetAnnotations()).ToNot(HaveKey(DataAnnotation))
-		g.Expect(len(src.GetAnnotations())).To(Equal(1))
+		g.Expect(src.GetAnnotations()).To(HaveLen(1))
 	})
 }

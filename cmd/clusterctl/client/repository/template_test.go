@@ -154,8 +154,8 @@ metadata:
 
 	merged, err := MergeTemplates(template1, template2)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(merged.Objs())).To(Equal(2))
-	g.Expect(len(merged.VariableMap())).To(Equal(3))
+	g.Expect(merged.Objs()).To(HaveLen(2))
+	g.Expect(merged.VariableMap()).To(HaveLen(3))
 
 	// Make sure that the SAME_VARIABLE default value comes from the first template
 	// that defines it

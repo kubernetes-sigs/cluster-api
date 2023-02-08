@@ -107,7 +107,7 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 			clusterResourceSetBinding, err := r.getOrCreateClusterResourceSetBinding(context.TODO(), tt.cluster, &addonsv1.ClusterResourceSet{})
 			gs.Expect(err).NotTo(HaveOccurred())
 
-			gs.Expect(len(clusterResourceSetBinding.Spec.Bindings)).To(Equal(tt.numOfClusterResourceSets))
+			gs.Expect(clusterResourceSetBinding.Spec.Bindings).To(HaveLen(tt.numOfClusterResourceSets))
 		})
 	}
 }

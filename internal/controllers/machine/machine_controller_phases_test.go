@@ -366,7 +366,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		res, err := r.reconcile(ctx, defaultCluster, machine)
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(res.Requeue).To(BeFalse())
-		g.Expect(machine.Status.Addresses).To(HaveLen(0))
+		g.Expect(machine.Status.Addresses).To(BeEmpty())
 
 		r.reconcilePhase(ctx, machine)
 		g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))

@@ -44,7 +44,7 @@ func TestKeyedMutex(t *testing.T) {
 		km.Unlock(cluster1)
 
 		// Ensure that the lock was cleaned up from the internal map.
-		g.Expect(km.locks).To(HaveLen(0))
+		g.Expect(km.locks).To(BeEmpty())
 	})
 
 	t.Run("Can lock different Clusters in parallel but each one only once", func(t *testing.T) {
@@ -77,6 +77,6 @@ func TestKeyedMutex(t *testing.T) {
 		}
 
 		// Ensure that the lock was cleaned up from the internal map.
-		g.Expect(km.locks).To(HaveLen(0))
+		g.Expect(km.locks).To(BeEmpty())
 	})
 }

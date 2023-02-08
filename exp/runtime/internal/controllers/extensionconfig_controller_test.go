@@ -115,13 +115,13 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 
 		// Expect three handlers for the extension and expect the name to be the handler name plus the extension name.
 		handlers := config.Status.Handlers
-		g.Expect(len(handlers)).To(Equal(3))
+		g.Expect(handlers).To(HaveLen(3))
 		g.Expect(handlers[0].Name).To(Equal("first.ext1"))
 		g.Expect(handlers[1].Name).To(Equal("second.ext1"))
 		g.Expect(handlers[2].Name).To(Equal("third.ext1"))
 
 		conditions := config.GetConditions()
-		g.Expect(len(conditions)).To(Equal(1))
+		g.Expect(conditions).To(HaveLen(1))
 		g.Expect(conditions[0].Status).To(Equal(corev1.ConditionTrue))
 		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
 		_, err = registry.Get("first.ext1")
@@ -168,11 +168,11 @@ func TestExtensionReconciler_Reconcile(t *testing.T) {
 
 		// Expect two handlers for the extension and expect the name to be the handler name plus the extension name.
 		handlers := config.Status.Handlers
-		g.Expect(len(handlers)).To(Equal(2))
+		g.Expect(handlers).To(HaveLen(2))
 		g.Expect(handlers[0].Name).To(Equal("first.ext1"))
 		g.Expect(handlers[1].Name).To(Equal("third.ext1"))
 		conditions := config.GetConditions()
-		g.Expect(len(conditions)).To(Equal(1))
+		g.Expect(conditions).To(HaveLen(1))
 		g.Expect(conditions[0].Status).To(Equal(corev1.ConditionTrue))
 		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
 
@@ -227,13 +227,13 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 
 		// Expect exactly one handler and expect the name to be the handler name plus the extension name.
 		handlers := discoveredExtensionConfig.Status.Handlers
-		g.Expect(len(handlers)).To(Equal(1))
+		g.Expect(handlers).To(HaveLen(1))
 		g.Expect(handlers[0].Name).To(Equal("first.ext1"))
 
 		// Expect exactly one condition and expect the condition to have type RuntimeExtensionDiscoveredCondition and
 		// Status true.
 		conditions := discoveredExtensionConfig.GetConditions()
-		g.Expect(len(conditions)).To(Equal(1))
+		g.Expect(conditions).To(HaveLen(1))
 		g.Expect(conditions[0].Status).To(Equal(corev1.ConditionTrue))
 		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
 	})
@@ -261,12 +261,12 @@ func TestExtensionReconciler_discoverExtensionConfig(t *testing.T) {
 
 		// Expect exactly one handler and expect the name to be the handler name plus the extension name.
 		handlers := discoveredExtensionConfig.Status.Handlers
-		g.Expect(len(handlers)).To(Equal(0))
+		g.Expect(handlers).To(BeEmpty())
 
 		// Expect exactly one condition and expect the condition to have type RuntimeExtensionDiscoveredCondition and
 		// Status false.
 		conditions := discoveredExtensionConfig.GetConditions()
-		g.Expect(len(conditions)).To(Equal(1))
+		g.Expect(conditions).To(HaveLen(1))
 		g.Expect(conditions[0].Status).To(Equal(corev1.ConditionFalse))
 		g.Expect(conditions[0].Type).To(Equal(runtimev1.RuntimeExtensionDiscoveredCondition))
 	})

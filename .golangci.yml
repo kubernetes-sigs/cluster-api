@@ -62,7 +62,7 @@ linters-settings:
     local-prefixes: "sigs.k8s.io/cluster-api"
   ginkgolinter:
     # Suppress the wrong length assertion warning.
-    suppress-len-assertion: true
+    suppress-len-assertion: false
     # Suppress the wrong nil assertion warning.
     suppress-nil-assertion: false
     # Suppress the wrong error assertion warning.

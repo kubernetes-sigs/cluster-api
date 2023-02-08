@@ -95,7 +95,7 @@ func (o *objectMover) Move(namespace string, toCluster Client, dryRun bool, muta
 		proxy = toCluster.Proxy()
 	}
 
-	return o.move(objectGraph, proxy, mutators)
+	return o.move(objectGraph, proxy, mutators...)
 }
 
 func (o *objectMover) ToDirectory(namespace string, directory string) error {
@@ -312,7 +312,7 @@ func getMachineObj(proxy Proxy, machine *node, machineObj *clusterv1.Machine) er
 }
 
 // Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
-func (o *objectMover) move(graph *objectGraph, toProxy Proxy, mutators []ResourceMutatorFunc) error {
+func (o *objectMover) move(graph *objectGraph, toProxy Proxy, mutators ...ResourceMutatorFunc) error {
 	log := logf.Log
 
 	clusters := graph.getClusters()
@@ -323,12 +323,12 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy, mutators []Resourc
 
 	// Sets the pause field on the Cluster object in the source management cluster, so the controllers stop reconciling it.
 	log.V(1).Info("Pausing the source cluster")
-	if err := setClusterPause(o.fromProxy, clusters, nil, true, o.dryRun); err != nil {
+	if err := setClusterPause(o.fromProxy, clusters, true, o.dryRun); err != nil {
 		return err
 	}
 
 	log.V(1).Info("Pausing the source ClusterClasses")
-	if err := setClusterClassPause(o.fromProxy, clusterClasses, nil, true, o.dryRun); err != nil {
+	if err := setClusterClassPause(o.fromProxy, clusterClasses, true, o.dryRun); err != nil {
 		return errors.Wrap(err, "error pausing ClusterClasses")
 	}
 
@@ -348,7 +348,7 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy, mutators []Resourc
 	// Create all objects group by group, ensuring all the ownerReferences are re-created.
 	log.Info("Creating objects in the target cluster")
 	for groupIndex := 0; groupIndex < len(moveSequence.groups); groupIndex++ {
-		if err := o.createGroup(moveSequence.getGroup(groupIndex), toProxy, mutators); err != nil {
+		if err := o.createGroup(moveSequence.getGroup(groupIndex), toProxy, mutators...); err != nil {
 			return err
 		}
 	}
@@ -363,13 +363,13 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy, mutators []Resourc
 
 	// Resume the ClusterClasses in the target management cluster, so the controllers start reconciling it.
 	log.V(1).Info("Resuming the target ClusterClasses")
-	if err := setClusterClassPause(toProxy, clusterClasses, mutators, false, o.dryRun); err != nil {
+	if err := setClusterClassPause(toProxy, clusterClasses, false, o.dryRun, mutators...); err != nil {
 		return errors.Wrap(err, "error resuming ClusterClasses")
 	}
 
 	// Reset the pause field on the Cluster object in the target management cluster, so the controllers start reconciling it.
 	log.V(1).Info("Resuming the target cluster")
-	return setClusterPause(toProxy, clusters, mutators, false, o.dryRun)
+	return setClusterPause(toProxy, clusters, false, o.dryRun, mutators...)
 }
 
 func (o *objectMover) toDirectory(graph *objectGraph, directory string) error {
@@ -383,12 +383,12 @@ func (o *objectMover) toDirectory(graph *objectGraph, directory string) error {
 
 	// Sets the pause field on the Cluster object in the source management cluster, so the controllers stop reconciling it.
 	log.V(1).Info("Pausing the source cluster")
-	if err := setClusterPause(o.fromProxy, clusters, nil, true, o.dryRun); err != nil {
+	if err := setClusterPause(o.fromProxy, clusters, true, o.dryRun); err != nil {
 		return err
 	}
 
 	log.V(1).Info("Pausing the source ClusterClasses")
-	if err := setClusterClassPause(o.fromProxy, clusterClasses, nil, true, o.dryRun); err != nil {
+	if err := setClusterClassPause(o.fromProxy, clusterClasses, true, o.dryRun); err != nil {
 		return errors.Wrap(err, "error pausing ClusterClasses")
 	}
 
@@ -409,13 +409,13 @@ func (o *objectMover) toDirectory(graph *objectGraph, directory string) error {
 
 	// Resume the ClusterClasses in the target management cluster, so the controllers start reconciling it.
 	log.V(1).Info("Resuming the target ClusterClasses")
-	if err := setClusterClassPause(o.fromProxy, clusterClasses, nil, false, o.dryRun); err != nil {
+	if err := setClusterClassPause(o.fromProxy, clusterClasses, false, o.dryRun); err != nil {
 		return errors.Wrap(err, "error resuming ClusterClasses")
 	}
 
 	// Reset the pause field on the Cluster object in the target management cluster, so the controllers start reconciling it.
 	log.V(1).Info("Resuming the source cluster")
-	return setClusterPause(o.fromProxy, clusters, nil, false, o.dryRun)
+	return setClusterPause(o.fromProxy, clusters, false, o.dryRun)
 }
 
 func (o *objectMover) fromDirectory(graph *objectGraph, toProxy Proxy) error {
@@ -450,14 +450,14 @@ func (o *objectMover) fromDirectory(graph *objectGraph, toProxy Proxy) error {
 	// Resume reconciling the ClusterClasses after being restored from a backup.
 	// By default, during backup, ClusterClasses are paused so they must be unpaused to be used again
 	log.V(1).Info("Resuming the target ClusterClasses")
-	if err := setClusterClassPause(toProxy, clusterClasses, nil, false, o.dryRun); err != nil {
+	if err := setClusterClassPause(toProxy, clusterClasses, false, o.dryRun); err != nil {
 		return errors.Wrap(err, "error resuming ClusterClasses")
 	}
 
 	// Resume reconciling the Clusters after being restored from a directory.
 	// By default, when moved to a directory, Clusters are paused, so they must be unpaused to be used again.
 	log.V(1).Info("Resuming the target cluster")
-	return setClusterPause(toProxy, clusters, nil, false, o.dryRun)
+	return setClusterPause(toProxy, clusters, false, o.dryRun)
 }
 
 // moveSequence defines a list of group of moveGroups.
@@ -536,7 +536,7 @@ func getMoveSequence(graph *objectGraph) *moveSequence {
 }
 
 // setClusterPause sets the paused field on nodes referring to Cluster objects.
-func setClusterPause(proxy Proxy, clusters []*node, mutators []ResourceMutatorFunc, value bool, dryRun bool) error {
+func setClusterPause(proxy Proxy, clusters []*node, value bool, dryRun bool, mutators ...ResourceMutatorFunc) error {
 	if dryRun {
 		return nil
 	}
@@ -557,7 +557,7 @@ func setClusterPause(proxy Proxy, clusters []*node, mutators []ResourceMutatorFu
 
 		// Nb. The operation is wrapped in a retry loop to make setClusterPause more resilient to unexpected conditions.
 		if err := retryWithExponentialBackoff(setClusterPauseBackoff, func() error {
-			return patchCluster(proxy, cluster, patch, mutators)
+			return patchCluster(proxy, cluster, patch, mutators...)
 		}); err != nil {
 			return errors.Wrapf(err, "error setting Cluster.Spec.Paused=%t", value)
 		}
@@ -566,7 +566,7 @@ func setClusterPause(proxy Proxy, clusters []*node, mutators []ResourceMutatorFu
 }
 
 // setClusterClassPause sets the paused annotation on nodes referring to ClusterClass objects.
-func setClusterClassPause(proxy Proxy, clusterclasses []*node, mutators []ResourceMutatorFunc, pause bool, dryRun bool) error {
+func setClusterClassPause(proxy Proxy, clusterclasses []*node, pause bool, dryRun bool, mutators ...ResourceMutatorFunc) error {
 	if dryRun {
 		return nil
 	}
@@ -584,7 +584,7 @@ func setClusterClassPause(proxy Proxy, clusterclasses []*node, mutators []Resour
 
 		// Nb. The operation is wrapped in a retry loop to make setClusterClassPause more resilient to unexpected conditions.
 		if err := retryWithExponentialBackoff(setClusterClassPauseBackoff, func() error {
-			return pauseClusterClass(proxy, clusterclass, pause, mutators)
+			return pauseClusterClass(proxy, clusterclass, pause, mutators...)
 		}); err != nil {
 			return errors.Wrapf(err, "error updating ClusterClass %s/%s", clusterclass.identity.Namespace, clusterclass.identity.Name)
 		}
@@ -593,7 +593,7 @@ func setClusterClassPause(proxy Proxy, clusterclasses []*node, mutators []Resour
 }
 
 // patchCluster applies a patch to a node referring to a Cluster object.
-func patchCluster(proxy Proxy, n *node, patch client.Patch, mutators []ResourceMutatorFunc) error {
+func patchCluster(proxy Proxy, n *node, patch client.Patch, mutators ...ResourceMutatorFunc) error {
 	cFrom, err := proxy.NewClient()
 	if err != nil {
 		return err
@@ -622,7 +622,7 @@ func patchCluster(proxy Proxy, n *node, patch client.Patch, mutators []ResourceM
 	return nil
 }
 
-func pauseClusterClass(proxy Proxy, n *node, pause bool, mutators []ResourceMutatorFunc) error {
+func pauseClusterClass(proxy Proxy, n *node, pause bool, mutators ...ResourceMutatorFunc) error {
 	cFrom, err := proxy.NewClient()
 	if err != nil {
 		return errors.Wrap(err, "error creating client")
@@ -768,7 +768,7 @@ func (o *objectMover) ensureNamespace(toProxy Proxy, namespace string) error {
 }
 
 // createGroup creates all the Kubernetes objects into the target management cluster corresponding to the object graph nodes in a moveGroup.
-func (o *objectMover) createGroup(group moveGroup, toProxy Proxy, mutators []ResourceMutatorFunc) error {
+func (o *objectMover) createGroup(group moveGroup, toProxy Proxy, mutators ...ResourceMutatorFunc) error {
 	createTargetObjectBackoff := newWriteBackoff()
 	errList := []error{}
 

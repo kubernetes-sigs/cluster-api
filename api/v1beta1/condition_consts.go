@@ -276,6 +276,11 @@ const (
 	// TopologyReconciledHookBlockingReason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the lifecycle hooks is blocking.
 	TopologyReconciledHookBlockingReason = "LifecycleHookBlocking"
+
+	// TopologyReconciledClusterClassNotReconciledReason (Severity=Info) documents reconciliation of a Cluster topology not
+	// yet completed because the ClusterClass has not reconciled yet. If this condition persists there may be an issue
+	// with the ClusterClass surfaced in the ClusterClass status or controller logs.
+	TopologyReconciledClusterClassNotReconciledReason = "ClusterClassNotReconciled"
 )
 
 // Conditions and condition reasons for ClusterClass.

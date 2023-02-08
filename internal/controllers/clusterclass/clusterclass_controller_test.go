@@ -140,8 +140,8 @@ func assertStatusVariables(actualClusterClass *clusterv1.ClusterClass) error {
 				continue
 			}
 			found = true
-			if statusVar.DefintionsConflict {
-				return errors.Errorf("ClusterClass status %s variable RequiresNamespace does not match. Expected %t , got %t", specVar.Name, false, statusVar.DefintionsConflict)
+			if statusVar.DefinitionsConflict {
+				return errors.Errorf("ClusterClass status %s variable DefinitionsConflict does not match. Expected %v , got %v", specVar.Name, false, statusVar.DefinitionsConflict)
 			}
 			if len(statusVar.Definitions) != 1 {
 				return errors.Errorf("ClusterClass status has multiple definitions for variable %s. Expected a single definition", specVar.Name)
@@ -149,7 +149,7 @@ func assertStatusVariables(actualClusterClass *clusterv1.ClusterClass) error {
 			// For this test assume there is only one status variable definition, and that it should match the spec.
 			statusVarDefinition := statusVar.Definitions[0]
 			if statusVarDefinition.From != clusterv1.VariableDefinitionFromInline {
-				return errors.Errorf("ClusterClass status variable %s namespace field does not match. Expected %s. Got %s", statusVar.Name, clusterv1.VariableDefinitionFromInline, statusVarDefinition.From)
+				return errors.Errorf("ClusterClass status variable %s from field does not match. Expected %s. Got %s", statusVar.Name, clusterv1.VariableDefinitionFromInline, statusVarDefinition.From)
 			}
 			if specVar.Required != statusVarDefinition.Required {
 				return errors.Errorf("ClusterClass status variable %s required field does not match. Expecte %v. Got %v", specVar.Name, statusVarDefinition.Required, statusVarDefinition.Required)
@@ -159,7 +159,7 @@ func assertStatusVariables(actualClusterClass *clusterv1.ClusterClass) error {
 			}
 		}
 		if !found {
-			return errors.Errorf("ClusterClass does not define variable %s", specVar.Name)
+			return errors.Errorf("ClusterClass does not have status for variable %s", specVar.Name)
 		}
 	}
 	return nil

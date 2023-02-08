@@ -589,6 +589,11 @@ func (in *ExternalPatchDefinition) DeepCopyInto(out *ExternalPatchDefinition) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.DiscoverVariablesExtension != nil {
+		in, out := &in.DiscoverVariablesExtension, &out.DiscoverVariablesExtension
+		*out = new(string)
+		**out = **in
+	}
 	if in.Settings != nil {
 		in, out := &in.Settings, &out.Settings
 		*out = make(map[string]string, len(*in))

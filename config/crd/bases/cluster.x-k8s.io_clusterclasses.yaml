@@ -833,6 +833,10 @@ spec:
                       description: 'External defines an external patch. Note: Exactly
                         one of Definitions or External must be set.'
                       properties:
+                        discoverVariablesExtension:
+                          description: DiscoverVariablesExtension references an extension
+                            which is called to discover variables.
+                          type: string
                         generateExtension:
                           description: GenerateExtension references an extension which
                             is called to generate patches.
@@ -1622,8 +1626,8 @@ spec:
                         - schema
                         type: object
                       type: array
-                    defintionsConflict:
-                      description: DefintionsConflict specifies whether or not there
+                    definitionsConflict:
+                      description: DefinitionsConflict specifies whether or not there
                         are conflicting definitions for a single variable name.
                       type: boolean
                     name:

@@ -535,6 +535,10 @@ type ExternalPatchDefinition struct {
 	// +optional
 	ValidateExtension *string `json:"validateExtension,omitempty"`
 
+	// DiscoverVariablesExtension references an extension which is called to discover variables.
+	// +optional
+	DiscoverVariablesExtension *string `json:"discoverVariablesExtension,omitempty"`
+
 	// Settings defines key value pairs to be passed to the extensions.
 	// Values defined here take precedence over the values defined in the
 	// corresponding ExtensionConfig.
@@ -571,9 +575,9 @@ type ClusterClassStatusVariable struct {
 	// Name is the name of the variable.
 	Name string `json:"name"`
 
-	// DefintionsConflict specifies whether or not there are conflicting definitions for a single variable name.
+	// DefinitionsConflict specifies whether or not there are conflicting definitions for a single variable name.
 	// +optional
-	DefintionsConflict bool `json:"defintionsConflict,omitempty"`
+	DefinitionsConflict bool `json:"definitionsConflict,omitempty"`
 
 	// Definitions is a list of definitions for a variable.
 	Definitions []ClusterClassStatusVariableDefinition `json:"definitions"`

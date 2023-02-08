@@ -362,6 +362,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		if err := (&controllers.ClusterClassReconciler{
 			Client:                    mgr.GetClient(),
 			APIReader:                 mgr.GetAPIReader(),
+			RuntimeClient:             runtimeClient,
 			UnstructuredCachingClient: unstructuredCachingClient,
 			WatchFilterValue:          watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterClassConcurrency)); err != nil {

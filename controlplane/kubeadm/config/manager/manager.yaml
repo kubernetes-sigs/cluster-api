@@ -21,7 +21,7 @@ spec:
           args:
             - "--leader-elect"
             - "--metrics-bind-addr=localhost:8080"
-            - "--feature-gates=ClusterTopology=${CLUSTER_TOPOLOGY:=false},KubeadmBootstrapFormatIgnition=${EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION:=false}"
+            - "--feature-gates=ClusterTopology=${CLUSTER_TOPOLOGY:=false},KubeadmBootstrapFormatIgnition=${EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION:=false},LazyRestmapper=${EXP_LAZY_RESTMAPPER:=false}"
           image: controller:latest
           name: manager
           env:

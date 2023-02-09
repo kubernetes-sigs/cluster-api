@@ -21,7 +21,7 @@ spec:
           args:
             - "--leader-elect"
             - "--metrics-bind-addr=localhost:8080"
-            - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},KubeadmBootstrapFormatIgnition=${EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION:=false}"
+            - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},KubeadmBootstrapFormatIgnition=${EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION:=false},LazyRestmapper=${EXP_LAZY_RESTMAPPER:=false}"
             - "--bootstrap-token-ttl=${KUBEADM_BOOTSTRAP_TOKEN_TTL:=15m}"
           image: controller:latest
           name: manager

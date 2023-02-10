@@ -19,6 +19,7 @@ package mdutil
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 	"strconv"
 	"testing"
 	"time"
@@ -29,6 +30,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apiserver/pkg/storage/names"
+	"k8s.io/klog/v2/klogr"
+	"k8s.io/utils/pointer"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
@@ -75,175 +78,209 @@ func generateDeployment(image string) clusterv1.MachineDeployment {
 			Annotations: make(map[string]string),
 		},
 		Spec: clusterv1.MachineDeploymentSpec{
-			Replicas: func(i int32) *int32 { return &i }(1),
+			Replicas: pointer.Int32(3),
 			Selector: metav1.LabelSelector{MatchLabels: machineLabels},
 			Template: clusterv1.MachineTemplateSpec{
 				ObjectMeta: clusterv1.ObjectMeta{
 					Labels: machineLabels,
 				},
-				Spec: clusterv1.MachineSpec{},
+				Spec: clusterv1.MachineSpec{
+					NodeDrainTimeout: &metav1.Duration{Duration: 10 * time.Second},
+				},
 			},
 		},
 	}
 }
 
-func generateMachineTemplateSpec(annotations, labels map[string]string) clusterv1.MachineTemplateSpec {
-	return clusterv1.MachineTemplateSpec{
-		ObjectMeta: clusterv1.ObjectMeta{
-			Annotations: annotations,
-			Labels:      labels,
+func TestMachineSetsByDecreasingReplicas(t *testing.T) {
+	t0 := time.Now()
+	t1 := t0.Add(1 * time.Minute)
+	msAReplicas1T0 := &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			CreationTimestamp: metav1.Time{Time: t0},
+			Name:              "ms-a",
 		},
-		Spec: clusterv1.MachineSpec{},
+		Spec: clusterv1.MachineSetSpec{
+			Replicas: pointer.Int32(1),
+		},
+	}
+
+	msAAReplicas3T0 := &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			CreationTimestamp: metav1.Time{Time: t0},
+			Name:              "ms-aa",
+		},
+		Spec: clusterv1.MachineSetSpec{
+			Replicas: pointer.Int32(3),
+		},
+	}
+
+	msBReplicas1T0 := &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			CreationTimestamp: metav1.Time{Time: t0},
+			Name:              "ms-b",
+		},
+		Spec: clusterv1.MachineSetSpec{
+			Replicas: pointer.Int32(1),
+		},
+	}
+
+	msAReplicas1T1 := &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			CreationTimestamp: metav1.Time{Time: t1},
+			Name:              "ms-a",
+		},
+		Spec: clusterv1.MachineSetSpec{
+			Replicas: pointer.Int32(1),
+		},
+	}
+
+	tests := []struct {
+		name        string
+		machineSets []*clusterv1.MachineSet
+		want        []*clusterv1.MachineSet
+	}{
+		{
+			name:        "machine set with higher replicas should be lower in the list",
+			machineSets: []*clusterv1.MachineSet{msAReplicas1T0, msAAReplicas3T0},
+			want:        []*clusterv1.MachineSet{msAAReplicas3T0, msAReplicas1T0},
+		},
+		{
+			name:        "MachineSet created earlier should be lower in the list if replicas are the same",
+			machineSets: []*clusterv1.MachineSet{msAReplicas1T1, msAReplicas1T0},
+			want:        []*clusterv1.MachineSet{msAReplicas1T0, msAReplicas1T1},
+		},
+		{
+			name:        "MachineSet with lower name should be lower in the list if the replicas and creationTimestamp are same",
+			machineSets: []*clusterv1.MachineSet{msBReplicas1T0, msAReplicas1T0},
+			want:        []*clusterv1.MachineSet{msAReplicas1T0, msBReplicas1T0},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// sort the machine sets and verify the sorted list
+			g := NewWithT(t)
+			sort.Sort(MachineSetsByDecreasingReplicas(tt.machineSets))
+			g.Expect(tt.machineSets).To(Equal(tt.want))
+		})
 	}
 }
 
 func TestEqualMachineTemplate(t *testing.T) {
+	machineTemplate := &clusterv1.MachineTemplateSpec{
+		ObjectMeta: clusterv1.ObjectMeta{
+			Labels:      map[string]string{"l1": "v1"},
+			Annotations: map[string]string{"a1": "v1"},
+		},
+		Spec: clusterv1.MachineSpec{
+			NodeDrainTimeout:        &metav1.Duration{Duration: 10 * time.Second},
+			NodeDeletionTimeout:     &metav1.Duration{Duration: 10 * time.Second},
+			NodeVolumeDetachTimeout: &metav1.Duration{Duration: 10 * time.Second},
+			InfrastructureRef: corev1.ObjectReference{
+				Name:       "infra1",
+				Namespace:  "default",
+				Kind:       "InfrastructureMachine",
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+			},
+			Bootstrap: clusterv1.Bootstrap{
+				ConfigRef: &corev1.ObjectReference{
+					Name:       "bootstrap1",
+					Namespace:  "default",
+					Kind:       "BootstrapConfig",
+					APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+				},
+			},
+		},
+	}
+
+	machineTemplateWithEmptyLabels := machineTemplate.DeepCopy()
+	machineTemplateWithEmptyLabels.Labels = map[string]string{}
+
+	machineTemplateWithDifferentLabels := machineTemplate.DeepCopy()
+	machineTemplateWithDifferentLabels.Labels = map[string]string{"l2": "v2"}
+
+	machineTemplateWithEmptyAnnotations := machineTemplate.DeepCopy()
+	machineTemplateWithEmptyAnnotations.Annotations = map[string]string{}
+
+	machineTemplateWithDifferentAnnotations := machineTemplate.DeepCopy()
+	machineTemplateWithDifferentAnnotations.Annotations = map[string]string{"a2": "v2"}
+
+	machineTemplateWithDifferentInPlaceMutableSpecFields := machineTemplate.DeepCopy()
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeDrainTimeout = &metav1.Duration{Duration: 20 * time.Second}
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeDeletionTimeout = &metav1.Duration{Duration: 20 * time.Second}
+	machineTemplateWithDifferentInPlaceMutableSpecFields.Spec.NodeVolumeDetachTimeout = &metav1.Duration{Duration: 20 * time.Second}
+
+	machineTemplateWithDifferentInfraRef := machineTemplate.DeepCopy()
+	machineTemplateWithDifferentInfraRef.Spec.InfrastructureRef.Name = "infra2"
+
+	machineTemplateWithDifferentInfraRefAPIVersion := machineTemplate.DeepCopy()
+	machineTemplateWithDifferentInfraRefAPIVersion.Spec.InfrastructureRef.APIVersion = "infrastructure.cluster.x-k8s.io/v1beta2"
+
+	machineTemplateWithDifferentBootstrapConfigRef := machineTemplate.DeepCopy()
+	machineTemplateWithDifferentBootstrapConfigRef.Spec.Bootstrap.ConfigRef.Name = "bootstrap2"
+
+	machineTemplateWithDifferentBootstrapConfigRefAPIVersion := machineTemplate.DeepCopy()
+	machineTemplateWithDifferentBootstrapConfigRefAPIVersion.Spec.Bootstrap.ConfigRef.APIVersion = "bootstrap.cluster.x-k8s.io/v1beta2"
+
 	tests := []struct {
 		Name           string
-		Former, Latter clusterv1.MachineTemplateSpec
+		Former, Latter *clusterv1.MachineTemplateSpec
 		Expected       bool
 	}{
 		{
-			Name:     "Same spec, same labels",
-			Former:   generateMachineTemplateSpec(map[string]string{}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-1", "something": "else"}),
-			Latter:   generateMachineTemplateSpec(map[string]string{}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-1", "something": "else"}),
+			Name:     "Same spec, except later does not have labels",
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithEmptyLabels,
 			Expected: true,
 		},
 		{
-			Name:     "Same spec, only machine-template-hash label value is different",
-			Former:   generateMachineTemplateSpec(map[string]string{}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-1", "something": "else"}),
-			Latter:   generateMachineTemplateSpec(map[string]string{}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-2", "something": "else"}),
+			Name:     "Same spec, except later has different labels",
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithDifferentLabels,
 			Expected: true,
 		},
 		{
-			Name:     "Same spec, the former doesn't have machine-template-hash label",
-			Former:   generateMachineTemplateSpec(map[string]string{}, map[string]string{"something": "else"}),
-			Latter:   generateMachineTemplateSpec(map[string]string{}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-2", "something": "else"}),
+			Name:     "Same spec, except later does not have annotations",
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithEmptyAnnotations,
 			Expected: true,
 		},
 		{
-			Name:     "Same spec, the former doesn't have machine-template-hash label",
-			Former:   generateMachineTemplateSpec(map[string]string{}, map[string]string{"something": "else"}),
-			Latter:   generateMachineTemplateSpec(map[string]string{}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-2", "something": "else"}),
+			Name:     "Same spec, except later has different annotations",
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithDifferentAnnotations,
 			Expected: true,
 		},
 		{
-			Name:     "Same spec, the label is different, the former doesn't have machine-template-hash label, same number of labels",
-			Former:   generateMachineTemplateSpec(map[string]string{}, map[string]string{"something": "else"}),
-			Latter:   generateMachineTemplateSpec(map[string]string{}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-2"}),
-			Expected: false,
-		},
-		{
-			Name:     "Same spec, the label is different, the latter doesn't have machine-template-hash label, same number of labels",
-			Former:   generateMachineTemplateSpec(map[string]string{}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-1"}),
-			Latter:   generateMachineTemplateSpec(map[string]string{}, map[string]string{"something": "else"}),
-			Expected: false,
-		},
-		{
-			Name:     "Same spec, the label is different, and the machine-template-hash label value is the same",
-			Former:   generateMachineTemplateSpec(map[string]string{}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-1"}),
-			Latter:   generateMachineTemplateSpec(map[string]string{}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-1", "something": "else"}),
-			Expected: false,
-		},
-		{
-			Name:     "Different spec, same labels",
-			Former:   generateMachineTemplateSpec(map[string]string{"former": "value"}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-1", "something": "else"}),
-			Latter:   generateMachineTemplateSpec(map[string]string{"latter": "value"}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-1", "something": "else"}),
-			Expected: false,
-		},
-		{
-			Name:     "Different spec, different machine-template-hash label value",
-			Former:   generateMachineTemplateSpec(map[string]string{"x": ""}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-1", "something": "else"}),
-			Latter:   generateMachineTemplateSpec(map[string]string{"x": "1"}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-2", "something": "else"}),
-			Expected: false,
-		},
-		{
-			Name:     "Different spec, the former doesn't have machine-template-hash label",
-			Former:   generateMachineTemplateSpec(map[string]string{"x": ""}, map[string]string{"something": "else"}),
-			Latter:   generateMachineTemplateSpec(map[string]string{"x": "1"}, map[string]string{clusterv1.MachineDeploymentUniqueLabel: "value-2", "something": "else"}),
-			Expected: false,
-		},
-		{
-			Name:     "Different spec, different labels",
-			Former:   generateMachineTemplateSpec(map[string]string{}, map[string]string{"something": "else"}),
-			Latter:   generateMachineTemplateSpec(map[string]string{}, map[string]string{"nothing": "else"}),
-			Expected: false,
-		},
-		{
-			Name: "Same spec, except for references versions",
-			Former: clusterv1.MachineTemplateSpec{
-				ObjectMeta: clusterv1.ObjectMeta{
-					Labels: map[string]string{},
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
-							Kind:       "MachineBootstrap",
-						},
-					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
-						Kind:       "MachineInfrastructure",
-					},
-				},
-			},
-			Latter: clusterv1.MachineTemplateSpec{
-				ObjectMeta: clusterv1.ObjectMeta{
-					Labels: map[string]string{},
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-							Kind:       "MachineBootstrap",
-						},
-					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-						Kind:       "MachineInfrastructure",
-					},
-				},
-			},
+			Name:     "Spec changes, later has different in-place mutable spec fields",
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithDifferentInPlaceMutableSpecFields,
 			Expected: true,
 		},
 		{
-			Name: "Same spec, bootstrap references are different kinds",
-			Former: clusterv1.MachineTemplateSpec{
-				ObjectMeta: clusterv1.ObjectMeta{
-					Labels: map[string]string{},
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha2",
-							Kind:       "MachineBootstrap1",
-						},
-					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha2",
-						Kind:       "MachineInfrastructure",
-					},
-				},
-			},
-			Latter: clusterv1.MachineTemplateSpec{
-				ObjectMeta: clusterv1.ObjectMeta{
-					Labels: map[string]string{},
-				},
-				Spec: clusterv1.MachineSpec{
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
-							Kind:       "MachineBootstrap2",
-						},
-					},
-					InfrastructureRef: corev1.ObjectReference{
-						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
-						Kind:       "MachineInfrastructure",
-					},
-				},
-			},
+			Name:     "Spec changes, later has different InfrastructureRef",
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithDifferentInfraRef,
 			Expected: false,
+		},
+		{
+			Name:     "Spec changes, later has different Bootstrap.ConfigRef",
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithDifferentBootstrapConfigRef,
+			Expected: false,
+		},
+		{
+			Name:     "Same spec, except later has different InfrastructureRef APIVersion",
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithDifferentInfraRefAPIVersion,
+			Expected: true,
+		},
+		{
+			Name:     "Same spec, except later has different Bootstrap.ConfigRef APIVersion",
+			Former:   machineTemplate,
+			Latter:   machineTemplateWithDifferentBootstrapConfigRefAPIVersion,
+			Expected: true,
 		},
 	}
 
@@ -259,32 +296,26 @@ func TestEqualMachineTemplate(t *testing.T) {
 				g.Expect(t2.Labels).NotTo(BeNil())
 			}
 
-			runTest(&test.Former, &test.Latter)
+			runTest(test.Former, test.Latter)
 			// Test the same case in reverse order
-			runTest(&test.Latter, &test.Former)
+			runTest(test.Latter, test.Former)
 		})
 	}
 }
 
 func TestFindNewMachineSet(t *testing.T) {
-	now := metav1.Now()
-	later := metav1.Time{Time: now.Add(time.Minute)}
-
 	deployment := generateDeployment("nginx")
-	newMS := generateMS(deployment)
-	newMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = "hash"
-	newMS.CreationTimestamp = later
 
-	newMSDup := generateMS(deployment)
-	newMSDup.Labels[clusterv1.MachineDeploymentUniqueLabel] = "different-hash"
-	newMSDup.CreationTimestamp = now
+	matchingMS := generateMS(deployment)
 
-	oldDeployment := generateDeployment("nginx")
-	oldMS := generateMS(oldDeployment)
-	oldMS.Spec.Template.Annotations = map[string]string{
-		"old": "true",
-	}
-	oldMS.Status.FullyLabeledReplicas = *(oldMS.Spec.Replicas)
+	matchingMSHigherReplicas := generateMS(deployment)
+	matchingMSHigherReplicas.Spec.Replicas = pointer.Int32(2)
+
+	matchingMSDiffersInPlaceMutableFields := generateMS(deployment)
+	matchingMSDiffersInPlaceMutableFields.Spec.Template.Spec.NodeDrainTimeout = &metav1.Duration{Duration: 20 * time.Second}
+
+	oldMS := generateMS(deployment)
+	oldMS.Spec.Template.Spec.InfrastructureRef.Name = "changed-infra-ref"
 
 	tests := []struct {
 		Name       string
@@ -293,19 +324,25 @@ func TestFindNewMachineSet(t *testing.T) {
 		expected   *clusterv1.MachineSet
 	}{
 		{
-			Name:       "Get new MachineSet with the same template as Deployment spec but different machine-template-hash value",
+			Name:       "Get the MachineSet with the MachineTemplate that matches the desired intent on the MachineDeployment",
 			deployment: deployment,
-			msList:     []*clusterv1.MachineSet{&newMS, &oldMS},
-			expected:   &newMS,
+			msList:     []*clusterv1.MachineSet{&oldMS, &matchingMS},
+			expected:   &matchingMS,
 		},
 		{
-			Name:       "Get the oldest new MachineSet when there are more than one MachineSet with the same template",
+			Name:       "Get the MachineSet with the higher replicas if multiple MachineSets match the desired intent on the MachineDeployment",
 			deployment: deployment,
-			msList:     []*clusterv1.MachineSet{&newMS, &oldMS, &newMSDup},
-			expected:   &newMSDup,
+			msList:     []*clusterv1.MachineSet{&oldMS, &matchingMS, &matchingMSHigherReplicas},
+			expected:   &matchingMSHigherReplicas,
 		},
 		{
-			Name:       "Get nil new MachineSet",
+			Name:       "Get the MachineSet with the MachineTemplate that matches the desired intent on the MachineDeployment, except differs in in-place mutable fields",
+			deployment: deployment,
+			msList:     []*clusterv1.MachineSet{&oldMS, &matchingMSDiffersInPlaceMutableFields},
+			expected:   &matchingMSDiffersInPlaceMutableFields,
+		},
+		{
+			Name:       "Get nil if no MachineSet matches the desired intent of the MachineDeployment",
 			deployment: deployment,
 			msList:     []*clusterv1.MachineSet{&oldMS},
 			expected:   nil,
@@ -323,34 +360,22 @@ func TestFindNewMachineSet(t *testing.T) {
 }
 
 func TestFindOldMachineSets(t *testing.T) {
-	now := metav1.Now()
-	later := metav1.Time{Time: now.Add(time.Minute)}
-	before := metav1.Time{Time: now.Add(-time.Minute)}
-
 	deployment := generateDeployment("nginx")
-	newMS := generateMS(deployment)
-	*(newMS.Spec.Replicas) = 1
-	newMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = "hash"
-	newMS.CreationTimestamp = later
 
-	newMSDup := generateMS(deployment)
-	newMSDup.Labels[clusterv1.MachineDeploymentUniqueLabel] = "different-hash"
-	newMSDup.CreationTimestamp = now
+	newMS := generateMS(deployment)
+	newMS.Name = "aa"
+	newMS.Spec.Replicas = pointer.Int32(1)
+
+	newMSHigherReplicas := generateMS(deployment)
+	newMSHigherReplicas.Spec.Replicas = pointer.Int32(2)
+
+	newMSHigherName := generateMS(deployment)
+	newMSHigherName.Spec.Replicas = pointer.Int32(1)
+	newMS.Name = "ab"
 
 	oldDeployment := generateDeployment("nginx")
+	oldDeployment.Spec.Template.Spec.InfrastructureRef.Name = "changed-infra-ref"
 	oldMS := generateMS(oldDeployment)
-	oldMS.Spec.Template.Annotations = map[string]string{
-		"old": "true",
-	}
-	oldMS.Status.FullyLabeledReplicas = *(oldMS.Spec.Replicas)
-	oldMS.CreationTimestamp = before
-
-	oldDeployment = generateDeployment("nginx")
-	oldDeployment.Spec.Selector.MatchLabels["old-label"] = "old-value"
-	oldDeployment.Spec.Template.Labels["old-label"] = "old-value"
-	oldMSwithOldLabel := generateMS(oldDeployment)
-	oldMSwithOldLabel.Status.FullyLabeledReplicas = *(oldMSwithOldLabel.Spec.Replicas)
-	oldMSwithOldLabel.CreationTimestamp = before
 
 	tests := []struct {
 		Name            string
@@ -374,24 +399,24 @@ func TestFindOldMachineSets(t *testing.T) {
 			expectedRequire: nil,
 		},
 		{
-			Name:            "Get old MachineSets with two new MachineSets, only the oldest new MachineSet is seen as new MachineSet",
+			Name:            "Get old MachineSets with two new MachineSets, only the MachineSet with higher replicas is seen as new MachineSet",
 			deployment:      deployment,
-			msList:          []*clusterv1.MachineSet{&oldMS, &newMS, &newMSDup},
+			msList:          []*clusterv1.MachineSet{&oldMS, &newMS, &newMSHigherReplicas},
 			expected:        []*clusterv1.MachineSet{&oldMS, &newMS},
 			expectedRequire: []*clusterv1.MachineSet{&newMS},
+		},
+		{
+			Name:            "Get old MachineSets with two new MachineSets, when replicas are matching only the MachineSet with lower name is seen as new MachineSet",
+			deployment:      deployment,
+			msList:          []*clusterv1.MachineSet{&oldMS, &newMS, &newMSHigherName},
+			expected:        []*clusterv1.MachineSet{&oldMS, &newMSHigherName},
+			expectedRequire: []*clusterv1.MachineSet{&newMSHigherName},
 		},
 		{
 			Name:            "Get empty old MachineSets",
 			deployment:      deployment,
 			msList:          []*clusterv1.MachineSet{&newMS},
 			expected:        []*clusterv1.MachineSet{},
-			expectedRequire: nil,
-		},
-		{
-			Name:            "Get old MachineSets after label changed in MachineDeployments",
-			deployment:      deployment,
-			msList:          []*clusterv1.MachineSet{&newMS, &oldMSwithOldLabel},
-			expected:        []*clusterv1.MachineSet{&oldMSwithOldLabel},
 			expectedRequire: nil,
 		},
 	}
@@ -712,49 +737,180 @@ func TestMaxUnavailable(t *testing.T) {
 }
 
 // TestAnnotationUtils is a set of simple tests for annotation related util functions.
-// FIXME(ykakarap): old func doesn't exist anymore, ComputeMachineSetAnnotations requires a new test.
-// func TestAnnotationUtils(t *testing.T) {
-//	// Setup
-//	tDeployment := generateDeployment("nginx")
-//	tMS := generateMS(tDeployment)
-//	tDeployment.Annotations[clusterv1.RevisionAnnotation] = "999"
-//	logger := klogr.New()
-//
-//	// Test Case 1: Check if anotations are copied properly from deployment to MS
-//	t.Run("SetNewMachineSetAnnotations", func(t *testing.T) {
-//		g := NewWithT(t)
-//
-//		// Try to set the increment revision from 1 through 20
-//		for i := 0; i < 20; i++ {
-//			nextRevision := fmt.Sprintf("%d", i+1)
-//			SetNewMachineSetAnnotations(&tDeployment, &tMS, nextRevision, true, logger)
-//			// Now the MachineSets Revision Annotation should be i+1
-//			g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.RevisionAnnotation, nextRevision))
-//		}
-//	})
-//
-//	// Test Case 2:  Check if annotations are set properly
-//	t.Run("SetReplicasAnnotations", func(t *testing.T) {
-//		g := NewWithT(t)
-//
-//		g.Expect(SetReplicasAnnotations(&tMS, 10, 11)).To(BeTrue())
-//		g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.DesiredReplicasAnnotation, "10"))
-//		g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.MaxReplicasAnnotation, "11"))
-//	})
-//
-//	// Test Case 3:  Check if annotations reflect deployments state
-//	tMS.Annotations[clusterv1.DesiredReplicasAnnotation] = "1"
-//	tMS.Status.AvailableReplicas = 1
-//	tMS.Spec.Replicas = new(int32)
-//	*tMS.Spec.Replicas = 1
-//
-//	t.Run("IsSaturated", func(t *testing.T) {
-//		g := NewWithT(t)
-//
-//		g.Expect(IsSaturated(&tDeployment, &tMS)).To(BeTrue())
-//	})
-//}
-//.
+func TestAnnotationUtils(t *testing.T) {
+	// Setup
+	tDeployment := generateDeployment("nginx")
+	tDeployment.Spec.Replicas = pointer.Int32(1)
+	tMS := generateMS(tDeployment)
+
+	// Test Case 1:  Check if annotations are set properly
+	t.Run("SetReplicasAnnotations", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(SetReplicasAnnotations(&tMS, 10, 11)).To(BeTrue())
+		g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.DesiredReplicasAnnotation, "10"))
+		g.Expect(tMS.Annotations).To(HaveKeyWithValue(clusterv1.MaxReplicasAnnotation, "11"))
+	})
+
+	// Test Case 2:  Check if annotations reflect deployments state
+	tMS.Annotations[clusterv1.DesiredReplicasAnnotation] = "1"
+	tMS.Status.AvailableReplicas = 1
+	tMS.Spec.Replicas = new(int32)
+	*tMS.Spec.Replicas = 1
+
+	t.Run("IsSaturated", func(t *testing.T) {
+		g := NewWithT(t)
+
+		g.Expect(IsSaturated(&tDeployment, &tMS)).To(BeTrue())
+	})
+}
+
+func TestComputeMachineSetAnnotations(t *testing.T) {
+	deployment := generateDeployment("nginx")
+	deployment.Spec.Replicas = pointer.Int32(3)
+	maxSurge := intstr.FromInt(1)
+	maxUnavailable := intstr.FromInt(0)
+	deployment.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{
+		Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+		RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+			MaxSurge:       &maxSurge,
+			MaxUnavailable: &maxUnavailable,
+		},
+	}
+	deployment.Annotations = map[string]string{
+		corev1.LastAppliedConfigAnnotation: "last-applied-configuration",
+		"key1":                             "value1",
+	}
+
+	tests := []struct {
+		name       string
+		deployment *clusterv1.MachineDeployment
+		oldMSs     []*clusterv1.MachineSet
+		ms         *clusterv1.MachineSet
+		want       map[string]string
+		wantErr    bool
+	}{
+		{
+			name:       "Calculating annotations for a new MachineSet",
+			deployment: &deployment,
+			oldMSs:     nil,
+			ms:         nil,
+			want: map[string]string{
+				"key1":                              "value1",
+				clusterv1.RevisionAnnotation:        "1",
+				clusterv1.DesiredReplicasAnnotation: "3",
+				clusterv1.MaxReplicasAnnotation:     "4",
+			},
+			wantErr: false,
+		},
+		{
+			name:       "Calculating annotations for a new MachineSet - old MSs exist",
+			deployment: &deployment,
+			oldMSs:     []*clusterv1.MachineSet{machineSetWithRevisionAndHistory("1", "")},
+			ms:         nil,
+			want: map[string]string{
+				"key1":                              "value1",
+				clusterv1.RevisionAnnotation:        "2",
+				clusterv1.DesiredReplicasAnnotation: "3",
+				clusterv1.MaxReplicasAnnotation:     "4",
+			},
+			wantErr: false,
+		},
+		{
+			name:       "Calculating annotations for a existing MachineSet",
+			deployment: &deployment,
+			oldMSs:     nil,
+			ms:         machineSetWithRevisionAndHistory("1", ""),
+			want: map[string]string{
+				"key1":                              "value1",
+				clusterv1.RevisionAnnotation:        "1",
+				clusterv1.DesiredReplicasAnnotation: "3",
+				clusterv1.MaxReplicasAnnotation:     "4",
+			},
+			wantErr: false,
+		},
+		{
+			name:       "Calculating annotations for a existing MachineSet - old MSs exist",
+			deployment: &deployment,
+			oldMSs: []*clusterv1.MachineSet{
+				machineSetWithRevisionAndHistory("1", ""),
+				machineSetWithRevisionAndHistory("2", ""),
+			},
+			ms: machineSetWithRevisionAndHistory("1", ""),
+			want: map[string]string{
+				"key1":                              "value1",
+				clusterv1.RevisionAnnotation:        "3",
+				clusterv1.RevisionHistoryAnnotation: "1",
+				clusterv1.DesiredReplicasAnnotation: "3",
+				clusterv1.MaxReplicasAnnotation:     "4",
+			},
+			wantErr: false,
+		},
+		{
+			name:       "Calculating annotations for a existing MachineSet - old MSs exist - existing revision is greater",
+			deployment: &deployment,
+			oldMSs: []*clusterv1.MachineSet{
+				machineSetWithRevisionAndHistory("1", ""),
+				machineSetWithRevisionAndHistory("2", ""),
+			},
+			ms: machineSetWithRevisionAndHistory("4", ""),
+			want: map[string]string{
+				"key1":                              "value1",
+				clusterv1.RevisionAnnotation:        "4",
+				clusterv1.DesiredReplicasAnnotation: "3",
+				clusterv1.MaxReplicasAnnotation:     "4",
+			},
+			wantErr: false,
+		},
+		{
+			name:       "Calculating annotations for a existing MachineSet - old MSs exist - ms already has revision history",
+			deployment: &deployment,
+			oldMSs: []*clusterv1.MachineSet{
+				machineSetWithRevisionAndHistory("3", ""),
+				machineSetWithRevisionAndHistory("4", ""),
+			},
+			ms: machineSetWithRevisionAndHistory("2", "1"),
+			want: map[string]string{
+				"key1":                              "value1",
+				clusterv1.RevisionAnnotation:        "5",
+				clusterv1.RevisionHistoryAnnotation: "1,2",
+				clusterv1.DesiredReplicasAnnotation: "3",
+				clusterv1.MaxReplicasAnnotation:     "4",
+			},
+			wantErr: false,
+		},
+	}
+
+	log := klogr.New()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			got, err := ComputeMachineSetAnnotations(log, tt.deployment, tt.oldMSs, tt.ms)
+			if tt.wantErr {
+				g.Expect(err).ShouldNot(BeNil())
+			} else {
+				g.Expect(err).Should(BeNil())
+				for k, v := range tt.want {
+					g.Expect(got).Should(HaveKeyWithValue(k, v))
+				}
+			}
+		})
+	}
+}
+
+func machineSetWithRevisionAndHistory(revision string, revisionHistory string) *clusterv1.MachineSet {
+	ms := &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Annotations: map[string]string{
+				clusterv1.RevisionAnnotation: revision,
+			},
+		},
+	}
+	if revisionHistory != "" {
+		ms.Annotations[clusterv1.RevisionHistoryAnnotation] = revisionHistory
+	}
+	return ms
+}
 
 func TestReplicasAnnotationsNeedUpdate(t *testing.T) {
 	desiredReplicas := fmt.Sprintf("%d", int32(10))

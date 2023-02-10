@@ -323,7 +323,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		return ctrl.Result{}, errors.Wrap(err, "failed to remediate machines")
 	}
 
-	if err := r.updateMachines(ctx, machineSet, filteredMachines); err != nil {
+	if err := r.syncMachines(ctx, machineSet, filteredMachines); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to update Machines")
 	}
 
@@ -364,12 +364,12 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	return ctrl.Result{}, nil
 }
 
-// updateMachines updates Machines to propagate in-place mutable fields from the MachineSet.
+// syncMachines updates Machines to propagate in-place mutable fields from the MachineSet.
 // Note: It also cleans up managed fields of all Machines so that Machines that were created/patched before the
 // controller adopted SSA can also work with SSA.  Otherwise fields would be co-owned by our "old" "manager" and
 // "capi-machineset" and then we would not be able to e.g. drop labels and annotations.
 // TODO: update the labels and annotations to the corresponding infra machines and the boostrap configs of the filtered machines.
-func (r *Reconciler) updateMachines(ctx context.Context, machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine) error {
+func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.MachineSet, machines []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 	for i := range machines {
 		m := machines[i]
@@ -577,6 +577,16 @@ func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, exi
 	}
 	// Set ClusterName.
 	desiredMachine.Spec.ClusterName = machineSet.Spec.ClusterName
+
+	// Clean up the refs to the incorrect objects.
+	// The InfrastructureRef and the Bootstrap.ConfigRef in Machine should point to the InfrastructureMachine
+	// and the BootstrapConfig objects. In the MachineSet these values point to InfrastructureMachineTemplate
+	// BootstrapConfigTemplate. Drop the values that were copied over from MachineSet during DeepCopy
+	// to make sure to not point to incorrect refs.
+	// Note: During Machine creation, these refs will be updated with the correct values after the corresponding
+	// objects are created.
+	desiredMachine.Spec.InfrastructureRef = corev1.ObjectReference{}
+	desiredMachine.Spec.Bootstrap.ConfigRef = nil
 
 	// If we are updating an existing Machine reuse the name, uid, infrastructureRef and bootstrap.configRef
 	// from the existingMachine.

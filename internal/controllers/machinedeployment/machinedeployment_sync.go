@@ -227,6 +227,12 @@ func (r *Reconciler) computeDesiredMachineSet(deployment *clusterv1.MachineDeplo
 	// * compute a new uniqueIdentifier, a new MachineSet name, finalizers, replicas and
 	//   machine template spec (take the one from MachineDeployment)
 	if existingMS == nil {
+		// Note: In previous Cluster API versions, the label value was the hash of the machine template.
+		// With the introduction of in-place mutation the machine template of the MachineSet can change.
+		// Because of that it is impossible that the label's value to always be the hash of the machine template.
+		// (Because the hash changes when the machine template changes).
+		// As a result, we use a random unique string as value for the machine-template-hash, making it independent
+		// of the machine template.
 		uniqueIdentifierLabelValue = apirand.String(5)
 
 		name = computeNewMachineSetName(deployment.Name+"-", uniqueIdentifierLabelValue)
@@ -259,6 +265,11 @@ func (r *Reconciler) computeDesiredMachineSet(deployment *clusterv1.MachineDeplo
 		uid = existingMS.UID
 
 		// Keep foregroundDeletion finalizer if the existingMS has it.
+		// Note: This case is a little different from the create case. In the update case we preserve
+		// the finalizer on the MachineSet if it already exists. Because of SSA we should not build
+		// the finalizer information from the MachineDeployment when updating a MachineSet because that could lead
+		// to dropping the finalizer from the MachineSet if it is dropped from the MachineDeployment.
+		// We should not drop the finalizer on the MachineSet if the finalizer is dropped form the MachineDeployment.
 		if sets.New[string](existingMS.Finalizers...).Has(metav1.FinalizerDeleteDependents) {
 			finalizers = []string{metav1.FinalizerDeleteDependents}
 		}

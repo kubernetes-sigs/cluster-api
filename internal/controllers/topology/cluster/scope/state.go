@@ -94,5 +94,7 @@ type MachineDeploymentState struct {
 // A machine deployment is considered upgrading if:
 // - if any of the replicas of the machine deployment is not ready.
 func (md *MachineDeploymentState) IsRollingOut() bool {
-	return !mdutil.DeploymentComplete(md.Object, &md.Object.Status) || *md.Object.Spec.Replicas != md.Object.Status.ReadyReplicas
+	return !mdutil.DeploymentComplete(md.Object, &md.Object.Status) ||
+		*md.Object.Spec.Replicas != md.Object.Status.ReadyReplicas ||
+		md.Object.Status.UnavailableReplicas > 0
 }

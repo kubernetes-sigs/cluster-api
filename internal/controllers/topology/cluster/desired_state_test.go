@@ -634,22 +634,24 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			WithGeneration(int64(1)).
 			WithReplicas(int32(2)).
 			WithStatus(clusterv1.MachineDeploymentStatus{
-				ObservedGeneration: 2,
-				Replicas:           2,
-				UpdatedReplicas:    2,
-				AvailableReplicas:  2,
-				ReadyReplicas:      2,
+				ObservedGeneration:  2,
+				Replicas:            2,
+				UpdatedReplicas:     2,
+				AvailableReplicas:   2,
+				ReadyReplicas:       2,
+				UnavailableReplicas: 0,
 			}).
 			Build()
 		machineDeploymentRollingOut := builder.MachineDeployment("test-namespace", "md2").
 			WithGeneration(int64(1)).
 			WithReplicas(int32(2)).
 			WithStatus(clusterv1.MachineDeploymentStatus{
-				ObservedGeneration: 2,
-				Replicas:           1,
-				UpdatedReplicas:    1,
-				AvailableReplicas:  1,
-				ReadyReplicas:      1,
+				ObservedGeneration:  2,
+				Replicas:            1,
+				UpdatedReplicas:     1,
+				AvailableReplicas:   1,
+				ReadyReplicas:       1,
+				UnavailableReplicas: 0,
 			}).
 			Build()
 
@@ -1769,6 +1771,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 	// - md.spec.replicas == md.status.replicas
 	// - md.spec.replicas == md.status.updatedReplicas
 	// - md.spec.replicas == md.status.readyReplicas
+	// - md.status.unavailableReplicas == 0
 	// - md.Generation < md.status.observedGeneration
 	//
 	// A machine deployment is considered upgrading if any of the above conditions
@@ -1777,22 +1780,24 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 		WithGeneration(1).
 		WithReplicas(2).
 		WithStatus(clusterv1.MachineDeploymentStatus{
-			ObservedGeneration: 2,
-			Replicas:           2,
-			UpdatedReplicas:    2,
-			AvailableReplicas:  2,
-			ReadyReplicas:      2,
+			ObservedGeneration:  2,
+			Replicas:            2,
+			UpdatedReplicas:     2,
+			AvailableReplicas:   2,
+			ReadyReplicas:       2,
+			UnavailableReplicas: 0,
 		}).
 		Build()
 	machineDeploymentRollingOut := builder.MachineDeployment("test-namespace", "md-2").
 		WithGeneration(1).
 		WithReplicas(2).
 		WithStatus(clusterv1.MachineDeploymentStatus{
-			ObservedGeneration: 2,
-			Replicas:           1,
-			UpdatedReplicas:    1,
-			AvailableReplicas:  1,
-			ReadyReplicas:      1,
+			ObservedGeneration:  2,
+			Replicas:            1,
+			UpdatedReplicas:     1,
+			AvailableReplicas:   1,
+			ReadyReplicas:       1,
+			UnavailableReplicas: 1,
 		}).
 		Build()
 

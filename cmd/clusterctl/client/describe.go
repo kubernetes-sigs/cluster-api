@@ -41,6 +41,9 @@ type DescribeClusterOptions struct {
 	// ShowMachineSets instructs the discovery process to include machine sets in the ObjectTree.
 	ShowMachineSets bool
 
+	// ShowMachineHealthChecks instructs the discovery process to include machine health checks in the ObjectTree.
+	ShowMachineHealthChecks bool
+
 	// ShowClusterResourceSets instructs the discovery process to include cluster resource sets in the ObjectTree.
 	ShowClusterResourceSets bool
 
@@ -92,6 +95,7 @@ func (c *clusterctlClient) DescribeCluster(options DescribeClusterOptions) (*tre
 		ShowOtherConditions:     options.ShowOtherConditions,
 		ShowMachineSets:         options.ShowMachineSets,
 		ShowClusterResourceSets: options.ShowClusterResourceSets,
+		ShowMachineHealthChecks: options.ShowMachineHealthChecks,
 		ShowTemplates:           options.ShowTemplates,
 		AddTemplateVirtualNode:  options.AddTemplateVirtualNode,
 		Echo:                    options.Echo,

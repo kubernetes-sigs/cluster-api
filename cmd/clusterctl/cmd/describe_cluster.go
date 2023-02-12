@@ -60,6 +60,7 @@ type describeClusterOptions struct {
 	showOtherConditions     string
 	showMachineSets         bool
 	showClusterResourceSets bool
+	showMachineHealthChecks bool
 	showTemplates           bool
 	echo                    bool
 	grouping                bool
@@ -86,6 +87,9 @@ var describeClusterClusterCmd = &cobra.Command{
 
 		# Describe the cluster named test-1 showing all the conditions for a specific machine.
 		clusterctl describe cluster test-1 --show-conditions Machine/m1
+
+		# Describe the cluster named test-1 showing all machine health checks.
+		clusterctl describe cluster test-1 --show-machinehealthchecks
 
 		# Describe the cluster named test-1 disabling automatic grouping of objects with the same ready condition
 		# e.g. un-group all the machines with Ready=true instead of showing a single group node.
@@ -114,6 +118,8 @@ func init() {
 	describeClusterClusterCmd.Flags().StringVarP(&dc.namespace, "namespace", "n", "",
 		"The namespace where the workload cluster is located. If unspecified, the current namespace will be used.")
 
+	describeClusterClusterCmd.Flags().BoolVar(&dc.showMachineHealthChecks, "show-machinehealthchecks", false,
+		"Show MachineHealthChecks.")
 	describeClusterClusterCmd.Flags().StringVar(&dc.showOtherConditions, "show-conditions", "",
 		"list of comma separated kind or kind/name for which the command should show all the object's conditions (use 'all' to show conditions for everything).")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.showMachineSets, "show-machinesets", false,
@@ -157,6 +163,7 @@ func runDescribeCluster(cmd *cobra.Command, name string) error {
 		ClusterName:             name,
 		ShowOtherConditions:     dc.showOtherConditions,
 		ShowClusterResourceSets: dc.showClusterResourceSets,
+		ShowMachineHealthChecks: dc.showMachineHealthChecks,
 		ShowTemplates:           dc.showTemplates,
 		ShowMachineSets:         dc.showMachineSets,
 		AddTemplateVirtualNode:  true,

@@ -40,6 +40,9 @@ type DiscoverOptions struct {
 	// ShowMachineSets instructs the discovery process to include machine sets in the ObjectTree.
 	ShowMachineSets bool
 
+	// ShowMachineHealthChecks instructs the discovery process to include machine health checks in the ObjectTree.
+	ShowMachineHealthChecks bool
+
 	// ShowClusterResourceSets instructs the discovery process to include cluster resource sets in the ObjectTree.
 	ShowClusterResourceSets bool
 
@@ -95,6 +98,10 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 	controlPlane, err := external.Get(ctx, c, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 	if err == nil {
 		addControlPlane(cluster, controlPlane, tree, options)
+	}
+
+	if options.ShowMachineHealthChecks {
+		addMachineHealthChecksToObjectTree(ctx, c, cluster, tree)
 	}
 
 	// Adds control plane machines.
@@ -278,6 +285,40 @@ func addMachinePoolsToObjectTree(ctx context.Context, c client.Client, namespace
 			}
 		}
 	}
+}
+
+func addMachineHealthChecksToObjectTree(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, tree *ObjectTree) {
+	if mhcList, err := getMachineHealthChecksInCluster(ctx, c, cluster.Namespace, cluster.Name); err == nil {
+		machineHealthCheckGroup := VirtualObject(cluster.Namespace, "MachineHealthCheckGroup", "MachineHealthChecks")
+		tree.Add(cluster, machineHealthCheckGroup)
+		for _, mhc := range mhcList.Items {
+			mhcRefObject := ObjectReferenceObject(&corev1.ObjectReference{
+				Kind:       "MachineHealthCheck",
+				Namespace:  cluster.Namespace,
+				Name:       mhc.Name,
+				APIVersion: clusterv1.GroupVersion.String(),
+			})
+			tree.Add(machineHealthCheckGroup, mhcRefObject)
+		}
+	}
+}
+
+func getMachineHealthChecksInCluster(ctx context.Context, c client.Client, namespace string, name string) (*clusterv1.MachineHealthCheckList, error) {
+	if name == "" {
+		return nil, nil
+	}
+
+	mhcList := &clusterv1.MachineHealthCheckList{}
+	if err := c.List(
+		ctx,
+		mhcList,
+		client.InNamespace(namespace),
+		client.MatchingLabels{clusterv1.ClusterNameLabel: name},
+	); err != nil {
+		return nil, err
+	}
+
+	return mhcList, nil
 }
 
 func getResourceSetBindingInCluster(ctx context.Context, c client.Client, namespace string, name string) (*addonsv1.ClusterResourceSetBinding, error) {

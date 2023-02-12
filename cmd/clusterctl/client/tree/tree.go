@@ -41,6 +41,9 @@ type ObjectTreeOptions struct {
 	// ShowMachineSets instructs the discovery process to include machine sets in the ObjectTree.
 	ShowMachineSets bool
 
+	// ShowMachineHealthChecks instructs the discovery process to include machine health checks in the ObjectTree.
+	ShowMachineHealthChecks bool
+
 	// ShowClusterResourceSets instructs the discovery process to include cluster resource sets in the ObjectTree.
 	ShowClusterResourceSets bool
 
@@ -83,7 +86,7 @@ func NewObjectTree(root client.Object, options ObjectTreeOptions) *ObjectTree {
 	}
 }
 
-// Add a object to the object tree.
+// Add an object to the object tree.
 func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (added bool, visible bool) {
 	if parent == nil || obj == nil {
 		return false, false

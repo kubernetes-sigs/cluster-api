@@ -425,7 +425,7 @@ var moveTests = []struct {
 		fields: moveTestsFields{
 			objs: func() []client.Object {
 				objs := test.NewFakeClusterClass("ns1", "class1").Objs()
-				objs = append(objs, test.NewFakeCluster("ns1", "foo").WithTopologyClass("class1").Objs()...)
+				objs = append(objs, test.NewFakeCluster("ns1", "foo").WithTopology("class1").Objs()...)
 				return deduplicateObjects(objs)
 			}(),
 		},
@@ -452,8 +452,8 @@ var moveTests = []struct {
 			objs: func() []client.Object {
 				objs := test.NewFakeClusterClass("ns1", "class1").Objs()
 				objs = append(objs, test.NewFakeClusterClass("ns1", "class2").Objs()...)
-				objs = append(objs, test.NewFakeCluster("ns1", "foo1").WithTopologyClass("class1").Objs()...)
-				objs = append(objs, test.NewFakeCluster("ns1", "foo2").WithTopologyClass("class2").Objs()...)
+				objs = append(objs, test.NewFakeCluster("ns1", "foo1").WithTopology("class1").Objs()...)
+				objs = append(objs, test.NewFakeCluster("ns1", "foo2").WithTopology("class2").Objs()...)
 				return deduplicateObjects(objs)
 			}(),
 		},
@@ -486,8 +486,8 @@ var moveTests = []struct {
 		fields: moveTestsFields{
 			objs: func() []client.Object {
 				objs := test.NewFakeClusterClass("ns1", "class1").Objs()
-				objs = append(objs, test.NewFakeCluster("ns1", "foo1").WithTopologyClass("class1").Objs()...)
-				objs = append(objs, test.NewFakeCluster("ns1", "foo2").WithTopologyClass("class1").Objs()...)
+				objs = append(objs, test.NewFakeCluster("ns1", "foo1").WithTopology("class1").Objs()...)
+				objs = append(objs, test.NewFakeCluster("ns1", "foo2").WithTopology("class1").Objs()...)
 				return deduplicateObjects(objs)
 			}(),
 		},

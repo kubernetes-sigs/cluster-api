@@ -51,7 +51,7 @@ type FakeCluster struct {
 	machines              []*FakeMachine
 	withCloudConfigSecret bool
 	withCredentialSecret  bool
-	topologyClass         *string
+	topology              *FakeTopology
 }
 
 // NewFakeCluster return a FakeCluster that can generate a cluster object, all its own ancillary objects:
@@ -102,8 +102,15 @@ func (f *FakeCluster) WithMachines(fakeMachine ...*FakeMachine) *FakeCluster {
 	return f
 }
 
-func (f *FakeCluster) WithTopologyClass(class string) *FakeCluster {
-	f.topologyClass = &class
+func (f *FakeCluster) WithTopology(class string) *FakeCluster {
+	enable := true
+	f.topology = &FakeTopology{
+		class: class,
+		controlplane: &FakeControlPlaneTopology{
+			machineHealthCheck: &FakeMachineHealthCheckTopology{enable: &enable},
+		},
+	}
+
 	return f
 }
 
@@ -141,8 +148,15 @@ func (f *FakeCluster) Objs() []client.Object {
 		},
 	}
 
-	if f.topologyClass != nil {
-		cluster.Spec.Topology = &clusterv1.Topology{Class: *f.topologyClass}
+	if f.topology != nil {
+		cluster.Spec.Topology = &clusterv1.Topology{
+			Class: f.topology.class,
+			ControlPlane: clusterv1.ControlPlaneTopology{
+				MachineHealthCheck: &clusterv1.MachineHealthCheckTopology{
+					Enable: f.topology.controlplane.machineHealthCheck.enable,
+				},
+			},
+		}
 	}
 
 	// Ensure the cluster gets a UID to be used by dependant objects for creating OwnerReferences.
@@ -405,6 +419,19 @@ func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []client.Object {
 	}
 
 	return objs
+}
+
+type FakeTopology struct {
+	class        string
+	controlplane *FakeControlPlaneTopology
+}
+
+type FakeControlPlaneTopology struct {
+	machineHealthCheck *FakeMachineHealthCheckTopology
+}
+
+type FakeMachineHealthCheckTopology struct {
+	enable *bool
 }
 
 type FakeMachinePool struct {

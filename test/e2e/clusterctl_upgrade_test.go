@@ -58,6 +58,30 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {
 	})
 })
 
+var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.5/clusterctl-{OS}-{ARCH}",
+			// We have to pin the providers because with `InitWithProvidersContract` the test would
+			// use the latest version for the contract (which is v1.3.0 for v1beta1).
+			InitWithCoreProvider:            "cluster-api:v1.0.5",
+			InitWithBootstrapProviders:      []string{"kubeadm:v1.0.5"},
+			InitWithControlPlaneProviders:   []string{"kubeadm:v1.0.5"},
+			InitWithInfrastructureProviders: []string{"docker:v1.0.5"},
+			// We have to set this to an empty array as clusterctl v1.0 doesn't support
+			// runtime extension providers. If we don't do this the test will automatically
+			// try to deploy the latest version of our test-extension from docker.yaml.
+			InitWithRuntimeExtensionProviders: []string{},
+			InitWithKubernetesVersion:         "v1.23.13",
+		}
+	})
+})
+
 var _ = Describe("When testing clusterctl upgrades (v1.2=>current)", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{

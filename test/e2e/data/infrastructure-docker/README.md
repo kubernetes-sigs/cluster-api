@@ -10,7 +10,7 @@ to the version from the current branch (and check that the workload cluster stil
 As of today we have clusterctl upgrade tests for the latest stable versions of each contract / for each supported branch, i.e.:
 * v1alpha3: v0.3
 * v1alpha4: v0.4
-* v1beta1: v1.2, v1.3 (will change with each new release)
+* v1beta1: v1.0, v1.2, v1.3 (will change with each new release)
 
 We cannot use the same cluster templates for all Cluster API versions as not each Cluster API version supports
 the same API fields. For example `KubeadmControlPlane.spec.rolloutBefore.certificatesExpiryDays` was introduced 

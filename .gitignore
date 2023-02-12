@@ -11,11 +11,7 @@ hack/tools/bin
 *.test
 
 # E2E test templates
-test/e2e/data/infrastructure-docker/main/cluster-template*.yaml
-test/e2e/data/infrastructure-docker/v0.3/cluster-template*.yaml
-test/e2e/data/infrastructure-docker/v0.4/cluster-template*.yaml
-test/e2e/data/infrastructure-docker/v1.2/cluster-template*.yaml
-test/e2e/data/infrastructure-docker/v1.3/cluster-template*.yaml
+test/e2e/data/infrastructure-docker/**/cluster-template*.yaml
 
 # E2e test extension deployment
 test/e2e/data/test-extension/deployment.yaml

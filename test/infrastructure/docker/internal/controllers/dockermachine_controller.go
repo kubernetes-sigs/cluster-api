@@ -331,6 +331,17 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 		return ctrl.Result{RequeueAfter: 5 * time.Second}, nil
 	}
 
+	// If the Cluster is using a control plane and the control plane is not yet initialized, there is no API server
+	// to contact to get the ProviderID for the Node hosted on this machine, so return early.
+	// NOTE: We are using RequeueAfter with a short interval in order to make test execution time more stable.
+	// NOTE: If the Cluster doesn't use a control plane, the ControlPlaneInitialized condition is only
+	// set to true after a control plane machine has a node ref. If we would requeue here in this case, the
+	// Machine will never get a node ref as ProviderID is required to set the node ref, so we would get a deadlock.
+	if cluster.Spec.ControlPlaneRef != nil &&
+		!conditions.IsTrue(cluster, clusterv1.ControlPlaneInitializedCondition) {
+		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+	}
+
 	// Usually a cloud provider will do this, but there is no docker-cloud provider.
 	// Requeue if there is an error, as this is likely momentary load balancer
 	// state changes during control plane provisioning.

@@ -827,13 +827,20 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterVariable(ref common.Referen
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterVariable can be used to customize the Cluster through patches. It must comply to the corresponding ClusterClassVariable defined in the ClusterClass.",
+				Description: "ClusterVariable can be used to customize the Cluster through patches. Each ClusterVariable is associated with a Variable definition in the ClusterClass `status` variables.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Name of the variable.",
 							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"definitionFrom": {
+						SchemaProps: spec.SchemaProps{
+							Description: "DefinitionFrom specifies where the definition of this Variable is from. DefinitionFrom is `inline` when the definition is from the ClusterClass `.spec.variables` or the name of a patch defined in the ClusterClass `.spec.patches` where the patch is external and provides external variables. This field is mandatory if the variable has `DefinitionsConflict: true` in ClusterClass `status.variables[]`",
 							Type:        []string{"string"},
 							Format:      "",
 						},

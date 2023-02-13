@@ -17,7 +17,7 @@ limitations under the License.
 package controllers
 
 import (
-	"crypto/sha1"
+	"crypto/sha1" //nolint: gosec
 	"fmt"
 	"reflect"
 	"testing"
@@ -978,9 +978,12 @@ func configMap(name, namespace string, data map[string]string) *corev1.ConfigMap
 	}
 }
 
-func randomNamespaceForTest(t testing.TB) string {
-	h := sha1.New()
-	h.Write([]byte(t.Name()))
+func randomNamespaceForTest(tb testing.TB) string {
+	tb.Helper()
+	// This is just to get a short form of the test name
+	// sha1 is totally fine
+	h := sha1.New() //nolint: gosec
+	h.Write([]byte(tb.Name()))
 	testNameHash := fmt.Sprintf("%x", h.Sum(nil))
 	return "ns-" + testNameHash[:7] + "-" + util.RandomString(6)
 }

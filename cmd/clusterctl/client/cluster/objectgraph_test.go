@@ -252,7 +252,7 @@ func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
 
 	g := NewWithT(t)
 
-	g.Expect(len(got.uidToNode)).To(Equal(len(want.nodes)), "the number of nodes in the objectGraph doesn't match the number of expected nodes")
+	g.Expect(got.uidToNode).To(HaveLen(len(want.nodes)), "the number of nodes in the objectGraph doesn't match the number of expected nodes")
 
 	for uid, wantNode := range want.nodes {
 		gotNode, ok := got.uidToNode[types.UID(uid)]

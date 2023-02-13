@@ -723,7 +723,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				t.Helper()
 				g := NewWithT(t)
 
-				g.Expect(getter.GetConditions()).NotTo(HaveLen(0))
+				g.Expect(getter.GetConditions()).NotTo(BeEmpty())
 				for _, c := range getter.GetConditions() {
 					g.Expect(c.Status).To(Equal(corev1.ConditionTrue))
 				}

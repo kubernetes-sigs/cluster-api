@@ -86,7 +86,7 @@ func TestGetObjectReferences(t *testing.T) {
 				return
 			}
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(got)).To(Equal(len(tt.want)))
+			g.Expect(got).To(HaveLen(len(tt.want)))
 			for i := range got {
 				g.Expect(got[i].Kind).To(Equal(tt.want[i].Kind))
 				g.Expect(got[i].Name).To(Equal(tt.want[i].Name))

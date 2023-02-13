@@ -30,7 +30,7 @@ func TestUnknown_Run(t *testing.T) {
 	}
 	lines, err := u.Commands()
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(lines).To(HaveLen(0))
+	g.Expect(lines).To(BeEmpty())
 }
 
 func TestUnknown_Unmarshal(t *testing.T) {

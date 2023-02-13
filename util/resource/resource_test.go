@@ -37,7 +37,7 @@ func TestSortForCreate(t *testing.T) {
 
 	resources := []unstructured.Unstructured{ep, cm, ns}
 	sorted := SortForCreate(resources)
-	g.Expect(len(sorted)).To(Equal(3))
+	g.Expect(sorted).To(HaveLen(3))
 	g.Expect(sorted[0].GetKind()).To(BeIdenticalTo("Namespace"))
 	g.Expect(sorted[1].GetKind()).To(BeIdenticalTo("ConfigMap"))
 }

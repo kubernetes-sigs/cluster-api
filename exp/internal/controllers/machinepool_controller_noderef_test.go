@@ -190,7 +190,7 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 				return
 			}
 
-			g.Expect(len(result.references)).To(Equal(len(test.expected.references)), "Expected NodeRef count to be %v, got %v", len(result.references), len(test.expected.references))
+			g.Expect(result.references).To(HaveLen(len(test.expected.references)), "Expected NodeRef count to be %v, got %v", len(result.references), len(test.expected.references))
 
 			for n := range test.expected.references {
 				g.Expect(result.references[n].Name).To(Equal(test.expected.references[n].Name), "Expected NodeRef's name to be %v, got %v", result.references[n].Name, test.expected.references[n].Name)

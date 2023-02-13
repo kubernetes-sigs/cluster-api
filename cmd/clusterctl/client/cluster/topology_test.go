@@ -284,13 +284,13 @@ func Test_topologyClient_Plan(t *testing.T) {
 			g.Expect(err).NotTo(HaveOccurred())
 
 			// Check affected ClusterClasses.
-			g.Expect(len(res.ClusterClasses)).To(Equal(len(tt.want.affectedClusterClasses)))
+			g.Expect(res.ClusterClasses).To(HaveLen(len(tt.want.affectedClusterClasses)))
 			for _, cc := range tt.want.affectedClusterClasses {
 				g.Expect(res.ClusterClasses).To(ContainElement(cc))
 			}
 
 			// Check affected Clusters.
-			g.Expect(len(res.Clusters)).To(Equal(len(tt.want.affectedClusters)))
+			g.Expect(res.Clusters).To(HaveLen(len(tt.want.affectedClusters)))
 			for _, cluster := range tt.want.affectedClusters {
 				g.Expect(res.Clusters).To(ContainElement(cluster))
 			}

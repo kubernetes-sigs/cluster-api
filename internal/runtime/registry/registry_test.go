@@ -191,7 +191,7 @@ func TestRegistry(t *testing.T) {
 
 	registrations, err = e.List(runtimecatalog.GroupHook{Group: "hook.runtime.cluster.x-k8s.io", Hook: "BeforeClusterUpgrade"})
 	g.Expect(err).ToNot(HaveOccurred())
-	g.Expect(registrations).To(HaveLen(0))
+	g.Expect(registrations).To(BeEmpty())
 
 	registrations, err = e.List(runtimecatalog.GroupHook{Group: "hook.runtime.cluster.x-k8s.io", Hook: "AfterClusterUpgrade"})
 	g.Expect(err).ToNot(HaveOccurred())

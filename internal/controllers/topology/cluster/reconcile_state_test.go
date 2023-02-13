@@ -2568,7 +2568,7 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			g.Expect(env.GetAPIReader().List(ctx, &gotMachineHealthCheckList, &client.ListOptions{Namespace: namespace.GetName()})).To(Succeed())
 			g.Expect(gotMachineHealthCheckList.Items).To(HaveLen(len(tt.want)))
 
-			g.Expect(len(tt.want)).To(Equal(len(gotMachineHealthCheckList.Items)))
+			g.Expect(tt.want).To(HaveLen(len(gotMachineHealthCheckList.Items)))
 
 			for _, wantMHC := range tt.want {
 				for _, gotMHC := range gotMachineHealthCheckList.Items {

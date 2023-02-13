@@ -326,7 +326,7 @@ func Test_providerComponents_DeleteCoreProviderWebhookNamespace(t *testing.T) {
 
 		// assert length before deleting
 		_ = proxyClient.List(ctx, &nsList)
-		g.Expect(len(nsList.Items)).Should(Equal(1))
+		g.Expect(nsList.Items).Should(HaveLen(1))
 
 		c := newComponentsClient(proxy)
 		err := c.DeleteWebhookNamespace()
@@ -334,7 +334,7 @@ func Test_providerComponents_DeleteCoreProviderWebhookNamespace(t *testing.T) {
 
 		// assert length after deleting
 		_ = proxyClient.List(ctx, &nsList)
-		g.Expect(len(nsList.Items)).Should(Equal(0))
+		g.Expect(nsList.Items).Should(BeEmpty())
 	})
 }
 

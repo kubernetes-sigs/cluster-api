@@ -1167,9 +1167,9 @@ func TestValidateVersion(t *testing.T) {
 
 			allErrs := kcp.validateVersion(tt.oldVersion)
 			if tt.expectErr {
-				g.Expect(allErrs).ToNot(HaveLen(0))
+				g.Expect(allErrs).ToNot(BeEmpty())
 			} else {
-				g.Expect(allErrs).To(HaveLen(0))
+				g.Expect(allErrs).To(BeEmpty())
 			}
 		})
 	}

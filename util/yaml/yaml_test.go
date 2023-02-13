@@ -223,7 +223,7 @@ func TestParseClusterYaml(t *testing.T) {
 			}
 
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(c.Clusters).NotTo(HaveLen(0))
+			g.Expect(c.Clusters).NotTo(BeEmpty())
 			g.Expect(c.Clusters[0].Name).To(Equal(testcase.expectedName))
 		})
 	}

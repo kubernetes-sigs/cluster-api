@@ -210,7 +210,7 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 
 		controlPlaneMachines := clusterv1.MachineList{}
 		g.Expect(fakeClient.List(context.Background(), &controlPlaneMachines)).To(Succeed())
-		g.Expect(controlPlaneMachines.Items).To(HaveLen(0))
+		g.Expect(controlPlaneMachines.Items).To(BeEmpty())
 	})
 	t.Run("deletes the oldest control plane Machine even if preflight checks fails", func(t *testing.T) {
 		g := NewWithT(t)

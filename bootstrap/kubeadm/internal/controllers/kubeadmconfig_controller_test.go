@@ -524,7 +524,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 
 	// Expect the Secret to exist, and for it to contain some data under the "value" key.
 	g.Expect(myclient.Get(ctx, client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: configName}, s)).To(Succeed())
-	g.Expect(len(s.Data["value"])).To(BeNumerically(">", 0))
+	g.Expect(s.Data["value"]).ToNot(BeEmpty())
 	// Ensure that we don't fail trying to refresh any bootstrap tokens
 	_, err = k.Reconcile(ctx, request)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -703,7 +703,7 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 			l := &corev1.SecretList{}
 			err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(l.Items)).To(Equal(1))
+			g.Expect(l.Items).To(HaveLen(1))
 		})
 	}
 }
@@ -779,7 +779,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			l := &corev1.SecretList{}
 			err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(len(l.Items)).To(Equal(1))
+			g.Expect(l.Items).To(HaveLen(1))
 		})
 	}
 }
@@ -1053,7 +1053,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	l := &corev1.SecretList{}
 	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(l.Items)).To(Equal(2))
+	g.Expect(l.Items).To(HaveLen(2))
 
 	// ensure that the token is refreshed...
 	tokenExpires := make([][]byte, len(l.Items))
@@ -1086,7 +1086,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	l = &corev1.SecretList{}
 	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(l.Items)).To(Equal(2))
+	g.Expect(l.Items).To(HaveLen(2))
 
 	for i, item := range l.Items {
 		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeFalse())
@@ -1128,7 +1128,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	l = &corev1.SecretList{}
 	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(l.Items)).To(Equal(2))
+	g.Expect(l.Items).To(HaveLen(2))
 
 	for i, item := range l.Items {
 		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeFalse())
@@ -1179,7 +1179,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	l = &corev1.SecretList{}
 	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(l.Items)).To(Equal(2))
+	g.Expect(l.Items).To(HaveLen(2))
 
 	for i, item := range l.Items {
 		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeTrue())
@@ -1237,7 +1237,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	l := &corev1.SecretList{}
 	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(l.Items)).To(Equal(1))
+	g.Expect(l.Items).To(HaveLen(1))
 
 	// ensure that the token is refreshed...
 	tokenExpires := make([][]byte, len(l.Items))
@@ -1264,7 +1264,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	l = &corev1.SecretList{}
 	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(l.Items)).To(Equal(1))
+	g.Expect(l.Items).To(HaveLen(1))
 
 	for i, item := range l.Items {
 		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeFalse())
@@ -1292,7 +1292,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	l = &corev1.SecretList{}
 	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(l.Items)).To(Equal(1))
+	g.Expect(l.Items).To(HaveLen(1))
 
 	for i, item := range l.Items {
 		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeFalse())
@@ -1324,7 +1324,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	l = &corev1.SecretList{}
 	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(l.Items)).To(Equal(1))
+	g.Expect(l.Items).To(HaveLen(1))
 
 	for i, item := range l.Items {
 		g.Expect(bytes.Equal(tokenExpires[i], item.Data[bootstrapapi.BootstrapTokenExpirationKey])).To(BeTrue())
@@ -1349,7 +1349,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	l = &corev1.SecretList{}
 	err = myclient.List(ctx, l, client.ListOption(client.InNamespace(metav1.NamespaceSystem)))
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(len(l.Items)).To(Equal(2))
+	g.Expect(l.Items).To(HaveLen(2))
 	foundOld := false
 	foundNew := true
 	for _, item := range l.Items {

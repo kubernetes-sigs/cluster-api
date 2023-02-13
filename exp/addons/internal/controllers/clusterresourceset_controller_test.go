@@ -909,7 +909,7 @@ metadata:
 		t.Log("Verifying CRS Binding has all resources applied")
 		g.Eventually(clusterResourceSetBindingReady(env, testCluster), timeout).Should(BeTrue())
 
-		t.Log("Verifying resource ConfigMap with previsouly missing namespace has been created")
+		t.Log("Verifying resource ConfigMap with previously missing namespace has been created")
 		g.Eventually(configMapHasBeenUpdated(env, client.ObjectKeyFromObject(resourceConfigMapWithMissingNamespace), resourceConfigMapWithMissingNamespace), timeout).Should(Succeed())
 
 		g.Expect(env.Delete(ctx, resourceConfigMapWithMissingNamespace)).To(Succeed())

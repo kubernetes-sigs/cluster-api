@@ -784,9 +784,9 @@ metadata:
 	})
 
 	t.Run("Should reconcile a ClusterResourceSet with ApplyOnce strategy even when there is an error, after the error has been corrected", func(t *testing.T) {
-		// To trigger an error in the middle of the reconciliation, we'll define a an object in a namespace that doesn't yet exist.
+		// To trigger an error in the middle of the reconciliation, we'll define an object in a namespace that doesn't yet exist.
 		// We'll expect the CRS to reconcile all other objects except that one and bubble up the error.
-		// Once that happens, we'll go ahead a create the namespace. Then we'll expect the CRS to, eventually, create that remaining object.
+		// Once that happens, we'll go ahead and create the namespace. Then we'll expect the CRS to, eventually, create that remaining object.
 
 		g := NewWithT(t)
 		ns := setup(t, g)

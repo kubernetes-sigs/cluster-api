@@ -33,6 +33,26 @@ const (
 	// to track the name of the MachineDeployment topology it represents.
 	ClusterTopologyMachineDeploymentNameLabel = "topology.cluster.x-k8s.io/deployment-name"
 
+	// ClusterTopologyHoldUpgradeSequenceAnnotation can be used to hold the entire MachineDeployment upgrade sequence.
+	// If the annotation is set on a MachineDeployment topology in Cluster.spec.topology.workers, the Kubernetes upgrade
+	// for this MachineDeployment topology and all subsequent ones is deferred.
+	// Examples:
+	// - If you want to pause upgrade after CP upgrade, this annotation should be applied to the first MachineDeployment
+	//   in the list of MachineDeployments in Cluster.spec.topology. The upgrade will not be completed until the annotation
+	//   is removed and all MachineDeployments are upgraded.
+	// - If you want to pause upgrade after the 50th MachineDeployment, this annotation should be applied to the 51st
+	//   MachineDeployment in the list.
+	ClusterTopologyHoldUpgradeSequenceAnnotation = "topology.cluster.x-k8s.io/hold-upgrade-sequence"
+
+	// ClusterTopologyDeferUpgradeAnnotation can be used to defer the Kubernetes upgrade of a single MachineDeployment topology.
+	// If the annotation is set on a MachineDeployment topology in Cluster.spec.topology.workers, the Kubernetes upgrade
+	// for this MachineDeployment topology is deferred. It doesn't affect other MachineDeployment topologies.
+	// Example:
+	// - If you want to defer the upgrades of the 3rd and 5th MachineDeployments of the list, set the annotation on them.
+	//   The upgrade process will upgrade MachineDeployment in position 1,2, (skip 3), 4, (skip 5), 6 etc. The upgrade
+	//   will not be completed until the annotation is removed and all MachineDeployments are upgraded.
+	ClusterTopologyDeferUpgradeAnnotation = "topology.cluster.x-k8s.io/defer-upgrade"
+
 	// ClusterTopologyUnsafeUpdateClassNameAnnotation can be used to disable the webhook check on
 	// update that disallows a pre-existing Cluster to be populated with Topology information and Class.
 	ClusterTopologyUnsafeUpdateClassNameAnnotation = "unsafe.topology.cluster.x-k8s.io/disable-update-class-name-check"

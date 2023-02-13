@@ -760,6 +760,44 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			wantError:          false,
 		},
 		{
+			name: "hook should not be called if the control plane is stable at desired version but MDs upgrade is deferred - hook is marked",
+			s: &scope.Scope{
+				Blueprint: &scope.ClusterBlueprint{
+					Topology: &clusterv1.Topology{
+						ControlPlane: clusterv1.ControlPlaneTopology{
+							Replicas: pointer.Int32(2),
+						},
+					},
+				},
+				Current: &scope.ClusterState{
+					Cluster: &clusterv1.Cluster{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-cluster",
+							Namespace: "test-ns",
+							Annotations: map[string]string{
+								runtimev1.PendingHooksAnnotation: "AfterClusterUpgrade",
+							},
+						},
+						Spec: clusterv1.ClusterSpec{},
+					},
+					ControlPlane: &scope.ControlPlaneState{
+						Object: controlPlaneStableAtTopologyVersion,
+					},
+				},
+				HookResponseTracker: scope.NewHookResponseTracker(),
+				UpgradeTracker: func() *scope.UpgradeTracker {
+					ut := scope.NewUpgradeTracker()
+					ut.ControlPlane.PendingUpgrade = false
+					ut.MachineDeployments.MarkDeferredUpgrade("md1")
+					return ut
+				}(),
+			},
+			wantMarked:         true,
+			hookResponse:       successResponse,
+			wantHookToBeCalled: false,
+			wantError:          false,
+		},
+		{
 			name: "hook should be called if the control plane and MDs are stable at the topology version - success response should unmark the hook",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{

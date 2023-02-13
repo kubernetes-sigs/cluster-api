@@ -265,7 +265,8 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 
 		if !cpUpgrading && !cpScaling && !s.UpgradeTracker.ControlPlane.PendingUpgrade && // Control Plane checks
 			len(s.UpgradeTracker.MachineDeployments.RolloutNames()) == 0 && // Machine deployments are not rollout out or not about to roll out
-			!s.UpgradeTracker.MachineDeployments.PendingUpgrade() { // Machine Deployments are not pending an upgrade
+			!s.UpgradeTracker.MachineDeployments.PendingUpgrade() && // No MachineDeployments have an upgrade pending
+			!s.UpgradeTracker.MachineDeployments.DeferredUpgrade() { // No MachineDeployments have an upgrade deferred
 			// Everything is stable and the cluster can be considered fully upgraded.
 			hookRequest := &runtimehooksv1.AfterClusterUpgradeRequest{
 				Cluster:           *s.Current.Cluster,

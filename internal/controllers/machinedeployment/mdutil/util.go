@@ -27,6 +27,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -39,6 +40,28 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/conversion"
 )
+
+// MachineSetsByDecreasingReplicas sorts the list of MachineSets in decreasing order of replicas,
+// using creation time (ascending order) and name (alphabetical) as tie breakers.
+type MachineSetsByDecreasingReplicas []*clusterv1.MachineSet
+
+func (o MachineSetsByDecreasingReplicas) Len() int      { return len(o) }
+func (o MachineSetsByDecreasingReplicas) Swap(i, j int) { o[i], o[j] = o[j], o[i] }
+func (o MachineSetsByDecreasingReplicas) Less(i, j int) bool {
+	if o[i].Spec.Replicas == nil {
+		return false
+	}
+	if o[j].Spec.Replicas == nil {
+		return true
+	}
+	if *o[i].Spec.Replicas == *o[j].Spec.Replicas {
+		if o[i].CreationTimestamp.Equal(&o[j].CreationTimestamp) {
+			return o[i].Name < o[j].Name
+		}
+		return o[i].CreationTimestamp.Before(&o[j].CreationTimestamp)
+	}
+	return *o[i].Spec.Replicas > *o[j].Spec.Replicas
+}
 
 // MachineSetsByCreationTimestamp sorts a list of MachineSet by creation timestamp, using their names as a tie breaker.
 type MachineSetsByCreationTimestamp []*clusterv1.MachineSet
@@ -144,27 +167,6 @@ func skipCopyAnnotation(key string) bool {
 	return annotationsToSkip[key]
 }
 
-// copyDeploymentAnnotationsToMachineSet copies deployment's annotations to machine set's annotations,
-// and returns true if machine set's annotation is changed.
-// Note that apply and revision annotations are not copied.
-func copyDeploymentAnnotationsToMachineSet(deployment *clusterv1.MachineDeployment, ms *clusterv1.MachineSet) bool {
-	msAnnotationsChanged := false
-	if ms.Annotations == nil {
-		ms.Annotations = make(map[string]string)
-	}
-	for k, v := range deployment.Annotations {
-		// newMS revision is updated automatically in getNewMachineSet, and the deployment's revision number is then updated
-		// by copying its newMS revision number. We should not copy deployment's revision to its newMS, since the update of
-		// deployment revision number may fail (revision becomes stale) and the revision number in newMS is more reliable.
-		if skipCopyAnnotation(k) || ms.Annotations[k] == v {
-			continue
-		}
-		ms.Annotations[k] = v
-		msAnnotationsChanged = true
-	}
-	return msAnnotationsChanged
-}
-
 func getMaxReplicasAnnotation(ms *clusterv1.MachineSet, logger logr.Logger) (int32, bool) {
 	return getIntFromAnnotation(ms, clusterv1.MaxReplicasAnnotation, logger)
 }
@@ -184,59 +186,59 @@ func getIntFromAnnotation(ms *clusterv1.MachineSet, annotationKey string, logger
 	return int32(intValue), true
 }
 
-// SetNewMachineSetAnnotations sets new machine set's annotations appropriately by updating its revision and
-// copying required deployment annotations to it; it returns true if machine set's annotation is changed.
-func SetNewMachineSetAnnotations(deployment *clusterv1.MachineDeployment, newMS *clusterv1.MachineSet, newRevision string, exists bool, logger logr.Logger) bool {
-	logger = logger.WithValues("MachineSet", klog.KObj(newMS))
-
-	// First, copy deployment's annotations (except for apply and revision annotations)
-	annotationChanged := copyDeploymentAnnotationsToMachineSet(deployment, newMS)
-	// Then, update machine set's revision annotation
-	if newMS.Annotations == nil {
-		newMS.Annotations = make(map[string]string)
+// ComputeMachineSetAnnotations computes the annotations that should be set on the MachineSet.
+// Note: The passed in newMS is nil if the new MachineSet doesn't exist in the apiserver yet.
+func ComputeMachineSetAnnotations(log logr.Logger, deployment *clusterv1.MachineDeployment, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet) (map[string]string, error) {
+	// Copy annotations from Deployment annotations while filtering out some annotations
+	// that we don't want to propagate.
+	annotations := map[string]string{}
+	for k, v := range deployment.Annotations {
+		if skipCopyAnnotation(k) {
+			continue
+		}
+		annotations[k] = v
 	}
-	oldRevision, ok := newMS.Annotations[clusterv1.RevisionAnnotation]
+
 	// The newMS's revision should be the greatest among all MSes. Usually, its revision number is newRevision (the max revision number
-	// of all old MSes + 1). However, it's possible that some of the old MSes are deleted after the newMS revision being updated, and
-	// newRevision becomes smaller than newMS's revision. We should only update newMS revision when it's smaller than newRevision.
+	// of all old MSes + 1). However, it's possible that some old MSes are deleted after the newMS revision being updated, and
+	// newRevision becomes smaller than newMS's revision. We will never decrease a revision of a MachineSet.
+	maxOldRevision := MaxRevision(oldMSs, log)
+	newRevisionInt := maxOldRevision + 1
+	newRevision := strconv.FormatInt(newRevisionInt, 10)
+	if newMS != nil {
+		currentRevision, currentRevisionExists := newMS.Annotations[clusterv1.RevisionAnnotation]
+		if currentRevisionExists {
+			currentRevisionInt, err := strconv.ParseInt(currentRevision, 10, 64)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed to parse current revision on MachineSet %s", klog.KObj(newMS))
+			}
+			if newRevisionInt < currentRevisionInt {
+				newRevision = currentRevision
+			}
+		}
 
-	oldRevisionInt, err := strconv.ParseInt(oldRevision, 10, 64)
-	if err != nil {
-		if oldRevision != "" {
-			logger.Error(err, "Updating machine set revision OldRevision not int")
-			return false
+		// Ensure we preserve the revision history annotation in any case if it already exists.
+		// Note: With Server-Side-Apply not setting the annotation would drop it.
+		revisionHistory, revisionHistoryExists := newMS.Annotations[clusterv1.RevisionHistoryAnnotation]
+		if revisionHistoryExists {
+			annotations[clusterv1.RevisionHistoryAnnotation] = revisionHistory
 		}
-		// If the MS annotation is empty then initialise it to 0
-		oldRevisionInt = 0
-	}
-	newRevisionInt, err := strconv.ParseInt(newRevision, 10, 64)
-	if err != nil {
-		logger.Error(err, "Updating machine set revision NewRevision not int")
-		return false
-	}
-	if oldRevisionInt < newRevisionInt {
-		newMS.Annotations[clusterv1.RevisionAnnotation] = newRevision
-		annotationChanged = true
-		logger.V(4).Info("Updating machine set revision", "revision", newRevision)
-	}
-	// If a revision annotation already existed and this machine set was updated with a new revision
-	// then that means we are rolling back to this machine set. We need to preserve the old revisions
-	// for historical information.
-	if ok && annotationChanged {
-		revisionHistoryAnnotation := newMS.Annotations[clusterv1.RevisionHistoryAnnotation]
-		oldRevisions := strings.Split(revisionHistoryAnnotation, ",")
-		if oldRevisions[0] == "" {
-			newMS.Annotations[clusterv1.RevisionHistoryAnnotation] = oldRevision
-		} else {
-			oldRevisions = append(oldRevisions, oldRevision)
-			newMS.Annotations[clusterv1.RevisionHistoryAnnotation] = strings.Join(oldRevisions, ",")
+
+		// If the revision changes then add the old revision to the revision history annotation
+		if currentRevisionExists && currentRevision != newRevision {
+			oldRevisions := strings.Split(revisionHistory, ",")
+			if oldRevisions[0] == "" {
+				annotations[clusterv1.RevisionHistoryAnnotation] = currentRevision
+			} else {
+				annotations[clusterv1.RevisionHistoryAnnotation] = strings.Join(append(oldRevisions, currentRevision), ",")
+			}
 		}
 	}
-	// If the new machine set is about to be created, we need to add replica annotations to it.
-	if !exists && SetReplicasAnnotations(newMS, *(deployment.Spec.Replicas), *(deployment.Spec.Replicas)+MaxSurge(*deployment)) {
-		annotationChanged = true
-	}
-	return annotationChanged
+
+	annotations[clusterv1.RevisionAnnotation] = newRevision
+	annotations[clusterv1.DesiredReplicasAnnotation] = fmt.Sprintf("%d", *deployment.Spec.Replicas)
+	annotations[clusterv1.MaxReplicasAnnotation] = fmt.Sprintf("%d", *(deployment.Spec.Replicas)+MaxSurge(*deployment))
+	return annotations, nil
 }
 
 // FindOneActiveOrLatest returns the only active or the latest machine set in case there is at most one active
@@ -368,35 +370,50 @@ func getMachineSetFraction(ms clusterv1.MachineSet, d clusterv1.MachineDeploymen
 }
 
 // EqualMachineTemplate returns true if two given machineTemplateSpec are equal,
-// ignoring the diff in value of Labels["machine-template-hash"], and the version from external references.
+// ignoring all the in-place propagated fields, and the version from external references.
 func EqualMachineTemplate(template1, template2 *clusterv1.MachineTemplateSpec) bool {
-	t1Copy := template1.DeepCopy()
-	t2Copy := template2.DeepCopy()
-
-	// Remove `machine-template-hash` from the comparison:
-	// 1. The hash result would be different upon machineTemplateSpec API changes
-	//    (e.g. the addition of a new field will cause the hash code to change)
-	// 2. The deployment template won't have hash labels
-	delete(t1Copy.Labels, clusterv1.MachineDeploymentUniqueLabel)
-	delete(t2Copy.Labels, clusterv1.MachineDeploymentUniqueLabel)
-
-	// Remove the version part from the references APIVersion field,
-	// for more details see issue #2183 and #2140.
-	t1Copy.Spec.InfrastructureRef.APIVersion = t1Copy.Spec.InfrastructureRef.GroupVersionKind().Group
-	if t1Copy.Spec.Bootstrap.ConfigRef != nil {
-		t1Copy.Spec.Bootstrap.ConfigRef.APIVersion = t1Copy.Spec.Bootstrap.ConfigRef.GroupVersionKind().Group
-	}
-	t2Copy.Spec.InfrastructureRef.APIVersion = t2Copy.Spec.InfrastructureRef.GroupVersionKind().Group
-	if t2Copy.Spec.Bootstrap.ConfigRef != nil {
-		t2Copy.Spec.Bootstrap.ConfigRef.APIVersion = t2Copy.Spec.Bootstrap.ConfigRef.GroupVersionKind().Group
-	}
+	t1Copy := MachineTemplateDeepCopyRolloutFields(template1)
+	t2Copy := MachineTemplateDeepCopyRolloutFields(template2)
 
 	return apiequality.Semantic.DeepEqual(t1Copy, t2Copy)
 }
 
-// FindNewMachineSet returns the new MS this given deployment targets (the one with the same machine template).
+// MachineTemplateDeepCopyRolloutFields copies a MachineTemplateSpec
+// and sets all fields that should be propagated in-place to nil and drops version from
+// external references.
+func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpec) *clusterv1.MachineTemplateSpec {
+	templateCopy := template.DeepCopy()
+
+	// Drop labels and annotations
+	templateCopy.Labels = nil
+	templateCopy.Annotations = nil
+
+	// Drop node timeout values
+	templateCopy.Spec.NodeDrainTimeout = nil
+	templateCopy.Spec.NodeDeletionTimeout = nil
+	templateCopy.Spec.NodeVolumeDetachTimeout = nil
+
+	// Remove the version part from the references APIVersion field,
+	// for more details see issue #2183 and #2140.
+	templateCopy.Spec.InfrastructureRef.APIVersion = templateCopy.Spec.InfrastructureRef.GroupVersionKind().Group
+	if templateCopy.Spec.Bootstrap.ConfigRef != nil {
+		templateCopy.Spec.Bootstrap.ConfigRef.APIVersion = templateCopy.Spec.Bootstrap.ConfigRef.GroupVersionKind().Group
+	}
+
+	return templateCopy
+}
+
+// FindNewMachineSet returns the new MS this given deployment targets (the one with the same machine template, ignoring in-place mutable fields).
+// NOTE: If we find a matching MachineSet which only differs in in-place mutable fields we can use it to
+// fulfill the intent of the MachineDeployment by just updating the MachineSet to propagate in-place mutable fields.
+// Thus we don't have to create a new MachineSet and we can avoid an unnecessary rollout.
+// NOTE: Even after we changed EqualMachineTemplate to ignore fields that are propagated in-place we can guarantee that if there exists a "new machineset"
+// using the old logic then a new machineset will definitely exist using the new logic. The new logic is looser. Therefore, we will
+// not face a case where there exists a machine set matching the old logic but there does not exist a machineset matching the new logic.
+// In fact previously not matching MS can now start matching the target. Since there could be multiple matches, lets choose the
+// MS with the most replicas so that there is minimum machine churn.
 func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) *clusterv1.MachineSet {
-	sort.Sort(MachineSetsByCreationTimestamp(msList))
+	sort.Sort(MachineSetsByDecreasingReplicas(msList))
 	for i := range msList {
 		if EqualMachineTemplate(&msList[i].Spec.Template, &deployment.Spec.Template) {
 			// In rare cases, such as after cluster upgrades, Deployment may end up with
@@ -510,7 +527,7 @@ func DeploymentComplete(deployment *clusterv1.MachineDeployment, newStatus *clus
 // 1) The new MS is saturated: newMS's replicas == deployment's replicas
 // 2) For RollingUpdateStrategy: Max number of machines allowed is reached: deployment's replicas + maxSurge == all MSs' replicas.
 // 3) For OnDeleteStrategy: Max number of machines allowed is reached: deployment's replicas == all MSs' replicas.
-func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet) (int32, error) {
+func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*clusterv1.MachineSet, newMSReplicas int32) (int32, error) {
 	switch deployment.Spec.Strategy.Type {
 	case clusterv1.RollingUpdateMachineDeploymentStrategyType:
 		// Check if we can scale up.
@@ -523,26 +540,26 @@ func NewMSNewReplicas(deployment *clusterv1.MachineDeployment, allMSs []*cluster
 		maxTotalMachines := *(deployment.Spec.Replicas) + int32(maxSurge)
 		if currentMachineCount >= maxTotalMachines {
 			// Cannot scale up.
-			return *(newMS.Spec.Replicas), nil
+			return newMSReplicas, nil
 		}
 		// Scale up.
 		scaleUpCount := maxTotalMachines - currentMachineCount
 		// Do not exceed the number of desired replicas.
-		scaleUpCount = integer.Int32Min(scaleUpCount, *(deployment.Spec.Replicas)-*(newMS.Spec.Replicas))
-		return *(newMS.Spec.Replicas) + scaleUpCount, nil
+		scaleUpCount = integer.Int32Min(scaleUpCount, *(deployment.Spec.Replicas)-newMSReplicas)
+		return newMSReplicas + scaleUpCount, nil
 	case clusterv1.OnDeleteMachineDeploymentStrategyType:
 		// Find the total number of machines
 		currentMachineCount := TotalMachineSetsReplicaSum(allMSs)
 		if currentMachineCount >= *(deployment.Spec.Replicas) {
 			// Cannot scale up as more replicas exist than desired number of replicas in the MachineDeployment.
-			return *(newMS.Spec.Replicas), nil
+			return newMSReplicas, nil
 		}
 		// Scale up the latest MachineSet so the total amount of replicas across all MachineSets match
 		// the desired number of replicas in the MachineDeployment
 		scaleUpCount := *(deployment.Spec.Replicas) - currentMachineCount
-		return *(newMS.Spec.Replicas) + scaleUpCount, nil
+		return newMSReplicas + scaleUpCount, nil
 	default:
-		return 0, fmt.Errorf("deployment strategy %v isn't supported", deployment.Spec.Strategy.Type)
+		return 0, fmt.Errorf("failed to compute replicas: deployment strategy %v isn't supported", deployment.Spec.Strategy.Type)
 	}
 }
 

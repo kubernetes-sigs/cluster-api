@@ -1,5 +1,5 @@
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
-func captureStdout(fnc func()) string {
+func captureStdout(fnc func()) (string, error) {
 	r, w, _ := os.Pipe()
 
 	stdout := os.Stdout
@@ -46,8 +46,11 @@ func captureStdout(fnc func()) string {
 	_ = w.Close()
 
 	var buf bytes.Buffer
-	_, _ = io.Copy(&buf, r)
-	return buf.String()
+	_, err := io.Copy(&buf, r)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 func Test_ObjectViewer(t *testing.T) {
@@ -102,8 +105,9 @@ func Test_ObjectViewer(t *testing.T) {
 							},
 							Labels: labels,
 							Annotations: map[string]string{
-								clusterv1.RevisionAnnotation:    "1",
-								clusterv1.ChangeCauseAnnotation: "update to the latest version",
+								clusterv1.RevisionAnnotation:        "11",
+								clusterv1.RevisionHistoryAnnotation: "1,3,5,7,9",
+								clusterv1.ChangeCauseAnnotation:     "update to the latest version",
 							},
 						},
 					},
@@ -119,7 +123,8 @@ func Test_ObjectViewer(t *testing.T) {
 							},
 							Labels: labels,
 							Annotations: map[string]string{
-								clusterv1.RevisionAnnotation: "3",
+								clusterv1.RevisionAnnotation:        "10",
+								clusterv1.RevisionHistoryAnnotation: "4,6,8",
 							},
 						},
 					},
@@ -146,10 +151,10 @@ func Test_ObjectViewer(t *testing.T) {
 					Namespace: namespace,
 				},
 			},
-			expectedOutput: `  REVISION  CHANGE-CAUSE                  
-  1         update to the latest version  
-  2         <none>                        
-  3         <none>                        
+			expectedOutput: `  REVISIONS     CHANGE-CAUSE                  
+  2             <none>                        
+  4,6,8,10      <none>                        
+  1,3,5,7,9,11  update to the latest version  
 `,
 		},
 		{
@@ -164,7 +169,7 @@ func Test_ObjectViewer(t *testing.T) {
 					Namespace: namespace,
 				},
 			},
-			expectedOutput: `  REVISION  CHANGE-CAUSE  
+			expectedOutput: `  REVISIONS  CHANGE-CAUSE  
 `,
 		},
 		{
@@ -253,39 +258,39 @@ func Test_ObjectViewer(t *testing.T) {
 				revision: int64(999),
 			},
 			expectedOutput: `objectmeta:
-  labels:
-    cluster.x-k8s.io/cluster-name: test
-  annotations:
-    foo: bar
+    labels:
+        cluster.x-k8s.io/cluster-name: test
+    annotations:
+        foo: bar
 spec:
-  clustername: test
-  bootstrap:
-    configref:
-      kind: KubeadmConfigTemplate
-      namespace: default
-      name: md-template
-      uid: ""
-      apiversion: bootstrap.cluster.x-k8s.io/v1beta1
-      resourceversion: ""
-      fieldpath: ""
-    datasecretname: secret-name
-  infrastructureref:
-    kind: InfrastructureMachineTemplate
-    namespace: default
-    name: md-template
-    uid: ""
-    apiversion: infrastructure.cluster.x-k8s.io/v1beta1
-    resourceversion: ""
-    fieldpath: ""
-  version: v1.25.1
-  providerid: test://id-1
-  failuredomain: one
-  nodedraintimeout:
-    duration: 0s
-  nodevolumedetachtimeout:
-    duration: 0s
-  nodedeletiontimeout:
-    duration: 0s
+    clustername: test
+    bootstrap:
+        configref:
+            kind: KubeadmConfigTemplate
+            namespace: default
+            name: md-template
+            uid: ""
+            apiversion: bootstrap.cluster.x-k8s.io/v1beta1
+            resourceversion: ""
+            fieldpath: ""
+        datasecretname: secret-name
+    infrastructureref:
+        kind: InfrastructureMachineTemplate
+        namespace: default
+        name: md-template
+        uid: ""
+        apiversion: infrastructure.cluster.x-k8s.io/v1beta1
+        resourceversion: ""
+        fieldpath: ""
+    version: v1.25.1
+    providerid: test://id-1
+    failuredomain: one
+    nodedraintimeout:
+        duration: 0s
+    nodevolumedetachtimeout:
+        duration: 0s
+    nodedeletiontimeout:
+        duration: 0s
 `,
 		},
 		{
@@ -325,7 +330,7 @@ spec:
 			g := NewWithT(t)
 			r := newRolloutClient()
 			proxy := test.NewFakeProxy().WithObjs(tt.fields.objs...)
-			output := captureStdout(func() {
+			output, err := captureStdout(func() {
 				err := r.ObjectViewer(context.Background(), proxy, tt.fields.ref, tt.fields.revision)
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
@@ -333,6 +338,9 @@ spec:
 					g.Expect(err).ToNot(HaveOccurred())
 				}
 			})
+			if err != nil {
+				t.Fatalf("unable to captureStdout")
+			}
 			g.Expect(output).To(Equal(tt.expectedOutput))
 		})
 	}

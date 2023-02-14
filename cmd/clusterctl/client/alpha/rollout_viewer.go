@@ -1,5 +1,5 @@
 /*
-Copyright 2022 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import (
 
 	"github.com/olekukonko/tablewriter"
 	"github.com/pkg/errors"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -33,6 +33,11 @@ import (
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 )
+
+type historyInfo struct {
+	revisions   string
+	changeCause string
+}
 
 // ObjectViewer will issue a view on the specified cluster-api resource.
 func (r *rollout) ObjectViewer(ctx context.Context, proxy cluster.Proxy, ref corev1.ObjectReference, revision int64) error {
@@ -66,7 +71,7 @@ func viewMachineDeployment(ctx context.Context, proxy cluster.Proxy, d *clusterv
 	if revision > 0 {
 		ms, err := findMachineDeploymentRevision(revision, msList)
 		if err != nil {
-			return errors.Errorf("unable to find the spcified revision")
+			return errors.Errorf("unable to find the specified revision %d for MachineDeployment %s", revision, d.Name)
 		}
 		output, err := yaml.Marshal(ms.Spec.Template)
 		if err != nil {
@@ -78,26 +83,33 @@ func viewMachineDeployment(ctx context.Context, proxy cluster.Proxy, d *clusterv
 
 	// Print an overview of all revisions
 	// Create a revisionToChangeCause map
-	historyInfo := make(map[int64]string)
+	histInfo := make(map[int64]historyInfo)
 	for _, ms := range msList {
 		v, err := mdutil.Revision(ms)
 		if err != nil {
-			log.V(7).Error(err, fmt.Sprintf("unable to get revision from machineset %s for machinedeployment %s in namespace %s", ms.Name, d.Name, d.Namespace))
+			log.Error(err, fmt.Sprintf("unable to get revision from machineset %s for machinedeployment %s in namespace %s", ms.Name, d.Name, d.Namespace))
 			continue
 		}
-		historyInfo[v] = ms.Annotations[clusterv1.ChangeCauseAnnotation]
+		revisions := strconv.FormatInt(v, 10)
+		if revHistory := ms.Annotations[clusterv1.RevisionHistoryAnnotation]; revHistory != "" {
+			revisions = revHistory + "," + revisions
+		}
+		histInfo[v] = historyInfo{
+			revisions,
+			ms.Annotations[clusterv1.ChangeCauseAnnotation],
+		}
 	}
 
 	// Sort the revisions
-	revisions := make([]int64, 0, len(historyInfo))
-	for r := range historyInfo {
+	revisions := make([]int64, 0, len(histInfo))
+	for r := range histInfo {
 		revisions = append(revisions, r)
 	}
 	sort.Slice(revisions, func(i, j int) bool { return revisions[i] < revisions[j] })
 
 	// Output the revisionToChangeCause map
 	table := tablewriter.NewWriter(os.Stdout)
-	table.SetHeader([]string{"REVISION", "CHANGE-CAUSE"})
+	table.SetHeader([]string{"REVISIONS", "CHANGE-CAUSE"})
 	table.SetHeaderAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetCenterSeparator("")
@@ -107,12 +119,12 @@ func viewMachineDeployment(ctx context.Context, proxy cluster.Proxy, d *clusterv
 	table.SetBorder(false)
 
 	for _, r := range revisions {
-		changeCause := historyInfo[r]
+		changeCause := histInfo[r].changeCause
 		if changeCause == "" {
 			changeCause = "<none>"
 		}
 		table.Append([]string{
-			strconv.FormatInt(r, 10),
+			histInfo[r].revisions,
 			changeCause,
 		})
 	}

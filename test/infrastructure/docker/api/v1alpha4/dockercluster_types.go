@@ -98,6 +98,8 @@ type APIEndpoint struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerCluster"
 
 // DockerCluster is the Schema for the dockerclusters API.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type DockerCluster struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -119,6 +121,8 @@ func (c *DockerCluster) SetConditions(conditions clusterv1alpha4.Conditions) {
 // +kubebuilder:object:root=true
 
 // DockerClusterList contains a list of DockerCluster.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type DockerClusterList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

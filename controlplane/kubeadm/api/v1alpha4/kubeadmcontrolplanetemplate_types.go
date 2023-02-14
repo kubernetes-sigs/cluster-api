@@ -30,6 +30,8 @@ type KubeadmControlPlaneTemplateSpec struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of KubeadmControlPlaneTemplate"
 
 // KubeadmControlPlaneTemplate is the Schema for the kubeadmcontrolplanetemplates API.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type KubeadmControlPlaneTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -40,6 +42,8 @@ type KubeadmControlPlaneTemplate struct {
 // +kubebuilder:object:root=true
 
 // KubeadmControlPlaneTemplateList contains a list of KubeadmControlPlaneTemplate.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type KubeadmControlPlaneTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

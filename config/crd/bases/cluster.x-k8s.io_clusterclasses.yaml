@@ -27,8 +27,9 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: ClusterClass is a template which can be used to create managed
-          topologies.
+        description: "ClusterClass is a template which can be used to create managed
+          topologies. \n Deprecated: This type will be removed in one of the next
+          releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

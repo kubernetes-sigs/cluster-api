@@ -106,6 +106,8 @@ func (c *ClusterResourceSetBinding) DeleteBinding(clusterResourceSet *ClusterRes
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterResourceSetBinding"
 
 // ClusterResourceSetBinding lists all matching ClusterResourceSets with the cluster it belongs to.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type ClusterResourceSetBinding struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -125,6 +127,8 @@ type ClusterResourceSetBindingSpec struct {
 // +kubebuilder:object:root=true
 
 // ClusterResourceSetBindingList contains a list of ClusterResourceSetBinding.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type ClusterResourceSetBindingList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

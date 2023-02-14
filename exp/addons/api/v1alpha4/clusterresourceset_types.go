@@ -117,6 +117,8 @@ func (m *ClusterResourceSet) SetConditions(conditions clusterv1alpha4.Conditions
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of ClusterResourceSet"
 
 // ClusterResourceSet is the Schema for the clusterresourcesets API.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type ClusterResourceSet struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -128,6 +130,8 @@ type ClusterResourceSet struct {
 // +kubebuilder:object:root=true
 
 // ClusterResourceSetList contains a list of ClusterResourceSet.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type ClusterResourceSetList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

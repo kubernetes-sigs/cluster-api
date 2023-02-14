@@ -36,7 +36,8 @@ spec:
     name: v1alpha3
     schema:
       openAPIV3Schema:
-        description: MachinePool is the Schema for the machinepools API.
+        description: "MachinePool is the Schema for the machinepools API. \n Deprecated:
+          This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -586,7 +587,8 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: MachinePool is the Schema for the machinepools API.
+        description: "MachinePool is the Schema for the machinepools API. \n Deprecated:
+          This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

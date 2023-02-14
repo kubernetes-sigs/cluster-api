@@ -117,6 +117,8 @@ type DockerMachinePoolInstanceStatus struct {
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",description="Time duration since creation of DockerMachinePool"
 
 // DockerMachinePool is the Schema for the dockermachinepools API.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type DockerMachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -138,6 +140,8 @@ func (c *DockerMachinePool) SetConditions(conditions clusterv1alpha4.Conditions)
 // +kubebuilder:object:root=true
 
 // DockerMachinePoolList contains a list of DockerMachinePool.
+//
+// Deprecated: This type will be removed in one of the next releases.
 type DockerMachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

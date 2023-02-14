@@ -25,8 +25,8 @@ spec:
     name: v1alpha4
     schema:
       openAPIV3Schema:
-        description: KubeadmControlPlaneTemplate is the Schema for the kubeadmcontrolplanetemplates
-          API.
+        description: "KubeadmControlPlaneTemplate is the Schema for the kubeadmcontrolplanetemplates
+          API. \n Deprecated: This type will be removed in one of the next releases."
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation

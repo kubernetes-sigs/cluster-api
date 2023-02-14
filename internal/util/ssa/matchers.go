@@ -23,8 +23,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ManagedFieldMatcher is a gomega Matcher to check if a ManagedFieldEntry has the provider name and operation.
-func ManagedFieldMatcher(manager string, operation metav1.ManagedFieldsOperationType) types.GomegaMatcher {
+// MatchManagedField is a gomega Matcher to check if a ManagedFieldEntry has the provider name and operation.
+func MatchManagedField(manager string, operation metav1.ManagedFieldsOperationType) types.GomegaMatcher {
 	return &managedFieldMatcher{
 		manager:   manager,
 		operation: operation,
@@ -37,22 +37,22 @@ type managedFieldMatcher struct {
 }
 
 func (mf *managedFieldMatcher) Match(actual interface{}) (bool, error) {
-	managedFieldEntry, ok := actual.(metav1.ManagedFieldsEntry)
+	managedFieldsEntry, ok := actual.(metav1.ManagedFieldsEntry)
 	if !ok {
 		return false, fmt.Errorf("expecting metav1.ManagedFieldEntry got %T", actual)
 	}
 
-	return managedFieldEntry.Manager == mf.manager && managedFieldEntry.Operation == mf.operation, nil
+	return managedFieldsEntry.Manager == mf.manager && managedFieldsEntry.Operation == mf.operation, nil
 }
 
 func (mf *managedFieldMatcher) FailureMessage(actual interface{}) string {
-	managedFieldEntry := actual.(metav1.ManagedFieldsEntry)
+	managedFieldsEntry := actual.(metav1.ManagedFieldsEntry)
 	return fmt.Sprintf("Expected ManagedFieldEntry to match Manager:%s and Operation:%s, got Manager:%s, Operation:%s",
-		mf.manager, mf.operation, managedFieldEntry.Manager, managedFieldEntry.Operation)
+		mf.manager, mf.operation, managedFieldsEntry.Manager, managedFieldsEntry.Operation)
 }
 
 func (mf *managedFieldMatcher) NegatedFailureMessage(actual interface{}) string {
-	managedFieldEntry := actual.(metav1.ManagedFieldsEntry)
+	managedFieldsEntry := actual.(metav1.ManagedFieldsEntry)
 	return fmt.Sprintf("Expected ManagedFieldEntry to not match Manager:%s and Operation:%s, got Manager:%s, Operation:%s",
-		mf.manager, mf.operation, managedFieldEntry.Manager, managedFieldEntry.Operation)
+		mf.manager, mf.operation, managedFieldsEntry.Manager, managedFieldsEntry.Operation)
 }

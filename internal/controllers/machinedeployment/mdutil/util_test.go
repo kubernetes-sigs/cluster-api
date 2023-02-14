@@ -229,55 +229,55 @@ func TestEqualMachineTemplate(t *testing.T) {
 		Expected       bool
 	}{
 		{
-			Name:     "Same spec, except later does not have labels",
+			Name:     "Same spec, except latter does not have labels",
 			Former:   machineTemplate,
 			Latter:   machineTemplateWithEmptyLabels,
 			Expected: true,
 		},
 		{
-			Name:     "Same spec, except later has different labels",
+			Name:     "Same spec, except latter has different labels",
 			Former:   machineTemplate,
 			Latter:   machineTemplateWithDifferentLabels,
 			Expected: true,
 		},
 		{
-			Name:     "Same spec, except later does not have annotations",
+			Name:     "Same spec, except latter does not have annotations",
 			Former:   machineTemplate,
 			Latter:   machineTemplateWithEmptyAnnotations,
 			Expected: true,
 		},
 		{
-			Name:     "Same spec, except later has different annotations",
+			Name:     "Same spec, except latter has different annotations",
 			Former:   machineTemplate,
 			Latter:   machineTemplateWithDifferentAnnotations,
 			Expected: true,
 		},
 		{
-			Name:     "Spec changes, later has different in-place mutable spec fields",
+			Name:     "Spec changes, latter has different in-place mutable spec fields",
 			Former:   machineTemplate,
 			Latter:   machineTemplateWithDifferentInPlaceMutableSpecFields,
 			Expected: true,
 		},
 		{
-			Name:     "Spec changes, later has different InfrastructureRef",
+			Name:     "Spec changes, latter has different InfrastructureRef",
 			Former:   machineTemplate,
 			Latter:   machineTemplateWithDifferentInfraRef,
 			Expected: false,
 		},
 		{
-			Name:     "Spec changes, later has different Bootstrap.ConfigRef",
+			Name:     "Spec changes, latter has different Bootstrap.ConfigRef",
 			Former:   machineTemplate,
 			Latter:   machineTemplateWithDifferentBootstrapConfigRef,
 			Expected: false,
 		},
 		{
-			Name:     "Same spec, except later has different InfrastructureRef APIVersion",
+			Name:     "Same spec, except latter has different InfrastructureRef APIVersion",
 			Former:   machineTemplate,
 			Latter:   machineTemplateWithDifferentInfraRefAPIVersion,
 			Expected: true,
 		},
 		{
-			Name:     "Same spec, except later has different Bootstrap.ConfigRef APIVersion",
+			Name:     "Same spec, except latter has different Bootstrap.ConfigRef APIVersion",
 			Former:   machineTemplate,
 			Latter:   machineTemplateWithDifferentBootstrapConfigRefAPIVersion,
 			Expected: true,
@@ -324,7 +324,7 @@ func TestFindNewMachineSet(t *testing.T) {
 		expected   *clusterv1.MachineSet
 	}{
 		{
-			Name:       "Get the MachineSet with the MachineTemplate that matches the desired intent on the MachineDeployment",
+			Name:       "Get the MachineSet with the MachineTemplate that matches the intent of the MachineDeployment",
 			deployment: deployment,
 			msList:     []*clusterv1.MachineSet{&oldMS, &matchingMS},
 			expected:   &matchingMS,
@@ -371,7 +371,7 @@ func TestFindOldMachineSets(t *testing.T) {
 
 	newMSHigherName := generateMS(deployment)
 	newMSHigherName.Spec.Replicas = pointer.Int32(1)
-	newMS.Name = "ab"
+	newMSHigherName.Name = "ab"
 
 	oldDeployment := generateDeployment("nginx")
 	oldDeployment.Spec.Template.Spec.InfrastructureRef.Name = "changed-infra-ref"
@@ -890,9 +890,7 @@ func TestComputeMachineSetAnnotations(t *testing.T) {
 				g.Expect(err).ShouldNot(BeNil())
 			} else {
 				g.Expect(err).Should(BeNil())
-				for k, v := range tt.want {
-					g.Expect(got).Should(HaveKeyWithValue(k, v))
-				}
+				g.Expect(got).Should(Equal(tt.want))
 			}
 		})
 	}

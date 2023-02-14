@@ -141,15 +141,17 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		}
 		infraTmpl := &unstructured.Unstructured{
 			Object: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachineTemplate",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "md-template",
+					"namespace": namespace.Name,
+				},
 				"spec": map[string]interface{}{
 					"template": infraResource,
 				},
 			},
 		}
-		infraTmpl.SetKind("GenericInfrastructureMachineTemplate")
-		infraTmpl.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1beta1")
-		infraTmpl.SetName("md-template")
-		infraTmpl.SetNamespace(namespace.Name)
 		t.Log("Creating the infrastructure template")
 		g.Expect(env.Create(ctx, infraTmpl)).To(Succeed())
 
@@ -281,15 +283,17 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 		}
 		infraTmpl2 := &unstructured.Unstructured{
 			Object: map[string]interface{}{
+				"kind":       "GenericInfrastructureMachineTemplate",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "md-template-2",
+					"namespace": namespace.Name,
+				},
 				"spec": map[string]interface{}{
 					"template": infraResource2,
 				},
 			},
 		}
-		infraTmpl2.SetKind("GenericInfrastructureMachineTemplate")
-		infraTmpl2.SetAPIVersion("infrastructure.cluster.x-k8s.io/v1beta1")
-		infraTmpl2.SetName("md-template-2")
-		infraTmpl2.SetNamespace(namespace.Name)
 		t.Log("Creating the infrastructure template")
 		g.Expect(env.Create(ctx, infraTmpl2)).To(Succeed())
 

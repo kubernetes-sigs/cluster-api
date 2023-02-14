@@ -1131,11 +1131,11 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		updatedInPlaceMutatingMachine := machines[0]
 		// Verify ManagedFields
 		g.Expect(updatedInPlaceMutatingMachine.ManagedFields).Should(
-			ContainElement(ssa.ManagedFieldMatcher(machineSetManagerName, metav1.ManagedFieldsOperationApply)),
+			ContainElement(ssa.MatchManagedField(machineSetManagerName, metav1.ManagedFieldsOperationApply)),
 			"in-place mutable machine should contain an entry for SSA manager",
 		)
 		g.Expect(updatedInPlaceMutatingMachine.ManagedFields).ShouldNot(
-			ContainElement(ssa.ManagedFieldMatcher("manager", metav1.ManagedFieldsOperationUpdate)),
+			ContainElement(ssa.MatchManagedField("manager", metav1.ManagedFieldsOperationUpdate)),
 			"in-place mutable machine should not contain an entry for old manager",
 		)
 		// Verify Labels
@@ -1160,7 +1160,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		// The deleting machine should not change.
 		updatedDeletingMachine := machines[1]
 		g.Expect(updatedDeletingMachine.ManagedFields).ShouldNot(
-			ContainElement(ssa.ManagedFieldMatcher(machineSetManagerName, metav1.ManagedFieldsOperationApply)),
+			ContainElement(ssa.MatchManagedField(machineSetManagerName, metav1.ManagedFieldsOperationApply)),
 			"deleting machine should not contain an entry for SSA manager",
 		)
 		g.Expect(updatedDeletingMachine.Labels).Should(Equal(deletingMachine.Labels))

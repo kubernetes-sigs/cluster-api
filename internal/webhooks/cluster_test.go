@@ -75,6 +75,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type:    "string",
@@ -106,6 +107,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type:    "string",
@@ -147,6 +149,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 						Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 							{
 								Required: true,
+								From:     clusterv1.VariableDefinitionFromInline,
 								Schema: clusterv1.VariableSchema{
 									OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 										Type:    "string",
@@ -161,6 +164,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 						Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 							{
 								Required: true,
+								From:     clusterv1.VariableDefinitionFromInline,
 								Schema: clusterv1.VariableSchema{
 									OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 										Type:    "number",
@@ -201,6 +205,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type:    "string",
@@ -252,6 +257,7 @@ func TestClusterDefaultVariables(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "object",
@@ -323,28 +329,225 @@ func TestClusterDefaultVariables(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Use one value for multiple definitions when variables don't conflict",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "location",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
+							},
+						},
+						{
+							Required: true,
+							From:     "somepatch",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
+							},
+						},
+						{
+							Required: true,
+							From:     "anotherpatch",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
+							},
+						},
+					},
+				},
+				).
+				Build(),
+			topology: &clusterv1.Topology{},
+			expect: &clusterv1.Topology{
+				Variables: []clusterv1.ClusterVariable{
+					{
+						Name: "location",
+						Value: apiextensionsv1.JSON{
+							Raw: []byte(`"us-east"`),
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Add defaults for each definitionFrom if variable is defined for some definitionFrom",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name: "location",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
+							},
+						},
+						{
+							Required: true,
+							From:     "somepatch",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
+							},
+						},
+						{
+							Required: true,
+							From:     "anotherpatch",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
+							},
+						},
+					},
+				},
+				).
+				Build(),
+			topology: &clusterv1.Topology{
+				Variables: []clusterv1.ClusterVariable{
+					{
+						Name: "location",
+						Value: apiextensionsv1.JSON{
+							Raw: []byte(`"us-west"`),
+						},
+						DefinitionFrom: "somepatch",
+					},
+				},
+			},
+			expect: &clusterv1.Topology{
+				Variables: []clusterv1.ClusterVariable{
+					{
+						Name: "location",
+						Value: apiextensionsv1.JSON{
+							Raw: []byte(`"us-west"`),
+						},
+						DefinitionFrom: "somepatch",
+					},
+					{
+						Name: "location",
+						Value: apiextensionsv1.JSON{
+							Raw: []byte(`"us-east"`),
+						},
+						DefinitionFrom: clusterv1.VariableDefinitionFromInline,
+					},
+					{
+						Name: "location",
+						Value: apiextensionsv1.JSON{
+							Raw: []byte(`"us-east"`),
+						},
+						DefinitionFrom: "anotherpatch",
+					},
+				},
+			},
+		},
+		{
+			name: "set definitionFrom on defaults when variables conflict",
+			clusterClass: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithStatusVariables(clusterv1.ClusterClassStatusVariable{
+					Name:                "location",
+					DefinitionsConflict: true,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"first-region"`)},
+								},
+							},
+						},
+						{
+							Required: true,
+							From:     "somepatch",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"another-region"`)},
+								},
+							},
+						},
+						{
+							Required: true,
+							From:     "anotherpatch",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "string",
+									Default: &apiextensionsv1.JSON{Raw: []byte(`"us-east"`)},
+								},
+							},
+						},
+					},
+				},
+				).
+				Build(),
+			topology: &clusterv1.Topology{},
+			expect: &clusterv1.Topology{
+				Variables: []clusterv1.ClusterVariable{
+					{
+						Name: "location",
+						Value: apiextensionsv1.JSON{
+							Raw: []byte(`"first-region"`),
+						},
+						DefinitionFrom: clusterv1.VariableDefinitionFromInline,
+					},
+					{
+						Name: "location",
+						Value: apiextensionsv1.JSON{
+							Raw: []byte(`"another-region"`),
+						},
+						DefinitionFrom: "somepatch",
+					},
+					{
+						Name: "location",
+						Value: apiextensionsv1.JSON{
+							Raw: []byte(`"us-east"`),
+						},
+						DefinitionFrom: "anotherpatch",
+					},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
-		// Setting Class and Version here to avoid obfuscating the test cases above.
-		tt.topology.Class = "class1"
-		tt.topology.Version = "v1.22.2"
-		tt.expect.Class = "class1"
-		tt.expect.Version = "v1.22.2"
-
-		cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
-			WithTopology(tt.topology).
-			Build()
-
-		// Mark this condition to true so the webhook sees the ClusterClass as up to date.
-		conditions.MarkTrue(tt.clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
-		fakeClient := fake.NewClientBuilder().
-			WithObjects(tt.clusterClass).
-			WithScheme(fakeScheme).
-			Build()
-		// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
-		webhook := &Cluster{Client: fakeClient}
-
 		t.Run(tt.name, func(t *testing.T) {
+			// Setting Class and Version here to avoid obfuscating the test cases above.
+			tt.topology.Class = "class1"
+			tt.topology.Version = "v1.22.2"
+			tt.expect.Class = "class1"
+			tt.expect.Version = "v1.22.2"
+
+			cluster := builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(tt.topology).
+				Build()
+
+			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
+			conditions.MarkTrue(tt.clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
+			fakeClient := fake.NewClientBuilder().
+				WithObjects(tt.clusterClass).
+				WithScheme(fakeScheme).
+				Build()
+			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
+			webhook := &Cluster{Client: fakeClient}
+
 			// Test if defaulting works in combination with validation.
 			util.CustomDefaultValidateTest(ctx, cluster, webhook)(t)
 			// Test defaulting.
@@ -797,6 +1000,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
@@ -827,6 +1031,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
@@ -852,6 +1057,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
@@ -881,6 +1087,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
@@ -917,6 +1124,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",
@@ -953,6 +1161,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
 							Required: false,
+							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "integer",

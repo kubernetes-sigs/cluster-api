@@ -30,54 +30,51 @@ import (
 )
 
 // DefaultClusterVariables defaults ClusterVariables.
-func DefaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) ([]clusterv1.ClusterVariable, field.ErrorList) {
-	return defaultClusterVariables(clusterVariables, clusterClassVariables, true, fldPath)
+func DefaultClusterVariables(values []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, fldPath *field.Path) ([]clusterv1.ClusterVariable, field.ErrorList) {
+	return defaultClusterVariables(values, definitions, true, fldPath)
 }
 
 // DefaultMachineDeploymentVariables defaults MachineDeploymentVariables.
-func DefaultMachineDeploymentVariables(machineDeploymentVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, fldPath *field.Path) ([]clusterv1.ClusterVariable, field.ErrorList) {
-	return defaultClusterVariables(machineDeploymentVariables, clusterClassVariables, false, fldPath)
+func DefaultMachineDeploymentVariables(values []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, fldPath *field.Path) ([]clusterv1.ClusterVariable, field.ErrorList) {
+	return defaultClusterVariables(values, definitions, false, fldPath)
 }
 
 // defaultClusterVariables defaults variables.
 // If they do not exist yet, they are created if createVariables is set.
-func defaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clusterClassVariables []clusterv1.ClusterClassVariable, createVariables bool, fldPath *field.Path) ([]clusterv1.ClusterVariable, field.ErrorList) {
+func defaultClusterVariables(values []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, createVariables bool, fldPath *field.Path) ([]clusterv1.ClusterVariable, field.ErrorList) {
 	var allErrs field.ErrorList
 
-	// Build maps for easier and faster access.
-	clusterVariablesMap := getClusterVariablesMap(clusterVariables)
-	clusterClassVariablesMap := getClusterClassVariablesMap(clusterClassVariables)
-
-	// Validate that all variables in the Cluster are defined in the ClusterClass.
-	// Note: If we don't validate this, we would get a nil pointer dereference below.
-	allErrs = append(allErrs, validateClusterVariablesDefined(clusterVariables, clusterClassVariablesMap, fldPath)...)
-	if len(allErrs) > 0 {
-		return nil, allErrs
+	// Get a map of ClusterVariable values. This function validates that:
+	// - variables are not defined more than once in Cluster spec.
+	// - variables with the same name do not have a mix of empty and non-empty DefinitionFrom.
+	valuesIndex, err := newValuesIndex(values)
+	if err != nil {
+		return nil, append(allErrs, field.Invalid(fldPath, values,
+			fmt.Sprintf("cluster variables not valid: %s", err)))
 	}
 
-	// allVariables is used to get a full correctly ordered list of variables.
-	allVariables := []string{}
-	// Add any ClusterVariables that already exist.
-	for _, variable := range clusterVariables {
-		allVariables = append(allVariables, variable.Name)
-	}
-	// Add variables from the ClusterClass, which currently don't exist on the Cluster.
-	for _, variable := range clusterClassVariables {
-		// Continue if the ClusterClass variable already exists.
-		if _, ok := clusterVariablesMap[variable.Name]; ok {
+	// Get an index for each variable name and definition.
+	defIndex := newDefinitionsIndex(definitions)
+
+	// Get a deterministically ordered list of all variables defined in both the Cluster and the ClusterClass.
+	// Note: If the order is not deterministic variables would be continuously rewritten to the Cluster.
+	allVariables := getAllVariables(values, valuesIndex, definitions)
+
+	// Default all variables.
+	defaultedValues := []clusterv1.ClusterVariable{}
+	for _, variable := range allVariables {
+		// Get the variable definition from the ClusterClass. If the variable is not defined add an error.
+		definition, err := defIndex.get(variable.Name, variable.DefinitionFrom)
+		if err != nil {
+			allErrs = append(allErrs, field.Required(fldPath, err.Error()))
 			continue
 		}
 
-		allVariables = append(allVariables, variable.Name)
-	}
+		// Get the current value of the variable if it is defined in the Cluster spec.
+		currentValue := getCurrentValue(variable, valuesIndex)
 
-	// Default all variables.
-	defaultedClusterVariables := []clusterv1.ClusterVariable{}
-	for i, variableName := range allVariables {
-		clusterClassVariable := clusterClassVariablesMap[variableName]
-		clusterVariable := clusterVariablesMap[variableName]
-
-		defaultedClusterVariable, errs := defaultClusterVariable(clusterVariable, clusterClassVariable, fldPath.Index(i), createVariables)
+		// Default the variable.
+		defaultedValue, errs := defaultValue(currentValue, definition, fldPath, createVariables)
 		if len(errs) > 0 {
 			allErrs = append(allErrs, errs...)
 			continue
@@ -86,46 +83,55 @@ func defaultClusterVariables(clusterVariables []clusterv1.ClusterVariable, clust
 		// Continue if there is no defaulted variable.
 		// NOTE: This happens when the variable doesn't exist on the CLuster before and
 		// there is no top-level default value.
-		if defaultedClusterVariable == nil {
+		if defaultedValue == nil {
 			continue
 		}
-
-		defaultedClusterVariables = append(defaultedClusterVariables, *defaultedClusterVariable)
+		defaultedValues = append(defaultedValues, *defaultedValue)
 	}
 
 	if len(allErrs) > 0 {
 		return nil, allErrs
 	}
-
-	return defaultedClusterVariables, nil
+	return defaultedValues, nil
 }
 
-// defaultClusterVariable defaults a clusterVariable based on the default value in the clusterClassVariable.
-func defaultClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterClassVariable *clusterv1.ClusterClassVariable, fldPath *field.Path, createVariable bool) (*clusterv1.ClusterVariable, field.ErrorList) {
-	if clusterVariable == nil {
+// getCurrentValue returns the value of a variable for its definitionFrom, or for an empty definitionFrom if it exists.
+func getCurrentValue(variable clusterv1.ClusterVariable, valuesMap map[string]map[string]clusterv1.ClusterVariable) *clusterv1.ClusterVariable {
+	// If the value is set in the Cluster spec get the value.
+	if valuesForName, ok := valuesMap[variable.Name]; ok {
+		if value, ok := valuesForName[variable.DefinitionFrom]; ok {
+			return &value
+		}
+	}
+	return nil
+}
+
+// defaultValue defaults a clusterVariable based on the default value in the clusterClassVariable.
+func defaultValue(currentValue *clusterv1.ClusterVariable, definition *statusVariableDefinition, fldPath *field.Path, createVariable bool) (*clusterv1.ClusterVariable, field.ErrorList) {
+	if currentValue == nil {
 		// Return if the variable does not exist yet and createVariable is false.
 		if !createVariable {
 			return nil, nil
 		}
 		// Return if the variable does not exist yet and there is no top-level default value.
-		if clusterClassVariable.Schema.OpenAPIV3Schema.Default == nil {
+		if definition.Schema.OpenAPIV3Schema.Default == nil {
 			return nil, nil
 		}
 	}
 
 	// Convert schema to Kubernetes APIExtensions schema.
-	apiExtensionsSchema, errs := convertToAPIExtensionsJSONSchemaProps(&clusterClassVariable.Schema.OpenAPIV3Schema, field.NewPath("schema"))
+	apiExtensionsSchema, errs := convertToAPIExtensionsJSONSchemaProps(&definition.Schema.OpenAPIV3Schema, field.NewPath("schema"))
 	if len(errs) > 0 {
 		return nil, field.ErrorList{field.Invalid(fldPath, "",
-			fmt.Sprintf("invalid schema in ClusterClass for variable %q: error to convert schema %v", clusterClassVariable.Name, errs))}
+			fmt.Sprintf("invalid schema in ClusterClass for variable %q: error to convert schema %v", definition.Name, errs))}
 	}
 
 	var value interface{}
 	// If the variable already exists, parse the current value.
-	if clusterVariable != nil && len(clusterVariable.Value.Raw) > 0 {
-		if err := json.Unmarshal(clusterVariable.Value.Raw, &value); err != nil {
+	if currentValue != nil && len(currentValue.Value.Raw) > 0 {
+		if err := json.Unmarshal(currentValue.Value.Raw, &value); err != nil {
 			return nil, field.ErrorList{field.Invalid(fldPath, "",
-				fmt.Sprintf("failed to unmarshal variable value %q: %v", string(clusterVariable.Value.Raw), err))}
+				fmt.Sprintf("failed to unmarshal variable %q value %q: %v", currentValue.Name, string(currentValue.Value.Raw), err))}
 		}
 	}
 
@@ -133,7 +139,7 @@ func defaultClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterC
 	// so we wrap the schema and the variable in objects.
 	// <variable-name>: <variable-value>
 	wrappedVariable := map[string]interface{}{
-		clusterClassVariable.Name: value,
+		definition.Name: value,
 	}
 	// type: object
 	// properties:
@@ -141,7 +147,7 @@ func defaultClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterC
 	wrappedSchema := &apiextensions.JSONSchemaProps{
 		Type: "object",
 		Properties: map[string]apiextensions.JSONSchemaProps{
-			clusterClassVariable.Name: *apiExtensionsSchema,
+			definition.Name: *apiExtensionsSchema,
 		},
 	}
 
@@ -149,20 +155,69 @@ func defaultClusterVariable(clusterVariable *clusterv1.ClusterVariable, clusterC
 	ss, err := structuralschema.NewStructural(wrappedSchema)
 	if err != nil {
 		return nil, field.ErrorList{field.Invalid(fldPath, "",
-			fmt.Sprintf("failed defaulting variable %q: %v", clusterVariable.Name, err))}
+			fmt.Sprintf("failed defaulting variable %q: %v", currentValue.Name, err))}
 	}
 	structuraldefaulting.Default(wrappedVariable, ss)
 
 	// Marshal the defaulted value.
-	defaultedVariableValue, err := json.Marshal(wrappedVariable[clusterClassVariable.Name])
+	defaultedVariableValue, err := json.Marshal(wrappedVariable[definition.Name])
 	if err != nil {
 		return nil, field.ErrorList{field.Invalid(fldPath, "",
-			fmt.Sprintf("failed to marshal default value of variable %q: %v", clusterClassVariable.Name, err))}
+			fmt.Sprintf("failed to marshal default value of variable %q: %v", definition.Name, err))}
 	}
-	return &clusterv1.ClusterVariable{
-		Name: clusterClassVariable.Name,
+	v := &clusterv1.ClusterVariable{
+		Name: definition.Name,
 		Value: apiextensionsv1.JSON{
 			Raw: defaultedVariableValue,
 		},
-	}, nil
+		DefinitionFrom: definition.From,
+	}
+
+	return v, nil
+}
+
+// getAllVariables returns a correctly ordered list of all variables defined in the ClusterClass and the Cluster.
+func getAllVariables(values []clusterv1.ClusterVariable, valuesIndex map[string]map[string]clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable) []clusterv1.ClusterVariable {
+	// allVariables is used to get a full correctly ordered list of variables.
+	allVariables := []clusterv1.ClusterVariable{}
+	uniqueVariableDefinitions := map[string]bool{}
+
+	// Add any values that already exist.
+	allVariables = append(allVariables, values...)
+
+	// Add variables from the ClusterClass, which currently don't exist on the Cluster.
+	for _, variable := range definitions {
+		for _, definition := range variable.Definitions {
+			definitionFrom := definition.From
+
+			// 1) If there is a value in the Cluster with this definitionFrom or with an empty definitionFrom this variable does not need to be defaulted.
+			if _, ok := valuesIndex[variable.Name]; ok {
+				if _, ok := valuesIndex[variable.Name][definitionFrom]; ok {
+					continue
+				}
+				if _, ok := valuesIndex[variable.Name][emptyDefinitionFrom]; ok {
+					continue
+				}
+			}
+
+			// 2) If the definition has no conflicts and no variable of the same name is defined in the Cluster set the definitionFrom to emptyDefinitionFrom.
+			if !variable.DefinitionsConflict && len(valuesIndex[variable.Name]) == 0 {
+				definitionFrom = emptyDefinitionFrom
+			}
+
+			// 3) If a variable with this name and definition has been added already, continue.
+			// This prevents adding the same variable multiple times where the variable is defaulted with an emptyDefinitionFrom.
+			if _, ok := uniqueVariableDefinitions[definitionFrom+variable.Name]; ok {
+				continue
+			}
+
+			// Otherwise add the variable to the list.
+			allVariables = append(allVariables, clusterv1.ClusterVariable{
+				Name:           variable.Name,
+				DefinitionFrom: definitionFrom,
+			})
+			uniqueVariableDefinitions[definitionFrom+variable.Name] = true
+		}
+	}
+	return allVariables
 }

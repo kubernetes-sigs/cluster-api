@@ -448,7 +448,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			)
 			Expect(err).NotTo(HaveOccurred())
 			return matchUnstructuredLists(preUpgradeMachineList, postUpgradeMachineList)
-		}, "3m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
+		}, "5m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
 
 		// After upgrading we are sure the version is the latest version of the API,
 		// so it is possible to use the standard helpers

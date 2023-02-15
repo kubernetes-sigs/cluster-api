@@ -82,16 +82,26 @@ The test module, clusterctl, and experiments do not provide any backward compati
 
 #### Backporting a patch
 
-We only accept backports of critical bugs, security issues, or bugs without easy workarounds, any
-backport MUST not be breaking for either API or behavioral changes. In order to improve user/developer experience
-maintainers can choose to backport:
-- Doc improvements
-- Improvements to CI signal
-- Improvements to the test framework (enabling improvements to provider's test signal)
-- Cert-manager bump (to avoid having branch using cert-manager versions out of support, when possible)
-- Changes required to support new Kubernetes versions, when possible.
+We generally do not accept PRs directly against release branches, while we might accept backports of fixes/changes already
+merged into the main branch.
 
-We generally do not accept PRs against older release branches.
+Any backport MUST not be breaking for either API or behavioral changes. 
+
+We generally allow backports of following changes to all supported branches:
+- Critical bugs fixes, security issue fixes, or fixes for bugs without easy workarounds.
+- Dependency bumps for CVE (usually limited to CVE resolution; backports of non-CVE related version bumps are considered exceptions to be evaluated case by case)
+- Cert-manager version bumps (to avoid having releases with cert-manager versions that are out of support, when possible)
+- Changes required to support new Kubernetes versions, when possible. See [supported Kubernetes versions](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions) for more details.
+
+We generally allow backports of following changes only to the latest supported branch:
+- Improvements to existing docs (the latest supported branch hosts the current version of the book)
+- Improvements to CI signal
+- Improvements to the test framework
+
+Like any other activity in the project, backporting a fix/change is a community-driven effort and requires that someone volunteers to own the task. 
+In most cases, the cherry-pick bot can (and should) be used to automate opening a cherry-pick PR.
+
+We generally do not accept backports to Cluster API release branches that are [out of support](https://github.com/kubernetes-sigs/cluster-api/blob/main/CONTRIBUTING.md#support-and-guarantees).
 
 ### APIs
 

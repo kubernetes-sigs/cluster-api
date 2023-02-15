@@ -90,6 +90,14 @@ func MachineDeploymentRolloutSpec(ctx context.Context, inputGetter func() Machin
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
+		By("Upgrade MachineDeployment in-place mutable fields and wait for in-place propagation")
+		framework.UpgradeMachineDeploymentInPlaceMutableFieldsAndWait(ctx, framework.UpgradeMachineDeploymentInPlaceMutableFieldsAndWaitInput{
+			ClusterProxy:                input.BootstrapClusterProxy,
+			Cluster:                     clusterResources.Cluster,
+			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+			MachineDeployments:          clusterResources.MachineDeployments,
+		})
+
 		By("Upgrading MachineDeployment Infrastructure ref and wait for rolling upgrade")
 		framework.UpgradeMachineDeploymentInfrastructureRefAndWait(ctx, framework.UpgradeMachineDeploymentInfrastructureRefAndWaitInput{
 			ClusterProxy:                input.BootstrapClusterProxy,

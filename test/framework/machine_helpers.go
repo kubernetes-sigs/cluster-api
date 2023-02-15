@@ -33,6 +33,30 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
+// GetMachinesByClusterInput is the input for GetMachinesByCluster.
+type GetMachinesByClusterInput struct {
+	Lister      Lister
+	ClusterName string
+	Namespace   string
+}
+
+// GetMachinesByCluster returns Machine objects for a cluster.
+func GetMachinesByCluster(ctx context.Context, input GetMachinesByClusterInput) []clusterv1.Machine {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for GetMachinesByCluster")
+	Expect(input.Lister).ToNot(BeNil(), "Invalid argument. input.Lister can't be nil when calling GetMachinesByCluster")
+	Expect(input.ClusterName).ToNot(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling GetMachinesByCluster")
+	Expect(input.Namespace).ToNot(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling GetMachinesByCluster")
+
+	opts := byClusterOptions(input.ClusterName, input.Namespace)
+
+	machineList := &clusterv1.MachineList{}
+	Eventually(func() error {
+		return input.Lister.List(ctx, machineList, opts...)
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list Machines for Cluster %s", klog.KRef(input.ClusterName, input.Namespace))
+
+	return machineList.Items
+}
+
 // GetMachinesByMachineDeploymentsInput is the input for GetMachinesByMachineDeployments.
 type GetMachinesByMachineDeploymentsInput struct {
 	Lister            Lister
@@ -57,7 +81,7 @@ func GetMachinesByMachineDeployments(ctx context.Context, input GetMachinesByMac
 	machineList := &clusterv1.MachineList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, machineList, opts...)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineList object for Cluster %s", klog.KRef(input.Namespace, input.ClusterName))
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list Machines for MachineDeployment %s of Cluster %s", klog.KObj(&input.MachineDeployment), klog.KRef(input.Namespace, input.ClusterName))
 
 	return machineList.Items
 }

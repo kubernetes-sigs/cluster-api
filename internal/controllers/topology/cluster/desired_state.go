@@ -241,11 +241,20 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 			return nil, errors.Wrap(err, "failed to spec.machineTemplate.infrastructureRef in the ControlPlane object")
 		}
 
-		// Apply the ControlPlane labels and annotations to the ControlPlane machines as well.
+		// Add the ControlPlane labels and annotations to the ControlPlane machines as well.
+		// Note: We have to ensure the machine template metadata copied from the control plane template is not overwritten.
+		controlPlaneMachineTemplateMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(controlPlane)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get spec.machineTemplate.metadata from the ControlPlane object")
+		}
+
+		controlPlaneMachineTemplateMetadata.Labels = mergeMap(controlPlaneLabels, controlPlaneMachineTemplateMetadata.Labels)
+		controlPlaneMachineTemplateMetadata.Annotations = mergeMap(controlPlaneAnnotations, controlPlaneMachineTemplateMetadata.Annotations)
+
 		if err := contract.ControlPlane().MachineTemplate().Metadata().Set(controlPlane,
 			&clusterv1.ObjectMeta{
-				Labels:      controlPlaneLabels,
-				Annotations: controlPlaneAnnotations,
+				Labels:      controlPlaneMachineTemplateMetadata.Labels,
+				Annotations: controlPlaneMachineTemplateMetadata.Annotations,
 			}); err != nil {
 			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.metadata in the ControlPlane object")
 		}
@@ -990,15 +999,14 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	return template
 }
 
-// mergeMap merges two maps into another one.
-// NOTE: In case a key exists in both maps, the value in the first map is preserved.
-func mergeMap(a, b map[string]string) map[string]string {
+// mergeMap merges maps.
+// NOTE: In case a key exists in multiple maps, the value of the first map is preserved.
+func mergeMap(maps ...map[string]string) map[string]string {
 	m := make(map[string]string)
-	for k, v := range b {
-		m[k] = v
-	}
-	for k, v := range a {
-		m[k] = v
+	for i := len(maps) - 1; i >= 0; i-- {
+		for k, v := range maps[i] {
+			m[k] = v
+		}
 	}
 
 	// Nil the result if the map is empty, thus avoiding triggering infinite reconcile

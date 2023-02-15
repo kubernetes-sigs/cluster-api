@@ -42,3 +42,54 @@ func (c *ControlPlaneTemplateContract) InfrastructureMachineTemplate() *Ref {
 		path: Path{"spec", "template", "spec", "machineTemplate", "infrastructureRef"},
 	}
 }
+
+// Template provides access to the template.
+func (c *ControlPlaneTemplateContract) Template() *ControlPlaneTemplateTemplate {
+	return &ControlPlaneTemplateTemplate{}
+}
+
+// ControlPlaneTemplateTemplate provides a helper struct for working with the template in an ControlPlaneTemplate.
+type ControlPlaneTemplateTemplate struct{}
+
+// Metadata provides access to the metadata of a template.
+func (c *ControlPlaneTemplateTemplate) Metadata() *Metadata {
+	return &Metadata{
+		path: Path{"spec", "template", "metadata"},
+	}
+}
+
+// MachineTemplate provides access to MachineTemplate in a ControlPlaneTemplate object, if any.
+func (c *ControlPlaneTemplateTemplate) MachineTemplate() *ControlPlaneTemplateMachineTemplate {
+	return &ControlPlaneTemplateMachineTemplate{}
+}
+
+// ControlPlaneTemplateMachineTemplate provides a helper struct for working with MachineTemplate.
+type ControlPlaneTemplateMachineTemplate struct{}
+
+// Metadata provides access to the metadata of the MachineTemplate of a ControlPlaneTemplate.
+func (c *ControlPlaneTemplateMachineTemplate) Metadata() *Metadata {
+	return &Metadata{
+		path: Path{"spec", "template", "spec", "machineTemplate", "metadata"},
+	}
+}
+
+// NodeDrainTimeout provides access to the nodeDrainTimeout of a MachineTemplate.
+func (c *ControlPlaneTemplateMachineTemplate) NodeDrainTimeout() *Duration {
+	return &Duration{
+		path: Path{"spec", "template", "spec", "machineTemplate", "nodeDrainTimeout"},
+	}
+}
+
+// NodeVolumeDetachTimeout provides access to the nodeVolumeDetachTimeout of a MachineTemplate.
+func (c *ControlPlaneTemplateMachineTemplate) NodeVolumeDetachTimeout() *Duration {
+	return &Duration{
+		path: Path{"spec", "template", "spec", "machineTemplate", "nodeVolumeDetachTimeout"},
+	}
+}
+
+// NodeDeletionTimeout provides access to the nodeDeletionTimeout of a MachineTemplate.
+func (c *ControlPlaneTemplateMachineTemplate) NodeDeletionTimeout() *Duration {
+	return &Duration{
+		path: Path{"spec", "template", "spec", "machineTemplate", "nodeDeletionTimeout"},
+	}
+}

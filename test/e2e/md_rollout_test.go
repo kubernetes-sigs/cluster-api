@@ -23,7 +23,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-var _ = Describe("When testing MachineDeployment rolling upgrades", func() {
+var _ = Describe("When testing MachineDeployment rollouts", func() {
 	MachineDeploymentRolloutSpec(ctx, func() MachineDeploymentRolloutSpecInput {
 		return MachineDeploymentRolloutSpecInput{
 			E2EConfig:             e2eConfig,

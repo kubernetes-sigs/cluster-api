@@ -57,7 +57,7 @@ func GetMachinesByMachineDeployments(ctx context.Context, input GetMachinesByMac
 	machineList := &clusterv1.MachineList{}
 	Eventually(func() error {
 		return input.Lister.List(ctx, machineList, opts...)
-	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list MachineList object for Cluster %s", klog.KRef(input.Namespace, input.ClusterName))
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to list Machines for MachineDeployment %s", klog.KObj(&input.MachineDeployment))
 
 	return machineList.Items
 }

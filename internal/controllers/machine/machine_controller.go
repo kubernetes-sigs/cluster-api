@@ -368,8 +368,6 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		// After node draining is completed, and if isNodeVolumeDetachingAllowed returns True, make sure all
 		// volumes are detached before proceeding to delete the Node.
 		if r.isNodeVolumeDetachingAllowed(m) {
-			log.Info("Waiting for node volumes to be detached", "Node", klog.KRef("", m.Status.NodeRef.Name))
-
 			// The VolumeDetachSucceededCondition never exists before we wait for volume detachment for the first time,
 			// so its transition time can be used to record the first time we wait for volume detachment.
 			// This `if` condition prevents the transition time to be changed more than once.
@@ -411,12 +409,22 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		return ctrl.Result{}, errors.Wrap(err, "failed to patch Machine")
 	}
 
-	if ok, err := r.reconcileDeleteInfrastructure(ctx, m); !ok || err != nil {
+	infrastructureDeleted, err := r.reconcileDeleteInfrastructure(ctx, m)
+	if err != nil {
 		return ctrl.Result{}, err
 	}
+	if !infrastructureDeleted {
+		log.Info("Waiting for infrastructure to be deleted", m.Spec.InfrastructureRef.Kind, klog.KRef(m.Spec.InfrastructureRef.Namespace, m.Spec.InfrastructureRef.Name))
+		return ctrl.Result{}, nil
+	}
 
-	if ok, err := r.reconcileDeleteBootstrap(ctx, m); !ok || err != nil {
+	bootstrapDeleted, err := r.reconcileDeleteBootstrap(ctx, m)
+	if err != nil {
 		return ctrl.Result{}, err
+	}
+	if !bootstrapDeleted {
+		log.Info("Waiting for bootstrap to be deleted", m.Spec.Bootstrap.ConfigRef.Kind, klog.KRef(m.Spec.Bootstrap.ConfigRef.Namespace, m.Spec.Bootstrap.ConfigRef.Name))
+		return ctrl.Result{}, nil
 	}
 
 	// We only delete the node after the underlying infrastructure is gone.

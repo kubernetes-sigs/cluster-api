@@ -50,7 +50,7 @@ func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, kcp *c
 		log.Error(err, "failed to initialize control plane")
 		return err
 	}
-	kcp.Status.UpdatedReplicas = int32(len(controlPlane.UpToDateMachines()))
+	kcp.Status.UpdatedReplicas = int32(len(controlPlane.UpToDateMachines(ctx)))
 
 	replicas := int32(len(ownedMachines))
 	desiredReplicas := *kcp.Spec.Replicas

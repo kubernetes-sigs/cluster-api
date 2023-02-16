@@ -127,11 +127,11 @@ func (c *ControlPlane) FailureDomainWithMostMachines(machines collections.Machin
 }
 
 // NextFailureDomainForScaleUp returns the failure domain with the fewest number of up-to-date machines.
-func (c *ControlPlane) NextFailureDomainForScaleUp() *string {
+func (c *ControlPlane) NextFailureDomainForScaleUp(ctx context.Context) *string {
 	if len(c.Cluster.Status.FailureDomains.FilterControlPlane()) == 0 {
 		return nil
 	}
-	return failuredomains.PickFewest(c.FailureDomains().FilterControlPlane(), c.UpToDateMachines())
+	return failuredomains.PickFewest(c.FailureDomains().FilterControlPlane(), c.UpToDateMachines(ctx))
 }
 
 // InitialControlPlaneConfig returns a new KubeadmConfigSpec that is to be used for an initializing control plane.
@@ -163,21 +163,21 @@ func (c *ControlPlane) GetKubeadmConfig(machineName string) (*bootstrapv1.Kubead
 }
 
 // MachinesNeedingRollout return a list of machines that need to be rolled out.
-func (c *ControlPlane) MachinesNeedingRollout() collections.Machines {
+func (c *ControlPlane) MachinesNeedingRollout(ctx context.Context) collections.Machines {
 	// Ignore machines to be deleted.
 	machines := c.Machines.Filter(collections.Not(collections.HasDeletionTimestamp))
 
 	// Return machines if they are scheduled for rollout or if with an outdated configuration.
 	return machines.Filter(
-		NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.infraResources, c.kubeadmConfigs, c.KCP),
+		NeedsRollout(ctx, &c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.infraResources, c.kubeadmConfigs, c.KCP),
 	)
 }
 
 // UpToDateMachines returns the machines that are up to date with the control
 // plane's configuration and therefore do not require rollout.
-func (c *ControlPlane) UpToDateMachines() collections.Machines {
+func (c *ControlPlane) UpToDateMachines(ctx context.Context) collections.Machines {
 	return c.Machines.Filter(
-		collections.Not(NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.infraResources, c.kubeadmConfigs, c.KCP)),
+		collections.Not(NeedsRollout(ctx, &c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.infraResources, c.kubeadmConfigs, c.KCP)),
 	)
 }
 

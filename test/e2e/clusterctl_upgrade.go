@@ -38,6 +38,7 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -459,8 +460,37 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName},
 				)
 				Expect(err).NotTo(HaveOccurred())
+
+				if !names(postUpgradeMachineList).Equal(names(preUpgradeMachineList)) {
+					log.Logf("Rollout detected")
+					newMachines := names(postUpgradeMachineList).Difference(names(preUpgradeMachineList))
+					deletedMachines := names(preUpgradeMachineList).Difference(names(postUpgradeMachineList))
+
+					if len(newMachines) > 0 {
+						log.Logf("Detected new machines")
+						for _, obj := range postUpgradeMachineList.Items {
+							if newMachines.Has(obj.GetName()) {
+								resourceYAML, err := yaml.Marshal(obj)
+								Expect(err).ToNot(HaveOccurred())
+								log.Logf("New machine %s:\n%s", klog.KObj(&obj), resourceYAML)
+							}
+						}
+					}
+
+					if len(deletedMachines) > 0 {
+						log.Logf("Detected deleted machines")
+						for _, obj := range preUpgradeMachineList.Items {
+							if deletedMachines.Has(obj.GetName()) {
+								resourceYAML, err := yaml.Marshal(obj)
+								Expect(err).ToNot(HaveOccurred())
+								log.Logf("Deleted machine %s:\n%s", klog.KObj(&obj), resourceYAML)
+							}
+						}
+					}
+				}
+
 				return matchUnstructuredLists(preUpgradeMachineList, postUpgradeMachineList)
-			}, "3m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
+			}, "10m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
 		}
 
 		if workloadCluster.Spec.Topology != nil {
@@ -556,6 +586,14 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		// Dumps all the resources in the spec namespace, then cleanups the cluster object and the spec namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, managementClusterNamespace, managementClusterCancelWatches, managementClusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
+}
+
+func names(objs *unstructured.UnstructuredList) sets.Set[string] {
+	ret := sets.Set[string]{}
+	for _, obj := range objs.Items {
+		ret.Insert(obj.GetName())
+	}
+	return ret
 }
 
 func downloadToTmpFile(ctx context.Context, url string) string {

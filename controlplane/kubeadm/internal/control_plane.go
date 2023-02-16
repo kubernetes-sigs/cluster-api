@@ -167,22 +167,34 @@ func (c *ControlPlane) GetKubeadmConfig(machineName string) (*bootstrapv1.Kubead
 }
 
 // MachinesNeedingRollout return a list of machines that need to be rolled out.
-func (c *ControlPlane) MachinesNeedingRollout() collections.Machines {
+func (c *ControlPlane) MachinesNeedingRollout() (collections.Machines, map[string]string) {
 	// Ignore machines to be deleted.
 	machines := c.Machines.Filter(collections.Not(collections.HasDeletionTimestamp))
 
 	// Return machines if they are scheduled for rollout or if with an outdated configuration.
-	return machines.Filter(
-		NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.InfraResources, c.KubeadmConfigs, c.KCP),
-	)
+	machinesNeedingRollout := make(collections.Machines, len(machines))
+	rolloutReasons := map[string]string{}
+	for _, m := range machines {
+		reason, needsRollout := NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.InfraResources, c.KubeadmConfigs, c.KCP, m)
+		if needsRollout {
+			machinesNeedingRollout.Insert(m)
+			rolloutReasons[m.Name] = reason
+		}
+	}
+	return machinesNeedingRollout, rolloutReasons
 }
 
 // UpToDateMachines returns the machines that are up to date with the control
 // plane's configuration and therefore do not require rollout.
 func (c *ControlPlane) UpToDateMachines() collections.Machines {
-	return c.Machines.Filter(
-		collections.Not(NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.InfraResources, c.KubeadmConfigs, c.KCP)),
-	)
+	upToDateMachines := make(collections.Machines, len(c.Machines))
+	for _, m := range c.Machines {
+		_, needsRollout := NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.InfraResources, c.KubeadmConfigs, c.KCP, m)
+		if !needsRollout {
+			upToDateMachines.Insert(m)
+		}
+	}
+	return upToDateMachines
 }
 
 // getInfraResources fetches the external infrastructure resource for each machine in the collection and returns a map of machine.Name -> infraResource.

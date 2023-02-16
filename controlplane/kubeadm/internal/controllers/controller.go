@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/blang/semver"
@@ -393,12 +394,16 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPl
 	}
 
 	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.
-	needRollout := controlPlane.MachinesNeedingRollout()
+	machinesNeedingRollout, rolloutReasons := controlPlane.MachinesNeedingRollout()
 	switch {
-	case len(needRollout) > 0:
-		log.Info("Rolling out Control Plane machines", "needRollout", needRollout.Names())
-		conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition, controlplanev1.RollingUpdateInProgressReason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(needRollout), len(controlPlane.Machines)-len(needRollout))
-		return r.upgradeControlPlane(ctx, controlPlane, needRollout)
+	case len(machinesNeedingRollout) > 0:
+		var reasons []string
+		for _, rolloutReason := range rolloutReasons {
+			reasons = append(reasons, rolloutReason)
+		}
+		log.Info(fmt.Sprintf("Rolling out Control Plane machines: %s", strings.Join(reasons, ",")), "machinesNeedingRollout", machinesNeedingRollout.Names())
+		conditions.MarkFalse(controlPlane.KCP, controlplanev1.MachinesSpecUpToDateCondition, controlplanev1.RollingUpdateInProgressReason, clusterv1.ConditionSeverityWarning, "Rolling %d replicas with outdated spec (%d replicas up to date)", len(machinesNeedingRollout), len(controlPlane.Machines)-len(machinesNeedingRollout))
+		return r.upgradeControlPlane(ctx, controlPlane, machinesNeedingRollout)
 	default:
 		// make sure last upgrade operation is marked as completed.
 		// NOTE: we are checking the condition already exists in order to avoid to set this condition at the first

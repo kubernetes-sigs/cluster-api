@@ -18,7 +18,9 @@ package internal
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
+	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -29,101 +31,137 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
-// MatchesMachineSpec returns a filter to find all machines that matches with KCP config and do not require any rollout.
+// matchesMachineSpec checks if a Machine matches any of a set of KubeadmConfigs and a set of infra machine configs.
+// If it doesn't, it returns the reasons why.
 // Kubernetes version, infrastructure template, and KubeadmConfig field need to be equivalent.
 // Note: We don't need to compare the entire MachineSpec to determine if a Machine needs to be rolled out,
 // because all the fields in the MachineSpec, except for version, the infrastructureRef and bootstrap.ConfigRef, are either:
 // - mutated in-place (ex: NodeDrainTimeout)
 // - are not dictated by KCP (ex: ProviderID)
 // - are not relevant for the rollout decision (ex: failureDomain).
-func MatchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) func(machine *clusterv1.Machine) bool {
-	return collections.And(
-		collections.MatchesKubernetesVersion(kcp.Spec.Version),
-		MatchesKubeadmBootstrapConfig(machineConfigs, kcp),
-		MatchesTemplateClonedFrom(infraConfigs, kcp),
-	)
+func matchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool) {
+	mismatchReasons := []string{}
+
+	if !collections.MatchesKubernetesVersion(kcp.Spec.Version)(machine) {
+		machineVersion := ""
+		if machine != nil && machine.Spec.Version != nil {
+			machineVersion = *machine.Spec.Version
+		}
+		mismatchReasons = append(mismatchReasons, fmt.Sprintf("Machine version %q is not equal to KCP version %q", machineVersion, kcp.Spec.Version))
+	}
+
+	if reason, matches := matchesKubeadmBootstrapConfig(machineConfigs, kcp, machine); !matches {
+		mismatchReasons = append(mismatchReasons, reason)
+	}
+
+	if reason, matches := matchesTemplateClonedFrom(infraConfigs, kcp, machine); !matches {
+		mismatchReasons = append(mismatchReasons, reason)
+	}
+
+	if len(mismatchReasons) > 0 {
+		return strings.Join(mismatchReasons, ","), false
+	}
+
+	return "", true
 }
 
-// NeedsRollout returns a filter to determine if a machine needs rollout.
-func NeedsRollout(reconciliationTime, rolloutAfter *metav1.Time, rolloutBefore *controlplanev1.RolloutBefore, infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) func(machine *clusterv1.Machine) bool {
-	return collections.Or(
-		// Machines whose certificates are about to expire.
-		collections.ShouldRolloutBefore(reconciliationTime, rolloutBefore),
-		// Machines that are scheduled for rollout (KCP.Spec.RolloutAfter set, the RolloutAfter deadline is expired, and the machine was created before the deadline).
-		collections.ShouldRolloutAfter(reconciliationTime, rolloutAfter),
-		// Machines that do not match with KCP config.
-		collections.Not(MatchesMachineSpec(infraConfigs, machineConfigs, kcp)),
-	)
+// NeedsRollout checks if a Machine needs to be rolled out and returns the reason why.
+func NeedsRollout(reconciliationTime, rolloutAfter *metav1.Time, rolloutBefore *controlplanev1.RolloutBefore, infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool) {
+	rolloutReasons := []string{}
+
+	// Machines whose certificates are about to expire.
+	if collections.ShouldRolloutBefore(reconciliationTime, rolloutBefore)(machine) {
+		rolloutReasons = append(rolloutReasons, "certificates will expire soon, rolloutBefore expired")
+	}
+
+	// Machines that are scheduled for rollout (KCP.Spec.RolloutAfter set,
+	// the RolloutAfter deadline is expired, and the machine was created before the deadline).
+	if collections.ShouldRolloutAfter(reconciliationTime, rolloutAfter)(machine) {
+		rolloutReasons = append(rolloutReasons, "rolloutAfter expired")
+	}
+
+	// Machines that do not match with KCP config.
+	if mismatchReason, matches := matchesMachineSpec(infraConfigs, machineConfigs, kcp, machine); !matches {
+		rolloutReasons = append(rolloutReasons, mismatchReason)
+	}
+
+	if len(rolloutReasons) > 0 {
+		return fmt.Sprintf("Machine %s needs rollout: %s", machine.Name, strings.Join(rolloutReasons, ",")), true
+	}
+
+	return "", false
 }
 
-// MatchesTemplateClonedFrom returns a filter to find all machines that have a corresponding infrastructure machine that
-// matches a given KCP infra template.
+// matchesTemplateClonedFrom checks if a Machine has a corresponding infrastructure machine that
+// matches a given KCP infra template and if it doesn't match returns the reason why.
 // Note: Differences to the labels and annotations on the infrastructure machine are not considered for matching
 // criteria, because changes to labels and annotations are propagated in-place to the infrastructure machines.
 // TODO: This function will be renamed in a follow-up PR to something better. (ex: MatchesInfraMachine).
-func MatchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructured, kcp *controlplanev1.KubeadmControlPlane) collections.Func {
-	return func(machine *clusterv1.Machine) bool {
-		if machine == nil {
-			return false
-		}
-		infraObj, found := infraConfigs[machine.Name]
-		if !found {
-			// Return true here because failing to get infrastructure machine should not be considered as unmatching.
-			return true
-		}
-
-		clonedFromName, ok1 := infraObj.GetAnnotations()[clusterv1.TemplateClonedFromNameAnnotation]
-		clonedFromGroupKind, ok2 := infraObj.GetAnnotations()[clusterv1.TemplateClonedFromGroupKindAnnotation]
-		if !ok1 || !ok2 {
-			// All kcp cloned infra machines should have this annotation.
-			// Missing the annotation may be due to older version machines or adopted machines.
-			// Should not be considered as mismatch.
-			return true
-		}
-
-		// Check if the machine's infrastructure reference has been created from the current KCP infrastructure template.
-		if clonedFromName != kcp.Spec.MachineTemplate.InfrastructureRef.Name ||
-			clonedFromGroupKind != kcp.Spec.MachineTemplate.InfrastructureRef.GroupVersionKind().GroupKind().String() {
-			return false
-		}
-
-		return true
+func matchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructured, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool) {
+	if machine == nil {
+		return "Machine cannot be compared with KCP.spec.machineTemplate.infrastructureRef: Machine is nil", false
 	}
+	infraObj, found := infraConfigs[machine.Name]
+	if !found {
+		// Return true here because failing to get infrastructure machine should not be considered as unmatching.
+		return "", true
+	}
+
+	clonedFromName, ok1 := infraObj.GetAnnotations()[clusterv1.TemplateClonedFromNameAnnotation]
+	clonedFromGroupKind, ok2 := infraObj.GetAnnotations()[clusterv1.TemplateClonedFromGroupKindAnnotation]
+	if !ok1 || !ok2 {
+		// All kcp cloned infra machines should have this annotation.
+		// Missing the annotation may be due to older version machines or adopted machines.
+		// Should not be considered as mismatch.
+		return "", true
+	}
+
+	// Check if the machine's infrastructure reference has been created from the current KCP infrastructure template.
+	if clonedFromName != kcp.Spec.MachineTemplate.InfrastructureRef.Name ||
+		clonedFromGroupKind != kcp.Spec.MachineTemplate.InfrastructureRef.GroupVersionKind().GroupKind().String() {
+		return fmt.Sprintf("Infrastructure template on KCP rotated from %s %s to %s %s",
+			clonedFromGroupKind, clonedFromName,
+			kcp.Spec.MachineTemplate.InfrastructureRef.GroupVersionKind().GroupKind().String(), kcp.Spec.MachineTemplate.InfrastructureRef.Name), false
+	}
+
+	return "", true
 }
 
-// MatchesKubeadmBootstrapConfig checks if machine's KubeadmConfigSpec is equivalent with KCP's KubeadmConfigSpec.
+// matchesKubeadmBootstrapConfig checks if machine's KubeadmConfigSpec is equivalent with KCP's KubeadmConfigSpec.
 // Note: Differences to the labels and annotations on the KubeadmConfig are not considered for matching
 // criteria, because changes to labels and annotations are propagated in-place to KubeadmConfig.
-func MatchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) collections.Func {
-	return func(machine *clusterv1.Machine) bool {
-		if machine == nil {
-			return false
-		}
-
-		// Check if KCP and machine ClusterConfiguration matches, if not return
-		if match := matchClusterConfiguration(kcp, machine); !match {
-			return false
-		}
-
-		bootstrapRef := machine.Spec.Bootstrap.ConfigRef
-		if bootstrapRef == nil {
-			// Missing bootstrap reference should not be considered as unmatching.
-			// This is a safety precaution to avoid selecting machines that are broken, which in the future should be remediated separately.
-			return true
-		}
-
-		machineConfig, found := machineConfigs[machine.Name]
-		if !found {
-			// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
-			// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
-			return true
-		}
-
-		// Check if KCP and machine InitConfiguration or JoinConfiguration matches
-		// NOTE: only one between init configuration and join configuration is set on a machine, depending
-		// on the fact that the machine was the initial control plane node or a joining control plane node.
-		return matchInitOrJoinConfiguration(machineConfig, kcp)
+func matchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane, machine *clusterv1.Machine) (string, bool) {
+	if machine == nil {
+		return "Machine KubeadmConfig cannot be compared: Machine is nil", false
 	}
+
+	// Check if KCP and machine ClusterConfiguration matches, if not return
+	if !matchClusterConfiguration(kcp, machine) {
+		return "Machine ClusterConfiguration is outdated", false
+	}
+
+	bootstrapRef := machine.Spec.Bootstrap.ConfigRef
+	if bootstrapRef == nil {
+		// Missing bootstrap reference should not be considered as unmatching.
+		// This is a safety precaution to avoid selecting machines that are broken, which in the future should be remediated separately.
+		return "", true
+	}
+
+	machineConfig, found := machineConfigs[machine.Name]
+	if !found {
+		// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
+		// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
+		return "", true
+	}
+
+	// Check if KCP and machine InitConfiguration or JoinConfiguration matches
+	// NOTE: only one between init configuration and join configuration is set on a machine, depending
+	// on the fact that the machine was the initial control plane node or a joining control plane node.
+	if !matchInitOrJoinConfiguration(machineConfig, kcp) {
+		return "Machine InitConfiguration or JoinConfiguration are outdated", false
+	}
+
+	return "", true
 }
 
 // matchClusterConfiguration verifies if KCP and machine ClusterConfiguration matches.

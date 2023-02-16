@@ -20,27 +20,33 @@ limitations under the License.
 package e2e
 
 import (
+	"strconv"
+
 	. "github.com/onsi/ginkgo/v2"
 )
 
-var _ = Describe("When testing clusterctl upgrades (v0.3=>current)", func() {
-	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
-		return ClusterctlUpgradeSpecInput{
-			E2EConfig:                 e2eConfig,
-			ClusterctlConfigPath:      clusterctlConfigPath,
-			BootstrapClusterProxy:     bootstrapClusterProxy,
-			ArtifactFolder:            artifactFolder,
-			SkipCleanup:               skipCleanup,
-			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/clusterctl-{OS}-{ARCH}",
-			InitWithProvidersContract: "v1alpha3",
-			// CAPI v0.3.x does not work on Kubernetes >= v1.22.
-			InitWithKubernetesVersion: "v1.21.12",
-			// CAPI does not work with Kubernetes < v1.22 if ClusterClass is enabled, so we have to disable it.
-			UpgradeClusterctlVariables: map[string]string{
-				"CLUSTER_TOPOLOGY": "false",
-			},
-		}
-	})
+var _ = Describe("When testing clusterctl upgrades (v0.3=>current) [PR-Blocking]", func() {
+	for i := 1; i <= 10; i++ {
+		Describe(strconv.Itoa(i), func() {
+			ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+				return ClusterctlUpgradeSpecInput{
+					E2EConfig:                 e2eConfig,
+					ClusterctlConfigPath:      clusterctlConfigPath,
+					BootstrapClusterProxy:     bootstrapClusterProxy,
+					ArtifactFolder:            artifactFolder,
+					SkipCleanup:               skipCleanup,
+					InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/clusterctl-{OS}-{ARCH}",
+					InitWithProvidersContract: "v1alpha3",
+					// CAPI v0.3.x does not work on Kubernetes >= v1.22.
+					InitWithKubernetesVersion: "v1.21.12",
+					// CAPI does not work with Kubernetes < v1.22 if ClusterClass is enabled, so we have to disable it.
+					UpgradeClusterctlVariables: map[string]string{
+						"CLUSTER_TOPOLOGY": "false",
+					},
+				}
+			})
+		})
+	}
 })
 
 var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {

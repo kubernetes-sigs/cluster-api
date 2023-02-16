@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/go-test/deep"
+	"github.com/google/go-cmp/cmp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
@@ -172,7 +174,7 @@ func MatchesKubeadmBootstrapConfig(ctx context.Context, machineConfigs map[strin
 		// Check if KCP and machine InitConfiguration or JoinConfiguration matches
 		// NOTE: only one between init configuration and join configuration is set on a machine, depending
 		// on the fact that the machine was the initial control plane node or a joining control plane node.
-		if !matchInitOrJoinConfiguration(machineConfig, kcp) {
+		if !matchInitOrJoinConfiguration(ctx, machineConfig, kcp) {
 			log.Info("Detected diff: MatchesKubeadmBootstrapConfig: init or joinConfiguration do not match")
 			return false
 		}
@@ -217,16 +219,24 @@ func matchClusterConfiguration(kcp *controlplanev1.KubeadmControlPlane, machine 
 
 // matchInitOrJoinConfiguration verifies if KCP and machine InitConfiguration or JoinConfiguration matches.
 // NOTE: By extension this method takes care of detecting changes in other fields of the KubeadmConfig configuration (e.g. Files, Mounts etc.)
-func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) bool {
+func matchInitOrJoinConfiguration(ctx context.Context, machineConfig *bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) bool {
+	log := ctrl.LoggerFrom(ctx)
+
 	if machineConfig == nil {
 		// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
 		// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
 		return true
 	}
 
+	log.Info("Checking diff: MatchesKubeadmBootstrapConfig")
+	log.Info(fmt.Sprintf("1 machineConfig.Spec: %#v", machineConfig.Spec))
+	log.Info(fmt.Sprintf("1 kcp.Spec.KubeadmConfigSpec: %#v", kcp.Spec.KubeadmConfigSpec))
+
 	// takes the KubeadmConfigSpec from KCP and applies the transformations required
 	// to allow a comparison with the KubeadmConfig referenced from the machine.
 	kcpConfig := getAdjustedKcpConfig(kcp, machineConfig)
+
+	log.Info(fmt.Sprintf("kcpConfig: %#v", kcpConfig))
 
 	// Default both KubeadmConfigSpecs before comparison.
 	// *Note* This assumes that newly added default values never
@@ -235,10 +245,26 @@ func matchInitOrJoinConfiguration(machineConfig *bootstrapv1.KubeadmConfig, kcp 
 	bootstrapv1.DefaultKubeadmConfigSpec(kcpConfig)
 	bootstrapv1.DefaultKubeadmConfigSpec(&machineConfig.Spec)
 
+	log.Info(fmt.Sprintf("2 machineConfig.Spec: %#v", machineConfig.Spec))
+	log.Info(fmt.Sprintf("2 kcpConfig: %#v", kcpConfig))
+
 	// cleanups all the fields that are not relevant for the comparison.
 	cleanupConfigFields(kcpConfig, machineConfig)
 
-	return reflect.DeepEqual(&machineConfig.Spec, kcpConfig)
+	log.Info(fmt.Sprintf("3 machineConfig.Spec: %#v", machineConfig.Spec))
+	log.Info(fmt.Sprintf("3 kcpConfig: %#v", kcpConfig))
+
+	if !reflect.DeepEqual(&machineConfig.Spec, kcpConfig) {
+		log.Info("Detected diff: MatchesKubeadmBootstrapConfig: init or joinConfiguration do not match: reflect.DeepEqual")
+		log.Info(fmt.Sprintf("Detected diff: cmp.Diff: %s", cmp.Diff(&machineConfig.Spec, kcpConfig)))
+		log.Info(fmt.Sprintf("Detected diff: deep.Equal: %s", deep.Equal(&machineConfig.Spec, kcpConfig)))
+
+		log.Info(fmt.Sprintf("4 machineConfig.Spec: %#v", machineConfig.Spec))
+		log.Info(fmt.Sprintf("4 kcpConfig: %#v", kcpConfig))
+		return false
+	}
+
+	return true
 }
 
 // getAdjustedKcpConfig takes the KubeadmConfigSpec from KCP and applies the transformations required

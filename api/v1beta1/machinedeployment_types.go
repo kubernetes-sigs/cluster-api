@@ -57,6 +57,13 @@ const (
 	// MachineDeploymentUniqueLabel is the label applied to Machines
 	// in a MachineDeployment containing the hash of the template.
 	MachineDeploymentUniqueLabel = "machine-template-hash"
+
+	// MachineSetUniqueIdentifierLabel is used to uniquely identify the Machines of a MachineSet.
+	// The MachineDeployment controller will set this label on a MachineSet when it is created.
+	// The label is also applied to the Machines of the MachineSet and used in the MachineSet selector.
+	// Note: For the lifetime of the MachineSet the label's value has to stay the same, otherwise the
+	// MachineSet selector would no longer match its Machines.
+	MachineSetUniqueIdentifierLabel = "machine.clusters.x-k8s.io/unique-id"
 )
 
 // ANCHOR: MachineDeploymentSpec

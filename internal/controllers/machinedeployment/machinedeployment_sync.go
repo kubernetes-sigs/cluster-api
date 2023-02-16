@@ -147,11 +147,11 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, d *clusterv1.MachineD
 	}
 	machineTemplateSpecHash := fmt.Sprintf("%d", hash)
 	newMSTemplate.Labels = mdutil.CloneAndAddLabel(d.Spec.Template.Labels,
-		clusterv1.MachineDeploymentUniqueLabel, machineTemplateSpecHash)
+		clusterv1.MachineSetUniqueIdentifierLabel, machineTemplateSpecHash)
 
 	// Add machineTemplateHash label to selector.
 	newMSSelector := mdutil.CloneSelectorAndAddLabel(&d.Spec.Selector,
-		clusterv1.MachineDeploymentUniqueLabel, machineTemplateSpecHash)
+		clusterv1.MachineSetUniqueIdentifierLabel, machineTemplateSpecHash)
 
 	minReadySeconds := int32(0)
 	if d.Spec.MinReadySeconds != nil {

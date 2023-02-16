@@ -377,8 +377,8 @@ func EqualMachineTemplate(template1, template2 *clusterv1.MachineTemplateSpec) b
 	// 1. The hash result would be different upon machineTemplateSpec API changes
 	//    (e.g. the addition of a new field will cause the hash code to change)
 	// 2. The deployment template won't have hash labels
-	delete(t1Copy.Labels, clusterv1.MachineDeploymentUniqueLabel)
-	delete(t2Copy.Labels, clusterv1.MachineDeploymentUniqueLabel)
+	delete(t1Copy.Labels, clusterv1.MachineSetUniqueIdentifierLabel)
+	delete(t2Copy.Labels, clusterv1.MachineSetUniqueIdentifierLabel)
 
 	// Remove the version part from the references APIVersion field,
 	// for more details see issue #2183 and #2140.

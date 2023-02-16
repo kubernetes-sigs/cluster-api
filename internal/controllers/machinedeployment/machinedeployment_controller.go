@@ -248,6 +248,18 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		}
 	}
 
+	// If one of the MachineSets is still using the old unique label, requeue until it
+	// has been migrated by the MachineSet controller to the new label.
+	// Note: We intentionally do this before we clean up managed fields, to also ensure
+	// the MachineSet controller does not own the new unique label.
+	for _, machineSet := range msList {
+		if _, ok := machineSet.Labels[clusterv1.MachineDeploymentUniqueLabel]; ok {
+			log.Info("Waiting until MachineSet has been migrated to the new unique label by the MachineSet controller", "MachineSet", klog.KObj(machineSet))
+			// Note: No need to requeue as the MachineSet updates will lead to a requeue automatically.
+			return ctrl.Result{}, nil
+		}
+	}
+
 	if d.Spec.Paused {
 		return ctrl.Result{}, r.sync(ctx, d, msList)
 	}

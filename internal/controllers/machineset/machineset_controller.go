@@ -323,6 +323,41 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		}
 	}
 
+	// Migrate MachineSet and its Machines to new unique label,
+	// if MachineSet still has the old machine-template-hash label.
+	if uniqueLabelValue, ok := machineSet.Labels[clusterv1.MachineDeploymentUniqueLabel]; ok {
+		log.Info(fmt.Sprintf("Migrating MachineSet to the new unique label (value: %q)", uniqueLabelValue))
+		// Migrate Machines to new label.
+		for _, machine := range filteredMachines {
+			if _, ok := machine.Labels[clusterv1.MachineDeploymentUniqueLabel]; !ok {
+				// Nothing to do if the Machine doesn't have the label.
+				continue
+			}
+
+			log.Info(fmt.Sprintf("Migrating Machine to the new unique label (value: %q)", uniqueLabelValue), "Machine", klog.KObj(machine))
+			helper, err := patch.NewHelper(machine, r.Client)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to migrate Machine %s to new unique MachineSet label: failed to create patch helper", machine.Name)
+			}
+			machine.Labels[clusterv1.MachineSetUniqueIdentifierLabel] = uniqueLabelValue
+			delete(machine.Labels, clusterv1.MachineDeploymentUniqueLabel)
+			if err := helper.Patch(ctx, machine); err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to migrate Machine %s to new unique MachineSet label: failed to patch Machine", machine.Name)
+			}
+		}
+		// Migrate MachineSet to new label.
+		machineSet.Labels[clusterv1.MachineSetUniqueIdentifierLabel] = uniqueLabelValue
+		machineSet.Spec.Selector.MatchLabels[clusterv1.MachineSetUniqueIdentifierLabel] = uniqueLabelValue
+		machineSet.Spec.Template.Labels[clusterv1.MachineSetUniqueIdentifierLabel] = uniqueLabelValue
+		delete(machineSet.Labels, clusterv1.MachineDeploymentUniqueLabel)
+		delete(machineSet.Spec.Selector.MatchLabels, clusterv1.MachineDeploymentUniqueLabel)
+		delete(machineSet.Spec.Template.Labels, clusterv1.MachineDeploymentUniqueLabel)
+
+		// Requeue so MachineSet is immediately patched and then reconciled again.
+		// Note: No need to requeue as the MachineSet update will lead to a requeue automatically.
+		return ctrl.Result{}, nil
+	}
+
 	// Remediate failed Machines by deleting them.
 	var errs []error
 	for _, machine := range filteredMachines {

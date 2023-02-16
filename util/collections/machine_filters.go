@@ -17,12 +17,15 @@ limitations under the License.
 package collections
 
 import (
+	"context"
+	"fmt"
 	"time"
 
 	"github.com/blang/semver"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -170,7 +173,7 @@ func IsReady() Func {
 
 // ShouldRolloutAfter returns a filter to find all machines where
 // CreationTimestamp < rolloutAfter < reconciliationTIme.
-func ShouldRolloutAfter(reconciliationTime, rolloutAfter *metav1.Time) Func {
+func ShouldRolloutAfter(ctx context.Context, reconciliationTime, rolloutAfter *metav1.Time) Func {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
 			return false
@@ -181,7 +184,7 @@ func ShouldRolloutAfter(reconciliationTime, rolloutAfter *metav1.Time) Func {
 
 // ShouldRolloutBefore returns a filter to find all machine whose
 // certificates will expire within the specified days.
-func ShouldRolloutBefore(reconciliationTime *metav1.Time, rolloutBefore *controlplanev1.RolloutBefore) Func {
+func ShouldRolloutBefore(ctx context.Context, reconciliationTime *metav1.Time, rolloutBefore *controlplanev1.RolloutBefore) Func {
 	return func(machine *clusterv1.Machine) bool {
 		if rolloutBefore == nil || rolloutBefore.CertificatesExpiryDays == nil {
 			return false
@@ -223,15 +226,24 @@ func ControlPlaneSelectorForCluster(clusterName string) labels.Selector {
 }
 
 // MatchesKubernetesVersion returns a filter to find all machines that match a given Kubernetes version.
-func MatchesKubernetesVersion(kubernetesVersion string) Func {
+func MatchesKubernetesVersion(ctx context.Context, kubernetesVersion string) Func {
 	return func(machine *clusterv1.Machine) bool {
+		log := ctrl.LoggerFrom(ctx)
+
 		if machine == nil {
+			log.Info("Detected diff: MatchesKubernetesVersion: Machine is nil")
 			return false
 		}
 		if machine.Spec.Version == nil {
+			log.Info("Detected diff: MatchesKubernetesVersion: Machine.spec.version is nil")
 			return false
 		}
-		return *machine.Spec.Version == kubernetesVersion
+
+		if *machine.Spec.Version != kubernetesVersion {
+			log.Info(fmt.Sprintf("Detected diff: MatchesKubernetesVersion: Machine version %q is not equal to KCP version %q", *machine.Spec.Version, kubernetesVersion))
+			return false
+		}
+		return true
 	}
 }
 

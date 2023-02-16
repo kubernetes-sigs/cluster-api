@@ -374,7 +374,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	}
 
 	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.
-	needRollout := controlPlane.MachinesNeedingRollout()
+	needRollout := controlPlane.MachinesNeedingRollout(ctx)
 	switch {
 	case len(needRollout) > 0:
 		log.Info("Rolling out Control Plane machines", "needRollout", needRollout.Names())

@@ -17,11 +17,15 @@ limitations under the License.
 package internal
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/v2"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -32,35 +36,70 @@ import (
 
 // MatchesMachineSpec returns a filter to find all machines that matches with KCP config and do not require any rollout.
 // Kubernetes version, infrastructure template, and KubeadmConfig field need to be equivalent.
-func MatchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) func(machine *clusterv1.Machine) bool {
-	return collections.And(
-		func(machine *clusterv1.Machine) bool {
-			return matchMachineTemplateMetadata(kcp, machine)
-		},
-		collections.MatchesKubernetesVersion(kcp.Spec.Version),
-		MatchesKubeadmBootstrapConfig(machineConfigs, kcp),
-		MatchesTemplateClonedFrom(infraConfigs, kcp),
-	)
+func MatchesMachineSpec(ctx context.Context, infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) func(machine *clusterv1.Machine) bool {
+	return func(machine *clusterv1.Machine) bool {
+		log := ctrl.LoggerFrom(ctx).WithValues("Machine", klog.KObj(machine))
+		ctx = ctrl.LoggerInto(ctx, log)
+
+		// FIXME: logging on 0 to see the logs in e2e test for now.
+		log.Info("Calculating if Machine needs rollout")
+
+		matchesMachineSpec := true
+
+		if !matchMachineTemplateMetadata(ctx, kcp, machine) {
+			matchesMachineSpec = false
+		}
+
+		if !collections.MatchesKubernetesVersion(ctx, kcp.Spec.Version)(machine) {
+			matchesMachineSpec = false
+		}
+
+		if !MatchesKubeadmBootstrapConfig(ctx, machineConfigs, kcp)(machine) {
+			matchesMachineSpec = false
+		}
+
+		if !MatchesTemplateClonedFrom(ctx, infraConfigs, kcp)(machine) {
+			matchesMachineSpec = false
+		}
+
+		return matchesMachineSpec
+	}
 }
 
 // NeedsRollout returns a filter to determine if a machine needs rollout.
-func NeedsRollout(reconciliationTime, rolloutAfter *metav1.Time, rolloutBefore *controlplanev1.RolloutBefore, infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) func(machine *clusterv1.Machine) bool {
-	return collections.Or(
+func NeedsRollout(ctx context.Context, reconciliationTime, rolloutAfter *metav1.Time, rolloutBefore *controlplanev1.RolloutBefore, infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) func(machine *clusterv1.Machine) bool {
+	return func(machine *clusterv1.Machine) bool {
+		var shouldRollout bool
+
+		// FIXME: maybe also add logs here.
 		// Machines whose certificates are about to expire.
-		collections.ShouldRolloutBefore(reconciliationTime, rolloutBefore),
-		// Machines that are scheduled for rollout (KCP.Spec.RolloutAfter set, the RolloutAfter deadline is expired, and the machine was created before the deadline).
-		collections.ShouldRolloutAfter(reconciliationTime, rolloutAfter),
+		if collections.ShouldRolloutBefore(ctx, reconciliationTime, rolloutBefore)(machine) {
+			shouldRollout = true
+		}
+
+		// Machines that are scheduled for rollout (KCP.Spec.RolloutAfter set,
+		// the RolloutAfter deadline is expired, and the machine was created before the deadline).
+		if collections.ShouldRolloutAfter(ctx, reconciliationTime, rolloutAfter)(machine) {
+			shouldRollout = true
+		}
+
 		// Machines that do not match with KCP config.
-		collections.Not(MatchesMachineSpec(infraConfigs, machineConfigs, kcp)),
-	)
+		if collections.Not(MatchesMachineSpec(ctx, infraConfigs, machineConfigs, kcp))(machine) {
+			shouldRollout = true
+		}
+		return shouldRollout
+	}
 }
 
 // MatchesTemplateClonedFrom returns a filter to find all machines that match a given KCP infra template.
-func MatchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructured, kcp *controlplanev1.KubeadmControlPlane) collections.Func {
+func MatchesTemplateClonedFrom(ctx context.Context, infraConfigs map[string]*unstructured.Unstructured, kcp *controlplanev1.KubeadmControlPlane) collections.Func {
 	return func(machine *clusterv1.Machine) bool {
+		log := ctrl.LoggerFrom(ctx)
 		if machine == nil {
+			log.Info("Detected diff: MatchesTemplateClonedFrom: Machine is nil")
 			return false
 		}
+
 		infraObj, found := infraConfigs[machine.Name]
 		if !found {
 			// Return true here because failing to get infrastructure machine should not be considered as unmatching.
@@ -79,11 +118,15 @@ func MatchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructure
 		// Check if the machine's infrastructure reference has been created from the current KCP infrastructure template.
 		if clonedFromName != kcp.Spec.MachineTemplate.InfrastructureRef.Name ||
 			clonedFromGroupKind != kcp.Spec.MachineTemplate.InfrastructureRef.GroupVersionKind().GroupKind().String() {
+			log.Info(fmt.Sprintf("Detected diff: MatchesTemplateClonedFrom: InfrastructureRef has changed: InfraMachine: %s %s KCP machine template %s %s",
+				clonedFromGroupKind, clonedFromName,
+				kcp.Spec.MachineTemplate.InfrastructureRef.GroupVersionKind().GroupKind().String(), kcp.Spec.MachineTemplate.InfrastructureRef.Name))
 			return false
 		}
 
 		// Check if the machine template metadata matches with the infrastructure object.
-		if !matchMachineTemplateMetadata(kcp, infraObj) {
+		if !matchMachineTemplateMetadata(ctx, kcp, infraObj) {
+			log.Info("Detected diff: MatchesTemplateClonedFrom: InfraMachine metadata does not match")
 			return false
 		}
 		return true
@@ -91,14 +134,18 @@ func MatchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructure
 }
 
 // MatchesKubeadmBootstrapConfig checks if machine's KubeadmConfigSpec is equivalent with KCP's KubeadmConfigSpec.
-func MatchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) collections.Func {
+func MatchesKubeadmBootstrapConfig(ctx context.Context, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) collections.Func {
 	return func(machine *clusterv1.Machine) bool {
+		log := ctrl.LoggerFrom(ctx)
+
 		if machine == nil {
+			log.Info("Detected diff: MatchesKubeadmBootstrapConfig: Machine is nil")
 			return false
 		}
 
 		// Check if KCP and machine ClusterConfiguration matches, if not return
 		if match := matchClusterConfiguration(kcp, machine); !match {
+			log.Info("Detected diff: MatchesKubeadmBootstrapConfig: ClusterConfiguration does not match")
 			return false
 		}
 
@@ -117,14 +164,20 @@ func MatchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.Kubead
 		}
 
 		// Check if the machine template metadata matches with the infrastructure object.
-		if !matchMachineTemplateMetadata(kcp, machineConfig) {
+		if !matchMachineTemplateMetadata(ctx, kcp, machineConfig) {
+			log.Info("Detected diff: MatchesKubeadmBootstrapConfig: KubeadmConfig metadata does not match")
 			return false
 		}
 
 		// Check if KCP and machine InitConfiguration or JoinConfiguration matches
 		// NOTE: only one between init configuration and join configuration is set on a machine, depending
 		// on the fact that the machine was the initial control plane node or a joining control plane node.
-		return matchInitOrJoinConfiguration(machineConfig, kcp)
+		if !matchInitOrJoinConfiguration(machineConfig, kcp) {
+			log.Info("Detected diff: MatchesKubeadmBootstrapConfig: init or joinConfiguration do not match")
+			return false
+		}
+
+		return true
 	}
 }
 
@@ -258,12 +311,16 @@ func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig
 
 // matchMachineTemplateMetadata matches the machine template object meta information,
 // specifically annotations and labels, against an object.
-func matchMachineTemplateMetadata(kcp *controlplanev1.KubeadmControlPlane, obj client.Object) bool {
+func matchMachineTemplateMetadata(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, obj client.Object) bool {
+	log := ctrl.LoggerFrom(ctx)
+
 	// Check if annotations and labels match.
 	if !isSubsetMapOf(kcp.Spec.MachineTemplate.ObjectMeta.Annotations, obj.GetAnnotations()) {
+		log.Info(fmt.Sprintf("Detected diff: KCP machine template annotations: %q must all occur in %s %s annotations: %q", kcp.Spec.MachineTemplate.ObjectMeta.Annotations, obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), obj.GetAnnotations()))
 		return false
 	}
 	if !isSubsetMapOf(kcp.Spec.MachineTemplate.ObjectMeta.Labels, obj.GetLabels()) {
+		log.Info(fmt.Sprintf("Detected diff: KCP machine template labels: %q must all occur in %s %s labels: %q", kcp.Spec.MachineTemplate.ObjectMeta.Labels, obj.GetObjectKind().GroupVersionKind().Kind, klog.KObj(obj), obj.GetLabels()))
 		return false
 	}
 	return true

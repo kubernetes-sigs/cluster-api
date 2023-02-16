@@ -128,7 +128,7 @@ type MachinePoolStatus struct {
 
 	// Conditions define the current service state of the MachinePool.
 	// +optional
-	// +Metrics:stateset:name="status_condition",help="The condition of a machinepool.",labelName="status",JSONPath={"status"},list={"True","False","Unknown"},labelsFromPath={"type":{"type"}}
+	// +Metrics:stateset:name="status_condition",help="The condition of a machinepool.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 }
 
@@ -229,16 +229,16 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 
 // MachinePool is the Schema for the machinepools API.
 // +Metrics:namePrefix="capi_machinepool"
-// +Metrics:labelFromPath:name="name",JSONPath={"metadata","name"}
-// +Metrics:labelFromPath:name="namespace",JSONPath={"metadata","namespace"}
-// +Metrics:labelFromPath:name="uid",JSONPath={"metadata","uid"}
-// +Metrics:labelFromPath:name="cluster_name",JSONPath={"spec","clusterName"}
-// +Metrics:info:name="info",help="Information about a machinepool.",labelsFromPath={bootstrap_configuration_reference_kind:{spec,template,spec,bootstrap,configRef,kind},bootstrap_configuration_reference_name:{spec,template,spec,bootstrap,configRef,name},failure_domain:{spec,template,spec,failureDomain},infrastructure_reference_kind:{spec,template,spec,infrastructureRef,kind},infrastructure_reference_name:{spec,template,spec,infrastructureRef,name},version:{spec,template,spec,version}}
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
+// +Metrics:info:name="info",help="Information about a machinepool.",labelsFromPath={bootstrap_configuration_reference_kind:.spec.template.spec.bootstrap.configRef.kind,bootstrap_configuration_reference_name:.spec.template.spec.bootstrap.configRef.name,failure_domain:.spec.template.spec.failureDomain,infrastructure_reference_kind:.spec.template.spec.infrastructureRef.kind,infrastructure_reference_name:.spec.template.spec.infrastructureRef.name,version:.spec.template.spec.version}
 type MachinePool struct {
 	metav1.TypeMeta `json:",inline"`
-	// +Metrics:gauge:name="created",JSONPath={"creationTimestamp"},help="Unix creation timestamp."
-	// +Metrics:info:name="annotation_paused",JSONPath={"annotations","cluster.x-k8s.io/paused"},help="Whether the machinepool is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:{}}
-	// +Metrics:info:name="owner",JSONPath={"ownerReferences"},help="Owner references.",labelsFromPath={owner_is_controller:{controller},owner_kind:{kind},owner_name:{name},owner_uid:{uid}}
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the machinepool is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   MachinePoolSpec   `json:"spec,omitempty"`

@@ -142,7 +142,7 @@ type MachineSpec struct {
 type MachineStatus struct {
 	// NodeRef will point to the corresponding Node if it exists.
 	// +optional
-	// +Metrics:info:name="status_noderef",help="Information about the node reference of a machine.",labelsFromPath={node_name:{"name"},node_uid:{"uid"}}
+	// +Metrics:info:name="status_noderef",help="Information about the node reference of a machine.",labelsFromPath={node_name:".name",node_uid:".uid"}
 	NodeRef *corev1.ObjectReference `json:"nodeRef,omitempty"`
 
 	// NodeInfo is a set of ids/uuids to uniquely identify the node.
@@ -195,7 +195,7 @@ type MachineStatus struct {
 	// Addresses is a list of addresses assigned to the machine.
 	// This field is copied from the infrastructure provider reference.
 	// +optional
-	// +Metrics:info:name="addresses",help="Address information about a machine.",labelsFromPath={address:{address},type:{type}}
+	// +Metrics:info:name="addresses",help="Address information about a machine.",labelsFromPath={address:".address",type:".type"}
 	Addresses MachineAddresses `json:"addresses,omitempty"`
 
 	// Phase represents the current phase of machine actuation.
@@ -223,7 +223,7 @@ type MachineStatus struct {
 
 	// Conditions defines current service state of the Machine.
 	// +optional
-	// +Metrics:stateset:name="status_condition",help="The condition of a machine.",labelName="status",JSONPath={"status"},list={"True","False","Unknown"},labelsFromPath={"type":{"type"}}
+	// +Metrics:stateset:name="status_condition",help="The condition of a machine.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
 	Conditions Conditions `json:"conditions,omitempty"`
 }
 
@@ -284,16 +284,16 @@ type Bootstrap struct {
 
 // Machine is the Schema for the machines API.
 // +Metrics:namePrefix="capi_machine"
-// +Metrics:labelFromPath:name="name",JSONPath={"metadata","name"}
-// +Metrics:labelFromPath:name="namespace",JSONPath={"metadata","namespace"}
-// +Metrics:labelFromPath:name="uid",JSONPath={"metadata","uid"}
-// +Metrics:labelFromPath:name="cluster_name",JSONPath={"spec","clusterName"}
-// +Metrics:info:name="info",help="Information about a machine.",labelsFromPath={container_runtime_version:{status,nodeInfo,containerRuntimeVersion},failure_domain:{spec,failureDomain},kernel_version:{status,nodeInfo,kernelVersion},kube_proxy_version:{status,nodeInfo,kubeProxyVersion},kubelet_version:{status,nodeInfo,kubeletVersion},os_image:{status,nodeInfo,osImage},provider_id:{spec,providerID},version:{spec,version}}
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
+// +Metrics:info:name="info",help="Information about a machine.",labelsFromPath={container_runtime_version:.status.nodeInfo.containerRuntimeVersion,failure_domain:.spec.failureDomain,kernel_version:.status.nodeInfo.kernelVersion,kube_proxy_version:.status.nodeInfo.kubeProxyVersion,kubelet_version:.status.nodeInfo.kubeletVersion,os_image:.status.nodeInfo.osImage,provider_id:.spec.providerID,version:.spec.version}
 type Machine struct {
 	metav1.TypeMeta `json:",inline"`
-	// +Metrics:gauge:name="created",JSONPath={"creationTimestamp"},help="Unix creation timestamp."
-	// +Metrics:info:name="annotation_paused",JSONPath={"annotations","cluster.x-k8s.io/paused"},help="Whether the machine is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:{}}
-	// +Metrics:info:name="owner",JSONPath={"ownerReferences"},help="Owner references.",labelsFromPath={owner_is_controller:{controller},owner_kind:{kind},owner_name:{name},owner_uid:{uid}}
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the machine is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   MachineSpec   `json:"spec,omitempty"`

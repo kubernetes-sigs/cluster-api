@@ -135,7 +135,7 @@ type MachineHealthCheckStatus struct {
 
 	// Conditions defines current service state of the MachineHealthCheck.
 	// +optional
-	// +Metrics:stateset:name="status_condition",help="The condition of a machinehealthcheck.",labelName="status",JSONPath={"status"},list={"True","False","Unknown"},labelsFromPath={"type":{"type"}}
+	// +Metrics:stateset:name="status_condition",help="The condition of a machinehealthcheck.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
 	Conditions Conditions `json:"conditions,omitempty"`
 }
 
@@ -153,15 +153,15 @@ type MachineHealthCheckStatus struct {
 
 // MachineHealthCheck is the Schema for the machinehealthchecks API.
 // +Metrics:namePrefix="capi_machinehealthcheck"
-// +Metrics:labelFromPath:name="name",JSONPath={"metadata","name"}
-// +Metrics:labelFromPath:name="namespace",JSONPath={"metadata","namespace"}
-// +Metrics:labelFromPath:name="uid",JSONPath={"metadata","uid"}
-// +Metrics:labelFromPath:name="cluster_name",JSONPath={"spec","clusterName"}
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
 type MachineHealthCheck struct {
 	metav1.TypeMeta `json:",inline"`
-	// +Metrics:gauge:name="created",JSONPath={"creationTimestamp"},help="Unix creation timestamp."
-	// +Metrics:info:name="annotation_paused",JSONPath={"annotations","cluster.x-k8s.io/paused"},help="Whether the machinehealthcheck is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:{}}
-	// +Metrics:info:name="owner",JSONPath={"ownerReferences"},help="Owner references.",labelsFromPath={owner_is_controller:{controller},owner_kind:{kind},owner_name:{name},owner_uid:{uid}}
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the machinehealthcheck is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Specification of machine health check policy

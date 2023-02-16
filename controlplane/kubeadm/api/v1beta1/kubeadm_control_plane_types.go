@@ -298,7 +298,7 @@ type KubeadmControlPlaneStatus struct {
 
 	// Conditions defines current service state of the KubeadmControlPlane.
 	// +optional
-	// +Metrics:stateset:name="status_condition",help="The condition of a kubeadmcontrolplane.",labelName="status",JSONPath={"status"},list={"True","False","Unknown"},labelsFromPath={"type":{"type"}}
+	// +Metrics:stateset:name="status_condition",help="The condition of a kubeadmcontrolplane.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
 	// LastRemediation stores info about last remediation performed.
@@ -339,16 +339,16 @@ type LastRemediationStatus struct {
 
 // KubeadmControlPlane is the Schema for the KubeadmControlPlane API.
 // +Metrics:namePrefix="capi_kubeadmcontrolplane"
-// +Metrics:labelFromPath:name="cluster_name",JSONPath={metadata,ownerReferences,[kind=Cluster],name}
-// +Metrics:labelFromPath:name="name",JSONPath={metadata,name}
-// +Metrics:labelFromPath:name="namespace",JSONPath={metadata,namespace}
-// +Metrics:labelFromPath:name="uid",JSONPath={metadata,uid}
-// +Metrics:info:name="info",help="Information about a kubeadmcontrolplane.",labelsFromPath={version:{"spec","version"}}
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=.metadata.ownerReferences.\[kind=Cluster\].name
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:info:name="info",help="Information about a kubeadmcontrolplane.",labelsFromPath={version:".spec.version"}
 type KubeadmControlPlane struct {
 	metav1.TypeMeta `json:",inline"`
-	// +Metrics:info:name="annotation_paused",JSONPath={"annotations","cluster.x-k8s.io/paused"},help="Whether the kubeadmcontrolplane is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:{}}
-	// +Metrics:gauge:name="created",JSONPath={"creationTimestamp"},help="Unix creation timestamp."
-	// +Metrics:info:name="owner",JSONPath={"ownerReferences"},help="Owner references.",labelsFromPath={owner_is_controller:{controller},owner_kind:{kind},owner_name:{name},owner_uid:{uid}}
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the kubeadmcontrolplane is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   KubeadmControlPlaneSpec   `json:"spec,omitempty"`

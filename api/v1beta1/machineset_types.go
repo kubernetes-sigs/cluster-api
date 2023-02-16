@@ -175,7 +175,7 @@ type MachineSetStatus struct {
 	FailureMessage *string `json:"failureMessage,omitempty"`
 	// Conditions defines current service state of the MachineSet.
 	// +optional
-	// +Metrics:stateset:name="status_condition",help="The condition of a machineset.",labelName="status",JSONPath={"status"},list={"True","False","Unknown"},labelsFromPath={"type":{"type"}}
+	// +Metrics:stateset:name="status_condition",help="The condition of a machineset.",labelName="status",JSONPath=".status",list={"True","False","Unknown"},labelsFromPath={"type":".type"}
 	Conditions Conditions `json:"conditions,omitempty"`
 }
 
@@ -219,15 +219,15 @@ func (m *MachineSet) Validate() field.ErrorList {
 
 // MachineSet is the Schema for the machinesets API.
 // +Metrics:namePrefix="capi_machineset"
-// +Metrics:labelFromPath:name="name",JSONPath={"metadata","name"}
-// +Metrics:labelFromPath:name="namespace",JSONPath={"metadata","namespace"}
-// +Metrics:labelFromPath:name="uid",JSONPath={"metadata","uid"}
-// +Metrics:labelFromPath:name="cluster_name",JSONPath={"spec","clusterName"}
+// +Metrics:labelFromPath:name="name",JSONPath=".metadata.name"
+// +Metrics:labelFromPath:name="namespace",JSONPath=".metadata.namespace"
+// +Metrics:labelFromPath:name="uid",JSONPath=".metadata.uid"
+// +Metrics:labelFromPath:name="cluster_name",JSONPath=".spec.clusterName"
 type MachineSet struct {
 	metav1.TypeMeta `json:",inline"`
-	// +Metrics:gauge:name="created",JSONPath={"creationTimestamp"},help="Unix creation timestamp."
-	// +Metrics:info:name="annotation_paused",JSONPath={"annotations","cluster.x-k8s.io/paused"},help="Whether the machineset is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:{}}
-	// +Metrics:info:name="owner",JSONPath={"ownerReferences"},help="Owner references.",labelsFromPath={owner_is_controller:{controller},owner_kind:{kind},owner_name:{name},owner_uid:{uid}}
+	// +Metrics:gauge:name="created",JSONPath=".creationTimestamp",help="Unix creation timestamp."
+	// +Metrics:info:name="annotation_paused",JSONPath=.annotations['cluster\.x-k8s\.io/paused'],help="Whether the machineset is paused and any of its resources will not be processed by the controllers.",labelsFromPath={paused_value:"."}
+	// +Metrics:info:name="owner",JSONPath=".ownerReferences",help="Owner references.",labelsFromPath={owner_is_controller:".controller",owner_kind:".kind",owner_name:".name",owner_uid:".uid"}
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Spec   MachineSetSpec   `json:"spec,omitempty"`

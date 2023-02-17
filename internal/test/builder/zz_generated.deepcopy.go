@@ -148,6 +148,13 @@ func (in *ClusterClassBuilder) DeepCopyInto(out *ClusterClassBuilder) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.statusVariables != nil {
+		in, out := &in.statusVariables, &out.statusVariables
+		*out = make([]v1beta1.ClusterClassStatusVariable, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.patches != nil {
 		in, out := &in.patches, &out.patches
 		*out = make([]v1beta1.ClusterClassPatch, len(*in))

@@ -10,6 +10,14 @@ metadata:
   name: my-cluster-class
   namespace: default
 spec:
+  variables:
+    - name: imageRepository
+      required: true
+      schema:
+        openAPIV3Schema:
+          type: string
+          default: "registry.k8s.io"
+          example: "registry.k8s.io"
   controlPlane:
     ref:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta1

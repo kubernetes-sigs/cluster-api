@@ -131,6 +131,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 }
 
 func (r *Reconciler) reconcile(ctx context.Context, clusterClass *clusterv1.ClusterClass) (ctrl.Result, error) {
+	if err := r.reconcileVariables(ctx, clusterClass); err != nil {
+		return ctrl.Result{}, err
+	}
+	outdatedRefs, err := r.reconcileExternalReferences(ctx, clusterClass)
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	reconcileConditions(clusterClass, outdatedRefs)
+
+	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) reconcileExternalReferences(ctx context.Context, clusterClass *clusterv1.ClusterClass) (map[*corev1.ObjectReference]*corev1.ObjectReference, error) {
 	// Collect all the reference from the ClusterClass to templates.
 	refs := []*corev1.ObjectReference{}
 
@@ -192,28 +206,19 @@ func (r *Reconciler) reconcile(ctx context.Context, clusterClass *clusterv1.Clus
 		}
 	}
 	if len(errs) > 0 {
-		return ctrl.Result{}, kerrors.NewAggregate(errs)
+		return nil, kerrors.NewAggregate(errs)
 	}
-
-	// Reconcile variables
-	if err := r.reconcileVariables(ctx, clusterClass); err != nil {
-		return ctrl.Result{}, err
-	}
-
-	reconcileConditions(clusterClass, outdatedRefs)
-
-	return ctrl.Result{}, nil
+	return outdatedRefs, nil
 }
 
 func (r *Reconciler) reconcileVariables(ctx context.Context, clusterClass *clusterv1.ClusterClass) error {
 	errs := []error{}
 	uniqueVars := map[string]bool{}
-
+	allVars := []clusterv1.ClusterClassStatusVariable{}
 	// Add inline variable definitions to the ClusterClass status.
-	clusterClass.Status.Variables = []clusterv1.ClusterClassStatusVariable{}
 	for _, variable := range clusterClass.Spec.Variables {
 		uniqueVars[variable.Name] = true
-		clusterClass.Status.Variables = append(clusterClass.Status.Variables, statusVariableFromClusterClassVariable(variable, clusterv1.VariableDefinitionFromInline))
+		allVars = append(allVars, statusVariableFromClusterClassVariable(variable, clusterv1.VariableDefinitionFromInline))
 	}
 
 	// If RuntimeSDK is enabled call the DiscoverVariables hook for all associated Runtime Extensions and add the variables
@@ -244,14 +249,19 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, clusterClass *clust
 						continue
 					}
 					uniqueVars[variable.Name] = true
-					clusterClass.Status.Variables = append(clusterClass.Status.Variables, statusVariableFromClusterClassVariable(variable, patch.Name))
+					allVars = append(allVars, statusVariableFromClusterClassVariable(variable, patch.Name))
 				}
 			}
 		}
 	}
 	if len(errs) > 0 {
+		// TODO: Decide whether to remove old variables if discovery fails.
+		conditions.MarkFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition, clusterv1.VariableDiscoveryFailedReason, clusterv1.ConditionSeverityError,
+			"VariableDiscovery failed: %s", kerrors.NewAggregate(errs))
 		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to discover variables for ClusterClass %s", clusterClass.Name)
 	}
+	clusterClass.Status.Variables = allVars
+	conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
 	return nil
 }
 func reconcileConditions(clusterClass *clusterv1.ClusterClass, outdatedRefs map[*corev1.ObjectReference]*corev1.ObjectReference) {
@@ -302,9 +312,9 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *cluste
 	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, clusterClass.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			return errors.Wrapf(err, "Could not find external object for the cluster class. refGroupVersionKind: %s, refName: %s", ref.GroupVersionKind(), ref.Name)
+			return errors.Wrapf(err, "Could not find external object for the ClusterClass. refGroupVersionKind: %s, refName: %s", ref.GroupVersionKind(), ref.Name)
 		}
-		return errors.Wrapf(err, "failed to get the external object for the cluster class. refGroupVersionKind: %s, refName: %s", ref.GroupVersionKind(), ref.Name)
+		return errors.Wrapf(err, "failed to get the external object for the ClusterClass. refGroupVersionKind: %s, refName: %s", ref.GroupVersionKind(), ref.Name)
 	}
 
 	// If referenced object is paused, return early.
@@ -321,7 +331,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, clusterClass *cluste
 
 	// Set external object ControllerReference to the ClusterClass.
 	if err := controllerutil.SetOwnerReference(clusterClass, obj, r.Client.Scheme()); err != nil {
-		return errors.Wrapf(err, "failed to set cluster class owner reference for %s", tlog.KObj{Obj: obj})
+		return errors.Wrapf(err, "failed to set ClusterClass owner reference for %s", tlog.KObj{Obj: obj})
 	}
 
 	// Patch the external object.

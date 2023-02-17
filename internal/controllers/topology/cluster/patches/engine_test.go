@@ -54,6 +54,7 @@ func TestApply(t *testing.T) {
 	tests := []struct {
 		name                   string
 		patches                []clusterv1.ClusterClassPatch
+		varDefinitions         []clusterv1.ClusterClassStatusVariable
 		externalPatchResponses map[string]runtimehooksv1.ResponseObject
 		expectedFields         expectedFields
 		wantErr                bool
@@ -479,6 +480,109 @@ func TestApply(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "Should correctly apply variables for a given patch definitionFrom",
+			varDefinitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "default-worker-infra",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: "inline",
+						},
+					},
+				},
+				{
+					Name:                "infraCluster",
+					DefinitionsConflict: true,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: "inline",
+						},
+						{
+							From: "not-used-patch",
+						},
+					},
+				},
+			},
+			patches: []clusterv1.ClusterClassPatch{
+				{
+					Name: "fake-patch1",
+					Definitions: []clusterv1.PatchDefinition{
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Kind:       builder.GenericInfrastructureClusterTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									InfrastructureCluster: true,
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/resource",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: pointer.String("infraCluster"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.BootstrapGroupVersion.String(),
+								Kind:       builder.GenericBootstrapConfigTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+										Names: []string{"default-worker"},
+									},
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/resource",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: pointer.String("default-worker-infra"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Kind:       builder.GenericInfrastructureMachineTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+										Names: []string{"default-worker"},
+									},
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/resource",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: pointer.String("default-worker-infra"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedFields: expectedFields{
+				infrastructureCluster: map[string]interface{}{
+					"spec.resource": "value99",
+				},
+				machineDeploymentInfrastructureMachineTemplate: map[string]map[string]interface{}{
+					"default-worker-topo1": {"spec.template.spec.resource": "value1"},
+					"default-worker-topo2": {"spec.template.spec.resource": "default-worker-topo2"},
+				},
+				machineDeploymentBootstrapTemplate: map[string]map[string]interface{}{
+					"default-worker-topo1": {"spec.template.spec.resource": "value1"},
+					"default-worker-topo2": {"spec.template.spec.resource": "default-worker-topo2"},
+				},
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -520,6 +624,10 @@ func TestApply(t *testing.T) {
 			if len(tt.patches) > 0 {
 				// Add the patches.
 				blueprint.ClusterClass.Spec.Patches = tt.patches
+			}
+			if len(tt.varDefinitions) > 0 {
+				// If there are variable definitions in the test add them to the ClusterClass.
+				blueprint.ClusterClass.Status.Variables = tt.varDefinitions
 			}
 
 			// Copy the desired objects before applying patches.
@@ -631,12 +739,40 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 				ControlPlane: clusterv1.ControlPlaneTopology{
 					Replicas: pointer.Int32(3),
 				},
+				Variables: []clusterv1.ClusterVariable{
+					{
+						Name:           "infraCluster",
+						Value:          apiextensionsv1.JSON{Raw: []byte(`"value99"`)},
+						DefinitionFrom: "inline",
+					},
+					{
+						Name: "infraCluster",
+						// This variable should not be used as it is from "non-used-patch" which is not applied in any test.
+						Value:          apiextensionsv1.JSON{Raw: []byte(`"should-never-be-used"`)},
+						DefinitionFrom: "not-used-patch",
+					},
+					{
+						Name: "default-worker-infra",
+						// This value should be overwritten for the default-worker-topo1 MachineDeployment.
+						Value:          apiextensionsv1.JSON{Raw: []byte(`"default-worker-topo2"`)},
+						DefinitionFrom: "inline",
+					},
+				},
 				Workers: &clusterv1.WorkersTopology{
 					MachineDeployments: []clusterv1.MachineDeploymentTopology{
 						{
 							Metadata: clusterv1.ObjectMeta{},
 							Class:    "default-worker",
 							Name:     "default-worker-topo1",
+							Variables: &clusterv1.MachineDeploymentVariables{
+								Overrides: []clusterv1.ClusterVariable{
+									{
+										Name:           "default-worker-infra",
+										DefinitionFrom: "inline",
+										Value:          apiextensionsv1.JSON{Raw: []byte(`"value1"`)},
+									},
+								},
+							},
 						},
 						{
 							Metadata: clusterv1.ObjectMeta{},
@@ -697,6 +833,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 		MachineDeployments: map[string]*scope.MachineDeploymentState{
 			"default-worker-topo1": {
 				Object: builder.MachineDeployment(metav1.NamespaceDefault, "md1").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyMachineDeploymentNameLabel: "default-worker-topo1"}).
 					WithVersion("v1.21.2").
 					Build(),
 				// Make sure we're using an independent instance of the template.
@@ -705,6 +842,7 @@ func setupTestObjects() (*scope.ClusterBlueprint, *scope.ClusterState) {
 			},
 			"default-worker-topo2": {
 				Object: builder.MachineDeployment(metav1.NamespaceDefault, "md2").
+					WithLabels(map[string]string{clusterv1.ClusterTopologyMachineDeploymentNameLabel: "default-worker-topo2"}).
 					WithVersion("v1.20.6").
 					WithReplicas(5).
 					Build(),

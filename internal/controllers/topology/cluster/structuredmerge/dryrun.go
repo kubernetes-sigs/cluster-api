@@ -19,8 +19,10 @@ package structuredmerge
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	jsonpatch "github.com/evanphx/json-patch/v5"
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -55,13 +57,38 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	if err := unstructured.SetNestedField(dryRunCtx.dryRunUnstructured.Object, "", "metadata", "annotations", clusterv1.TopologyDryRunAnnotation); err != nil {
 		return false, false, errors.Wrap(err, "failed to add topology dry-run annotation")
 	}
+	if err := unstructured.SetNestedField(dryRunCtx.originalUnstructured.Object, "", "metadata", "annotations", clusterv1.TopologyDryRunAnnotation); err != nil {
+		return false, false, errors.Wrap(err, "failed to add topology dry-run annotation")
+	}
 
-	// Do a server-side apply dry-run request to get the updated object.
+	beforeDryRunUnstructured := dryRunCtx.dryRunUnstructured.DeepCopy()
+	beforeOriginalUnstructured := dryRunCtx.originalUnstructured.DeepCopy()
+	testString := cmp.Diff(beforeOriginalUnstructured, beforeDryRunUnstructured)
+	fmt.Print(testString)
+
+	// Do a server-side apply dry-run request for dryRunUnstructured to get the updated object.
 	err := dryRunCtx.client.Patch(ctx, dryRunCtx.dryRunUnstructured, client.Apply, client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
 	if err != nil {
 		// This catches errors like metadata.uid changes.
 		return false, false, errors.Wrap(err, "failed to request dry-run server side apply")
 	}
+	// Do a server-side apply dry-run for originalUnstructured to get the updated object.
+	// Note: This is done to ensure that the latest defaulting logic is also applied to originalUnstructured.
+	// This is not always the case for all objects in the APIserver after a Cluster API upgrade.
+	// Note: It's fine to ignore differences introduced by new defaulting as based on API conventions
+	// these changes are not allowed to lead to a change in behavior (at least not without an API version bump).
+	err = dryRunCtx.client.Patch(ctx, dryRunCtx.originalUnstructured, client.Apply, client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
+	if err != nil {
+		// This catches errors like metadata.uid changes.
+		return false, false, errors.Wrap(err, "failed to request dry-run server side apply")
+	}
+
+	testString2 := cmp.Diff(dryRunCtx.originalUnstructured, dryRunCtx.dryRunUnstructured)
+	fmt.Print(testString2)
+	testString3 := cmp.Diff(beforeOriginalUnstructured, dryRunCtx.originalUnstructured)
+	fmt.Print(testString3)
+	testString4 := cmp.Diff(beforeDryRunUnstructured, dryRunCtx.dryRunUnstructured)
+	fmt.Print(testString4)
 
 	// Cleanup the dryRunUnstructured object to remove the added TopologyDryRunAnnotation
 	// and remove the affected managedFields for `manager=capi-topology` which would

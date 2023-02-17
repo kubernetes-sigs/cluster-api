@@ -71,6 +71,11 @@ func NewServerSidePatchHelper(ctx context.Context, original, modified client.Obj
 	// Filter the modifiedUnstructured object to only contain changes intendet to be done.
 	// The originalUnstructured object will be filtered in dryRunSSAPatch using other options.
 	filterObject(modifiedUnstructured, helperOptions)
+	if originalUnstructured != nil {
+		// We have to drop managed fields otherwise we get:
+		// * failed to request dry-run server side apply: metadata.managedFields must be nil
+		filterObject(originalUnstructured, helperOptions)
+	}
 
 	// Carry over uid to match the intent to:
 	// * create (uid==""):
@@ -95,7 +100,7 @@ func NewServerSidePatchHelper(ctx context.Context, original, modified client.Obj
 		var err error
 		hasChanges, hasSpecChanges, err = dryRunSSAPatch(ctx, &dryRunSSAPatchInput{
 			client:               c,
-			originalUnstructured: originalUnstructured,
+			originalUnstructured: originalUnstructured.DeepCopy(),
 			dryRunUnstructured:   modifiedUnstructured.DeepCopy(),
 			helperOptions:        helperOptions,
 		})

@@ -25,8 +25,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
+// These tests are run in e2e-main to ensure the bugs are fixed
 var _ = Describe("When testing clusterctl upgrades (v0.3=>current) [PR-Blocking]", func() {
-	for i := 1; i <= 10; i++ {
+	for i := 1; i <= 5; i++ {
 		Describe(strconv.Itoa(i), func() {
 			ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 				return ClusterctlUpgradeSpecInput{
@@ -47,6 +48,45 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>current) [PR-Blocking]
 			})
 		})
 	}
+})
+var _ = Describe("When testing clusterctl upgrades (v1.3=>current) [PR-Blocking]", func() {
+	for i := 1; i <= 5; i++ {
+		Describe(strconv.Itoa(i), func() {
+			ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+				return ClusterctlUpgradeSpecInput{
+					E2EConfig:                 e2eConfig,
+					ClusterctlConfigPath:      clusterctlConfigPath,
+					BootstrapClusterProxy:     bootstrapClusterProxy,
+					ArtifactFolder:            artifactFolder,
+					SkipCleanup:               skipCleanup,
+					InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.0/clusterctl-{OS}-{ARCH}",
+					InitWithProvidersContract: "v1beta1",
+					InitWithKubernetesVersion: "v1.26.0",
+				}
+			})
+		})
+	}
+})
+
+// Everything else is run in e2e-full-main.
+var _ = Describe("When testing clusterctl upgrades (v0.3=>current)", func() {
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:                 e2eConfig,
+			ClusterctlConfigPath:      clusterctlConfigPath,
+			BootstrapClusterProxy:     bootstrapClusterProxy,
+			ArtifactFolder:            artifactFolder,
+			SkipCleanup:               skipCleanup,
+			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/clusterctl-{OS}-{ARCH}",
+			InitWithProvidersContract: "v1alpha3",
+			// CAPI v0.3.x does not work on Kubernetes >= v1.22.
+			InitWithKubernetesVersion: "v1.21.12",
+			// CAPI does not work with Kubernetes < v1.22 if ClusterClass is enabled, so we have to disable it.
+			UpgradeClusterctlVariables: map[string]string{
+				"CLUSTER_TOPOLOGY": "false",
+			},
+		}
+	})
 })
 
 var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {

@@ -29,6 +29,7 @@ import (
 
 	// +kubebuilder:scaffold:imports
 	"github.com/spf13/pflag"
+	"go.uber.org/zap/zapcore"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,6 +38,7 @@ import (
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
+	logsjson "k8s.io/component-base/logs/json"
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -215,6 +217,21 @@ func main() {
 	if err := logsv1.ValidateAndApply(logOptions, nil); err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
+	}
+
+	if logOptions.Format == logsv1.JSONLogFormat {
+		log, flush := logsjson.NewJSONLogger(logOptions.Verbosity, zapcore.Lock(logsjson.AddNopSync(os.Stderr)), nil, &zapcore.EncoderConfig{
+			MessageKey: "msg",
+			CallerKey:  "caller",
+			NameKey:    "logger",
+			TimeKey:    "ts",
+			EncodeTime: func(_ time.Time, enc zapcore.PrimitiveArrayEncoder) {
+				enc.AppendString(time.Now().Format("15:04:05.999Z07"))
+			},
+			EncodeDuration: zapcore.StringDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		})
+		klog.SetLoggerWithOptions(log, klog.ContextualLogger(false), klog.FlushLogger(flush))
 	}
 
 	// klog.Background will automatically use the right logger.

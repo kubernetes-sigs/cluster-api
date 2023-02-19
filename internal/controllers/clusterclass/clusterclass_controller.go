@@ -91,6 +91,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Result, reterr error) {
 	log := ctrl.LoggerFrom(ctx)
+	log.Info("Reconciling")
 
 	clusterClass := &clusterv1.ClusterClass{}
 	if err := r.Client.Get(ctx, req.NamespacedName, clusterClass); err != nil {

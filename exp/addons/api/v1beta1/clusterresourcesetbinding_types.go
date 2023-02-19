@@ -58,14 +58,18 @@ type ResourceSetBinding struct {
 
 // IsApplied returns true if the resource is applied to the cluster by checking the cluster's binding.
 func (r *ResourceSetBinding) IsApplied(resourceRef ResourceRef) bool {
+	resourceBinding := r.GetResource(resourceRef)
+	return resourceBinding != nil && resourceBinding.Applied
+}
+
+// GetResource returns a ResourceBinding for a resource ref if present.
+func (r *ResourceSetBinding) GetResource(resourceRef ResourceRef) *ResourceBinding {
 	for _, resource := range r.Resources {
 		if reflect.DeepEqual(resource.ResourceRef, resourceRef) {
-			if resource.Applied {
-				return true
-			}
+			return &resource
 		}
 	}
-	return false
+	return nil
 }
 
 // SetBinding sets resourceBinding for a resource in resourceSetbinding either by updating the existing one or

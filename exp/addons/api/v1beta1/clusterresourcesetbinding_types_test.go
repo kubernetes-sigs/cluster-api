@@ -90,6 +90,66 @@ func TestIsResourceApplied(t *testing.T) {
 	}
 }
 
+func TestResourceSetBindingGetResourceBinding(t *testing.T) {
+	resourceRefApplyFailed := ResourceRef{
+		Name: "applyFailed",
+		Kind: "Secret",
+	}
+	resourceRefApplySucceeded := ResourceRef{
+		Name: "ApplySucceeded",
+		Kind: "Secret",
+	}
+	resourceRefNotExist := ResourceRef{
+		Name: "notExist",
+		Kind: "Secret",
+	}
+
+	resourceRefApplyFailedBinding := ResourceBinding{
+		ResourceRef:     resourceRefApplyFailed,
+		Applied:         false,
+		Hash:            "",
+		LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+	}
+	crsBinding := &ResourceSetBinding{
+		ClusterResourceSetName: "test-clusterResourceSet",
+		Resources: []ResourceBinding{
+			{
+				ResourceRef:     resourceRefApplySucceeded,
+				Applied:         true,
+				Hash:            "xyz",
+				LastAppliedTime: &metav1.Time{Time: time.Now().UTC()},
+			},
+			resourceRefApplyFailedBinding,
+		},
+	}
+
+	tests := []struct {
+		name               string
+		resourceSetBinding *ResourceSetBinding
+		resourceRef        ResourceRef
+		want               *ResourceBinding
+	}{
+		{
+			name:               "ResourceRef doesn't exist",
+			resourceSetBinding: crsBinding,
+			resourceRef:        resourceRefNotExist,
+			want:               nil,
+		},
+		{
+			name:               "ResourceRef exists",
+			resourceSetBinding: crsBinding,
+			resourceRef:        resourceRefApplyFailed,
+			want:               &resourceRefApplyFailedBinding,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gs := NewWithT(t)
+			gs.Expect(tt.resourceSetBinding.GetResource(tt.resourceRef)).To(Equal(tt.want))
+		})
+	}
+}
+
 func TestSetResourceBinding(t *testing.T) {
 	resourceRefApplyFailed := ResourceRef{
 		Name: "applyFailed",

@@ -21,8 +21,10 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"unicode"
 
 	"github.com/pkg/errors"
@@ -31,7 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
-	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -42,6 +44,42 @@ import (
 )
 
 var jsonListPrefix = []byte("[")
+
+// objsFromYamlData parses a collection of yaml documents into Unstructured objects.
+// The returned objects are sorted for creation priority within the objects defined
+// in the same document. The flattening of the documents preserves the original order.
+func objsFromYamlData(yamlDocs [][]byte) ([]unstructured.Unstructured, error) {
+	allObjs := []unstructured.Unstructured{}
+	for _, data := range yamlDocs {
+		isJSONList, err := isJSONList(data)
+		if err != nil {
+			return nil, err
+		}
+		objs := []unstructured.Unstructured{}
+		// If it is a json list, convert each list element to an unstructured object.
+		if isJSONList {
+			var results []map[string]interface{}
+			// Unmarshal the JSON to the interface.
+			if err = json.Unmarshal(data, &results); err == nil {
+				for i := range results {
+					var u unstructured.Unstructured
+					u.SetUnstructuredContent(results[i])
+					objs = append(objs, u)
+				}
+			}
+		} else {
+			// If it is not a json list, data is either json or yaml format.
+			objs, err = utilyaml.ToUnstructured(data)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed converting data to unstructured objects")
+			}
+		}
+
+		allObjs = append(allObjs, utilresource.SortForCreate(objs)...)
+	}
+
+	return allObjs, nil
+}
 
 // isJSONList returns whether the data is in JSON list format.
 func isJSONList(data []byte) (bool, error) {
@@ -55,56 +93,16 @@ func isJSONList(data []byte) (bool, error) {
 	return bytes.HasPrefix(trim, jsonListPrefix), nil
 }
 
-func apply(ctx context.Context, c client.Client, data []byte) error {
-	isJSONList, err := isJSONList(data)
-	if err != nil {
-		return err
-	}
-	objs := []unstructured.Unstructured{}
-	// If it is a json list, convert each list element to an unstructured object.
-	if isJSONList {
-		var results []map[string]interface{}
-		// Unmarshal the JSON to the interface.
-		if err = json.Unmarshal(data, &results); err == nil {
-			for i := range results {
-				var u unstructured.Unstructured
-				u.SetUnstructuredContent(results[i])
-				objs = append(objs, u)
-			}
-		}
-	} else {
-		// If it is not a json list, data is either json or yaml format.
-		objs, err = utilyaml.ToUnstructured(data)
-		if err != nil {
-			return errors.Wrapf(err, "failed converting data to unstructured objects")
-		}
-	}
-
-	errList := []error{}
-	sortedObjs := utilresource.SortForCreate(objs)
-	for i := range sortedObjs {
-		if err := applyUnstructured(ctx, c, &sortedObjs[i]); err != nil {
-			errList = append(errList, err)
-		}
-	}
-	return kerrors.NewAggregate(errList)
-}
-
-func applyUnstructured(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error {
-	// Create the object on the API server.
-	// TODO: Errors are only logged. If needed, exponential backoff or requeuing could be used here for remedying connection glitches etc.
+func createUnstructured(ctx context.Context, c client.Client, obj *unstructured.Unstructured) error {
 	if err := c.Create(ctx, obj); err != nil {
-		// The create call is idempotent, so if the object already exists
-		// then do not consider it to be an error.
-		if !apierrors.IsAlreadyExists(err) {
-			return errors.Wrapf(
-				err,
-				"failed to create object %s %s/%s",
-				obj.GroupVersionKind(),
-				obj.GetNamespace(),
-				obj.GetName())
-		}
+		return errors.Wrapf(
+			err,
+			"creating object %s %s",
+			obj.GroupVersionKind(),
+			klog.KObj(obj),
+		)
 	}
+
 	return nil
 }
 
@@ -195,4 +193,44 @@ func computeHash(dataArr [][]byte) string {
 		}
 	}
 	return fmt.Sprintf("sha256:%x", hash.Sum(nil))
+}
+
+// normalizeData reads content of the resource (configmap or secret) and returns
+// them serialized with constant order. Secret's data is base64 decoded.
+// This is useful to achieve consistent data  between runs, since the content
+// of the data field is a map and its order is non-deterministic.
+func normalizeData(resource *unstructured.Unstructured) ([][]byte, error) {
+	// Since maps are not ordered, we need to order them to get the same hash at each reconcile.
+	keys := make([]string, 0)
+	data, ok := resource.UnstructuredContent()["data"]
+	if !ok {
+		return nil, errors.Errorf("failed to get data field from resource %s", klog.KObj(resource))
+	}
+
+	unstructuredData := data.(map[string]interface{})
+	for key := range unstructuredData {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	dataList := make([][]byte, 0)
+	for _, key := range keys {
+		val, ok, err := unstructured.NestedString(unstructuredData, key)
+		if err != nil {
+			return nil, errors.Wrapf(err, "getting value for field %s in data from resource %s", key, klog.KObj(resource))
+		}
+		if !ok {
+			return nil, errors.Errorf("value for field %s not present in data from resource %s", key, klog.KObj(resource))
+		}
+
+		byteArr := []byte(val)
+		// If the resource is a Secret, data needs to be decoded.
+		if resource.GetKind() == string(addonsv1.SecretClusterResourceSetResourceKind) {
+			byteArr, _ = base64.StdEncoding.DecodeString(val)
+		}
+
+		dataList = append(dataList, byteArr)
+	}
+
+	return dataList, nil
 }

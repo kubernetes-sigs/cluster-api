@@ -116,7 +116,7 @@ func Parse(input ParseInput) (*ParseOutput, error) {
 	for {
 		u := &unstructured.Unstructured{}
 		_, gvk, err := decoder.Decode(nil, u)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if runtime.IsNotRegisteredError(err) {
@@ -204,7 +204,7 @@ func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 		// Read one YAML document at a time, until io.EOF is returned
 		b, err := reader.Read()
 		if err != nil {
-			if err == io.EOF {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return nil, errors.Wrapf(err, "failed to read yaml")

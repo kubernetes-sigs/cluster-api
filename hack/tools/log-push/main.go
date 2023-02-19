@@ -192,7 +192,7 @@ func getLogsFromGCS(ctx context.Context, logPath string, logFileRegex *regexp.Re
 		attrs, err := it.Next()
 		if err != nil {
 			// Break if there are no other files.
-			if err == iterator.Done {
+			if errors.Is(err, iterator.Done) {
 				break
 			}
 			return nil, errors.Wrapf(err, "failed to get logs from GCS: failed to get next file")

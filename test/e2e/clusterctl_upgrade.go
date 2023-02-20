@@ -446,7 +446,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		// TODO(sbueringer) Only run this test for non-ClusterClass Clusters.
 		// Currently the Cluster topology controller triggers a rollout after upgrade.
 		// We are actively working on fixing it.
-		if workloadCluster.Spec.Topology != nil {
+		if workloadCluster.Spec.Topology == nil {
 			// After the upgrade check that there were no unexpected rollouts.
 			log.Logf("Verify there are no unexpected rollouts")
 			Consistently(func() bool {

@@ -18,6 +18,7 @@ package clusterclass
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -117,6 +118,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 
 	defer func() {
+		dumpClusterClass(clusterClass, "defer func")
 		// Patch ObservedGeneration only if the reconciliation completed successfully
 		patchOpts := []patch.Option{}
 		if reterr == nil {
@@ -131,15 +133,20 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 }
 
 func (r *Reconciler) reconcile(ctx context.Context, clusterClass *clusterv1.ClusterClass) (ctrl.Result, error) {
+	dumpClusterClass(clusterClass, "begin reconcile")
 	if err := r.reconcileVariables(ctx, clusterClass); err != nil {
 		return ctrl.Result{}, err
 	}
+	dumpClusterClass(clusterClass, "after reconcileVariables")
 	outdatedRefs, err := r.reconcileExternalReferences(ctx, clusterClass)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	dumpClusterClass(clusterClass, "after reconcileExternalReferences")
 
 	reconcileConditions(clusterClass, outdatedRefs)
+
+	dumpClusterClass(clusterClass, "after reconcileConditions")
 
 	return ctrl.Result{}, nil
 }
@@ -221,6 +228,8 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, clusterClass *clust
 		allVars = append(allVars, statusVariableFromClusterClassVariable(variable, clusterv1.VariableDefinitionFromInline))
 	}
 
+	dumpClusterClass(clusterClass, "after reconcileVariables:inline variables")
+
 	// If RuntimeSDK is enabled call the DiscoverVariables hook for all associated Runtime Extensions and add the variables
 	// to the ClusterClass status.
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
@@ -254,14 +263,20 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, clusterClass *clust
 			}
 		}
 	}
+
+	dumpClusterClass(clusterClass, "after reconcileVariables:external variables")
+
 	if len(errs) > 0 {
+		dumpClusterClass(clusterClass, "after reconcileVariables:err")
 		// TODO: Decide whether to remove old variables if discovery fails.
 		conditions.MarkFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition, clusterv1.VariableDiscoveryFailedReason, clusterv1.ConditionSeverityError,
 			"VariableDiscovery failed: %s", kerrors.NewAggregate(errs))
 		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to discover variables for ClusterClass %s", clusterClass.Name)
 	}
+	dumpClusterClass(clusterClass, "after reconcileVariables: no err")
 	clusterClass.Status.Variables = allVars
 	conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
+	dumpClusterClass(clusterClass, "after reconcileVariables: no err end")
 	return nil
 }
 func reconcileConditions(clusterClass *clusterv1.ClusterClass, outdatedRefs map[*corev1.ObjectReference]*corev1.ObjectReference) {
@@ -279,6 +294,7 @@ func reconcileConditions(clusterClass *clusterv1.ClusterClass, outdatedRefs map[
 				strings.Join(msg, ", "),
 			),
 		)
+		dumpClusterClass(clusterClass, "after reconcileConditions:outdatedrefs")
 		return
 	}
 
@@ -286,6 +302,7 @@ func reconcileConditions(clusterClass *clusterv1.ClusterClass, outdatedRefs map[
 		clusterClass,
 		conditions.TrueCondition(clusterv1.ClusterClassRefVersionsUpToDateCondition),
 	)
+	dumpClusterClass(clusterClass, "after reconcileConditions:noerr")
 }
 
 func statusVariableFromClusterClassVariable(variable clusterv1.ClusterClassVariable, from string) clusterv1.ClusterClassStatusVariable {
@@ -395,4 +412,12 @@ func matchNamespace(ctx context.Context, c client.Client, selector labels.Select
 		return false
 	}
 	return selector.Matches(labels.Set(ns.GetLabels()))
+}
+
+func dumpClusterClass(clusterClass *clusterv1.ClusterClass, suffix string) {
+	ccJSON, err := json.Marshal(clusterClass)
+	if err != nil {
+		fmt.Printf("Debug:CC-controller:%s unexpected err:\n%v\n", suffix, err)
+	}
+	fmt.Printf("Debug:CC-controller:%s\n%v\n", suffix, string(ccJSON))
 }

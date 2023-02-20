@@ -20,9 +20,61 @@ limitations under the License.
 package e2e
 
 import (
+	"strconv"
+
 	. "github.com/onsi/ginkgo/v2"
 )
 
+// These tests are run in e2e-main to ensure the bugs are fixed.
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.2=>current) [ClusterClass] [PR-Blocking]", func() {
+	for i := 1; i <= 5; i++ {
+		Describe(strconv.Itoa(i), func() {
+			ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+				return ClusterctlUpgradeSpecInput{
+					E2EConfig:             e2eConfig,
+					ClusterctlConfigPath:  clusterctlConfigPath,
+					BootstrapClusterProxy: bootstrapClusterProxy,
+					ArtifactFolder:        artifactFolder,
+					SkipCleanup:           skipCleanup,
+					InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.7/clusterctl-{OS}-{ARCH}",
+					// We have to pin the providers because with `InitWithProvidersContract` the test would
+					// use the latest version for the contract (which is v1.3.0 for v1beta1).
+					InitWithCoreProvider:            "cluster-api:v1.2.8",
+					InitWithBootstrapProviders:      []string{"kubeadm:v1.2.8"},
+					InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.8"},
+					InitWithInfrastructureProviders: []string{"docker:v1.2.8"},
+					// We have to set this to an empty array as clusterctl v1.2 doesn't support
+					// runtime extension providers. If we don't do this the test will automatically
+					// try to deploy the latest version of our test-extension from docker.yaml.
+					InitWithRuntimeExtensionProviders: []string{},
+					InitWithKubernetesVersion:         "v1.26.0",
+					WorkloadFlavor:                    "topology",
+				}
+			})
+		})
+	}
+})
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>current) [ClusterClass] [PR-Blocking]", func() {
+	for i := 1; i <= 5; i++ {
+		Describe(strconv.Itoa(i), func() {
+			ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+				return ClusterctlUpgradeSpecInput{
+					E2EConfig:                 e2eConfig,
+					ClusterctlConfigPath:      clusterctlConfigPath,
+					BootstrapClusterProxy:     bootstrapClusterProxy,
+					ArtifactFolder:            artifactFolder,
+					SkipCleanup:               skipCleanup,
+					InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.0/clusterctl-{OS}-{ARCH}",
+					InitWithProvidersContract: "v1beta1",
+					InitWithKubernetesVersion: "v1.26.0",
+					WorkloadFlavor:            "topology",
+				}
+			})
+		})
+	}
+})
+
+// Everything else is run in e2e-full-main.
 var _ = Describe("When testing clusterctl upgrades (v0.3=>current)", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{

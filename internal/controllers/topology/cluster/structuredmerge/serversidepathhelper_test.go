@@ -267,7 +267,7 @@ func TestServerSideApply(t *testing.T) {
 		original := obj.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
 
-		// Create a patch helper for a modified object with no changes to what previously applied by th topology manager.
+		// Create a patch helper for a modified object with no changes to what previously applied by the topology manager.
 		modified := obj.DeepCopy()
 
 		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), IgnorePaths{{"spec", "foo"}})
@@ -313,7 +313,7 @@ func TestServerSideApply(t *testing.T) {
 		original := obj.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
 
-		// Create a patch helper for a modified object with some changes to what previously applied by th topology manager.
+		// Create a patch helper for a modified object with some changes to what previously applied by the topology manager.
 		modified := obj.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "controlPlaneEndpoint", "host")).To(Succeed())
 
@@ -350,38 +350,18 @@ func TestServerSideApply(t *testing.T) {
 		original := obj.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
 
-		// Create a patch helper for a modified object with some changes to what previously applied by th topology manager.
+		// Create a patch helper for a modified object with no changed values to what was previously applied by the topology manager.
+		// .spec.controlPlaneEndpoint.host is already "changed" and owned by "capi-topology"
+		// .spec.bar is already "changed" but owned by "___TestServerSideApply_in_sigs_k8s_io_cluster_api_..."
 		modified := obj.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "controlPlaneEndpoint", "host")).To(Succeed())
 		g.Expect(unstructured.SetNestedField(modified.Object, "changed", "spec", "bar")).To(Succeed())
 
+		// There should be no changes as the only change would be to managed fields and we don't patch in this case.
 		p0, err := NewServerSidePatchHelper(ctx, original, modified, env.GetClient(), IgnorePaths{{"spec", "foo"}})
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(p0.HasChanges()).To(BeTrue())
+		g.Expect(p0.HasChanges()).To(BeFalse())
 		g.Expect(p0.HasSpecChanges()).To(BeFalse())
-
-		// Create the object using server side apply
-		g.Expect(p0.Patch(ctx)).To(Succeed())
-
-		// Check the object and verify the change is applied as well as managed field updated accordingly.
-		got := obj.DeepCopy()
-		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(got), got)).To(Succeed())
-
-		// Check if resourceVersion did change
-		g.Expect(got.GetResourceVersion()).ToNot(Equal(original.GetResourceVersion()))
-
-		v2, _, _ := unstructured.NestedString(got.Object, "spec", "bar")
-		g.Expect(v2).To(Equal("changed"))
-
-		fieldV1 := getTopologyManagedFields(got)
-		g.Expect(fieldV1).ToNot(BeEmpty())
-		g.Expect(fieldV1).To(HaveKey("f:spec")) // topology controller should express opinions on spec.
-
-		specFieldV1 := fieldV1["f:spec"].(map[string]interface{})
-		g.Expect(specFieldV1).ToNot(BeEmpty())
-		g.Expect(specFieldV1).To(HaveKey("f:controlPlaneEndpoint")) // topology controller should express opinions on spec.controlPlaneEndpoint.
-		g.Expect(specFieldV1).ToNot(HaveKey("f:foo"))               // topology controller should not express opinions on ignore paths.
-		g.Expect(specFieldV1).To(HaveKey("f:bar"))                  // topology controller now has an opinion on a field previously managed by other controllers (force ownership).
 	})
 	t.Run("Topology controller reconcile again with an opinion on a field managed by another controller (force ownership)", func(t *testing.T) {
 		g := NewWithT(t)

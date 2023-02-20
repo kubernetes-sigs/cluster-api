@@ -605,7 +605,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	// Add ClusterTopologyMachineDeploymentLabel to the generated InfrastructureMachine template
 	infraMachineTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
 	desiredMachineDeployment.InfrastructureMachineTemplate.SetLabels(infraMachineTemplateLabels)
-	version, err := computeMachineDeploymentVersion(s, desiredControlPlaneState, currentMachineDeployment)
+	version, err := computeMachineDeploymentVersion(s, machineDeploymentTopology, desiredControlPlaneState, currentMachineDeployment)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to compute version for %s", machineDeploymentTopology.Name)
 	}
@@ -738,7 +738,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 // Nb: No MachineDeployment upgrades will be triggered while any MachineDeployment is in the middle
 // of an upgrade. Even if the number of MachineDeployments that are being upgraded is less
 // than the number of allowed concurrent upgrades.
-func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState, currentMDState *scope.MachineDeploymentState) (string, error) {
+func computeMachineDeploymentVersion(s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology, desiredControlPlaneState *scope.ControlPlaneState, currentMDState *scope.MachineDeploymentState) (string, error) {
 	desiredVersion := s.Blueprint.Topology.Version
 	// If creating a new machine deployment, we can pick up the desired version
 	// Note: We are not blocking the creation of new machine deployments when
@@ -753,6 +753,12 @@ func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *s
 	// Return early if the currentVersion is already equal to the desiredVersion
 	// no further checks required.
 	if currentVersion == desiredVersion {
+		return currentVersion, nil
+	}
+
+	// Return early if the upgrade for the MachineDeployment is deferred.
+	if isMachineDeploymentDeferred(s.Blueprint.Topology, machineDeploymentTopology) {
+		s.UpgradeTracker.MachineDeployments.MarkDeferredUpgrade(currentMDState.Object.Name)
 		return currentVersion, nil
 	}
 
@@ -835,6 +841,41 @@ func computeMachineDeploymentVersion(s *scope.Scope, desiredControlPlaneState *s
 	// Ready to pick up the topology version.
 	s.UpgradeTracker.MachineDeployments.MarkRollingOut(currentMDState.Object.Name)
 	return desiredVersion, nil
+}
+
+// isMachineDeploymentDeferred returns true if the upgrade for the mdTopology is deferred.
+// This is the case when either:
+//   - the mdTopology has the ClusterTopologyDeferUpgradeAnnotation annotation.
+//   - the mdTopology has the ClusterTopologyHoldUpgradeSequenceAnnotation annotation.
+//   - another md topology which is before mdTopology in the workers.machineDeployments list has the
+//     ClusterTopologyHoldUpgradeSequenceAnnotation annotation.
+func isMachineDeploymentDeferred(clusterTopology *clusterv1.Topology, mdTopology clusterv1.MachineDeploymentTopology) bool {
+	// If mdTopology has the ClusterTopologyDeferUpgradeAnnotation annotation => md is deferred.
+	if _, ok := mdTopology.Metadata.Annotations[clusterv1.ClusterTopologyDeferUpgradeAnnotation]; ok {
+		return true
+	}
+
+	// If mdTopology has the ClusterTopologyHoldUpgradeSequenceAnnotation annotation => md is deferred.
+	if _, ok := mdTopology.Metadata.Annotations[clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation]; ok {
+		return true
+	}
+
+	for _, md := range clusterTopology.Workers.MachineDeployments {
+		// If another md topology with the ClusterTopologyHoldUpgradeSequenceAnnotation annotation
+		// is found before the mdTopology => md is deferred.
+		if _, ok := md.Metadata.Annotations[clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation]; ok {
+			return true
+		}
+
+		// If mdTopology is found before a md topology with the ClusterTopologyHoldUpgradeSequenceAnnotation
+		// annotation => md is not deferred.
+		if md.Name == mdTopology.Name {
+			return false
+		}
+	}
+
+	// This case should be impossible as mdTopology should have been found in workers.machineDeployments.
+	return false
 }
 
 type templateToInput struct {

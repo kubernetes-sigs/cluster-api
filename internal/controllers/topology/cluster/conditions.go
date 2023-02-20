@@ -91,40 +91,52 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 		return nil
 	}
 
-	// If either the Control Plane or any of the MachineDeployments are still pending to pick up the new version (generally
-	// happens when upgrading the cluster) then the topology is not considered as fully reconciled.
-	if s.UpgradeTracker.ControlPlane.PendingUpgrade || s.UpgradeTracker.MachineDeployments.PendingUpgrade() {
+	// The topology is not considered as fully reconciled if one of the following is true:
+	// * either the Control Plane or any of the MachineDeployments are still pending to pick up the new version
+	//  (generally happens when upgrading the cluster)
+	// * when there are MachineDeployments for which the upgrade has been deferred
+	if s.UpgradeTracker.ControlPlane.PendingUpgrade ||
+		s.UpgradeTracker.MachineDeployments.PendingUpgrade() ||
+		s.UpgradeTracker.MachineDeployments.DeferredUpgrade() {
 		msgBuilder := &strings.Builder{}
 		var reason string
-		if s.UpgradeTracker.ControlPlane.PendingUpgrade {
-			msgBuilder.WriteString(fmt.Sprintf("Control plane upgrade to %s on hold. ", s.Blueprint.Topology.Version))
+
+		switch {
+		case s.UpgradeTracker.ControlPlane.PendingUpgrade:
+			msgBuilder.WriteString(fmt.Sprintf("Control plane upgrade to %s on hold.", s.Blueprint.Topology.Version))
 			reason = clusterv1.TopologyReconciledControlPlaneUpgradePendingReason
-		} else {
-			msgBuilder.WriteString(fmt.Sprintf("MachineDeployment(s) %s upgrade to version %s on hold. ",
-				strings.Join(s.UpgradeTracker.MachineDeployments.PendingUpgradeNames(), ", "),
+		case s.UpgradeTracker.MachineDeployments.PendingUpgrade():
+			msgBuilder.WriteString(fmt.Sprintf("MachineDeployment(s) %s upgrade to version %s on hold.",
+				computeMachineDeploymentNameList(s.UpgradeTracker.MachineDeployments.PendingUpgradeNames()),
 				s.Blueprint.Topology.Version,
 			))
 			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason
+		case s.UpgradeTracker.MachineDeployments.DeferredUpgrade():
+			msgBuilder.WriteString(fmt.Sprintf("MachineDeployment(s) %s upgrade to version %s deferred.",
+				computeMachineDeploymentNameList(s.UpgradeTracker.MachineDeployments.DeferredUpgradeNames()),
+				s.Blueprint.Topology.Version,
+			))
+			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredReason
 		}
 
 		switch {
 		case s.UpgradeTracker.ControlPlane.IsProvisioning:
-			msgBuilder.WriteString("Control plane is completing initial provisioning")
+			msgBuilder.WriteString(" Control plane is completing initial provisioning")
 
 		case s.UpgradeTracker.ControlPlane.IsUpgrading:
 			cpVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
 			if err != nil {
 				return errors.Wrap(err, "failed to get control plane spec version")
 			}
-			msgBuilder.WriteString(fmt.Sprintf("Control plane is upgrading to version %s", *cpVersion))
+			msgBuilder.WriteString(fmt.Sprintf(" Control plane is upgrading to version %s", *cpVersion))
 
 		case s.UpgradeTracker.ControlPlane.IsScaling:
-			msgBuilder.WriteString("Control plane is reconciling desired replicas")
+			msgBuilder.WriteString(" Control plane is reconciling desired replicas")
 
 		case s.Current.MachineDeployments.IsAnyRollingOut():
-			msgBuilder.WriteString(fmt.Sprintf("MachineDeployment(s) %s are rolling out", strings.Join(
-				s.UpgradeTracker.MachineDeployments.RolloutNames(), ", ",
-			)))
+			msgBuilder.WriteString(fmt.Sprintf(" MachineDeployment(s) %s are rolling out",
+				computeMachineDeploymentNameList(s.UpgradeTracker.MachineDeployments.RolloutNames()),
+			))
 		}
 
 		conditions.Set(
@@ -148,4 +160,14 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 	)
 
 	return nil
+}
+
+// computeMachineDeploymentNameList computes the MD name list to be shown in conditions.
+// It shortens the list to at most 5 MachineDeployment names.
+func computeMachineDeploymentNameList(mdList []string) any {
+	if len(mdList) > 5 {
+		mdList = append(mdList[:5], "...")
+	}
+
+	return strings.Join(mdList, ", ")
 }

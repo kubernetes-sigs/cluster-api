@@ -1645,6 +1645,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				s.Blueprint.Topology.ControlPlane = clusterv1.ControlPlaneTopology{
 					Replicas: pointer.Int32(2),
 				}
+				s.Blueprint.Topology.Workers = &clusterv1.WorkersTopology{}
 
 				mdsState := tt.machineDeploymentsState
 				if tt.currentMDVersion != nil {
@@ -1812,6 +1813,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 
 	tests := []struct {
 		name                          string
+		machineDeploymentTopology     clusterv1.MachineDeploymentTopology
 		currentMachineDeploymentState *scope.MachineDeploymentState
 		machineDeploymentsStateMap    scope.MachineDeploymentsStateMap
 		currentControlPlane           *unstructured.Unstructured
@@ -1825,6 +1827,22 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			machineDeploymentsStateMap:    make(scope.MachineDeploymentsStateMap),
 			topologyVersion:               "v1.2.3",
 			expectedVersion:               "v1.2.3",
+		},
+		{
+			name: "should return machine deployment's spec.template.spec.version if upgrade is deferred",
+			machineDeploymentTopology: clusterv1.MachineDeploymentTopology{
+				Metadata: clusterv1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.ClusterTopologyDeferUpgradeAnnotation: "",
+					},
+				},
+			},
+			currentMachineDeploymentState: &scope.MachineDeploymentState{Object: builder.MachineDeployment("test1", "md-current").WithVersion("v1.2.2").Build()},
+			machineDeploymentsStateMap:    machineDeploymentsStateStable,
+			currentControlPlane:           controlPlaneStable123,
+			desiredControlPlane:           controlPlaneDesired,
+			topologyVersion:               "v1.2.3",
+			expectedVersion:               "v1.2.2",
 		},
 		{
 			name:                          "should return machine deployment's spec.template.spec.version if any one of the machine deployments is rolling out",
@@ -1884,6 +1902,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 					ControlPlane: clusterv1.ControlPlaneTopology{
 						Replicas: pointer.Int32(2),
 					},
+					Workers: &clusterv1.WorkersTopology{},
 				}},
 				Current: &scope.ClusterState{
 					ControlPlane:       &scope.ControlPlaneState{Object: tt.currentControlPlane},
@@ -1892,9 +1911,92 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 				UpgradeTracker: scope.NewUpgradeTracker(),
 			}
 			desiredControlPlaneState := &scope.ControlPlaneState{Object: tt.desiredControlPlane}
-			version, err := computeMachineDeploymentVersion(s, desiredControlPlaneState, tt.currentMachineDeploymentState)
+			version, err := computeMachineDeploymentVersion(s, tt.machineDeploymentTopology, desiredControlPlaneState, tt.currentMachineDeploymentState)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(version).To(Equal(tt.expectedVersion))
+		})
+	}
+}
+
+func TestIsMachineDeploymentDeferred(t *testing.T) {
+	clusterTopology := &clusterv1.Topology{
+		Workers: &clusterv1.WorkersTopology{
+			MachineDeployments: []clusterv1.MachineDeploymentTopology{
+				{
+					Name: "md-with-defer-upgrade",
+					Metadata: clusterv1.ObjectMeta{
+						Annotations: map[string]string{
+							clusterv1.ClusterTopologyDeferUpgradeAnnotation: "",
+						},
+					},
+				},
+				{
+					Name: "md-without-annotations",
+				},
+				{
+					Name: "md-with-hold-upgrade-sequence",
+					Metadata: clusterv1.ObjectMeta{
+						Annotations: map[string]string{
+							clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation: "",
+						},
+					},
+				},
+				{
+					Name: "md-after-md-with-hold-upgrade-sequence",
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name       string
+		mdTopology clusterv1.MachineDeploymentTopology
+		deferred   bool
+	}{
+		{
+			name: "MD with defer-upgrade annotation is deferred",
+			mdTopology: clusterv1.MachineDeploymentTopology{
+				Name: "md-with-defer-upgrade",
+				Metadata: clusterv1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.ClusterTopologyDeferUpgradeAnnotation: "",
+					},
+				},
+			},
+			deferred: true,
+		},
+		{
+			name: "MD without annotations is not deferred",
+			mdTopology: clusterv1.MachineDeploymentTopology{
+				Name: "md-without-annotations",
+			},
+			deferred: false,
+		},
+		{
+			name: "MD with hold-upgrade-sequence annotation is deferred",
+			mdTopology: clusterv1.MachineDeploymentTopology{
+				Name: "md-with-hold-upgrade-sequence",
+				Metadata: clusterv1.ObjectMeta{
+					Annotations: map[string]string{
+						clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation: "",
+					},
+				},
+			},
+			deferred: true,
+		},
+		{
+			name: "MD after MD with hold-upgrade-sequence is deferred",
+			mdTopology: clusterv1.MachineDeploymentTopology{
+				Name: "md-after-md-with-hold-upgrade-sequence",
+			},
+			deferred: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(isMachineDeploymentDeferred(clusterTopology, tt.mdTopology)).To(Equal(tt.deferred))
 		})
 	}
 }

@@ -47,6 +47,7 @@ type ControlPlaneUpgradeTracker struct {
 // decisions for MachineDeployments.
 type MachineDeploymentUpgradeTracker struct {
 	pendingNames    sets.Set[string]
+	deferredNames   sets.Set[string]
 	rollingOutNames sets.Set[string]
 	holdUpgrades    bool
 }
@@ -56,6 +57,7 @@ func NewUpgradeTracker() *UpgradeTracker {
 	return &UpgradeTracker{
 		MachineDeployments: MachineDeploymentUpgradeTracker{
 			pendingNames:    sets.Set[string]{},
+			deferredNames:   sets.Set[string]{},
 			rollingOutNames: sets.Set[string]{},
 		},
 	}
@@ -114,4 +116,22 @@ func (m *MachineDeploymentUpgradeTracker) PendingUpgradeNames() []string {
 // an upgrade. Returns false, otherwise.
 func (m *MachineDeploymentUpgradeTracker) PendingUpgrade() bool {
 	return len(m.pendingNames) != 0
+}
+
+// MarkDeferredUpgrade marks that the upgrade for a MachineDeployment
+// has been deferred.
+func (m *MachineDeploymentUpgradeTracker) MarkDeferredUpgrade(name string) {
+	m.deferredNames.Insert(name)
+}
+
+// DeferredUpgradeNames returns the list of MachineDeployment names for
+// which the upgrade has been deferred.
+func (m *MachineDeploymentUpgradeTracker) DeferredUpgradeNames() []string {
+	return sets.List(m.deferredNames)
+}
+
+// DeferredUpgrade returns true if the upgrade has been deferred for any of the
+// MachineDeployments. Returns false, otherwise.
+func (m *MachineDeploymentUpgradeTracker) DeferredUpgrade() bool {
+	return len(m.deferredNames) != 0
 }

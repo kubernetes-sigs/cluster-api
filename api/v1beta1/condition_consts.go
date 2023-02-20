@@ -286,6 +286,10 @@ const (
 	// not yet completed because at least one of the MachineDeployments is not yet updated to match the desired topology spec.
 	TopologyReconciledMachineDeploymentsUpgradePendingReason = "MachineDeploymentsUpgradePending"
 
+	// TopologyReconciledMachineDeploymentsUpgradeDeferredReason (Severity=Info) documents reconciliation of a Cluster topology
+	// not yet completed because the upgrade for at least one of the MachineDeployments has been deferred.
+	TopologyReconciledMachineDeploymentsUpgradeDeferredReason = "MachineDeploymentsUpgradeDeferred"
+
 	// TopologyReconciledHookBlockingReason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the lifecycle hooks is blocking.
 	TopologyReconciledHookBlockingReason = "LifecycleHookBlocking"

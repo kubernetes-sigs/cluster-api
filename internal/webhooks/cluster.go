@@ -466,6 +466,11 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 		clusterClassStatusVariablesToVariables(clusterClass.Status.Variables),
 		field.NewPath("spec", "topology", "variables"))
 	if len(errs) > 0 {
+		ccJSON, err := json.Marshal(clusterClass)
+		if err != nil {
+			fmt.Printf("Debug: unexpected err:\n%v\n", err)
+		}
+		fmt.Printf("Debug:\n%v\n", string(ccJSON))
 		allErrs = append(allErrs, errs...)
 	} else {
 		cluster.Spec.Topology.Variables = defaultedVariables
@@ -510,13 +515,6 @@ func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *cl
 		//TODO: Update this function to directly us ClusterClassStatusVariables to take care of multiple definitions per variable name.
 		clusterClassStatusVariablesToVariables(clusterClass.Status.Variables),
 		fldPath.Child("variables"))...)
-	if true || len(allErrs) > 0 {
-		ccJSON, err := json.Marshal(clusterClass)
-		if err != nil {
-			fmt.Printf("Debug: unexpected err:\n%v\n", err)
-		}
-		fmt.Printf("Debug:\n%v\n", ccJSON)
-	}
 
 	if cluster.Spec.Topology.Workers != nil {
 		for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {

@@ -15,19 +15,28 @@ All Infrastructure Providers are maintained by independent teams. Other Bootstra
 
 ## Supported Kubernetes Versions
 
-The project aims to keep the current minor release compatible with the actively supported Kubernetes minor releases, i.e.,
-the current release (N), N-1, and N-2. Where possible we will go above and beyond this trying to help our users support
-both newer and older versions of Kubernetes:
+A Cluster API minor release supports (when it's initially created):
+* 4 Kubernetes minor releases for the management cluster (N - N-3)
+* 6 Kubernetes minor releases for the workload cluster (N - N-5)
 
-- For a given Cluster API minor release, we give best-effort support for future Kubernetes versions that are released
-	during the release's active support period. Depending on the changes made in Kubernetes, users may be required to
-	update to the next patch release of Cluster API to maintain compatibility.
-- In some cases where support for future Kubernetes versions can't be added, or is considered not practical or too risky
-	adding it, the Kubernetes version support matrix for an existing Cluster API minor release will stop at the last supported version.
-- Cluster API offers best-effort support for older Kubernetes versions where possible.
-	Important! this is not a replacement/alternative for upstream Kubernetes support policies!
-	Support for older version of Kubernetes is limited to "Cluster API can start a Cluster with this Kubernetes version"
-	and "Cluster API  can upgrade to the next Kubernetes version"; it does not include any extended support to Kubernetes itself.
+When a new Kubernetes minor release is available, we will try to support it in an upcoming Cluster API patch release
+(although only in the latest supported Cluster API minor release). But this depends on the changes made in Kubernetes, if
+the corresponding required changes in Cluster API are too invasive we won't backport the support and users have to wait 
+for the next Cluster API minor release.
+
+For example, Cluster API v1.4.0 would support the following Kubernetes versions:
+* v1.23.x to v1.26.x for the management cluster
+* v1.21.x to v1.26.x for the workload cluster
+* When Kubernetes 1.27 is released, it will be supported in v1.4.x (but not in v1.3.x)
+
+Support in this context means that we:
+* maintain corresponding code paths
+* have test coverage
+* accept bug fixes
+
+Important! This is not a replacement/alternative for upstream Kubernetes support policies!
+Support for versions of Kubernetes which itself are out of support is limited to "Cluster API can start a Cluster with this Kubernetes version"
+and "Cluster API  can upgrade to the next Kubernetes version"; it does not include any extended support to Kubernetes itself.
 
 Whenever a new Cluster API release is cut, we will document the Kubernetes version compatibility matrix the release
 has been tested with. Summaries of Kubernetes versions supported by each component are additionally maintained in
@@ -63,19 +72,19 @@ These diagrams show the relationships between components in a Cluster API releas
 
 #### Core Provider (`cluster-api-controller`)
 
-|                   | v0.3 (v1alpha3)      | v0.4 (v1alpha4)   | v1.0 (v1beta1)    | v1.1 (v1beta1)    | v1.2 (v1beta1)    | v1.3 (v1beta1)    | v1.4 (v1beta1)    |
-|-------------------|----------------------|-------------------|-------------------|-------------------|-------------------|-------------------|-------------------|
-| Kubernetes v1.16  | ✓                    |                   |                   |                   |                   |                   |                   |
-| Kubernetes v1.17  | ✓                    |                   |                   |                   |                   |                   |                   |
-| Kubernetes v1.18  | ✓                    | ✓ (only workload) | ✓ (only workload) | ✓ (only workload) | ✓ (only workload) | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.19  | ✓                    | ✓                 | ✓                 | ✓                 | ✓ (only workload) | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.20  | ✓                    | ✓                 | ✓                 | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.21  | ✓                    | ✓                 | ✓                 | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.22  | ✓ (only workload)    | ✓                 | ✓                 | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.23* |                      | ✓                 | ✓                 | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.24  |                      |                   |                   | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.25  |                      |                   |                   |                   | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.26  |                      |                   |                   |                   | ✓                 | ✓                 | ✓                 |
+|                   | v0.3 (v1alpha3) (EOL) | v0.4 (v1alpha4) (EOL) | v1.0 (v1beta1) (EOL) | v1.1 (v1beta1) (EOL) | v1.2 (v1beta1)    | v1.3 (v1beta1)    | v1.4 (v1beta1)    |
+|-------------------|-----------------------|-----------------------|----------------------|----------------------|-------------------|-------------------|-------------------|
+| Kubernetes v1.16  | ✓                     |                       |                      |                      |                   |                   |                   |
+| Kubernetes v1.17  | ✓                     |                       |                      |                      |                   |                   |                   |
+| Kubernetes v1.18  | ✓                     | ✓ (only workload)     | ✓ (only workload)    | ✓ (only workload)    | ✓ (only workload) | ✓ (only workload) |                   |
+| Kubernetes v1.19  | ✓                     | ✓                     | ✓                    | ✓                    | ✓ (only workload) | ✓ (only workload) |                   |
+| Kubernetes v1.20  | ✓                     | ✓                     | ✓                    | ✓                    | ✓                 | ✓                 |                   |
+| Kubernetes v1.21  | ✓                     | ✓                     | ✓                    | ✓                    | ✓                 | ✓                 | ✓ (only workload) |
+| Kubernetes v1.22  | ✓ (only workload)     | ✓                     | ✓                    | ✓                    | ✓                 | ✓                 | ✓ (only workload) |
+| Kubernetes v1.23* |                       | ✓                     | ✓                    | ✓                    | ✓                 | ✓                 | ✓                 |
+| Kubernetes v1.24  |                       |                       |                      | ✓                    | ✓                 | ✓                 | ✓                 |
+| Kubernetes v1.25  |                       |                       |                      |                      | ✓                 | ✓                 | ✓                 |
+| Kubernetes v1.26  |                       |                       |                      |                      | ✓                 | ✓                 | ✓                 |
 
 
 \* There is an issue with CRDs in Kubernetes v1.23.{0-2}. ClusterClass with patches is affected by that (for more details please see [this issue](https://github.com/kubernetes-sigs/cluster-api/issues/5990)). Therefore we recommend to use Kubernetes v1.23.3+ with ClusterClass.
@@ -87,37 +96,37 @@ The Core Provider also talks to API server of every Workload Cluster. Therefore,
 
 #### Kubeadm Bootstrap Provider (`kubeadm-bootstrap-controller`)
 
-|                                                                    | v0.3 (v1alpha3)      | v0.4 (v1alpha4)      | v1.0 (v1beta1)      | v1.1 (v1beta1)    | v1.2 (v1beta1)    | v1.3 (v1beta1)    | v1.4 (v1beta1)    |
-|--------------------------------------------------------------------|----------------------|----------------------|---------------------|-------------------|-------------------|-------------------|-------------------|
-| Kubernetes v1.16 + kubeadm/v1beta2                                 | ✓                    |                      |                     |                   |                   |                   |                   |
-| Kubernetes v1.17 + kubeadm/v1beta2                                 | ✓                    |                      |                     |                   |                   |                   |                   |
-| Kubernetes v1.18 + kubeadm/v1beta2                                 | ✓                    | ✓ (only workload)    | ✓ (only workload)   | ✓ (only workload) | ✓ (only workload) | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.19 + kubeadm/v1beta2                                 | ✓                    | ✓                    | ✓                   | ✓                 | ✓ (only workload) | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.20 + kubeadm/v1beta2                                 | ✓                    | ✓                    | ✓                   | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.21 + kubeadm/v1beta2                                 | ✓                    | ✓                    | ✓                   | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.22 + kubeadm/v1beta2 (v0.3) kubeadm/v1beta3 (v0.4+)  | ✓ (only workload)    | ✓                    | ✓                   | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.23 + kubeadm/v1beta3                                 |                      | ✓                    | ✓                   | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.24 + kubeadm/v1beta3                                 |                      |                      |                     | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.25 + kubeadm/v1beta3                                 |                      |                      |                     |                   | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.26 + kubeadm/v1beta3                                 |                      |                      |                     |                   | ✓                 | ✓                 | ✓                 |
+|                                                                   | v0.3 (v1alpha3) (EOL) | v0.4 (v1alpha4) (EOL) | v1.0 (v1beta1) (EOL) | v1.1 (v1beta1) (EOL) | v1.2 (v1beta1)    | v1.3 (v1beta1)    | v1.4 (v1beta1)     |
+|-------------------------------------------------------------------|-----------------------|-----------------------|----------------------|----------------------|-------------------|-------------------|--------------------|
+| Kubernetes v1.16 + kubeadm/v1beta2                                | ✓                     |                       |                      |                      |                   |                   |                    |
+| Kubernetes v1.17 + kubeadm/v1beta2                                | ✓                     |                       |                      |                      |                   |                   |                    |
+| Kubernetes v1.18 + kubeadm/v1beta2                                | ✓                     | ✓ (only workload)     | ✓ (only workload)    | ✓ (only workload)    | ✓ (only workload) | ✓ (only workload) |                    |
+| Kubernetes v1.19 + kubeadm/v1beta2                                | ✓                     | ✓                     | ✓                    | ✓                    | ✓ (only workload) | ✓ (only workload) |                    |
+| Kubernetes v1.20 + kubeadm/v1beta2                                | ✓                     | ✓                     | ✓                    | ✓                    | ✓                 | ✓                 |                    |
+| Kubernetes v1.21 + kubeadm/v1beta2                                | ✓                     | ✓                     | ✓                    | ✓                    | ✓                 | ✓                 | ✓  (only workload) |
+| Kubernetes v1.22 + kubeadm/v1beta2 (v0.3) kubeadm/v1beta3 (v0.4+) | ✓ (only workload)     | ✓                     | ✓                    | ✓                    | ✓                 | ✓                 | ✓  (only workload) |
+| Kubernetes v1.23 + kubeadm/v1beta3                                |                       | ✓                     | ✓                    | ✓                    | ✓                 | ✓                 | ✓                  |
+| Kubernetes v1.24 + kubeadm/v1beta3                                |                       |                       |                      | ✓                    | ✓                 | ✓                 | ✓                  |
+| Kubernetes v1.25 + kubeadm/v1beta3                                |                       |                       |                      |                      | ✓                 | ✓                 | ✓                  |
+| Kubernetes v1.26 + kubeadm/v1beta3                                |                       |                       |                      |                      | ✓                 | ✓                 | ✓                  |
 
 The Kubeadm Bootstrap Provider generates kubeadm configuration using the API version recommended for the target Kubernetes version.
 
 #### Kubeadm Control Plane Provider (`kubeadm-control-plane-controller`)
 
-|                            |  v0.3 (v1alpha3)     |  v0.4 (v1alpha4)     |  v1.0 (v1beta1)     | v1.1 (v1beta1)    | v1.2 (v1beta1)    | v1.3 (v1beta1)    | v1.4 (v1beta1)    |
-|----------------------------|----------------------|----------------------|---------------------|-------------------|-------------------|-------------------|-------------------|
-| Kubernetes v1.16 + etcd/v3 | ✓                    |                      |                     |                   |                   |                   |                   |
-| Kubernetes v1.17 + etcd/v3 | ✓                    |                      |                     |                   |                   |                   |                   |
-| Kubernetes v1.18 + etcd/v3 | ✓                    | ✓ (only workload)    | ✓ (only workload)   | ✓ (only workload) | ✓ (only workload) | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.19 + etcd/v3 | ✓                    | ✓                    | ✓                   | ✓                 | ✓ (only workload) | ✓ (only workload) | ✓ (only workload) |
-| Kubernetes v1.20 + etcd/v3 | ✓                    | ✓                    | ✓                   | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.21 + etcd/v3 | ✓                    | ✓                    | ✓                   | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.22 + etcd/v3 | ✓* (only workload)   | ✓                    | ✓                   | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.23 + etcd/v3 |                      | ✓*                   | ✓*                  | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.24 + etcd/v3 |                      |                      |                     | ✓                 | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.25 + etcd/v3 |                      |                      |                     |                   | ✓                 | ✓                 | ✓                 |
-| Kubernetes v1.26 + etcd/v3 |                      |                      |                     |                   | ✓                 | ✓                 | ✓                 |
+|                            | v0.3 (v1alpha3) (EOL) | v0.4 (v1alpha4) (EOL) | v1.0 (v1beta1) (EOL) | v1.1 (v1beta1) (EOL) | v1.2 (v1beta1)    | v1.3 (v1beta1)    | v1.4 (v1beta1)    |
+|----------------------------|-----------------------|-----------------------|----------------------|----------------------|-------------------|-------------------|-------------------|
+| Kubernetes v1.16 + etcd/v3 | ✓                     |                       |                      |                      |                   |                   |                   |
+| Kubernetes v1.17 + etcd/v3 | ✓                     |                       |                      |                      |                   |                   |                   |
+| Kubernetes v1.18 + etcd/v3 | ✓                     | ✓ (only workload)     | ✓ (only workload)    | ✓ (only workload)    | ✓ (only workload) | ✓ (only workload) |                   |
+| Kubernetes v1.19 + etcd/v3 | ✓                     | ✓                     | ✓                    | ✓                    | ✓ (only workload) | ✓ (only workload) |                   |
+| Kubernetes v1.20 + etcd/v3 | ✓                     | ✓                     | ✓                    | ✓                    | ✓                 | ✓                 |                   |
+| Kubernetes v1.21 + etcd/v3 | ✓                     | ✓                     | ✓                    | ✓                    | ✓                 | ✓                 | ✓ (only workload) |
+| Kubernetes v1.22 + etcd/v3 | ✓* (only workload)    | ✓                     | ✓                    | ✓                    | ✓                 | ✓                 | ✓ (only workload) |
+| Kubernetes v1.23 + etcd/v3 |                       | ✓*                    | ✓*                   | ✓                    | ✓                 | ✓                 | ✓                 |
+| Kubernetes v1.24 + etcd/v3 |                       |                       |                      | ✓                    | ✓                 | ✓                 | ✓                 |
+| Kubernetes v1.25 + etcd/v3 |                       |                       |                      |                      | ✓                 | ✓                 | ✓                 |
+| Kubernetes v1.26 + etcd/v3 |                       |                       |                      |                      | ✓                 | ✓                 | ✓                 |
 
 The Kubeadm Control Plane Provider talks to the API server and etcd members of every Workload Cluster whose control plane it owns. It uses the etcd v3 API.
 

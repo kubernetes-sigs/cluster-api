@@ -258,7 +258,6 @@ type NodeRegistrationOptions struct {
 	// "Never". Defaults to "IfNotPresent". This can be used only
 	// with Kubernetes version equal to 1.22 and later.
 	// +kubebuilder:validation:Enum=Always;IfNotPresent;Never
-	// +kubebuilder:default=IfNotPresent
 	// +optional
 	ImagePullPolicy string `json:"imagePullPolicy,omitempty"`
 }

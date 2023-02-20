@@ -18,6 +18,7 @@ package webhooks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -465,6 +466,11 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 		clusterClassStatusVariablesToVariables(clusterClass.Status.Variables),
 		field.NewPath("spec", "topology", "variables"))
 	if len(errs) > 0 {
+		ccJSON, err := json.Marshal(clusterClass)
+		if err != nil {
+			fmt.Printf("Debug: unexpected err:\n%v\n", err)
+		}
+		fmt.Printf("Debug:\n%v\n", string(ccJSON))
 		allErrs = append(allErrs, errs...)
 	} else {
 		cluster.Spec.Topology.Variables = defaultedVariables

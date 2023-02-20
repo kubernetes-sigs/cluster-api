@@ -18,6 +18,7 @@ package webhooks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"strings"
@@ -509,6 +510,13 @@ func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *cl
 		//TODO: Update this function to directly us ClusterClassStatusVariables to take care of multiple definitions per variable name.
 		clusterClassStatusVariablesToVariables(clusterClass.Status.Variables),
 		fldPath.Child("variables"))...)
+	if true || len(allErrs) > 0 {
+		ccJSON, err := json.Marshal(clusterClass)
+		if err != nil {
+			fmt.Printf("Debug: unexpected err:\n%v\n", err)
+		}
+		fmt.Printf("Debug:\n%v\n", ccJSON)
+	}
 
 	if cluster.Spec.Topology.Workers != nil {
 		for i, md := range cluster.Spec.Topology.Workers.MachineDeployments {

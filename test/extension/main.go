@@ -132,7 +132,7 @@ func main() {
 		})
 		klog.SetLoggerWithOptions(log, klog.ContextualLogger(false), klog.FlushLogger(flush))
 	}
-	
+
 	// Add the klog logger in the context.
 	// NOTE: it is not mandatory to use contextual logging in custom RuntimeExtension, but it is recommended
 	// because it allows to use a log stored in the context across the entire chain of calls (without

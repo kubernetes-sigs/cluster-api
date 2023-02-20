@@ -140,7 +140,7 @@ func main() {
 		})
 		klog.SetLoggerWithOptions(log, klog.ContextualLogger(false), klog.FlushLogger(flush))
 	}
-	
+
 	// klog.Background will automatically use the right logger.
 	ctrl.SetLogger(klog.Background())
 

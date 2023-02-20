@@ -25,7 +25,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-// These tests are run in e2e-main to ensure the bugs are fixed
+// These tests are run in e2e-main to ensure the bugs are fixed.
 var _ = Describe("When testing clusterctl upgrades (v0.3=>current) [PR-Blocking]", func() {
 	for i := 1; i <= 5; i++ {
 		Describe(strconv.Itoa(i), func() {

@@ -466,28 +466,30 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					newMachines := names(postUpgradeMachineList).Difference(names(preUpgradeMachineList))
 					deletedMachines := names(preUpgradeMachineList).Difference(names(postUpgradeMachineList))
 
-					if len(newMachines) > 0 {
-						log.Logf("Detected new machines")
-						for _, obj := range postUpgradeMachineList.Items {
-							if newMachines.Has(obj.GetName()) {
-								resourceYAML, err := yaml.Marshal(obj)
-								Expect(err).ToNot(HaveOccurred())
-								log.Logf("New machine %s:\n%s", klog.KObj(&obj), resourceYAML)
-							}
-						}
-					}
-
-					if len(deletedMachines) > 0 {
-						log.Logf("Detected deleted machines")
-						for _, obj := range preUpgradeMachineList.Items {
-							if deletedMachines.Has(obj.GetName()) {
-								resourceYAML, err := yaml.Marshal(obj)
-								Expect(err).ToNot(HaveOccurred())
-								log.Logf("Deleted machine %s:\n%s", klog.KObj(&obj), resourceYAML)
-							}
+				if len(newMachines) > 0 {
+					log.Logf("Detected new machines")
+					for _, obj := range postUpgradeMachineList.Items {
+						obj := obj
+						if newMachines.Has(obj.GetName()) {
+							resourceYAML, err := yaml.Marshal(obj)
+							Expect(err).ToNot(HaveOccurred())
+							log.Logf("New machine %s:\n%s", klog.KObj(&obj), resourceYAML)
 						}
 					}
 				}
+
+				if len(deletedMachines) > 0 {
+					log.Logf("Detected deleted machines")
+					for _, obj := range preUpgradeMachineList.Items {
+						obj := obj
+						if deletedMachines.Has(obj.GetName()) {
+							resourceYAML, err := yaml.Marshal(obj)
+							Expect(err).ToNot(HaveOccurred())
+							log.Logf("Deleted machine %s:\n%s", klog.KObj(&obj), resourceYAML)
+						}
+					}
+				}
+			}
 
 				return matchUnstructuredLists(preUpgradeMachineList, postUpgradeMachineList)
 			}, "10m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")

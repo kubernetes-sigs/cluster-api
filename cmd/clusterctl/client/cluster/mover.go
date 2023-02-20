@@ -36,7 +36,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
-	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/yaml"
@@ -639,7 +638,7 @@ func pauseClusterClass(proxy Proxy, n *node, pause bool) error {
 	// Update the annotation to the desired state
 	ccAnnotations := clusterClass.GetAnnotations()
 	if ccAnnotations == nil {
-		ccAnnotations = make(map[string]string)
+		ccAnnotations = map[string]string{}
 	}
 	if pause {
 		// Set the pause annotation.
@@ -649,12 +648,8 @@ func pauseClusterClass(proxy Proxy, n *node, pause bool) error {
 		delete(ccAnnotations, clusterv1.PausedAnnotation)
 	}
 
-	// If the ClusterClass is already at desired state return early.
-	if !annotations.AddAnnotations(clusterClass, ccAnnotations) {
-		return nil
-	}
-
-	// Update the cluster class with the new annotations.
+	// Update the ClusterClass with the new annotations.
+	clusterClass.SetAnnotations(ccAnnotations)
 	if err := patchHelper.Patch(ctx, clusterClass); err != nil {
 		return errors.Wrapf(err, "error patching ClusterClass %s/%s", n.identity.Namespace, n.identity.Name)
 	}

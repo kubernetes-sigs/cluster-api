@@ -1833,6 +1833,129 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 	}
 }
 
+// TestClusterClassPollingErrors tests when a Cluster can be reconciled given different reconcile states of the ClusterClass.
+func TestClusterClassPollingErrors(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+	g := NewWithT(t)
+	ref := &corev1.ObjectReference{
+		APIVersion: "group.test.io/foo",
+		Kind:       "barTemplate",
+		Name:       "baz",
+		Namespace:  "default",
+	}
+
+	topology := builder.ClusterTopology().WithClass("class1").WithVersion("v1.24.3").Build()
+	secondTopology := builder.ClusterTopology().WithClass("class2").WithVersion("v1.24.3").Build()
+	notFoundTopology := builder.ClusterTopology().WithClass("doesnotexist").WithVersion("v1.24.3").Build()
+
+	baseClusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
+		WithInfrastructureClusterTemplate(refToUnstructured(ref)).
+		WithControlPlaneTemplate(refToUnstructured(ref)).
+		WithControlPlaneInfrastructureMachineTemplate(refToUnstructured(ref))
+
+	// ccFullyReconciled is a ClusterClass with a matching generation and observed generation, and VariablesReconciled=True.
+	ccFullyReconciled := baseClusterClass.DeepCopy().Build()
+	ccFullyReconciled.Generation = 1
+	ccFullyReconciled.Status.ObservedGeneration = 1
+	conditions.MarkTrue(ccFullyReconciled, clusterv1.ClusterClassVariablesReconciledCondition)
+
+	// secondFullyReconciled is a second ClusterClass with a matching generation and observed generation, and VariablesReconciled=True.
+	secondFullyReconciled := ccFullyReconciled.DeepCopy()
+	secondFullyReconciled.SetName("class2")
+
+	// ccGenerationMismatch is a ClusterClass with a mismatched generation and observed generation, but VariablesReconciledCondition=True.
+	ccGenerationMismatch := baseClusterClass.DeepCopy().Build()
+	ccGenerationMismatch.Generation = 999
+	ccGenerationMismatch.Status.ObservedGeneration = 1
+	conditions.MarkTrue(ccGenerationMismatch, clusterv1.ClusterClassVariablesReconciledCondition)
+
+	// ccVariablesReconciledFalse with VariablesReconciled=False.
+	ccVariablesReconciledFalse := baseClusterClass.DeepCopy().Build()
+	conditions.MarkFalse(ccGenerationMismatch, clusterv1.ClusterClassVariablesReconciledCondition, "", clusterv1.ConditionSeverityError, "")
+
+	tests := []struct {
+		name           string
+		cluster        *clusterv1.Cluster
+		oldCluster     *clusterv1.Cluster
+		clusterClasses []*clusterv1.ClusterClass
+		wantErr        bool
+	}{
+		{
+			name:           "Pass on create if ClusterClass is fully reconciled",
+			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
+			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled},
+			wantErr:        false,
+		},
+		{
+			name:           "Pass on create if ClusterClass generation does not match observedGeneration",
+			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
+			clusterClasses: []*clusterv1.ClusterClass{ccGenerationMismatch},
+			wantErr:        false,
+		},
+		{
+			name:           "Pass on create if ClusterClass generation matches observedGeneration but VariablesReconciled=False",
+			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
+			clusterClasses: []*clusterv1.ClusterClass{ccVariablesReconciledFalse},
+			wantErr:        false,
+		},
+		{
+			name:           "Pass on create if ClusterClass is not found",
+			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(notFoundTopology).Build(),
+			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled},
+			wantErr:        false,
+		},
+		{
+			name:           "Pass on update if oldCluster ClusterClass is fully reconciled",
+			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(secondTopology).Build(),
+			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
+			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled, secondFullyReconciled},
+			wantErr:        false,
+		},
+		{
+			name:           "Fail on update if oldCluster ClusterClass generation does not match observedGeneration",
+			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(secondTopology).Build(),
+			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
+			clusterClasses: []*clusterv1.ClusterClass{ccGenerationMismatch, secondFullyReconciled},
+			wantErr:        true,
+		},
+		{
+			name:           "Fail on update if old Cluster ClusterClass is not found",
+			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
+			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(notFoundTopology).Build(),
+			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled},
+			wantErr:        true,
+		},
+		{
+			name:           "Fail on update if new Cluster ClusterClass is not found",
+			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(notFoundTopology).Build(),
+			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
+			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled},
+			wantErr:        true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Sets up a reconcile with a fakeClient for the test case.
+			objs := []client.Object{}
+			for _, cc := range tt.clusterClasses {
+				objs = append(objs, cc)
+			}
+			c := &Cluster{Client: fake.NewClientBuilder().
+				WithObjects(objs...).
+				WithScheme(fakeScheme).
+				Build()}
+
+			// Checks the return error.
+			if tt.wantErr {
+				g.Expect(c.validate(ctx, tt.oldCluster, tt.cluster)).NotTo(Succeed())
+			} else {
+				g.Expect(c.validate(ctx, tt.oldCluster, tt.cluster)).To(Succeed())
+			}
+		})
+	}
+}
+
 func refToUnstructured(ref *corev1.ObjectReference) *unstructured.Unstructured {
 	gvk := ref.GetObjectKind().GroupVersionKind()
 	output := &unstructured.Unstructured{}

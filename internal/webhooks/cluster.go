@@ -62,6 +62,8 @@ type Cluster struct {
 var _ webhook.CustomDefaulter = &Cluster{}
 var _ webhook.CustomValidator = &Cluster{}
 
+var errClusterClassNotReconciled = errors.New("ClusterClass is not up to date")
+
 // Default satisfies the defaulting webhook interface.
 func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 	// We gather all defaulting errors and return them together.
@@ -88,11 +90,11 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 		}
 		clusterClass, err := webhook.pollClusterClassForCluster(ctx, cluster)
 		if err != nil {
-			// If the ClusterClass can't be found ignore the error.
-			if apierrors.IsNotFound(err) {
+			// If the ClusterClass can't be found or is not up to date ignore the error.
+			if apierrors.IsNotFound(err) || errors.Is(err, errClusterClassNotReconciled) {
 				return nil
 			}
-			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be defaulted. Valid ClusterClass %s can not be retrieved", cluster.Name, cluster.Spec.Topology.Class))
+			return apierrors.NewInternalError(errors.Wrapf(err, "Cluster %s can't be defaulted. ClusterClass %s can not be retrieved", cluster.Name, cluster.Spec.Topology.Class))
 		}
 
 		allErrs = append(allErrs, DefaultVariables(cluster, clusterClass)...)
@@ -242,27 +244,28 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 	}
 
 	// Get the ClusterClass referenced in the Cluster.
-	clusterClass, clusterClassGetErr := webhook.pollClusterClassForCluster(ctx, newCluster)
-	if clusterClassGetErr != nil && !apierrors.IsNotFound(clusterClassGetErr) {
-		// If the error is anything other than "Not Found" return all errors at this point.
+	clusterClass, clusterClassPollErr := webhook.pollClusterClassForCluster(ctx, newCluster)
+	if clusterClassPollErr != nil &&
+		// If the error is anything other than "NotFound" or "NotReconciled" return all errors at this point.
+		!(apierrors.IsNotFound(clusterClassPollErr) || errors.Is(clusterClassPollErr, errClusterClassNotReconciled)) {
 		allErrs = append(
 			allErrs, field.InternalError(
 				fldPath.Child("class"),
-				clusterClassGetErr))
+				clusterClassPollErr))
 		return allErrs
 	}
-	if clusterClassGetErr == nil {
+	if clusterClassPollErr == nil {
 		// If there's no error validate the Cluster based on the ClusterClass.
 		allErrs = append(allErrs, ValidateClusterForClusterClass(newCluster, clusterClass, fldPath)...)
 	}
 	if oldCluster != nil { // On update
 		// The ClusterClass must exist to proceed with update validation. Return an error if the ClusterClass was
 		// not found.
-		if clusterClassGetErr != nil {
+		if apierrors.IsNotFound(clusterClassPollErr) {
 			allErrs = append(
 				allErrs, field.InternalError(
 					fldPath.Child("class"),
-					clusterClassGetErr))
+					clusterClassPollErr))
 			return allErrs
 		}
 
@@ -341,7 +344,7 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 				allErrs = append(
 					allErrs, field.Forbidden(
 						fldPath.Child("class"),
-						fmt.Sprintf("ClusterClass with name %q could not be found, change from class %[1]q to class %q cannot be validated",
+						fmt.Sprintf("valid ClusterClass with name %q could not be found, change from class %[1]q to class %q cannot be validated",
 							oldCluster.Spec.Topology.Class, newCluster.Spec.Topology.Class)))
 
 				// Return early with errors if the ClusterClass can't be retrieved.
@@ -529,24 +532,35 @@ func ValidateClusterForClusterClass(cluster *clusterv1.Cluster, clusterClass *cl
 // pollClusterClassForCluster will retry getting the ClusterClass referenced in the Cluster for two seconds.
 func (webhook *Cluster) pollClusterClassForCluster(ctx context.Context, cluster *clusterv1.Cluster) (*clusterv1.ClusterClass, error) {
 	clusterClass := &clusterv1.ClusterClass{}
-	var clusterClassGetErr error
+	var clusterClassPollErr error
+	// TODO: Add a webhook warning if the ClusterClass is not up to date or not found.
 	_ = util.PollImmediate(200*time.Millisecond, 2*time.Second, func() (bool, error) {
-		if clusterClassGetErr = webhook.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Spec.Topology.Class}, clusterClass); clusterClassGetErr != nil {
+		if clusterClassPollErr = webhook.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Spec.Topology.Class}, clusterClass); clusterClassPollErr != nil {
 			return false, nil //nolint:nilerr
 		}
 
-		// Return an error if the ClusterClass has not successfully reconciled because variables aren't correctly
-		// reconciled.
-		// TODO: Decide whether to check generation here. This requires creating templates before creating the Cluster and
-		// may interfere with the way clusterctl move works.
-		if !conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) ||
-			conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) {
-			clusterClassGetErr = errors.New("ClusterClass is not up to date. If this persists check ClusterClass status")
-			return false, nil
+		if clusterClassPollErr = clusterClassIsReconciled(clusterClass); clusterClassPollErr != nil {
+			return false, nil //nolint:nilerr
 		}
+		clusterClassPollErr = nil
 		return true, nil
 	})
-	return clusterClass, clusterClassGetErr
+	return clusterClass, clusterClassPollErr
+}
+
+// clusterClassIsReconciled returns errClusterClassNotReconciled if the ClusterClass has not successfully reconciled or if the
+// ClusterClass variables have not been successfully reconciled.
+func clusterClassIsReconciled(clusterClass *clusterv1.ClusterClass) error {
+	// If the clusterClass metadata generation does not match the status observed generation, the ClusterClass has not been successfully reconciled.
+	if clusterClass.Generation != clusterClass.Status.ObservedGeneration {
+		return errClusterClassNotReconciled
+	}
+	// If the clusterClass does not have ClusterClassVariablesReconciled==True, the ClusterClass has not been successfully reconciled.
+	if !conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) ||
+		conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) {
+		return errClusterClassNotReconciled
+	}
+	return nil
 }
 
 // TODO: This function will not be needed once per-definition defaulting and validation is implemented.

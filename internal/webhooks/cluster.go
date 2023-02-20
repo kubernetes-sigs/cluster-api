@@ -534,11 +534,13 @@ func (webhook *Cluster) pollClusterClassForCluster(ctx context.Context, cluster 
 		if clusterClassGetErr = webhook.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Spec.Topology.Class}, clusterClass); clusterClassGetErr != nil {
 			return false, nil //nolint:nilerr
 		}
-		// Return an error if the ClusterClass has not successfully reconciled either because variables aren't correctly
-		// reconciled or because the observed generation doesn't match the metadata generation.
+
+		// Return an error if the ClusterClass has not successfully reconciled because variables aren't correctly
+		// reconciled.
+		// TODO: Decide whether to check generation here. This requires creating templates before creating the Cluster and
+		// may interfere with the way clusterctl move works.
 		if !conditions.Has(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) ||
-			conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) ||
-			clusterClass.GetGeneration() != clusterClass.Status.ObservedGeneration {
+			conditions.IsFalse(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition) {
 			clusterClassGetErr = errors.New("ClusterClass is not up to date. If this persists check ClusterClass status")
 			return false, nil
 		}

@@ -96,7 +96,7 @@ func NewServerSidePatchHelper(ctx context.Context, original, modified client.Obj
 		hasChanges, hasSpecChanges, err = dryRunSSAPatch(ctx, &dryRunSSAPatchInput{
 			client:               c,
 			originalUnstructured: originalUnstructured,
-			dryRunUnstructured:   modifiedUnstructured.DeepCopy(),
+			modifiedUnstructured: modifiedUnstructured.DeepCopy(),
 			helperOptions:        helperOptions,
 		})
 		if err != nil {

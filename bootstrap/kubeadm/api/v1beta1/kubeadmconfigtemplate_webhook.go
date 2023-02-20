@@ -55,8 +55,6 @@ func (k KubeadmConfigTemplateWebhook) Default(ctx context.Context, raw runtime.O
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a admission.Request inside context: %v", err))
 	}
 
-	//
-	//if !topology.ShouldSkipDefaulting(req, obj) {
 	if req.UserInfo.Username != "kubernetes-admin" {
 		DefaultKubeadmConfigSpec(&obj.Spec.Template.Spec)
 	}

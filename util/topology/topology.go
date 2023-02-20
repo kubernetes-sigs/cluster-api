@@ -29,17 +29,6 @@ import (
 // This ensures that the immutability check is skipped only when dry-running and when the operations has been invoked by the topology controller.
 // Instead, kubectl dry-run behavior remains consistent with the one user gets when doing kubectl apply (immutability is enforced).
 func ShouldSkipImmutabilityChecks(req admission.Request, obj metav1.Object) bool {
-	return isDryRun(req, obj)
-
-}
-
-// ShouldSkipDefaulting returns true if it is a dry-run request and the object
-// FIXME(sbueringer): also consider other func name
-func ShouldSkipDefaulting(req admission.Request, obj metav1.Object) bool {
-	return isDryRun(req, obj)
-}
-
-func isDryRun(req admission.Request, obj metav1.Object) bool {
 	// Check if the request is a dry-run
 	if req.DryRun == nil || !*req.DryRun {
 		return false

@@ -18,6 +18,7 @@ package structuredmerge
 
 import (
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +29,10 @@ import (
 )
 
 func Test_cleanupManagedFieldsAndAnnotation(t *testing.T) {
+	rawManagedFieldWithAnnotation := `{"f:metadata":{"f:annotations":{"f:topology.cluster.x-k8s.io/dry-run":{},"f:cluster.x-k8s.io/conversion-data":{}}}}`
+	rawManagedFieldWithAnnotationSpecLabels := `{"f:metadata":{"f:annotations":{"f:topology.cluster.x-k8s.io/dry-run":{},"f:cluster.x-k8s.io/conversion-data":{}},"f:labels":{}},"f:spec":{"f:foo":{}}}`
+	rawManagedFieldWithSpecLabels := `{"f:metadata":{"f:labels":{}},"f:spec":{"f:foo":{}}}`
+
 	tests := []struct {
 		name    string
 		obj     *unstructured.Unstructured
@@ -38,7 +43,6 @@ func Test_cleanupManagedFieldsAndAnnotation(t *testing.T) {
 			name:    "no-op",
 			obj:     newObjectBuilder().Build(),
 			wantErr: false,
-			want:    newObjectBuilder().Build(),
 		},
 		{
 			name: "filter out dry-run annotation",
@@ -46,7 +50,8 @@ func Test_cleanupManagedFieldsAndAnnotation(t *testing.T) {
 				WithAnnotation(clusterv1.TopologyDryRunAnnotation, "").
 				Build(),
 			wantErr: false,
-			want:    newObjectBuilder().Build(),
+			want: newObjectBuilder().
+				Build(),
 		},
 		{
 			name: "filter out conversion annotation",
@@ -58,20 +63,73 @@ func Test_cleanupManagedFieldsAndAnnotation(t *testing.T) {
 				Build(),
 		},
 		{
-			name: "remove managed field",
+			name: "managedFields: should drop managed fields of other manager",
 			obj: newObjectBuilder().
-				WithManagedFieldsEntry(TopologyManagerName, "", metav1.ManagedFieldsOperationApply, []byte(`{}`), nil).
+				WithManagedFieldsEntry("other", "", metav1.ManagedFieldsOperationApply, []byte(`{}`), nil).
 				Build(),
 			wantErr: false,
-			want:    newObjectBuilder().Build(),
+			want: newObjectBuilder().
+				Build(),
+		},
+		{
+			name: "managedFields: should drop managed fields of a subresource",
+			obj: newObjectBuilder().
+				WithManagedFieldsEntry(TopologyManagerName, "status", metav1.ManagedFieldsOperationApply, []byte(`{}`), nil).
+				Build(),
+			wantErr: false,
+			want: newObjectBuilder().
+				Build(),
+		},
+		{
+			name: "managedFields: should drop managed fields of another operation",
+			obj: newObjectBuilder().
+				WithManagedFieldsEntry(TopologyManagerName, "", metav1.ManagedFieldsOperationUpdate, []byte(`{}`), nil).
+				Build(),
+			wantErr: false,
+			want: newObjectBuilder().
+				Build(),
+		},
+		{
+			name: "managedFields: cleanup up the managed field entry",
+			obj: newObjectBuilder().
+				WithManagedFieldsEntry(TopologyManagerName, "", metav1.ManagedFieldsOperationApply, []byte(rawManagedFieldWithAnnotation), nil).
+				Build(),
+			wantErr: false,
+			want: newObjectBuilder().
+				WithManagedFieldsEntry(TopologyManagerName, "", metav1.ManagedFieldsOperationApply, []byte(`{}`), nil).
+				Build(),
+		},
+		{
+			name: "managedFields: cleanup the managed field entry and preserve other ownership",
+			obj: newObjectBuilder().
+				WithManagedFieldsEntry(TopologyManagerName, "", metav1.ManagedFieldsOperationApply, []byte(rawManagedFieldWithAnnotationSpecLabels), nil).
+				Build(),
+			wantErr: false,
+			want: newObjectBuilder().
+				WithManagedFieldsEntry(TopologyManagerName, "", metav1.ManagedFieldsOperationApply, []byte(rawManagedFieldWithSpecLabels), nil).
+				Build(),
+		},
+		{
+			name: "managedFields: remove time",
+			obj: newObjectBuilder().
+				WithManagedFieldsEntry(TopologyManagerName, "", metav1.ManagedFieldsOperationApply, []byte(`{}`), &metav1.Time{Time: time.Time{}}).
+				Build(),
+			wantErr: false,
+			want: newObjectBuilder().
+				WithManagedFieldsEntry(TopologyManagerName, "", metav1.ManagedFieldsOperationApply, []byte(`{}`), nil).
+				Build(),
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			cleanupManagedFieldsAndAnnotations(tt.obj)
-			g.Expect(tt.obj).To(BeEquivalentTo(tt.want))
+			if err := cleanupManagedFieldsAndAnnotation(tt.obj); (err != nil) != tt.wantErr {
+				t.Errorf("cleanupManagedFieldsAndAnnotation() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.want != nil {
+				g.Expect(tt.obj).To(BeEquivalentTo(tt.want))
+			}
 		})
 	}
 }
@@ -95,6 +153,12 @@ func (b objectBuilder) DeepCopy() objectBuilder {
 }
 
 func (b objectBuilder) Build() *unstructured.Unstructured {
+	// Setting an empty managed field array if no managed field is set so there is
+	// no difference between an object which never had a managed field and one from
+	// which all managed field entries were removed.
+	if b.u.GetManagedFields() == nil {
+		b.u.SetManagedFields([]metav1.ManagedFieldsEntry{})
+	}
 	return b.u.DeepCopy()
 }
 

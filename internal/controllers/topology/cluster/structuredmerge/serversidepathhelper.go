@@ -68,14 +68,9 @@ func NewServerSidePatchHelper(ctx context.Context, original, modified client.Obj
 		}
 	}
 
-	// Filter the modifiedUnstructured and originalUnstructured objects to only contain fields that we intend to manage.
+	// Filter the modifiedUnstructured object to only contain changes intendet to be done.
+	// The originalUnstructured object will be filtered in dryRunSSAPatch using other options.
 	filterObject(modifiedUnstructured, helperOptions)
-	if originalUnstructured != nil {
-		// Note: It's important that we also drop metadata.managedFields from originalUnstructured.
-		// We will run SSA dry-run on originalUnstructured and with metadata.managedFields we would get
-		// this error: "failed to request dry-run server side apply: metadata.managedFields must be nil"
-		filterObject(originalUnstructured, helperOptions)
-	}
 
 	// Carry over uid to match the intent to:
 	// * create (uid==""):

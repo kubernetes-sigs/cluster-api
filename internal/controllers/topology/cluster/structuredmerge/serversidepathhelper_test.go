@@ -17,15 +17,30 @@ limitations under the License.
 package structuredmerge
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"net"
+	"os"
+	"path/filepath"
+	"strconv"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
+	admissionv1 "k8s.io/api/admissionregistration/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -505,4 +520,286 @@ func getTopologyManagedFields(original client.Object) map[string]interface{} {
 		}
 	}
 	return r
+}
+
+// NOTE: This test ensures that ServerSideApply works as expected when new defaulting logic is introduced by a Cluster API update.
+func TestServerSideApplyWithDefaulting(t *testing.T) {
+	g := NewWithT(t)
+
+	// Create a namespace for running the test
+	ns, err := env.CreateNamespace(ctx, "ssa-defaulting")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Setup webhook with the manager.
+	// Note: The webhooks is not active yet, as the MutatingWebhookConfiguration will be deployed later.
+	mutatingWebhookConfiguration, err := setupWebhookWithManager(ns)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Calculate KubeadmConfigTemplate.
+	kct := &bootstrapv1.KubeadmConfigTemplate{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kct",
+			Namespace: ns.Name,
+		},
+		Spec: bootstrapv1.KubeadmConfigTemplateSpec{
+			Template: bootstrapv1.KubeadmConfigTemplateResource{
+				Spec: bootstrapv1.KubeadmConfigSpec{
+					JoinConfiguration: &bootstrapv1.JoinConfiguration{
+						NodeRegistration: bootstrapv1.NodeRegistrationOptions{
+							KubeletExtraArgs: map[string]string{
+								"eviction-hard": "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	// The test does the following.
+	// 1. Create KubeadmConfigTemplate
+	// 2. Activate the new defaulting logic via the webhook
+	//   * This simulates the deployment of a new Cluster API version with new defaulting
+	// 3. Simulate defaulting on original and/or modified
+	//   * defaultOriginal will add a label to the KubeadmConfigTemplate which will trigger defaulting
+	//     * original is the KubeadmConfigTemplate referenced in a MachineDeployment of the Cluster topology
+	//   * defaultModified will simulate that defaulting was run on the KubeadmConfigTemplate referenced in the ClusterClass
+	//     * modified is the desired state calculated based on the KubeadmConfigTemplate referenced in the ClusterClass
+	//   * We are testing through all permutations as we don't want to assume on which objects defaulting was run.
+	// 4. Check patch helper results
+
+	// We have the following test cases:
+	// | original   | modified    | expect behavior                                           |
+	// |            |             | no-op                                                     |
+	// | defaulted  |             | no-op                                                     |
+	// |            | defaulted   | no spec changes, only take ownership of defaulted fields  |
+	// | defaulted  | defaulted   | no spec changes, only take ownership of defaulted fields  |
+	tests := []struct {
+		name                 string
+		defaultOriginal      bool
+		defaultModified      bool
+		expectChanges        bool
+		expectSpecChanges    bool
+		expectFieldOwnership bool
+	}{
+		{
+			name:            "no-op if neither is defaulted",
+			defaultOriginal: false,
+			defaultModified: false,
+			// Dry run results:
+			// * original: field will be defaulted by the webhook, capi-topology doesn't get ownership.
+			// * modified: field will be defaulted by the webhook, capi-topology doesn't get ownership.
+			expectChanges:        false,
+			expectSpecChanges:    false,
+			expectFieldOwnership: false,
+		},
+		{
+			name:            "no-op if original is defaulted",
+			defaultOriginal: true,
+			defaultModified: false,
+			// Dry run results:
+			// * original: no defaulting in dry run, as field has already been defaulted before, capi-topology doesn't get ownership.
+			// * modified: field will be defaulted by the webhook, capi-topology doesn't get ownership.
+			expectChanges:        false,
+			expectSpecChanges:    false,
+			expectFieldOwnership: false,
+		},
+		{
+			name:            "no spec changes, only take ownership of defaulted fields if modified is defaulted",
+			defaultOriginal: false,
+			defaultModified: true,
+			// Dry run results:
+			// * original: field will be defaulted by the webhook, capi-topology doesn't get ownership.
+			// * original: no defaulting in dry run, as field has already been defaulted before, capi-topology does get ownership as we explicitly set the field.
+			// => capi-topology takes ownership during Patch
+			expectChanges:        true,
+			expectSpecChanges:    false,
+			expectFieldOwnership: true,
+		},
+		{
+			name:            "no spec changes, only take ownership of defaulted fields if both are defaulted",
+			defaultOriginal: true,
+			defaultModified: true,
+			// Dry run results:
+			// * original: no defaulting in dry run, as field has already been defaulted before, capi-topology doesn't get ownership.
+			// * original: no defaulting in dry run, as field has already been defaulted before, capi-topology does get ownership as we explicitly set the field.
+			// => capi-topology takes ownership during Patch
+			expectChanges:        true,
+			expectSpecChanges:    false,
+			expectFieldOwnership: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			// Note: This is necessary because otherwise we could not create the webhook config
+			// in multiple test runs, because after the first test run it has a resourceVersion set.
+			mutatingWebhookConfiguration := mutatingWebhookConfiguration.DeepCopy()
+
+			// Create the initial KubeadmConfigTemplate (with the old defaulting logic).
+			p0, err := NewServerSidePatchHelper(ctx, nil, kct.DeepCopy(), env.GetClient())
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(p0.HasChanges()).To(BeTrue())
+			g.Expect(p0.HasSpecChanges()).To(BeTrue())
+			g.Expect(p0.Patch(ctx)).To(Succeed())
+			defer func() {
+				g.Expect(env.CleanupAndWait(ctx, kct.DeepCopy())).To(Succeed())
+			}()
+
+			// Enable the new defaulting logic (i.e. simulate the Cluster API update).
+			// The webhook will default the users field to `[{Name: "default-user"}]`.
+			g.Expect(env.Create(ctx, mutatingWebhookConfiguration)).To(Succeed())
+			defer func() {
+				g.Expect(env.CleanupAndWait(ctx, mutatingWebhookConfiguration)).To(Succeed())
+			}()
+
+			// Run defaulting on the KubeadmConfigTemplate (triggered by an "external controller")
+			if tt.defaultOriginal {
+				patchKCT := kct.DeepCopy()
+				if patchKCT.Labels == nil {
+					patchKCT.Labels = map[string]string{}
+				}
+				patchKCT.Labels["trigger"] = "update"
+				g.Expect(env.Patch(ctx, patchKCT, client.MergeFrom(kct))).To(Succeed())
+				// Ensure patchKCT was defaulted.
+				g.Expect(patchKCT.Spec.Template.Spec.Users).To(Equal([]bootstrapv1.User{{Name: "default-user"}}))
+			}
+			// Get original for the update.
+			original := kct.DeepCopy()
+			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original))
+
+			// Calculate modified for the update.
+			modified := kct.DeepCopy()
+			// Run defaulting on modified
+			// Note: We just default the modified / desired locally as we are not simulating
+			// an entire ClusterClass. Defaulting on the template of the ClusterClass would
+			// lead to the modified object having the defaults.
+			if tt.defaultModified {
+				defaultKubeadmConfigTemplate(modified)
+			}
+
+			// Apply modified.
+			p0, err = NewServerSidePatchHelper(ctx, original, modified, env.GetClient())
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(p0.HasChanges()).To(Equal(tt.expectChanges))
+			g.Expect(p0.HasSpecChanges()).To(Equal(tt.expectSpecChanges))
+			g.Expect(p0.Patch(ctx)).To(Succeed())
+
+			// Verify field ownership
+			// Note: It might take a bit for the cache to be up-to-date.
+			g.Eventually(func(g Gomega) {
+				got := original.DeepCopy()
+				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(got), got))
+
+				// topology controller should express opinions on spec.template.spec.
+				fieldV1 := getTopologyManagedFields(got)
+				g.Expect(fieldV1).ToNot(BeEmpty())
+				g.Expect(fieldV1).To(HaveKey("f:spec"))
+				specFieldV1 := fieldV1["f:spec"].(map[string]interface{})
+				g.Expect(specFieldV1).ToNot(BeEmpty())
+				g.Expect(specFieldV1).To(HaveKey("f:template"))
+				specTemplateFieldV1 := specFieldV1["f:template"].(map[string]interface{})
+				g.Expect(specTemplateFieldV1).ToNot(BeEmpty())
+				g.Expect(specTemplateFieldV1).To(HaveKey("f:spec"))
+
+				specTemplateSpecFieldV1 := specTemplateFieldV1["f:spec"].(map[string]interface{})
+				if tt.expectFieldOwnership {
+					// topology controller should express opinions on spec.template.spec.users.
+					g.Expect(specTemplateSpecFieldV1).To(HaveKey("f:users"))
+				} else {
+					// topology controller should not express opinions on spec.template.spec.users.
+					g.Expect(specTemplateSpecFieldV1).ToNot(HaveKey("f:users"))
+				}
+			}, 2*time.Second).Should(Succeed())
+		})
+	}
+}
+
+// setupWebhookWithManager configures the envtest manager / webhook server to serve the webhook.
+// It also calculates and returns the corresponding MutatingWebhookConfiguration.
+// Note: To activate the webhook, the MutatingWebhookConfiguration has to be deployed.
+func setupWebhookWithManager(ns *corev1.Namespace) (*admissionv1.MutatingWebhookConfiguration, error) {
+	webhookServer := env.Manager.GetWebhookServer()
+
+	// Calculate webhook host and path.
+	// Note: This is done the same way as in our envtest package.
+	webhookPath := fmt.Sprintf("/%s/ssa-defaulting-webhook", ns.Name)
+	webhookHost := "127.0.0.1"
+	if host := os.Getenv("CAPI_WEBHOOK_HOSTNAME"); host != "" {
+		webhookHost = host
+	}
+
+	// Serve KubeadmConfigTemplateTestDefaulter on the webhook server.
+	// Note: This should only ever be called once with the same path, otherwise we get a panic.
+	webhookServer.Register(webhookPath,
+		admission.WithCustomDefaulter(&bootstrapv1.KubeadmConfigTemplate{}, &KubeadmConfigTemplateTestDefaulter{}))
+
+	// Calculate the MutatingWebhookConfiguration
+	caBundle, err := os.ReadFile(filepath.Join(webhookServer.CertDir, webhookServer.CertName))
+	if err != nil {
+		return nil, err
+	}
+
+	sideEffectNone := admissionv1.SideEffectClassNone
+	webhookConfig := &admissionv1.MutatingWebhookConfiguration{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ns.Name + "-webhook-config",
+		},
+		Webhooks: []admissionv1.MutatingWebhook{
+			{
+				Name: ns.Name + ".kubeadmconfigtemplate.bootstrap.cluster.x-k8s.io",
+				ClientConfig: admissionv1.WebhookClientConfig{
+					URL:      pointer.String(fmt.Sprintf("https://%s%s", net.JoinHostPort(webhookHost, strconv.Itoa(webhookServer.Port)), webhookPath)),
+					CABundle: caBundle,
+				},
+				Rules: []admissionv1.RuleWithOperations{
+					{
+						Operations: []admissionv1.OperationType{
+							admissionv1.Create,
+							admissionv1.Update,
+						},
+						Rule: admissionv1.Rule{
+							APIGroups:   []string{bootstrapv1.GroupVersion.Group},
+							APIVersions: []string{bootstrapv1.GroupVersion.Version},
+							Resources:   []string{"kubeadmconfigtemplates"},
+						},
+					},
+				},
+				NamespaceSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{
+						corev1.LabelMetadataName: ns.Name,
+					},
+				},
+				AdmissionReviewVersions: []string{"v1"},
+				SideEffects:             &sideEffectNone,
+			},
+		},
+	}
+	return webhookConfig, nil
+}
+
+var _ webhook.CustomDefaulter = &KubeadmConfigTemplateTestDefaulter{}
+
+type KubeadmConfigTemplateTestDefaulter struct {
+}
+
+func (d KubeadmConfigTemplateTestDefaulter) Default(_ context.Context, obj runtime.Object) error {
+	kct, ok := obj.(*bootstrapv1.KubeadmConfigTemplate)
+	if !ok {
+		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", obj))
+	}
+
+	defaultKubeadmConfigTemplate(kct)
+	return nil
+}
+
+func defaultKubeadmConfigTemplate(kct *bootstrapv1.KubeadmConfigTemplate) {
+	if len(kct.Spec.Template.Spec.Users) == 0 {
+		kct.Spec.Template.Spec.Users = []bootstrapv1.User{
+			{
+				Name: "default-user",
+			},
+		}
+	}
 }

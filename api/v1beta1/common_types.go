@@ -99,6 +99,10 @@ const (
 	// when KCP or a machineset scales down. This annotation is given top priority on all delete policies.
 	DeleteMachineAnnotation = "cluster.x-k8s.io/delete-machine"
 
+	// MarkedForDeleteMachineAnnotation marks control plane and worker nodes that will be deleted as soon as possible.
+	// No deletion priority is considered, and all machines are deleted while respecting standard machine deletion procedures, such as node drains.
+	MarkedForDeleteMachineAnnotation = "cluster.x-k8s.io/machine-marked-for-delete"
+
 	// TemplateClonedFromNameAnnotation is the infrastructure machine annotation that stores the name of the infrastructure template resource
 	// that was cloned for the machine. This annotation is set only during cloning a template. Older/adopted machines will not have this annotation.
 	TemplateClonedFromNameAnnotation = "cluster.x-k8s.io/cloned-from-name"

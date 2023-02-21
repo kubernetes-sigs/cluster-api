@@ -306,16 +306,13 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 			continue
 		}
 		if conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition) {
-			log.Info("Deleting machine because marked as unhealthy by the MachineHealthCheck controller")
-			patch := client.MergeFrom(machine.DeepCopy())
-			if err := r.Client.Delete(ctx, machine); err != nil {
-				errs = append(errs, errors.Wrap(err, "failed to delete"))
-				continue
-			}
-			conditions.MarkTrue(machine, clusterv1.MachineOwnerRemediatedCondition)
-			if err := r.Client.Status().Patch(ctx, machine, patch); err != nil && !apierrors.IsNotFound(err) {
-				errs = append(errs, errors.Wrap(err, "failed to update status"))
-			}
+			log.Info("Deleting machine because marked as unhealthy by the MachineHealthCheck controller: %v", machine.Name)
+			errs = append(r.deleteMachine(ctx, machine))
+		}
+		// The MarkedForDeleteMachineAnnotation annotation may be set by external sources, such as Cluster Autoscaler
+		if _, ok := machine.ObjectMeta.Annotations[clusterv1.MarkedForDeleteMachineAnnotation]; ok {
+			log.Info("Deleting machine because it's marked for deletion by annotation (%v): %v", clusterv1.MarkedForDeleteMachineAnnotation, machine.Name)
+			errs = append(r.deleteMachine(ctx, machine))
 		}
 	}
 
@@ -364,6 +361,22 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// deleteMachine deletes a Machine resource, respecting the standard drain process
+func (r *Reconciler) deleteMachine(ctx context.Context, machine *clusterv1.Machine) []error {
+	var errs []error
+	patch := client.MergeFrom(machine.DeepCopy())
+
+	if err := r.Client.Delete(ctx, machine); err != nil {
+		errs = append(errs, errors.Wrap(err, "failed to delete"))
+	}
+	conditions.MarkTrue(machine, clusterv1.MachineOwnerRemediatedCondition)
+	if err := r.Client.Status().Patch(ctx, machine, patch); err != nil && !apierrors.IsNotFound(err) {
+		errs = append(errs, errors.Wrap(err, "failed to update status"))
+	}
+
+	return errs
 }
 
 // syncMachines updates Machines, InfrastructureMachine and BootstrapConfig to propagate in-place mutable fields

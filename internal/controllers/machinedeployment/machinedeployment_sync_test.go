@@ -20,12 +20,16 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	apirand "k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/klog/v2/klogr"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -493,6 +497,229 @@ func TestSyncDeploymentStatus(t *testing.T) {
 			assertConditions(t, test.d, test.expectedConditions...)
 		})
 	}
+}
+
+func TestComputeDesiredMachineSet(t *testing.T) {
+	duration5s := &metav1.Duration{Duration: 5 * time.Second}
+	duration10s := &metav1.Duration{Duration: 10 * time.Second}
+
+	infraRef := corev1.ObjectReference{
+		Kind:       "GenericInfrastructureMachineTemplate",
+		Name:       "infra-template-1",
+		APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+	}
+	bootstrapRef := corev1.ObjectReference{
+		Kind:       "GenericBootstrapConfigTemplate",
+		Name:       "bootstrap-template-1",
+		APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+	}
+
+	deployment := &clusterv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   "default",
+			Name:        "md1",
+			Annotations: map[string]string{"top-level-annotation": "top-level-annotation-value"},
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			ClusterName:     "test-cluster",
+			Replicas:        pointer.Int32(3),
+			MinReadySeconds: pointer.Int32(10),
+			Strategy: &clusterv1.MachineDeploymentStrategy{
+				Type: clusterv1.RollingUpdateMachineDeploymentStrategyType,
+				RollingUpdate: &clusterv1.MachineRollingUpdateDeployment{
+					MaxSurge:       intOrStrPtr(1),
+					DeletePolicy:   pointer.String("Random"),
+					MaxUnavailable: intOrStrPtr(0),
+				},
+			},
+			Selector: metav1.LabelSelector{
+				MatchLabels: map[string]string{"k1": "v1"},
+			},
+			Template: clusterv1.MachineTemplateSpec{
+				ObjectMeta: clusterv1.ObjectMeta{
+					Labels:      map[string]string{"machine-label1": "machine-value1"},
+					Annotations: map[string]string{"machine-annotation1": "machine-value1"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Version:           pointer.String("v1.25.3"),
+					InfrastructureRef: infraRef,
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &bootstrapRef,
+					},
+					NodeDrainTimeout:        duration10s,
+					NodeVolumeDetachTimeout: duration10s,
+					NodeDeletionTimeout:     duration10s,
+				},
+			},
+		},
+	}
+
+	log := klogr.New()
+
+	skeletonMSBasedOnMD := &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:   "default",
+			Labels:      map[string]string{"machine-label1": "machine-value1"},
+			Annotations: map[string]string{"top-level-annotation": "top-level-annotation-value"},
+		},
+		Spec: clusterv1.MachineSetSpec{
+			ClusterName:     "test-cluster",
+			Replicas:        pointer.Int32(3),
+			MinReadySeconds: 10,
+			DeletePolicy:    string(clusterv1.RandomMachineSetDeletePolicy),
+			Selector:        metav1.LabelSelector{MatchLabels: map[string]string{"k1": "v1"}},
+			Template:        *deployment.Spec.Template.DeepCopy(),
+		},
+	}
+
+	t.Run("should compute a new MachineSet when no old MachineSets exist", func(t *testing.T) {
+		expectedMS := skeletonMSBasedOnMD.DeepCopy()
+
+		g := NewWithT(t)
+		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, nil, nil, log)
+		g.Expect(err).To(BeNil())
+		assertMachineSet(g, actualMS, expectedMS)
+	})
+
+	t.Run("should compute a new MachineSet when old MachineSets exist", func(t *testing.T) {
+		oldMS := skeletonMSBasedOnMD.DeepCopy()
+		oldMS.Spec.Replicas = pointer.Int32(2)
+
+		expectedMS := skeletonMSBasedOnMD.DeepCopy()
+		expectedMS.Spec.Replicas = pointer.Int32(2) // 4 (maxsurge+replicas) - 2 (replicas of old ms) = 2
+
+		g := NewWithT(t)
+		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, nil, []*clusterv1.MachineSet{oldMS}, log)
+		g.Expect(err).To(BeNil())
+		assertMachineSet(g, actualMS, expectedMS)
+	})
+
+	t.Run("should compute the updated MachineSet when no old MachineSets exists", func(t *testing.T) {
+		uniqueID := apirand.String(5)
+		existingMS := skeletonMSBasedOnMD.DeepCopy()
+		// computeDesiredMachineSet should retain the UID, name and the "machine-template-hash" label value
+		// of the existing machine.
+		// Other fields like labels, annotations, node timeout, etc are expected to change.
+		existingMSUID := types.UID("abc-123-uid")
+		existingMS.UID = existingMSUID
+		existingMS.Name = deployment.Name + "-" + uniqueID
+		existingMS.Labels = map[string]string{
+			clusterv1.MachineDeploymentUniqueLabel: uniqueID,
+			"ms-label-1":                           "ms-value-1",
+		}
+		existingMS.Annotations = nil
+		existingMS.Spec.Template.Labels = map[string]string{
+			clusterv1.MachineDeploymentUniqueLabel: uniqueID,
+			"ms-label-2":                           "ms-value-2",
+		}
+		existingMS.Spec.Template.Annotations = nil
+		existingMS.Spec.Template.Spec.NodeDrainTimeout = duration5s
+		existingMS.Spec.Template.Spec.NodeDeletionTimeout = duration5s
+		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeout = duration5s
+		existingMS.Spec.DeletePolicy = string(clusterv1.NewestMachineSetDeletePolicy)
+		existingMS.Spec.MinReadySeconds = 0
+
+		expectedMS := skeletonMSBasedOnMD.DeepCopy()
+		expectedMS.UID = existingMSUID
+		expectedMS.Name = deployment.Name + "-" + uniqueID
+		expectedMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = uniqueID
+		expectedMS.Spec.Template.Labels[clusterv1.MachineDeploymentUniqueLabel] = uniqueID
+
+		g := NewWithT(t)
+		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, existingMS, nil, log)
+		g.Expect(err).To(BeNil())
+		assertMachineSet(g, actualMS, expectedMS)
+	})
+
+	t.Run("should compute the updated MachineSet when old MachineSets exist", func(t *testing.T) {
+		uniqueID := apirand.String(5)
+		existingMS := skeletonMSBasedOnMD.DeepCopy()
+		existingMSUID := types.UID("abc-123-uid")
+		existingMS.UID = existingMSUID
+		existingMS.Name = deployment.Name + "-" + uniqueID
+		existingMS.Labels = map[string]string{
+			clusterv1.MachineDeploymentUniqueLabel: uniqueID,
+			"ms-label-1":                           "ms-value-1",
+		}
+		existingMS.Annotations = nil
+		existingMS.Spec.Template.Labels = map[string]string{
+			clusterv1.MachineDeploymentUniqueLabel: uniqueID,
+			"ms-label-2":                           "ms-value-2",
+		}
+		existingMS.Spec.Template.Annotations = nil
+		existingMS.Spec.Template.Spec.NodeDrainTimeout = duration5s
+		existingMS.Spec.Template.Spec.NodeDeletionTimeout = duration5s
+		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeout = duration5s
+		existingMS.Spec.DeletePolicy = string(clusterv1.NewestMachineSetDeletePolicy)
+		existingMS.Spec.MinReadySeconds = 0
+
+		oldMS := skeletonMSBasedOnMD.DeepCopy()
+		oldMS.Spec.Replicas = pointer.Int32(2)
+
+		// Note: computeDesiredMachineSet does not modify the replicas on the updated MachineSet.
+		// Therefore, even though we have the old machineset with replicas 2 the updatedMS does not
+		// get modified replicas (2 = 4(maxsuge+spec.replica) - 2(oldMS replicas)).
+		// Nb. The final replicas of the MachineSet are calculated elsewhere.
+		expectedMS := skeletonMSBasedOnMD.DeepCopy()
+		expectedMS.UID = existingMSUID
+		expectedMS.Name = deployment.Name + "-" + uniqueID
+		expectedMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = uniqueID
+		expectedMS.Spec.Template.Labels[clusterv1.MachineDeploymentUniqueLabel] = uniqueID
+
+		g := NewWithT(t)
+		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, existingMS, []*clusterv1.MachineSet{oldMS}, log)
+		g.Expect(err).To(BeNil())
+		assertMachineSet(g, actualMS, expectedMS)
+	})
+}
+
+func assertMachineSet(g *WithT, actualMS *clusterv1.MachineSet, expectedMS *clusterv1.MachineSet) {
+	// check UID
+	if expectedMS.UID != "" {
+		g.Expect(actualMS.UID).Should(Equal(expectedMS.UID))
+	}
+	// Check Name
+	if expectedMS.Name != "" {
+		g.Expect(actualMS.Name).Should(Equal(expectedMS.Name))
+	}
+	// Check Namespace
+	g.Expect(actualMS.Namespace).Should(Equal(expectedMS.Namespace))
+
+	// Check Replicas
+	g.Expect(actualMS.Spec.Replicas).ShouldNot(BeNil())
+	g.Expect(actualMS.Spec.Replicas).Should(HaveValue(Equal(*expectedMS.Spec.Replicas)))
+
+	// Check ClusterName
+	g.Expect(actualMS.Spec.ClusterName).Should(Equal(expectedMS.Spec.ClusterName))
+
+	// Check Labels
+	for k, v := range expectedMS.Labels {
+		g.Expect(actualMS.Labels).Should(HaveKeyWithValue(k, v))
+	}
+	for k, v := range expectedMS.Spec.Template.Labels {
+		g.Expect(actualMS.Spec.Template.Labels).Should(HaveKeyWithValue(k, v))
+	}
+	// Verify that the labels also has the unique identifier key.
+	g.Expect(actualMS.Labels).Should(HaveKey(clusterv1.MachineDeploymentUniqueLabel))
+	g.Expect(actualMS.Spec.Template.Labels).Should(HaveKey(clusterv1.MachineDeploymentUniqueLabel))
+
+	// Check Annotations
+	// Note: More nuanced validation of the Revision annotation calculations are done when testing `ComputeMachineSetAnnotations`.
+	for k, v := range expectedMS.Annotations {
+		g.Expect(actualMS.Annotations).Should(HaveKeyWithValue(k, v))
+	}
+	for k, v := range expectedMS.Spec.Template.Annotations {
+		g.Expect(actualMS.Spec.Template.Annotations).Should(HaveKeyWithValue(k, v))
+	}
+
+	// Check MinReadySeconds
+	g.Expect(actualMS.Spec.MinReadySeconds).Should(Equal(expectedMS.Spec.MinReadySeconds))
+
+	// Check DeletePolicy
+	g.Expect(actualMS.Spec.DeletePolicy).Should(Equal(expectedMS.Spec.DeletePolicy))
+
+	// Check MachineTemplateSpec
+	g.Expect(actualMS.Spec.Template.Spec).Should(Equal(expectedMS.Spec.Template.Spec))
 }
 
 // asserts the conditions set on the Getter object.

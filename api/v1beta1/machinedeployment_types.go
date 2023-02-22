@@ -54,8 +54,18 @@ const (
 	// proportions in case the deployment has surge replicas.
 	MaxReplicasAnnotation = "machinedeployment.clusters.x-k8s.io/max-replicas"
 
-	// MachineDeploymentUniqueLabel is the label applied to Machines
-	// in a MachineDeployment containing the hash of the template.
+	// MachineDeploymentUniqueLabel is used to uniquely identify the Machines of a MachineSet.
+	// The MachineDeployment controller will set this label on a MachineSet when it is created.
+	// The label is also applied to the Machines of the MachineSet and used in the MachineSet selector.
+	// Note: For the lifetime of the MachineSet the label's value has to stay the same, otherwise the
+	// MachineSet selector would no longer match its Machines.
+	// Note: In previous Cluster API versions (< v1.4.0), the label value was the hash of the full machine template.
+	// With the introduction of in-place mutation the machine template of the MachineSet can change.
+	// Because of that it is impossible that the label's value to always be the hash of the full machine template.
+	// (Because the hash changes when the machine template changes).
+	// As a result, we use the hash of the machine template while ignoring all in-place mutable fields, i.e. the
+	// machine template with only fields that could trigger a rollout for the machine-template-hash, making it
+	// independent of the changes to any in-place mutable fields.
 	MachineDeploymentUniqueLabel = "machine-template-hash"
 )
 

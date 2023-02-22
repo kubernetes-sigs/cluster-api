@@ -387,6 +387,7 @@ Stakeholders are: (TBD)
 #### Setup jobs and dashboards for a new release branch
 
 The goal of this task is to have test coverage for the new release branch and results in testgrid.
+While we add test coverage for the new release branch we will also drop the tests for old release branches if necessary.
 
 1. Create new jobs based on the jobs running against our `main` branch:
     1. Copy `config/jobs/kubernetes-sigs/cluster-api/cluster-api-periodics-main.yaml` to `config/jobs/kubernetes-sigs/cluster-api/cluster-api-periodics-release-1-4.yaml`.
@@ -401,7 +402,9 @@ The goal of this task is to have test coverage for the new release branch and re
             * Change interval (let's use the same as for `1.3`).
         5. For presubmits additionally: Adjust branches: `^main$` => `^release-1.4$`.
 2. Create a new dashboard for the new branch in: `test-infra/config/testgrids/kubernetes/sig-cluster-lifecycle/config.yaml` (`dashboard_groups` and `dashboards`).
-3. Verify the jobs and dashboards a day later by taking a look at: `https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-1.4`
+3. Remove tests for old release branches according to our policy documented in [Support and guarantees](../../CONTRIBUTING.md#support-and-guarantees)
+   For example, let's assume we just created tests for v1.4, then we can now drop test coverage for the release-1.1 branch.
+4. Verify the jobs and dashboards a day later by taking a look at: `https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-1.4`
 
 Prior art: [Add jobs for CAPI release 1.2](https://github.com/kubernetes/test-infra/pull/26621)
 

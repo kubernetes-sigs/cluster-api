@@ -145,8 +145,10 @@ Cluster API maintains the most recent release/releases for all supported API and
 | **v1alpha4** | EOL since 2022-04-06 ([apiVersion removal](#removal-of-v1alpha3--v1alpha4-apiversions)) |
 | **v1alpha3** | EOL since 2022-02-23 ([apiVersion removal](#removal-of-v1alpha3--v1alpha4-apiversions)) |
 
-- For the latest API version we support the two most recent minor releases; older minor releases are immediately unsupported when a new major/minor release is available. 
+- For the current stable API version (v1beta1) we support the two most recent minor releases; older minor releases are immediately unsupported when a new major/minor release is available.
 - For older API versions we only support the most recent minor release until the API version reaches EOL.
+- We will maintain test coverage for all supported minor releases and for one additional release for the current stable API version in case we have to do an emergency patch release.
+  For example, if v1.2 and v1.3 are currently supported, we will also maintain test coverage for v1.1 for one additional release cycle. When v1.4 is released, tests for v1.1 will be removed.
 
 | Minor Release | API Version  | Supported Until                                      |
 |---------------|--------------|------------------------------------------------------|

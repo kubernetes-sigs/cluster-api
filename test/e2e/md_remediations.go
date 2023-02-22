@@ -32,8 +32,8 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 )
 
-// MachineRemediationSpecInput is the input for MachineRemediationSpec.
-type MachineRemediationSpecInput struct {
+// MachineDeploymentRemediationSpecInput is the input for MachineDeploymentRemediationSpec.
+type MachineDeploymentRemediationSpecInput struct {
 	E2EConfig             *clusterctl.E2EConfig
 	ClusterctlConfigPath  string
 	BootstrapClusterProxy framework.ClusterProxy
@@ -41,26 +41,19 @@ type MachineRemediationSpecInput struct {
 	SkipCleanup           bool
 	ControlPlaneWaiters   clusterctl.ControlPlaneWaiters
 
-	// KCPFlavor, if specified, must refer to a template that has a MachineHealthCheck
-	// resource configured to match the control plane Machines (cluster.x-k8s.io/controlplane: "" label)
-	// and be configured to treat "e2e.remediation.condition" "False" as an unhealthy
-	// condition with a short timeout.
-	// If not specified, "kcp-remediation" is used.
-	KCPFlavor *string
-
-	// MDFlavor, if specified, must refer to a template that has a MachineHealthCheck
+	// Flavor, if specified, must refer to a template that has a MachineHealthCheck
 	// resource configured to match the MachineDeployment managed Machines and be
 	// configured to treat "e2e.remediation.condition" "False" as an unhealthy
 	// condition with a short timeout.
 	// If not specified, "md-remediation" is used.
-	MDFlavor *string
+	Flavor *string
 }
 
-// MachineRemediationSpec implements a test that verifies that Machines are remediated by MHC during unhealthy conditions.
-func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemediationSpecInput) {
+// MachineDeploymentRemediationSpec implements a test that verifies that Machines are remediated by MHC during unhealthy conditions.
+func MachineDeploymentRemediationSpec(ctx context.Context, inputGetter func() MachineDeploymentRemediationSpecInput) {
 	var (
-		specName         = "mhc-remediation"
-		input            MachineRemediationSpecInput
+		specName         = "md-remediation"
+		input            MachineDeploymentRemediationSpecInput
 		namespace        *corev1.Namespace
 		cancelWatches    context.CancelFunc
 		clusterResources *clusterctl.ApplyClusterTemplateAndWaitResult
@@ -80,7 +73,7 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 		clusterResources = new(clusterctl.ApplyClusterTemplateAndWaitResult)
 	})
 
-	It("Should successfully trigger machine deployment remediation", func() {
+	It("Should replace unhealthy machines", func() {
 		By("Creating a workload cluster")
 
 		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
@@ -90,7 +83,7 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   pointer.StringDeref(input.MDFlavor, "md-remediation"),
+				Flavor:                   pointer.StringDeref(input.Flavor, "md-remediation"),
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
 				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
@@ -103,40 +96,9 @@ func MachineRemediationSpec(ctx context.Context, inputGetter func() MachineRemed
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
 		}, clusterResources)
 
+		// TODO: this should be re-written like the KCP remediation test, because the current implementation
+		//   only tests that MHC applies the unhealthy condition but it doesn't test that the unhealthy machine is delete and a replacement machine comes up.
 		By("Setting a machine unhealthy and wait for MachineDeployment remediation")
-		framework.DiscoverMachineHealthChecksAndWaitForRemediation(ctx, framework.DiscoverMachineHealthCheckAndWaitForRemediationInput{
-			ClusterProxy:              input.BootstrapClusterProxy,
-			Cluster:                   clusterResources.Cluster,
-			WaitForMachineRemediation: input.E2EConfig.GetIntervals(specName, "wait-machine-remediation"),
-		})
-
-		By("PASSED!")
-	})
-
-	It("Should successfully trigger KCP remediation", func() {
-		By("Creating a workload cluster")
-
-		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-			ClusterProxy: input.BootstrapClusterProxy,
-			ConfigCluster: clusterctl.ConfigClusterInput{
-				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
-				ClusterctlConfigPath:     input.ClusterctlConfigPath,
-				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
-				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   pointer.StringDeref(input.KCPFlavor, "kcp-remediation"),
-				Namespace:                namespace.Name,
-				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
-				ControlPlaneMachineCount: pointer.Int64(3),
-				WorkerMachineCount:       pointer.Int64(1),
-			},
-			ControlPlaneWaiters:          input.ControlPlaneWaiters,
-			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
-			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
-			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-		}, clusterResources)
-
-		By("Setting a machine unhealthy and wait for KubeadmControlPlane remediation")
 		framework.DiscoverMachineHealthChecksAndWaitForRemediation(ctx, framework.DiscoverMachineHealthCheckAndWaitForRemediationInput{
 			ClusterProxy:              input.BootstrapClusterProxy,
 			Cluster:                   clusterResources.Cluster,

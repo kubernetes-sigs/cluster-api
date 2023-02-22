@@ -410,6 +410,11 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	validUpdate.Spec.RolloutBefore = &RolloutBefore{
 		CertificatesExpiryDays: pointer.Int32(14),
 	}
+	validUpdate.Spec.RemediationStrategy = &RemediationStrategy{
+		MaxRetry:         pointer.Int32(50),
+		MinHealthyPeriod: &metav1.Duration{Duration: 10 * time.Hour},
+		RetryPeriod:      metav1.Duration{Duration: 10 * time.Minute},
+	}
 	validUpdate.Spec.KubeadmConfigSpec.Format = bootstrapv1.CloudConfig
 
 	scaleToZero := before.DeepCopy()

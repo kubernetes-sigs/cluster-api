@@ -1,5 +1,5 @@
 bases:
-  - ../bases/cluster-with-kcp.yaml
+  - cluster-with-kcp.yaml
   - ../bases/md.yaml
   - ../bases/crs.yaml
   - mhc.yaml

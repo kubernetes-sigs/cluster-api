@@ -23,9 +23,9 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 )
 
-var _ = Describe("When testing unhealthy machines remediation", func() {
-	MachineRemediationSpec(ctx, func() MachineRemediationSpecInput {
-		return MachineRemediationSpecInput{
+var _ = Describe("When testing MachineDeployment remediation", func() {
+	MachineDeploymentRemediationSpec(ctx, func() MachineDeploymentRemediationSpecInput {
+		return MachineDeploymentRemediationSpecInput{
 			E2EConfig:             e2eConfig,
 			ClusterctlConfigPath:  clusterctlConfigPath,
 			BootstrapClusterProxy: bootstrapClusterProxy,

@@ -34,13 +34,17 @@ import (
 
 func TestGlobal(t *testing.T) {
 	tests := []struct {
-		name            string
-		clusterTopology *clusterv1.Topology
-		cluster         *clusterv1.Cluster
-		want            []runtimehooksv1.Variable
+		name                        string
+		clusterTopology             *clusterv1.Topology
+		cluster                     *clusterv1.Cluster
+		forPatch                    string
+		variableDefinitionsForPatch map[string]bool
+		want                        []runtimehooksv1.Variable
 	}{
 		{
-			name: "Should calculate global variables",
+			name:                        "Should calculate global variables",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			forPatch:                    "patch1",
 			clusterTopology: &clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
@@ -110,7 +114,90 @@ func TestGlobal(t *testing.T) {
 			},
 		},
 		{
-			name: "Should calculate when serviceDomain is not set",
+			name:                        "Should calculate global variables for a given forPatch",
+			forPatch:                    "patch1",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			clusterTopology: &clusterv1.Topology{
+				Variables: []clusterv1.ClusterVariable{
+					{
+						Name:           "location",
+						Value:          toJSON("\"us-central\""),
+						DefinitionFrom: "patch1",
+					},
+					{
+						Name:  "location",
+						Value: toJSON("\"internal.proxy.com\""),
+						// This variable should be excluded because it is defined for a different patch.
+						DefinitionFrom: "anotherPatch",
+					},
+					{
+						Name:  "https-proxy",
+						Value: toJSON("\"internal.proxy.com\""),
+						// This variable should be excluded because it is not among variableDefinitionsForPatch.
+						DefinitionFrom: "",
+					},
+
+					{
+						Name:  "cpu",
+						Value: toJSON("8"),
+						// This variable should be included because it is defined for all patches.
+					},
+				},
+			},
+			cluster: &clusterv1.Cluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster1",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: clusterv1.ClusterSpec{
+					Topology: &clusterv1.Topology{
+						Class:   "clusterClass1",
+						Version: "v1.21.1",
+					},
+					ClusterNetwork: &clusterv1.ClusterNetwork{
+						Services: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"10.10.10.1/24"},
+						},
+						Pods: &clusterv1.NetworkRanges{
+							CIDRBlocks: []string{"11.10.10.1/24"},
+						},
+						ServiceDomain: "cluster.local",
+					},
+				},
+			},
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
+					"cluster":{
+						"name": "cluster1",
+  						"namespace": "default",
+ 						 "topology":{
+  						  	"version": "v1.21.1",
+ 						   	"class": "clusterClass1"
+  						},
+  						"network":{
+							"serviceDomain":"cluster.local",
+  						 	"services":["10.10.10.1/24"],
+   							"pods":["11.10.10.1/24"],
+    						"ipFamily": "IPv4"
+						}
+					}}`),
+				},
+			},
+		},
+		{
+			name:                        "Should calculate when serviceDomain is not set",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			forPatch:                    "patch1",
 			clusterTopology: &clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
@@ -178,7 +265,9 @@ func TestGlobal(t *testing.T) {
 			},
 		},
 		{
-			name: "Should calculate where some variables  are nil",
+			name:                        "Should calculate where some variables are nil",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			forPatch:                    "patch1",
 			clusterTopology: &clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
@@ -242,7 +331,9 @@ func TestGlobal(t *testing.T) {
 			},
 		},
 		{
-			name: "Should calculate where ClusterNetwork is nil",
+			name:                        "Should calculate where ClusterNetwork is nil",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			forPatch:                    "patch1",
 			clusterTopology: &clusterv1.Topology{
 				Variables: []clusterv1.ClusterVariable{
 					{
@@ -302,7 +393,7 @@ func TestGlobal(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := Global(tt.clusterTopology, tt.cluster)
+			got, err := Global(tt.clusterTopology, tt.cluster, tt.forPatch, tt.variableDefinitionsForPatch)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
@@ -399,13 +490,17 @@ func TestMachineDeployment(t *testing.T) {
 	tests := []struct {
 		name                            string
 		mdTopology                      *clusterv1.MachineDeploymentTopology
+		forPatch                        string
+		variableDefinitionsForPatch     map[string]bool
 		md                              *clusterv1.MachineDeployment
 		mdBootstrapTemplate             *unstructured.Unstructured
 		mdInfrastructureMachineTemplate *unstructured.Unstructured
 		want                            []runtimehooksv1.Variable
 	}{
 		{
-			name: "Should calculate MachineDeployment variables",
+			name:                        "Should calculate MachineDeployment variables",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			forPatch:                    "patch1",
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Replicas: pointer.Int32(3),
 				Name:     "md-topology",
@@ -450,7 +545,74 @@ func TestMachineDeployment(t *testing.T) {
 			},
 		},
 		{
-			name: "Should calculate MachineDeployment variables (without overrides)",
+			name:     "Should calculate MachineDeployment variables for a given patch name",
+			forPatch: "patch1",
+			variableDefinitionsForPatch: map[string]bool{
+				"location": true,
+				"cpu":      true,
+			},
+			mdTopology: &clusterv1.MachineDeploymentTopology{
+				Replicas: pointer.Int32(3),
+				Name:     "md-topology",
+				Class:    "md-class",
+				Variables: &clusterv1.MachineDeploymentVariables{
+					Overrides: []clusterv1.ClusterVariable{
+						{
+							Name:           "location",
+							Value:          toJSON("\"us-central\""),
+							DefinitionFrom: "patch1",
+						},
+						{
+							Name:  "location",
+							Value: toJSON("\"us-east\""),
+							// This variable should be excluded because it is defined for a different patch.
+							DefinitionFrom: "anotherPatch",
+						},
+
+						{
+							Name:  "http-proxy",
+							Value: toJSON("\"internal.proxy.com\""),
+							// This variable should be excluded because it is not in variableDefinitionsForPatch.
+							DefinitionFrom: "",
+						},
+						{
+							Name:  "cpu",
+							Value: toJSON("8"),
+							// This variable should be included because it is defined for all patches.
+						},
+					},
+				},
+			},
+			md: builder.MachineDeployment(metav1.NamespaceDefault, "md1").
+				WithReplicas(3).
+				WithVersion("v1.21.1").
+				Build(),
+			want: []runtimehooksv1.Variable{
+				{
+					Name:  "location",
+					Value: toJSON("\"us-central\""),
+				},
+				{
+					Name:  "cpu",
+					Value: toJSON("8"),
+				},
+				{
+					Name: BuiltinsName,
+					Value: toJSONCompact(`{
+					"machineDeployment":{
+						"version": "v1.21.1",
+						"class": "md-class",
+						"name": "md1",
+						"topologyName": "md-topology",
+						"replicas":3
+					}}`),
+				},
+			},
+		},
+		{
+			name:                        "Should calculate MachineDeployment variables (without overrides)",
+			forPatch:                    "patch1",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Replicas: pointer.Int32(3),
 				Name:     "md-topology",
@@ -475,7 +637,9 @@ func TestMachineDeployment(t *testing.T) {
 			},
 		},
 		{
-			name: "Should calculate MachineDeployment variables, replicas not set",
+			name:                        "Should calculate MachineDeployment variables, replicas not set",
+			forPatch:                    "patch1",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Name:  "md-topology",
 				Class: "md-class",
@@ -517,7 +681,9 @@ func TestMachineDeployment(t *testing.T) {
 			},
 		},
 		{
-			name: "Should calculate MachineDeployment variables with BoostrapTemplate",
+			name:                        "Should calculate MachineDeployment variables with BoostrapTemplate",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			forPatch:                    "patch1",
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Replicas: pointer.Int32(3),
 				Name:     "md-topology",
@@ -568,7 +734,9 @@ func TestMachineDeployment(t *testing.T) {
 			},
 		},
 		{
-			name: "Should calculate MachineDeployment variables with InfrastructureMachineTemplate",
+			name:                        "Should calculate MachineDeployment variables with InfrastructureMachineTemplate",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			forPatch:                    "patch1",
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Replicas: pointer.Int32(3),
 				Name:     "md-topology",
@@ -617,7 +785,9 @@ func TestMachineDeployment(t *testing.T) {
 			},
 		},
 		{
-			name: "Should calculate MachineDeployment variables with BootstrapTemplate and InfrastructureMachineTemplate",
+			name:                        "Should calculate MachineDeployment variables with BootstrapTemplate and InfrastructureMachineTemplate",
+			variableDefinitionsForPatch: map[string]bool{"location": true, "cpu": true},
+			forPatch:                    "patch1",
 			mdTopology: &clusterv1.MachineDeploymentTopology{
 				Replicas: pointer.Int32(3),
 				Name:     "md-topology",
@@ -676,7 +846,7 @@ func TestMachineDeployment(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := MachineDeployment(tt.mdTopology, tt.md, tt.mdBootstrapTemplate, tt.mdInfrastructureMachineTemplate)
+			got, err := MachineDeployment(tt.mdTopology, tt.md, tt.mdBootstrapTemplate, tt.mdInfrastructureMachineTemplate, tt.forPatch, tt.variableDefinitionsForPatch)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})

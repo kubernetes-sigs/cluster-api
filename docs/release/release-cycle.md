@@ -2,8 +2,8 @@
 
 The release cycle is the time between when we start working on a release on the `main` branch until the `.0` release (e.g. `v1.3.0`) is released.
 
-**Note**: For the `v1.3` and `v1.4` releases we assume each release cycle will last approximately 4 months (~ 17 weeks).
-The release cycle duration will be revisited after the `v1.4.0` release.
+**Note**: For the `v1.3` and `v1.4` releases we assume each release cycle will last approximately 4 months (~ 17 weeks).  
+The release cycle will follow a 4 month cadence for 2023. The release cycle duration will be revisited in 2024.
 
 A release cycle can be split up into the following phases:
 

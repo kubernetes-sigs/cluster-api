@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package structuredmerge
+package ssa
 
 import (
 	"testing"
@@ -27,14 +27,14 @@ import (
 func Test_filterNotAllowedPaths(t *testing.T) {
 	tests := []struct {
 		name      string
-		ctx       *filterIntentInput
+		ctx       *FilterIntentInput
 		wantValue map[string]interface{}
 	}{
 		{
 			name: "Filters out not allowed paths",
-			ctx: &filterIntentInput{
-				path: contract.Path{},
-				value: map[string]interface{}{
+			ctx: &FilterIntentInput{
+				Path: contract.Path{},
+				Value: map[string]interface{}{
 					"apiVersion": "foo.bar/v1",
 					"kind":       "Foo",
 					"metadata": map[string]interface{}{
@@ -55,7 +55,7 @@ func Test_filterNotAllowedPaths(t *testing.T) {
 						"foo": "123",
 					},
 				},
-				shouldFilter: isNotAllowedPath(
+				ShouldFilter: IsNotAllowedPath(
 					[]contract.Path{ // NOTE: we are dropping everything not in this list
 						{"apiVersion"},
 						{"kind"},
@@ -89,14 +89,14 @@ func Test_filterNotAllowedPaths(t *testing.T) {
 		},
 		{
 			name: "Cleanup empty maps",
-			ctx: &filterIntentInput{
-				path: contract.Path{},
-				value: map[string]interface{}{
+			ctx: &FilterIntentInput{
+				Path: contract.Path{},
+				Value: map[string]interface{}{
 					"spec": map[string]interface{}{
 						"foo": "123",
 					},
 				},
-				shouldFilter: isNotAllowedPath(
+				ShouldFilter: IsNotAllowedPath(
 					[]contract.Path{}, // NOTE: we are filtering out everything not in this list (everything)
 				),
 			},
@@ -109,9 +109,9 @@ func Test_filterNotAllowedPaths(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			filterIntent(tt.ctx)
+			FilterIntent(tt.ctx)
 
-			g.Expect(tt.ctx.value).To(Equal(tt.wantValue))
+			g.Expect(tt.ctx.Value).To(Equal(tt.wantValue))
 		})
 	}
 }
@@ -119,14 +119,14 @@ func Test_filterNotAllowedPaths(t *testing.T) {
 func Test_filterIgnoredPaths(t *testing.T) {
 	tests := []struct {
 		name      string
-		ctx       *filterIntentInput
+		ctx       *FilterIntentInput
 		wantValue map[string]interface{}
 	}{
 		{
 			name: "Filters out ignore paths",
-			ctx: &filterIntentInput{
-				path: contract.Path{},
-				value: map[string]interface{}{
+			ctx: &FilterIntentInput{
+				Path: contract.Path{},
+				Value: map[string]interface{}{
 					"spec": map[string]interface{}{
 						"foo": "bar",
 						"controlPlaneEndpoint": map[string]interface{}{
@@ -135,7 +135,7 @@ func Test_filterIgnoredPaths(t *testing.T) {
 						},
 					},
 				},
-				shouldFilter: isIgnorePath(
+				ShouldFilter: IsIgnorePath(
 					[]contract.Path{
 						{"spec", "controlPlaneEndpoint"},
 					},
@@ -150,14 +150,14 @@ func Test_filterIgnoredPaths(t *testing.T) {
 		},
 		{
 			name: "Cleanup empty maps",
-			ctx: &filterIntentInput{
-				path: contract.Path{},
-				value: map[string]interface{}{
+			ctx: &FilterIntentInput{
+				Path: contract.Path{},
+				Value: map[string]interface{}{
 					"spec": map[string]interface{}{
 						"foo": "123",
 					},
 				},
-				shouldFilter: isIgnorePath(
+				ShouldFilter: IsIgnorePath(
 					[]contract.Path{
 						{"spec", "foo"},
 					},
@@ -169,16 +169,16 @@ func Test_filterIgnoredPaths(t *testing.T) {
 		},
 		{
 			name: "Cleanup empty nested maps",
-			ctx: &filterIntentInput{
-				path: contract.Path{},
-				value: map[string]interface{}{
+			ctx: &FilterIntentInput{
+				Path: contract.Path{},
+				Value: map[string]interface{}{
 					"spec": map[string]interface{}{
 						"bar": map[string]interface{}{
 							"foo": "123",
 						},
 					},
 				},
-				shouldFilter: isIgnorePath(
+				ShouldFilter: IsIgnorePath(
 					[]contract.Path{
 						{"spec", "bar", "foo"},
 					},
@@ -193,9 +193,9 @@ func Test_filterIgnoredPaths(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			filterIntent(tt.ctx)
+			FilterIntent(tt.ctx)
 
-			g.Expect(tt.ctx.value).To(Equal(tt.wantValue))
+			g.Expect(tt.ctx.Value).To(Equal(tt.wantValue))
 		})
 	}
 }

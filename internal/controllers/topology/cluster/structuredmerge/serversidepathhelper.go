@@ -24,6 +24,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -70,7 +71,10 @@ func NewServerSidePatchHelper(ctx context.Context, original, modified client.Obj
 
 	// Filter the modifiedUnstructured object to only contain changes intendet to be done.
 	// The originalUnstructured object will be filtered in dryRunSSAPatch using other options.
-	filterObject(modifiedUnstructured, helperOptions)
+	ssa.FilterObject(modifiedUnstructured, &ssa.FilterObjectInput{
+		AllowedPaths: helperOptions.allowedPaths,
+		IgnorePaths:  helperOptions.ignorePaths,
+	})
 
 	// Carry over uid to match the intent to:
 	// * create (uid==""):

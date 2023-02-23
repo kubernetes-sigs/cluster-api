@@ -28,6 +28,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util/conversion"
 )
 
@@ -47,9 +48,9 @@ type dryRunSSAPatchInput struct {
 func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, bool, error) {
 	// For dry run we use the same options as for the intent but with adding metadata.managedFields
 	// to ensure that changes to ownership are detected.
-	dryRunHelperOptions := &HelperOptions{
-		allowedPaths: append(dryRunCtx.helperOptions.allowedPaths, []string{"metadata", "managedFields"}),
-		ignorePaths:  dryRunCtx.helperOptions.ignorePaths,
+	filterObjectInput := &ssa.FilterObjectInput{
+		AllowedPaths: append(dryRunCtx.helperOptions.allowedPaths, []string{"metadata", "managedFields"}),
+		IgnorePaths:  dryRunCtx.helperOptions.ignorePaths,
 	}
 
 	// Add TopologyDryRunAnnotation to notify validation webhooks to skip immutability checks.
@@ -80,7 +81,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	// Filter object to drop fields which are not part of our intent.
 	// Note: It's especially important to also drop metadata.resourceVersion, otherwise we could get the following
 	// error: "the object has been modified; please apply your changes to the latest version and try again"
-	filterObject(dryRunCtx.originalUnstructured, dryRunHelperOptions)
+	ssa.FilterObject(dryRunCtx.originalUnstructured, filterObjectInput)
 	// Backup managed fields.
 	originalUnstructuredManagedFieldsBeforeSSA := dryRunCtx.originalUnstructured.GetManagedFields()
 	// Set managed fields to nil.
@@ -119,8 +120,8 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	}
 
 	// Drop the other fields which are not part of our intent.
-	filterObject(dryRunCtx.modifiedUnstructured, dryRunHelperOptions)
-	filterObject(dryRunCtx.originalUnstructured, dryRunHelperOptions)
+	ssa.FilterObject(dryRunCtx.modifiedUnstructured, filterObjectInput)
+	ssa.FilterObject(dryRunCtx.originalUnstructured, filterObjectInput)
 
 	// Compare the output of dry run to the original object.
 	originalJSON, err := json.Marshal(dryRunCtx.originalUnstructured)
@@ -155,10 +156,10 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 // it is expected to change due to the additional annotation.
 func cleanupManagedFieldsAndAnnotation(obj *unstructured.Unstructured) error {
 	// Filter the topology.cluster.x-k8s.io/dry-run annotation as well as leftover empty maps.
-	filterIntent(&filterIntentInput{
-		path:  contract.Path{},
-		value: obj.Object,
-		shouldFilter: isIgnorePath([]contract.Path{
+	ssa.FilterIntent(&ssa.FilterIntentInput{
+		Path:  contract.Path{},
+		Value: obj.Object,
+		ShouldFilter: ssa.IsIgnorePath([]contract.Path{
 			{"metadata", "annotations", clusterv1.TopologyDryRunAnnotation},
 			// In case the ClusterClass we are reconciling is using not the latest apiVersion the conversion
 			// annotation might be added to objects. As we don't care about differences in conversion as we
@@ -192,10 +193,10 @@ func cleanupManagedFieldsAndAnnotation(obj *unstructured.Unstructured) error {
 		}
 
 		// Filter out the annotation ownership as well as leftover empty maps.
-		filterIntent(&filterIntentInput{
-			path:  contract.Path{},
-			value: fieldsV1,
-			shouldFilter: isIgnorePath([]contract.Path{
+		ssa.FilterIntent(&ssa.FilterIntentInput{
+			Path:  contract.Path{},
+			Value: fieldsV1,
+			ShouldFilter: ssa.IsIgnorePath([]contract.Path{
 				{"f:metadata", "f:annotations", "f:" + clusterv1.TopologyDryRunAnnotation},
 				{"f:metadata", "f:annotations", "f:" + conversion.DataAnnotation},
 			}),

@@ -26,7 +26,74 @@ import (
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+
+	"sigs.k8s.io/cluster-api/internal/contract"
 )
+
+const classicManager = "manager"
+
+// DropManagedFields modifies the managedFields entries on the object that belong to "manager" (Operation=Update)
+// to drop ownership of the given paths if there is no field yet that is managed by `ssaManager`.
+//
+// If we want to be able to drop fields that were previously owned by the "manager" we have to ensure that
+// fields are not co-owned by "manager" and `ssaManager`. Otherwise, when we drop the fields with SSA
+// (i.e. `ssaManager`) the fields would remain as they are still owned by "manager".
+// The following code will do a one-time update on the managed fields.
+// We won't do this on subsequent reconciles. This case will be identified by checking if `ssaManager` owns any fields.
+// Dropping ownership in paths for existing "manager" entries (which could also be from other controllers) is safe,
+// as we assume that if other controllers are still writing fields on the object they will just do it again and thus
+// gain ownership again.
+func DropManagedFields(ctx context.Context, c client.Client, obj client.Object, ssaManager string, paths []contract.Path) error {
+	// Return if `ssaManager` already owns any fields.
+	if hasFieldsManagedBy(obj, ssaManager) {
+		return nil
+	}
+
+	// Since there is no field managed by `ssaManager` it means that
+	// this is the first time this object is being processed after the controller calling this function
+	// started to use SSA patches.
+	// It is required to clean-up managedFields from entries created by the regular patches.
+	// This will ensure that `ssaManager` will be able to modify the fields that
+	// were originally owned by "manager".
+	base := obj.DeepCopyObject().(client.Object)
+
+	// Modify managedFieldEntry for manager=manager and operation=update to drop ownership
+	// for the given paths to avoid having two managers holding values.
+	originalManagedFields := obj.GetManagedFields()
+	managedFields := make([]metav1.ManagedFieldsEntry, 0, len(originalManagedFields))
+	for _, managedField := range originalManagedFields {
+		if managedField.Manager == classicManager &&
+			managedField.Operation == metav1.ManagedFieldsOperationUpdate {
+			// Unmarshal the managed fields into a map[string]interface{}
+			fieldsV1 := map[string]interface{}{}
+			if err := json.Unmarshal(managedField.FieldsV1.Raw, &fieldsV1); err != nil {
+				return errors.Wrap(err, "failed to unmarshal managed fields")
+			}
+
+			// Filter out the ownership for the given paths.
+			FilterIntent(&FilterIntentInput{
+				Path:         contract.Path{},
+				Value:        fieldsV1,
+				ShouldFilter: IsIgnorePath(paths),
+			})
+
+			fieldsV1Raw, err := json.Marshal(fieldsV1)
+			if err != nil {
+				return errors.Wrap(err, "failed to marshal managed fields")
+			}
+			managedField.FieldsV1.Raw = fieldsV1Raw
+
+			managedFields = append(managedFields, managedField)
+		} else {
+			// Do not modify the entry. Use as is.
+			managedFields = append(managedFields, managedField)
+		}
+	}
+
+	obj.SetManagedFields(managedFields)
+
+	return c.Patch(ctx, obj, client.MergeFrom(base))
+}
 
 // CleanUpManagedFieldsForSSAAdoption deletes the managedFields entries on the object that belong to "manager" (Operation=Update)
 // if there is no field yet that is managed by `ssaManager`.
@@ -60,7 +127,7 @@ func CleanUpManagedFieldsForSSAAdoption(ctx context.Context, obj client.Object, 
 	originalManagedFields := obj.GetManagedFields()
 	managedFields := make([]metav1.ManagedFieldsEntry, 0, len(originalManagedFields))
 	for i := range originalManagedFields {
-		if originalManagedFields[i].Manager == "manager" &&
+		if originalManagedFields[i].Manager == classicManager &&
 			originalManagedFields[i].Operation == metav1.ManagedFieldsOperationUpdate {
 			continue
 		}

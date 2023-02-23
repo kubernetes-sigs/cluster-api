@@ -655,15 +655,24 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			}()
 
 			// Run defaulting on the KubeadmConfigTemplate (triggered by an "external controller")
+			// Note: We have to retry this with eventually as it seems to take a bit of time until
+			// the webhook is active.
 			if tt.defaultOriginal {
-				patchKCT := kct.DeepCopy()
-				if patchKCT.Labels == nil {
-					patchKCT.Labels = map[string]string{}
-				}
-				patchKCT.Labels["trigger"] = "update"
-				g.Expect(env.Patch(ctx, patchKCT, client.MergeFrom(kct))).To(Succeed())
-				// Ensure patchKCT was defaulted.
-				g.Expect(patchKCT.Spec.Template.Spec.Users).To(Equal([]bootstrapv1.User{{Name: "default-user"}}))
+				g.Eventually(ctx, func(g Gomega) {
+					patchKCT := &bootstrapv1.KubeadmConfigTemplate{}
+					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT))
+
+					if patchKCT.Labels == nil {
+						patchKCT.Labels = map[string]string{}
+					}
+					patchKCT.Labels["trigger"] = "update"
+
+					g.Expect(env.Patch(ctx, patchKCT, client.MergeFrom(kct))).To(Succeed())
+
+					// Ensure patchKCT was defaulted.
+					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT))
+					g.Expect(patchKCT.Spec.Template.Spec.Users).To(Equal([]bootstrapv1.User{{Name: "default-user"}}))
+				}, 5*time.Second).Should(Succeed())
 			}
 			// Get original for the update.
 			original := kct.DeepCopy()

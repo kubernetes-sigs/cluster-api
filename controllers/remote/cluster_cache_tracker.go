@@ -528,6 +528,13 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 		}
 
 		if _, ok := t.loadAccessor(in.cluster); !ok {
+			// If there is no accessor but the cluster is locked, we're probably in the middle of the cluster accessor
+			// creation and we should requeue the health check until it's done.
+			if ok := t.clusterLock.TryLock(in.cluster); !ok {
+				t.log.V(4).Info("Waiting for cluster to be unlocked. Requeuing health check")
+				return false, nil
+			}
+			t.clusterLock.Unlock(in.cluster)
 			// Cache for this cluster has already been cleaned up.
 			// Nothing to do, so return true.
 			return true, nil

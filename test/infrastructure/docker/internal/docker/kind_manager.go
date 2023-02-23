@@ -170,6 +170,12 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 		},
 		IPFamily: opts.IPFamily,
 	}
+	if opts.Role == constants.ControlPlaneNodeRoleValue {
+		runOptions.EnvironmentVars = map[string]string{
+			"KUBECONFIG": "/etc/kubernetes/admin.conf",
+		}
+	}
+
 	log.V(6).Info("Container run options: %+v", runOptions)
 
 	containerRuntime, err := container.RuntimeFrom(ctx)

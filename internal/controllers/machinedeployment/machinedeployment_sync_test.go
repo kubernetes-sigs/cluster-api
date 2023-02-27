@@ -671,6 +671,52 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 		g.Expect(err).To(BeNil())
 		assertMachineSet(g, actualMS, expectedMS)
 	})
+
+	t.Run("should compute the updated MachineSet when no old MachineSets exists (", func(t *testing.T) {
+		// Set rollout strategy to "OnDelete".
+		deployment := deployment.DeepCopy()
+		deployment.Spec.Strategy = &clusterv1.MachineDeploymentStrategy{
+			Type:          clusterv1.OnDeleteMachineDeploymentStrategyType,
+			RollingUpdate: nil,
+		}
+
+		uniqueID := apirand.String(5)
+		existingMS := skeletonMSBasedOnMD.DeepCopy()
+		// computeDesiredMachineSet should retain the UID, name and the "machine-template-hash" label value
+		// of the existing machine.
+		// Other fields like labels, annotations, node timeout, etc are expected to change.
+		existingMSUID := types.UID("abc-123-uid")
+		existingMS.UID = existingMSUID
+		existingMS.Name = deployment.Name + "-" + uniqueID
+		existingMS.Labels = map[string]string{
+			clusterv1.MachineDeploymentUniqueLabel: uniqueID,
+			"ms-label-1":                           "ms-value-1",
+		}
+		existingMS.Annotations = nil
+		existingMS.Spec.Template.Labels = map[string]string{
+			clusterv1.MachineDeploymentUniqueLabel: uniqueID,
+			"ms-label-2":                           "ms-value-2",
+		}
+		existingMS.Spec.Template.Annotations = nil
+		existingMS.Spec.Template.Spec.NodeDrainTimeout = duration5s
+		existingMS.Spec.Template.Spec.NodeDeletionTimeout = duration5s
+		existingMS.Spec.Template.Spec.NodeVolumeDetachTimeout = duration5s
+		existingMS.Spec.DeletePolicy = string(clusterv1.NewestMachineSetDeletePolicy)
+		existingMS.Spec.MinReadySeconds = 0
+
+		expectedMS := skeletonMSBasedOnMD.DeepCopy()
+		expectedMS.UID = existingMSUID
+		expectedMS.Name = deployment.Name + "-" + uniqueID
+		expectedMS.Labels[clusterv1.MachineDeploymentUniqueLabel] = uniqueID
+		expectedMS.Spec.Template.Labels[clusterv1.MachineDeploymentUniqueLabel] = uniqueID
+		// DeletePolicy should be empty with rollout strategy "OnDelete".
+		expectedMS.Spec.DeletePolicy = ""
+
+		g := NewWithT(t)
+		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, existingMS, nil, log)
+		g.Expect(err).To(BeNil())
+		assertMachineSet(g, actualMS, expectedMS)
+	})
 }
 
 func assertMachineSet(g *WithT, actualMS *clusterv1.MachineSet, expectedMS *clusterv1.MachineSet) {

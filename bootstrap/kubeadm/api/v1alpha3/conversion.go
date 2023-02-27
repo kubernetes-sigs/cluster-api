@@ -147,6 +147,8 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+
 	if restored.Spec.Template.Spec.JoinConfiguration != nil && restored.Spec.Template.Spec.JoinConfiguration.NodeRegistration.IgnorePreflightErrors != nil {
 		if dst.Spec.Template.Spec.JoinConfiguration == nil {
 			dst.Spec.Template.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
@@ -274,4 +276,9 @@ func Convert_v1beta1_File_To_v1alpha3_File(in *bootstrapv1.File, out *File, s ap
 func Convert_v1beta1_User_To_v1alpha3_User(in *bootstrapv1.User, out *User, s apiconversion.Scope) error {
 	// User.PasswdFrom does not exist in kubeadm v1alpha3 API.
 	return autoConvert_v1beta1_User_To_v1alpha3_User(in, out, s)
+}
+
+func Convert_v1beta1_KubeadmConfigTemplateResource_To_v1alpha3_KubeadmConfigTemplateResource(in *bootstrapv1.KubeadmConfigTemplateResource, out *KubeadmConfigTemplateResource, s apiconversion.Scope) error {
+	// KubeadmConfigTemplateResource.metadata does not exist in kubeadm v1alpha3.
+	return autoConvert_v1beta1_KubeadmConfigTemplateResource_To_v1alpha3_KubeadmConfigTemplateResource(in, out, s)
 }

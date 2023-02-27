@@ -143,6 +143,11 @@ func (src *KubeadmControlPlaneTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+	if restored.Spec.Template.Spec.MachineTemplate != nil {
+		dst.Spec.Template.Spec.MachineTemplate.ObjectMeta = restored.Spec.Template.Spec.MachineTemplate.ObjectMeta
+	}
+
 	if restored.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration != nil {
 		if dst.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration == nil {
 			dst.Spec.Template.Spec.KubeadmConfigSpec.InitConfiguration = &bootstrapv1.InitConfiguration{}
@@ -280,4 +285,9 @@ func Convert_v1beta1_KubeadmControlPlaneSpec_To_v1alpha4_KubeadmControlPlaneSpec
 func Convert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha4_KubeadmControlPlaneStatus(in *controlplanev1.KubeadmControlPlaneStatus, out *KubeadmControlPlaneStatus, scope apiconversion.Scope) error {
 	// .LastRemediation was added in v1beta1.
 	return autoConvert_v1beta1_KubeadmControlPlaneStatus_To_v1alpha4_KubeadmControlPlaneStatus(in, out, scope)
+}
+
+func Convert_v1beta1_KubeadmControlPlaneTemplateResource_To_v1alpha4_KubeadmControlPlaneTemplateResource(in *controlplanev1.KubeadmControlPlaneTemplateResource, out *KubeadmControlPlaneTemplateResource, scope apiconversion.Scope) error {
+	// .metadata and .spec.machineTemplate.metadata was added in v1beta1.
+	return autoConvert_v1beta1_KubeadmControlPlaneTemplateResource_To_v1alpha4_KubeadmControlPlaneTemplateResource(in, out, scope)
 }

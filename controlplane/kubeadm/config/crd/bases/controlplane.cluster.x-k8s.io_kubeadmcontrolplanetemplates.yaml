@@ -1207,6 +1207,27 @@ spec:
                 description: KubeadmControlPlaneTemplateResource describes the data
                   needed to create a KubeadmControlPlane from a template.
                 properties:
+                  metadata:
+                    description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                    properties:
+                      annotations:
+                        additionalProperties:
+                          type: string
+                        description: 'Annotations is an unstructured key value map
+                          stored with a resource that may be set by external tools
+                          to store and retrieve arbitrary metadata. They are not queryable
+                          and should be preserved when modifying objects. More info:
+                          http://kubernetes.io/docs/user-guide/annotations'
+                        type: object
+                      labels:
+                        additionalProperties:
+                          type: string
+                        description: 'Map of string keys and values that can be used
+                          to organize and categorize (scope and select) objects. May
+                          match selectors of replication controllers and services.
+                          More info: http://kubernetes.io/docs/user-guide/labels'
+                        type: object
+                    type: object
                   spec:
                     description: 'KubeadmControlPlaneTemplateResourceSpec defines
                       the desired state of KubeadmControlPlane. NOTE: KubeadmControlPlaneTemplateResourceSpec
@@ -2357,6 +2378,28 @@ spec:
                           machines should be shaped when creating or updating a control
                           plane.
                         properties:
+                          metadata:
+                            description: 'Standard object''s metadata. More info:
+                              https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata'
+                            properties:
+                              annotations:
+                                additionalProperties:
+                                  type: string
+                                description: 'Annotations is an unstructured key value
+                                  map stored with a resource that may be set by external
+                                  tools to store and retrieve arbitrary metadata.
+                                  They are not queryable and should be preserved when
+                                  modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations'
+                                type: object
+                              labels:
+                                additionalProperties:
+                                  type: string
+                                description: 'Map of string keys and values that can
+                                  be used to organize and categorize (scope and select)
+                                  objects. May match selectors of replication controllers
+                                  and services. More info: http://kubernetes.io/docs/user-guide/labels'
+                                type: object
+                            type: object
                           nodeDeletionTimeout:
                             description: NodeDeletionTimeout defines how long the
                               machine controller will attempt to delete the Node that

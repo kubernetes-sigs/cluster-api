@@ -63,8 +63,11 @@ AWS_NETWORK_NAME=${AWS_NETWORK_NAME:-"${SERVER_NAME}"}
 AWS_NETWORK_CIDR=${AWS_NETWORK_CIDR:-"10.0.3.0/24"}
 echo -e "  AWS_REGION: ${AWS_REGION}\n  AWS_ZONE: ${AWS_ZONE}\n  AWS_NETWORK_NAME: ${AWS_NETWORK_NAME}\n  AWS_NETWORK_CIDR: ${AWS_NETWORK_CIDR}"
 # AWS_MACHINE_TYPE is the machine type for the server.
-# Choose via: https://eu-central-1.console.aws.amazon.com/ec2/v2/home?region=eu-central-1#InstanceTypes:
-AWS_MACHINE_TYPE=${AWS_MACHINE_TYPE:-"c5.12xlarge"}
+# Choose via: https://eu-central-1.console.aws.amazon.com/ec2/v2/home?region=eu-central-1#InstanceTypes
+# For example:
+# * c5.4xlarge  16 vCPU 32 GB RAM => ~ 0.776 USD per hour
+# * c5.12xlarge 48 vCPU 96 GB RAM => ~ 2.328 USD per hour
+AWS_MACHINE_TYPE=${AWS_MACHINE_TYPE:-"c5.4xlarge"}
 # AWS_AMI is the AMI we will use for the server.
 # AMIs:
 # * Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2023-02-08 id: ami-0d1ddd83282187d18

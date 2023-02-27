@@ -3,16 +3,10 @@
 
 * Test on MacOS
 
-* We should consider also pushing a test-extension image
-
 * go over all files in the diff, finalize + FIXME /TODOs
 
-* Test & fixup GCP script
-
-* Test on a PR, special labels for cloud access:
-  * preset-service-account (GCP) => Workload identity?
-  * preset-aws-ssh: "true" (AWS)
-  * preset-aws-credential: "true" (AWS)
+* Get it to work on Prow
+  * Test & fixup GCP script
 
 Backlog:
 * Optimize scripting / automation

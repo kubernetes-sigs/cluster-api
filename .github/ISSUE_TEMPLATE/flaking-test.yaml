@@ -1,6 +1,5 @@
 name: ❄️ Flaking Test
 description: Report flaky tests or jobs in Cluster API CI
-labels: kind/flake
 body:
   - type: textarea
     id: jobs
@@ -41,3 +40,11 @@ body:
     attributes:
       label: Anything else we need to know?
       placeholder: "Miscellaneous information that will assist in fixing the flaking test."
+
+  - type: textarea
+    id: templateLabel
+    attributes:
+      label: Label(s) to be applied
+      value: |
+        /kind flake
+        One or more /area label. See https://github.com/kubernetes-sigs/cluster-api/labels?q=area for the list of labels.

@@ -14,6 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Build the manager binary
 # Run this with docker build --build-arg builder_image=<golang:x.y.z>
 ARG builder_image
 
@@ -32,10 +33,6 @@ ENV GOPROXY=$goproxy
 
 # Gets additional CAPD dependencies
 WORKDIR /tmp
-
-RUN curl -LO "https://dl.k8s.io/release/v1.26.0/bin/linux/${ARCH}/kubectl" && \
-    chmod +x ./kubectl && \
-    mv ./kubectl /usr/bin/kubectl
 
 WORKDIR /workspace
 COPY go.mod go.mod
@@ -77,6 +74,5 @@ FROM gcr.io/distroless/static:latest-${ARCH}
 
 WORKDIR /
 COPY --from=builder /workspace/manager .
-COPY --from=builder /usr/bin/kubectl /usr/bin/kubectl
 
 ENTRYPOINT ["/manager"]

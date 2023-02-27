@@ -111,14 +111,6 @@ providers = {
             "third_party",
         ],
         "label": "CAPD",
-        # Add kubectl to the docker image, CAPD manager requires it.
-        "additional_docker_helper_commands": "RUN curl -LO https://dl.k8s.io/release/{KUBE}/bin/linux/{ARCH}/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/bin/kubectl".format(
-            ARCH = os_arch,
-            KUBE = kubernetes_version,
-        ),
-        "additional_docker_build_commands": """
-COPY --from=tilt-helper /usr/bin/kubectl /usr/bin/kubectl
-""",
     },
     "test-extension": {
         "context": "test/extension",  # NOTE: this should be kept in sync with corresponding setting in tilt-prepare

@@ -20,11 +20,6 @@ body:
       required: true
 
   - type: textarea
-    id: repro
-    attributes:
-      label: How can we reproduce it (as minimally and precisely as possible)?
-
-  - type: textarea
     id: capiVersion
     attributes:
       label: Cluster-api version

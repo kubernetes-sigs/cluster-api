@@ -7,7 +7,4 @@ spec:
     spec:
       containers:
       - name: manager
-        # No image is currently published for the test extension.
-        # To run locally either pre-load the image onto the control-plane nodes or change the manager_image_patch.yaml
-        # image ref to a registry with an up-to-date test-extension image.
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always

@@ -954,6 +954,7 @@ release-alias-tag: ## Add the release alias tag to the last build tag
 	gcloud container images add-tag $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(CLUSTERCTL_IMG):$(TAG) $(CLUSTERCTL_IMG):$(RELEASE_ALIAS_TAG)
 	gcloud container images add-tag $(CAPD_CONTROLLER_IMG):$(TAG) $(CAPD_CONTROLLER_IMG):$(RELEASE_ALIAS_TAG)
+	gcloud container images add-tag $(TEST_EXTENSION_IMG):$(TAG) $(TEST_EXTENSION_IMG):$(RELEASE_ALIAS_TAG)
 
 .PHONY: release-notes
 release-notes: $(RELEASE_NOTES_DIR) $(RELEASE_NOTES)
@@ -977,6 +978,7 @@ docker-push-all: $(addprefix docker-push-,$(ALL_ARCH))  ## Push the docker image
 	$(MAKE) docker-push-manifest-kubeadm-bootstrap
 	$(MAKE) docker-push-manifest-kubeadm-control-plane
 	$(MAKE) docker-push-manifest-docker-infrastructure
+	$(MAKE) docker-push-manifest-test-extension
 	$(MAKE) docker-push-clusterctl
 
 docker-push-%:
@@ -989,10 +991,10 @@ docker-push: ## Push the docker images to be included in the release
 	docker push $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)-$(ARCH):$(TAG)
 	docker push $(CLUSTERCTL_IMG)-$(ARCH):$(TAG)
 	docker push $(CAPD_CONTROLLER_IMG)-$(ARCH):$(TAG)
+	docker push $(TEST_EXTENSION_IMG)-$(ARCH):$(TAG)
 
 .PHONY: docker-push-manifest-core
 docker-push-manifest-core: ## Push the multiarch manifest for the core docker images
-	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CONTROLLER_IMG}:${TAG} ${CONTROLLER_IMG}-$${arch}:${TAG}; done
 	docker manifest push --purge $(CONTROLLER_IMG):$(TAG)
@@ -1001,7 +1003,6 @@ docker-push-manifest-core: ## Push the multiarch manifest for the core docker im
 
 .PHONY: docker-push-manifest-kubeadm-bootstrap
 docker-push-manifest-kubeadm-bootstrap: ## Push the multiarch manifest for the kubeadm bootstrap docker images
-	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(KUBEADM_BOOTSTRAP_CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${KUBEADM_BOOTSTRAP_CONTROLLER_IMG}:${TAG} ${KUBEADM_BOOTSTRAP_CONTROLLER_IMG}-$${arch}:${TAG}; done
 	docker manifest push --purge $(KUBEADM_BOOTSTRAP_CONTROLLER_IMG):$(TAG)
@@ -1010,7 +1011,6 @@ docker-push-manifest-kubeadm-bootstrap: ## Push the multiarch manifest for the k
 
 .PHONY: docker-push-manifest-kubeadm-control-plane
 docker-push-manifest-kubeadm-control-plane: ## Push the multiarch manifest for the kubeadm control plane docker images
-	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${KUBEADM_CONTROL_PLANE_CONTROLLER_IMG}:${TAG} ${KUBEADM_CONTROL_PLANE_CONTROLLER_IMG}-$${arch}:${TAG}; done
 	docker manifest push --purge $(KUBEADM_CONTROL_PLANE_CONTROLLER_IMG):$(TAG)
@@ -1019,16 +1019,23 @@ docker-push-manifest-kubeadm-control-plane: ## Push the multiarch manifest for t
 
 .PHONY: docker-push-manifest-docker-infrastructure
 docker-push-manifest-docker-infrastructure: ## Push the multiarch manifest for the docker infrastructure provider images
-	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(CAPD_CONTROLLER_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CAPD_CONTROLLER_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CAPD_CONTROLLER_IMG}:${TAG} ${CAPD_CONTROLLER_IMG}-$${arch}:${TAG}; done
 	docker manifest push --purge $(CAPD_CONTROLLER_IMG):$(TAG)
 	$(MAKE) set-manifest-image MANIFEST_IMG=$(CAPD_CONTROLLER_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
 
+
+.PHONY: docker-push-manifest-test-extension
+docker-push-manifest-test-extension: ## Push the multiarch manifest for the test extension provider images
+	docker manifest create --amend $(TEST_EXTENSION_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(TEST_EXTENSION_IMG)\-&:$(TAG)~g")
+	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${TEST_EXTENSION_IMG}:${TAG} ${TEST_EXTENSION_IMG}-$${arch}:${TAG}; done
+	docker manifest push --purge $(TEST_EXTENSION_IMG):$(TAG)
+	$(MAKE) set-manifest-image MANIFEST_IMG=$(TEST_EXTENSION_IMG) MANIFEST_TAG=$(TAG) TARGET_RESOURCE="./test/extension/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy TARGET_RESOURCE="./test/extension/config/default/manager_pull_policy.yaml"
+
 .PHONY: docker-push-clusterctl
 docker-push-clusterctl: ## Push the clusterctl images
-	## Minimum docker version 18.06.0 is required for creating and pushing manifest images.
 	docker manifest create --amend $(CLUSTERCTL_IMG):$(TAG) $(shell echo $(ALL_ARCH) | sed -e "s~[^ ]*~$(CLUSTERCTL_IMG)\-&:$(TAG)~g")
 	@for arch in $(ALL_ARCH); do docker manifest annotate --arch $${arch} ${CLUSTERCTL_IMG}:${TAG} ${CLUSTERCTL_IMG}-$${arch}:${TAG}; done
 	docker manifest push --purge $(CLUSTERCTL_IMG):$(TAG)

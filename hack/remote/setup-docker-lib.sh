@@ -194,7 +194,7 @@ function template_cloud_init_file {
   cloud_init_file="${ARTIFACTS_DOCKER_SERVER}/cloud-init.yaml"
 
   # Ensure cloud init file exists and is empty.
-  truncate --size 0 "$cloud_init_file"
+  echo "" > "$cloud_init_file"
 
   # Render cloud init file.
   # shellcheck disable=SC2016,SC2086,SC2153

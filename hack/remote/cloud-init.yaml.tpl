@@ -156,7 +156,7 @@ write_files:
     kind version
 
     # Store config for kind cluster with mounts for CAPD.
-    cat <<EOF > ${HOME}/kind.yaml
+    cat <<EOF > /root/kind.yaml
     kind: Cluster
     apiVersion: kind.x-k8s.io/v1alpha4
     networking:

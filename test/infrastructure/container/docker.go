@@ -59,7 +59,7 @@ type dockerRuntime struct {
 func NewDockerClient() (Runtime, error) {
 	dockerClient, err := getDockerClient()
 	if err != nil {
-		return nil, fmt.Errorf("failed to created docker runtime client")
+		return nil, errors.Wrapf(err, "failed to created docker runtime client")
 	}
 	return &dockerRuntime{
 		dockerClient: dockerClient,

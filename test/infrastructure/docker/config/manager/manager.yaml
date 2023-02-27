@@ -35,6 +35,8 @@ spec:
           valueFrom:
             fieldRef:
               fieldPath: metadata.uid
+        - name: DOCKER_HOST
+          value: ${CAPD_DOCKER_HOST:=""}
         ports:
         - containerPort: 9440
           name: healthz

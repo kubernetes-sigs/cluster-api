@@ -28,6 +28,7 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+	"time"
 )
 
 /*
@@ -60,6 +61,9 @@ var (
 
 	fromTag = flag.String("from", "", "The tag or commit to start from.")
 
+	since = flag.String("since", "", "Include commits starting from and including this date. Accepts format: YYYY-MM-DD")
+	until = flag.String("until", "", "Include commits up to and including this date. Accepts format: YYYY-MM-DD")
+
 	tagRegex = regexp.MustCompile(`^\[release-[\w-\.]*\]`)
 )
 
@@ -89,9 +93,37 @@ func firstCommit() string {
 	return string(bytes.TrimSpace(out))
 }
 
+// Since git doesn't include the last day in rev-list we want to increase 1 day to include it in the interval.
+func increaseDateByOneDay(date string) (string, error) {
+	layout := "2006-01-02"
+	datetime, err := time.Parse(layout, date)
+	if err != nil {
+		return "", err
+	}
+	datetime = datetime.Add(time.Hour * 24)
+	return datetime.Format(layout), nil
+}
+
 func run() int {
-	lastTag := lastTag()
-	cmd := exec.Command("git", "rev-list", lastTag+"..HEAD", "--merges", "--pretty=format:%B") //nolint:gosec
+	var commitRange string
+	var cmd *exec.Cmd
+
+	if *since != "" && *until != "" {
+		commitRange = fmt.Sprintf("%s - %s", *since, *until)
+
+		lastDay, err := increaseDateByOneDay(*until)
+		if err != nil {
+			fmt.Println(err)
+			return 1
+		}
+		cmd = exec.Command("git", "rev-list", "HEAD", "--since=\""+*since+"\"", "--until=\""+lastDay+"\"", "--merges", "--pretty=format:%B") //nolint:gosec
+	} else if *since != "" || *until != "" {
+		fmt.Println("--since and --until are required together or both unset")
+		return 1
+	} else {
+		commitRange = lastTag()
+		cmd = exec.Command("git", "rev-list", commitRange+"..HEAD", "--merges", "--pretty=format:%B") //nolint:gosec
+	}
 
 	merges := map[string][]string{
 		features:      {},
@@ -170,7 +202,7 @@ func run() int {
 	}
 
 	// TODO Turn this into a link (requires knowing the project name + organization)
-	fmt.Printf("Changes since %v\n---\n", lastTag)
+	fmt.Printf("Changes since %v\n---\n", commitRange)
 
 	for _, key := range outputOrder {
 		mergeslice := merges[key]

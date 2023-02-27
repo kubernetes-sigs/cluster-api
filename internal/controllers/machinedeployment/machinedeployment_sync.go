@@ -336,7 +336,11 @@ func (r *Reconciler) computeDesiredMachineSet(deployment *clusterv1.MachineDeplo
 
 	// Set all other in-place mutable fields.
 	desiredMS.Spec.MinReadySeconds = pointer.Int32Deref(deployment.Spec.MinReadySeconds, 0)
-	desiredMS.Spec.DeletePolicy = pointer.StringDeref(deployment.Spec.Strategy.RollingUpdate.DeletePolicy, "")
+	if deployment.Spec.Strategy != nil && deployment.Spec.Strategy.RollingUpdate != nil {
+		desiredMS.Spec.DeletePolicy = pointer.StringDeref(deployment.Spec.Strategy.RollingUpdate.DeletePolicy, "")
+	} else {
+		desiredMS.Spec.DeletePolicy = ""
+	}
 	desiredMS.Spec.Template.Spec.NodeDrainTimeout = deployment.Spec.Template.Spec.NodeDrainTimeout
 	desiredMS.Spec.Template.Spec.NodeDeletionTimeout = deployment.Spec.Template.Spec.NodeDeletionTimeout
 	desiredMS.Spec.Template.Spec.NodeVolumeDetachTimeout = deployment.Spec.Template.Spec.NodeVolumeDetachTimeout

@@ -21,12 +21,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Calculate go version
-        id: vars
-        run: echo "go_version=$(make go-version)" >> $GITHUB_OUTPUT
+        run: echo "go_version=$(make go-version)" >> $GITHUB_ENV
       - name: Set up Go
         uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # tag=v3.5.0
         with:
-          go-version: ${{ steps.vars.outputs.go_version }}
+          go-version: ${{ env.go_version }}
       - name: generate release artifacts
         run: |
           make release

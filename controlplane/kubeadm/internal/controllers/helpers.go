@@ -26,10 +26,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -213,7 +215,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 
 	// Only proceed to generating the Machine if we haven't encountered an error
 	if len(errs) == 0 {
-		if err := r.generateMachine(ctx, kcp, cluster, infraRef, bootstrapRef, failureDomain); err != nil {
+		if err := r.createMachine(ctx, kcp, cluster, infraRef, bootstrapRef, failureDomain); err != nil {
 			conditions.MarkFalse(kcp, controlplanev1.MachinesCreatedCondition, controlplanev1.MachineGenerationFailedReason,
 				clusterv1.ConditionSeverityError, err.Error())
 			errs = append(errs, errors.Wrap(err, "failed to create Machine"))
@@ -288,60 +290,170 @@ func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Contex
 	return bootstrapRef, nil
 }
 
-func (r *KubeadmControlPlaneReconciler) generateMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, infraRef, bootstrapRef *corev1.ObjectReference, failureDomain *string) error {
-	machine := &clusterv1.Machine{
+// updateExternalObject updates the external object with the labels and annotations from KCP.
+func (r *KubeadmControlPlaneReconciler) updateExternalObject(ctx context.Context, obj client.Object, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) error {
+	updatedObject := &unstructured.Unstructured{}
+	updatedObject.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
+	updatedObject.SetNamespace(obj.GetNamespace())
+	updatedObject.SetName(obj.GetName())
+	// Set the UID to ensure that Server-Side-Apply only performs an update
+	// and does not perform an accidental create.
+	updatedObject.SetUID(obj.GetUID())
+
+	// Update labels
+	updatedObject.SetLabels(internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name))
+	// Update annotations
+	updatedObject.SetAnnotations(kcp.Spec.MachineTemplate.ObjectMeta.Annotations)
+
+	patchOptions := []client.PatchOption{
+		client.ForceOwnership,
+		client.FieldOwner(kcpManagerName),
+	}
+	if err := r.Client.Patch(ctx, updatedObject, client.Apply, patchOptions...); err != nil {
+		return errors.Wrapf(err, "failed to update %s", klog.KObj(obj))
+	}
+	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) createMachine(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, infraRef, bootstrapRef *corev1.ObjectReference, failureDomain *string) error {
+	machine, err := r.computeDesiredMachine(kcp, cluster, infraRef, bootstrapRef, failureDomain, nil)
+	if err != nil {
+		return errors.Wrap(err, "failed to create Machine: failed to compute desired Machine")
+	}
+	patchOptions := []client.PatchOption{
+		client.ForceOwnership,
+		client.FieldOwner(kcpManagerName),
+	}
+	if err := r.Client.Patch(ctx, machine, client.Apply, patchOptions...); err != nil {
+		return errors.Wrap(err, "failed to create Machine: apply failed")
+	}
+	// Remove the annotation tracking that a remediation is in progress (the remediation completed when
+	// the replacement machine has been created above).
+	delete(kcp.Annotations, controlplanev1.RemediationInProgressAnnotation)
+	return nil
+}
+
+func (r *KubeadmControlPlaneReconciler) updateMachine(ctx context.Context, machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) (*clusterv1.Machine, error) {
+	updatedMachine, err := r.computeDesiredMachine(
+		kcp, cluster,
+		&machine.Spec.InfrastructureRef, machine.Spec.Bootstrap.ConfigRef,
+		machine.Spec.FailureDomain, machine,
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update Machine: failed to compute desired Machine")
+	}
+	patchOptions := []client.PatchOption{
+		client.ForceOwnership,
+		client.FieldOwner(kcpManagerName),
+	}
+	if err := r.Client.Patch(ctx, updatedMachine, client.Apply, patchOptions...); err != nil {
+		return nil, errors.Wrap(err, "failed to update Machine: apply failed")
+	}
+	return updatedMachine, nil
+}
+
+// computeDesiredMachine computes the desired Machine.
+// This Machine will be used during reconciliation to:
+// * create a new Machine
+// * update an existing Machine
+// Because we are using Server-Side-Apply we always have to calculate the full object.
+// There are small differences in how we calculate the Machine depending on if it
+// is a create or update. Example: for a new Machine we have to calculate a new name,
+// while for an existing Machine we have to use the name of the existing Machine.
+func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster, infraRef, bootstrapRef *corev1.ObjectReference, failureDomain *string, existingMachine *clusterv1.Machine) (*clusterv1.Machine, error) {
+	var machineName string
+	var machineUID types.UID
+	var version *string
+	annotations := map[string]string{}
+	if existingMachine == nil {
+		// Creating a new machine
+		machineName = names.SimpleNameGenerator.GenerateName(kcp.Name + "-")
+		version = &kcp.Spec.Version
+
+		// Machine's bootstrap config may be missing ClusterConfiguration if it is not the first machine in the control plane.
+		// We store ClusterConfiguration as annotation here to detect any changes in KCP ClusterConfiguration and rollout the machine if any.
+		// Nb. This annotation is read when comparing the KubeadmConfig to check if a machine needs to be rolled out.
+		clusterConfig, err := json.Marshal(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to marshal cluster configuration")
+		}
+		annotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = string(clusterConfig)
+
+		// In case this machine is being created as a consequence of a remediation, then add an annotation
+		// tracking remediating data.
+		// NOTE: This is required in order to track remediation retries.
+		if remediationData, ok := kcp.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
+			annotations[controlplanev1.RemediationForAnnotation] = remediationData
+		}
+	} else {
+		// Updating an existing machine
+		machineName = existingMachine.Name
+		machineUID = existingMachine.UID
+		version = existingMachine.Spec.Version
+
+		// For existing machine only set the ClusterConfiguration annotation if the machine already has it.
+		// We should not add the annotation if it was missing in the first place because we do not have enough
+		// information.
+		if clusterConfig, ok := existingMachine.Annotations[controlplanev1.KubeadmClusterConfigurationAnnotation]; ok {
+			annotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = clusterConfig
+		}
+
+		// If the machine already has remediation data then preserve it.
+		// NOTE: This is required in order to track remediation retries.
+		if remediationData, ok := existingMachine.Annotations[controlplanev1.RemediationForAnnotation]; ok {
+			annotations[controlplanev1.RemediationForAnnotation] = remediationData
+		}
+	}
+
+	// Construct the basic Machine.
+	desiredMachine := &clusterv1.Machine{
+		TypeMeta: metav1.TypeMeta{
+			APIVersion: clusterv1.GroupVersion.String(),
+			Kind:       "Machine",
+		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        names.SimpleNameGenerator.GenerateName(kcp.Name + "-"),
-			Namespace:   kcp.Namespace,
-			Labels:      internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name),
-			Annotations: map[string]string{},
+			UID:       machineUID,
+			Name:      machineName,
+			Namespace: kcp.Namespace,
 			// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
 			OwnerReferences: []metav1.OwnerReference{
 				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
 			},
+			Labels:      map[string]string{},
+			Annotations: map[string]string{},
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:       cluster.Name,
-			Version:           &kcp.Spec.Version,
+			Version:           version,
+			FailureDomain:     failureDomain,
 			InfrastructureRef: *infraRef,
 			Bootstrap: clusterv1.Bootstrap{
 				ConfigRef: bootstrapRef,
 			},
-			FailureDomain:           failureDomain,
-			NodeDrainTimeout:        kcp.Spec.MachineTemplate.NodeDrainTimeout,
-			NodeDeletionTimeout:     kcp.Spec.MachineTemplate.NodeDeletionTimeout,
-			NodeVolumeDetachTimeout: kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout,
 		},
 	}
 
-	// In case this machine is being created as a consequence of a remediation, then add an annotation
-	// tracking remediating data.
-	// NOTE: This is required in order to track remediation retries.
-	if remediationData, ok := kcp.Annotations[controlplanev1.RemediationInProgressAnnotation]; ok {
-		machine.Annotations[controlplanev1.RemediationForAnnotation] = remediationData
-	}
+	// Set the in-place mutable fields.
+	// When we create a new Machine we will just create the Machine with those fields.
+	// When we update an existing Machine will we update the fields on the existing Machine (in-place mutate).
 
-	// Machine's bootstrap config may be missing ClusterConfiguration if it is not the first machine in the control plane.
-	// We store ClusterConfiguration as annotation here to detect any changes in KCP ClusterConfiguration and rollout the machine if any.
-	clusterConfig, err := json.Marshal(kcp.Spec.KubeadmConfigSpec.ClusterConfiguration)
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal cluster configuration")
-	}
+	// Set labels
+	desiredMachine.Labels = internal.ControlPlaneMachineLabelsForCluster(kcp, cluster.Name)
 
+	// Set annotations
 	// Add the annotations from the MachineTemplate.
 	// Note: we intentionally don't use the map directly to ensure we don't modify the map in KCP.
 	for k, v := range kcp.Spec.MachineTemplate.ObjectMeta.Annotations {
-		machine.Annotations[k] = v
+		desiredMachine.Annotations[k] = v
 	}
-	machine.Annotations[controlplanev1.KubeadmClusterConfigurationAnnotation] = string(clusterConfig)
-
-	if err := r.Client.Create(ctx, machine); err != nil {
-		return errors.Wrap(err, "failed to create machine")
+	for k, v := range annotations {
+		desiredMachine.Annotations[k] = v
 	}
 
-	// Remove the annotation tracking that a remediation is in progress (the remediation completed when
-	// the replacement machine has been created above).
-	delete(kcp.Annotations, controlplanev1.RemediationInProgressAnnotation)
+	// Set other in-place mutable fields
+	desiredMachine.Spec.NodeDrainTimeout = kcp.Spec.MachineTemplate.NodeDrainTimeout
+	desiredMachine.Spec.NodeDeletionTimeout = kcp.Spec.MachineTemplate.NodeDeletionTimeout
+	desiredMachine.Spec.NodeVolumeDetachTimeout = kcp.Spec.MachineTemplate.NodeVolumeDetachTimeout
 
-	return nil
+	return desiredMachine, nil
 }

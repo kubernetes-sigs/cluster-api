@@ -49,8 +49,8 @@ type ControlPlane struct {
 
 	// TODO: we should see if we can combine these with the Machine objects so we don't have all these separate lookups
 	// See discussion on https://github.com/kubernetes-sigs/cluster-api/pull/3405
-	kubeadmConfigs map[string]*bootstrapv1.KubeadmConfig
-	infraResources map[string]*unstructured.Unstructured
+	KubeadmConfigs map[string]*bootstrapv1.KubeadmConfig
+	InfraResources map[string]*unstructured.Unstructured
 }
 
 // NewControlPlane returns an instantiated ControlPlane.
@@ -77,8 +77,8 @@ func NewControlPlane(ctx context.Context, client client.Client, cluster *cluster
 		Cluster:              cluster,
 		Machines:             ownedMachines,
 		machinesPatchHelpers: patchHelpers,
-		kubeadmConfigs:       kubeadmConfigs,
-		infraResources:       infraObjects,
+		KubeadmConfigs:       kubeadmConfigs,
+		InfraResources:       infraObjects,
 		reconciliationTime:   metav1.Now(),
 	}, nil
 }
@@ -158,7 +158,7 @@ func (c *ControlPlane) HasDeletingMachine() bool {
 
 // GetKubeadmConfig returns the KubeadmConfig of a given machine.
 func (c *ControlPlane) GetKubeadmConfig(machineName string) (*bootstrapv1.KubeadmConfig, bool) {
-	kubeadmConfig, ok := c.kubeadmConfigs[machineName]
+	kubeadmConfig, ok := c.KubeadmConfigs[machineName]
 	return kubeadmConfig, ok
 }
 
@@ -169,7 +169,7 @@ func (c *ControlPlane) MachinesNeedingRollout() collections.Machines {
 
 	// Return machines if they are scheduled for rollout or if with an outdated configuration.
 	return machines.Filter(
-		NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.infraResources, c.kubeadmConfigs, c.KCP),
+		NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.InfraResources, c.KubeadmConfigs, c.KCP),
 	)
 }
 
@@ -177,7 +177,7 @@ func (c *ControlPlane) MachinesNeedingRollout() collections.Machines {
 // plane's configuration and therefore do not require rollout.
 func (c *ControlPlane) UpToDateMachines() collections.Machines {
 	return c.Machines.Filter(
-		collections.Not(NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.infraResources, c.kubeadmConfigs, c.KCP)),
+		collections.Not(NeedsRollout(&c.reconciliationTime, c.KCP.Spec.RolloutAfter, c.KCP.Spec.RolloutBefore, c.InfraResources, c.KubeadmConfigs, c.KCP)),
 	)
 }
 
@@ -257,4 +257,9 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 		errList = append(errList, errors.Errorf("failed to get patch helper for machine %s", machine.Name))
 	}
 	return kerrors.NewAggregate(errList)
+}
+
+// SetPatchHelpers updates the patch helpers.
+func (c *ControlPlane) SetPatchHelpers(patchHelpers map[string]*patch.Helper) {
+	c.machinesPatchHelpers = patchHelpers
 }

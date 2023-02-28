@@ -261,7 +261,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	// Cluster API releases. If we do this only for selected MachineSets, we would have to keep this code forever.
 	for idx := range msList {
 		machineSet := msList[idx]
-		if err := ssa.CleanUpManagedFieldsForSSAAdoption(ctx, machineSet, machineDeploymentManagerName, r.Client); err != nil {
+		if err := ssa.CleanUpManagedFieldsForSSAAdoption(ctx, r.Client, machineSet, machineDeploymentManagerName); err != nil {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to clean up managedFields of MachineSet %s", klog.KObj(machineSet))
 		}
 	}

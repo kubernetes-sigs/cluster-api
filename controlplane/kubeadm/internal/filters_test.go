@@ -937,28 +937,28 @@ func TestMatchesKubeadmBootstrapConfig(t *testing.T) {
 			},
 		}
 
-		t.Run("by returning false if neither labels or annotations match", func(t *testing.T) {
+		t.Run("by returning true if neither labels or annotations match", func(t *testing.T) {
 			g := NewWithT(t)
 			machineConfigs[m.Name].Annotations = nil
 			machineConfigs[m.Name].Labels = nil
 			f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
-			g.Expect(f(m)).To(BeFalse())
+			g.Expect(f(m)).To(BeTrue())
 		})
 
-		t.Run("by returning false if only labels don't match", func(t *testing.T) {
+		t.Run("by returning true if only labels don't match", func(t *testing.T) {
 			g := NewWithT(t)
 			machineConfigs[m.Name].Annotations = kcp.Spec.MachineTemplate.ObjectMeta.Annotations
 			machineConfigs[m.Name].Labels = nil
 			f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
-			g.Expect(f(m)).To(BeFalse())
+			g.Expect(f(m)).To(BeTrue())
 		})
 
-		t.Run("by returning false if only annotations don't match", func(t *testing.T) {
+		t.Run("by returning true if only annotations don't match", func(t *testing.T) {
 			g := NewWithT(t)
 			machineConfigs[m.Name].Annotations = nil
 			machineConfigs[m.Name].Labels = kcp.Spec.MachineTemplate.ObjectMeta.Labels
 			f := MatchesKubeadmBootstrapConfig(machineConfigs, kcp)
-			g.Expect(f(m)).To(BeFalse())
+			g.Expect(f(m)).To(BeTrue())
 		})
 
 		t.Run("by returning true if both labels and annotations match", func(t *testing.T) {
@@ -1045,7 +1045,7 @@ func TestMatchesTemplateClonedFrom(t *testing.T) {
 			},
 		}
 
-		t.Run("by returning false if neither labels or annotations match", func(t *testing.T) {
+		t.Run("by returning true if neither labels or annotations match", func(t *testing.T) {
 			g := NewWithT(t)
 			infraConfigs[m.Name].SetAnnotations(map[string]string{
 				clusterv1.TemplateClonedFromNameAnnotation:      "infra-foo",
@@ -1053,10 +1053,10 @@ func TestMatchesTemplateClonedFrom(t *testing.T) {
 			})
 			infraConfigs[m.Name].SetLabels(nil)
 			f := MatchesTemplateClonedFrom(infraConfigs, kcp)
-			g.Expect(f(m)).To(BeFalse())
+			g.Expect(f(m)).To(BeTrue())
 		})
 
-		t.Run("by returning false if only labels don't match", func(t *testing.T) {
+		t.Run("by returning true if only labels don't match", func(t *testing.T) {
 			g := NewWithT(t)
 			infraConfigs[m.Name].SetAnnotations(map[string]string{
 				clusterv1.TemplateClonedFromNameAnnotation:      "infra-foo",
@@ -1065,10 +1065,10 @@ func TestMatchesTemplateClonedFrom(t *testing.T) {
 			})
 			infraConfigs[m.Name].SetLabels(nil)
 			f := MatchesTemplateClonedFrom(infraConfigs, kcp)
-			g.Expect(f(m)).To(BeFalse())
+			g.Expect(f(m)).To(BeTrue())
 		})
 
-		t.Run("by returning false if only annotations don't match", func(t *testing.T) {
+		t.Run("by returning true if only annotations don't match", func(t *testing.T) {
 			g := NewWithT(t)
 			infraConfigs[m.Name].SetAnnotations(map[string]string{
 				clusterv1.TemplateClonedFromNameAnnotation:      "infra-foo",
@@ -1076,7 +1076,7 @@ func TestMatchesTemplateClonedFrom(t *testing.T) {
 			})
 			infraConfigs[m.Name].SetLabels(kcp.Spec.MachineTemplate.ObjectMeta.Labels)
 			f := MatchesTemplateClonedFrom(infraConfigs, kcp)
-			g.Expect(f(m)).To(BeFalse())
+			g.Expect(f(m)).To(BeTrue())
 		})
 
 		t.Run("by returning true if both labels and annotations match", func(t *testing.T) {

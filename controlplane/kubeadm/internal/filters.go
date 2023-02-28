@@ -22,7 +22,6 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -32,11 +31,13 @@ import (
 
 // MatchesMachineSpec returns a filter to find all machines that matches with KCP config and do not require any rollout.
 // Kubernetes version, infrastructure template, and KubeadmConfig field need to be equivalent.
+// Note: We don't need to compare the entire MachineSpec to determine if a Machine needs to be rolled out,
+// because all the fields in the MachineSpec, except for version, the infrastructureRef and bootstrap.ConfigRef, are either:
+// - mutated in-place (ex: NodeDrainTimeout)
+// - are not dictated by KCP (ex: ProviderID)
+// - are not relevant for the rollout decision (ex: failureDomain).
 func MatchesMachineSpec(infraConfigs map[string]*unstructured.Unstructured, machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) func(machine *clusterv1.Machine) bool {
 	return collections.And(
-		func(machine *clusterv1.Machine) bool {
-			return matchMachineTemplateMetadata(kcp, machine)
-		},
 		collections.MatchesKubernetesVersion(kcp.Spec.Version),
 		MatchesKubeadmBootstrapConfig(machineConfigs, kcp),
 		MatchesTemplateClonedFrom(infraConfigs, kcp),
@@ -55,7 +56,11 @@ func NeedsRollout(reconciliationTime, rolloutAfter *metav1.Time, rolloutBefore *
 	)
 }
 
-// MatchesTemplateClonedFrom returns a filter to find all machines that match a given KCP infra template.
+// MatchesTemplateClonedFrom returns a filter to find all machines that have a corresponding infrastructure machine that
+// matches a given KCP infra template.
+// Note: Differences to the labels and annotations on the infrastructure machine are not considered for matching
+// criteria, because changes to labels and annotations are propagated in-place to the infrastructure machines.
+// TODO: This function will be renamed in a follow-up PR to something better. (ex: MatchesInfraMachine).
 func MatchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructured, kcp *controlplanev1.KubeadmControlPlane) collections.Func {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
@@ -82,15 +87,13 @@ func MatchesTemplateClonedFrom(infraConfigs map[string]*unstructured.Unstructure
 			return false
 		}
 
-		// Check if the machine template metadata matches with the infrastructure object.
-		if !matchMachineTemplateMetadata(kcp, infraObj) {
-			return false
-		}
 		return true
 	}
 }
 
 // MatchesKubeadmBootstrapConfig checks if machine's KubeadmConfigSpec is equivalent with KCP's KubeadmConfigSpec.
+// Note: Differences to the labels and annotations on the KubeadmConfig are not considered for matching
+// criteria, because changes to labels and annotations are propagated in-place to KubeadmConfig.
 func MatchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.KubeadmConfig, kcp *controlplanev1.KubeadmControlPlane) collections.Func {
 	return func(machine *clusterv1.Machine) bool {
 		if machine == nil {
@@ -114,11 +117,6 @@ func MatchesKubeadmBootstrapConfig(machineConfigs map[string]*bootstrapv1.Kubead
 			// Return true here because failing to get KubeadmConfig should not be considered as unmatching.
 			// This is a safety precaution to avoid rolling out machines if the client or the api-server is misbehaving.
 			return true
-		}
-
-		// Check if the machine template metadata matches with the infrastructure object.
-		if !matchMachineTemplateMetadata(kcp, machineConfig) {
-			return false
 		}
 
 		// Check if KCP and machine InitConfiguration or JoinConfiguration matches
@@ -254,31 +252,4 @@ func cleanupConfigFields(kcpConfig *bootstrapv1.KubeadmConfigSpec, machineConfig
 	if machineConfig.Spec.JoinConfiguration != nil && kcpConfig.JoinConfiguration != nil {
 		machineConfig.Spec.JoinConfiguration.TypeMeta = kcpConfig.JoinConfiguration.TypeMeta
 	}
-}
-
-// matchMachineTemplateMetadata matches the machine template object meta information,
-// specifically annotations and labels, against an object.
-func matchMachineTemplateMetadata(kcp *controlplanev1.KubeadmControlPlane, obj client.Object) bool {
-	// Check if annotations and labels match.
-	if !isSubsetMapOf(kcp.Spec.MachineTemplate.ObjectMeta.Annotations, obj.GetAnnotations()) {
-		return false
-	}
-	if !isSubsetMapOf(kcp.Spec.MachineTemplate.ObjectMeta.Labels, obj.GetLabels()) {
-		return false
-	}
-	return true
-}
-
-func isSubsetMapOf(base map[string]string, existing map[string]string) bool {
-loopBase:
-	for key, value := range base {
-		for existingKey, existingValue := range existing {
-			if existingKey == key && existingValue == value {
-				continue loopBase
-			}
-		}
-		// Return false right away if a key value pair wasn't found.
-		return false
-	}
-	return true
 }

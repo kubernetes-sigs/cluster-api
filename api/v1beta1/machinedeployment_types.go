@@ -243,7 +243,7 @@ type MachineDeploymentStatus struct {
 
 	// Total number of ready machines targeted by this deployment.
 	// +optional
-	// +Metrics:gauge:name="status_ready_replicas",help="The number of ready replicas per machinedeployment.",nilIsZero=true
+	// +Metrics:gauge:name="status_replicas_ready",help="The number of ready replicas per machinedeployment.",nilIsZero=true
 	ReadyReplicas int32 `json:"readyReplicas"`
 
 	// Total number of available machines (ready for at least minReadySeconds)

@@ -259,7 +259,7 @@ type KubeadmControlPlaneStatus struct {
 
 	// Total number of fully running and ready control plane machines.
 	// +optional
-	// +Metrics:gauge:name="status_ready_replicas",help="The number of ready replicas per kubeadmcontrolplane.",nilIsZero=true
+	// +Metrics:gauge:name="status_replicas_ready",help="The number of ready replicas per kubeadmcontrolplane.",nilIsZero=true
 	ReadyReplicas int32 `json:"readyReplicas"`
 
 	// Total number of unavailable machines targeted by this control plane.

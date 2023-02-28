@@ -139,7 +139,7 @@ type MachineSetStatus struct {
 
 	// The number of ready replicas for this MachineSet. A machine is considered ready when the node has been created and is "Ready".
 	// +optional
-	// +Metrics:gauge:name="status_ready_replicas",help="The number of ready replicas per machineset.",nilIsZero=true
+	// +Metrics:gauge:name="status_replicas_ready",help="The number of ready replicas per machineset.",nilIsZero=true
 	ReadyReplicas int32 `json:"readyReplicas"`
 
 	// The number of available replicas (ready for at least minReadySeconds) for this MachineSet.

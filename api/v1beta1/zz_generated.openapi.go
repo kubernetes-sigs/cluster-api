@@ -487,6 +487,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_ClusterClassStatusVariable(ref com
 					"definitionsConflict": {
 						SchemaProps: spec.SchemaProps{
 							Description: "DefinitionsConflict specifies whether or not there are conflicting definitions for a single variable name.",
+							Default:     false,
 							Type:        []string{"boolean"},
 							Format:      "",
 						},

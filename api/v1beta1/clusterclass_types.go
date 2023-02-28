@@ -577,7 +577,7 @@ type ClusterClassStatusVariable struct {
 
 	// DefinitionsConflict specifies whether or not there are conflicting definitions for a single variable name.
 	// +optional
-	DefinitionsConflict bool `json:"definitionsConflict,omitempty"`
+	DefinitionsConflict bool `json:"definitionsConflict"`
 
 	// Definitions is a list of definitions for a variable.
 	Definitions []ClusterClassStatusVariableDefinition `json:"definitions"`

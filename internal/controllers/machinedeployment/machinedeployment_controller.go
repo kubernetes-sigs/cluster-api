@@ -70,6 +70,7 @@ type Reconciler struct {
 	WatchFilterValue string
 
 	recorder record.EventRecorder
+	ssaCache ssa.Cache
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -106,6 +107,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("machinedeployment-controller")
+	r.ssaCache = ssa.NewCache()
 	return nil
 }
 

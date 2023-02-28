@@ -19,13 +19,10 @@ package mdutil
 
 import (
 	"fmt"
-	"hash"
-	"hash/fnv"
 	"sort"
 	"strconv"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -686,33 +683,6 @@ func CloneSelectorAndAddLabel(selector *metav1.LabelSelector, labelKey, labelVal
 	}
 
 	return newSelector
-}
-
-// SpewHashObject writes specified object to hash using the spew library
-// which follows pointers and prints actual values of the nested objects
-// ensuring the hash does not change when a pointer changes.
-func SpewHashObject(hasher hash.Hash, objectToWrite interface{}) error {
-	hasher.Reset()
-	printer := spew.ConfigState{
-		Indent:         " ",
-		SortKeys:       true,
-		DisableMethods: true,
-		SpewKeys:       true,
-	}
-
-	if _, err := printer.Fprintf(hasher, "%#v", objectToWrite); err != nil {
-		return fmt.Errorf("failed to write object to hasher")
-	}
-	return nil
-}
-
-// ComputeSpewHash computes the hash of a MachineTemplateSpec using the spew library.
-func ComputeSpewHash(objectToWrite interface{}) (uint32, error) {
-	machineTemplateSpecHasher := fnv.New32a()
-	if err := SpewHashObject(machineTemplateSpecHasher, objectToWrite); err != nil {
-		return 0, err
-	}
-	return machineTemplateSpecHasher.Sum32(), nil
 }
 
 // GetDeletingMachineCount gets the number of machines that are in the process of being deleted

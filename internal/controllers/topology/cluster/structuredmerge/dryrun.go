@@ -34,6 +34,8 @@ import (
 
 type dryRunSSAPatchInput struct {
 	client client.Client
+	// ssaCache caches SSA request to allow us to only run SSA when we actually have to.
+	ssaCache ssa.Cache
 	// originalUnstructured contains the current state of the object.
 	// Note: We will run SSA dry-run on originalUnstructured and modifiedUnstructured and then compare them.
 	originalUnstructured *unstructured.Unstructured
@@ -46,6 +48,23 @@ type dryRunSSAPatchInput struct {
 
 // dryRunSSAPatch uses server side apply dry run to determine if the operation is going to change the actual object.
 func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, bool, error) {
+	// Compute a request identifier.
+	// The identifier is unique for a specific request to ensure we don't have to re-run the request
+	// once we found out that it would not produce a diff.
+	// The identifier consists of: gvk, namespace, name and resourceVersion of originalUnstructured
+	// and a hash of modifiedUnstructured.
+	// This ensures that we re-run the request as soon as either original or modified changes.
+	requestIdentifier, err := ssa.ComputeRequestIdentifier(dryRunCtx.client.Scheme(), dryRunCtx.originalUnstructured, dryRunCtx.modifiedUnstructured)
+	if err != nil {
+		return false, false, err
+	}
+
+	// Check if we already ran this request before by checking if the cache already contains this identifier.
+	// Note: We only add an identifier to the cache if the result of the dry run was no diff.
+	if exists := dryRunCtx.ssaCache.Has(requestIdentifier); exists {
+		return false, false, nil
+	}
+
 	// For dry run we use the same options as for the intent but with adding metadata.managedFields
 	// to ensure that changes to ownership are detected.
 	filterObjectInput := &ssa.FilterObjectInput{
@@ -62,7 +81,7 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 	}
 
 	// Do a server-side apply dry-run with modifiedUnstructured to get the updated object.
-	err := dryRunCtx.client.Patch(ctx, dryRunCtx.modifiedUnstructured, client.Apply, client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
+	err = dryRunCtx.client.Patch(ctx, dryRunCtx.modifiedUnstructured, client.Apply, client.DryRunAll, client.FieldOwner(TopologyManagerName), client.ForceOwnership)
 	if err != nil {
 		// This catches errors like metadata.uid changes.
 		return false, false, errors.Wrap(err, "server side apply dry-run failed for modified object")
@@ -146,6 +165,11 @@ func dryRunSSAPatch(ctx context.Context, dryRunCtx *dryRunSSAPatchInput) (bool, 
 
 	hasChanges := len(diff.Object) > 0
 	_, hasSpecChanges := diff.Object["spec"]
+
+	// If there is no diff add the request identifier to the cache.
+	if !hasChanges {
+		dryRunCtx.ssaCache.Add(requestIdentifier)
+	}
 
 	return hasChanges, hasSpecChanges, nil
 }

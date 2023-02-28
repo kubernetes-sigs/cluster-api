@@ -85,6 +85,7 @@ type Reconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
+	ssaCache ssa.Cache
 	recorder record.EventRecorder
 }
 
@@ -122,6 +123,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	}
 
 	r.recorder = mgr.GetEventRecorderFor("machineset-controller")
+	r.ssaCache = ssa.NewCache()
 	return nil
 }
 
@@ -393,11 +395,8 @@ func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.Mac
 
 		// Update Machine to propagate in-place mutable fields from the MachineSet.
 		updatedMachine := r.computeDesiredMachine(machineSet, m)
-		patchOptions := []client.PatchOption{
-			client.ForceOwnership,
-			client.FieldOwner(machineSetManagerName),
-		}
-		if err := r.Client.Patch(ctx, updatedMachine, client.Apply, patchOptions...); err != nil {
+		err := ssa.Patch(ctx, r.Client, machineSetManagerName, updatedMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: m})
+		if err != nil {
 			log.Error(err, "failed to update Machine", "Machine", klog.KObj(updatedMachine))
 			return errors.Wrapf(err, "failed to update Machine %q", klog.KObj(updatedMachine))
 		}
@@ -529,11 +528,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 			machine.Spec.InfrastructureRef = *infraRef
 
 			// Create the Machine.
-			patchOptions := []client.PatchOption{
-				client.ForceOwnership,
-				client.FieldOwner(machineSetManagerName),
-			}
-			if err := r.Client.Patch(ctx, machine, client.Apply, patchOptions...); err != nil {
+			if err := ssa.Patch(ctx, r.Client, machineSetManagerName, machine); err != nil {
 				log.Error(err, "Error while creating a machine")
 				r.recorder.Eventf(ms, corev1.EventTypeWarning, "FailedCreate", "Failed to create machine: %v", err)
 				errs = append(errs, err)
@@ -676,11 +671,7 @@ func (r *Reconciler) updateExternalObject(ctx context.Context, obj client.Object
 	updatedObject.SetLabels(machineLabelsFromMachineSet(machineSet))
 	updatedObject.SetAnnotations(machineAnnotationsFromMachineSet(machineSet))
 
-	patchOptions := []client.PatchOption{
-		client.ForceOwnership,
-		client.FieldOwner(machineSetManagerName),
-	}
-	if err := r.Client.Patch(ctx, updatedObject, client.Apply, patchOptions...); err != nil {
+	if err := ssa.Patch(ctx, r.Client, machineSetManagerName, updatedObject, ssa.WithCachingProxy{Cache: r.ssaCache, Original: obj}); err != nil {
 		return errors.Wrapf(err, "failed to update %s", klog.KObj(obj))
 	}
 	return nil

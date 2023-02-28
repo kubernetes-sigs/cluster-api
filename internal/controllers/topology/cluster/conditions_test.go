@@ -69,7 +69,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			},
 			wantConditionStatus:  corev1.ConditionFalse,
 			wantConditionReason:  clusterv1.TopologyReconciledClusterClassNotReconciledReason,
-			wantConditionMessage: "ClusterClass is outdated. If this condition persists please check ClusterClass status.",
+			wantConditionMessage: "ClusterClass not reconciled. If this condition persists please check ClusterClass status.",
 			wantErr:              false,
 		},
 		{

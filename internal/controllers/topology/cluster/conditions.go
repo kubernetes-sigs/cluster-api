@@ -69,7 +69,7 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				clusterv1.TopologyReconciledCondition,
 				clusterv1.TopologyReconciledClusterClassNotReconciledReason,
 				clusterv1.ConditionSeverityInfo,
-				"ClusterClass is outdated. If this condition persists please check ClusterClass status.",
+				"ClusterClass not reconciled. If this condition persists please check ClusterClass status.",
 			),
 		)
 		return nil

@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 )
 
 func Test_dropDiffForNotAllowedPaths(t *testing.T) {
@@ -59,7 +60,7 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 						"foo": "123-changed",
 					},
 				},
-				shouldDropDiffFunc: isNotAllowedPath(
+				shouldDropDiffFunc: ssa.IsNotAllowedPath(
 					[]contract.Path{ // NOTE: we are dropping everything not in this list (IsNotAllowed)
 						{"metadata", "labels"},
 						{"metadata", "annotations"},
@@ -109,7 +110,7 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 						"foo": "123",
 					},
 				},
-				shouldDropDiffFunc: isNotAllowedPath(
+				shouldDropDiffFunc: ssa.IsNotAllowedPath(
 					[]contract.Path{ // NOTE: we are dropping everything not in this list (IsNotAllowed)
 						{"metadata", "labels"},
 						{"metadata", "annotations"},
@@ -145,7 +146,7 @@ func Test_dropDiffForNotAllowedPaths(t *testing.T) {
 						"foo": "123",
 					},
 				},
-				shouldDropDiffFunc: isNotAllowedPath(
+				shouldDropDiffFunc: ssa.IsNotAllowedPath(
 					[]contract.Path{}, // NOTE: we are dropping everything not in this list (IsNotAllowed)
 				),
 			},
@@ -193,7 +194,7 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 						},
 					},
 				},
-				shouldDropDiffFunc: isIgnorePath(
+				shouldDropDiffFunc: ssa.IsIgnorePath(
 					[]contract.Path{
 						{"spec", "controlPlaneEndpoint"},
 					},
@@ -225,7 +226,7 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 						},
 					},
 				},
-				shouldDropDiffFunc: isIgnorePath(
+				shouldDropDiffFunc: ssa.IsIgnorePath(
 					[]contract.Path{
 						{"spec", "controlPlaneEndpoint"},
 					},
@@ -250,7 +251,7 @@ func Test_dropDiffForIgnoredPaths(t *testing.T) {
 						"foo": "123",
 					},
 				},
-				shouldDropDiffFunc: isIgnorePath(
+				shouldDropDiffFunc: ssa.IsIgnorePath(
 					[]contract.Path{
 						{"spec", "foo"},
 					},

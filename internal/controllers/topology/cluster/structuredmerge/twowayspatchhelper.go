@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"sigs.k8s.io/cluster-api/internal/contract"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -170,7 +171,7 @@ func applyOptions(in *applyOptionsInput) ([]byte, error) {
 			path:               contract.Path{},
 			original:           originalMap,
 			modified:           modifiedMap,
-			shouldDropDiffFunc: isNotAllowedPath(in.options.allowedPaths),
+			shouldDropDiffFunc: ssa.IsNotAllowedPath(in.options.allowedPaths),
 		})
 	}
 
@@ -182,7 +183,7 @@ func applyOptions(in *applyOptionsInput) ([]byte, error) {
 			path:               contract.Path{},
 			original:           originalMap,
 			modified:           modifiedMap,
-			shouldDropDiffFunc: isIgnorePath(in.options.ignorePaths),
+			shouldDropDiffFunc: ssa.IsIgnorePath(in.options.ignorePaths),
 		})
 	}
 

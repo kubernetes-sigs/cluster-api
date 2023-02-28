@@ -1175,7 +1175,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 
 	// Run syncMachines to clean up managed fields and have proper field ownership
 	// for Machines, InfrastructureMachines and BootstrapConfigs.
-	reconciler := &Reconciler{Client: env}
+	reconciler := &Reconciler{Client: env, ssaCache: ssa.NewCache(env.GetScheme())}
 	g.Expect(reconciler.syncMachines(ctx, ms, machines)).To(Succeed())
 
 	// The inPlaceMutatingMachine should have cleaned up managed fields.

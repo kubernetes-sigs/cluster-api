@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -124,13 +125,10 @@ func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Clust
 		}
 	}
 
-	options := []client.PatchOption{
-		client.FieldOwner("capi-machine"),
-		client.ForceOwnership,
-	}
-	nodePatch := unstructuredNode(node.Name, node.UID, getManagedLabels(machine.Labels))
-	if err := remoteClient.Patch(ctx, nodePatch, client.Apply, options...); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to apply patch label to the node")
+	updatedNode := unstructuredNode(node.Name, node.UID, getManagedLabels(machine.Labels))
+	_, err = ssa.Patch(ctx, remoteClient, machineManagerName, updatedNode, ssa.WithCachingProxy{Cache: r.ssaCache, Original: node})
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to apply labels to Node")
 	}
 
 	// Do the remaining node health checks, then set the node health to true if all checks pass.

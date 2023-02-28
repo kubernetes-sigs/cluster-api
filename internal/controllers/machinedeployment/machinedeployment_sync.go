@@ -40,6 +40,8 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
+	"sigs.k8s.io/cluster-api/internal/util/hash"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -153,14 +155,12 @@ func (r *Reconciler) updateMachineSet(ctx context.Context, deployment *clusterv1
 	}
 
 	// Update the MachineSet to propagate in-place mutable fields from the MachineDeployment.
-	patchOptions := []client.PatchOption{
-		client.ForceOwnership,
-		client.FieldOwner(machineDeploymentManagerName),
-	}
-	if err := r.Client.Patch(ctx, updatedMS, client.Apply, patchOptions...); err != nil {
+	updatedObject, err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, updatedMS, ssa.WithCachingProxy{Cache: r.ssaCache, Original: ms})
+	if err != nil {
 		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedUpdate", "Failed to update MachineSet %s: %v", klog.KObj(updatedMS), err)
 		return nil, errors.Wrapf(err, "failed to update MachineSet %s", klog.KObj(updatedMS))
 	}
+	updatedMS = updatedObject.(*clusterv1.MachineSet)
 
 	log.V(4).Info("Updated MachineSet", "MachineSet", klog.KObj(updatedMS))
 	return updatedMS, nil
@@ -178,11 +178,7 @@ func (r *Reconciler) createMachineSetAndWait(ctx context.Context, deployment *cl
 	}
 
 	// Create the MachineSet.
-	patchOptions := []client.PatchOption{
-		client.ForceOwnership,
-		client.FieldOwner(machineDeploymentManagerName),
-	}
-	if err = r.Client.Patch(ctx, newMS, client.Apply, patchOptions...); err != nil {
+	if _, err := ssa.Patch(ctx, r.Client, machineDeploymentManagerName, newMS); err != nil {
 		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "FailedCreate", "Failed to create MachineSet %s: %v", klog.KObj(newMS), err)
 		return nil, errors.Wrapf(err, "failed to create new MachineSet %s", klog.KObj(newMS))
 	}
@@ -237,7 +233,7 @@ func (r *Reconciler) computeDesiredMachineSet(deployment *clusterv1.MachineDeplo
 		// As a result, we use the hash of the machine template while ignoring all in-place mutable fields, i.e. the
 		// machine template with only fields that could trigger a rollout for the machine-template-hash, making it
 		// independent of the changes to any in-place mutable fields.
-		templateHash, err := mdutil.ComputeSpewHash(mdutil.MachineTemplateDeepCopyRolloutFields(&deployment.Spec.Template))
+		templateHash, err := hash.Compute(mdutil.MachineTemplateDeepCopyRolloutFields(&deployment.Spec.Template))
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to compute desired MachineSet: failed to compute machine template hash")
 		}

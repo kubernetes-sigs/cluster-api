@@ -46,6 +46,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -58,6 +59,10 @@ import (
 const (
 	// controllerName defines the controller used when creating clients.
 	controllerName = "machine-controller"
+
+	// machineManagerName is the manager name used for Server-Side-Apply (SSA) operations
+	// in the Machine controller.
+	machineManagerName = "capi-machine"
 )
 
 var (
@@ -91,6 +96,7 @@ type Reconciler struct {
 	// nodeDeletionRetryTimeout determines how long the controller will retry deleting a node
 	// during a single reconciliation.
 	nodeDeletionRetryTimeout time.Duration
+	ssaCache                 ssa.Cache
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -134,6 +140,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	r.externalTracker = external.ObjectTracker{
 		Controller: controller,
 	}
+	r.ssaCache = ssa.NewCache(mgr.GetScheme())
 	return nil
 }
 

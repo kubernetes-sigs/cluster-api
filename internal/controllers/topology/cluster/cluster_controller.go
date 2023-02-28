@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -118,7 +119,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	r.patchEngine = patches.NewEngine(r.RuntimeClient)
 	r.recorder = mgr.GetEventRecorderFor("topology/cluster")
 	if r.patchHelperFactory == nil {
-		r.patchHelperFactory = serverSideApplyPatchHelperFactory(r.Client)
+		r.patchHelperFactory = serverSideApplyPatchHelperFactory(r.Client, ssa.NewCache(mgr.GetScheme()))
 	}
 	return nil
 }
@@ -394,9 +395,9 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 }
 
 // serverSideApplyPatchHelperFactory makes use of managed fields provided by server side apply and is used by the controller.
-func serverSideApplyPatchHelperFactory(c client.Client) structuredmerge.PatchHelperFactoryFunc {
+func serverSideApplyPatchHelperFactory(c client.Client, ssaCache ssa.Cache) structuredmerge.PatchHelperFactoryFunc {
 	return func(ctx context.Context, original, modified client.Object, opts ...structuredmerge.HelperOption) (structuredmerge.PatchHelper, error) {
-		return structuredmerge.NewServerSidePatchHelper(ctx, original, modified, c, opts...)
+		return structuredmerge.NewServerSidePatchHelper(ctx, original, modified, c, ssaCache, opts...)
 	}
 }
 

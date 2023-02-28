@@ -924,6 +924,7 @@ release-binary: $(RELEASE_DIR)
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:$(GO_VERSION) \
+		git config --global --add safe.directory /workspace; \
 		go build -a -trimpath -ldflags "$(LDFLAGS) -extldflags '-static'" \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY)) $(BUILD_PATH)
 

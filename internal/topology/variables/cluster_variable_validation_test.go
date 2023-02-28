@@ -29,51 +29,65 @@ import (
 
 func Test_ValidateClusterVariables(t *testing.T) {
 	tests := []struct {
-		name                  string
-		clusterClassVariables []clusterv1.ClusterClassVariable
-		clusterVariables      []clusterv1.ClusterVariable
-		validateRequired      bool
-		wantErr               bool
+		name             string
+		definitions      []clusterv1.ClusterClassStatusVariable
+		values           []clusterv1.ClusterVariable
+		validateRequired bool
+		wantErr          bool
 	}{
 		{
-			name: "Pass for a number of valid variables.",
-			clusterClassVariables: []clusterv1.ClusterClassVariable{
+			name: "Pass for a number of valid values.",
+			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name:     "cpu",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "integer",
-							Minimum: pointer.Int64(1),
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "integer",
+									Minimum: pointer.Int64(1),
+								},
+							},
 						},
 					},
 				},
 				{
-					Name:     "zone",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:      "string",
-							MinLength: pointer.Int64(1),
+					Name: "zone",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:      "string",
+									MinLength: pointer.Int64(1),
+								},
+							},
 						},
 					},
 				},
 				{
-					Name:     "location",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type: "string",
-							Enum: []apiextensionsv1.JSON{
-								{Raw: []byte(`"us-east-1"`)},
-								{Raw: []byte(`"us-east-2"`)},
+					Name: "location",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+									Enum: []apiextensionsv1.JSON{
+										{Raw: []byte(`"us-east-1"`)},
+										{Raw: []byte(`"us-east-2"`)},
+									},
+								},
 							},
 						},
 					},
 				},
 			},
-
-			clusterVariables: []clusterv1.ClusterVariable{
+			values: []clusterv1.ClusterVariable{
 				{
 					Name: "cpu",
 					Value: apiextensionsv1.JSON{
@@ -96,32 +110,42 @@ func Test_ValidateClusterVariables(t *testing.T) {
 			validateRequired: true,
 		},
 		{
-			name: "Error if required ClusterClassVariable is not defined in ClusterVariables.",
-			clusterClassVariables: []clusterv1.ClusterClassVariable{
+			name:    "Error when no value for required definition.",
+			wantErr: true,
+			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name:     "cpu",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "integer",
-							Minimum: pointer.Int64(1),
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "integer",
+									Minimum: pointer.Int64(1),
+								},
+							},
 						},
 					},
 				},
 				{
-					Name:     "zone",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:      "string",
-							MinLength: pointer.Int64(1),
+					Name: "zone",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:      "string",
+									MinLength: pointer.Int64(1),
+								},
+							},
 						},
 					},
 				},
 			},
-
-			clusterVariables: []clusterv1.ClusterVariable{
-				// cpu is missing in the ClusterVariables but is required in ClusterClassVariables.
+			values: []clusterv1.ClusterVariable{
+				// cpu is missing in the values but is required in definition.
 				{
 					Name: "zone",
 					Value: apiextensionsv1.JSON{
@@ -130,35 +154,44 @@ func Test_ValidateClusterVariables(t *testing.T) {
 				},
 			},
 			validateRequired: true,
-			wantErr:          true,
 		},
 		{
-			name: "Pass if required ClusterClassVariable is not defined in ClusterVariables but required validation is disabled.",
-			clusterClassVariables: []clusterv1.ClusterClassVariable{
+			name: "Pass if validateRequired='false' and no value for required definition.",
+			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name:     "cpu",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "integer",
-							Minimum: pointer.Int64(1),
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:    "integer",
+									Minimum: pointer.Int64(1),
+								},
+							},
 						},
 					},
 				},
 				{
-					Name:     "zone",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:      "string",
-							MinLength: pointer.Int64(1),
+					Name: "zone",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Required: true,
+							From:     clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type:      "string",
+									MinLength: pointer.Int64(1),
+								},
+							},
 						},
 					},
 				},
 			},
 
-			clusterVariables: []clusterv1.ClusterVariable{
-				// cpu is missing in the ClusterVariables and is required in ClusterClassVariables,
+			values: []clusterv1.ClusterVariable{
+				// cpu is missing in the values and is required in definitions,
 				// but required validation is disabled.
 				{
 					Name: "zone",
@@ -170,61 +203,433 @@ func Test_ValidateClusterVariables(t *testing.T) {
 			validateRequired: false,
 		},
 		{
-			name: "Error if ClusterVariable defined which has no ClusterClassVariable definition.",
-			clusterClassVariables: []clusterv1.ClusterClassVariable{
-				{
-					Name:     "cpu",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:    "integer",
-							Minimum: pointer.Int64(1),
-						},
-					},
-				},
-				{
-					Name:     "zone",
-					Required: true,
-					Schema: clusterv1.VariableSchema{
-						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
-							Type:      "string",
-							MinLength: pointer.Int64(1),
-						},
-					},
-				},
-			},
-
-			clusterVariables: []clusterv1.ClusterVariable{
-				// location is defined here but not in the ClusterClassVariables
+			name:        "Error if value has no definition.",
+			wantErr:     true,
+			definitions: []clusterv1.ClusterClassStatusVariable{},
+			values: []clusterv1.ClusterVariable{
+				// location has a value but no definition.
 				{
 					Name: "location",
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`"us-east-1"`),
 					},
 				},
+			},
+			validateRequired: true,
+		},
+		// Non-conflicting definition tests.
+		{
+			name: "Pass if a value with empty definitionFrom set for a non-conflicting definition",
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+							From:     clusterv1.VariableDefinitionFromInline,
+							Required: true,
+						},
+						{
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+							From:     "somepatch",
+							Required: true,
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
 				{
 					Name: "cpu",
 					Value: apiextensionsv1.JSON{
 						Raw: []byte(`1`),
 					},
 				},
-
+			},
+			validateRequired: true,
+		},
+		{
+			name: "Pass when there is a separate value for each required definition with no definition conflicts.",
+			definitions: []clusterv1.ClusterClassStatusVariable{
 				{
-					Name: "zone",
-					Value: apiextensionsv1.JSON{
-						Raw: []byte(`"longerThanOneCharacter"`),
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+							From:     clusterv1.VariableDefinitionFromInline,
+							Required: true,
+						},
+						{
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+							From:     "somepatch",
+							Required: true,
+						},
 					},
 				},
 			},
+			values: []clusterv1.ClusterVariable{
+				// Each value is set individually.
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+					DefinitionFrom: "somepatch",
+				},
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`2`),
+					},
+					DefinitionFrom: "inline",
+				},
+			},
 			validateRequired: true,
-			wantErr:          true,
+		},
+		{
+			name:    "Fail if value DefinitionFrom field does not match any definition.",
+			wantErr: true,
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+					// This definition does not exist.
+					DefinitionFrom: "non-existent-patch",
+				},
+			},
+			validateRequired: true,
+		},
+		{
+			name:    "Fail if a value is set twice with the same definitionFrom.",
+			wantErr: true,
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+							From: "somepatch",
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+					DefinitionFrom: "somepatch",
+				},
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`2`),
+					},
+					DefinitionFrom: "somepatch",
+				},
+			},
+			validateRequired: true,
+		},
+		{
+			name:    "Fail if a value is set with empty and non-empty definitionFrom.",
+			wantErr: true,
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+							From: "somepatch",
+						},
+						{
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+							From: clusterv1.VariableDefinitionFromInline,
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+					// Mix of empty and non-empty definitionFrom is not valid.
+					DefinitionFrom: "",
+				},
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`2`),
+					},
+					DefinitionFrom: "somepatch",
+				},
+			},
+			validateRequired: true,
+		},
+		{
+			name:    "Fail when values invalid by their definition schema.",
+			wantErr: true,
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name:                "cpu",
+					DefinitionsConflict: true,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+						{
+							From: "somepatch",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+					DefinitionFrom: "inline",
+				},
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"one"`),
+					},
+					DefinitionFrom: "somepatch",
+				},
+			},
+			validateRequired: true,
+		},
+		// Conflicting definition tests.
+		{
+			name: "Pass with a value provided for each conflicting definition.",
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name:                "cpu",
+					DefinitionsConflict: true,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+						{
+							From: "somepatch",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`"one"`),
+					},
+					DefinitionFrom: "inline",
+				},
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+					DefinitionFrom: "somepatch",
+				},
+			},
+			validateRequired: true,
+		},
+		{
+			name: "Pass if non-required definition value doesn't include definitionFrom for each required definition when definitions conflict.",
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name:                "cpu",
+					DefinitionsConflict: true,
+					// There are conflicting definitions which means values should include a `definitionFrom` field.
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+							From:     "somepatch",
+							Required: true,
+						},
+						// This variable is not required so it does not need a value.
+						{
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+							From:     "anotherpatch",
+							Required: false,
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+					DefinitionFrom: "somepatch",
+				},
+			},
+			validateRequired: true,
+		},
+		{
+			name:    "Fail if value doesn't include definitionFrom when definitions conflict.",
+			wantErr: true,
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					// There are conflicting definitions which means values should include a `definitionFrom` field.
+					DefinitionsConflict: true,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+						{
+							From: "somepatch",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+					// No definitionFrom
+				},
+			},
+			validateRequired: true,
+		},
+		{
+			name:    "Fail if value doesn't include definitionFrom for each required definition when definitions conflict.",
+			wantErr: true,
+			definitions: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name:                "cpu",
+					DefinitionsConflict: true,
+					// There are conflicting definitions which means values should include a `definitionFrom` field.
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+							From:     clusterv1.VariableDefinitionFromInline,
+							Required: true,
+						},
+						{
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+							From:     "somepatch",
+							Required: true,
+						},
+					},
+				},
+			},
+			values: []clusterv1.ClusterVariable{
+				{
+					Name: "cpu",
+					Value: apiextensionsv1.JSON{
+						Raw: []byte(`1`),
+					},
+					DefinitionFrom: "somepatch",
+				},
+			},
+			validateRequired: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			errList := validateClusterVariables(tt.clusterVariables, tt.clusterClassVariables,
+			errList := validateClusterVariables(tt.values, tt.definitions,
 				tt.validateRequired, field.NewPath("spec", "topology", "variables"))
 
 			if tt.wantErr {
@@ -263,7 +668,8 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Error if integer is above Maximum",
+			name:    "Error if integer is above Maximum",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
 				Required: true,
@@ -280,10 +686,10 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`99`),
 				},
 			},
-			wantErr: true,
 		},
 		{
-			name: "Error if integer is below Minimum",
+			name:    "Error if integer is below Minimum",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
 				Required: true,
@@ -300,11 +706,11 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`0`),
 				},
 			},
-			wantErr: true,
 		},
 
 		{
-			name: "Fails, expected integer got string",
+			name:    "Fails, expected integer got string",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "cpu",
 				Required: true,
@@ -321,7 +727,6 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`"1"`),
 				},
 			},
-			wantErr: true,
 		},
 		{
 			name: "Valid string",
@@ -343,7 +748,8 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Error if string doesn't match pattern ",
+			name:    "Error if string doesn't match pattern ",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
 				Required: true,
@@ -360,10 +766,10 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`"000000a"`),
 				},
 			},
-			wantErr: true,
 		},
 		{
-			name: "Error if string doesn't match format ",
+			name:    "Error if string doesn't match format ",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
 				Required: true,
@@ -380,7 +786,6 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`"not a URI"`),
 				},
 			},
-			wantErr: true,
 		},
 		{
 			name: "Valid enum string",
@@ -405,7 +810,8 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Fails, value does not match one of the enum string values",
+			name:    "Fails, value does not match one of the enum string values",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
 				Required: true,
@@ -425,7 +831,6 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`"us-east-invalid"`),
 				},
 			},
-			wantErr: true,
 		},
 		{
 			name: "Valid enum integer",
@@ -450,7 +855,8 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Fails, value does not match one of the enum integer values",
+			name:    "Fails, value does not match one of the enum integer values",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "location",
 				Required: true,
@@ -470,7 +876,6 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`3`),
 				},
 			},
-			wantErr: true,
 		},
 		{
 			name: "Valid object",
@@ -496,7 +901,8 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Error if nested field is invalid",
+			name:    "Error if nested field is invalid",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
 				Required: true,
@@ -517,10 +923,10 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`{"enabled":"not-a-bool"}`),
 				},
 			},
-			wantErr: true,
 		},
 		{
-			name: "Error if object is a bool instead",
+			name:    "Error if object is a bool instead",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
 				Required: true,
@@ -541,10 +947,10 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`"not-a-object"`),
 				},
 			},
-			wantErr: true,
 		},
 		{
-			name: "Error if object is missing required field",
+			name:    "Error if object is missing required field",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
 				Required: true,
@@ -571,7 +977,6 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`{"enabled":"true"}`),
 				},
 			},
-			wantErr: true,
 		},
 		{
 			name: "Valid object",
@@ -642,7 +1047,8 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Fails, value does not match one of the enum object values",
+			name:    "Fails, value does not match one of the enum object values",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "enumObject",
 				Required: true,
@@ -670,7 +1076,6 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`{"location": "us-east-2","url":"wrong-url"}`),
 				},
 			},
-			wantErr: true,
 		},
 		{
 			name: "Valid map",
@@ -699,7 +1104,8 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Error if map is missing a required field",
+			name:    "Error if map is missing a required field",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "httpProxy",
 				Required: true,
@@ -727,7 +1133,6 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`{"proxy":{"enabled":false}}`),
 				},
 			},
-			wantErr: true,
 		},
 		{
 			name: "Valid array",
@@ -755,7 +1160,8 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Error if array element is invalid",
+			name:    "Error if array element is invalid",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testArray",
 				Required: true,
@@ -778,10 +1184,10 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`["enumValue1","enumValueInvalid"]`),
 				},
 			},
-			wantErr: true,
 		},
 		{
-			name: "Error if array is too large",
+			name:    "Error if array is too large",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testArray",
 				Required: true,
@@ -801,10 +1207,10 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`["value1","value2","value3","value4"]`),
 				},
 			},
-			wantErr: true,
 		},
 		{
-			name: "Error if array is too small",
+			name:    "Error if array is too small",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testArray",
 				Required: true,
@@ -824,10 +1230,10 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`["value1","value2"]`),
 				},
 			},
-			wantErr: true,
 		},
 		{
-			name: "Error if array contains duplicate values",
+			name:    "Error if array contains duplicate values",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testArray",
 				Required: true,
@@ -847,7 +1253,6 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`["value1","value1"]`),
 				},
 			},
-			wantErr: true,
 		},
 		{
 			name: "Valid array object",
@@ -875,7 +1280,8 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Fails, value does not match one of the enum array values",
+			name:    "Fails, value does not match one of the enum array values",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "enumArray",
 				Required: true,
@@ -898,7 +1304,6 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`["7","8","9"]`),
 				},
 			},
-			wantErr: true,
 		},
 		{
 			name: "Valid object with x-kubernetes-preserve-unknown-fields",
@@ -926,7 +1331,8 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Error if undefined field",
+			name:    "Error if undefined field",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
 				Required: true,
@@ -948,10 +1354,10 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`{"knownProperty":false,"unknownProperty":true}`),
 				},
 			},
-			wantErr: true,
 		},
 		{
-			name: "Error if undefined field with different casing",
+			name:    "Error if undefined field with different casing",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
 				Required: true,
@@ -973,7 +1379,6 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`{"KnownProperty":false}`),
 				},
 			},
-			wantErr: true,
 		},
 		{
 			name: "Valid nested object with x-kubernetes-preserve-unknown-fields",
@@ -1027,7 +1432,8 @@ func Test_ValidateClusterVariable(t *testing.T) {
 			},
 		},
 		{
-			name: "Error if undefined field nested",
+			name:    "Error if undefined field nested",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
 				Required: true,
@@ -1054,10 +1460,10 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`{"test": {"knownProperty":false,"unknownProperty":true}}`),
 				},
 			},
-			wantErr: true,
 		},
 		{
-			name: "Error if undefined field nested and x-kubernetes-preserve-unknown-fields one level above",
+			name:    "Error if undefined field nested and x-kubernetes-preserve-unknown-fields one level above",
+			wantErr: true,
 			clusterClassVariable: &clusterv1.ClusterClassVariable{
 				Name:     "testObject",
 				Required: true,
@@ -1085,7 +1491,6 @@ func Test_ValidateClusterVariable(t *testing.T) {
 					Raw: []byte(`{"test": {"knownProperty":false,"unknownProperty":true}}`),
 				},
 			},
-			wantErr: true,
 		},
 		{
 			name: "Valid object with mid-level unknown fields",

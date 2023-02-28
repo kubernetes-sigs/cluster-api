@@ -19,6 +19,8 @@ package clusterclass
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -213,12 +215,10 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, clusterCla
 
 func (r *Reconciler) reconcileVariables(ctx context.Context, clusterClass *clusterv1.ClusterClass) error {
 	errs := []error{}
-	uniqueVars := map[string]bool{}
-	allVars := []clusterv1.ClusterClassStatusVariable{}
+	allVariableDefinitions := map[string]*clusterv1.ClusterClassStatusVariable{}
 	// Add inline variable definitions to the ClusterClass status.
 	for _, variable := range clusterClass.Spec.Variables {
-		uniqueVars[variable.Name] = true
-		allVars = append(allVars, statusVariableFromClusterClassVariable(variable, clusterv1.VariableDefinitionFromInline))
+		allVariableDefinitions[variable.Name] = addNewStatusVariable(variable, clusterv1.VariableDefinitionFromInline)
 	}
 
 	// If RuntimeSDK is enabled call the DiscoverVariables hook for all associated Runtime Extensions and add the variables
@@ -242,14 +242,23 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, clusterClass *clust
 				continue
 			}
 			if resp.Variables != nil {
+				uniqueNamesForPatch := sets.Set[string]{}
 				for _, variable := range resp.Variables {
-					// TODO: Variables should be validated and deduplicated based on their provided definition.
-					if _, ok := uniqueVars[variable.Name]; ok {
-						errs = append(errs, errors.Errorf("duplicate variable name %s discovered in patch: %s", variable.Name, patch.Name))
+					// Ensure a patch doesn't define multiple variables with the same name.
+					if uniqueNamesForPatch.Has(variable.Name) {
+						errs = append(errs, errors.Errorf("variable %q is defined multiple times in variable discovery response from patch %q", variable.Name, patch.Name))
 						continue
 					}
-					uniqueVars[variable.Name] = true
-					allVars = append(allVars, statusVariableFromClusterClassVariable(variable, patch.Name))
+					uniqueNamesForPatch.Insert(variable.Name)
+
+					// If a variable of the same name already exists in allVariableDefinitions add the new definition to the existing list.
+					if _, ok := allVariableDefinitions[variable.Name]; ok {
+						allVariableDefinitions[variable.Name] = addDefinitionToExistingStatusVariable(variable, patch.Name, allVariableDefinitions[variable.Name])
+						continue
+					}
+
+					// Add the new variable to the list.
+					allVariableDefinitions[variable.Name] = addNewStatusVariable(variable, patch.Name)
 				}
 			}
 		}
@@ -260,10 +269,22 @@ func (r *Reconciler) reconcileVariables(ctx context.Context, clusterClass *clust
 			"VariableDiscovery failed: %s", kerrors.NewAggregate(errs))
 		return errors.Wrapf(kerrors.NewAggregate(errs), "failed to discover variables for ClusterClass %s", clusterClass.Name)
 	}
-	clusterClass.Status.Variables = allVars
+
+	statusVarList := []clusterv1.ClusterClassStatusVariable{}
+	for _, variable := range allVariableDefinitions {
+		statusVarList = append(statusVarList, *variable)
+	}
+	// Alphabetically sort the variables by name. This ensures no unnecessary updates to the ClusterClass status.
+	// Note: Definitions in `statusVarList[i].Definitions` have a stable order as they are added in a deterministic order
+	// and are always held in an array.
+	sort.SliceStable(statusVarList, func(i, j int) bool {
+		return statusVarList[i].Name < statusVarList[j].Name
+	})
+	clusterClass.Status.Variables = statusVarList
 	conditions.MarkTrue(clusterClass, clusterv1.ClusterClassVariablesReconciledCondition)
 	return nil
 }
+
 func reconcileConditions(clusterClass *clusterv1.ClusterClass, outdatedRefs map[*corev1.ObjectReference]*corev1.ObjectReference) {
 	if len(outdatedRefs) > 0 {
 		var msg []string
@@ -288,10 +309,9 @@ func reconcileConditions(clusterClass *clusterv1.ClusterClass, outdatedRefs map[
 	)
 }
 
-func statusVariableFromClusterClassVariable(variable clusterv1.ClusterClassVariable, from string) clusterv1.ClusterClassStatusVariable {
-	return clusterv1.ClusterClassStatusVariable{
-		Name: variable.Name,
-		// TODO: In a future iteration this should be true where definitions are equal.
+func addNewStatusVariable(variable clusterv1.ClusterClassVariable, from string) *clusterv1.ClusterClassStatusVariable {
+	return &clusterv1.ClusterClassStatusVariable{
+		Name:                variable.Name,
 		DefinitionsConflict: false,
 		Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 			{
@@ -300,6 +320,26 @@ func statusVariableFromClusterClassVariable(variable clusterv1.ClusterClassVaria
 				Schema:   variable.Schema,
 			},
 		}}
+}
+
+func addDefinitionToExistingStatusVariable(variable clusterv1.ClusterClassVariable, from string, existingVariable *clusterv1.ClusterClassStatusVariable) *clusterv1.ClusterClassStatusVariable {
+	combinedVariable := existingVariable.DeepCopy()
+	newVariableDefinition := clusterv1.ClusterClassStatusVariableDefinition{
+		From:     from,
+		Required: variable.Required,
+		Schema:   variable.Schema,
+	}
+	combinedVariable.Definitions = append(existingVariable.Definitions, newVariableDefinition)
+
+	// If the new definition is different from any existing definition, set DefinitionsConflict to true.
+	// If definitions already conflict, no need to check.
+	if !combinedVariable.DefinitionsConflict {
+		currentDefinition := combinedVariable.Definitions[0]
+		if !(currentDefinition.Required == newVariableDefinition.Required && reflect.DeepEqual(currentDefinition.Schema, newVariableDefinition.Schema)) {
+			combinedVariable.DefinitionsConflict = true
+		}
+	}
+	return combinedVariable
 }
 
 func refString(ref *corev1.ObjectReference) string {

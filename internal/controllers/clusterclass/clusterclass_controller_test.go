@@ -23,14 +23,21 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	utilfeature "k8s.io/component-base/featuregate/testing"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
+	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
+	"sigs.k8s.io/cluster-api/feature"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
 )
 
@@ -307,4 +314,234 @@ func isOwnerReferenceEqual(a, b metav1.OwnerReference) bool {
 		return false
 	}
 	return true
+}
+
+func TestReconciler_reconcileVariables(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, true)()
+
+	g := NewWithT(t)
+	catalog := runtimecatalog.New()
+	_ = runtimehooksv1.AddToCatalog(catalog)
+
+	clusterClassWithInlineVariables := builder.ClusterClass(metav1.NamespaceDefault, "class1").
+		WithVariables(
+			[]clusterv1.ClusterClassVariable{
+				{
+					Name: "cpu",
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type: "integer",
+						},
+					},
+				},
+				{
+					Name: "memory",
+					Schema: clusterv1.VariableSchema{
+						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+							Type: "string",
+						},
+					},
+				},
+			}...,
+		)
+	tests := []struct {
+		name          string
+		clusterClass  *clusterv1.ClusterClass
+		want          []clusterv1.ClusterClassStatusVariable
+		patchResponse *runtimehooksv1.DiscoverVariablesResponse
+		wantErr       bool
+	}{
+		{
+			name:         "Reconcile inline variables to ClusterClass status",
+			clusterClass: clusterClassWithInlineVariables.DeepCopy().Build(),
+			want: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name: "cpu",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+					},
+				},
+				{
+					Name: "memory",
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Reconcile variables from inline and external variables to ClusterClass status",
+			clusterClass: clusterClassWithInlineVariables.DeepCopy().WithPatches(
+				[]clusterv1.ClusterClassPatch{
+					{
+						Name: "patch1",
+						External: &clusterv1.ExternalPatchDefinition{
+							DiscoverVariablesExtension: pointer.String("variables-one"),
+						}}}).
+				Build(),
+			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
+				CommonResponse: runtimehooksv1.CommonResponse{
+					Status: runtimehooksv1.ResponseStatusSuccess,
+				},
+				Variables: []clusterv1.ClusterClassVariable{
+					{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
+					{
+						Name: "memory",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
+					{
+						Name: "location",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
+				},
+			},
+			want: []clusterv1.ClusterClassStatusVariable{
+				{
+					Name:                "cpu",
+					DefinitionsConflict: true,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "integer",
+								},
+							},
+						},
+						{
+							From: "patch1",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+				{
+					Name:                "location",
+					DefinitionsConflict: false,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: "patch1",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+				{
+					Name:                "memory",
+					DefinitionsConflict: false,
+					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
+						{
+							From: clusterv1.VariableDefinitionFromInline,
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+						{
+							From: "patch1",
+							Schema: clusterv1.VariableSchema{
+								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+									Type: "string",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "Error if external patch defines a variable with same name multiple times",
+			wantErr: true,
+			clusterClass: clusterClassWithInlineVariables.DeepCopy().WithPatches(
+				[]clusterv1.ClusterClassPatch{
+					{
+						Name: "patch1",
+						External: &clusterv1.ExternalPatchDefinition{
+							DiscoverVariablesExtension: pointer.String("variables-one"),
+						}}}).
+				Build(),
+			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
+				CommonResponse: runtimehooksv1.CommonResponse{
+					Status: runtimehooksv1.ResponseStatusSuccess,
+				},
+				Variables: []clusterv1.ClusterClassVariable{
+					{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "string",
+							},
+						},
+					},
+					{
+						Name: "cpu",
+						Schema: clusterv1.VariableSchema{
+							OpenAPIV3Schema: clusterv1.JSONSchemaProps{
+								Type: "integer",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeRuntimeClient := fakeruntimeclient.NewRuntimeClientBuilder().
+				WithCallExtensionResponses(
+					map[string]runtimehooksv1.ResponseObject{
+						"variables-one": tt.patchResponse,
+					}).
+				WithCatalog(catalog).
+				Build()
+
+			r := &Reconciler{
+				RuntimeClient: fakeRuntimeClient,
+			}
+
+			err := r.reconcileVariables(ctx, tt.clusterClass)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(tt.clusterClass.Status.Variables).To(Equal(tt.want), cmp.Diff(tt.clusterClass.Status.Variables, tt.want))
+		})
+	}
 }

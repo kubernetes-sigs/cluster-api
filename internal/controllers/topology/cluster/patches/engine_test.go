@@ -481,6 +481,129 @@ func TestApply(t *testing.T) {
 			},
 		},
 		{
+			name: "Should correctly apply patches with builtin variables",
+			patches: []clusterv1.ClusterClassPatch{
+				{
+					Name: "fake-patch1",
+					Definitions: []clusterv1.PatchDefinition{
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Kind:       builder.GenericInfrastructureClusterTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									InfrastructureCluster: true,
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/clusterName",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: pointer.String("builtin.cluster.name"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.ControlPlaneGroupVersion.String(),
+								Kind:       builder.GenericControlPlaneTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									ControlPlane: true,
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/controlPlaneName",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: pointer.String("builtin.controlPlane.name"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Kind:       builder.GenericInfrastructureMachineTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									ControlPlane: true,
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/controlPlaneName",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: pointer.String("builtin.controlPlane.name"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.BootstrapGroupVersion.String(),
+								Kind:       builder.GenericBootstrapConfigTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+										Names: []string{"default-worker"},
+									},
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/machineDeploymentTopologyName",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: pointer.String("builtin.machineDeployment.topologyName"),
+									},
+								},
+							},
+						},
+						{
+							Selector: clusterv1.PatchSelector{
+								APIVersion: builder.InfrastructureGroupVersion.String(),
+								Kind:       builder.GenericInfrastructureMachineTemplateKind,
+								MatchResources: clusterv1.PatchSelectorMatch{
+									MachineDeploymentClass: &clusterv1.PatchSelectorMatchMachineDeploymentClass{
+										Names: []string{"default-worker"},
+									},
+								},
+							},
+							JSONPatches: []clusterv1.JSONPatch{
+								{
+									Op:   "add",
+									Path: "/spec/template/spec/machineDeploymentTopologyName",
+									ValueFrom: &clusterv1.JSONPatchValue{
+										Variable: pointer.String("builtin.machineDeployment.topologyName"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedFields: expectedFields{
+				infrastructureCluster: map[string]interface{}{
+					"spec.clusterName": "cluster1",
+				},
+				controlPlane: map[string]interface{}{
+					"spec.controlPlaneName": "controlPlane1",
+				},
+				controlPlaneInfrastructureMachineTemplate: map[string]interface{}{
+					"spec.template.spec.controlPlaneName": "controlPlane1",
+				},
+				machineDeploymentInfrastructureMachineTemplate: map[string]map[string]interface{}{
+					"default-worker-topo1": {"spec.template.spec.machineDeploymentTopologyName": "default-worker-topo1"},
+					"default-worker-topo2": {"spec.template.spec.machineDeploymentTopologyName": "default-worker-topo2"},
+				},
+				machineDeploymentBootstrapTemplate: map[string]map[string]interface{}{
+					"default-worker-topo1": {"spec.template.spec.machineDeploymentTopologyName": "default-worker-topo1"},
+					"default-worker-topo2": {"spec.template.spec.machineDeploymentTopologyName": "default-worker-topo2"},
+				},
+			},
+		},
+		{
 			name: "Should correctly apply variables for a given patch definitionFrom",
 			varDefinitions: []clusterv1.ClusterClassStatusVariable{
 				{

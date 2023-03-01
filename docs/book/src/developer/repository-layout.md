@@ -12,6 +12,7 @@ cluster-api
 └───config
 └───controllers
 └───controlplane
+└───dev
 └───docs
 └───errors
 └───exp
@@ -114,6 +115,10 @@ This folder has scripts used for building, testing and developer workflow.
 [~/scripts](https://github.com/kubernetes-sigs/cluster-api/tree/main/scripts)
 
 This folder consists of CI scripts related to setup, build and e2e tests. These are mostly called by CI jobs.
+
+[~/dev](https://github.com/kubernetes-sigs/cluster-api/tree/main/dev)
+
+This folder has example configuration for integrating Cluster API development with tools like IDEs.
 
 ### Util, Feature and Errors
 

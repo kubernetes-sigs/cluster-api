@@ -1185,9 +1185,9 @@ func Test_objectMover_move(t *testing.T) {
 					{"spec", "infrastructureRef", "namespace"},
 				},
 			}
-			var namespaceMutator ResourceMutatorFunc = func(u *unstructured.Unstructured) {
+			var namespaceMutator ResourceMutatorFunc = func(u *unstructured.Unstructured) error {
 				if u == nil || u.Object == nil {
-					return
+					return nil
 				}
 				if u.GetNamespace() != "" {
 					u.SetNamespace(toNamespace)
@@ -1201,6 +1201,7 @@ func Test_objectMover_move(t *testing.T) {
 						}
 					}
 				}
+				return nil
 			}
 
 			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
@@ -1226,6 +1227,7 @@ func Test_objectMover_move(t *testing.T) {
 			if includeMutator {
 				mutators = append(mutators, namespaceMutator)
 			}
+
 			err := mover.move(graph, toProxy, mutators...)
 
 			if tt.wantErr {

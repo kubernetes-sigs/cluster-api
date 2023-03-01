@@ -43,7 +43,7 @@ import (
 )
 
 // ResourceMutatorFunc holds the type for mutators to be applied on resources during a move operation.
-type ResourceMutatorFunc func(u *unstructured.Unstructured)
+type ResourceMutatorFunc func(u *unstructured.Unstructured) error
 
 // ObjectMover defines methods for moving Cluster API objects to another management cluster.
 type ObjectMover interface {
@@ -606,7 +606,10 @@ func patchCluster(proxy Proxy, n *node, patch client.Patch, mutators ...Resource
 	clusterObj.SetName(n.identity.Name)
 	clusterObj.SetNamespace(n.identity.Namespace)
 	for _, mutator := range mutators {
-		mutator(clusterObj)
+		if err = mutator(clusterObj); err != nil {
+			return errors.Wrapf(err, "error applying resource mutator to %q %s/%s",
+				clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName())
+		}
 	}
 
 	if err := cFrom.Get(ctx, client.ObjectKeyFromObject(clusterObj), clusterObj); err != nil {
@@ -635,7 +638,10 @@ func pauseClusterClass(proxy Proxy, n *node, pause bool, mutators ...ResourceMut
 	clusterClass.SetName(n.identity.Name)
 	clusterClass.SetNamespace(n.identity.Namespace)
 	for _, mutator := range mutators {
-		mutator(clusterClass)
+		if err = mutator(clusterClass); err != nil {
+			return errors.Wrapf(err, "error applying resource mutator to %q %s/%s",
+				clusterClass.GroupVersionKind(), clusterClass.GetNamespace(), clusterClass.GetName())
+		}
 	}
 	if err := cFrom.Get(ctx, client.ObjectKeyFromObject(clusterClass), clusterClass); err != nil {
 		return errors.Wrapf(err, "error reading ClusterClass %s/%s", n.identity.Namespace, n.identity.Name)
@@ -887,7 +893,10 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy, muta
 	}
 
 	for _, mutator := range mutators {
-		mutator(obj)
+		if err = mutator(obj); err != nil {
+			return errors.Wrapf(err, "error applying resource mutator to %q %s/%s",
+				obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
+		}
 	}
 	// Applying mutators MAY change the namespace, so ensure the namespace exists before creating the resource.
 	if !nodeToCreate.isGlobal && !existingNamespaces.Has(obj.GetNamespace()) {

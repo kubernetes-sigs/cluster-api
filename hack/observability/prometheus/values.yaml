@@ -14,6 +14,8 @@ pushgateway:
 # Scrape metrics from deployed providers
 extraScrapeConfigs: |
   - job_name: 'capi-providers'
+    # 15s is a bit often for production but helps to get metrics quicker for development.
+    scrape_interval: 15s
     metrics_path: /metrics
     kubernetes_sd_configs:
       - role: pod

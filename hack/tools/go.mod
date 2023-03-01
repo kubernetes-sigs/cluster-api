@@ -2,10 +2,6 @@ module sigs.k8s.io/cluster-api/hack/tools
 
 go 1.19
 
-replace sigs.k8s.io/cluster-api => ../../
-
-replace sigs.k8s.io/cluster-api/test => ../../test
-
 require (
 	cloud.google.com/go/storage v1.27.0
 	github.com/blang/semver v3.5.1+incompatible
@@ -23,8 +19,8 @@ require (
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
-	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
-	sigs.k8s.io/cluster-api/test v0.0.0-00010101000000-000000000000
+	sigs.k8s.io/cluster-api v1.3.4
+	sigs.k8s.io/cluster-api/test v1.3.4
 	sigs.k8s.io/controller-runtime v0.14.2
 	sigs.k8s.io/controller-tools v0.11.3
 	sigs.k8s.io/kubebuilder/docs/book/utils v0.0.0-20211028165026-57688c578b5d
@@ -49,8 +45,6 @@ require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
 	github.com/containerd/containerd v1.6.15 // indirect
-	github.com/coredns/caddy v1.1.0 // indirect
-	github.com/coredns/corefile-migration v1.0.20 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/cli v20.10.21+incompatible // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
@@ -77,7 +71,7 @@ require (
 	github.com/google/cel-go v0.12.6 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/go-github/v48 v48.2.0 // indirect
+	github.com/google/go-github/v45 v45.2.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect

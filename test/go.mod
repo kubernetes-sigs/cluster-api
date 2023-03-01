@@ -2,8 +2,6 @@ module sigs.k8s.io/cluster-api/test
 
 go 1.19
 
-replace sigs.k8s.io/cluster-api => ../
-
 require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/docker/docker v20.10.21+incompatible
@@ -22,7 +20,7 @@ require (
 	k8s.io/component-base v0.26.1
 	k8s.io/klog/v2 v2.80.1
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
-	sigs.k8s.io/cluster-api v0.0.0-00010101000000-000000000000
+	sigs.k8s.io/cluster-api v1.3.4
 	sigs.k8s.io/controller-runtime v0.14.2
 	sigs.k8s.io/kind v0.17.0
 	sigs.k8s.io/yaml v1.3.0
@@ -65,7 +63,7 @@ require (
 	github.com/google/cel-go v0.12.6 // indirect
 	github.com/google/gnostic v0.6.9 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/go-github/v48 v48.2.0 // indirect
+	github.com/google/go-github/v45 v45.2.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20210407192527-94a9f03dee38 // indirect

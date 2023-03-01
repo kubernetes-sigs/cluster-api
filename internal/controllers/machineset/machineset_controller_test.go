@@ -1271,7 +1271,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 		))
 		g.Expect(updatedInPlaceMutatingMachine.Spec.NodeVolumeDetachTimeout).Should(And(
 			Not(BeNil()),
-			HaveValue(Equal(*ms.Spec.Template.Spec.NodeDrainTimeout)),
+			HaveValue(Equal(*ms.Spec.Template.Spec.NodeVolumeDetachTimeout)),
 		))
 	}, timeout).Should(Succeed())
 

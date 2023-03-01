@@ -127,6 +127,8 @@ func (src *KubeadmConfigTemplate) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+
 	dst.Spec.Template.Spec.Ignition = restored.Spec.Template.Spec.Ignition
 	if restored.Spec.Template.Spec.InitConfiguration != nil {
 		if dst.Spec.Template.Spec.InitConfiguration == nil {
@@ -212,4 +214,9 @@ func Convert_v1beta1_NodeRegistrationOptions_To_v1alpha4_NodeRegistrationOptions
 	// NodeRegistrationOptions.ImagePullPolicy does not exit in
 	// kubeadm v1alpha4 API.
 	return autoConvert_v1beta1_NodeRegistrationOptions_To_v1alpha4_NodeRegistrationOptions(in, out, s)
+}
+
+func Convert_v1beta1_KubeadmConfigTemplateResource_To_v1alpha4_KubeadmConfigTemplateResource(in *bootstrapv1.KubeadmConfigTemplateResource, out *KubeadmConfigTemplateResource, s apiconversion.Scope) error {
+	// KubeadmConfigTemplateResource.metadata does not exist in kubeadm v1alpha4.
+	return autoConvert_v1beta1_KubeadmConfigTemplateResource_To_v1alpha4_KubeadmConfigTemplateResource(in, out, s)
 }

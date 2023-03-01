@@ -178,6 +178,15 @@ func main() {
 		os.Exit(1)
 	}
 
+	if err := webhookServer.AddExtensionHandler(server.ExtensionHandler{
+		Hook:        runtimehooksv1.DiscoverVariables,
+		Name:        "discover-variables",
+		HandlerFunc: topologyMutationExtensionHandlers.DiscoverVariables,
+	}); err != nil {
+		setupLog.Error(err, "error adding handler")
+		os.Exit(1)
+	}
+
 	// Lifecycle Hooks
 
 	// Gets a client to access the Kubernetes cluster where this RuntimeExtension will be deployed to;

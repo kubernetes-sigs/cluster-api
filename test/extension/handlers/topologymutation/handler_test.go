@@ -58,16 +58,16 @@ func Test_patchDockerClusterTemplate(t *testing.T) {
 		expectedErr      bool
 	}{
 		{
-			name:             "no op if lbImageRepository is not set",
+			name:             "no op if imageRepository is not set",
 			template:         &infrav1.DockerClusterTemplate{},
 			variables:        nil,
 			expectedTemplate: &infrav1.DockerClusterTemplate{},
 		},
 		{
-			name:     "set LoadBalancer.ImageRepository if lbImageRepository is set",
+			name:     "set LoadBalancer.ImageRepository if imageRepository is set",
 			template: &infrav1.DockerClusterTemplate{},
 			variables: map[string]apiextensionsv1.JSON{
-				"lbImageRepository": {Raw: toJSON("testImage")},
+				"imageRepository": {Raw: toJSON("testImage")},
 			},
 			expectedTemplate: &infrav1.DockerClusterTemplate{
 				Spec: infrav1.DockerClusterTemplateSpec{
@@ -353,8 +353,8 @@ func TestHandler_GeneratePatches(t *testing.T) {
 		}),
 		newVariable("kubeadmControlPlaneMaxSurge", "3"),
 	}
-	lbImageRepositoryVar := []runtimehooksv1.Variable{
-		newVariable("lbImageRepository", "docker.io"),
+	imageRepositoryVar := []runtimehooksv1.Variable{
+		newVariable("imageRepository", "docker.io"),
 	}
 	machineDeploymentVars123 := []runtimehooksv1.Variable{
 		newVariable(variables.BuiltinsName, variables.Builtins{
@@ -399,7 +399,7 @@ func TestHandler_GeneratePatches(t *testing.T) {
 				requestItem("1", kubeadmControlPlaneTemplate, controlPlaneVarsV123WithMaxSurge),
 				requestItem("2", dockerMachineTemplate, controlPlaneVarsV123WithMaxSurge),
 				requestItem("3", dockerMachineTemplate, machineDeploymentVars123),
-				requestItem("4", dockerClusterTemplate, lbImageRepositoryVar),
+				requestItem("4", dockerClusterTemplate, imageRepositoryVar),
 				requestItem("5", kubeadmConfigTemplate, machineDeploymentVars123),
 			},
 			expectedResponse: &runtimehooksv1.GeneratePatchesResponse{

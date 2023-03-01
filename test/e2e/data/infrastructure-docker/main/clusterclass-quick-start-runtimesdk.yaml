@@ -33,12 +33,8 @@ spec:
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
   variables:
-  - name: lbImageRepository
-    required: false
-    schema:
-      openAPIV3Schema:
-        type: string
-        default: kindest
+  # This variable is not used in any patch, but is here to ensure the variable discovered from the runtime hook is correctly
+  # used.
   - name: imageRepository
     required: true
     schema:
@@ -47,19 +43,12 @@ spec:
         default: "registry.k8s.io"
         example: "registry.k8s.io"
         description: "imageRepository sets the container registry to pull images from. If empty, `registry.k8s.io` will be used by default."
-  - name: kubeadmControlPlaneMaxSurge
-    required: false
-    schema:
-      openAPIV3Schema:
-        type: string
-        default: ""
-        example: "0"
-        description: "kubeadmControlPlaneMaxSurge is the maximum number of control planes that can be scheduled above or under the desired number of control plane machines."
   patches:
-  - name: lbImageRepository
+  - name: test-patch
     external:
       generateExtension: generate-patches.k8s-upgrade-with-runtimesdk
       validateExtension: validate-topology.k8s-upgrade-with-runtimesdk
+      discoverVariablesExtension: discover-variables.k8s-upgrade-with-runtimesdk
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate

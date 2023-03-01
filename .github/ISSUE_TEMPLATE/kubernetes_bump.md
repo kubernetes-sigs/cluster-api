@@ -29,11 +29,16 @@ changes should be cherry-picked to all release series that will support the new 
   * Verify the quickstart manually
   * Prior art: #7156
   * bump `InitWithKubernetesVersion` in `clusterctl_upgrade_test.go`
-* [ ] Job configurations:
-  * For all releases which will support the new Kubernetes version:
-    * Update `INIT_WITH_KUBERNETES_VERSION`.
-    * Add new periodic upgrade jobs .
+* [ ] Ensure the jobs are adjusted to provide test coverage according to our [support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions):
+  * For the main branch and the release branch of the latest supported Cluster API minor release:
+    * Add new periodic upgrade job.
     * Adjust presubmit jobs so that we have the latest upgrade jobs available on PRs.
+  * For the main branch:
+    * periodics & presubmits: 
+      * Bump `KUBEBUILDER_ENVTEST_KUBERNETES_VERSION` of the `test-mink8s` jobs to the new minimum supported management cluster version.
+    * periodics:
+      * Bump `KUBERNETES_VERSION_MANAGEMENT` of the `e2e-mink8s` job to the new minimum supported management cluster version.
+      * Drop the oldest upgrade job as the oldest Kubernetes minor version is now out of support.
   * Prior art: https://github.com/kubernetes/test-infra/pull/27421
 * [ ] Update book:
   * Update supported versions in `versions.md`

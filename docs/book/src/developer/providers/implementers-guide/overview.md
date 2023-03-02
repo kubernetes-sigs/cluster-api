@@ -51,6 +51,6 @@ chmod +x ./kubebuilder && sudo mv ./kubebuilder /usr/local/bin/kubebuilder
 ```
 
 [kubebuilder-book]: https://book.kubebuilder.io/
-[kubectl-install]: http://kubernetes.io/docs/user-guide/prereqs/
+[kubectl-install]: https://kubernetes.io/docs/tasks/tools/#kubectl
 [install-kustomize]: https://kubectl.docs.kubernetes.io/installation/kustomize/
 [install-kubebuilder]:  https://book.kubebuilder.io/quick-start.html#installation

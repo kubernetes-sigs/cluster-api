@@ -50,9 +50,12 @@ echo ""
 echo -e "# AWS Configuration\n"
 #######################################################
 # AWS_REGION is the AWS region.
-AWS_REGION=${AWS_REGION:-"eu-central-1"}
+# FIXME(sbueringer): change default region and zone back
+#AWS_REGION=${AWS_REGION:-"eu-central-1"}
+AWS_REGION=${AWS_REGION:-"ap-southeast-1"}
 # AWS_ZONE is the AWS zone.
-AWS_ZONE=${AWS_ZONE:-"eu-central-1a"}
+#AWS_ZONE=${AWS_ZONE:-"eu-central-1a"}
+AWS_ZONE=${AWS_ZONE:-"ap-southeast-1a"}
 # AWS_NETWORK_NAME is the name of the VPC and all the network
 # objects we create in the VPC.
 AWS_NETWORK_NAME=${AWS_NETWORK_NAME:-"${SERVER_NAME}"}
@@ -70,8 +73,11 @@ echo -e "  AWS_REGION: ${AWS_REGION}\n  AWS_ZONE: ${AWS_ZONE}\n  AWS_NETWORK_NAM
 AWS_MACHINE_TYPE=${AWS_MACHINE_TYPE:-"c5.4xlarge"}
 # AWS_AMI is the AMI we will use for the server.
 # AMIs:
-# * Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2023-02-08 id: ami-0d1ddd83282187d18
-AWS_AMI=${AWS_AMI:-"ami-0d1ddd83282187d18"}
+# * Canonical, Ubuntu, 22.04 LTS, amd64 jammy image build on 2023-02-08 id:
+#   * eu-central-1:   ami-0d1ddd83282187d18
+#   * ap-southeast-1: ami-082b1f4237bd816a1
+# FIXME(sbueringer)
+AWS_AMI=${AWS_AMI:-"ami-082b1f4237bd816a1"}
 echo -e "  AWS_MACHINE_TYPE: ${AWS_MACHINE_TYPE}\n  AWS_AMI: ${AWS_AMI}"
 # AWS_KEY_PAIR is the key pair we use to access the server.
 # Prepare key pair with:

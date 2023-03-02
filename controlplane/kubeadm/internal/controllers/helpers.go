@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -305,12 +306,8 @@ func (r *KubeadmControlPlaneReconciler) updateExternalObject(ctx context.Context
 	// Update annotations
 	updatedObject.SetAnnotations(kcp.Spec.MachineTemplate.ObjectMeta.Annotations)
 
-	patchOptions := []client.PatchOption{
-		client.ForceOwnership,
-		client.FieldOwner(kcpManagerName),
-	}
-	if err := r.Client.Patch(ctx, updatedObject, client.Apply, patchOptions...); err != nil {
-		return errors.Wrapf(err, "failed to update %s", klog.KObj(obj))
+	if _, err := ssa.Patch(ctx, r.Client, kcpManagerName, updatedObject); err != nil {
+		return errors.Wrapf(err, "failed to update %s", obj.GetObjectKind().GroupVersionKind().Kind)
 	}
 	return nil
 }
@@ -320,12 +317,8 @@ func (r *KubeadmControlPlaneReconciler) createMachine(ctx context.Context, kcp *
 	if err != nil {
 		return errors.Wrap(err, "failed to create Machine: failed to compute desired Machine")
 	}
-	patchOptions := []client.PatchOption{
-		client.ForceOwnership,
-		client.FieldOwner(kcpManagerName),
-	}
-	if err := r.Client.Patch(ctx, machine, client.Apply, patchOptions...); err != nil {
-		return errors.Wrap(err, "failed to create Machine: apply failed")
+	if _, err := ssa.Patch(ctx, r.Client, kcpManagerName, machine); err != nil {
+		return errors.Wrap(err, "failed to create Machine")
 	}
 	// Remove the annotation tracking that a remediation is in progress (the remediation completed when
 	// the replacement machine has been created above).
@@ -342,13 +335,12 @@ func (r *KubeadmControlPlaneReconciler) updateMachine(ctx context.Context, machi
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update Machine: failed to compute desired Machine")
 	}
-	patchOptions := []client.PatchOption{
-		client.ForceOwnership,
-		client.FieldOwner(kcpManagerName),
+
+	updatedObject, err := ssa.Patch(ctx, r.Client, kcpManagerName, updatedMachine, ssa.WithCachingProxy{Cache: r.ssaCache, Original: machine})
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to update Machine")
 	}
-	if err := r.Client.Patch(ctx, updatedMachine, client.Apply, patchOptions...); err != nil {
-		return nil, errors.Wrap(err, "failed to update Machine: apply failed")
-	}
+	updatedMachine = updatedObject.(*clusterv1.Machine)
 	return updatedMachine, nil
 }
 

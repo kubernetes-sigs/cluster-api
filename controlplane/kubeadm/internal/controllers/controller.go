@@ -86,6 +86,7 @@ type KubeadmControlPlaneReconciler struct {
 	// support SSA. This flag should be dropped after all affected tests are migrated
 	// to envtest.
 	disableInPlacePropagation bool
+	ssaCache                  ssa.Cache
 }
 
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -113,6 +114,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("kubeadm-control-plane-controller")
+	r.ssaCache = ssa.NewCache(mgr.GetScheme())
 
 	if r.managementCluster == nil {
 		if r.Tracker == nil {

@@ -515,8 +515,8 @@ func aggregateFromMachinesToKCP(input aggregateFromMachinesToKCPInput) {
 	// Aggregates machines for condition status.
 	// NB. A machine could be assigned to many groups, but only the group with the highest severity will be reported.
 	kcpMachinesWithErrors := sets.NewString()
-	kcpMachinesWithWarnings := sets.NewString()
-	kcpMachinesWithInfo := sets.NewString()
+	kcpMachinesWithWarnings := sets.NewString() //nolint:ifshort
+	kcpMachinesWithInfo := sets.NewString()     //nolint:ifshort
 	kcpMachinesWithTrue := sets.NewString()
 	kcpMachinesWithUnknown := sets.NewString()
 
@@ -559,8 +559,8 @@ func aggregateFromMachinesToKCP(input aggregateFromMachinesToKCPInput) {
 	}
 
 	// In case of no errors, no warning, and at least one machine with info, report false, info.
-	if len(kcpMachinesWithWarnings) > 0 {
-		conditions.MarkFalse(input.controlPlane.KCP, input.condition, input.unhealthyReason, clusterv1.ConditionSeverityWarning, "Following machines are reporting %s info: %s", input.note, strings.Join(kcpMachinesWithInfo.List(), ", "))
+	if len(kcpMachinesWithInfo) > 0 {
+		conditions.MarkFalse(input.controlPlane.KCP, input.condition, input.unhealthyReason, clusterv1.ConditionSeverityInfo, "Following machines are reporting %s info: %s", input.note, strings.Join(kcpMachinesWithInfo.List(), ", "))
 		return
 	}
 

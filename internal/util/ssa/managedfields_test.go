@@ -251,7 +251,7 @@ func TestCleanUpManagedFieldsForSSAAdoption(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(tt.obj).Build()
-			g.Expect(CleanUpManagedFieldsForSSAAdoption(ctx, tt.obj, ssaManager, fakeClient)).Should(Succeed())
+			g.Expect(CleanUpManagedFieldsForSSAAdoption(ctx, fakeClient, tt.obj, ssaManager)).Should(Succeed())
 			g.Expect(tt.obj.GetManagedFields()).Should(
 				ContainElement(MatchManagedFieldsEntry(ssaManager, metav1.ManagedFieldsOperationApply)))
 			if tt.wantEntryForClassicManager {

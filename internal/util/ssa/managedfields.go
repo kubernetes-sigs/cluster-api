@@ -109,7 +109,7 @@ func DropManagedFields(ctx context.Context, c client.Client, obj client.Object, 
 // We won't do this on subsequent reconciles. This case will be identified by checking if `ssaManager` owns any fields.
 // Dropping all existing "manager" entries (which could also be from other controllers) is safe, as we assume that if
 // other controllers are still writing fields on the object they will just do it again and thus gain ownership again.
-func CleanUpManagedFieldsForSSAAdoption(ctx context.Context, obj client.Object, ssaManager string, c client.Client) error {
+func CleanUpManagedFieldsForSSAAdoption(ctx context.Context, c client.Client, obj client.Object, ssaManager string) error {
 	// Return if `ssaManager` already owns any fields.
 	if hasFieldsManagedBy(obj, ssaManager) {
 		return nil

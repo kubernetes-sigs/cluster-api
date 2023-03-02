@@ -387,7 +387,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.Mac
 		// We do this so that Machines that were created/patched before the controller adopted Server-Side-Apply (SSA)
 		// (< v1.4.0) can also work with SSA. Otherwise, fields would be co-owned by our "old" "manager" and
 		// "capi-machineset" and then we would not be able to e.g. drop labels and annotations.
-		if err := ssa.CleanUpManagedFieldsForSSAAdoption(ctx, m, machineSetManagerName, r.Client); err != nil {
+		if err := ssa.CleanUpManagedFieldsForSSAAdoption(ctx, r.Client, m, machineSetManagerName); err != nil {
 			return errors.Wrapf(err, "failed to update machine: failed to adjust the managedFields of the Machine %q", m.Name)
 		}
 

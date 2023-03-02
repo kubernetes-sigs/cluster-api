@@ -20,9 +20,6 @@ import (
 	"os"
 	"testing"
 
-	// +kubebuilder:scaffold:imports
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"sigs.k8s.io/cluster-api/internal/test/envtest"
@@ -31,25 +28,6 @@ import (
 var (
 	env *envtest.Environment
 	ctx = ctrl.SetupSignalHandler()
-	// TODO(sbueringer): move under internal/builder (or refactor it in a way that we don't need it anymore).
-	fakeGenericMachineTemplateCRD = &apiextensionsv1.CustomResourceDefinition{
-		TypeMeta: metav1.TypeMeta{
-			APIVersion: apiextensionsv1.SchemeGroupVersion.String(),
-			Kind:       "CustomResourceDefinition",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "genericmachinetemplates.generic.io",
-			Labels: map[string]string{
-				"cluster.x-k8s.io/v1beta1": "v1",
-			},
-		},
-		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
-			Group: "generic.io",
-			Names: apiextensionsv1.CustomResourceDefinitionNames{
-				Kind: "GenericMachineTemplate",
-			},
-		},
-	}
 )
 
 func TestMain(m *testing.M) {

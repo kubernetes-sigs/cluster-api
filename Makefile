@@ -921,10 +921,11 @@ release-binary: $(RELEASE_DIR)
 		-e CGO_ENABLED=0 \
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
+		-e GOCACHE=/tmp/ \
+		--user 1000:1000 \
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:$(GO_VERSION) \
-		git config --global --add safe.directory /workspace; \
 		go build -a -trimpath -ldflags "$(LDFLAGS) -extldflags '-static'" \
 		-o $(RELEASE_DIR)/$(notdir $(RELEASE_BINARY)) $(BUILD_PATH)
 

@@ -17,6 +17,7 @@ limitations under the License.
 package internal
 
 import (
+	"fmt"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -492,7 +493,7 @@ func TestUpdateEtcdConditions(t *testing.T) {
 
 func TestUpdateStaticPodConditions(t *testing.T) {
 	n1APIServerPodName := staticPodName("kube-apiserver", "n1")
-	n1APIServerPodkey := client.ObjectKey{
+	n1APIServerPodKey := client.ObjectKey{
 		Namespace: metav1.NamespaceSystem,
 		Name:      n1APIServerPodName,
 	}.String()
@@ -623,7 +624,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 					Items: []corev1.Node{*fakeNode("n1")},
 				},
 				get: map[string]interface{}{
-					n1APIServerPodkey: fakePod(n1APIServerPodName,
+					n1APIServerPodKey: fakePod(n1APIServerPodName,
 						withPhase(corev1.PodRunning),
 						withCondition(corev1.PodReady, corev1.ConditionTrue),
 					),
@@ -659,7 +660,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 					Items: []corev1.Node{*fakeNode("n1")},
 				},
 				get: map[string]interface{}{
-					n1APIServerPodkey: fakePod(n1APIServerPodName,
+					n1APIServerPodKey: fakePod(n1APIServerPodName,
 						withPhase(corev1.PodRunning),
 						withCondition(corev1.PodReady, corev1.ConditionTrue),
 					),
@@ -708,7 +709,7 @@ func TestUpdateStaticPodConditions(t *testing.T) {
 					Items: []corev1.Node{*fakeNode("n1")},
 				},
 				get: map[string]interface{}{
-					n1APIServerPodkey: fakePod(n1APIServerPodName,
+					n1APIServerPodKey: fakePod(n1APIServerPodName,
 						withPhase(corev1.PodRunning),
 						withCondition(corev1.PodReady, corev1.ConditionTrue),
 					),
@@ -1032,6 +1033,16 @@ func withNodeRef(ref string) fakeMachineOption {
 	}
 }
 
+func withMachineReadyCondition(status corev1.ConditionStatus, severity clusterv1.ConditionSeverity) fakeMachineOption {
+	return func(machine *clusterv1.Machine) {
+		machine.Status.Conditions = append(machine.Status.Conditions, clusterv1.Condition{
+			Type:     clusterv1.MachinesReadyCondition,
+			Status:   status,
+			Severity: severity,
+		})
+	}
+}
+
 type fakePodOption func(*corev1.Pod)
 
 func fakePod(name string, options ...fakePodOption) *corev1.Pod {
@@ -1066,5 +1077,85 @@ func withCondition(condition corev1.PodConditionType, status corev1.ConditionSta
 			Status: status,
 		}
 		pod.Status.Conditions = append(pod.Status.Conditions, c)
+	}
+}
+
+func TestAggregateFromMachinesToKCP(t *testing.T) {
+	conditionType := controlplanev1.ControlPlaneComponentsHealthyCondition
+	unhealthyReason := "unhealthy reason"
+	unknownReason := "unknown reason"
+	note := "some notes"
+
+	tests := []struct {
+		name              string
+		machines          []*clusterv1.Machine
+		kcpErrors         []string
+		expectedCondition clusterv1.Condition
+	}{
+		{
+			name: "kcp machines with errors",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withMachineReadyCondition(corev1.ConditionFalse, clusterv1.ConditionSeverityError)),
+			},
+			expectedCondition: *conditions.FalseCondition(conditionType, unhealthyReason, clusterv1.ConditionSeverityError, fmt.Sprintf("Following machines are reporting %s errors: %s", note, "m1")),
+		},
+		{
+			name: "input kcp errors",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withMachineReadyCondition(corev1.ConditionTrue, clusterv1.ConditionSeverityNone)),
+			},
+			kcpErrors:         []string{"something error"},
+			expectedCondition: *conditions.FalseCondition(conditionType, unhealthyReason, clusterv1.ConditionSeverityError, "something error"),
+		},
+		{
+			name: "kcp machines with warnings",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withMachineReadyCondition(corev1.ConditionFalse, clusterv1.ConditionSeverityWarning)),
+			},
+			expectedCondition: *conditions.FalseCondition(conditionType, unhealthyReason, clusterv1.ConditionSeverityWarning, fmt.Sprintf("Following machines are reporting %s warnings: %s", note, "m1")),
+		},
+		{
+			name: "kcp machines with info",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withMachineReadyCondition(corev1.ConditionFalse, clusterv1.ConditionSeverityInfo)),
+			},
+			expectedCondition: *conditions.FalseCondition(conditionType, unhealthyReason, clusterv1.ConditionSeverityInfo, fmt.Sprintf("Following machines are reporting %s info: %s", note, "m1")),
+		},
+		{
+			name: "kcp machines with true",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withMachineReadyCondition(corev1.ConditionTrue, clusterv1.ConditionSeverityNone)),
+			},
+			expectedCondition: *conditions.TrueCondition(conditionType),
+		},
+		{
+			name: "kcp machines with unknown",
+			machines: []*clusterv1.Machine{
+				fakeMachine("m1", withMachineReadyCondition(corev1.ConditionUnknown, clusterv1.ConditionSeverityNone)),
+			},
+			expectedCondition: *conditions.UnknownCondition(conditionType, unknownReason, fmt.Sprintf("Following machines are reporting unknown %s status: %s", note, "m1")),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			input := aggregateFromMachinesToKCPInput{
+				controlPlane: &ControlPlane{
+					KCP:      &controlplanev1.KubeadmControlPlane{},
+					Machines: collections.FromMachines(tt.machines...),
+				},
+				machineConditions: []clusterv1.ConditionType{clusterv1.MachinesReadyCondition},
+				kcpErrors:         tt.kcpErrors,
+				condition:         conditionType,
+				unhealthyReason:   unhealthyReason,
+				unknownReason:     unknownReason,
+				note:              note,
+			}
+			aggregateFromMachinesToKCP(input)
+
+			g.Expect(*conditions.Get(input.controlPlane.KCP, conditionType)).To(conditions.MatchCondition(tt.expectedCondition))
+		})
 	}
 }

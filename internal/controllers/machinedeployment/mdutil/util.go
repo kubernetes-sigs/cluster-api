@@ -400,7 +400,10 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 	return templateCopy
 }
 
-// FindNewMachineSet returns the new MS this given deployment targets (the one with the same machine template, ignoring in-place mutable fields).
+// FindNewMachineSet returns the new MS this given deployment targets (the one with the same machine template, ignoring
+// in-place mutable fields).
+// Note: If the reconciliation time is after the deployment's `rolloutAfter` time, a MS has to be newer than
+// `rolloutAfter` to be considered as matching the deployment's intent.
 // NOTE: If we find a matching MachineSet which only differs in in-place mutable fields we can use it to
 // fulfill the intent of the MachineDeployment by just updating the MachineSet to propagate in-place mutable fields.
 // Thus we don't have to create a new MachineSet and we can avoid an unnecessary rollout.
@@ -409,10 +412,11 @@ func MachineTemplateDeepCopyRolloutFields(template *clusterv1.MachineTemplateSpe
 // not face a case where there exists a machine set matching the old logic but there does not exist a machineset matching the new logic.
 // In fact previously not matching MS can now start matching the target. Since there could be multiple matches, lets choose the
 // MS with the most replicas so that there is minimum machine churn.
-func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) *clusterv1.MachineSet {
+func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, reconciliationTime *metav1.Time) *clusterv1.MachineSet {
 	sort.Sort(MachineSetsByDecreasingReplicas(msList))
 	for i := range msList {
-		if EqualMachineTemplate(&msList[i].Spec.Template, &deployment.Spec.Template) {
+		if EqualMachineTemplate(&msList[i].Spec.Template, &deployment.Spec.Template) &&
+			!shouldRolloutAfter(msList[i], reconciliationTime, deployment.Spec.RolloutAfter) {
 			// In rare cases, such as after cluster upgrades, Deployment may end up with
 			// having more than one new MachineSets that have the same template,
 			// see https://github.com/kubernetes/kubernetes/issues/40415
@@ -424,14 +428,24 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 	return nil
 }
 
+func shouldRolloutAfter(ms *clusterv1.MachineSet, reconciliationTime *metav1.Time, rolloutAfter *metav1.Time) bool {
+	if ms == nil {
+		return false
+	}
+	if reconciliationTime == nil || rolloutAfter == nil {
+		return false
+	}
+	return ms.CreationTimestamp.Before(rolloutAfter) && rolloutAfter.Before(reconciliationTime)
+}
+
 // FindOldMachineSets returns the old machine sets targeted by the given Deployment, within the given slice of MSes.
 // Returns two list of machine sets
 //   - the first contains all old machine sets with non-zero replicas
 //   - the second contains all old machine sets
-func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) ([]*clusterv1.MachineSet, []*clusterv1.MachineSet) {
+func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, reconciliationTime *metav1.Time) ([]*clusterv1.MachineSet, []*clusterv1.MachineSet) {
 	var requiredMSs []*clusterv1.MachineSet
 	allMSs := make([]*clusterv1.MachineSet, 0, len(msList))
-	newMS := FindNewMachineSet(deployment, msList)
+	newMS := FindNewMachineSet(deployment, msList, reconciliationTime)
 	for _, ms := range msList {
 		// Filter out new machine set
 		if newMS != nil && ms.UID == newMS.UID {

@@ -175,6 +175,9 @@ func ShouldRolloutAfter(reconciliationTime, rolloutAfter *metav1.Time) Func {
 		if machine == nil {
 			return false
 		}
+		if reconciliationTime == nil || rolloutAfter == nil {
+			return false
+		}
 		return machine.CreationTimestamp.Before(rolloutAfter) && rolloutAfter.Before(reconciliationTime)
 	}
 }

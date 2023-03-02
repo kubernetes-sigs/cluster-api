@@ -66,6 +66,8 @@ const (
 	// As a result, we use the hash of the machine template while ignoring all in-place mutable fields, i.e. the
 	// machine template with only fields that could trigger a rollout for the machine-template-hash, making it
 	// independent of the changes to any in-place mutable fields.
+	// A random string is appended at the end of the label value (label value format is "<hash>-<random string>"))
+	// to distinguish duplicate MachineSets that have the exact same spec but were created as a result of rolloutAfter.
 	MachineDeploymentUniqueLabel = "machine-template-hash"
 )
 
@@ -96,6 +98,15 @@ type MachineDeploymentSpec struct {
 	//   should be later controlled by the autoscaler
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
+
+	// RolloutAfter is a field to indicate a rollout should be performed
+	// after the specified time even if no changes have been made to the
+	// MachineDeployment.
+	// Example: In the YAML the time can be specified in the RFC3339 format.
+	// To specify the rolloutAfter target as March 9, 2023, at 9 am UTC
+	// use "2023-03-09T09:00:00Z".
+	// +optional
+	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
 
 	// Label selector for machines. Existing MachineSets whose machines are
 	// selected by this will be the ones affected by this deployment.

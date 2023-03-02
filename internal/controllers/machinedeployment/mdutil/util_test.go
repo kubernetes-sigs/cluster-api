@@ -304,7 +304,14 @@ func TestEqualMachineTemplate(t *testing.T) {
 }
 
 func TestFindNewMachineSet(t *testing.T) {
+	twoBeforeRolloutAfter := metav1.Now()
+	oneBeforeRolloutAfter := metav1.NewTime(twoBeforeRolloutAfter.Add(time.Minute))
+	rolloutAfter := metav1.NewTime(oneBeforeRolloutAfter.Add(time.Minute))
+	oneAfterRolloutAfter := metav1.NewTime(rolloutAfter.Add(time.Minute))
+	twoAfterRolloutAfter := metav1.NewTime(oneAfterRolloutAfter.Add(time.Minute))
+
 	deployment := generateDeployment("nginx")
+	deployment.Spec.RolloutAfter = &rolloutAfter
 
 	matchingMS := generateMS(deployment)
 
@@ -317,11 +324,18 @@ func TestFindNewMachineSet(t *testing.T) {
 	oldMS := generateMS(deployment)
 	oldMS.Spec.Template.Spec.InfrastructureRef.Name = "changed-infra-ref"
 
+	msCreatedTwoBeforeRolloutAfter := generateMS(deployment)
+	msCreatedTwoBeforeRolloutAfter.CreationTimestamp = twoBeforeRolloutAfter
+
+	msCreatedAfterRolloutAfter := generateMS(deployment)
+	msCreatedAfterRolloutAfter.CreationTimestamp = oneAfterRolloutAfter
+
 	tests := []struct {
-		Name       string
-		deployment clusterv1.MachineDeployment
-		msList     []*clusterv1.MachineSet
-		expected   *clusterv1.MachineSet
+		Name               string
+		deployment         clusterv1.MachineDeployment
+		msList             []*clusterv1.MachineSet
+		reconciliationTime *metav1.Time
+		expected           *clusterv1.MachineSet
 	}{
 		{
 			Name:       "Get the MachineSet with the MachineTemplate that matches the intent of the MachineDeployment",
@@ -347,20 +361,48 @@ func TestFindNewMachineSet(t *testing.T) {
 			msList:     []*clusterv1.MachineSet{&oldMS},
 			expected:   nil,
 		},
+		{
+			Name:               "Get the MachineSet if reconciliationTime < rolloutAfter",
+			deployment:         deployment,
+			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
+			reconciliationTime: &oneBeforeRolloutAfter,
+			expected:           &msCreatedTwoBeforeRolloutAfter,
+		},
+		{
+			Name:               "Get nil if reconciliationTime is > rolloutAfter and no MachineSet is created after rolloutAfter",
+			deployment:         deployment,
+			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
+			reconciliationTime: &oneAfterRolloutAfter,
+			expected:           nil,
+		},
+		{
+			Name:               "Get MachineSet created after RolloutAfter if reconciliationTime is > rolloutAfter",
+			deployment:         deployment,
+			msList:             []*clusterv1.MachineSet{&msCreatedAfterRolloutAfter, &msCreatedTwoBeforeRolloutAfter},
+			reconciliationTime: &twoAfterRolloutAfter,
+			expected:           &msCreatedAfterRolloutAfter,
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			ms := FindNewMachineSet(&test.deployment, test.msList)
+			ms := FindNewMachineSet(&test.deployment, test.msList, test.reconciliationTime)
 			g.Expect(ms).To(Equal(test.expected))
 		})
 	}
 }
 
 func TestFindOldMachineSets(t *testing.T) {
+	twoBeforeRolloutAfter := metav1.Now()
+	oneBeforeRolloutAfter := metav1.NewTime(twoBeforeRolloutAfter.Add(time.Minute))
+	rolloutAfter := metav1.NewTime(oneBeforeRolloutAfter.Add(time.Minute))
+	oneAfterRolloutAfter := metav1.NewTime(rolloutAfter.Add(time.Minute))
+	twoAfterRolloutAfter := metav1.NewTime(oneAfterRolloutAfter.Add(time.Minute))
+
 	deployment := generateDeployment("nginx")
+	deployment.Spec.RolloutAfter = &rolloutAfter
 
 	newMS := generateMS(deployment)
 	newMS.Name = "aa"
@@ -377,12 +419,19 @@ func TestFindOldMachineSets(t *testing.T) {
 	oldDeployment.Spec.Template.Spec.InfrastructureRef.Name = "changed-infra-ref"
 	oldMS := generateMS(oldDeployment)
 
+	msCreatedTwoBeforeRolloutAfter := generateMS(deployment)
+	msCreatedTwoBeforeRolloutAfter.CreationTimestamp = twoBeforeRolloutAfter
+
+	msCreatedAfterRolloutAfter := generateMS(deployment)
+	msCreatedAfterRolloutAfter.CreationTimestamp = oneAfterRolloutAfter
+
 	tests := []struct {
-		Name            string
-		deployment      clusterv1.MachineDeployment
-		msList          []*clusterv1.MachineSet
-		expected        []*clusterv1.MachineSet
-		expectedRequire []*clusterv1.MachineSet
+		Name               string
+		deployment         clusterv1.MachineDeployment
+		msList             []*clusterv1.MachineSet
+		reconciliationTime *metav1.Time
+		expected           []*clusterv1.MachineSet
+		expectedRequire    []*clusterv1.MachineSet
 	}{
 		{
 			Name:            "Get old MachineSets",
@@ -419,13 +468,29 @@ func TestFindOldMachineSets(t *testing.T) {
 			expected:        []*clusterv1.MachineSet{},
 			expectedRequire: nil,
 		},
+		{
+			Name:               "Get old MachineSets with new MachineSets, MachineSets created before rolloutAfter are considered new when reconciliationTime < rolloutAfter",
+			deployment:         deployment,
+			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
+			reconciliationTime: &oneBeforeRolloutAfter,
+			expected:           nil,
+			expectedRequire:    nil,
+		},
+		{
+			Name:               "Get old MachineSets with new MachineSets, MachineSets created after rolloutAfter are considered new when reconciliationTime > rolloutAfter",
+			deployment:         deployment,
+			msList:             []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter, &msCreatedAfterRolloutAfter},
+			reconciliationTime: &twoAfterRolloutAfter,
+			expected:           []*clusterv1.MachineSet{&msCreatedTwoBeforeRolloutAfter},
+			expectedRequire:    nil,
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.Name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			requireMS, allMS := FindOldMachineSets(&test.deployment, test.msList)
+			requireMS, allMS := FindOldMachineSets(&test.deployment, test.msList, test.reconciliationTime)
 			g.Expect(allMS).To(ConsistOf(test.expected))
 			// MSs are getting filtered correctly by ms.spec.replicas
 			g.Expect(requireMS).To(ConsistOf(test.expectedRequire))

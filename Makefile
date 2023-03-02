@@ -926,7 +926,7 @@ release-binary: $(RELEASE_DIR)
 		-e GOOS=$(GOOS) \
 		-e GOARCH=$(GOARCH) \
 		-e GOCACHE=/tmp/ \
-		--user 1000:1000 \
+		--user $$(id -u):$$(id -g) \
 		-v "$$(pwd):/workspace$(DOCKER_VOL_OPTS)" \
 		-w /workspace \
 		golang:$(GO_VERSION) \

@@ -1574,7 +1574,7 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 
 	// Run syncMachines to clean up managed fields and have proper field ownership
 	// for Machines, InfrastructureMachines and KubeadmConfigs.
-	reconciler := &KubeadmControlPlaneReconciler{Client: env}
+	reconciler := &KubeadmControlPlaneReconciler{Client: env, ssaCache: ssa.NewCache()}
 	g.Expect(reconciler.syncMachines(ctx, controlPlane)).To(Succeed())
 
 	// The inPlaceMutatingMachine should have cleaned up managed fields.

@@ -39,7 +39,7 @@ type serverSidePatchHelper struct {
 }
 
 // NewServerSidePatchHelper returns a new PatchHelper using server side apply.
-func NewServerSidePatchHelper(ctx context.Context, original, modified client.Object, c client.Client, opts ...HelperOption) (PatchHelper, error) {
+func NewServerSidePatchHelper(ctx context.Context, original, modified client.Object, c client.Client, ssaCache ssa.Cache, opts ...HelperOption) (PatchHelper, error) {
 	// Create helperOptions for filtering the original and modified objects to the desired intent.
 	helperOptions := newHelperOptions(modified, opts...)
 
@@ -99,6 +99,7 @@ func NewServerSidePatchHelper(ctx context.Context, original, modified client.Obj
 		var err error
 		hasChanges, hasSpecChanges, err = dryRunSSAPatch(ctx, &dryRunSSAPatchInput{
 			client:               c,
+			ssaCache:             ssaCache,
 			originalUnstructured: originalUnstructured,
 			modifiedUnstructured: modifiedUnstructured.DeepCopy(),
 			helperOptions:        helperOptions,

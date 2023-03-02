@@ -2245,7 +2245,7 @@ func TestGetMaxUnhealthy(t *testing.T) {
 func ownerReferenceForCluster(ctx context.Context, g *WithT, c *clusterv1.Cluster) metav1.OwnerReference {
 	// Fetch the cluster to populate the UID
 	cc := &clusterv1.Cluster{}
-	g.Expect(env.GetClient().Get(ctx, util.ObjectKey(c), cc)).To(Succeed())
+	g.Expect(env.Get(ctx, util.ObjectKey(c), cc)).To(Succeed())
 
 	return metav1.OwnerReference{
 		APIVersion: clusterv1.GroupVersion.String(),

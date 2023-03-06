@@ -116,6 +116,12 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
+	if mp.Spec.Replicas == nil {
+		err := errors.Errorf("machinepool %s doesn't have replicas set", mp.Name)
+		log.Error(err, "Failed to find replicas in the MachinePool spec.", mp.Name)
+		return ctrl.Result{}, err
+	}
+
 	log = log.WithValues("Cluster", klog.KRef(mp.ObjectMeta.Namespace, mp.Spec.ClusterName))
 	ctx = ctrl.LoggerInto(ctx, log)
 

@@ -20,7 +20,7 @@ workflow that offers easy deployments and rapid iterative builds.
 ## Getting started
 
 ### Create a kind cluster
-A script to create a KIND cluster along with a local docker registry and the correct mounts to run CAPD is included in the hack/ folder.
+A script to create a KIND cluster along with a local Docker registry and the correct mounts to run CAPD is included in the hack/ folder.
 
 To create a pre-configured cluster run:
 
@@ -200,7 +200,7 @@ Important! This feature requires the `helm` command to be available in the user'
 Supported values are:
 
   * `grafana`*: To create dashboards and query `loki` as well as `prometheus`.
-  * `kube-state-metrics`: For exposing metrics for kubernetes and CAPI resources to `prometheus`.
+  * `kube-state-metrics`: For exposing metrics for Kubernetes and CAPI resources to `prometheus`.
   * `loki`: To receive and store logs.
   * `prometheus`*: For collecting metrics from Kubernetes.
   * `promtail`: For providing pod logs to `loki`.
@@ -265,7 +265,7 @@ Supported settings:
     }
     ```
 
-    ###### Goland / Intellij
+    ###### Goland / IntelliJ
     With the above example, you can configure [a Go Remote run/debug
     configuration](https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html#step-3-create-the-remote-run-debug-configuration-on-the-client-computer)
     pointing at port 30000.
@@ -462,7 +462,7 @@ possible (the container images do not need the entire go toolchain, source code,
 
 ## IDE support for Tiltfile
 
-For Intellij, Syntax highlighting for the Tiltfile can be configured with a TextMate Bundle. For instructions, please see:
+For IntelliJ, Syntax highlighting for the Tiltfile can be configured with a TextMate Bundle. For instructions, please see:
 [Tiltfile TextMate Bundle](https://github.com/tilt-dev/tiltfile.tmbundle).
 
 For VSCode the [Bazel plugin](https://marketplace.visualstudio.com/items?itemName=BazelBuild.vscode-bazel) can be used, it provides
@@ -475,10 +475,10 @@ syntax highlighting and auto-formatting. To enable it for Tiltfile a file associ
 
 ## Using Podman
 
-[Podman](https://podman.io) can be used instead of docker by following these actions:
+[Podman](https://podman.io) can be used instead of Docker by following these actions:
 
 1. Enable the podman unix socket (eg. `systemctl --user enable --now podman.socket` on Fedora)
-1. Set `build_engine` to `podman` in `tilt-settings.yaml` (optional, only if both docker & podman are installed)
+1. Set `build_engine` to `podman` in `tilt-settings.yaml` (optional, only if both Docker & podman are installed)
 1. Define the env variable `DOCKER_HOST` to the right socket while running tilt (eg. `DOCKER_HOST=unix:///run/user/$(id -u)/podman/podman.sock tilt up`)
 
 NB: The socket defined by `DOCKER_HOST` is used only for the `hack/tools/tilt-prepare` command, the image build is running the `podman build`/`podman push` commands.

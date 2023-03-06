@@ -33,7 +33,7 @@ If you want to create a local artifact, follow these instructions:
 
 ### Build artifacts locally
 
-In order to build artifacts for the CAPI core provider, the kubeadm bootstrap provider, the kubeadm control plane provider and the docker infrastructure provider:
+In order to build artifacts for the CAPI core provider, the kubeadm bootstrap provider, the kubeadm control plane provider and the Docker infrastructure provider:
 
 ```bash
 make docker-build REGISTRY=gcr.io/k8s-staging-cluster-api PULL_POLICY=IfNotPresent
@@ -96,7 +96,7 @@ during your dev session.
 The above config file changes the location of the [overrides layer] folder thus ensuring
 you dev session isn't hijacked by other local artifacts.
 
-With the only exception of the docker provider, the local repository folder does not contain cluster templates,
+With the only exception of the Docker provider, the local repository folder does not contain cluster templates,
 so the `clusterctl generate cluster` command will fail.
 
 </aside>
@@ -126,11 +126,11 @@ please note that each `provider_repo` should have its own `clusterctl-settings.j
 ## Create a kind management cluster
 
 [kind] can provide a Kubernetes cluster to be used as a management cluster.
-See [Install and/or configure a kubernetes cluster] for more information.
+See [Install and/or configure a Kubernetes cluster] for more information.
 
 *Before* running clusterctl init, you must ensure all the required images are available in the kind cluster.
 
-This is always the case for images published in some image repository like docker hub or gcr.io, but it can't be
+This is always the case for images published in some image repository like Docker Hub or gcr.io, but it can't be
 the case for images built locally; in this case, you can use `kind load` to move the images built locally. e.g.
 
 ```bash
@@ -148,7 +148,7 @@ script.
 
 Optionally, you may want to check if the components are running properly. The
 exact components are dependent on which providers you have initialized. Below
-is an example output with the docker provider being installed.
+is an example output with the Docker provider being installed.
 
 ```bash
 kubectl get deploy -A | grep  "cap\|cert"
@@ -166,7 +166,7 @@ cert-manager                        cert-manager-webhook                        
 
 ## Additional Notes for the Docker Provider
 
-### Select the appropriate kubernetes version
+### Select the appropriate Kubernetes version
 
 When selecting the `--kubernetes-version`, ensure that the `kindest/node`
 image is available.
@@ -205,6 +205,6 @@ sed -i -e "s/server:.*/server: https:\/\/$(docker port capi-quickstart-lb 6443/t
 [kind]: https://kind.sigs.k8s.io/
 [providers repositories]: configuration.md#provider-repositories
 [overrides layer]: configuration.md#overrides-layer
-[Install and/or configure a kubernetes cluster]: ../user/quick-start.md#install-andor-configure-a-kubernetes-cluster
+[Install and/or configure a Kubernetes cluster]: ../user/quick-start.md#install-andor-configure-a-kubernetes-cluster
 [kind-docker-hub]: https://hub.docker.com/r/kindest/node/tags
 [issue 3795]: https://github.com/kubernetes-sigs/cluster-api/issues/3795

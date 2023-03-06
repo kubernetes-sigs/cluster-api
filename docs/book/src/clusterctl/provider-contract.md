@@ -436,7 +436,7 @@ that are compliant with one of the following rules:
   * The object is directly or indirectly linked to a `ClusterResourceSet` object (through the `OwnerReference` chain).
   * The object is directly or indirectly linked to another object with the `clusterctl.cluster.x-k8s.io/move-hierarchy`
     label, e.g. the infrastructure Provider ClusterIdentity objects (linked through the `OwnerReference` chain).
-  * The object hase the `clusterctl.cluster.x-k8s.io/move` label or the `clusterctl.cluster.x-k8s.io/move-hierarchy` label,
+  * The object has the `clusterctl.cluster.x-k8s.io/move` label or the `clusterctl.cluster.x-k8s.io/move-hierarchy` label,
     e.g. the CPI config secret.
 
 Note. `clusterctl.cluster.x-k8s.io/move` and `clusterctl.cluster.x-k8s.io/move-hierarchy` labels could be applied

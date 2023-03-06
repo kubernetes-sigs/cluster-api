@@ -2,7 +2,7 @@
 
 Pod Security Admission allows applying [Pod Security Standards] during creation of pods at the cluster level.
 
-The flavor `development-topology` for the docker provider used in [Quick Start](../user/quick-start.md) already includes a basic Pod Security Standard configuration.
+The flavor `development-topology` for the Docker provider used in [Quick Start](../user/quick-start.md) already includes a basic Pod Security Standard configuration.
 It is using ClusterClass variables and patches to inject the configuration.
 
 ## Adding a basic Pod Security Standards configuration to a ClusterClass

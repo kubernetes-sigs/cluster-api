@@ -28,7 +28,7 @@ A temporary cluster that is used to provision a Target Management cluster.
 Refers to a [provider](#provider) that implements a solution for the [bootstrap](#bootstrap) process.
 Bootstrap provider's interaction with Cluster API is based on what is defined in the [Cluster API contract](#contract). 
 
-See [CABPK](#CABPK). 
+See [CABPK](#cabpk). 
 
 # C
 ---
@@ -145,7 +145,7 @@ The set of Kubernetes services that form the basis of a cluster. See also [https
 Refers to a [provider](#provider) that implements a solution for the management of a Kubernetes [control plane](#control-plane).
 Control plane provider's interaction with Cluster API is based on what is defined in the [Cluster API contract](#contract).
 
-See [KCP](#KCP).
+See [KCP](#kcp).
 
 ### Core provider
 
@@ -161,7 +161,7 @@ See [CAPI](#cluster-api).
 ### Default implementation
 
 A feature implementation offered as part of the Cluster API project and maintained by the CAPI core team; For example
-[KCP](#KCP) is a default implementation for a [control plane provider](#control-plane-provider).
+[KCP](#kcp) is a default implementation for a [control plane provider](#control-plane-provider).
 
 # E
 ---
@@ -179,7 +179,7 @@ A [runtime extension](#runtime-extension) that implements a [topology mutation h
 
 ### Horizontal Scaling
 
-The ability to add more machines based on policy and well defined metrics. For example, add a machine to a cluster when CPU load average > (X) for a period of time (Y).
+The ability to add more machines based on policy and well-defined metrics. For example, add a machine to a cluster when CPU load average > (X) for a period of time (Y).
 
 ### Host
 
@@ -217,7 +217,7 @@ see [Server](#server)
 
 ### Immutability
 
-A resource that does not mutate.  In kubernetes we often state the instance of a running pod is immutable or does not change once it is run.  In order to make a change, a new pod is run.  In the context of [Cluster API](#cluster-api) we often refer to a running instance of a [Machine](#machine) as being immutable, from a [Cluster API](#cluster-api) perspective.
+A resource that does not mutate.  In Kubernetes we often state the instance of a running pod is immutable or does not change once it is run.  In order to make a change, a new pod is run.  In the context of [Cluster API](#cluster-api) we often refer to a running instance of a [Machine](#machine) as being immutable, from a [Cluster API](#cluster-api) perspective.
 
 ### IPAM provider
 
@@ -265,7 +265,7 @@ Perform create, scale, upgrade, or destroy operations on the cluster.
 
 ### Managed Topology
 
-See [Topology](#Topology)
+See [Topology](#topology)
 
 ### Management cluster
 

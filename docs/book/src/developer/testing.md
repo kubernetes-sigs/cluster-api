@@ -193,11 +193,11 @@ kind images). This can be done by executing the `./scripts/ci-e2e.sh` script.
 GINKGO_FOCUS="\[PR-Blocking\]" ./scripts/ci-e2e.sh
 ```
 
-Now, the tests can be run in an IDE. The following describes how this can be done in Intellij IDEA and VS Code. It should work
+Now, the tests can be run in an IDE. The following describes how this can be done in IntelliJ IDEA and VS Code. It should work
 roughly the same way in all other IDEs. We assume the `cluster-api` repository has been checked
 out into `/home/user/code/src/sigs.k8s.io/cluster-api`.
 
-#### Intellij
+#### IntelliJ
 
 Create a new run configuration and fill in:
 * Test framework: `gotest`
@@ -555,8 +555,8 @@ In Cluster API Unit and integration test MUST use [go test].
 [Cluster API quick start]: ../user/quick-start.md
 [Cluster API test framework]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc
 [e2e development]: ./e2e.md
-[Ginkgo]: http://onsi.github.io/ginkgo/
-[Gomega]: http://onsi.github.io/gomega/
+[Ginkgo]: https://onsi.github.io/ginkgo/
+[Gomega]: https://onsi.github.io/gomega/
 [go test]: https://golang.org/pkg/testing/
 [controller-runtime]: https://github.com/kubernetes-sigs/controller-runtime
 [envtest]: https://github.com/kubernetes-sigs/controller-runtime/tree/master/pkg/envtest

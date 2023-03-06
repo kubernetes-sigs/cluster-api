@@ -12,7 +12,7 @@ Its main responsibilities are to:
 
 The high level workflow of ClusterTopology reconciliation is shown below.
 
-![ClusterTopology Reconciller Component Diagram](../../../images/cluster-topology-reconciller.png)
+![ClusterTopology Reconciler Component Diagram](../../../images/cluster-topology-reconciller.png)
 
 ### Additional information
 

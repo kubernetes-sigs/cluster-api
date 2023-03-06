@@ -16,6 +16,7 @@ If using a [provider] that does not support v1beta1 or v1alpha4 yet, please foll
 
 - Install and setup [kubectl] in your local environment
 - Install [kind] and [Docker]
+- Install [Helm]
 
 ### Install and/or configure a Kubernetes cluster
 
@@ -1357,6 +1358,24 @@ Note: To use the default clusterctl method to retrieve kubeconfig for a workload
 {{#/tab }}
 {{#/tabs }}
 
+### Install a Cloud Provider
+
+The Kubernetes in-tree cloud provider implementations are being [removed](https://github.com/kubernetes/enhancements/tree/master/keps/sig-cloud-provider/2395-removing-in-tree-cloud-providers) in favor of external cloud providers (also referred to as "out-of-tree"). This requires deploying a new component called the cloud-controller-manager which is responsible for running all the cloud specific controllers that were previously run in the kube-controller-manager. To learn more, see [this blog post](https://kubernetes.io/blog/2019/04/17/the-future-of-cloud-providers-in-kubernetes/).
+
+{{#tabs name:"tab-install-cloud-provider" tabs:"Azure"}}
+{{#tab Azure}}
+
+Install the official cloud-provider-azure Helm chart on the workload cluster:
+
+```bash
+helm install --kubeconfig=./capi-quickstart.kubeconfig --repo https://raw.githubusercontent.com/kubernetes-sigs/cloud-provider-azure/master/helm/repo cloud-provider-azure --generate-name --set infra.clusterName=capi-quickstart --set cloudControllerManager.clusterCIDR="192.168.0.0/16"
+```
+
+For more information, see the [CAPZ book](https://capz.sigs.k8s.io/topics/addons.html).
+
+{{#/tab }}
+{{#/tabs }}
+
 ### Deploy a CNI solution
 
 Calico is used here as an example.
@@ -1364,11 +1383,11 @@ Calico is used here as an example.
 {{#tabs name:"tab-deploy-cni" tabs:"Azure,vcluster,KubeVirt,others..."}}
 {{#tab Azure}}
 
-Azure [does not currently support Calico networking](https://docs.projectcalico.org/reference/public-cloud/azure). As a workaround, it is recommended that Azure clusters use the Calico spec below that uses VXLAN.
+Install the official Calico Helm chart on the workload cluster:
 
 ```bash
-kubectl --kubeconfig=./capi-quickstart.kubeconfig \
-  apply -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-azure/main/templates/addons/calico.yaml
+helm repo add projectcalico https://docs.tigera.io/calico/charts --kubeconfig=./capi-quickstart.kubeconfig && \
+helm install calico projectcalico/tigera-operator --kubeconfig=./capi-quickstart.kubeconfig -f https://raw.githubusercontent.com/kubernetes-sigs/cluster-api-provider-azure/main/templates/addons/calico/values.yaml --namespace tigera-operator --create-namespace
 ```
 
 After a short while, our nodes should be running and in `Ready` state,
@@ -1564,6 +1583,7 @@ See the [clusterctl] documentation for more detail about clusterctl supported ac
 [clusterctl]: ../clusterctl/overview.md
 [Docker]: https://www.docker.com/
 [GCP provider]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp
+[Helm]: https://helm.sh/docs/intro/install/
 [Hetzner provider]: https://github.com/syself/cluster-api-provider-hetzner
 [IBM Cloud provider]: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud
 [infrastructure provider]: ../reference/glossary.md#infrastructure-provider

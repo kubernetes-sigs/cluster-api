@@ -37,10 +37,11 @@ import (
 )
 
 const (
-	httpsScheme              = "https"
-	githubDomain             = "github.com"
-	githubReleaseRepository  = "releases"
-	githubLatestReleaseLabel = "latest"
+	httpsScheme                    = "https"
+	githubDomain                   = "github.com"
+	githubReleaseRepository        = "releases"
+	githubLatestReleaseLabel       = "latest"
+	githubListReleasesPerPageLimit = 100
 )
 
 var (
@@ -111,7 +112,7 @@ func (g *gitHubRepository) GetFile(version, path string) ([]byte, error) {
 		return nil, errors.Wrapf(err, "failed to get GitHub release %s", version)
 	}
 
-	// download files from the release
+	// Download files from the release.
 	files, err := g.downloadFilesFromRelease(release, path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to download files from GitHub release %s", version)
@@ -152,9 +153,9 @@ func NewGitHubRepository(providerConfig config.Provider, configVariablesClient c
 	defaultVersion := urlSplit[3]
 	path := strings.Join(urlSplit[4:], "/")
 
-	// use path's directory as a rootPath
+	// Use path's directory as a rootPath.
 	rootPath := filepath.Dir(path)
-	// use the file name (if any) as componentsPath
+	// Use the file name (if any) as componentsPath.
 	componentsPath := getComponentsPath(path, rootPath)
 
 	repo := &gitHubRepository{
@@ -167,7 +168,7 @@ func NewGitHubRepository(providerConfig config.Provider, configVariablesClient c
 		componentsPath:        componentsPath,
 	}
 
-	// process githubRepositoryOptions
+	// Process githubRepositoryOptions.
 	for _, o := range opts {
 		o(repo)
 	}
@@ -218,20 +219,38 @@ func (g *gitHubRepository) getVersions() ([]string, error) {
 
 	client := g.getClient()
 
-	// get all the releases
+	// Get all the releases.
 	// NB. currently Github API does not support result ordering, so it not possible to limit results
-	var releases []*github.RepositoryRelease
+	var allReleases []*github.RepositoryRelease
 	var retryError error
 	_ = wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
 		var listReleasesErr error
-		releases, _, listReleasesErr = client.Repositories.ListReleases(context.TODO(), g.owner, g.repository, nil)
+		// Get the first page of GitHub releases.
+		releases, response, listReleasesErr := client.Repositories.ListReleases(context.TODO(), g.owner, g.repository, &github.ListOptions{PerPage: githubListReleasesPerPageLimit})
 		if listReleasesErr != nil {
 			retryError = g.handleGithubErr(listReleasesErr, "failed to get the list of releases")
-			// return immediately if we are rate limited
+			// Return immediately if we are rate limited.
 			if _, ok := listReleasesErr.(*github.RateLimitError); ok {
 				return false, retryError
 			}
 			return false, nil
+		}
+		allReleases = append(allReleases, releases...)
+
+		// Paginated GitHub APIs provide pointers to the first, next, previous and last
+		// pages in the response, which can be used to iterate through the pages.
+		// https://github.com/google/go-github/blob/14bb610698fc2f9013cad5db79b2d5fe4d53e13c/github/github.go#L541-L551
+		for response.NextPage != 0 {
+			releases, response, listReleasesErr = client.Repositories.ListReleases(context.TODO(), g.owner, g.repository, &github.ListOptions{Page: response.NextPage, PerPage: githubListReleasesPerPageLimit})
+			if listReleasesErr != nil {
+				retryError = g.handleGithubErr(listReleasesErr, "failed to get the list of releases")
+				// Return immediately if we are rate limited.
+				if _, ok := listReleasesErr.(*github.RateLimitError); ok {
+					return false, retryError
+				}
+				return false, nil
+			}
+			allReleases = append(allReleases, releases...)
 		}
 		retryError = nil
 		return true, nil
@@ -240,7 +259,7 @@ func (g *gitHubRepository) getVersions() ([]string, error) {
 		return nil, retryError
 	}
 	versions := []string{}
-	for _, r := range releases {
+	for _, r := range allReleases {
 		r := r // pin
 		if r.TagName == nil {
 			continue
@@ -273,7 +292,7 @@ func (g *gitHubRepository) getReleaseByTag(tag string) (*github.RepositoryReleas
 		release, _, getReleasesErr = client.Repositories.GetReleaseByTag(context.TODO(), g.owner, g.repository, tag)
 		if getReleasesErr != nil {
 			retryError = g.handleGithubErr(getReleasesErr, "failed to read release %q", tag)
-			// return immediately if we are rate limited
+			// Return immediately if we are rate limited.
 			if _, ok := getReleasesErr.(*github.RateLimitError); ok {
 				return false, retryError
 			}
@@ -302,7 +321,7 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 	client := g.getClient()
 	absoluteFileName := filepath.Join(g.rootPath, fileName)
 
-	// search for the file into the release assets, retrieving the asset id
+	// Search for the file into the release assets, retrieving the asset id.
 	var assetID *int64
 	for _, a := range release.Assets {
 		if a.Name != nil && *a.Name == absoluteFileName {
@@ -319,10 +338,10 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 	_ = wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
 		var redirect string
 		var downloadReleaseError error
-		reader, redirect, downloadReleaseError = client.Repositories.DownloadReleaseAsset(context.TODO(), g.owner, g.repository, *assetID, http.DefaultClient)
+		reader, redirect, downloadReleaseError = client.Repositories.DownloadReleaseAsset(ctx, g.owner, g.repository, *assetID, http.DefaultClient)
 		if downloadReleaseError != nil {
 			retryError = g.handleGithubErr(downloadReleaseError, "failed to download file %q from %q release", *release.TagName, fileName)
-			// return immediately if we are rate limited
+			// Return immediately if we are rate limited.
 			if _, ok := downloadReleaseError.(*github.RateLimitError); ok {
 				return false, retryError
 			}

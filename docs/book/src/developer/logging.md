@@ -137,7 +137,7 @@ We are working to continuously improving this experience, allowing Cluster API d
 For the best experience exploring the logs using Tilt:
 1. Set `--logging-format=json`. 
 2. Set a high log verbosity, e.g. `v=5`.
-3. Enable promtail, loki, and grafana under deploy_observability.
+3. Enable Promtail, Loki, and Grafana under `deploy_observability`.
 
 A minimal example of a tilt-settings.yaml file that deploys a ready-to-use logging suite looks like:
 ```yaml

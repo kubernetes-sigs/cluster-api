@@ -119,7 +119,7 @@ Variable definitions can be inline in the ClusterClass or from any number of ext
 of a variable definition is recorded in the `from` field in ClusterClass `.status.variables`.
 Variables that are defined by an external DiscoverVariables hook will have the name of the patch they are associated with as the value of `from`.
 Variables that are defined in the ClusterClass `.spec.variables` will have `inline` as the value of `from`.
-Note: `inline` is a reserved name for patches. It can not be used as the name of an external patch to avoid conflicts.
+Note: `inline` is a reserved name for patches. It cannot be used as the name of an external patch to avoid conflicts.
 
 If all variables that share a name have equivalent schemas the variable definitions are not in conflict. These variables can
 be set without providing `definitionFrom` value - [see below](#setting-values-for-variables-in-the-cluster). The CAPI components will
@@ -358,7 +358,7 @@ variables:
         type: array
         items:
           type: string
-        description: "preLoadImages sets the images for the docker machines to preload."
+        description: "preLoadImages sets the images for the Docker machines to preload."
   - name: podSecurityStandard
     required: false
     schema:

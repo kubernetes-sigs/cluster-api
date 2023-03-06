@@ -629,9 +629,9 @@ constant default value which can be specified in the schema is not enough.
           # If .vnetName is set, it is used. Otherwise, we will use `{{.builtin.cluster.name}}-vnet`.  
           template: "{{ if .vnetName }}{{.vnetName}}{{else}}{{.builtin.cluster.name}}-vnet{{end}}"
 ```
-When writing templates, a subset of functions from [the sprig library](http://masterminds.github.io/sprig/) can be used to
-write expressions like e.g. `{{ .name | upper }}`. Only functions that are guaranteed to evaluate to the same result
-for a given input are allowed (e.g. `upper` or `max` can be used, while `now` or `randAlpha` can not be used).
+When writing templates, a subset of functions from [the Sprig library](https://masterminds.github.io/sprig/) can be used to
+write expressions, e.g., `{{ .name | upper }}`. Only functions that are guaranteed to evaluate to the same result
+for a given input are allowed (e.g. `upper` or `max` can be used, while `now` or `randAlpha` cannot be used).
 
 ### Optional patches
 

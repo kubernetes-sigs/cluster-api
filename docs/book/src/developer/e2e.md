@@ -18,9 +18,9 @@ test specs for the most common Cluster API use cases.
 
 Each E2E test requires a set of artifacts to be available:
 
-- Binaries & docker images for Kubernetes, CNI, CRI & CSI
-- Manifests & docker images for the Cluster API core components
-- Manifests & docker images for the Cluster API infrastructure provider; in most cases
+- Binaries & Docker images for Kubernetes, CNI, CRI & CSI
+- Manifests & Docker images for the Cluster API core components
+- Manifests & Docker images for the Cluster API infrastructure provider; in most cases
   machine images are also required (AMI, OVA etc.)
 - Credentials for the target infrastructure provider
 - Other support tools (e.g. kustomize, gsutil etc.)

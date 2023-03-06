@@ -46,7 +46,7 @@ In the example above we can see that the Machine `capi-quickstart-6587k-xtvnz` h
 
 To investigate why a machine fails to start you can inspect the conditions of the objects using `clusterctl describe --show-conditions all cluster capi-quickstart`. You can get more detailed information about the status of the machines using `kubectl describe machines`.
 
-To inspect the underlying infrastructure - in this case docker containers acting as Machines - you can access the logs using `docker logs <MACHINE-NAME>`. For example:
+To inspect the underlying infrastructure - in this case Docker containers acting as Machines - you can access the logs using `docker logs <MACHINE-NAME>`. For example:
 
 ```shell
 docker logs capi-quickstart-6587k-xtvnz
@@ -109,7 +109,7 @@ provisioning might be stuck:
  
 1. if there are stopped containers on your machine from previous runs. Clean unused containers with [docker rm -f ](https://docs.docker.com/engine/reference/commandline/rm/). 
 
-2. if the docker space on your disk is being exhausted 
+2. if the Docker space on your disk is being exhausted 
     * Run [docker system df](https://docs.docker.com/engine/reference/commandline/system_df/) to inspect the disk space consumed by Docker resources.
     * Run [docker system prune --volumes](https://docs.docker.com/engine/reference/commandline/system_prune/) to prune dangling images, containers, volumes and networks.
 
@@ -132,7 +132,7 @@ This error was also observed in Docker Desktop 4.3 and 4.4 on MacOS. It can be r
 
 [The upstream issue for this error is closed as of the release of Docker 4.5.0](https://github.com/docker/for-mac/issues/6071)
 
-Note: The below workaround is not recommended unless upgrade or downgrade can not be performed.
+Note: The below workaround is not recommended unless upgrade or downgrade cannot be performed.
 
 If using a version of Docker Desktop for Mac 4.3 or 4.4, the following workaround can be used:
 

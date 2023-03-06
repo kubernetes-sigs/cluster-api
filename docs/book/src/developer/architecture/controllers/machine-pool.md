@@ -10,7 +10,7 @@ The MachinePool controller's main responsibilities are:
     * The associated InfrastructureMachinePool object.
 * Copy data from `BootstrapConfig.Status.DataSecretName` to `MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName` if
 `MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName` is empty.
-* Setting NodeRefs on MachinePool instances to be able to associate them with kubernetes nodes.
+* Setting NodeRefs on MachinePool instances to be able to associate them with Kubernetes nodes.
 * Deleting Nodes in the target cluster when the associated MachinePool instance is deleted.
 * Keeping the MachinePool's Status object up to date with the InfrastructureMachinePool's Status object.
 * Finding Kubernetes nodes matching the expected providerIDs in the workload cluster.

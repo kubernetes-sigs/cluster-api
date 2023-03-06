@@ -29,7 +29,7 @@ cluster-api
 └───Makefile
 ```
 
-### Github
+### GitHub
 
 [~/.github](https://github.com/kubernetes-sigs/cluster-api/tree/main/.github)
 
@@ -57,7 +57,7 @@ This folder contains a reference implementation of a Cluster API Control Plane p
 
 ### Cluster API Provider Docker 
 
-[~/test/insfrastructure/docker](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker)
+[~/test/infrastructure/docker](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker)
 
 This folder contains a reference implementation of an infrastructure provider for the Cluster API project using Docker. This provider is intended for development purposes only. 
 
@@ -148,7 +148,7 @@ The [api](#api) folder contains webhooks consisting of validators and defaults f
 
 [~/internal/webhooks](https://github.com/kubernetes-sigs/cluster-api/tree/main/internal/webhooks)
 
-This directory contains the implementation of some of the Cluster API webhooks. The internal implementation means that the methods supplied by this package can not be imported by external code bases. 
+This directory contains the implementation of some of the Cluster API webhooks. The internal implementation means that the methods supplied by this package cannot be imported by external code bases. 
 
 [~/webhooks](https://github.com/kubernetes-sigs/cluster-api/tree/main/webhooks)
 

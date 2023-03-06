@@ -101,16 +101,16 @@ a target [management cluster] on the selected [infrastructure provider].
    the workload cluster's nodes, are actually running within pods in the management cluster. In order to communicate with
    the workload cluster's API server, we'll need to expose it. We are using Kind which is a limited environment. The
    easiest way to expose the workload cluster's API server (a pod within a node running in a VM that is itself running
-   within a pod in the management cluster, that is running inside a docker container), is to use a LoadBalancer service.
+   within a pod in the management cluster, that is running inside a Docker container), is to use a LoadBalancer service.
 
    To allow using a LoadBalancer service, we can't use the kind's default CNI (kindnet), but we'll need to install
    another CNI, like Calico. In order to do that, we'll need first to initiate the kind cluster with two modifications:
    1. Disable the default CNI
-   2. Add the docker credentials to the cluster, to avoid the docker hub pull rate limit of the calico images; read more
+   2. Add the Docker credentials to the cluster, to avoid the Docker Hub pull rate limit of the calico images; read more
       about it in the [docker documentation](https://docs.docker.com/docker-hub/download-rate-limit/), and in the
       [kind documentation](https://kind.sigs.k8s.io/docs/user/private-registries/#mount-a-config-file-to-each-node).
 
-   Create a configuration file for kind. Please notice the docker config file path, and adjust it to your local setting:
+   Create a configuration file for kind. Please notice the Docker config file path, and adjust it to your local setting:
    ```bash
    cat <<EOF > kind-config.yaml
    kind: Cluster
@@ -835,17 +835,17 @@ export AZURE_RESOURCE_GROUP="<ResourceGroupName>"
 {{#/tab }}
 {{#tab CloudStack}}
 
-A ClusterAPI compatible image must be available in your Cloudstack installation. For instructions on how to build a compatible image
-see [image-builder (Cloudstack)](https://image-builder.sigs.k8s.io/capi/providers/cloudstack.html)
+A Cluster API compatible image must be available in your CloudStack installation. For instructions on how to build a compatible image
+see [image-builder (CloudStack)](https://image-builder.sigs.k8s.io/capi/providers/cloudstack.html)
 
 Prebuilt images can be found [here](http://packages.shapeblue.com/cluster-api-provider-cloudstack/images/)
 
-To see all required Cloudstack environment variables execute:
+To see all required CloudStack environment variables execute:
 ```bash
 clusterctl generate cluster --infrastructure cloudstack --list-variables capi-quickstart
 ```
 
-Apart from the script, the following Cloudstack environment variables are required.
+Apart from the script, the following CloudStack environment variables are required.
 ```bash
 # Set this to the name of the zone in which to deploy the cluster
 export CLOUDSTACK_ZONE_NAME=<zone name>
@@ -951,7 +951,7 @@ export KUBE_VIP_VERSION="v0.5.0"
 # Name of the GCP datacenter location. Change this value to your desired location
 export GCP_REGION="<GCP_REGION>"
 export GCP_PROJECT="<GCP_PROJECT>"
-# Make sure to use same kubernetes version here as building the GCE image
+# Make sure to use same Kubernetes version here as building the GCE image
 export KUBERNETES_VERSION=1.23.3
 # This is the image you built. See https://github.com/kubernetes-sigs/image-builder
 export IMAGE_ID=projects/$GCP_PROJECT/global/images/<built image>
@@ -1452,12 +1452,12 @@ If the nodes don't become ready after a long period, read the pods in the `kube-
 kubectl --kubeconfig=./capi-quickstart.kubeconfig get pod -n kube-system
 ```
 
-If the Calico pods are in image pull error state (`ErrImagePull`), it's probably because of the docker hub pull rate limit.
-We can try to fix that by adding a secret with our docker hub credentials, and use it;
+If the Calico pods are in image pull error state (`ErrImagePull`), it's probably because of the Docker Hub pull rate limit.
+We can try to fix that by adding a secret with our Docker Hub credentials, and use it;
 see [here](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#registry-secret-existing-credentials)
 for details.
 
-First, create the secret. Please notice the docker config file path, and adjust it to your local setting.
+First, create the secret. Please notice the Docker config file path, and adjust it to your local setting.
 ```bash
 kubectl --kubeconfig=./capi-quickstart.kubeconfig create secret generic docker-creds \
     --from-file=.dockerconfigjson=<YOUR DOCKER CONFIG FILE PATH> \

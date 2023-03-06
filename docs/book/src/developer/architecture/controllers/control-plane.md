@@ -180,7 +180,7 @@ following fields defined:
       introspection by clients, and is used to provide the CRD-based integration
       for the scale subresource and additional integrations for things like
       kubectl describe. The string will be in the same format as the query-param
-      syntax. More info about label selectors: http://kubernetes.io/docs/user-guide/labels#label-selectors
+      syntax. More info about label selectors: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
     </td>
     <td></td>
   </tr>

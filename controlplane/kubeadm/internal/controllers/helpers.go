@@ -306,7 +306,7 @@ func (r *KubeadmControlPlaneReconciler) updateExternalObject(ctx context.Context
 	// Update annotations
 	updatedObject.SetAnnotations(kcp.Spec.MachineTemplate.ObjectMeta.Annotations)
 
-	if err := ssa.Patch(ctx, r.Client, kcpManagerName, updatedObject); err != nil {
+	if err := ssa.Patch(ctx, r.Client, kcpManagerName, updatedObject, ssa.WithCachingProxy{Cache: r.ssaCache, Original: obj}); err != nil {
 		return errors.Wrapf(err, "failed to update %s", obj.GetObjectKind().GroupVersionKind().Kind)
 	}
 	return nil

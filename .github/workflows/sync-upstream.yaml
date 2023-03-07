@@ -11,9 +11,9 @@ env:
   # Optional, defaults to UPSTREAM_BRANCH
   DOWNSTREAM_BRANCH: "master"
   # Optional fetch arguments
-  #FETCH_ARGS: "--depth=1 --no-tags --prune"
+  FETCH_ARGS: "--depth=1 --no-tags"
   # Optional merge arguments
-  #MERGE_ARGS: "--ff-only"
+  MERGE_ARGS: "--ff-only"
   # Optional push arguments
   #PUSH_ARGS: "--prune --porcelain --set-upstream"
   # Optional toggle to spawn time logs (keeps action active) 

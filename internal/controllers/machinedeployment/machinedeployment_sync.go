@@ -49,13 +49,13 @@ import (
 
 // sync is responsible for reconciling deployments on scaling events or when they
 // are paused.
-func (r *Reconciler) sync(ctx context.Context, d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) error {
-	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, d, msList, false)
+func (r *Reconciler) sync(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) error {
+	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, md, msList, false)
 	if err != nil {
 		return err
 	}
 
-	if err := r.scale(ctx, d, newMS, oldMSs); err != nil {
+	if err := r.scale(ctx, md, newMS, oldMSs); err != nil {
 		// If we get an error while trying to scale, the deployment will be requeued
 		// so we can abort this resync
 		return err
@@ -65,7 +65,7 @@ func (r *Reconciler) sync(ctx context.Context, d *clusterv1.MachineDeployment, m
 	// // TODO: Clean up the deployment when it's paused and no rollback is in flight.
 	//
 	allMSs := append(oldMSs, newMS)
-	return r.syncDeploymentStatus(allMSs, newMS, d)
+	return r.syncDeploymentStatus(allMSs, newMS, md)
 }
 
 // getAllMachineSetsAndSyncRevision returns all the machine sets for the provided deployment (new and all old), with new MS's and deployment's revision updated.
@@ -80,11 +80,11 @@ func (r *Reconciler) sync(ctx context.Context, d *clusterv1.MachineDeployment, m
 //
 // Note that currently the deployment controller is using caches to avoid querying the server for reads.
 // This may lead to stale reads of machine sets, thus incorrect deployment status.
-func (r *Reconciler) getAllMachineSetsAndSyncRevision(ctx context.Context, d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, createIfNotExisted bool) (*clusterv1.MachineSet, []*clusterv1.MachineSet, error) {
-	_, allOldMSs := mdutil.FindOldMachineSets(d, msList)
+func (r *Reconciler) getAllMachineSetsAndSyncRevision(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, createIfNotExisted bool) (*clusterv1.MachineSet, []*clusterv1.MachineSet, error) {
+	_, allOldMSs := mdutil.FindOldMachineSets(md, msList)
 
 	// Get new machine set with the updated revision number
-	newMS, err := r.getNewMachineSet(ctx, d, msList, allOldMSs, createIfNotExisted)
+	newMS, err := r.getNewMachineSet(ctx, md, msList, allOldMSs, createIfNotExisted)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -95,7 +95,7 @@ func (r *Reconciler) getAllMachineSetsAndSyncRevision(ctx context.Context, d *cl
 // Returns a MachineSet that matches the intent of the given MachineDeployment.
 // If there does not exist such a MachineSet and createIfNotExisted is true, create a new MachineSet.
 // If there is already such a MachineSet, update it to propagate in-place mutable fields from the MachineDeployment.
-func (r *Reconciler) getNewMachineSet(ctx context.Context, d *clusterv1.MachineDeployment, msList, oldMSs []*clusterv1.MachineSet, createIfNotExists bool) (*clusterv1.MachineSet, error) {
+func (r *Reconciler) getNewMachineSet(ctx context.Context, md *clusterv1.MachineDeployment, msList, oldMSs []*clusterv1.MachineSet, createIfNotExists bool) (*clusterv1.MachineSet, error) {
 	// Try to find a MachineSet which matches the MachineDeployments intent, while ignore diffs between
 	// the in-place mutable fields.
 	// If we find a matching MachineSet we just update it to propagate any changes to the in-place mutable
@@ -103,19 +103,19 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, d *clusterv1.MachineD
 	// If we don't find a matching MachineSet, we need a rollout and thus create a new MachineSet.
 	// Note: The in-place mutable fields can be just updated inline, because they do not affect the actual machines
 	// themselves (i.e. the infrastructure and the software running on the Machines not the Machine object).
-	matchingMS := mdutil.FindNewMachineSet(d, msList)
+	matchingMS := mdutil.FindNewMachineSet(md, msList)
 
 	// If there is a MachineSet that matches the intent of the MachineDeployment, update the MachineSet
 	// to propagate all in-place mutable fields from MachineDeployment to the MachineSet.
 	if matchingMS != nil {
-		updatedMS, err := r.updateMachineSet(ctx, d, matchingMS, oldMSs)
+		updatedMS, err := r.updateMachineSet(ctx, md, matchingMS, oldMSs)
 		if err != nil {
 			return nil, err
 		}
 
 		// Ensure MachineDeployment has the latest MachineSet revision in its revision annotation.
-		err = r.updateMachineDeployment(ctx, d, func(innerDeployment *clusterv1.MachineDeployment) {
-			mdutil.SetDeploymentRevision(d, updatedMS.Annotations[clusterv1.RevisionAnnotation])
+		err = r.updateMachineDeployment(ctx, md, func(innerDeployment *clusterv1.MachineDeployment) {
+			mdutil.SetDeploymentRevision(md, updatedMS.Annotations[clusterv1.RevisionAnnotation])
 		})
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to update revision annotation on MachineDeployment")
@@ -128,14 +128,14 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, d *clusterv1.MachineD
 	}
 
 	// Create a new MachineSet and wait until the new MachineSet exists in the cache.
-	newMS, err := r.createMachineSetAndWait(ctx, d, oldMSs)
+	newMS, err := r.createMachineSetAndWait(ctx, md, oldMSs)
 	if err != nil {
 		return nil, err
 	}
 
 	// Ensure MachineDeployment has the latest MachineSet revision in its revision annotation.
-	err = r.updateMachineDeployment(ctx, d, func(innerDeployment *clusterv1.MachineDeployment) {
-		mdutil.SetDeploymentRevision(d, newMS.Annotations[clusterv1.RevisionAnnotation])
+	err = r.updateMachineDeployment(ctx, md, func(innerDeployment *clusterv1.MachineDeployment) {
+		mdutil.SetDeploymentRevision(md, newMS.Annotations[clusterv1.RevisionAnnotation])
 	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to update revision annotation on MachineDeployment")
@@ -483,17 +483,17 @@ func (r *Reconciler) scale(ctx context.Context, deployment *clusterv1.MachineDep
 }
 
 // syncDeploymentStatus checks if the status is up-to-date and sync it if necessary.
-func (r *Reconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, d *clusterv1.MachineDeployment) error {
-	d.Status = calculateStatus(allMSs, newMS, d)
+func (r *Reconciler) syncDeploymentStatus(allMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, md *clusterv1.MachineDeployment) error {
+	md.Status = calculateStatus(allMSs, newMS, md)
 
-	// minReplicasNeeded will be equal to d.Spec.Replicas when the strategy is not RollingUpdateMachineDeploymentStrategyType.
-	minReplicasNeeded := *(d.Spec.Replicas) - mdutil.MaxUnavailable(*d)
+	// minReplicasNeeded will be equal to md.Spec.Replicas when the strategy is not RollingUpdateMachineDeploymentStrategyType.
+	minReplicasNeeded := *(md.Spec.Replicas) - mdutil.MaxUnavailable(*md)
 
-	if d.Status.AvailableReplicas >= minReplicasNeeded {
+	if md.Status.AvailableReplicas >= minReplicasNeeded {
 		// NOTE: The structure of calculateStatus() does not allow us to update the machinedeployment directly, we can only update the status obj it returns. Ideally, we should change calculateStatus() --> updateStatus() to be consistent with the rest of the code base, until then, we update conditions here.
-		conditions.MarkTrue(d, clusterv1.MachineDeploymentAvailableCondition)
+		conditions.MarkTrue(md, clusterv1.MachineDeploymentAvailableCondition)
 	} else {
-		conditions.MarkFalse(d, clusterv1.MachineDeploymentAvailableCondition, clusterv1.WaitingForAvailableMachinesReason, clusterv1.ConditionSeverityWarning, "Minimum availability requires %d replicas, current %d available", minReplicasNeeded, d.Status.AvailableReplicas)
+		conditions.MarkFalse(md, clusterv1.MachineDeploymentAvailableCondition, clusterv1.WaitingForAvailableMachinesReason, clusterv1.ConditionSeverityWarning, "Minimum availability requires %d replicas, current %d available", minReplicasNeeded, md.Status.AvailableReplicas)
 	}
 	return nil
 }
@@ -641,15 +641,15 @@ func (r *Reconciler) cleanupDeployment(ctx context.Context, oldMSs []*clusterv1.
 	return nil
 }
 
-func (r *Reconciler) updateMachineDeployment(ctx context.Context, d *clusterv1.MachineDeployment, modify func(*clusterv1.MachineDeployment)) error {
-	return updateMachineDeployment(ctx, r.Client, d, modify)
+func (r *Reconciler) updateMachineDeployment(ctx context.Context, md *clusterv1.MachineDeployment, modify func(*clusterv1.MachineDeployment)) error {
+	return updateMachineDeployment(ctx, r.Client, md, modify)
 }
 
 // We have this as standalone variant to be able to use it from the tests.
-func updateMachineDeployment(ctx context.Context, c client.Client, d *clusterv1.MachineDeployment, modify func(*clusterv1.MachineDeployment)) error {
-	mdObjectKey := util.ObjectKey(d)
+func updateMachineDeployment(ctx context.Context, c client.Client, md *clusterv1.MachineDeployment, modify func(*clusterv1.MachineDeployment)) error {
+	mdObjectKey := util.ObjectKey(md)
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		// Note: We intentionally don't re-use the passed in MachineDeployment d here as that would
+		// Note: We intentionally don't re-use the passed in MachineDeployment md here as that would
 		// overwrite any local changes we might have previously made to the MachineDeployment with the version
 		// we get here from the apiserver.
 		md := &clusterv1.MachineDeployment{}

@@ -2,7 +2,7 @@ name: Sync Upstream
 
 env:
   # Required, URL to upstream (fork base)
-  UPSTREAM_URL: https://github.com/kubernetes-sigs/cluster-api.git"
+  UPSTREAM_URL: "https://github.com/kubernetes-sigs/cluster-api.git"
   # Required, token to authenticate bot, could use ${{ secrets.GITHUB_TOKEN }} 
   # Over here, we use a PAT instead to authenticate workflow file changes.
   WORKFLOW_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
@@ -11,11 +11,11 @@ env:
   # Optional, defaults to UPSTREAM_BRANCH
   DOWNSTREAM_BRANCH: "master"
   # Optional fetch arguments
-  FETCH_ARGS: "--depth=1 --no-tags --prune"
+  #FETCH_ARGS: "--depth=1 --no-tags --prune"
   # Optional merge arguments
-  MERGE_ARGS: "--ff-only"
+  #MERGE_ARGS: "--ff-only"
   # Optional push arguments
-  PUSH_ARGS: "--prune --porcelain --set-upstream"
+  #PUSH_ARGS: "--prune --porcelain --set-upstream"
   # Optional toggle to spawn time logs (keeps action active) 
   SPAWN_LOGS: "true" # "true" or "false"
 

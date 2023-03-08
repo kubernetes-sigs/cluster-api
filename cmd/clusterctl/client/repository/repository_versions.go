@@ -39,11 +39,16 @@ func latestContractRelease(repo Repository, contract string) (string, error) {
 	}
 	// Attempt to check if the latest release satisfies the API Contract
 	// This is a best-effort attempt to find the latest release for an older API contract if it's not the latest release.
-	// If an error occurs, we just return the latest release.
 	file, err := repo.GetFile(latest, metadataFile)
+	// If an error occurs, we just return the latest release.
 	if err != nil {
+		if errors.Is(err, errNotFound) {
+			// If it was ErrNotFound, then there is no release yet for the resolved tag.
+			// Ref: https://github.com/kubernetes-sigs/cluster-api/issues/7889
+			return "", err
+		}
 		// if we can't get the metadata file from the release, we return latest.
-		return latest, nil //nolint:nilerr
+		return latest, nil
 	}
 	latestMetadata := &clusterctlv1.Metadata{}
 	codecFactory := serializer.NewCodecFactory(scheme.Scheme)

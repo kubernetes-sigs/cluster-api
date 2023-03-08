@@ -123,6 +123,13 @@ The following diagram shows the typical logic for a bootstrap provider:
 
 A bootstrap provider's bootstrap data must create `/run/cluster-api/bootstrap-success.complete` (or `C:\run\cluster-api\bootstrap-success.complete` for Windows machines) upon successful bootstrapping of a Kubernetes node. This allows infrastructure providers to detect and act on bootstrap failures.
 
+## Taint Nodes at creation
+
+A bootstrap provider can optionally taint nodes at creation with `node.cluster.x-k8s.io/uninitialized:NoSchedule`.
+This taint is used to prevent workloads to be scheduled on Nodes before the node is initialized by Cluster API.
+As of today the Node initialization consists of syncing labels from Machines to Nodes. Once the labels have been 
+initially synced the taint is removed form the Node.
+
 ## RBAC
 
 ### Provider controller

@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/blang/semver"
 	ignition "github.com/flatcar/ignition/config/v2_3"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -2189,6 +2190,112 @@ func TestKubeadmConfigReconciler_ResolveUsers(t *testing.T) {
 					g.Expect(user.Passwd).To(BeNil())
 				}
 			}
+		})
+	}
+}
+
+func TestAddNodeUninitializedTaint(t *testing.T) {
+	dummyTaint := corev1.Taint{
+		Key:    "dummy-taint",
+		Value:  "",
+		Effect: corev1.TaintEffectNoSchedule,
+	}
+
+	tests := []struct {
+		name              string
+		nodeRegistration  *bootstrapv1.NodeRegistrationOptions
+		kubernetesVersion semver.Version
+		isControlPlane    bool
+		wantTaints        []corev1.Taint
+	}{
+		{
+			name: "for control plane with version < v1.24.0, if taints is nil it should add the uninitialized and the master taint",
+			nodeRegistration: &bootstrapv1.NodeRegistrationOptions{
+				Taints: nil,
+			},
+			kubernetesVersion: semver.MustParse("1.23.0"),
+			isControlPlane:    true,
+			wantTaints: []corev1.Taint{
+				oldControlPlaneTaint,
+				clusterv1.NodeUninitializedTaint,
+			},
+		},
+		{
+			name: "for control plane with version >= v1.24.0 and < v1.25.0, if taints is nil it should add the uninitialized, control-plane and the master taints",
+			nodeRegistration: &bootstrapv1.NodeRegistrationOptions{
+				Taints: nil,
+			},
+			kubernetesVersion: semver.MustParse("1.24.5"),
+			isControlPlane:    true,
+			wantTaints: []corev1.Taint{
+				oldControlPlaneTaint,
+				controlPlaneTaint,
+				clusterv1.NodeUninitializedTaint,
+			},
+		},
+		{
+			name: "for control plane with version >= v1.25.0, if taints is nil it should add the uninitialized and the control-plane taint",
+			nodeRegistration: &bootstrapv1.NodeRegistrationOptions{
+				Taints: nil,
+			},
+			kubernetesVersion: semver.MustParse("1.25.0"),
+			isControlPlane:    true,
+			wantTaints: []corev1.Taint{
+				controlPlaneTaint,
+				clusterv1.NodeUninitializedTaint,
+			},
+		},
+		{
+			name: "for control plane, if taints is not nil it should only add the uninitialized taint",
+			nodeRegistration: &bootstrapv1.NodeRegistrationOptions{
+				Taints: []corev1.Taint{},
+			},
+			kubernetesVersion: semver.MustParse("1.26.0"),
+			isControlPlane:    true,
+			wantTaints: []corev1.Taint{
+				clusterv1.NodeUninitializedTaint,
+			},
+		},
+		{
+			name: "for control plane, if it already has some taints it should add the uninitialized taint",
+			nodeRegistration: &bootstrapv1.NodeRegistrationOptions{
+				Taints: []corev1.Taint{dummyTaint},
+			},
+			kubernetesVersion: semver.MustParse("1.26.0"),
+			isControlPlane:    true,
+			wantTaints: []corev1.Taint{
+				dummyTaint,
+				clusterv1.NodeUninitializedTaint,
+			},
+		},
+		{
+			name:              "for worker, it should add the uninitialized taint",
+			nodeRegistration:  &bootstrapv1.NodeRegistrationOptions{},
+			kubernetesVersion: semver.MustParse("1.26.0"),
+			isControlPlane:    false,
+			wantTaints: []corev1.Taint{
+				clusterv1.NodeUninitializedTaint,
+			},
+		},
+		{
+			name: "for worker, if it already has some taints it should add the uninitialized taint",
+			nodeRegistration: &bootstrapv1.NodeRegistrationOptions{
+				Taints: []corev1.Taint{dummyTaint},
+			},
+			kubernetesVersion: semver.MustParse("1.26.0"),
+			isControlPlane:    false,
+			wantTaints: []corev1.Taint{
+				dummyTaint,
+				clusterv1.NodeUninitializedTaint,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			addNodeUninitializedTaint(tt.nodeRegistration, tt.isControlPlane, tt.kubernetesVersion)
+			g.Expect(tt.nodeRegistration.Taints).To(Equal(tt.wantTaints))
 		})
 	}
 }

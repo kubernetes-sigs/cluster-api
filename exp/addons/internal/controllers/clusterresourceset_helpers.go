@@ -39,7 +39,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
-	"sigs.k8s.io/cluster-api/util"
 	utilresource "sigs.k8s.io/cluster-api/util/resource"
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
@@ -121,7 +120,14 @@ func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx 
 		}
 		clusterResourceSetBinding.Name = cluster.Name
 		clusterResourceSetBinding.Namespace = cluster.Namespace
-		clusterResourceSetBinding.OwnerReferences = ensureOwnerRefs(clusterResourceSetBinding, clusterResourceSet)
+		clusterResourceSetBinding.OwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion: addonsv1.GroupVersion.String(),
+				Kind:       "ClusterResourceSet",
+				Name:       clusterResourceSet.Name,
+				UID:        clusterResourceSet.UID,
+			},
+		}
 		clusterResourceSetBinding.Spec.Bindings = []*addonsv1.ResourceSetBinding{}
 		clusterResourceSetBinding.Spec.ClusterName = cluster.Name
 		if err := r.Client.Create(ctx, clusterResourceSetBinding); err != nil {
@@ -135,20 +141,6 @@ func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx 
 		}
 	}
 	return clusterResourceSetBinding, nil
-}
-
-// ensureOwnerRefs ensure ClusterResourceSet owner references are set on the ClusterResourceSetBinding.
-func ensureOwnerRefs(clusterResourceSetBinding *addonsv1.ClusterResourceSetBinding, clusterResourceSet *addonsv1.ClusterResourceSet) []metav1.OwnerReference {
-	ownerRefs := make([]metav1.OwnerReference, len(clusterResourceSetBinding.GetOwnerReferences()))
-	copy(ownerRefs, clusterResourceSetBinding.GetOwnerReferences())
-	ownerRefs = util.EnsureOwnerRef(ownerRefs,
-		metav1.OwnerReference{
-			APIVersion: clusterResourceSet.GroupVersionKind().GroupVersion().String(),
-			Kind:       clusterResourceSet.GroupVersionKind().Kind,
-			Name:       clusterResourceSet.Name,
-			UID:        clusterResourceSet.UID,
-		})
-	return ownerRefs
 }
 
 // getConfigMap retrieves any ConfigMap from the given name and namespace.
@@ -231,7 +223,7 @@ func normalizeData(resource *unstructured.Unstructured) ([][]byte, error) {
 }
 
 func getClusterNameFromOwnerRef(obj metav1.ObjectMeta) (string, error) {
-	for _, ref := range obj.OwnerReferences {
+	for _, ref := range obj.GetOwnerReferences() {
 		if ref.Kind != "Cluster" {
 			continue
 		}

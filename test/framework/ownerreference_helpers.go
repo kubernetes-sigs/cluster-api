@@ -37,8 +37,15 @@ import (
 	clusterctlcluster "sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
+
+// ValidateOwnerReferencesOnUpdate checks that expected owner references are updated to the correct apiVersion.
+func ValidateOwnerReferencesOnUpdate(proxy ClusterProxy, namespace string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
+	// Check that the ownerReferences are as expected on the first iteration.
+	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), assertFuncs...)
+}
 
 // ValidateOwnerReferencesResilience checks that expected owner references are in place, deletes them, and verifies that expect owner references are properly rebuilt.
 func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
@@ -75,11 +82,10 @@ func AssertOwnerReferences(namespace, kubeconfigPath string, assertFuncs ...map[
 			allAssertFuncs[k] = v
 		}
 	}
-	var errStrings string
 	Eventually(func() error {
+		allErrs := []error{}
 		graph, err := clusterctlcluster.GetOwnerGraph(namespace, kubeconfigPath)
 		Expect(err).To(BeNil())
-		allErrs := []error{}
 		for _, v := range graph {
 			if _, ok := allAssertFuncs[v.Object.Kind]; !ok {
 				allErrs = append(allErrs, fmt.Errorf("kind %s does not have an associated ownerRef assertion function", v.Object.Kind))
@@ -89,16 +95,13 @@ func AssertOwnerReferences(namespace, kubeconfigPath string, assertFuncs ...map[
 				allErrs = append(allErrs, errors.Wrapf(err, "Unexpected ownerReferences for %s/%s", v.Object.Kind, v.Object.Name))
 			}
 		}
-		errStrings = ""
-		for _, err := range allErrs {
-			errStrings = fmt.Sprintf("%s\n%s", errStrings, err.Error())
-		}
 		return kerrors.NewAggregate(allErrs)
-	}).Should(Succeed(), errStrings)
+	}).WithTimeout(5 * time.Minute).WithPolling(2 * time.Second).Should(Succeed())
 }
 
 // Kind and GVK for types in the core API package.
 var (
+	extensionConfigKind    = "ExtensionConfig"
 	clusterClassKind       = "ClusterClass"
 	clusterKind            = "Cluster"
 	machineKind            = "Machine"
@@ -113,9 +116,13 @@ var (
 	machineGVK           = clusterv1.GroupVersion.WithKind(machineKind)
 )
 
-// CoreTypeOwnerReferenceAssertion maps Cluster API core types to functions which return an error if the passed
+// CoreOwnerReferenceAssertion maps Cluster API core types to functions which return an error if the passed
 // OwnerReferences aren't as expected.
-var CoreTypeOwnerReferenceAssertion = map[string]func([]metav1.OwnerReference) error{
+var CoreOwnerReferenceAssertion = map[string]func([]metav1.OwnerReference) error{
+	extensionConfigKind: func(owners []metav1.OwnerReference) error {
+		// ExtensionConfig should have no owners.
+		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{})
+	},
 	clusterClassKind: func(owners []metav1.OwnerReference) error {
 		// ClusterClass doesn't have ownerReferences (it is a clusterctl move-hierarchy root).
 		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{})
@@ -146,7 +153,9 @@ var CoreTypeOwnerReferenceAssertion = map[string]func([]metav1.OwnerReference) e
 var (
 	clusterResourceSetKind        = "ClusterResourceSet"
 	clusterResourceSetBindingKind = "ClusterResourceSetBinding"
+	machinePoolKind               = "MachinePool"
 
+	machinePoolGVK        = expv1.GroupVersion.WithKind(machinePoolKind)
 	clusterResourceSetGVK = addonsv1.GroupVersion.WithKind(clusterResourceSetKind)
 )
 
@@ -160,6 +169,11 @@ var ExpOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error
 	// ClusterResourcesSetBinding has ClusterResourceSet set as owners on creation.
 	clusterResourceSetBindingKind: func(owners []metav1.OwnerReference) error {
 		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterResourceSetGVK})
+	},
+	// MachinePool must be owned by a Cluster.
+	machinePoolKind: func(owners []metav1.OwnerReference) error {
+		// MachinePools must be owned by a Cluster.
+		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK})
 	},
 }
 
@@ -214,8 +228,8 @@ var (
 // aren't as expected.
 var KubeadmBootstrapOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error{
 	kubeadmConfigKind: func(owners []metav1.OwnerReference) error {
-		// The KubeadmConfig must be owned by a Cluster.
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{machineGVK})
+		// The KubeadmConfig must be owned by a Cluster or by a MachinePool.
+		return hasOneOfExactOwnersByGVK(owners, []schema.GroupVersionKind{machineGVK}, []schema.GroupVersionKind{machinePoolGVK})
 	},
 	kubeadmConfigTemplateKind: func(owners []metav1.OwnerReference) error {
 		// The KubeadmConfigTemplate must be owned by a ClusterClass.
@@ -227,6 +241,7 @@ var KubeadmBootstrapOwnerReferenceAssertions = map[string]func([]metav1.OwnerRef
 var (
 	dockerMachineKind         = "DockerMachine"
 	dockerMachineTemplateKind = "DockerMachineTemplate"
+	dockerMachinePoolKind     = "DockerMachinePool"
 	dockerClusterKind         = "DockerCluster"
 	dockerClusterTemplateKind = "DockerClusterTemplate"
 )
@@ -250,6 +265,10 @@ var DockerInfraOwnerReferenceAssertions = map[string]func([]metav1.OwnerReferenc
 	dockerClusterTemplateKind: func(owners []metav1.OwnerReference) error {
 		// DockerClusterTemplate must be owned by a ClusterClass.
 		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterClassGVK})
+	},
+	dockerMachinePoolKind: func(owners []metav1.OwnerReference) error {
+		// DockerMachinePool must be owned by a MachinePool.
+		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{machinePoolGVK})
 	},
 }
 

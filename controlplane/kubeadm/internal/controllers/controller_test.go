@@ -878,8 +878,8 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 			// Set the Secret Type to any type which signals this Secret was is user-provided.
 			s.Type = corev1.SecretTypeOpaque
 			// Set the a controller owner reference of an unknown type on the secret.
-			s.SetOwnerReferences([]metav1.OwnerReference{
-				{
+			s.SetOwnerReferences(util.EnsureOwnerRef(s.GetOwnerReferences(),
+				metav1.OwnerReference{
 					APIVersion: bootstrapv1.GroupVersion.String(),
 					// This owner reference to a different controller should be preserved.
 					Kind:               "OtherController",
@@ -888,7 +888,7 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 					Controller:         pointer.Bool(true),
 					BlockOwnerDeletion: pointer.Bool(true),
 				},
-			})
+			))
 
 			objs = append(objs, s)
 		}

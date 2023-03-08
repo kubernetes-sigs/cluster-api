@@ -194,12 +194,12 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
 	// Ensure the MachinePool is owned by the Cluster it belongs to.
-	mp.OwnerReferences = util.EnsureOwnerRef(mp.OwnerReferences, metav1.OwnerReference{
-		APIVersion: cluster.APIVersion,
+	mp.SetOwnerReferences(util.EnsureOwnerRef(mp.GetOwnerReferences(), metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
 		Kind:       cluster.Kind,
 		Name:       cluster.Name,
 		UID:        cluster.UID,
-	})
+	}))
 
 	phases := []func(context.Context, *clusterv1.Cluster, *expv1.MachinePool) (ctrl.Result, error){
 		r.reconcileBootstrap,

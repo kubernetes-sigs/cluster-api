@@ -1089,15 +1089,15 @@ func (r *KubeadmConfigReconciler) ensureBootstrapSecretOwnersRef(ctx context.Con
 		return errors.Wrapf(err, "failed to add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())
 	}
 	if c := metav1.GetControllerOf(secret); c != nil && c.Kind != "KubeadmConfig" {
-		secret.OwnerReferences = util.RemoveOwnerRef(secret.OwnerReferences, *c)
+		secret.SetOwnerReferences(util.RemoveOwnerRef(secret.GetOwnerReferences(), *c))
 	}
-	secret.OwnerReferences = util.EnsureOwnerRef(secret.OwnerReferences, metav1.OwnerReference{
+	secret.SetOwnerReferences(util.EnsureOwnerRef(secret.GetOwnerReferences(), metav1.OwnerReference{
 		APIVersion: bootstrapv1.GroupVersion.String(),
 		Kind:       "KubeadmConfig",
 		UID:        scope.Config.UID,
 		Name:       scope.Config.Name,
 		Controller: pointer.Bool(true),
-	})
+	}))
 	err = patchHelper.Patch(ctx, secret)
 	if err != nil {
 		return errors.Wrapf(err, "could not add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())

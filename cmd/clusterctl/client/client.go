@@ -54,9 +54,7 @@ type Client interface {
 	// Move moves all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target management cluster.
 	Move(options MoveOptions) error
 
-	// PlanUpgrade returns a set of suggested Upgrade plans for the cluster, and more specifically:
-	// - Upgrade to the latest version in the v1alpha3 series: ....
-	// - Upgrade to the latest version in the v1alpha4 series: ....
+	// PlanUpgrade returns a set of suggested Upgrade plans for the cluster.
 	PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error)
 
 	// PlanCertManagerUpgrade returns a CertManagerUpgradePlan.

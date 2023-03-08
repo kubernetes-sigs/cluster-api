@@ -100,7 +100,7 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 		return nil, err
 	}
 
-	// Ensure this command only runs against v1alpha4 management clusters
+	// Ensure this command only runs against v1beta1 management clusters
 	if err := clusterClient.ProviderInventory().CheckCAPIContract(cluster.AllowCAPINotInstalled{}); err != nil {
 		return nil, err
 	}
@@ -172,7 +172,7 @@ func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 		return nil, err
 	}
 
-	// Ensure this command only runs against empty management clusters or v1alpha4 management clusters.
+	// Ensure this command only runs against empty management clusters or v1beta1 management clusters.
 	if err := clusterClient.ProviderInventory().CheckCAPIContract(cluster.AllowCAPINotInstalled{}); err != nil {
 		return nil, err
 	}

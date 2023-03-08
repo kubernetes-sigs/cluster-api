@@ -29,7 +29,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -56,7 +55,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 		return ctrl.Result{}, nil
 	}
 
-	controllerOwnerRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
+	controllerOwnerRef := *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	clusterName := util.ObjectKey(cluster)
 	configSecret, err := secret.GetFromNamespacedName(ctx, r.Client, clusterName, secret.Kubeconfig)
 	switch {
@@ -102,46 +101,43 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 }
 
 // Ensure the KubeadmConfigSecret has an owner reference to the control plane if it is not a user-provided secret.
-func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster, configSecret *corev1.Secret, kcp *controlplanev1.KubeadmControlPlane) error {
-	log := ctrl.LoggerFrom(ctx)
-	controller := metav1.GetControllerOf(configSecret)
-
-	// If the Type doesn't match the CAPI-created secret type this is a no-op.
-	if configSecret.Type != clusterv1.ClusterSecretType {
-		return nil
-	}
-	// If the secret is already controlled by KCP this is a no-op.
-	if controller != nil && controller.Kind == "KubeadmControlPlane" {
-		return nil
-	}
-	log.Info("Adopting KubeConfig secret", "Secret", klog.KObj(configSecret))
-	patch, err := patch.NewHelper(configSecret, r.Client)
+func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster, configSecret *corev1.Secret, kcp *controlplanev1.KubeadmControlPlane) (reterr error) {
+	patchHelper, err := patch.NewHelper(configSecret, r.Client)
 	if err != nil {
 		return errors.Wrap(err, "failed to create patch helper for the kubeconfig secret")
 	}
+	defer func() {
+		if err := patchHelper.Patch(ctx, configSecret); err != nil {
+			reterr = errors.Wrap(err, "failed to patch the kubeconfig secret")
+		}
+	}()
+	controller := metav1.GetControllerOf(configSecret)
 
-	// If the kubeconfig secret was created by v1alpha2 controllers, and thus it has the Cluster as the owner instead of KCP.
-	// In this case remove the ownerReference to the Cluster.
-	if util.IsOwnedByObject(configSecret, cluster) {
-		configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.OwnerReferences, metav1.OwnerReference{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-			Name:       cluster.Name,
-			UID:        cluster.UID,
-		}))
+	// If the current controller is KCP, ensure the owner reference is up to date and return early.
+	// Note: This ensures secrets created prior to v1alpha4 are updated to have the correct owner reference apiVersion.
+	if controller != nil && controller.Kind == kubeadmControlPlaneKind {
+		configSecret.SetOwnerReferences(util.EnsureOwnerRef(configSecret.GetOwnerReferences(), *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))))
+		return nil
 	}
 
-	// Remove the current controller if one exists.
-	if controller != nil {
-		configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.OwnerReferences, *controller))
-	}
+	// If secret type is a CAPI-created secret ensure the owner reference is to KCP.
+	if configSecret.Type == clusterv1.ClusterSecretType {
+		// Remove the current controller if one exists and ensure KCP is the controller of the secret.
+		if controller != nil {
+			configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.GetOwnerReferences(), *controller))
+		}
+		configSecret.SetOwnerReferences(util.EnsureOwnerRef(configSecret.GetOwnerReferences(), *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))))
 
-	// Add the KubeadmControlPlane as the controller for this secret.
-	configSecret.OwnerReferences = util.EnsureOwnerRef(configSecret.OwnerReferences,
-		*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")))
-
-	if err := patch.Patch(ctx, configSecret); err != nil {
-		return errors.Wrap(err, "failed to patch the kubeconfig secret")
+		// If the kubeconfig secret was created by v1alpha2 controllers, and thus it has the Cluster as the owner instead of KCP.
+		// In this case remove the ownerReference to the Cluster.
+		if util.IsOwnedByObject(configSecret, cluster) {
+			configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.GetOwnerReferences(), metav1.OwnerReference{
+				APIVersion: clusterv1.GroupVersion.String(),
+				Kind:       "Cluster",
+				Name:       cluster.Name,
+				UID:        cluster.UID,
+			}))
+		}
 	}
 	return nil
 }
@@ -184,7 +180,7 @@ func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx conte
 	// OwnerReference here without the Controller field set
 	infraCloneOwner := &metav1.OwnerReference{
 		APIVersion: controlplanev1.GroupVersion.String(),
-		Kind:       "KubeadmControlPlane",
+		Kind:       kubeadmControlPlaneKind,
 		Name:       kcp.Name,
 		UID:        kcp.UID,
 	}
@@ -260,7 +256,7 @@ func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Contex
 	// Create an owner reference without a controller reference because the owning controller is the machine controller
 	owner := metav1.OwnerReference{
 		APIVersion: controlplanev1.GroupVersion.String(),
-		Kind:       "KubeadmControlPlane",
+		Kind:       kubeadmControlPlaneKind,
 		Name:       kcp.Name,
 		UID:        kcp.UID,
 	}
@@ -408,7 +404,7 @@ func (r *KubeadmControlPlaneReconciler) computeDesiredMachine(kcp *controlplanev
 			Namespace: kcp.Namespace,
 			// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
 			OwnerReferences: []metav1.OwnerReference{
-				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane")),
+				*metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind)),
 			},
 			Labels:      map[string]string{},
 			Annotations: map[string]string{},

@@ -39,6 +39,7 @@ import (
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 type FakeCluster struct {
@@ -563,14 +564,14 @@ func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []client.Object
 		machineDeploymentInfrastructure = NewFakeInfrastructureTemplate(f.name)
 	}
 	machineDeploymentInfrastructure.Namespace = cluster.Namespace
-	machineDeploymentInfrastructure.OwnerReferences = append(machineDeploymentInfrastructure.OwnerReferences, // Added by the machine set controller -- RECONCILED
+	machineDeploymentInfrastructure.SetOwnerReferences(util.EnsureOwnerRef(machineDeploymentInfrastructure.GetOwnerReferences(), // Added by the machine set controller -- RECONCILED
 		metav1.OwnerReference{
 			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "Cluster",
 			Name:       cluster.Name,
 			UID:        cluster.UID,
 		},
-	)
+	))
 	setUID(machineDeploymentInfrastructure)
 
 	machineDeploymentBootstrap := &fakebootstrap.GenericBootstrapConfigTemplate{

@@ -79,33 +79,10 @@ func (r *ClusterResourceSetBindingReconciler) Reconcile(ctx context.Context, req
 		// Error reading the object - requeue the request.
 		return ctrl.Result{}, err
 	}
-	// Before 1.4 cluster name was stored as ownerRef; this code migrated this value to
-	// the spec.clusterName field if necessary.
-	clusterName := binding.Spec.ClusterName
-	if clusterName == "" {
-		// Initialize the patch helper.
-		patchHelper, err := patch.NewHelper(binding, r.Client)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to configure the patch helper")
-		}
-		// Update the clusterName field of the existing ClusterResourceSetBindings with ownerReferences.
-		// More details please refer to: https://github.com/kubernetes-sigs/cluster-api/issues/7669.
-		if clusterName, err = getClusterNameFromOwnerRef(binding.ObjectMeta); err != nil {
-			return ctrl.Result{}, err
-		}
-		binding.Spec.ClusterName = clusterName
-		binding.OwnerReferences = util.RemoveOwnerRef(binding.OwnerReferences, metav1.OwnerReference{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-			Name:       clusterName,
-		})
-		if err = patchHelper.Patch(ctx, binding); err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to patch ClusterResourceSetBinding to add spec.clusterName")
-		}
-		// Will enter the next Reconcile
-		return ctrl.Result{}, nil
+	if err := r.updateClusterReference(ctx, binding); err != nil {
+		return ctrl.Result{}, err
 	}
-	cluster, err := util.GetClusterByName(ctx, r.Client, req.Namespace, clusterName)
+	cluster, err := util.GetClusterByName(ctx, r.Client, req.Namespace, binding.Spec.ClusterName)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			// If the owner cluster is already deleted, delete its ClusterResourceSetBinding
@@ -139,4 +116,35 @@ func (r *ClusterResourceSetBindingReconciler) clusterToClusterResourceSetBinding
 			},
 		},
 	}
+}
+
+// updateClusterReference updates how the ClusterResourceSetBinding references the Cluster.
+// Before 1.4 cluster name was stored as an ownerReference. This function migrates the cluster name to the spec.clusterName and removes the Cluster OwnerReference.
+// Ref: https://github.com/kubernetes-sigs/cluster-api/issues/7669.
+func (r *ClusterResourceSetBindingReconciler) updateClusterReference(ctx context.Context, binding *addonsv1.ClusterResourceSetBinding) error {
+	patchHelper, err := patch.NewHelper(binding, r.Client)
+	if err != nil {
+		return errors.Wrap(err, "failed to configure the patch helper")
+	}
+
+	// If the `.spec.clusterName` is not set, take the value from the ownerReference.
+	if binding.Spec.ClusterName == "" {
+		// Update the clusterName field of the existing ClusterResourceSetBindings with ownerReferences.
+		// More details please refer to: https://github.com/kubernetes-sigs/cluster-api/issues/7669.
+		clusterName, err := getClusterNameFromOwnerRef(binding.ObjectMeta)
+		if err != nil {
+			return err
+		}
+		binding.Spec.ClusterName = clusterName
+	}
+
+	// Remove the Cluster OwnerReference if it exists. This is a no-op if the OwnerReference does not exist.
+	// TODO: (killianmuldoon) This can be removed in CAPI v1beta2.
+	binding.OwnerReferences = util.RemoveOwnerRef(binding.OwnerReferences, metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       binding.Spec.ClusterName,
+	})
+
+	return patchHelper.Patch(ctx, binding)
 }

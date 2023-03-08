@@ -36,26 +36,26 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-func newDControllerRef(d *clusterv1.MachineDeployment) *metav1.OwnerReference {
+func newDControllerRef(md *clusterv1.MachineDeployment) *metav1.OwnerReference {
 	isController := true
 	return &metav1.OwnerReference{
 		APIVersion: "clusters/v1alpha",
 		Kind:       "MachineDeployment",
-		Name:       d.GetName(),
-		UID:        d.GetUID(),
+		Name:       md.GetName(),
+		UID:        md.GetUID(),
 		Controller: &isController,
 	}
 }
 
 // generateMS creates a machine set, with the input deployment's template as its template.
-func generateMS(deployment clusterv1.MachineDeployment) clusterv1.MachineSet {
-	template := deployment.Spec.Template.DeepCopy()
+func generateMS(md clusterv1.MachineDeployment) clusterv1.MachineSet {
+	template := md.Spec.Template.DeepCopy()
 	return clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			UID:             randomUID(),
 			Name:            names.SimpleNameGenerator.GenerateName("machineset"),
 			Labels:          template.Labels,
-			OwnerReferences: []metav1.OwnerReference{*newDControllerRef(&deployment)},
+			OwnerReferences: []metav1.OwnerReference{*newDControllerRef(&md)},
 		},
 		Spec: clusterv1.MachineSetSpec{
 			Replicas: new(int32),
@@ -617,32 +617,32 @@ func TestDeploymentComplete(t *testing.T) {
 	tests := []struct {
 		name string
 
-		d *clusterv1.MachineDeployment
+		md *clusterv1.MachineDeployment
 
 		expected bool
 	}{
 		{
 			name: "not complete: min but not all machines become available",
 
-			d:        deployment(5, 5, 5, 4, 1, 0),
+			md:       deployment(5, 5, 5, 4, 1, 0),
 			expected: false,
 		},
 		{
 			name: "not complete: min availability is not honored",
 
-			d:        deployment(5, 5, 5, 3, 1, 0),
+			md:       deployment(5, 5, 5, 3, 1, 0),
 			expected: false,
 		},
 		{
 			name: "complete",
 
-			d:        deployment(5, 5, 5, 5, 0, 0),
+			md:       deployment(5, 5, 5, 5, 0, 0),
 			expected: true,
 		},
 		{
 			name: "not complete: all machines are available but not updated",
 
-			d:        deployment(5, 5, 4, 5, 0, 0),
+			md:       deployment(5, 5, 4, 5, 0, 0),
 			expected: false,
 		},
 		{
@@ -650,13 +650,13 @@ func TestDeploymentComplete(t *testing.T) {
 
 			// old machine set: spec.replicas=1, status.replicas=1, status.availableReplicas=1
 			// new machine set: spec.replicas=1, status.replicas=1, status.availableReplicas=0
-			d:        deployment(1, 2, 1, 1, 0, 1),
+			md:       deployment(1, 2, 1, 1, 0, 1),
 			expected: false,
 		},
 		{
 			name: "not complete: one replica deployment never comes up",
 
-			d:        deployment(1, 1, 1, 0, 1, 1),
+			md:       deployment(1, 1, 1, 0, 1, 1),
 			expected: false,
 		},
 	}
@@ -665,7 +665,7 @@ func TestDeploymentComplete(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			g.Expect(DeploymentComplete(test.d, &test.d.Status)).To(Equal(test.expected))
+			g.Expect(DeploymentComplete(test.md, &test.md.Status)).To(Equal(test.expected))
 		})
 	}
 }

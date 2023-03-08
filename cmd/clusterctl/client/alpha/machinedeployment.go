@@ -118,7 +118,7 @@ func findMachineDeploymentRevision(toRevision int64, allMSs []*clusterv1.Machine
 }
 
 // getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.
-func getMachineSetsForDeployment(proxy cluster.Proxy, d *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
+func getMachineSetsForDeployment(proxy cluster.Proxy, md *clusterv1.MachineDeployment) ([]*clusterv1.MachineSet, error) {
 	log := logf.Log
 	c, err := proxy.NewClient()
 	if err != nil {
@@ -126,7 +126,7 @@ func getMachineSetsForDeployment(proxy cluster.Proxy, d *clusterv1.MachineDeploy
 	}
 	// List all MachineSets to find those we own but that no longer match our selector.
 	machineSets := &clusterv1.MachineSetList{}
-	if err := c.List(ctx, machineSets, client.InNamespace(d.Namespace)); err != nil {
+	if err := c.List(ctx, machineSets, client.InNamespace(md.Namespace)); err != nil {
 		return nil, err
 	}
 
@@ -135,12 +135,12 @@ func getMachineSetsForDeployment(proxy cluster.Proxy, d *clusterv1.MachineDeploy
 		ms := &machineSets.Items[idx]
 
 		// Skip this MachineSet if its controller ref is not pointing to this MachineDeployment
-		if !metav1.IsControlledBy(ms, d) {
+		if !metav1.IsControlledBy(ms, md) {
 			log.V(5).Info("Skipping MachineSet, controller ref does not match MachineDeployment", "machineset", ms.Name)
 			continue
 		}
 
-		selector, err := metav1.LabelSelectorAsSelector(&d.Spec.Selector)
+		selector, err := metav1.LabelSelectorAsSelector(&md.Spec.Selector)
 		if err != nil {
 			log.V(5).Info("Skipping MachineSet, failed to get label selector from spec selector", "machineset", ms.Name)
 			continue

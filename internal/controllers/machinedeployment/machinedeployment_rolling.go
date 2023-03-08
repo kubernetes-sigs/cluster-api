@@ -30,8 +30,8 @@ import (
 )
 
 // rolloutRolling implements the logic for rolling a new MachineSet.
-func (r *Reconciler) rolloutRolling(ctx context.Context, d *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) error {
-	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, d, msList, true)
+func (r *Reconciler) rolloutRolling(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet) error {
+	newMS, oldMSs, err := r.getAllMachineSetsAndSyncRevision(ctx, md, msList, true)
 	if err != nil {
 		return err
 	}
@@ -46,25 +46,25 @@ func (r *Reconciler) rolloutRolling(ctx context.Context, d *clusterv1.MachineDep
 	allMSs := append(oldMSs, newMS)
 
 	// Scale up, if we can.
-	if err := r.reconcileNewMachineSet(ctx, allMSs, newMS, d); err != nil {
+	if err := r.reconcileNewMachineSet(ctx, allMSs, newMS, md); err != nil {
 		return err
 	}
 
-	if err := r.syncDeploymentStatus(allMSs, newMS, d); err != nil {
+	if err := r.syncDeploymentStatus(allMSs, newMS, md); err != nil {
 		return err
 	}
 
 	// Scale down, if we can.
-	if err := r.reconcileOldMachineSets(ctx, allMSs, oldMSs, newMS, d); err != nil {
+	if err := r.reconcileOldMachineSets(ctx, allMSs, oldMSs, newMS, md); err != nil {
 		return err
 	}
 
-	if err := r.syncDeploymentStatus(allMSs, newMS, d); err != nil {
+	if err := r.syncDeploymentStatus(allMSs, newMS, md); err != nil {
 		return err
 	}
 
-	if mdutil.DeploymentComplete(d, &d.Status) {
-		if err := r.cleanupDeployment(ctx, oldMSs, d); err != nil {
+	if mdutil.DeploymentComplete(md, &md.Status) {
+		if err := r.cleanupDeployment(ctx, oldMSs, md); err != nil {
 			return err
 		}
 	}

@@ -47,7 +47,7 @@ func (r *rollout) ObjectRollbacker(proxy cluster.Proxy, ref corev1.ObjectReferen
 }
 
 // rollbackMachineDeployment will rollback to a previous MachineSet revision used by this MachineDeployment.
-func rollbackMachineDeployment(proxy cluster.Proxy, d *clusterv1.MachineDeployment, toRevision int64) error {
+func rollbackMachineDeployment(proxy cluster.Proxy, md *clusterv1.MachineDeployment, toRevision int64) error {
 	log := logf.Log
 	c, err := proxy.NewClient()
 	if err != nil {
@@ -57,7 +57,7 @@ func rollbackMachineDeployment(proxy cluster.Proxy, d *clusterv1.MachineDeployme
 	if toRevision < 0 {
 		return errors.Errorf("revision number cannot be negative: %v", toRevision)
 	}
-	msList, err := getMachineSetsForDeployment(proxy, d)
+	msList, err := getMachineSetsForDeployment(proxy, md)
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func rollbackMachineDeployment(proxy cluster.Proxy, d *clusterv1.MachineDeployme
 		return err
 	}
 	log.V(7).Info("Found revision", "revision", msForRevision)
-	patchHelper, err := patch.NewHelper(d, c)
+	patchHelper, err := patch.NewHelper(md, c)
 	if err != nil {
 		return err
 	}
@@ -75,6 +75,6 @@ func rollbackMachineDeployment(proxy cluster.Proxy, d *clusterv1.MachineDeployme
 	revMSTemplate := *msForRevision.Spec.Template.DeepCopy()
 	delete(revMSTemplate.Labels, clusterv1.MachineDeploymentUniqueLabel)
 
-	d.Spec.Template = revMSTemplate
-	return patchHelper.Patch(ctx, d)
+	md.Spec.Template = revMSTemplate
+	return patchHelper.Patch(ctx, md)
 }

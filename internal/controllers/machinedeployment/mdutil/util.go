@@ -322,12 +322,12 @@ func MaxSurge(deployment clusterv1.MachineDeployment) int32 {
 // GetProportion will estimate the proportion for the provided machine set using 1. the current size
 // of the parent deployment, 2. the replica count that needs be added on the machine sets of the
 // deployment, and 3. the total replicas added in the machine sets of the deployment so far.
-func GetProportion(ms *clusterv1.MachineSet, d clusterv1.MachineDeployment, deploymentReplicasToAdd, deploymentReplicasAdded int32, logger logr.Logger) int32 {
+func GetProportion(ms *clusterv1.MachineSet, md clusterv1.MachineDeployment, deploymentReplicasToAdd, deploymentReplicasAdded int32, logger logr.Logger) int32 {
 	if ms == nil || *(ms.Spec.Replicas) == 0 || deploymentReplicasToAdd == 0 || deploymentReplicasToAdd == deploymentReplicasAdded {
 		return int32(0)
 	}
 
-	msFraction := getMachineSetFraction(*ms, d, logger)
+	msFraction := getMachineSetFraction(*ms, md, logger)
 	allowed := deploymentReplicasToAdd - deploymentReplicasAdded
 
 	if deploymentReplicasToAdd > 0 {
@@ -344,20 +344,20 @@ func GetProportion(ms *clusterv1.MachineSet, d clusterv1.MachineDeployment, depl
 
 // getMachineSetFraction estimates the fraction of replicas a machine set can have in
 // 1. a scaling event during a rollout or 2. when scaling a paused deployment.
-func getMachineSetFraction(ms clusterv1.MachineSet, d clusterv1.MachineDeployment, logger logr.Logger) int32 {
+func getMachineSetFraction(ms clusterv1.MachineSet, md clusterv1.MachineDeployment, logger logr.Logger) int32 {
 	// If we are scaling down to zero then the fraction of this machine set is its whole size (negative)
-	if *(d.Spec.Replicas) == int32(0) {
+	if *(md.Spec.Replicas) == int32(0) {
 		return -*(ms.Spec.Replicas)
 	}
 
-	deploymentReplicas := *(d.Spec.Replicas) + MaxSurge(d)
+	deploymentReplicas := *(md.Spec.Replicas) + MaxSurge(md)
 	annotatedReplicas, ok := getMaxReplicasAnnotation(&ms, logger)
 	if !ok {
 		// If we cannot find the annotation then fallback to the current deployment size. Note that this
 		// will not be an accurate proportion estimation in case other machine sets have different values
 		// which means that the deployment was scaled at some point but we at least will stay in limits
 		// due to the min-max comparisons in getProportion.
-		annotatedReplicas = d.Status.Replicas
+		annotatedReplicas = md.Status.Replicas
 	}
 
 	// We should never proportionally scale up from zero which means ms.spec.replicas and annotatedReplicas

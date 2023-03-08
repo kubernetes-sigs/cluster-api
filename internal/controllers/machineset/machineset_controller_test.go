@@ -790,7 +790,7 @@ func TestAdoptOrphan(t *testing.T) {
 		Client: fake.NewClientBuilder().WithObjects(&m).Build(),
 	}
 	for _, tc := range testCases {
-		g.Expect(r.adoptOrphan(ctx, tc.machineSet.DeepCopy(), tc.machine.DeepCopy())).To(Succeed())
+		g.Expect(r.updateControllerReference(ctx, tc.machineSet.DeepCopy(), tc.machine.DeepCopy())).To(Succeed())
 
 		key := client.ObjectKey{Namespace: tc.machine.Namespace, Name: tc.machine.Name}
 		g.Expect(r.Client.Get(ctx, key, &tc.machine)).To(Succeed())

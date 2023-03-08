@@ -41,6 +41,15 @@ import (
 )
 
 // ValidateOwnerReferencesResilience checks that expected owner references are in place, deletes them, and verifies that expect owner references are properly rebuilt.
+func ValidateOwnerReferencesOnUpdate(ctx context.Context, proxy ClusterProxy, namespace string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
+	// Check that the ownerReferences are as expected on the first iteration.
+	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), assertFuncs...)
+
+	// Check that the ownerReferences are as expected after additional reconciliations.
+	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), assertFuncs...)
+}
+
+// ValidateOwnerReferencesResilience checks that expected owner references are in place, deletes them, and verifies that expect owner references are properly rebuilt.
 func ValidateOwnerReferencesResilience(ctx context.Context, proxy ClusterProxy, namespace, clusterName string, assertFuncs ...map[string]func(reference []metav1.OwnerReference) error) {
 	// Check that the ownerReferences are as expected on the first iteration.
 	AssertOwnerReferences(namespace, proxy.GetKubeconfigPath(), assertFuncs...)

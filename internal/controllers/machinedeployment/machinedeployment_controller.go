@@ -208,7 +208,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	md.Labels[clusterv1.ClusterNameLabel] = md.Spec.ClusterName
 
 	// Set the MachineDeployment as directly owned by the Cluster (if not already present).
-	if r.shouldAdopt(md) {
+	if r.shouldUpdateOwnerReference(md) {
 		md.OwnerReferences = util.EnsureOwnerRef(md.OwnerReferences, metav1.OwnerReference{
 			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "Cluster",
@@ -323,15 +323,12 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, md *cluste
 		}
 
 		// Attempt to adopt MachineSet if it meets previous conditions and it has no controller references.
-		if metav1.GetControllerOf(ms) == nil {
-			if err := r.adoptOrphan(ctx, md, ms); err != nil {
-				log.Error(err, "Failed to adopt MachineSet into MachineDeployment")
-				r.recorder.Eventf(md, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt MachineSet %q: %v", ms.Name, err)
-				continue
-			}
-			log.Info("Adopted MachineSet into MachineDeployment")
-			r.recorder.Eventf(md, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted MachineSet %q", ms.Name)
+		if err := r.updateControllerRef(ctx, md, ms); err != nil {
+			r.recorder.Eventf(md, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt MachineSet %q: %v", ms.Name, err)
+			return nil, errors.Wrapf(err, "Failed to adopt MachineSet into MachineDeployment")
 		}
+		log.Info("Adopted MachineSet into MachineDeployment")
+		r.recorder.Eventf(md, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted MachineSet %q", ms.Name)
 
 		if !metav1.IsControlledBy(ms, md) {
 			continue
@@ -343,11 +340,11 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, md *cluste
 	return filtered, nil
 }
 
-// adoptOrphan sets the MachineDeployment as a controller OwnerReference to the MachineSet.
-func (r *Reconciler) adoptOrphan(ctx context.Context, deployment *clusterv1.MachineDeployment, machineSet *clusterv1.MachineSet) error {
+// updateControllerRef sets the MachineDeployment as a controller OwnerReference to the MachineSet.
+func (r *Reconciler) updateControllerRef(ctx context.Context, deployment *clusterv1.MachineDeployment, machineSet *clusterv1.MachineSet) error {
 	patch := client.MergeFrom(machineSet.DeepCopy())
 	newRef := *metav1.NewControllerRef(deployment, machineDeploymentKind)
-	machineSet.OwnerReferences = append(machineSet.OwnerReferences, newRef)
+	machineSet.OwnerReferences = util.EnsureOwnerRef(machineSet.OwnerReferences, newRef)
 	return r.Client.Patch(ctx, machineSet, patch)
 }
 
@@ -415,8 +412,8 @@ func (r *Reconciler) MachineSetToDeployments(o client.Object) []ctrl.Request {
 	return result
 }
 
-func (r *Reconciler) shouldAdopt(md *clusterv1.MachineDeployment) bool {
-	return !util.HasOwner(md.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"})
+func (r *Reconciler) shouldUpdateOwnerReference(md *clusterv1.MachineDeployment) bool {
+	return !util.HasOwnerWithVersion(md.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"})
 }
 
 func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {

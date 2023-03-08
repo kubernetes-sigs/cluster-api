@@ -98,7 +98,7 @@ type ClusterctlUpgradeSpecInput struct {
 	ControlPlaneWaiters clusterctl.ControlPlaneWaiters
 	PreInit             func(managementClusterProxy framework.ClusterProxy)
 	PreUpgrade          func(managementClusterProxy framework.ClusterProxy)
-	PostUpgrade         func(managementClusterProxy framework.ClusterProxy)
+	PostUpgrade         func(managementClusterProxy framework.ClusterProxy, namespace, clusterName string)
 	// PreCleanupManagementCluster hook can be used for extra steps that might be required from providers, for example, remove conflicting service (such as DHCP) running on
 	// the target management cluster and run it on bootstrap (before the latter resumes LCM) if both clusters share the same LAN
 	PreCleanupManagementCluster func(managementClusterProxy framework.ClusterProxy)
@@ -432,7 +432,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		if input.PostUpgrade != nil {
 			By("Running Post-upgrade steps against the management cluster")
-			input.PostUpgrade(managementClusterProxy)
+			input.PostUpgrade(managementClusterProxy, testNamespace.Name, workLoadClusterName)
 		}
 
 		// After the upgrade check that there were no unexpected rollouts.

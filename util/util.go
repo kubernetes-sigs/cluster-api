@@ -294,6 +294,20 @@ func HasOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerRefere
 	return indexOwnerRef(ownerReferences, ref) > -1
 }
 
+// HasOwnerWithVersion checks if any of the references in the passed list match the given group from apiVersion and one of the given kinds.
+func HasOwnerWithVersion(refList []metav1.OwnerReference, apiVersion string, kinds []string) bool {
+	kindMap := make(map[string]bool)
+	for _, kind := range kinds {
+		kindMap[kind] = true
+	}
+	for _, mr := range refList {
+		if mr.APIVersion == apiVersion && kindMap[mr.Kind] {
+			return true
+		}
+	}
+	return false
+}
+
 // EnsureOwnerRef makes sure the slice contains the OwnerReference.
 func EnsureOwnerRef(ownerReferences []metav1.OwnerReference, ref metav1.OwnerReference) []metav1.OwnerReference {
 	idx := indexOwnerRef(ownerReferences, ref)

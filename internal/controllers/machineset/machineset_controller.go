@@ -285,16 +285,23 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		}
 
 		// Attempt to adopt machine if it meets previous conditions and it has no controller references.
-		if metav1.GetControllerOf(machine) == nil {
-			if err := r.adoptOrphan(ctx, machineSet, machine); err != nil {
-				log.Error(err, "Failed to adopt Machine")
-				r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt Machine %q: %v", machine.Name, err)
-				continue
-			}
-			log.Info("Adopted Machine")
-			r.recorder.Eventf(machineSet, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted Machine %q", machine.Name)
+		if err := r.updateControllerReference(ctx, machineSet, machine); err != nil {
+			r.recorder.Eventf(machineSet, corev1.EventTypeWarning, "FailedAdopt", "Failed to adopt Machine %q: %v", machine.Name, err)
+			return ctrl.Result{}, err
 		}
+		log.Info("Adopted Machine")
+		r.recorder.Eventf(machineSet, corev1.EventTypeNormal, "SuccessfulAdopt", "Adopted Machine %q", machine.Name)
 
+		log.Info("STEP 1: Updating controller reference to the latest version")
+
+		// Ensure that the version of the controllerReference is up-to-date.
+		if metav1.GetControllerOf(machine).APIVersion != machineSetKind.GroupVersion().String() {
+			log.Info("STEP 2: Updating controller reference for machine %v to the latest version", klog.KObj(machine))
+			err := r.updateControllerReference(ctx, machineSet, machine)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+		}
 		filteredMachines = append(filteredMachines, machine)
 	}
 
@@ -717,11 +724,11 @@ func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.M
 	return false
 }
 
-// adoptOrphan sets the MachineSet as a controller OwnerReference to the Machine.
-func (r *Reconciler) adoptOrphan(ctx context.Context, machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) error {
+// updateControllerReference sets the MachineSet as a controller OwnerReference to the Machine.
+func (r *Reconciler) updateControllerReference(ctx context.Context, machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) error {
 	patch := client.MergeFrom(machine.DeepCopy())
 	newRef := *metav1.NewControllerRef(machineSet, machineSetKind)
-	machine.OwnerReferences = append(machine.OwnerReferences, newRef)
+	machine.OwnerReferences = util.EnsureOwnerRef(machine.OwnerReferences, newRef)
 	return r.Client.Patch(ctx, machine, patch)
 }
 

@@ -21,9 +21,11 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+
+	"sigs.k8s.io/cluster-api/test/framework"
 )
 
-var _ = Describe("When testing clusterctl upgrades (v0.3=>current)", func() {
+var _ = Describe("When testing clusterctl upgrades (v0.3=>current) [PR-Blocking]", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{
 			E2EConfig:                 e2eConfig,
@@ -38,6 +40,17 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>current)", func() {
 			// CAPI does not work with Kubernetes < v1.22 if ClusterClass is enabled, so we have to disable it.
 			UpgradeClusterctlVariables: map[string]string{
 				"CLUSTER_TOPOLOGY": "false",
+			},
+			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
+			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace,
+					framework.CoreTypeOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
 			},
 		}
 	})
@@ -54,6 +67,17 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1alpha4",
 			InitWithKubernetesVersion: "v1.23.13",
+			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
+			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace,
+					framework.CoreTypeOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+			},
 		}
 	})
 })
@@ -78,6 +102,17 @@ var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
 			InitWithKubernetesVersion:         "v1.23.13",
+			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
+			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace,
+					framework.CoreTypeOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+			},
 		}
 	})
 })
@@ -102,6 +137,17 @@ var _ = Describe("When testing clusterctl upgrades (v1.2=>current)", func() {
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
 			InitWithKubernetesVersion:         "v1.26.0",
+			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
+			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace,
+					framework.CoreTypeOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+			},
 		}
 	})
 })
@@ -127,6 +173,17 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.2=>cur
 			InitWithRuntimeExtensionProviders: []string{},
 			InitWithKubernetesVersion:         "v1.26.0",
 			WorkloadFlavor:                    "topology",
+			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
+			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace,
+					framework.CoreTypeOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+			},
 		}
 	})
 })
@@ -142,6 +199,17 @@ var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			InitWithKubernetesVersion: "v1.26.0",
+			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
+			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace,
+					framework.CoreTypeOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+			},
 		}
 	})
 })
@@ -158,6 +226,17 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>cur
 			InitWithProvidersContract: "v1beta1",
 			InitWithKubernetesVersion: "v1.26.0",
 			WorkloadFlavor:            "topology",
+			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
+			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.ValidateOwnerReferencesOnUpdate(ctx, proxy, namespace,
+					framework.CoreTypeOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+			},
 		}
 	})
 })

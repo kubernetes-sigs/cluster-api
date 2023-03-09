@@ -1,5 +1,5 @@
 /*
-Copyright 2019 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,5 +14,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package loadbalancer contains external loadbalancer related constants and configuration
 package loadbalancer
+
+const (
+	// Image is the loadbalancer image name.
+	Image = "haproxy"
+
+	// DefaultImageRepository is the loadbalancer image repository.
+	DefaultImageRepository = "kindest"
+
+	// DefaultImageTag is the loadbalancer image tag.
+	DefaultImageTag = "v20230227-d46f45b6"
+
+	// ConfigPath is the path to the config file in the image.
+	ConfigPath = "/usr/local/etc/haproxy/haproxy.cfg"
+)

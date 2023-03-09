@@ -46,8 +46,8 @@ func getKubeadmControlPlane(proxy cluster.Proxy, name, namespace string) (*contr
 	return kcpObj, nil
 }
 
-// setRolloutAfter sets KubeadmControlPlane.spec.rolloutAfter.
-func setRolloutAfter(proxy cluster.Proxy, name, namespace string) error {
+// setRolloutAfterOnKCP sets KubeadmControlPlane.spec.rolloutAfter.
+func setRolloutAfterOnKCP(proxy cluster.Proxy, name, namespace string) error {
 	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf(`{"spec":{"rolloutAfter":"%v"}}`, time.Now().Format(time.RFC3339))))
 	return patchKubeadmControlPlane(proxy, name, namespace, patch)
 }

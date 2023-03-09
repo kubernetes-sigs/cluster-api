@@ -37,7 +37,10 @@ func (r *rollout) ObjectRestarter(proxy cluster.Proxy, ref corev1.ObjectReferenc
 		if deployment.Spec.Paused {
 			return errors.Errorf("can't restart paused MachineDeployment (run rollout resume first): %v/%v", ref.Kind, ref.Name)
 		}
-		if err := setRestartedAtAnnotation(proxy, ref.Name, ref.Namespace); err != nil {
+		if deployment.Spec.RolloutAfter != nil && deployment.Spec.RolloutAfter.After(time.Now()) {
+			return errors.Errorf("can't update MachineDeployment (remove 'spec.rolloutAfter' first): %v/%v", ref.Kind, ref.Name)
+		}
+		if err := setRolloutAfterOnMachineDeployment(proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
 	case KubeadmControlPlane:
@@ -51,7 +54,7 @@ func (r *rollout) ObjectRestarter(proxy cluster.Proxy, ref corev1.ObjectReferenc
 		if kcp.Spec.RolloutAfter != nil && kcp.Spec.RolloutAfter.After(time.Now()) {
 			return errors.Errorf("can't update KubeadmControlPlane (remove 'spec.rolloutAfter' first): %v/%v", ref.Kind, ref.Name)
 		}
-		if err := setRolloutAfter(proxy, ref.Name, ref.Namespace); err != nil {
+		if err := setRolloutAfterOnKCP(proxy, ref.Name, ref.Namespace); err != nil {
 			return err
 		}
 	default:

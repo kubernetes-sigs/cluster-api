@@ -81,10 +81,11 @@ func (r *Reconciler) sync(ctx context.Context, md *clusterv1.MachineDeployment, 
 // Note that currently the deployment controller is using caches to avoid querying the server for reads.
 // This may lead to stale reads of machine sets, thus incorrect deployment status.
 func (r *Reconciler) getAllMachineSetsAndSyncRevision(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, createIfNotExisted bool) (*clusterv1.MachineSet, []*clusterv1.MachineSet, error) {
-	_, allOldMSs := mdutil.FindOldMachineSets(md, msList)
+	reconciliationTime := metav1.Now()
+	_, allOldMSs := mdutil.FindOldMachineSets(md, msList, &reconciliationTime)
 
 	// Get new machine set with the updated revision number
-	newMS, err := r.getNewMachineSet(ctx, md, msList, allOldMSs, createIfNotExisted)
+	newMS, err := r.getNewMachineSet(ctx, md, msList, allOldMSs, createIfNotExisted, &reconciliationTime)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -95,7 +96,7 @@ func (r *Reconciler) getAllMachineSetsAndSyncRevision(ctx context.Context, md *c
 // Returns a MachineSet that matches the intent of the given MachineDeployment.
 // If there does not exist such a MachineSet and createIfNotExisted is true, create a new MachineSet.
 // If there is already such a MachineSet, update it to propagate in-place mutable fields from the MachineDeployment.
-func (r *Reconciler) getNewMachineSet(ctx context.Context, md *clusterv1.MachineDeployment, msList, oldMSs []*clusterv1.MachineSet, createIfNotExists bool) (*clusterv1.MachineSet, error) {
+func (r *Reconciler) getNewMachineSet(ctx context.Context, md *clusterv1.MachineDeployment, msList, oldMSs []*clusterv1.MachineSet, createIfNotExists bool, reconciliationTime *metav1.Time) (*clusterv1.MachineSet, error) {
 	// Try to find a MachineSet which matches the MachineDeployments intent, while ignore diffs between
 	// the in-place mutable fields.
 	// If we find a matching MachineSet we just update it to propagate any changes to the in-place mutable
@@ -103,7 +104,7 @@ func (r *Reconciler) getNewMachineSet(ctx context.Context, md *clusterv1.Machine
 	// If we don't find a matching MachineSet, we need a rollout and thus create a new MachineSet.
 	// Note: The in-place mutable fields can be just updated inline, because they do not affect the actual machines
 	// themselves (i.e. the infrastructure and the software running on the Machines not the Machine object).
-	matchingMS := mdutil.FindNewMachineSet(md, msList)
+	matchingMS := mdutil.FindNewMachineSet(md, msList, reconciliationTime)
 
 	// If there is a MachineSet that matches the intent of the MachineDeployment, update the MachineSet
 	// to propagate all in-place mutable fields from MachineDeployment to the MachineSet.
@@ -236,7 +237,10 @@ func (r *Reconciler) computeDesiredMachineSet(deployment *clusterv1.MachineDeplo
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to compute desired MachineSet: failed to compute machine template hash")
 		}
-		uniqueIdentifierLabelValue = fmt.Sprintf("%d", templateHash)
+		// Append a random string at the end of template hash. This is required to distinguish MachineSets that
+		// could be created with the same spec as a result of rolloutAfter. If not, computeDesiredMachineSet
+		// will end up updating the existing MachineSet instead of creating a new one.
+		uniqueIdentifierLabelValue = fmt.Sprintf("%d-%s", templateHash, apirand.String(5))
 
 		name = computeNewMachineSetName(deployment.Name+"-", apirand.SafeEncodeString(uniqueIdentifierLabelValue))
 

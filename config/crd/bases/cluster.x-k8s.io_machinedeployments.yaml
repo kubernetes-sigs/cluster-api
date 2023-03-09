@@ -1080,6 +1080,14 @@ spec:
                   Defaults to 1.
                 format: int32
                 type: integer
+              rolloutAfter:
+                description: 'RolloutAfter is a field to indicate a rollout should
+                  be performed after the specified time even if no changes have been
+                  made to the MachineDeployment. Example: In the YAML the time can
+                  be specified in the RFC3339 format. To specify the rolloutAfter
+                  target as March 9, 2023, at 9 am UTC use "2023-03-09T09:00:00Z".'
+                format: date-time
+                type: string
               selector:
                 description: Label selector for machines. Existing MachineSets whose
                   machines are selected by this will be the ones affected by this

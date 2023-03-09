@@ -1007,6 +1007,10 @@ func (in *MachineDeploymentSpec) DeepCopyInto(out *MachineDeploymentSpec) {
 		*out = new(int32)
 		**out = **in
 	}
+	if in.RolloutAfter != nil {
+		in, out := &in.RolloutAfter, &out.RolloutAfter
+		*out = (*in).DeepCopy()
+	}
 	in.Selector.DeepCopyInto(&out.Selector)
 	in.Template.DeepCopyInto(&out.Template)
 	if in.Strategy != nil {

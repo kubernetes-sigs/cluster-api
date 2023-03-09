@@ -52,9 +52,9 @@ func getMachineDeployment(proxy cluster.Proxy, name, namespace string) (*cluster
 	return mdObj, nil
 }
 
-// setRestartedAtAnnotation sets the restartedAt annotation in the MachineDeployment's spec.template.objectmeta.
-func setRestartedAtAnnotation(proxy cluster.Proxy, name, namespace string) error {
-	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf(`{"spec":{"template":{"metadata":{"annotations":{"cluster.x-k8s.io/restartedAt":"%v"}}}}}`, time.Now().Format(time.RFC3339))))
+// setRolloutAfterOnMachineDeployment sets MachineDeployment.spec.rolloutAfter.
+func setRolloutAfterOnMachineDeployment(proxy cluster.Proxy, name, namespace string) error {
+	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf(`{"spec":{"rolloutAfter":"%v"}}`, time.Now().Format(time.RFC3339))))
 	return patchMachineDeployment(proxy, name, namespace, patch)
 }
 

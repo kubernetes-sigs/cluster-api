@@ -43,7 +43,7 @@ func Test_ObjectRestarter(t *testing.T) {
 		wantRollout bool
 	}{
 		{
-			name: "machinedeployment should have restart annotation",
+			name: "machinedeployment should have rolloutAfter",
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.MachineDeployment{
@@ -67,7 +67,7 @@ func Test_ObjectRestarter(t *testing.T) {
 			wantRollout: true,
 		},
 		{
-			name: "paused machinedeployment should not have restart annotation",
+			name: "paused machinedeployment should not have rolloutAfter",
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.MachineDeployment{
@@ -81,6 +81,33 @@ func Test_ObjectRestarter(t *testing.T) {
 						},
 						Spec: clusterv1.MachineDeploymentSpec{
 							Paused: true,
+						},
+					},
+				},
+				ref: corev1.ObjectReference{
+					Kind:      MachineDeployment,
+					Name:      "md-1",
+					Namespace: "default",
+				},
+			},
+			wantErr:     true,
+			wantRollout: false,
+		},
+		{
+			name: "machinedeployment with spec.rolloutAfter should not be updatable",
+			fields: fields{
+				objs: []client.Object{
+					&clusterv1.MachineDeployment{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "MachineDeployment",
+							APIVersion: "cluster.x-k8s.io/v1beta1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "default",
+							Name:      "md-1",
+						},
+						Spec: clusterv1.MachineDeploymentSpec{
+							RolloutAfter: &metav1.Time{Time: time.Now().Local().Add(time.Hour)},
 						},
 					},
 				},
@@ -193,9 +220,9 @@ func Test_ObjectRestarter(t *testing.T) {
 					err = cl.Get(context.TODO(), key, md)
 					g.Expect(err).ToNot(HaveOccurred())
 					if tt.wantRollout {
-						g.Expect(md.Spec.Template.Annotations).To(HaveKey("cluster.x-k8s.io/restartedAt"))
+						g.Expect(md.Spec.RolloutAfter).NotTo(BeNil())
 					} else {
-						g.Expect(md.Spec.Template.Annotations).ToNot(HaveKey("cluster.x-k8s.io/restartedAt"))
+						g.Expect(md.Spec.RolloutAfter).To(BeNil())
 					}
 				case *controlplanev1.KubeadmControlPlane:
 					kcp := &controlplanev1.KubeadmControlPlane{}
@@ -204,7 +231,7 @@ func Test_ObjectRestarter(t *testing.T) {
 					if tt.wantRollout {
 						g.Expect(kcp.Spec.RolloutAfter).NotTo(BeNil())
 					} else {
-						g.Expect(kcp.Spec.RolloutAfter).To(nil)
+						g.Expect(kcp.Spec.RolloutAfter).To(BeNil())
 					}
 				}
 			}

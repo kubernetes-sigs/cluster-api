@@ -199,6 +199,7 @@ func (src *MachineDeployment) ConvertTo(dstRaw conversion.Hub) error {
 
 	dst.Spec.Template.Spec.NodeDeletionTimeout = restored.Spec.Template.Spec.NodeDeletionTimeout
 	dst.Spec.Template.Spec.NodeVolumeDetachTimeout = restored.Spec.Template.Spec.NodeVolumeDetachTimeout
+	dst.Spec.RolloutAfter = restored.Spec.RolloutAfter
 	dst.Status.Conditions = restored.Status.Conditions
 	return nil
 }
@@ -314,6 +315,10 @@ func Convert_v1beta1_MachineStatus_To_v1alpha3_MachineStatus(in *clusterv1.Machi
 func Convert_v1beta1_MachineSpec_To_v1alpha3_MachineSpec(in *clusterv1.MachineSpec, out *MachineSpec, s apiconversion.Scope) error {
 	// spec.nodeDeletionTimeout has been added with v1beta1.
 	return autoConvert_v1beta1_MachineSpec_To_v1alpha3_MachineSpec(in, out, s)
+}
+
+func Convert_v1beta1_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in *clusterv1.MachineDeploymentSpec, out *MachineDeploymentSpec, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_MachineDeploymentSpec_To_v1alpha3_MachineDeploymentSpec(in, out, s)
 }
 
 func Convert_v1beta1_MachineDeploymentStatus_To_v1alpha3_MachineDeploymentStatus(in *clusterv1.MachineDeploymentStatus, out *MachineDeploymentStatus, s apiconversion.Scope) error {

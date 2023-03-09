@@ -49,11 +49,11 @@ and then both the `Version` and `InfrastructureTemplate` should be modified in a
 
 #### How to schedule a machine rollout
 
-A `KubeadmControlPlane` resource has a field `RolloutAfter` that can be set to a timestamp
-(RFC-3339) after which a rollout should be triggered regardless of whether there were any changes
-to the `KubeadmControlPlane.Spec` or not. This would roll out replacement control plane nodes
-which can be useful e.g. to perform certificate rotation, reflect changes to machine templates,
-move to new machines, etc.
+The  `KubeadmControlPlane` and `MachineDepoyment` resources have a field `RolloutAfter` that can be 
+set to a timestamp (RFC-3339) after which a rollout should be triggered regardless of whether there 
+were any changes to `KubeadmControlPlane.Spec`/`MachineDeployment.Spec.Template` or not. This would 
+roll out replacement nodes which can be useful e.g. to perform certificate rotation, reflect changes
+to machine templates, move to new machines, etc.
 
 Note that this field can only be used for triggering a rollout, not for delaying one. Specifically,
 a rollout can also happen before the time specified in `RolloutAfter` if any changes are made to
@@ -62,18 +62,12 @@ the spec before that time.
 The rollout can be triggered by running the following command:
 
 ```shell
+# Trigger a KubeadmControlPlane rollout.
 clusterctl alpha rollout restart kubeadmcontrollplane/my-kcp
-```
 
-To do the same for machines managed by a `MachineDeployment` it's enough to make an arbitrary
-change to its `Spec.Template`, one common approach is to run:
-
-``` shell
+# Trigger a MachineDeployment rollout.
 clusterctl alpha rollout restart machinedeployment/my-md-0
 ```
-
-This will modify the template by setting an `cluster.x-k8s.io/restartedAt` annotation which will
-trigger a rollout.
 
 ### Upgrading machines managed by a `MachineDeployment`
 

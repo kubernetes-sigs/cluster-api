@@ -20,9 +20,13 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+
+	"sigs.k8s.io/cluster-api/internal/contract"
 )
 
 // Option is the interface for configuration that modifies Options for a patch request.
@@ -64,11 +68,18 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 		opt.ApplyToOptions(options)
 	}
 
+	// Convert the object to unstructured and filter out fields we don't
+	// want to set (e.g. metadata creationTimestamp).
+	// Note: This is necessary to avoid continuous reconciles.
+	modifiedUnstructured, err := prepareModified(c.Scheme(), modified)
+	if err != nil {
+		return err
+	}
+
 	var requestIdentifier string
-	var err error
 	if options.WithCachingProxy {
 		// Check if the request is cached.
-		requestIdentifier, err = ComputeRequestIdentifier(c.Scheme(), options.Original, modified)
+		requestIdentifier, err = ComputeRequestIdentifier(c.Scheme(), options.Original, modifiedUnstructured)
 		if err != nil {
 			return errors.Wrapf(err, "failed to apply object")
 		}
@@ -81,25 +92,63 @@ func Patch(ctx context.Context, c client.Client, fieldManager string, modified c
 		}
 	}
 
-	gvk, err := apiutil.GVKForObject(modified, c.Scheme())
+	gvk, err := apiutil.GVKForObject(modifiedUnstructured, c.Scheme())
 	if err != nil {
-		return errors.Wrapf(err, "failed to apply object: failed to get GroupVersionKind of modified object %s", klog.KObj(modified))
+		return errors.Wrapf(err, "failed to apply object: failed to get GroupVersionKind of modified object %s", klog.KObj(modifiedUnstructured))
 	}
 
 	patchOptions := []client.PatchOption{
 		client.ForceOwnership,
 		client.FieldOwner(fieldManager),
 	}
-	if err := c.Patch(ctx, modified, client.Apply, patchOptions...); err != nil {
-		return errors.Wrapf(err, "failed to apply %s %s", gvk.Kind, klog.KObj(modified))
+	if err := c.Patch(ctx, modifiedUnstructured, client.Apply, patchOptions...); err != nil {
+		return errors.Wrapf(err, "failed to apply %s %s", gvk.Kind, klog.KObj(modifiedUnstructured))
+	}
+
+	// Write back the modified object so callers can access the patched object.
+	if err := c.Scheme().Convert(modifiedUnstructured, modified, ctx); err != nil {
+		return errors.Wrapf(err, "failed to write modified object")
 	}
 
 	if options.WithCachingProxy {
 		// If the SSA call did not update the object, add the request to the cache.
-		if options.Original.GetResourceVersion() == modified.GetResourceVersion() {
+		if options.Original.GetResourceVersion() == modifiedUnstructured.GetResourceVersion() {
 			options.Cache.Add(requestIdentifier)
 		}
 	}
 
 	return nil
+}
+
+// prepareModified converts obj into an Unstructured and filters out undesired fields.
+func prepareModified(scheme *runtime.Scheme, obj client.Object) (*unstructured.Unstructured, error) {
+	u := &unstructured.Unstructured{}
+	switch obj.(type) {
+	case *unstructured.Unstructured:
+		u = obj.DeepCopyObject().(*unstructured.Unstructured)
+	default:
+		if err := scheme.Convert(obj, u, nil); err != nil {
+			return nil, errors.Wrap(err, "failed to convert object to Unstructured")
+		}
+	}
+
+	// Only keep the paths that we have opinions on.
+	FilterObject(u, &FilterObjectInput{
+		AllowedPaths: []contract.Path{
+			// apiVersion, kind, name and namespace are required field for a server side apply intent.
+			{"apiVersion"},
+			{"kind"},
+			{"metadata", "name"},
+			{"metadata", "namespace"},
+			// uid is optional for a server side apply intent but sets the expectation of an object getting created or a specific one updated.
+			{"metadata", "uid"},
+			// our controllers only have an opinion on labels, annotation, finalizers ownerReferences and spec.
+			{"metadata", "labels"},
+			{"metadata", "annotations"},
+			{"metadata", "finalizers"},
+			{"metadata", "ownerReferences"},
+			{"spec"},
+		},
+	})
+	return u, nil
 }

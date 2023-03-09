@@ -387,6 +387,20 @@ func (p *clusterProxy) fixConfig(ctx context.Context, name string, config *api.C
 	ctx = container.RuntimeInto(ctx, containerRuntime)
 
 	lbContainerName := name + "-lb"
+
+	// Check if the container exists locally.
+	filters := container.FilterBuilder{}
+	filters.AddKeyValue("name", lbContainerName)
+	containers, err := containerRuntime.ListContainers(ctx, filters)
+	Expect(err).ToNot(HaveOccurred())
+	if len(containers) == 0 {
+		// Return without changing the config if the container does not exist locally.
+		// Note: This is necessary when running the tests with Tilt and a remote Docker
+		// engine as the lb container running on the remote Docker engine is accessible
+		// under its normal address but not via 127.0.0.1.
+		return
+	}
+
 	port, err := containerRuntime.GetHostPort(ctx, lbContainerName, "6443/tcp")
 	Expect(err).ToNot(HaveOccurred(), "Failed to get load balancer port")
 

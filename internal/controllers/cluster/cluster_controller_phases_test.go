@@ -24,6 +24,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -136,7 +137,8 @@ func TestClusterReconcilePhases(t *testing.T) {
 						Build()
 				}
 				r := &Reconciler{
-					Client: c,
+					Client:   c,
+					recorder: record.NewFakeRecorder(32),
 				}
 
 				res, err := r.reconcileInfrastructure(ctx, tt.cluster)
@@ -215,7 +217,8 @@ func TestClusterReconcilePhases(t *testing.T) {
 						Build()
 				}
 				r := &Reconciler{
-					Client: c,
+					Client:   c,
+					recorder: record.NewFakeRecorder(32),
 				}
 				res, err := r.reconcileKubeconfig(ctx, tt.cluster)
 				if tt.wantErr {
@@ -364,7 +367,8 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 				Build()
 
 			r := &Reconciler{
-				Client: c,
+				Client:   c,
+				recorder: record.NewFakeRecorder(32),
 			}
 			r.reconcilePhase(ctx, tt.cluster)
 			g.Expect(tt.cluster.Status.GetTypedPhase()).To(Equal(tt.wantPhase))
@@ -479,7 +483,8 @@ func TestClusterReconcilePhases_reconcileFailureDomains(t *testing.T) {
 			}
 
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+				Client:   fake.NewClientBuilder().WithObjects(objs...).Build(),
+				recorder: record.NewFakeRecorder(32),
 			}
 
 			_, err := r.reconcileInfrastructure(ctx, tt.cluster)

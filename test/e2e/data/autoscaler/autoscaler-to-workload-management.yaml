@@ -1,0 +1,58 @@
+# This yaml creates a service account to be used by the autoscaler running on a workload cluster
+# to match against the corresponding Cluster API cluster which is defined into the management cluster.
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-${CLUSTER_NAME}
+  namespace: ${CLUSTER_NAMESPACE}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: cluster-${CLUSTER_NAME}-token
+  namespace: ${CLUSTER_NAMESPACE}
+  annotations:
+    kubernetes.io/service-account.name: cluster-${CLUSTER_NAME}
+type: kubernetes.io/service-account-token
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-${CLUSTER_NAME}
+  namespace: ${CLUSTER_NAMESPACE}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cluster-${CLUSTER_NAME}
+subjects:
+  - kind: ServiceAccount
+    name: cluster-${CLUSTER_NAME}
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-${CLUSTER_NAME}
+  namespace: ${CLUSTER_NAMESPACE}
+rules:
+  - apiGroups:
+      - cluster.x-k8s.io
+    resources:
+      - machinedeployments
+      - machinedeployments/scale
+      - machines
+      - machinesets
+    verbs:
+      - get
+      - list
+      - update
+      - watch
+  # This is required to allow the autoscaler to scale up dockermachines
+  # Change this if using with another Cluster API provider.
+  - apiGroups:
+      - infrastructure.cluster.x-k8s.io
+    resources:
+      - dockermachinetemplates
+    verbs:
+      - get
+      - list

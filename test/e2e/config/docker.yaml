@@ -261,6 +261,7 @@ providers:
     files:
     # Add cluster templates
     - sourcePath: "../data/infrastructure-docker/main/cluster-template.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-autoscaler.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-md-remediation.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-remediation.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-adoption.yaml"
@@ -277,6 +278,10 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-runtimesdk.yaml"
     - sourcePath: "../data/shared/main/metadata.yaml"
+    # Add the autoscaler deployment.
+    # Note: we are adding the autoscaler deployment here because the test assumes it exists in the latest version of the kubemark provider.
+    - sourcePath: "../data/autoscaler/autoscaler-to-workload-management.yaml"
+    - sourcePath: "../data/autoscaler/autoscaler-to-workload-workload.yaml"
 
 - name: test-extension
   type: RuntimeExtensionProvider

@@ -1,0 +1,202 @@
+# This yaml deploys the autoscaler on a workload cluster and configures it to match
+# against the corresponding Cluster API cluster which is defined into the management cluster.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cluster-autoscaler-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler
+  namespace: cluster-autoscaler-system
+  labels:
+    app: cluster-autoscaler
+spec:
+  selector:
+    matchLabels:
+      app: cluster-autoscaler
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cluster-autoscaler
+    spec:
+      containers:
+        - image: k8s.gcr.io/autoscaling/cluster-autoscaler:${AUTOSCALER_VERSION}
+          name: cluster-autoscaler
+          command:
+            - /cluster-autoscaler
+          args:
+            - --cloud-provider=clusterapi
+            # Specify kubeconfig for management cluster
+            - --cloud-config=/management-cluster/kubeconfig
+            # Limit cluster autoscaler to only match against resources belonging to a single Cluster API cluster
+            - --node-group-auto-discovery=clusterapi:namespace=${CLUSTER_NAMESPACE},clusterName=${CLUSTER_NAME}
+          volumeMounts:
+            - name: kubeconfig-management-cluster
+              mountPath: /management-cluster
+              readOnly: true
+      serviceAccountName: cluster-autoscaler
+      terminationGracePeriodSeconds: 10
+      # NOTE: Using "hostNetwork: true" because it is required to resolve host.docker.internal in order to
+      # access the management cluster from the workload cluster.
+      hostNetwork: true
+      # We are scheduling the control plane on the CP node, because it is backed by real infrastructure (CAPD)
+      # while workers instead are backed by kubemark.
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: ""
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/control-plane
+      volumes:
+        - name: kubeconfig-management-cluster
+          secret:
+            secretName: kubeconfig-management-cluster
+            optional: false
+
+---
+# Specify kubeconfig for management cluster
+apiVersion: v1
+kind: Secret
+metadata:
+  name: kubeconfig-management-cluster
+  namespace: cluster-autoscaler-system
+stringData:
+  # NOTE: Using "insecure-skip-tls-verify: true" because kind does not add host.docker.internal to the
+  # API Server certificate, and we need to use this address in order to access the management cluster
+  # from the workload cluster.
+  kubeconfig: |
+    apiVersion: v1
+    kind: Config
+    clusters:
+    - name: management-cluster
+      cluster:
+        insecure-skip-tls-verify: true
+        server: ${MANAGEMENT_CLUSTER_ADDRESS}
+    contexts:
+    - name: management-context
+      context:
+        cluster: management-cluster
+        namespace: ${CLUSTER_NAMESPACE}
+        user: cluster-autoscaler-sa
+    current-context: management-context
+    users:
+    - name: cluster-autoscaler-sa
+      user:
+        token: ${MANAGEMENT_CLUSTER_TOKEN}
+
+---
+# Defines the service used by the cluster autoscaler and gives it
+# RBAC permissions to look at all the workloads running in this cluster.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-autoscaler
+  namespace: cluster-autoscaler-system
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-autoscaler-workload
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-autoscaler-workload
+subjects:
+  - kind: ServiceAccount
+    name: cluster-autoscaler
+    namespace: cluster-autoscaler-system
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cluster-autoscaler-workload
+rules:
+  - apiGroups:
+      - ""
+    resources:
+      - namespaces
+      - persistentvolumeclaims
+      - persistentvolumes
+      - pods
+      - replicationcontrollers
+      - services
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - nodes
+    verbs:
+      - get
+      - list
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods/eviction
+    verbs:
+      - create
+  - apiGroups:
+      - policy
+    resources:
+      - poddisruptionbudgets
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - storage.k8s.io
+    resources:
+      - csinodes
+      - storageclasses
+      - csidrivers
+      - csistoragecapacities
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - batch
+    resources:
+      - jobs
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+      - replicasets
+      - statefulsets
+    verbs:
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - create
+      - patch
+  - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - create
+      - delete
+      - get
+      - update
+  - apiGroups:
+      - coordination.k8s.io
+    resources:
+      - leases
+    verbs:
+      - create
+      - get
+      - update

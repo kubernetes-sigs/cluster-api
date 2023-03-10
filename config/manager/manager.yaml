@@ -22,7 +22,7 @@ spec:
           args:
             - "--leader-elect"
             - "--metrics-bind-addr=localhost:8080"
-            - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},ClusterResourceSet=${EXP_CLUSTER_RESOURCE_SET:=false},ClusterTopology=${CLUSTER_TOPOLOGY:=false},RuntimeSDK=${EXP_RUNTIME_SDK:=false}"
+            - "--feature-gates=MachinePool=${EXP_MACHINE_POOL:=false},ClusterResourceSet=${EXP_CLUSTER_RESOURCE_SET:=false},ClusterTopology=${CLUSTER_TOPOLOGY:=false},RuntimeSDK=${EXP_RUNTIME_SDK:=false},LazyRestmapper=${EXP_LAZY_RESTMAPPER:=false}"
           image: controller:latest
           name: manager
           env:

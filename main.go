@@ -31,8 +31,10 @@ import (
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
@@ -41,6 +43,7 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
@@ -249,7 +252,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	mgr, err := ctrl.NewManager(restConfig, ctrl.Options{
+	ctrlOptions := ctrl.Options{
 		Scheme:                     scheme,
 		MetricsBindAddress:         metricsBindAddr,
 		LeaderElection:             enableLeaderElection,
@@ -268,7 +271,15 @@ func main() {
 		CertDir:                webhookCertDir,
 		HealthProbeBindAddress: healthAddr,
 		TLSOpts:                tlsOptionOverrides,
-	})
+	}
+
+	if feature.Gates.Enabled(feature.LazyRestmapper) {
+		ctrlOptions.MapperProvider = func(c *rest.Config) (meta.RESTMapper, error) {
+			return apiutil.NewDynamicRESTMapper(c, apiutil.WithExperimentalLazyMapper)
+		}
+	}
+
+	mgr, err := ctrl.NewManager(restConfig, ctrlOptions)
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)

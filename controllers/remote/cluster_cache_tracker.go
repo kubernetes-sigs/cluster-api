@@ -47,6 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -370,8 +371,15 @@ func (t *ClusterCacheTracker) runningOnWorkloadCluster(ctx context.Context, c cl
 
 // createClient creates a client and a mapper based on a rest.Config.
 func (t *ClusterCacheTracker) createClient(config *rest.Config, cluster client.ObjectKey) (client.Client, meta.RESTMapper, error) {
+	var mapper meta.RESTMapper
+	var err error
+
 	// Create a mapper for it
-	mapper, err := apiutil.NewDynamicRESTMapper(config)
+	if !feature.Gates.Enabled(feature.LazyRestmapper) {
+		mapper, err = apiutil.NewDynamicRESTMapper(config)
+	} else {
+		mapper, err = apiutil.NewDynamicRESTMapper(config, apiutil.WithExperimentalLazyMapper)
+	}
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error creating dynamic rest mapper for remote cluster %q", cluster.String())
 	}

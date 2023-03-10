@@ -148,6 +148,26 @@ const (
 	// This annotation can be used to inform MachinePool status during in-progress scaling scenarios.
 	ReplicasManagedByAnnotation = "cluster.x-k8s.io/replicas-managed-by"
 
+	// AutoscalerMinSizeAnnotation defines the minimum node group size.
+	// The annotation is used by autoscaler.
+	// The annotation is copied from kubernetes/autoscaler.
+	// Ref:https://github.com/kubernetes/autoscaler/blob/d8336cca37dbfa5d1cb7b7e453bd511172d6e5e7/cluster-autoscaler/cloudprovider/clusterapi/clusterapi_utils.go#L256-L259
+	// Note: With the Kubernetes autoscaler it is possible to use different annotations by configuring a different
+	// "Cluster API group" than "cluster.x-k8s.io" via the "CAPI_GROUP" environment variable.
+	// We only handle the default group in our implementation.
+	// Note: It can be used by setting as top level annotation on MachineDeployment and MachineSets.
+	AutoscalerMinSizeAnnotation = "cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size"
+
+	// AutoscalerMaxSizeAnnotation defines the maximum node group size.
+	// The annotations is used by the autoscaler.
+	// The annotation definition is copied from kubernetes/autoscaler.
+	// Ref:https://github.com/kubernetes/autoscaler/blob/d8336cca37dbfa5d1cb7b7e453bd511172d6e5e7/cluster-autoscaler/cloudprovider/clusterapi/clusterapi_utils.go#L264-L267
+	// Note: With the Kubernetes autoscaler it is possible to use different annotations by configuring a different
+	// "Cluster API group" than "cluster.x-k8s.io" via the "CAPI_GROUP" environment variable.
+	// We only handle the default group in our implementation.
+	// Note: It can be used by setting as top level annotation on MachineDeployment and MachineSets.
+	AutoscalerMaxSizeAnnotation = "cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size"
+
 	// VariableDefinitionFromInline indicates a patch or variable was defined in the `.spec` of a ClusterClass
 	// rather than from an external patch extension.
 	VariableDefinitionFromInline = "inline"

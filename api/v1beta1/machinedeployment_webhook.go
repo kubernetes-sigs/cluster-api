@@ -267,14 +267,6 @@ func (m *MachineDeployment) validate(old *MachineDeployment) error {
 	return apierrors.NewInvalid(GroupVersion.WithKind("MachineDeployment").GroupKind(), m.Name, allErrs)
 }
 
-// With the Kubernetes autoscaler it is possible to use different annotations by configuring a different
-// "Cluster API group" than "cluster.x-k8s.io" via the "CAPI_GROUP" environment variable.
-// We only handle the default group in our implementation.
-const (
-	autoscalerMinSize = "cluster.x-k8s.io/cluster-api-autoscaler-node-group-min-size"
-	autoscalerMaxSize = "cluster.x-k8s.io/cluster-api-autoscaler-node-group-max-size"
-)
-
 // calculateMachineDeploymentReplicas calculates the default value of the replicas field.
 // The value will be calculated based on the following logic:
 // * if replicas is already set on newMD, keep the current value
@@ -314,23 +306,23 @@ func calculateMachineDeploymentReplicas(ctx context.Context, oldMD *MachineDeplo
 	log := ctrl.LoggerFrom(ctx).WithValues("MachineDeployment", klog.KObj(newMD))
 
 	// If both autoscaler annotations are set, use them to calculate the default value.
-	minSizeString, hasMinSizeAnnotation := newMD.Annotations[autoscalerMinSize]
-	maxSizeString, hasMaxSizeAnnotation := newMD.Annotations[autoscalerMaxSize]
+	minSizeString, hasMinSizeAnnotation := newMD.Annotations[AutoscalerMinSizeAnnotation]
+	maxSizeString, hasMaxSizeAnnotation := newMD.Annotations[AutoscalerMaxSizeAnnotation]
 	if hasMinSizeAnnotation && hasMaxSizeAnnotation {
 		minSize, err := strconv.ParseInt(minSizeString, 10, 32)
 		if err != nil {
-			return 0, errors.Wrapf(err, "failed to caculate MachineDeployment replicas value: could not parse the value of the %q annotation", autoscalerMinSize)
+			return 0, errors.Wrapf(err, "failed to caculate MachineDeployment replicas value: could not parse the value of the %q annotation", AutoscalerMinSizeAnnotation)
 		}
 		maxSize, err := strconv.ParseInt(maxSizeString, 10, 32)
 		if err != nil {
-			return 0, errors.Wrapf(err, "failed to caculate MachineDeployment replicas value: could not parse the value of the %q annotation", autoscalerMaxSize)
+			return 0, errors.Wrapf(err, "failed to caculate MachineDeployment replicas value: could not parse the value of the %q annotation", AutoscalerMaxSizeAnnotation)
 		}
 
 		// If it's a new MachineDeployment => Use the min size.
 		// Note: This will result in a scale up to get into the range where autoscaler takes over.
 		if oldMD == nil {
 			if !dryRun {
-				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (MD is a new MD)", minSize, autoscalerMinSize))
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (MD is a new MD)", minSize, AutoscalerMinSizeAnnotation))
 			}
 			return int32(minSize), nil
 		}
@@ -344,21 +336,21 @@ func calculateMachineDeploymentReplicas(ctx context.Context, oldMD *MachineDeplo
 		// We only have this handling to be 100% safe against panics.
 		case oldMD.Spec.Replicas == nil:
 			if !dryRun {
-				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MD didn't have replicas set)", minSize, autoscalerMinSize))
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MD didn't have replicas set)", minSize, AutoscalerMinSizeAnnotation))
 			}
 			return int32(minSize), nil
 		// If the old MachineDeployment replicas are lower than min size => Use the min size.
 		// Note: This will result in a scale up to get into the range where autoscaler takes over.
 		case *oldMD.Spec.Replicas < int32(minSize):
 			if !dryRun {
-				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MD had replicas below min size)", minSize, autoscalerMinSize))
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MD had replicas below min size)", minSize, AutoscalerMinSizeAnnotation))
 			}
 			return int32(minSize), nil
 		// If the old MachineDeployment replicas are higher than max size => Use the max size.
 		// Note: This will result in a scale down to get into the range where autoscaler takes over.
 		case *oldMD.Spec.Replicas > int32(maxSize):
 			if !dryRun {
-				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MD had replicas above max size)", maxSize, autoscalerMaxSize))
+				log.V(2).Info(fmt.Sprintf("Replica field has been defaulted to %d based on the %s annotation (old MD had replicas above max size)", maxSize, AutoscalerMaxSizeAnnotation))
 			}
 			return int32(maxSize), nil
 		// If the old MachineDeployment replicas are between min and max size => Keep the current value.

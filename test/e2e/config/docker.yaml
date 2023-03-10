@@ -304,6 +304,7 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-scale-in.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-ipv6.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-single-node-cluster.yaml"
+    - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology-autoscaler.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-topology.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-ignition.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start.yaml"
@@ -337,6 +338,7 @@ variables:
   DOCKER_POD_IPV6_CIDRS: "fd00:100:96::/48"
   CNI: "./data/cni/calico/calico.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
+  AUTOSCALER_WORKLOAD: "./data/autoscaler/autoscaler-to-workload-workload.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
   # Enabling the feature flags by setting the env variables.
   EXP_CLUSTER_RESOURCE_SET: "true"
@@ -357,6 +359,7 @@ intervals:
   default/wait-machine-pool-upgrade: ["5m", "10s"]
   default/wait-nodes-ready: ["10m", "10s"]
   default/wait-machine-remediation: ["5m", "10s"]
+  default/wait-autoscaler: ["5m", "10s"]
   node-drain/wait-deployment-available: ["3m", "10s"]
   node-drain/wait-control-plane: ["15m", "10s"]
   node-drain/wait-machine-deleted: ["2m", "10s"]

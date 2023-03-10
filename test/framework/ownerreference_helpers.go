@@ -157,9 +157,9 @@ var ExpOwnerReferenceAssertions = map[string]func([]metav1.OwnerReference) error
 		// ClusterResourcesSet doesn't have ownerReferences (it is a clusterctl move-hierarchy root).
 		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{})
 	},
-	// ClusterResourcesSetBinding has both Cluster and ClusterResourceSet set as owners on creation.
+	// ClusterResourcesSetBinding has ClusterResourceSet set as owners on creation.
 	clusterResourceSetBindingKind: func(owners []metav1.OwnerReference) error {
-		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterGVK, clusterResourceSetGVK})
+		return hasExactOwnersByGVK(owners, []schema.GroupVersionKind{clusterResourceSetGVK})
 	},
 }
 

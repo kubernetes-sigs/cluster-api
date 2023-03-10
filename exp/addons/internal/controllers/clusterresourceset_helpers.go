@@ -32,6 +32,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -120,9 +121,9 @@ func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx 
 		}
 		clusterResourceSetBinding.Name = cluster.Name
 		clusterResourceSetBinding.Namespace = cluster.Namespace
-		clusterResourceSetBinding.OwnerReferences = ensureOwnerRefs(clusterResourceSetBinding, clusterResourceSet, cluster)
+		clusterResourceSetBinding.OwnerReferences = ensureOwnerRefs(clusterResourceSetBinding, clusterResourceSet)
 		clusterResourceSetBinding.Spec.Bindings = []*addonsv1.ResourceSetBinding{}
-
+		clusterResourceSetBinding.Spec.ClusterName = cluster.Name
 		if err := r.Client.Create(ctx, clusterResourceSetBinding); err != nil {
 			if apierrors.IsAlreadyExists(err) {
 				if err = r.Client.Get(ctx, clusterResourceSetBindingKey, clusterResourceSetBinding); err != nil {
@@ -136,16 +137,10 @@ func (r *ClusterResourceSetReconciler) getOrCreateClusterResourceSetBinding(ctx 
 	return clusterResourceSetBinding, nil
 }
 
-// ensureOwnerRefs ensures Cluster and ClusterResourceSet owner references are set on the ClusterResourceSetBinding.
-func ensureOwnerRefs(clusterResourceSetBinding *addonsv1.ClusterResourceSetBinding, clusterResourceSet *addonsv1.ClusterResourceSet, cluster *clusterv1.Cluster) []metav1.OwnerReference {
+// ensureOwnerRefs ensure ClusterResourceSet owner references are set on the ClusterResourceSetBinding.
+func ensureOwnerRefs(clusterResourceSetBinding *addonsv1.ClusterResourceSetBinding, clusterResourceSet *addonsv1.ClusterResourceSet) []metav1.OwnerReference {
 	ownerRefs := make([]metav1.OwnerReference, len(clusterResourceSetBinding.GetOwnerReferences()))
 	copy(ownerRefs, clusterResourceSetBinding.GetOwnerReferences())
-	ownerRefs = util.EnsureOwnerRef(ownerRefs, metav1.OwnerReference{
-		APIVersion: clusterv1.GroupVersion.String(),
-		Kind:       "Cluster",
-		Name:       cluster.Name,
-		UID:        cluster.UID,
-	})
 	ownerRefs = util.EnsureOwnerRef(ownerRefs,
 		metav1.OwnerReference{
 			APIVersion: clusterResourceSet.GroupVersionKind().GroupVersion().String(),
@@ -233,4 +228,25 @@ func normalizeData(resource *unstructured.Unstructured) ([][]byte, error) {
 	}
 
 	return dataList, nil
+}
+
+func getClusterNameFromOwnerRef(obj metav1.ObjectMeta) (string, error) {
+	for _, ref := range obj.OwnerReferences {
+		if ref.Kind != "Cluster" {
+			continue
+		}
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to find cluster name in ownerRefs")
+		}
+
+		if gv.Group != clusterv1.GroupVersion.Group {
+			continue
+		}
+		if ref.Name == "" {
+			return "", errors.New("failed to find cluster name in ownerRefs: ref name is empty")
+		}
+		return ref.Name, nil
+	}
+	return "", errors.New("failed to find cluster name in ownerRefs: no cluster ownerRef")
 }

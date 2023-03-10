@@ -17,9 +17,11 @@ limitations under the License.
 package v1alpha3
 
 import (
+	apiconversion "k8s.io/apimachinery/pkg/conversion"
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	addonsv1 "sigs.k8s.io/cluster-api/exp/addons/api/v1beta1"
+	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 )
 
 func (src *ClusterResourceSet) ConvertTo(dstRaw conversion.Hub) error {
@@ -49,13 +51,31 @@ func (dst *ClusterResourceSetList) ConvertFrom(srcRaw conversion.Hub) error {
 func (src *ClusterResourceSetBinding) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*addonsv1.ClusterResourceSetBinding)
 
-	return Convert_v1alpha3_ClusterResourceSetBinding_To_v1beta1_ClusterResourceSetBinding(src, dst, nil)
+	if err := Convert_v1alpha3_ClusterResourceSetBinding_To_v1beta1_ClusterResourceSetBinding(src, dst, nil); err != nil {
+		return err
+	}
+	// Manually restore data.
+	restored := &addonsv1.ClusterResourceSetBinding{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+	dst.Spec.ClusterName = restored.Spec.ClusterName
+	return nil
 }
 
 func (dst *ClusterResourceSetBinding) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*addonsv1.ClusterResourceSetBinding)
 
-	return Convert_v1beta1_ClusterResourceSetBinding_To_v1alpha3_ClusterResourceSetBinding(src, dst, nil)
+	if err := Convert_v1beta1_ClusterResourceSetBinding_To_v1alpha3_ClusterResourceSetBinding(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Preserve Hub data on down-conversion except for metadata
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *ClusterResourceSetBindingList) ConvertTo(dstRaw conversion.Hub) error {
@@ -68,4 +88,10 @@ func (dst *ClusterResourceSetBindingList) ConvertFrom(srcRaw conversion.Hub) err
 	src := srcRaw.(*addonsv1.ClusterResourceSetBindingList)
 
 	return Convert_v1beta1_ClusterResourceSetBindingList_To_v1alpha3_ClusterResourceSetBindingList(src, dst, nil)
+}
+
+// Convert_v1beta1_ClusterResourceSetBindingSpec_To_v1alpha3_ClusterResourceSetBindingSpec is a conversion function.
+func Convert_v1beta1_ClusterResourceSetBindingSpec_To_v1alpha3_ClusterResourceSetBindingSpec(in *addonsv1.ClusterResourceSetBindingSpec, out *ClusterResourceSetBindingSpec, s apiconversion.Scope) error {
+	// Spec.ClusterName does not exist in ClusterResourceSetBinding v1alpha3 API.
+	return autoConvert_v1beta1_ClusterResourceSetBindingSpec_To_v1alpha3_ClusterResourceSetBindingSpec(in, out, s)
 }

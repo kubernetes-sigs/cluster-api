@@ -303,6 +303,9 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	if err := (&addonsv1.ClusterResourceSet{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for crs: %+v", err)
 	}
+	if err := (&addonsv1.ClusterResourceSetBinding{}).SetupWebhookWithManager(mgr); err != nil {
+		klog.Fatalf("unable to create webhook for ClusterResourceSetBinding: %+v", err)
+	}
 	if err := (&expv1.MachinePool{}).SetupWebhookWithManager(mgr); err != nil {
 		klog.Fatalf("unable to create webhook for machinepool: %+v", err)
 	}

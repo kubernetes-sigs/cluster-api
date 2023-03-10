@@ -86,7 +86,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 	g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(machineList.Items).To(HaveLen(1))
 
-	res, err := collections.GetFilteredMachinesForCluster(ctx, env, cluster, collections.OwnedMachines(kcp))
+	res, err := collections.GetFilteredMachinesForCluster(ctx, env.GetAPIReader(), cluster, collections.OwnedMachines(kcp))
 	g.Expect(res).To(HaveLen(1))
 	g.Expect(err).NotTo(HaveOccurred())
 

@@ -1,0 +1,48 @@
+name: 🐛 Bug Report
+description: Report a bug encountered while using Cluster API
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What steps did you take and what happened?
+      description: |
+        Please provide as much info as possible. Not doing so may result in your bug not being addressed in a timely manner.
+        If this matter is security related, please follow the guidelines described in https://github.com/kubernetes-sigs/cluster-api/blob/main/SECURITY_CONTACTS
+      placeholder: "A clear and concise description on how to REPRODUCE the bug."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+
+  - type: textarea
+    id: capiVersion
+    attributes:
+      label: Cluster API version
+      placeholder: "The version of the Cluster API used in the environment."
+    validations:
+      required: true
+
+  - type: textarea
+    id: kubeVersion
+    attributes:
+      label: Kubernetes version
+      placeholder: "$kubectl version"
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Anything else you would like to add?
+      placeholder: "Miscellaneous information that will assist in solving the issue."
+
+  - type: textarea
+    id: templateLabel
+    attributes:
+      label: Label(s) to be applied
+      value: |
+        /kind bug
+        One or more /area label. See https://github.com/kubernetes-sigs/cluster-api/labels?q=area for the list of labels.

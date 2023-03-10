@@ -687,6 +687,9 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 
 	// Apply annotations
 	machineDeploymentAnnotations := mergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations)
+	// Ensure the annotations used to control the upgrade sequence are never propagated.
+	delete(machineDeploymentAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
+	delete(machineDeploymentAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
 	desiredMachineDeploymentObj.SetAnnotations(machineDeploymentAnnotations)
 	desiredMachineDeploymentObj.Spec.Template.Annotations = machineDeploymentAnnotations
 
@@ -990,15 +993,14 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	return template
 }
 
-// mergeMap merges two maps into another one.
-// NOTE: In case a key exists in both maps, the value in the first map is preserved.
-func mergeMap(a, b map[string]string) map[string]string {
+// mergeMap merges maps.
+// NOTE: In case a key exists in multiple maps, the value of the first map is preserved.
+func mergeMap(maps ...map[string]string) map[string]string {
 	m := make(map[string]string)
-	for k, v := range b {
-		m[k] = v
-	}
-	for k, v := range a {
-		m[k] = v
+	for i := len(maps) - 1; i >= 0; i-- {
+		for k, v := range maps[i] {
+			m[k] = v
+		}
 	}
 
 	// Nil the result if the map is empty, thus avoiding triggering infinite reconcile

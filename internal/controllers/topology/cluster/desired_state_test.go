@@ -1324,8 +1324,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 		Build()
 	workerBootstrapTemplate := builder.BootstrapTemplate(metav1.NamespaceDefault, "linux-worker-bootstraptemplate").
 		Build()
-	labels := map[string]string{"fizz": "buzz", "foo": "bar"}
-	annotations := map[string]string{"annotation-1": "annotation-1-val"}
+	labels := map[string]string{"fizzLabel": "buzz", "fooLabel": "bar"}
+	annotations := map[string]string{"fizzAnnotation": "buzz", "fooAnnotation": "bar"}
 
 	unhealthyConditions := []clusterv1.UnhealthyCondition{
 		{
@@ -1410,7 +1410,17 @@ func TestComputeMachineDeployment(t *testing.T) {
 	}
 	mdTopology := clusterv1.MachineDeploymentTopology{
 		Metadata: clusterv1.ObjectMeta{
-			Labels: map[string]string{"foo": "baz"},
+			Labels: map[string]string{
+				// Should overwrite the label from the MachineDeployment class.
+				"fooLabel": "baz",
+			},
+			Annotations: map[string]string{
+				// Should overwrite the annotation from the MachineDeployment class.
+				"fooAnnotation": "baz",
+				// These annotations should not be propagated to the MachineDeployment.
+				clusterv1.ClusterTopologyDeferUpgradeAnnotation:        "",
+				clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation: "",
+			},
 		},
 		Class:                   "linux-worker",
 		Name:                    "big-pool-of-machines",
@@ -1457,18 +1467,28 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Name).To(ContainSubstring("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("big-pool-of-machines"))
 
-		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
-		g.Expect(actualMd.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
-		for k, v := range mergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels) {
-			g.Expect(actualMd.Labels).To(HaveKeyWithValue(k, v))
-		}
+		expectedAnnotations := mergeMap(mdTopology.Metadata.Annotations, md1.Template.Metadata.Annotations)
+		delete(expectedAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
+		delete(expectedAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
+		g.Expect(actualMd.Annotations).To(Equal(expectedAnnotations))
+		g.Expect(actualMd.Spec.Template.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 
-		g.Expect(actualMd.Spec.Selector.MatchLabels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
-		g.Expect(actualMd.Spec.Selector.MatchLabels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
+		g.Expect(actualMd.Labels).To(Equal(mergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+			clusterv1.ClusterNameLabel:                          cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel:                 "",
+			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
+		})))
+		g.Expect(actualMd.Spec.Selector.MatchLabels).To(Equal(map[string]string{
+			clusterv1.ClusterNameLabel:                          cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel:                 "",
+			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
+		}))
+		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(Equal(mergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+			clusterv1.ClusterNameLabel:                          cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel:                 "",
+			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
+		})))
 
-		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("foo", "baz"))
-		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("fizz", "buzz"))
-		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
 		g.Expect(actualMd.Spec.Template.Spec.InfrastructureRef.Name).ToNot(Equal("linux-worker-inframachinetemplate"))
 		g.Expect(actualMd.Spec.Template.Spec.Bootstrap.ConfigRef.Name).ToNot(Equal("linux-worker-bootstraptemplate"))
 	})
@@ -1540,15 +1560,28 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
 		g.Expect(actualMd.Name).To(Equal("existing-deployment-1"))
 
-		g.Expect(actualMd.Labels).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
-		g.Expect(actualMd.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
-		for k, v := range mergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels) {
-			g.Expect(actualMd.Labels).To(HaveKeyWithValue(k, v))
-		}
+		expectedAnnotations := mergeMap(mdTopology.Metadata.Annotations, md1.Template.Metadata.Annotations)
+		delete(expectedAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
+		delete(expectedAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
+		g.Expect(actualMd.Annotations).To(Equal(expectedAnnotations))
+		g.Expect(actualMd.Spec.Template.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 
-		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("foo", "baz"))
-		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("fizz", "buzz"))
-		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(HaveKey(clusterv1.ClusterTopologyOwnedLabel))
+		g.Expect(actualMd.Labels).To(Equal(mergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+			clusterv1.ClusterNameLabel:                          cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel:                 "",
+			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
+		})))
+		g.Expect(actualMd.Spec.Selector.MatchLabels).To(Equal(map[string]string{
+			clusterv1.ClusterNameLabel:                          cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel:                 "",
+			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
+		}))
+		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(Equal(mergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+			clusterv1.ClusterNameLabel:                          cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel:                 "",
+			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
+		})))
+
 		g.Expect(actualMd.Spec.Template.Spec.InfrastructureRef.Name).To(Equal("linux-worker-inframachinetemplate"))
 		g.Expect(actualMd.Spec.Template.Spec.Bootstrap.ConfigRef.Name).To(Equal("linux-worker-bootstraptemplate"))
 	})

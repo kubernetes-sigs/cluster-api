@@ -18,7 +18,6 @@ package cluster
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -50,6 +50,32 @@ var moveTests = []struct {
 	wantMoveGroups [][]string
 	wantErr        bool
 }{
+	{
+		name: "Cluster with ClusterClass",
+		fields: moveTestsFields{
+			objs: func() []client.Object {
+				objs := test.NewFakeClusterClass("ns1", "class1").Objs()
+				objs = append(objs, test.NewFakeCluster("ns1", "foo").WithTopologyClass("class1").Objs()...)
+				return deduplicateObjects(objs)
+			}(),
+		},
+		wantMoveGroups: [][]string{
+			{ // group 1
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+			},
+			{ // group 2
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1",
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1",
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo",
+			},
+			{ // group 3
+				"/v1, Kind=Secret, ns1/foo-ca",
+				"/v1, Kind=Secret, ns1/foo-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/foo",
+			},
+		},
+		wantErr: false,
+	},
 	{
 		name: "Cluster",
 		fields: moveTestsFields{
@@ -1164,8 +1190,81 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 
 func Test_objectMover_move(t *testing.T) {
 	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
+	for _, tt := range moveTests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
+			graph := getObjectGraphWithObjs(tt.fields.objs)
+
+			// Get all the types to be considered for discovery
+			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+
+			// trigger discovery the content of the source cluster
+			g.Expect(graph.Discovery("")).To(Succeed())
+
+			// gets a fakeProxy to an empty cluster with all the required CRDs
+			toProxy := getFakeProxyWithCRDs()
+
+			// Run move
+			mover := objectMover{
+				fromProxy: graph.proxy,
+			}
+			err := mover.move(graph, toProxy)
+
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+
+			// check that the objects are removed from the source cluster and are created in the target cluster
+			csFrom, err := graph.proxy.NewClient()
+			g.Expect(err).NotTo(HaveOccurred())
+
+			csTo, err := toProxy.NewClient()
+			g.Expect(err).NotTo(HaveOccurred())
+
+			for _, node := range graph.uidToNode {
+				key := client.ObjectKey{
+					Namespace: node.identity.Namespace,
+					Name:      node.identity.Name,
+				}
+
+				// objects are deleted from the source cluster
+				oFrom := &unstructured.Unstructured{}
+				oFrom.SetAPIVersion(node.identity.APIVersion)
+				oFrom.SetKind(node.identity.Kind)
+
+				err := csFrom.Get(ctx, key, oFrom)
+				if err == nil {
+					if !node.isGlobal && !node.isGlobalHierarchy {
+						t.Errorf("%v not deleted in source cluster", key)
+						continue
+					}
+				} else if !apierrors.IsNotFound(err) {
+					t.Errorf("error = %v when checking for %v deleted in source cluster", err, key)
+					continue
+				}
+
+				// objects are created in the target cluster
+				oTo := &unstructured.Unstructured{}
+				oTo.SetAPIVersion(node.identity.APIVersion)
+				oTo.SetKind(node.identity.Kind)
+
+				if err := csTo.Get(ctx, key, oTo); err != nil {
+					t.Errorf("error = %v when checking for %v created in target cluster", err, key)
+					continue
+				}
+			}
+		})
+	}
+}
+
+func Test_objectMover_move_with_Mutator(t *testing.T) {
+	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
 	// we use same mutator function for all tests and validate outcome based on input.
-	randSource := rand.NewSource(time.Now().Unix())
 	for _, tt := range moveTests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
@@ -1216,20 +1315,12 @@ func Test_objectMover_move(t *testing.T) {
 			// gets a fakeProxy to an empty cluster with all the required CRDs
 			toProxy := getFakeProxyWithCRDs()
 
-			// Run move
+			// Run move with mutators
 			mover := objectMover{
 				fromProxy: graph.proxy,
 			}
 
-			// choose to include/exclude mutator randomly
-			includeMutator := randSource.Int63()%2 == 0
-			var mutators []ResourceMutatorFunc
-			if includeMutator {
-				mutators = append(mutators, namespaceMutator)
-			}
-
-			err := mover.move(graph, toProxy, mutators...)
-
+			err := mover.move(graph, toProxy, namespaceMutator)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1270,24 +1361,20 @@ func Test_objectMover_move(t *testing.T) {
 				oTo := &unstructured.Unstructured{}
 				oTo.SetAPIVersion(node.identity.APIVersion)
 				oTo.SetKind(node.identity.Kind)
-				if includeMutator {
-					if key.Namespace != "" {
-						key.Namespace = toNamespace
-					}
+				if !node.isGlobal {
+					key.Namespace = toNamespace
 				}
 
 				if err := csTo.Get(ctx, key, oTo); err != nil {
 					t.Errorf("error = %v when checking for %v created in target cluster", err, key)
 					continue
 				}
-				if includeMutator {
-					if fields, knownKind := updateKnownKinds[oTo.GetKind()]; knownKind {
-						for _, nsField := range fields {
-							value, exists, err := unstructured.NestedFieldNoCopy(oTo.Object, nsField...)
-							g.Expect(err).To(BeNil())
-							if exists {
-								g.Expect(value).To(Equal(toNamespace))
-							}
+				if fields, knownKind := updateKnownKinds[oTo.GetKind()]; knownKind {
+					for _, nsField := range fields {
+						value, exists, err := unstructured.NestedFieldNoCopy(oTo.Object, nsField...)
+						g.Expect(err).To(BeNil())
+						if exists {
+							g.Expect(value).To(Equal(toNamespace))
 						}
 					}
 				}
@@ -1998,7 +2085,7 @@ func Test_createTargetObject(t *testing.T) {
 				fromProxy: tt.args.fromProxy,
 			}
 
-			err := mover.createTargetObject(tt.args.node, tt.args.toProxy, nil, nil)
+			err := mover.createTargetObject(tt.args.node, tt.args.toProxy, nil, sets.New[string]())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

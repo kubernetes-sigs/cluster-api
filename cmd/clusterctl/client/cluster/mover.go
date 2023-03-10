@@ -27,6 +27,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -332,11 +333,9 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy, mutators ...Resour
 		return errors.Wrap(err, "error pausing ClusterClasses")
 	}
 
-	// Ensure all the expected target namespaces are in place before creating objects.
-	log.V(1).Info("Creating target namespaces, if missing")
-	if err := o.ensureNamespaces(graph, toProxy); err != nil {
-		return err
-	}
+	// Nb. DO NOT call ensureNamespaces at this point because:
+	// - namespace will be ensured to exist before creating the resource.
+	// - If it's done here, we might create a namespace that can end up unused on target cluster (due to mutators).
 
 	// Define the move sequence by processing the ownerReference chain, so we ensure that a Kubernetes object is moved only after its owners.
 	// The sequence is bases on object graph nodes, each one representing a Kubernetes object; nodes are grouped, so bulk of nodes can be moved in parallel. e.g.
@@ -352,6 +351,10 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy, mutators ...Resour
 			return err
 		}
 	}
+
+	// Nb. mutators used after this point (after creating the resources on target clusters) are mainly intended for
+	// using the right namespace to fetch the resource from the target cluster.
+	// mutators affecting non metadata fields are no-op after this point.
 
 	// Delete all objects group by group in reverse order.
 	log.Info("Deleting objects from the source cluster")
@@ -599,17 +602,20 @@ func patchCluster(proxy Proxy, n *node, patch client.Patch, mutators ...Resource
 		return err
 	}
 
-	// Get the ClusterClass from the server
-	clusterObj := &unstructured.Unstructured{}
-	clusterObj.SetAPIVersion(clusterv1.GroupVersion.String())
-	clusterObj.SetKind(clusterv1.ClusterKind)
-	clusterObj.SetName(n.identity.Name)
-	clusterObj.SetNamespace(n.identity.Namespace)
-	for _, mutator := range mutators {
-		if err = mutator(clusterObj); err != nil {
-			return errors.Wrapf(err, "error applying resource mutator to %q %s/%s",
-				clusterObj.GroupVersionKind(), clusterObj.GetNamespace(), clusterObj.GetName())
-		}
+	// Since the patch has been generated already in caller of this function, the ONLY affect that mutators can have
+	// here is on namespace of the resource.
+	clusterObj, err := applyMutators(&clusterv1.Cluster{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       clusterv1.ClusterKind,
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      n.identity.Name,
+			Namespace: n.identity.Namespace,
+		},
+	}, mutators...)
+	if err != nil {
+		return err
 	}
 
 	if err := cFrom.Get(ctx, client.ObjectKeyFromObject(clusterObj), clusterObj); err != nil {
@@ -631,20 +637,20 @@ func pauseClusterClass(proxy Proxy, n *node, pause bool, mutators ...ResourceMut
 		return errors.Wrap(err, "error creating client")
 	}
 
-	// Get the ClusterClass from the server
-	clusterClass := &unstructured.Unstructured{}
-	clusterClass.SetAPIVersion(clusterv1.GroupVersion.String())
-	clusterClass.SetKind(clusterv1.ClusterClassKind)
-	clusterClass.SetName(n.identity.Name)
-	clusterClass.SetNamespace(n.identity.Namespace)
-	for _, mutator := range mutators {
-		if err = mutator(clusterClass); err != nil {
-			return errors.Wrapf(err, "error applying resource mutator to %q %s/%s",
-				clusterClass.GroupVersionKind(), clusterClass.GetNamespace(), clusterClass.GetName())
-		}
-	}
-	if err := cFrom.Get(ctx, client.ObjectKeyFromObject(clusterClass), clusterClass); err != nil {
-		return errors.Wrapf(err, "error reading ClusterClass %s/%s", n.identity.Namespace, n.identity.Name)
+	// Since the patch has been generated already in caller of this function, the ONLY affect that mutators can have
+	// here is on namespace of the resource.
+	clusterClass, err := applyMutators(&clusterv1.ClusterClass{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       clusterv1.ClusterClassKind,
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      n.identity.Name,
+			Namespace: n.identity.Namespace,
+		},
+	}, mutators...)
+	if err != nil {
+		return err
 	}
 
 	patchHelper, err := patch.NewHelper(clusterClass, cFrom)
@@ -892,17 +898,16 @@ func (o *objectMover) createTargetObject(nodeToCreate *node, toProxy Proxy, muta
 		return err
 	}
 
-	for _, mutator := range mutators {
-		if err = mutator(obj); err != nil {
-			return errors.Wrapf(err, "error applying resource mutator to %q %s/%s",
-				obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
-		}
+	obj, err = applyMutators(obj, mutators...)
+	if err != nil {
+		return err
 	}
 	// Applying mutators MAY change the namespace, so ensure the namespace exists before creating the resource.
 	if !nodeToCreate.isGlobal && !existingNamespaces.Has(obj.GetNamespace()) {
 		if err = o.ensureNamespace(toProxy, obj.GetNamespace()); err != nil {
 			return err
 		}
+		existingNamespaces.Insert(obj.GetNamespace())
 	}
 	oldManagedFields := obj.GetManagedFields()
 	if err := cTo.Create(ctx, obj); err != nil {
@@ -1223,4 +1228,23 @@ func patchTopologyManagedFields(ctx context.Context, oldManagedFields []metav1.M
 			obj.GroupVersionKind(), obj.GetNamespace(), obj.GetName())
 	}
 	return nil
+}
+
+func applyMutators(object client.Object, mutators ...ResourceMutatorFunc) (*unstructured.Unstructured, error) {
+	if object == nil {
+		return nil, nil
+	}
+	u := &unstructured.Unstructured{}
+	to, err := runtime.DefaultUnstructuredConverter.ToUnstructured(object)
+	if err != nil {
+		return nil, err
+	}
+	u.SetUnstructuredContent(to)
+	for _, mutator := range mutators {
+		if err := mutator(u); err != nil {
+			return nil, errors.Wrapf(err, "error applying resource mutator to %q %s/%s",
+				u.GroupVersionKind(), object.GetNamespace(), object.GetName())
+		}
+	}
+	return u, nil
 }

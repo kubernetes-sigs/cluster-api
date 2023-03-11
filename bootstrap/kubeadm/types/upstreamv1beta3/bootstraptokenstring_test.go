@@ -18,9 +18,9 @@ package upstreamv1beta3
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 )
 
@@ -71,11 +71,12 @@ func TestUnmarshalJSON(t *testing.T) {
 			err := json.Unmarshal([]byte(rt.input), newbts)
 			if (err != nil) != rt.expectedError {
 				t.Errorf("failed BootstrapTokenString.UnmarshalJSON:\n\texpected error: %t\n\t  actual error: %v", rt.expectedError, err)
-			} else if !reflect.DeepEqual(rt.bts, newbts) {
+			} else if diff := cmp.Diff(rt.bts, newbts); diff != "" {
 				t.Errorf(
-					"failed BootstrapTokenString.UnmarshalJSON:\n\texpected: %v\n\t  actual: %v",
+					"failed BootstrapTokenString.UnmarshalJSON:\n\texpected: %v\n\t  actual: %v\n\t diff: %v",
 					rt.bts,
 					newbts,
+					diff,
 				)
 			}
 		})
@@ -125,11 +126,12 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 		if err := json.Unmarshal(b, newbts); err != nil {
 			return errors.Wrap(err, "expected no unmarshal error, got error")
 		}
-		if !reflect.DeepEqual(bts, newbts) {
+		if diff := cmp.Diff(bts, newbts); diff != "" {
 			return errors.Errorf(
-				"expected object: %v\n\t  actual: %v",
+				"expected object: %v\n\t  actual: %v\n\t got diff: %v",
 				bts,
 				newbts,
+				diff,
 			)
 		}
 	}
@@ -192,12 +194,13 @@ func TestNewBootstrapTokenString(t *testing.T) {
 					rt.expectedError,
 					err,
 				)
-			} else if !reflect.DeepEqual(actual, rt.bts) {
+			} else if diff := cmp.Diff(actual, rt.bts); diff != "" {
 				t.Errorf(
-					"failed NewBootstrapTokenString for the token %q\n\texpected: %v\n\t  actual: %v",
+					"failed NewBootstrapTokenString for the token %q\n\texpected: %v\n\t  actual: %v\n\t diff: %v",
 					rt.token,
 					rt.bts,
 					actual,
+					diff,
 				)
 			}
 		})
@@ -235,13 +238,14 @@ func TestNewBootstrapTokenStringFromIDAndSecret(t *testing.T) {
 					rt.expectedError,
 					err,
 				)
-			} else if !reflect.DeepEqual(actual, rt.bts) {
+			} else if diff := cmp.Diff(actual, rt.bts); diff != "" {
 				t.Errorf(
-					"failed NewBootstrapTokenStringFromIDAndSecret for the token with id %q and secret %q\n\texpected: %v\n\t  actual: %v",
+					"failed NewBootstrapTokenStringFromIDAndSecret for the token with id %q and secret %q\n\texpected: %v\n\t  actual: %v\n\t diff: %v",
 					rt.id,
 					rt.secret,
 					rt.bts,
 					actual,
+					diff,
 				)
 			}
 		})

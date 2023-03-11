@@ -207,6 +207,9 @@ const (
 
 	// NodeConditionsFailedReason (Severity=Warning) documents a node is not in a healthy state due to the failed state of at least 1 Kubelet condition.
 	NodeConditionsFailedReason = "NodeConditionsFailed"
+
+	// NodeInspectionFailedReason documents a failure in inspecting the node status.
+	NodeInspectionFailedReason = "NodeInspectionFailed"
 )
 
 // Conditions and condition Reasons for the MachineHealthCheck object.

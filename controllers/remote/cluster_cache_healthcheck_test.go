@@ -146,6 +146,32 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			}, 5*time.Second, 1*time.Second).Should(BeTrue())
 		})
 
+		t.Run("during creation of a new cluster accessor", func(t *testing.T) {
+			g := NewWithT(t)
+			ns := setup(t, g)
+			defer teardown(t, g, ns)
+			// Create a context with a timeout to cancel the healthcheck after some time
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			// Delete the cluster accessor and lock the cluster to simulate creation of a new cluster accessor
+			cct.deleteAccessor(ctx, testClusterKey)
+			g.Expect(cct.clusterLock.TryLock(testClusterKey)).To(BeTrue())
+			startHealthCheck := time.Now()
+			cct.healthCheckCluster(ctx, &healthCheckInput{
+				cluster:            testClusterKey,
+				cfg:                env.Config,
+				interval:           testPollInterval,
+				requestTimeout:     testPollTimeout,
+				unhealthyThreshold: testUnhealthyThreshold,
+				path:               "/",
+			})
+			timeElapsedForHealthCheck := time.Since(startHealthCheck)
+			// If the duration is shorter than the timeout, we know that the healthcheck wasn't requeued properly.
+			g.Expect(timeElapsedForHealthCheck).Should(BeNumerically(">=", time.Second))
+			// The healthcheck should be aborted by the timout of the context
+			g.Expect(ctx.Done()).Should(BeClosed())
+		})
+
 		t.Run("with an invalid path", func(t *testing.T) {
 			g := NewWithT(t)
 			ns := setup(t, g)

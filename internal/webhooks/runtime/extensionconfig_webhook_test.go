@@ -161,6 +161,9 @@ func TestExtensionConfigValidate(t *testing.T) {
 	extensionWithServiceAndURL := extensionWithURL.DeepCopy()
 	extensionWithServiceAndURL.Spec.ClientConfig.Service = extensionWithService.Spec.ClientConfig.Service
 
+	extensionWithBadName := extensionWithURL.DeepCopy()
+	extensionWithBadName.Name = "bad.name"
+
 	// Valid updated Extension
 	updatedExtension := extensionWithURL.DeepCopy()
 	updatedExtension.Spec.ClientConfig.URL = pointer.String("https://a-in-extension-address.com")
@@ -235,6 +238,12 @@ func TestExtensionConfigValidate(t *testing.T) {
 		{
 			name:        "creation should fail if no Service Name is defined",
 			in:          extensionWithNoServiceName,
+			featureGate: true,
+			expectErr:   true,
+		},
+		{
+			name:        "creation should fail if extensionConfig Name violates Kubernetes naming rules",
+			in:          extensionWithBadName,
 			featureGate: true,
 			expectErr:   true,
 		},

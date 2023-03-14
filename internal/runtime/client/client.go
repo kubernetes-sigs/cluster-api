@@ -586,8 +586,8 @@ func defaultAndValidateDiscoveryResponse(cat *runtimecatalog.Catalog, discovery 
 		}
 		names[handler.Name] = true
 
-		// Name should match Kubernetes naming conventions - validated based on Kubernetes DNS1123 Subdomain rules.
-		if errStrings := validation.IsDNS1123Subdomain(handler.Name); len(errStrings) > 0 {
+		// Name should match Kubernetes naming conventions - validated based on DNS1123 label rules.
+		if errStrings := validation.IsDNS1123Label(handler.Name); len(errStrings) > 0 {
 			errs = append(errs, errors.Errorf("handler name %s is not valid: %s", handler.Name, errStrings))
 		}
 

@@ -26,6 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -216,6 +217,57 @@ func TestGetConfigMapFromNamespacedName(t *testing.T) {
 			gs.Expect(err).NotTo(HaveOccurred())
 
 			gs.Expect(*got).To(Equal(*tt.want))
+		})
+	}
+}
+
+func TestEnsureKubernetesServiceCreated(t *testing.T) {
+	g := NewWithT(t)
+
+	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).To(Succeed())
+
+	kubernetesAPIServerService := &corev1.Service{
+		TypeMeta: metav1.TypeMeta{Kind: "Service", APIVersion: "v1"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kubernetes",
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	tests := []struct {
+		name         string
+		existingObjs []client.Object
+		wantErr      bool
+	}{
+		{
+			name:         "should return nil when Kubernetes API Server Service exists",
+			existingObjs: []client.Object{kubernetesAPIServerService},
+			wantErr:      false,
+		},
+		{
+			name:         "should return error when Kubernetes API Server Service does not exist",
+			existingObjs: []client.Object{},
+			wantErr:      true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gs := NewWithT(t)
+
+			c := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(tt.existingObjs...).
+				Build()
+
+			err := ensureKubernetesServiceCreated(context.TODO(), c)
+
+			if tt.wantErr {
+				gs.Expect(err).To(HaveOccurred())
+				return
+			}
+			gs.Expect(err).NotTo(HaveOccurred())
 		})
 	}
 }

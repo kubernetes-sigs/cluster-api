@@ -18,9 +18,9 @@ package upstreamv1beta1
 
 import (
 	"encoding/json"
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 )
@@ -119,11 +119,12 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 		if err := json.Unmarshal(b, newbts); err != nil {
 			return errors.Wrap(err, "expected no unmarshal error, got error")
 		}
-		if !reflect.DeepEqual(bts, newbts) {
+		if diff := cmp.Diff(bts, newbts); diff != "" {
 			return errors.Errorf(
-				"expected object: %v\n\t  actual: %v",
+				"expected object: %v\n\t  actual: %v\n\t got diff: %v",
 				bts,
 				newbts,
+				diff,
 			)
 		}
 	}

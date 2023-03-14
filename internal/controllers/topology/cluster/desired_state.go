@@ -241,11 +241,20 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 			return nil, errors.Wrap(err, "failed to spec.machineTemplate.infrastructureRef in the ControlPlane object")
 		}
 
-		// Apply the ControlPlane labels and annotations to the ControlPlane machines as well.
+		// Add the ControlPlane labels and annotations to the ControlPlane machines as well.
+		// Note: We have to ensure the machine template metadata copied from the control plane template is not overwritten.
+		controlPlaneMachineTemplateMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(controlPlane)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to get spec.machineTemplate.metadata from the ControlPlane object")
+		}
+
+		controlPlaneMachineTemplateMetadata.Labels = mergeMap(controlPlaneLabels, controlPlaneMachineTemplateMetadata.Labels)
+		controlPlaneMachineTemplateMetadata.Annotations = mergeMap(controlPlaneAnnotations, controlPlaneMachineTemplateMetadata.Annotations)
+
 		if err := contract.ControlPlane().MachineTemplate().Metadata().Set(controlPlane,
 			&clusterv1.ObjectMeta{
-				Labels:      controlPlaneLabels,
-				Annotations: controlPlaneAnnotations,
+				Labels:      controlPlaneMachineTemplateMetadata.Labels,
+				Annotations: controlPlaneMachineTemplateMetadata.Annotations,
 			}); err != nil {
 			return nil, errors.Wrap(err, "failed to set spec.machineTemplate.metadata in the ControlPlane object")
 		}

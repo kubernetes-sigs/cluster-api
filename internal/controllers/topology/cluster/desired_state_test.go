@@ -252,6 +252,17 @@ func TestComputeControlPlane(t *testing.T) {
 
 	controlPlaneTemplate := builder.ControlPlaneTemplate(metav1.NamespaceDefault, "template1").
 		Build()
+	controlPlaneMachineTemplateLabels := map[string]string{
+		"machineTemplateLabel": "machineTemplateLabelValue",
+	}
+	controlPlaneMachineTemplateAnnotations := map[string]string{
+		"machineTemplateAnnotation": "machineTemplateAnnotationValue",
+	}
+	controlPlaneTemplateWithMachineTemplate := controlPlaneTemplate.DeepCopy()
+	_ = contract.ControlPlaneTemplate().Template().MachineTemplate().Metadata().Set(controlPlaneTemplateWithMachineTemplate, &clusterv1.ObjectMeta{
+		Labels:      controlPlaneMachineTemplateLabels,
+		Annotations: controlPlaneMachineTemplateAnnotations,
+	})
 	clusterClassDuration := 20 * time.Second
 	clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
 		WithControlPlaneMetadata(labels, annotations).
@@ -423,7 +434,7 @@ func TestComputeControlPlane(t *testing.T) {
 		infrastructureMachineTemplate := builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "template1").Build()
 		clusterClass := builder.ClusterClass(metav1.NamespaceDefault, "class1").
 			WithControlPlaneMetadata(labels, annotations).
-			WithControlPlaneTemplate(controlPlaneTemplate).
+			WithControlPlaneTemplate(controlPlaneTemplateWithMachineTemplate).
 			WithControlPlaneInfrastructureMachineTemplate(infrastructureMachineTemplate).Build()
 
 		// aggregating templates and cluster class into a blueprint (simulating getBlueprint)
@@ -431,7 +442,7 @@ func TestComputeControlPlane(t *testing.T) {
 			Topology:     cluster.Spec.Topology,
 			ClusterClass: clusterClass,
 			ControlPlane: &scope.ControlPlaneBlueprint{
-				Template:                      controlPlaneTemplate,
+				Template:                      controlPlaneTemplateWithMachineTemplate,
 				InfrastructureMachineTemplate: infrastructureMachineTemplate,
 			},
 		}
@@ -447,10 +458,17 @@ func TestComputeControlPlane(t *testing.T) {
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(obj).ToNot(BeNil())
 
+		// machineTemplate is removed from the template for assertion as we can't
+		// simply compare the machineTemplate in template with the one in object as
+		// computeControlPlane() adds additional fields like the timeouts to machineTemplate.
+		// Note: machineTemplate ia asserted further down below instead.
+		controlPlaneTemplateWithoutMachineTemplate := blueprint.ControlPlane.Template.DeepCopy()
+		unstructured.RemoveNestedField(controlPlaneTemplateWithoutMachineTemplate.Object, "spec", "template", "spec", "machineTemplate")
+
 		assertTemplateToObject(g, assertTemplateInput{
 			cluster:     s.Current.Cluster,
 			templateRef: blueprint.ClusterClass.Spec.ControlPlane.Ref,
-			template:    blueprint.ControlPlane.Template,
+			template:    controlPlaneTemplateWithoutMachineTemplate,
 			currentRef:  nil,
 			obj:         obj,
 			labels:      mergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
@@ -459,12 +477,12 @@ func TestComputeControlPlane(t *testing.T) {
 		gotMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		expectedLabels := mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels)
+		expectedLabels := mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels, controlPlaneMachineTemplateLabels)
 		expectedLabels[clusterv1.ClusterNameLabel] = cluster.Name
 		expectedLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
 		g.Expect(gotMetadata).To(Equal(&clusterv1.ObjectMeta{
 			Labels:      expectedLabels,
-			Annotations: mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			Annotations: mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations, controlPlaneMachineTemplateAnnotations),
 		}))
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)

@@ -6,9 +6,9 @@ spec:
   controlPlane:
     metadata:
       labels:
-        label-from-clusterclass: "value-from-clusterclass"
+        ClusterClass.controlPlane.label: "ClusterClass.controlPlane.labelValue"
       annotations:
-        annotation-from-clusterclass: "value-from-clusterclass"
+        ClusterClass.controlPlane.annotation: "ClusterClass.controlPlane.annotationValue"
     ref:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta1
       kind: KubeadmControlPlaneTemplate
@@ -35,9 +35,9 @@ spec:
       template:
         metadata:
           labels:
-            label-from-clusterclass: "value-from-clusterclass"
+            ClusterClass.machineDeployment.label: "ClusterClass.machineDeployment.labelValue"
           annotations:
-            annotation-from-clusterclass: "value-from-clusterclass"
+            ClusterClass.machineDeployment.annotation: "ClusterClass.machineDeployment.annotationValue"
         bootstrap:
           ref:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
@@ -307,8 +307,17 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate
 metadata:
   name: quick-start-cluster
+  labels:
+    InfrastructureClusterTemplate.label: "InfrastructureClusterTemplate.labelValue"
+  annotations:
+    InfrastructureClusterTemplate.annotation: "InfrastructureClusterTemplate.annotationValue"
 spec:
   template:
+    metadata:
+      labels:
+        InfrastructureClusterTemplate.template.label: "InfrastructureClusterTemplate.template.labelValue"
+      annotations:
+        InfrastructureClusterTemplate.template.annotation: "InfrastructureClusterTemplate.template.annotationValue"
     spec:
       failureDomains:
         fd1:
@@ -332,12 +341,26 @@ kind: KubeadmControlPlaneTemplate
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: quick-start-control-plane
+  labels:
+    ControlPlaneTemplate.label: "ControlPlaneTemplate.labelValue"
+  annotations:
+    ControlPlaneTemplate.annotation: "ControlPlaneTemplate.annotationValue"
 spec:
   template:
+    metadata:
+      labels:
+        ControlPlaneTemplate.template.label: "ControlPlaneTemplate.template.labelValue"
+      annotations:
+        ControlPlaneTemplate.template.annotation: "ControlPlaneTemplate.template.annotationValue"
     spec:
       rolloutBefore:
         certificatesExpiryDays: 21
       machineTemplate:
+        metadata:
+          labels:
+            ControlPlaneTemplate.machineTemplate.label: "ControlPlaneTemplate.machineTemplate.labelValue"
+          annotations:
+            ControlPlaneTemplate.machineTemplate.annotation: "ControlPlaneTemplate.machineTemplate.annotationValue"
         nodeDrainTimeout: 1s
       kubeadmConfigSpec:
         clusterConfiguration:
@@ -363,8 +386,17 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
 metadata:
   name: quick-start-control-plane
+  labels:
+    InfraMachineTemplate.controlPlane.label: "InfraMachineTemplate.controlPlane.labelValue"
+  annotations:
+    InfraMachineTemplate.controlPlane.annotation: "InfraMachineTemplate.controlPlane.annotationValue"
 spec:
   template:
+    metadata:
+      labels:
+        InfraMachineTemplate.controlPlane.template.label: "InfraMachineTemplate.controlPlane.template.labelValue"
+      annotations:
+        InfraMachineTemplate.controlPlane.template.annotation: "InfraMachineTemplate.controlPlane.template.annotationValue"
     spec:
       extraMounts:
       - containerPath: "/var/run/docker.sock"
@@ -374,8 +406,17 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
 metadata:
   name: quick-start-default-worker-machinetemplate
+  labels:
+    InfraMachineTemplate.machineDeployment.label: "InfraMachineTemplate.machineDeployment.labelValue"
+  annotations:
+    InfraMachineTemplate.machineDeployment.annotation: "InfraMachineTemplate.machineDeployment.annotationValue"
 spec:
   template:
+    metadata:
+      labels:
+        InfraMachineTemplate.machineDeployment.template.label: "InfraMachineTemplate.machineDeployment.template.labelValue"
+      annotations:
+        InfraMachineTemplate.machineDeployment.template.annotation: "InfraMachineTemplate.machineDeployment.template.annotationValue"
     spec:
       extraMounts:
       - containerPath: "/var/run/docker.sock"
@@ -385,8 +426,17 @@ apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate
 metadata:
   name: quick-start-default-worker-bootstraptemplate
+  labels:
+    BootstrapConfigTemplate.machineDeployment.label: "BootstrapConfigTemplate.machineDeployment.labelValue"
+  annotations:
+    BootstrapConfigTemplate.machineDeployment.annotation: "BootstrapConfigTemplate.machineDeployment.annotationValue"
 spec:
   template:
+    metadata:
+      labels:
+        BootstrapConfigTemplate.machineDeployment.template.label: "BootstrapConfigTemplate.machineDeployment.template.labelValue"
+      annotations:
+        BootstrapConfigTemplate.machineDeployment.template.annotation: "BootstrapConfigTemplate.machineDeployment.template.annotationValue"
     spec:
       joinConfiguration:
         nodeRegistration:

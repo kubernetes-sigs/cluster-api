@@ -112,6 +112,7 @@ type ExtensionHandler struct {
 	Hook runtimecatalog.Hook
 
 	// Name is the name of the extension handler.
+	// An extension handler name must be valid in line RFC 1123 Label Names.
 	Name string
 
 	// HandlerFunc is the handler function.

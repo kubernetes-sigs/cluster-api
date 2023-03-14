@@ -104,6 +104,14 @@ func (webhook *ExtensionConfig) validate(_ context.Context, _, newExtensionConfi
 	}
 
 	var allErrs field.ErrorList
+
+	// Name should match Kubernetes naming conventions - validated based on DNS1123 label rules.
+	if errStrings := validation.IsDNS1123Label(newExtensionConfig.Name); len(errStrings) > 0 {
+		allErrs = append(allErrs, field.Invalid(
+			field.NewPath("metadata", "name"),
+			newExtensionConfig.Name,
+			fmt.Sprintf("ExtensionConfig name should be a valid DNS1123 label name: %s", errStrings)))
+	}
 	allErrs = append(allErrs, validateExtensionConfigSpec(newExtensionConfig)...)
 
 	if len(allErrs) > 0 {

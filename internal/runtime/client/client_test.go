@@ -362,7 +362,7 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "error with name violating DNS1123",
+			name: "error if handler name has capital letters",
 			discovery: &runtimehooksv1.DiscoveryResponse{
 				TypeMeta: metav1.TypeMeta{
 					Kind:       "DiscoveryResponse",
@@ -370,6 +370,23 @@ func Test_defaultAndValidateDiscoveryResponse(t *testing.T) {
 				},
 				Handlers: []runtimehooksv1.ExtensionHandler{{
 					Name: "HAS-CAPITAL-LETTERS",
+					RequestHook: runtimehooksv1.GroupVersionHook{
+						Hook:       "FakeHook",
+						APIVersion: fakev1alpha1.GroupVersion.String(),
+					},
+				}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "error if handler name has full stops",
+			discovery: &runtimehooksv1.DiscoveryResponse{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "DiscoveryResponse",
+					APIVersion: runtimehooksv1.GroupVersion.String(),
+				},
+				Handlers: []runtimehooksv1.ExtensionHandler{{
+					Name: "has.full.stops",
 					RequestHook: runtimehooksv1.GroupVersionHook{
 						Hook:       "FakeHook",
 						APIVersion: fakev1alpha1.GroupVersion.String(),

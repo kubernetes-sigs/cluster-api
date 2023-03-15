@@ -47,9 +47,7 @@ type FakeProxy struct {
 	available *bool
 }
 
-var (
-	FakeScheme = runtime.NewScheme() //nolint:revive
-)
+var FakeScheme = runtime.NewScheme() //nolint:revive
 
 func init() {
 	_ = clientgoscheme.AddToScheme(FakeScheme)

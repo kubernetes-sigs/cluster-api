@@ -44,7 +44,7 @@ runcmd:
 }
 
 func TestRunCmdRun(t *testing.T) {
-	var useCases = []struct {
+	useCases := []struct {
 		name         string
 		r            runCmd
 		expectedCmds []provisioning.Cmd

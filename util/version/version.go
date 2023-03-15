@@ -80,7 +80,7 @@ const (
 	numbers = "01234567890"
 )
 
-func containsOnly(s string, set string) bool {
+func containsOnly(s, set string) bool {
 	return strings.IndexFunc(s, func(r rune) bool {
 		return !strings.ContainsRune(set, r)
 	}) == -1

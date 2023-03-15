@@ -41,9 +41,7 @@ const (
 	clusterNamespace = "test-namespace"
 )
 
-var (
-	ctx = ctrl.SetupSignalHandler()
-)
+var ctx = ctrl.SetupSignalHandler()
 
 func TestControlPlaneInitMutex_Lock(t *testing.T) {
 	g := NewWithT(t)
@@ -145,10 +143,12 @@ func TestControlPlaneInitMutex_LockWithMachineDeletion(t *testing.T) {
 					&corev1.ConfigMap{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      configMapName(clusterName),
-							Namespace: clusterNamespace},
+							Namespace: clusterNamespace,
+						},
 						Data: map[string]string{
 							"lock-information": "{\"machineName\":\"existent-machine\"}",
-						}},
+						},
+					},
 					&clusterv1.Machine{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "existent-machine",
@@ -166,10 +166,12 @@ func TestControlPlaneInitMutex_LockWithMachineDeletion(t *testing.T) {
 					&corev1.ConfigMap{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      configMapName(clusterName),
-							Namespace: clusterNamespace},
+							Namespace: clusterNamespace,
+						},
 						Data: map[string]string{
 							"lock-information": "{\"machineName\":\"non-existent-machine\"}",
-						}},
+						},
+					},
 				).Build(),
 			},
 			expectedMachineName: newMachineName,

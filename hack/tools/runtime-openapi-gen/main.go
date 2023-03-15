@@ -72,7 +72,7 @@ func main() {
 		klog.Exitf("Failed to marshal OpenAPI specification: %v", err)
 	}
 
-	err = os.WriteFile(*outputFile, openAPIBytes, 0600)
+	err = os.WriteFile(*outputFile, openAPIBytes, 0o600)
 	if err != nil {
 		klog.Exitf("Failed to write OpenAPI specification to file %q: %v", outputFile, err)
 	}

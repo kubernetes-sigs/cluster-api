@@ -1189,7 +1189,8 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 								},
 							},
 						},
-					}}...).
+					},
+				}...).
 				Build(),
 			initialCluster: clusterBuilder.DeepCopy().
 				WithTopology(topologyBase.DeepCopy().
@@ -1231,7 +1232,7 @@ func TestReconciler_DefaultCluster(t *testing.T) {
 				APIReader: fakeClient,
 			}
 			// Ignore the error here as we expect the ClusterClass to fail in reconciliation as its references do not exist.
-			var _, _ = r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKey{Name: tt.initialCluster.Name, Namespace: tt.initialCluster.Namespace}})
+			_, _ = r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKey{Name: tt.initialCluster.Name, Namespace: tt.initialCluster.Namespace}})
 			got := &clusterv1.Cluster{}
 			g.Expect(fakeClient.Get(ctx, client.ObjectKey{Name: tt.initialCluster.Name, Namespace: tt.initialCluster.Namespace}, got)).To(Succeed())
 			// Compare the spec of the two clusters to ensure that variables are defaulted correctly.
@@ -1319,7 +1320,7 @@ func TestReconciler_ValidateCluster(t *testing.T) {
 				Client:    fakeClient,
 				APIReader: fakeClient,
 			}
-			var _, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKey{Name: tt.cluster.Name, Namespace: tt.cluster.Namespace}})
+			_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKey{Name: tt.cluster.Name, Namespace: tt.cluster.Namespace}})
 			// Reconcile will always return an error here as the topology is incomplete. This test checks specifically for
 			// validation errors.
 			validationErrMessage := fmt.Sprintf("Cluster.cluster.x-k8s.io %q is invalid:", tt.cluster.Name)

@@ -38,10 +38,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/secret"
 )
 
-var (
-	// ErrDependentCertificateNotFound signals that a CA secret could not be found.
-	ErrDependentCertificateNotFound = errors.New("could not find secret ca")
-)
+// ErrDependentCertificateNotFound signals that a CA secret could not be found.
+var ErrDependentCertificateNotFound = errors.New("could not find secret ca")
 
 // FromSecret fetches the Kubeconfig for a Cluster.
 func FromSecret(ctx context.Context, c client.Reader, cluster client.ObjectKey) ([]byte, error) {

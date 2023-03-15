@@ -59,8 +59,10 @@ func (m *MachineHealthCheck) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1beta1-machinehealthcheck,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinehealthchecks,versions=v1beta1,name=validation.machinehealthcheck.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-machinehealthcheck,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinehealthchecks,versions=v1beta1,name=default.machinehealthcheck.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.Defaulter = &MachineHealthCheck{}
-var _ webhook.Validator = &MachineHealthCheck{}
+var (
+	_ webhook.Defaulter = &MachineHealthCheck{}
+	_ webhook.Validator = &MachineHealthCheck{}
+)
 
 // Default implements webhook.Defaulter so a webhook will be registered for the type.
 func (m *MachineHealthCheck) Default() {

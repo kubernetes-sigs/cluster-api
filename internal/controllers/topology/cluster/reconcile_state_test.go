@@ -50,11 +50,9 @@ import (
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
 )
 
-var (
-	IgnoreNameGenerated = IgnorePaths{
-		"metadata.name",
-	}
-)
+var IgnoreNameGenerated = IgnorePaths{
+	"metadata.name",
+}
 
 func TestReconcileShim(t *testing.T) {
 	infrastructureCluster := builder.TestInfrastructureCluster(metav1.NamespaceDefault, "infrastructure-cluster1").Build()
@@ -292,7 +290,6 @@ func TestReconcile_callAfterControlPlaneInitialized(t *testing.T) {
 	}
 
 	successResponse := &runtimehooksv1.AfterControlPlaneInitializedResponse{
-
 		CommonResponse: runtimehooksv1.CommonResponse{
 			Status: runtimehooksv1.ResponseStatusSuccess,
 		},
@@ -480,7 +477,6 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 	}
 
 	successResponse := &runtimehooksv1.AfterClusterUpgradeResponse{
-
 		CommonResponse: runtimehooksv1.CommonResponse{
 			Status: runtimehooksv1.ResponseStatusSuccess,
 		},
@@ -1500,7 +1496,8 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			desired: &scope.ControlPlaneState{
 				Object:                        controlPlane1.DeepCopy(),
 				InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
-				MachineHealthCheck:            mhcBuilder.Build()},
+				MachineHealthCheck:            mhcBuilder.Build(),
+			},
 			want: mhcBuilder.DeepCopy().
 				WithDefaulter(true).
 				Build(),
@@ -1511,7 +1508,8 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			current: &scope.ControlPlaneState{
 				Object: controlPlane1.DeepCopy(),
 				// Note this creation would be blocked by the validation Webhook. MHC with no MachineInfrastructure is not allowed.
-				MachineHealthCheck: mhcBuilder.Build()},
+				MachineHealthCheck: mhcBuilder.Build(),
+			},
 			desired: &scope.ControlPlaneState{
 				Object: controlPlane1.DeepCopy(),
 				// ControlPlane does not have defined MachineInfrastructure.
@@ -1525,7 +1523,8 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			current: &scope.ControlPlaneState{
 				Object:                        controlPlane1.DeepCopy(),
 				InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
-				MachineHealthCheck:            mhcBuilder.Build()},
+				MachineHealthCheck:            mhcBuilder.Build(),
+			},
 			desired: &scope.ControlPlaneState{
 				Object:                        controlPlane1.DeepCopy(),
 				InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
@@ -1542,7 +1541,8 @@ func TestReconcileControlPlaneMachineHealthCheck(t *testing.T) {
 			current: &scope.ControlPlaneState{
 				Object:                        controlPlane1.DeepCopy(),
 				InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
-				MachineHealthCheck:            mhcBuilder.Build()},
+				MachineHealthCheck:            mhcBuilder.Build(),
+			},
 			desired: &scope.ControlPlaneState{
 				Object:                        controlPlane1.DeepCopy(),
 				InfrastructureMachineTemplate: infrastructureMachineTemplate.DeepCopy(),
@@ -2478,20 +2478,24 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 					mhcBuilder.DeepCopy().Build()),
 			},
 			want: []*clusterv1.MachineHealthCheck{
-				mhcBuilder.DeepCopy().WithDefaulter(true).Build()},
+				mhcBuilder.DeepCopy().WithDefaulter(true).Build(),
+			},
 		},
 		{
 			name: "Create a new MachineHealthCheck if the MachineDeployment is modified to include one",
 			current: []*scope.MachineDeploymentState{
 				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate,
-					nil)},
+					nil),
+			},
 			// MHC is added in the desired state of the MachineDeployment
 			desired: []*scope.MachineDeploymentState{
 				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate,
 					mhcBuilder.DeepCopy().Build()),
 			},
 			want: []*clusterv1.MachineHealthCheck{
-				mhcBuilder.DeepCopy().WithDefaulter(true).Build()}},
+				mhcBuilder.DeepCopy().WithDefaulter(true).Build(),
+			},
+		},
 		{
 			name: "Update MachineHealthCheck spec adding a field if the spec adds a field",
 			current: []*scope.MachineDeploymentState{
@@ -2500,12 +2504,14 @@ func TestReconcileMachineDeploymentMachineHealthCheck(t *testing.T) {
 			},
 			desired: []*scope.MachineDeploymentState{
 				newFakeMachineDeploymentTopologyState("md-1", infrastructureMachineTemplate, bootstrapTemplate,
-					mhcBuilder.DeepCopy().WithMaxUnhealthy(&maxUnhealthy).Build())},
+					mhcBuilder.DeepCopy().WithMaxUnhealthy(&maxUnhealthy).Build()),
+			},
 			want: []*clusterv1.MachineHealthCheck{
 				mhcBuilder.DeepCopy().
 					WithMaxUnhealthy(&maxUnhealthy).
 					WithDefaulter(true).
-					Build()},
+					Build(),
+			},
 		},
 		{
 			name: "Update MachineHealthCheck spec removing a field if the spec removes a field",

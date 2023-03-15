@@ -166,10 +166,10 @@ func machine(name string, opts ...machineOpt) *clusterv1.Machine {
 
 func machines() collections.Machines {
 	return collections.Machines{
-		"machine-4": machine("machine-4", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 04, 02, 03, 04, 05, 06, time.UTC)})),
-		"machine-5": machine("machine-5", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 05, 02, 03, 04, 05, 06, time.UTC)})),
-		"machine-2": machine("machine-2", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 02, 02, 03, 04, 05, 06, time.UTC)})),
-		"machine-1": machine("machine-1", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 01, 02, 03, 04, 05, 06, time.UTC)})),
-		"machine-3": machine("machine-3", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 03, 02, 03, 04, 05, 06, time.UTC)})),
+		"machine-4": machine("machine-4", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 4, 2, 3, 4, 5, 6, time.UTC)})),
+		"machine-5": machine("machine-5", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 5, 2, 3, 4, 5, 6, time.UTC)})),
+		"machine-2": machine("machine-2", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 2, 2, 3, 4, 5, 6, time.UTC)})),
+		"machine-1": machine("machine-1", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 1, 2, 3, 4, 5, 6, time.UTC)})),
+		"machine-3": machine("machine-3", withCreationTimestamp(metav1.Time{Time: time.Date(2018, 3, 2, 3, 4, 5, 6, time.UTC)})),
 	}
 }

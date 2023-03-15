@@ -104,7 +104,7 @@ func TestE2E(t *testing.T) {
 	}
 
 	// ensure the artifacts folder exists
-	g.Expect(os.MkdirAll(artifactFolder, 0755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder) //nolint:gosec
+	g.Expect(os.MkdirAll(artifactFolder, 0o755)).To(Succeed(), "Invalid test suite argument. Can't create e2e.artifacts-folder %q", artifactFolder) //nolint:gosec
 
 	RegisterFailHandler(Fail)
 

@@ -50,10 +50,8 @@ const (
 	certManagerVersionAnnotation = "certmanager.clusterctl.cluster.x-k8s.io/version"
 )
 
-var (
-	//go:embed assets/cert-manager-test-resources.yaml
-	certManagerTestManifest []byte
-)
+//go:embed assets/cert-manager-test-resources.yaml
+var certManagerTestManifest []byte
 
 // CertManagerUpgradePlan defines the upgrade plan if cert-manager needs to be
 // upgraded to a different version.

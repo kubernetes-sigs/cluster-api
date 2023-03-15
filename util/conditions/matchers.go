@@ -48,6 +48,7 @@ func (matcher *conditionMatcher) Match(actual interface{}) (success bool, err er
 func (matcher *conditionMatcher) FailureMessage(actual interface{}) (message string) {
 	return format.Message(actual, "to have the same state of", matcher.Expected)
 }
+
 func (matcher *conditionMatcher) NegatedFailureMessage(actual interface{}) (message string) {
 	return format.Message(actual, "not to have the same state of", matcher.Expected)
 }

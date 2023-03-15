@@ -26,7 +26,7 @@ import (
 func TestParseMajorMinorPatch(t *testing.T) {
 	g := NewWithT(t)
 
-	var testcases = []struct {
+	testcases := []struct {
 		name        string
 		input       string
 		output      semver.Version
@@ -79,7 +79,7 @@ func TestParseMajorMinorPatch(t *testing.T) {
 func TestParseMajorMinorPatchTolerant(t *testing.T) {
 	g := NewWithT(t)
 
-	var testcases = []struct {
+	testcases := []struct {
 		name        string
 		input       string
 		output      semver.Version

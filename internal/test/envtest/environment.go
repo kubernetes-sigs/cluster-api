@@ -135,7 +135,7 @@ func Run(ctx context.Context, input RunInput) int {
 		config := kubeconfig.FromEnvTestConfig(env.Config, &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{Name: "test"},
 		})
-		if err := os.WriteFile(kubeconfigPath, config, 0600); err != nil {
+		if err := os.WriteFile(kubeconfigPath, config, 0o600); err != nil {
 			panic(errors.Wrapf(err, "failed to write the test env kubeconfig"))
 		}
 	}
@@ -168,14 +168,12 @@ func Run(ctx context.Context, input RunInput) int {
 	return code
 }
 
-var (
-	cacheSyncBackoff = wait.Backoff{
-		Duration: 100 * time.Millisecond,
-		Factor:   1.5,
-		Steps:    8,
-		Jitter:   0.4,
-	}
-)
+var cacheSyncBackoff = wait.Backoff{
+	Duration: 100 * time.Millisecond,
+	Factor:   1.5,
+	Steps:    8,
+	Jitter:   0.4,
+}
 
 // Environment encapsulates a Kubernetes local test environment.
 type Environment struct {

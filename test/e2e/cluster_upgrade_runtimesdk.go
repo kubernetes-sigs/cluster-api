@@ -104,7 +104,7 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
 		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
-		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
+		Expect(os.MkdirAll(input.ArtifactFolder, 0o750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersionUpgradeFrom))
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersionUpgradeTo))
@@ -358,7 +358,7 @@ func beforeClusterCreateTestHandler(ctx context.Context, c client.Client, cluste
 func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, toVersion string, intervals []interface{}) {
 	hookName := "BeforeClusterUpgrade"
 	runtimeHookTestHandler(ctx, c, cluster, hookName, true, func() bool {
-		var blocked = true
+		blocked := true
 
 		controlPlaneMachines := framework.GetControlPlaneMachinesByCluster(ctx,
 			framework.GetControlPlaneMachinesByClusterInput{Lister: c, ClusterName: cluster.Name, Namespace: cluster.Namespace})
@@ -376,7 +376,7 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, clust
 func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, version string, intervals []interface{}) {
 	hookName := "AfterControlPlaneUpgrade"
 	runtimeHookTestHandler(ctx, c, cluster, hookName, true, func() bool {
-		var blocked = true
+		blocked := true
 
 		mds := framework.GetMachineDeploymentsByCluster(ctx,
 			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
@@ -395,7 +395,7 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, c
 func beforeClusterDeleteHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, intervals []interface{}) {
 	hookName := "BeforeClusterDelete"
 	runtimeHookTestHandler(ctx, c, cluster, hookName, false, func() bool {
-		var blocked = true
+		blocked := true
 
 		// If the Cluster is not found it has been deleted and the hook is unblocked.
 		if apierrors.IsNotFound(c.Get(ctx, client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}, &clusterv1.Cluster{})) {
@@ -425,7 +425,8 @@ func runtimeHookTestHandler(ctx context.Context, c client.Client, cluster types.
 		// Check for the existence of the condition if withTopologyReconciledCondition is true.
 		if withTopologyReconciledCondition {
 			cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
-				Name: cluster.Name, Namespace: cluster.Namespace, Getter: c})
+				Name: cluster.Name, Namespace: cluster.Namespace, Getter: c,
+			})
 
 			if !clusterConditionShowsHookBlocking(cluster, hookName) {
 				return errors.Errorf("Blocking condition for %s not found on Cluster object", hookName)
@@ -470,7 +471,8 @@ func dumpAndDeleteCluster(ctx context.Context, proxy framework.ClusterProxy, nam
 	By("Deleting the workload cluster")
 
 	cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
-		Name: clusterName, Namespace: namespace, Getter: proxy.GetClient()})
+		Name: clusterName, Namespace: namespace, Getter: proxy.GetClient(),
+	})
 
 	// Dump all the logs from the workload cluster before deleting them.
 	proxy.CollectWorkloadClusterLogs(ctx,
@@ -482,7 +484,8 @@ func dumpAndDeleteCluster(ctx context.Context, proxy framework.ClusterProxy, nam
 	framework.DumpAllResources(ctx, framework.DumpAllResourcesInput{
 		Lister:    proxy.GetClient(),
 		Namespace: namespace,
-		LogPath:   filepath.Join(artifactFolder, "clusters-beforeClusterDelete", proxy.GetName(), "resources")})
+		LogPath:   filepath.Join(artifactFolder, "clusters-beforeClusterDelete", proxy.GetName(), "resources"),
+	})
 
 	By("Deleting the workload cluster")
 	framework.DeleteCluster(ctx, framework.DeleteClusterInput{

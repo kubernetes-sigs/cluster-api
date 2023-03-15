@@ -37,11 +37,9 @@ import (
 	"sigs.k8s.io/cluster-api/version"
 )
 
-var (
-	// gitVersionRegEx matches git versions of style 0.3.7-45-c1aeccb679cd56
-	// see ./hack/version.sh for more info.
-	gitVersionRegEx = regexp.MustCompile(`(.*)-(\d+)-([0-9,a-f]{14})`)
-)
+// gitVersionRegEx matches git versions of style 0.3.7-45-c1aeccb679cd56
+// see ./hack/version.sh for more info.
+var gitVersionRegEx = regexp.MustCompile(`(.*)-(\d+)-([0-9,a-f]{14})`)
 
 type versionChecker struct {
 	versionFilePath string
@@ -173,7 +171,7 @@ func writeStateFile(path string, vs *VersionState) error {
 	if err := os.MkdirAll(filepath.Dir(path), os.ModePerm); err != nil {
 		return err
 	}
-	return os.WriteFile(path, vsb, 0600)
+	return os.WriteFile(path, vsb, 0o600)
 }
 
 func readStateFile(filepath string) (*VersionState, error) {

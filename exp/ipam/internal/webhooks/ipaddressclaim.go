@@ -41,8 +41,7 @@ func (webhook *IPAddressClaim) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update;delete,path=/validate-ipam-cluster-x-k8s-io-v1alpha1-ipaddressclaim,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=ipam.cluster.x-k8s.io,resources=ipaddressclaims,versions=v1alpha1,name=validation.ipaddressclaim.ipam.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
 // IPAddressClaim implements a validating webhook for IPAddressClaim.
-type IPAddressClaim struct {
-}
+type IPAddressClaim struct{}
 
 var _ webhook.CustomValidator = &IPAddressClaim{}
 

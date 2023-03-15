@@ -24,9 +24,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-var (
-	ctx = ctrl.SetupSignalHandler()
-)
+var ctx = ctrl.SetupSignalHandler()
 
 func init() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme.Scheme))

@@ -277,7 +277,7 @@ func Test_templateClient_getLocalFileContent(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
-	g.Expect(os.WriteFile(path, []byte(template), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(path, []byte(template), 0o600)).To(Succeed())
 
 	type args struct {
 		rURL *url.URL
@@ -395,7 +395,7 @@ func Test_templateClient_GetFromURL(t *testing.T) {
 	})
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
-	g.Expect(os.WriteFile(path, []byte(template), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(path, []byte(template), 0o600)).To(Succeed())
 
 	// redirect stdin
 	saveStdin := os.Stdin

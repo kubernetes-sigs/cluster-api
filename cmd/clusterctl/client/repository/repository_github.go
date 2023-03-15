@@ -235,7 +235,7 @@ func NewGitHubRepository(providerConfig config.Provider, configVariablesClient c
 }
 
 // getComponentsPath returns the file name.
-func getComponentsPath(path string, rootPath string) string {
+func getComponentsPath(path, rootPath string) string {
 	filePath := strings.TrimPrefix(path, rootPath)
 	componentsPath := strings.TrimPrefix(filePath, "/")
 	return componentsPath

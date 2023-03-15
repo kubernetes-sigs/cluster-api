@@ -164,10 +164,8 @@ const (
 	TemplateSuffix = "Template"
 )
 
-var (
-	// ZeroDuration is a zero value of the metav1.Duration type.
-	ZeroDuration = metav1.Duration{}
-)
+// ZeroDuration is a zero value of the metav1.Duration type.
+var ZeroDuration = metav1.Duration{}
 
 // MachineAddressType describes a valid MachineAddress type.
 type MachineAddressType string

@@ -60,7 +60,7 @@ func (c *clusterctlClient) getComponentsByName(provider string, providerType clu
 }
 
 // parseProviderName defines a utility function that parses the abbreviated syntax for name[:version].
-func parseProviderName(provider string) (name string, version string, err error) {
+func parseProviderName(provider string) (name, version string, err error) {
 	t := strings.Split(strings.ToLower(provider), ":")
 	if len(t) > 2 {
 		return "", "", errors.Errorf("invalid provider name %q. Provider name should be in the form name[:version]", provider)

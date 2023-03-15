@@ -291,7 +291,8 @@ func Test_fixTargetNamespace(t *testing.T) {
 			},
 			targetNamespace: "bar",
 			wantErr:         true,
-		}, {
+		},
+		{
 			name: "fix v1 webhook configs",
 			objs: []unstructured.Unstructured{
 				{

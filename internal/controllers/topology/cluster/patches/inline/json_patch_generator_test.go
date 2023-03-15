@@ -1601,7 +1601,8 @@ func TestRenderValueTemplate(t *testing.T) {
 			variables: map[string]apiextensionsv1.JSON{
 				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
 			},
-			want: &apiextensionsv1.JSON{Raw: []byte(`
+			want: &apiextensionsv1.JSON{
+				Raw: []byte(`
 [{
 	"contentFrom":{
 		"secret":{
@@ -1625,7 +1626,8 @@ owner: root:root
 			variables: map[string]apiextensionsv1.JSON{
 				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
 			},
-			want: &apiextensionsv1.JSON{Raw: []byte(`
+			want: &apiextensionsv1.JSON{
+				Raw: []byte(`
 {
 	"contentFrom":{
 		"secret":{
@@ -1653,7 +1655,8 @@ owner: root:root
 			variables: map[string]apiextensionsv1.JSON{
 				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
 			},
-			want: &apiextensionsv1.JSON{Raw: []byte(`
+			want: &apiextensionsv1.JSON{
+				Raw: []byte(`
 [{
 	"contentFrom":{
 		"secret":{
@@ -1680,7 +1683,8 @@ owner: root:root
 			variables: map[string]apiextensionsv1.JSON{
 				patchvariables.BuiltinsName: {Raw: []byte(`{"cluster":{"name":"cluster1"}}`)},
 			},
-			want: &apiextensionsv1.JSON{Raw: []byte(`
+			want: &apiextensionsv1.JSON{
+				Raw: []byte(`
 {
 	"contentFrom":{
 		"secret":{

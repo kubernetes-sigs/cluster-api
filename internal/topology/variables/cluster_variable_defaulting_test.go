@@ -56,7 +56,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
 							Required: true,
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
@@ -72,7 +71,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Name: "location",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
 							Required: true,
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
@@ -89,7 +87,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Name: "count",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
 							Required: true,
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
@@ -105,7 +102,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Name: "correct",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
 							Required: true,
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
@@ -154,7 +150,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
 							Required: true,
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
@@ -178,7 +173,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
 							Required: true,
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
@@ -194,7 +188,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Name: "correct",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
 							Required: true,
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
@@ -239,7 +232,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
 							Required: true,
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
@@ -334,7 +326,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					Name: "cpu",
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
 							Required: true,
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
@@ -345,7 +336,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 							},
 						},
 						{
-
 							Required: true,
 							From:     "somepatch",
 							Schema: clusterv1.VariableSchema{
@@ -356,7 +346,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 							},
 						},
 						{
-
 							Required: true,
 							From:     "otherpatch",
 							Schema: clusterv1.VariableSchema{
@@ -449,7 +438,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					DefinitionsConflict: true,
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
 							Required: true,
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
@@ -502,7 +490,6 @@ func Test_DefaultClusterVariables(t *testing.T) {
 					DefinitionsConflict: true,
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
 							Required: true,
 							From:     clusterv1.VariableDefinitionFromInline,
 							Schema: clusterv1.VariableSchema{
@@ -993,7 +980,6 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			clusterClassVariable: &statusVariableDefinition{
 				Name: "httpProxy",
 				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-
 					Required: true,
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{
@@ -1146,7 +1132,6 @@ func Test_DefaultClusterVariable(t *testing.T) {
 			clusterClassVariable: &statusVariableDefinition{
 				Name: "testVariable",
 				ClusterClassStatusVariableDefinition: &clusterv1.ClusterClassStatusVariableDefinition{
-
 					Required: true,
 					Schema: clusterv1.VariableSchema{
 						OpenAPIV3Schema: clusterv1.JSONSchemaProps{

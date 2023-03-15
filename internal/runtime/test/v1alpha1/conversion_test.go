@@ -31,7 +31,7 @@ import (
 func TestConversion(t *testing.T) {
 	g := NewWithT(t)
 
-	var c = runtimecatalog.New()
+	c := runtimecatalog.New()
 	_ = AddToCatalog(c)
 	_ = v1alpha2.AddToCatalog(c)
 

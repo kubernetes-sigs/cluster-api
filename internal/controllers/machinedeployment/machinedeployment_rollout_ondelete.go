@@ -75,7 +75,7 @@ func (r *Reconciler) rolloutOnDelete(ctx context.Context, md *clusterv1.MachineD
 }
 
 // reconcileOldMachineSetsOnDelete handles reconciliation of Old MachineSets associated with the MachineDeployment in the OnDelete MachineDeploymentStrategyType.
-func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs []*clusterv1.MachineSet, allMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+func (r *Reconciler) reconcileOldMachineSetsOnDelete(ctx context.Context, oldMSs, allMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
 	log := ctrl.LoggerFrom(ctx)
 	if deployment.Spec.Replicas == nil {
 		return errors.Errorf("spec replicas for MachineDeployment %q/%q is nil, this is unexpected",

@@ -627,7 +627,7 @@ func (c *E2EConfig) GetProviderLatestVersionsByContract(contract string, provide
 	return ret
 }
 
-func (c *E2EConfig) getVersions(provider string, contract string) []string {
+func (c *E2EConfig) getVersions(provider, contract string) []string {
 	versions := []string{}
 	for _, p := range c.Providers {
 		if p.Name == provider {

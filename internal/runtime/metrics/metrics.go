@@ -58,8 +58,10 @@ var (
 			Subsystem: runtimeSDKSubsystem,
 			Name:      "request_duration_seconds",
 			Help:      "Request duration in seconds, broken down by hook and host.",
-			Buckets: []float64{0.005, 0.025, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.25, 1.5, 2, 3,
-				4, 5, 6, 8, 10, 15, 20, 30, 45, 60},
+			Buckets: []float64{
+				0.005, 0.025, 0.05, 0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.25, 1.5, 2, 3,
+				4, 5, 6, 8, 10, 15, 20, 30, 45, 60,
+			},
 		}, []string{"host", "group", "version", "hook"}),
 	}
 )

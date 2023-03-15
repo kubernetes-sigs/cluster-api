@@ -97,7 +97,7 @@ func FalseCondition(t clusterv1.ConditionType, reason string, severity clusterv1
 }
 
 // UnknownCondition returns a condition with Status=Unknown and the given type.
-func UnknownCondition(t clusterv1.ConditionType, reason string, messageFormat string, messageArgs ...interface{}) *clusterv1.Condition {
+func UnknownCondition(t clusterv1.ConditionType, reason, messageFormat string, messageArgs ...interface{}) *clusterv1.Condition {
 	return &clusterv1.Condition{
 		Type:    t,
 		Status:  corev1.ConditionUnknown,

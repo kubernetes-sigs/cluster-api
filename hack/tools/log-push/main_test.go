@@ -46,7 +46,6 @@ func Test_calculateGCSLogLocation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gotBucket, gotFolder, err := calculateGCSLogLocation(tt.logPath)
-
 			if err != nil {
 				t.Errorf("calculateGCSLogLocation() unexpected error: %v", err)
 			}

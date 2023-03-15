@@ -28,9 +28,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	ociTagAllowedChars = regexp.MustCompile(`[^-a-zA-Z0-9_\.]`)
-)
+var ociTagAllowedChars = regexp.MustCompile(`[^-a-zA-Z0-9_\.]`)
 
 // Image type represents the container image details.
 type Image struct {

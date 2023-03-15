@@ -140,7 +140,6 @@ func TestValidatePatches(t *testing.T) {
 					},
 
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "",
 							Definitions: []clusterv1.PatchDefinition{
@@ -194,7 +193,6 @@ func TestValidatePatches(t *testing.T) {
 					},
 
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -328,7 +326,6 @@ func TestValidatePatches(t *testing.T) {
 					},
 
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -371,7 +368,6 @@ func TestValidatePatches(t *testing.T) {
 					},
 
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -464,7 +460,6 @@ func TestValidatePatches(t *testing.T) {
 					},
 
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -518,7 +513,6 @@ func TestValidatePatches(t *testing.T) {
 					},
 
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -572,7 +566,6 @@ func TestValidatePatches(t *testing.T) {
 					},
 
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -626,7 +619,6 @@ func TestValidatePatches(t *testing.T) {
 					},
 
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -682,7 +674,6 @@ func TestValidatePatches(t *testing.T) {
 					},
 
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -722,7 +713,6 @@ func TestValidatePatches(t *testing.T) {
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -778,7 +768,6 @@ func TestValidatePatches(t *testing.T) {
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -818,7 +807,6 @@ func TestValidatePatches(t *testing.T) {
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -861,7 +849,6 @@ func TestValidatePatches(t *testing.T) {
 						},
 					},
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -904,7 +891,6 @@ func TestValidatePatches(t *testing.T) {
 					},
 
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{
@@ -1353,7 +1339,6 @@ func TestValidatePatches(t *testing.T) {
 					},
 
 					Patches: []clusterv1.ClusterClassPatch{
-
 						{
 							Name: "patch1",
 							Definitions: []clusterv1.PatchDefinition{

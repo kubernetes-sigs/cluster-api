@@ -34,9 +34,9 @@ type OpenLogFileInput struct {
 
 func OpenLogFile(input OpenLogFileInput) *LogFile {
 	filePath := filepath.Join(input.LogFolder, input.Name)
-	Expect(os.MkdirAll(filepath.Dir(filePath), 0750)).To(Succeed(), "Failed to create log folder %s", filepath.Dir(filePath))
+	Expect(os.MkdirAll(filepath.Dir(filePath), 0o750)).To(Succeed(), "Failed to create log folder %s", filepath.Dir(filePath))
 
-	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666) //nolint:gosec // No security issue: filepath is safe.
+	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666) //nolint:gosec // No security issue: filepath is safe.
 	Expect(err).ToNot(HaveOccurred(), "Failed to create log file %s", filePath)
 
 	return &LogFile{

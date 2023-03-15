@@ -28,7 +28,7 @@ import (
 
 // GatherJUnitReports will move JUnit files from one directory to another,
 // renaming them in a format expected by Prow.
-func GatherJUnitReports(srcDir string, destDir string) error {
+func GatherJUnitReports(srcDir, destDir string) error {
 	if err := os.MkdirAll(srcDir, 0o700); err != nil {
 		return err
 	}

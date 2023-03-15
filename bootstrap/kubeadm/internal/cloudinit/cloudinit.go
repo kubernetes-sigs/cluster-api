@@ -74,7 +74,7 @@ func (input *BaseUserData) prepare() error {
 	return nil
 }
 
-func generate(kind string, tpl string, data interface{}) ([]byte, error) {
+func generate(kind, tpl string, data interface{}) ([]byte, error) {
 	tm := template.New(kind).Funcs(defaultTemplateFuncMap)
 	if _, err := tm.Parse(filesTemplate); err != nil {
 		return nil, errors.Wrap(err, "failed to parse files template")
@@ -117,10 +117,8 @@ func generate(kind string, tpl string, data interface{}) ([]byte, error) {
 	return out.Bytes(), nil
 }
 
-var (
-	//go:embed kubeadm-bootstrap-script.sh
-	kubeadmBootstrapScript string
-)
+//go:embed kubeadm-bootstrap-script.sh
+var kubeadmBootstrapScript string
 
 func generateBootstrapScript(input interface{}) (*bootstrapv1.File, error) {
 	joinScript, err := generate("JoinScript", kubeadmBootstrapScript, input)

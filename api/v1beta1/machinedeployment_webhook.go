@@ -52,8 +52,10 @@ func (m *MachineDeployment) SetupWebhookWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:webhook:verbs=create;update,path=/validate-cluster-x-k8s-io-v1beta1-machinedeployment,mutating=false,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinedeployments,versions=v1beta1,name=validation.machinedeployment.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 // +kubebuilder:webhook:verbs=create;update,path=/mutate-cluster-x-k8s-io-v1beta1-machinedeployment,mutating=true,failurePolicy=fail,matchPolicy=Equivalent,groups=cluster.x-k8s.io,resources=machinedeployments,versions=v1beta1,name=default.machinedeployment.cluster.x-k8s.io,sideEffects=None,admissionReviewVersions=v1;v1beta1
 
-var _ webhook.CustomDefaulter = &machineDeploymentDefaulter{}
-var _ webhook.Validator = &MachineDeployment{}
+var (
+	_ webhook.CustomDefaulter = &machineDeploymentDefaulter{}
+	_ webhook.Validator       = &MachineDeployment{}
+)
 
 // MachineDeploymentDefaulter creates a new CustomDefaulter for MachineDeployments.
 func MachineDeploymentDefaulter(scheme *runtime.Scheme) webhook.CustomDefaulter {
@@ -304,7 +306,7 @@ const (
 // Notes:
 //   - While the min size and max size annotations of the autoscaler provide the best UX, other autoscalers can use the
 //     DefaultReplicasAnnotation if they have similar use cases.
-func calculateMachineDeploymentReplicas(ctx context.Context, oldMD *MachineDeployment, newMD *MachineDeployment, dryRun bool) (int32, error) {
+func calculateMachineDeploymentReplicas(ctx context.Context, oldMD, newMD *MachineDeployment, dryRun bool) (int32, error) {
 	// If replicas is already set => Keep the current value.
 	if newMD.Spec.Replicas != nil {
 		return *newMD.Spec.Replicas, nil

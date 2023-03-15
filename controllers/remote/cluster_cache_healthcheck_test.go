@@ -48,9 +48,9 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 		var cct *ClusterCacheTracker
 		var cc *stoppableCache
 
-		var testPollInterval = 250 * time.Millisecond
-		var testPollTimeout = 1 * time.Second
-		var testUnhealthyThreshold = 3
+		testPollInterval := 250 * time.Millisecond
+		testPollTimeout := 1 * time.Second
+		testUnhealthyThreshold := 3
 
 		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
 			t.Helper()

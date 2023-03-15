@@ -51,7 +51,7 @@ const (
 )
 
 // NewPatch returns the Patch required to align source conditions to after conditions.
-func NewPatch(before Getter, after Getter) (Patch, error) {
+func NewPatch(before, after Getter) (Patch, error) {
 	var patch Patch
 
 	if util.IsNil(before) {

@@ -28,9 +28,7 @@ import (
 	etcdfake "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/fake"
 )
 
-var (
-	ctx = ctrl.SetupSignalHandler()
-)
+var ctx = ctrl.SetupSignalHandler()
 
 func TestEtcdMembers_WithErrors(t *testing.T) {
 	g := NewWithT(t)

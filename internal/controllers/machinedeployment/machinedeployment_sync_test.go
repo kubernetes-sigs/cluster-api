@@ -43,7 +43,7 @@ import (
 func TestCalculateStatus(t *testing.T) {
 	msStatusError := capierrors.MachineSetStatusError("some failure")
 
-	var tests = map[string]struct {
+	tests := map[string]struct {
 		machineSets    []*clusterv1.MachineSet
 		newMachineSet  *clusterv1.MachineSet
 		deployment     *clusterv1.MachineDeployment
@@ -719,7 +719,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 	})
 }
 
-func assertMachineSet(g *WithT, actualMS *clusterv1.MachineSet, expectedMS *clusterv1.MachineSet) {
+func assertMachineSet(g *WithT, actualMS, expectedMS *clusterv1.MachineSet) {
 	// check UID
 	if expectedMS.UID != "" {
 		g.Expect(actualMS.UID).Should(Equal(expectedMS.UID))

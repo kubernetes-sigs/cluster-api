@@ -35,9 +35,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/patches/variables"
 )
 
-var (
-	testScheme = runtime.NewScheme()
-)
+var testScheme = runtime.NewScheme()
 
 func init() {
 	_ = controlplanev1.AddToScheme(testScheme)

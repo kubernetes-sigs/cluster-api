@@ -428,7 +428,7 @@ func FindNewMachineSet(deployment *clusterv1.MachineDeployment, msList []*cluste
 	return nil
 }
 
-func shouldRolloutAfter(ms *clusterv1.MachineSet, reconciliationTime *metav1.Time, rolloutAfter *metav1.Time) bool {
+func shouldRolloutAfter(ms *clusterv1.MachineSet, reconciliationTime, rolloutAfter *metav1.Time) bool {
 	if ms == nil {
 		return false
 	}

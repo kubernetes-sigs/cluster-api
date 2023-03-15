@@ -73,7 +73,7 @@ type fakeWorkloadCluster struct {
 	APIServerCertificateExpiry *time.Time
 }
 
-func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _ *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
+func (f fakeWorkloadCluster) ForwardEtcdLeadership(_ context.Context, _, leaderCandidate *clusterv1.Machine) error {
 	if leaderCandidate == nil {
 		return errors.New("leaderCandidate is nil")
 	}

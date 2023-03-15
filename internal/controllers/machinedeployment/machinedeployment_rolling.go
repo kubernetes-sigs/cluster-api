@@ -98,7 +98,7 @@ func (r *Reconciler) reconcileNewMachineSet(ctx context.Context, allMSs []*clust
 	return r.scaleMachineSet(ctx, newMS, newReplicasCount, deployment)
 }
 
-func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs []*clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
+func (r *Reconciler) reconcileOldMachineSets(ctx context.Context, allMSs, oldMSs []*clusterv1.MachineSet, newMS *clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if deployment.Spec.Replicas == nil {
@@ -237,7 +237,7 @@ func (r *Reconciler) cleanupUnhealthyReplicas(ctx context.Context, oldMSs []*clu
 
 // scaleDownOldMachineSetsForRollingUpdate scales down old MachineSets when deployment strategy is "RollingUpdate".
 // Need check maxUnavailable to ensure availability.
-func (r *Reconciler) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context, allMSs []*clusterv1.MachineSet, oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) (int32, error) {
+func (r *Reconciler) scaleDownOldMachineSetsForRollingUpdate(ctx context.Context, allMSs, oldMSs []*clusterv1.MachineSet, deployment *clusterv1.MachineDeployment) (int32, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if deployment.Spec.Replicas == nil {

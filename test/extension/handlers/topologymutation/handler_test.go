@@ -37,9 +37,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 )
 
-var (
-	testScheme = runtime.NewScheme()
-)
+var testScheme = runtime.NewScheme()
 
 func init() {
 	_ = infrav1.AddToScheme(testScheme)

@@ -192,7 +192,7 @@ func (c *Catalog) AddOpenAPIDefinitions(getter OpenAPIDefinitionsGetter) {
 
 // Convert will attempt to convert in into out. Both must be pointers.
 // Returns an error if the conversion isn't possible.
-func (c *Catalog) Convert(in, out interface{}, context interface{}) error {
+func (c *Catalog) Convert(in, out, context interface{}) error {
 	return c.scheme.Convert(in, out, context)
 }
 

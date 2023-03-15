@@ -121,7 +121,7 @@ func createTempFile(g *WithT, contents string) (string, func()) {
 	g.Expect(err).NotTo(HaveOccurred())
 
 	templateFile := filepath.Join(dir, "templ.yaml")
-	g.Expect(os.WriteFile(templateFile, []byte(contents), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(templateFile, []byte(contents), 0o600)).To(Succeed())
 
 	return templateFile, func() {
 		// We don't want to fail if the deletion of the temp file fails, so we ignore the error here

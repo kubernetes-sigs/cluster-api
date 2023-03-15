@@ -35,7 +35,7 @@ func Test_runGetRepositories(t *testing.T) {
 		defer os.RemoveAll(tmpDir)
 
 		path := filepath.Join(tmpDir, "clusterctl.yaml")
-		g.Expect(os.WriteFile(path, []byte(template), 0600)).To(Succeed())
+		g.Expect(os.WriteFile(path, []byte(template), 0o600)).To(Succeed())
 
 		buf := bytes.NewBufferString("")
 
@@ -72,7 +72,7 @@ func Test_runGetRepositories(t *testing.T) {
 		defer os.RemoveAll(tmpDir)
 
 		path := filepath.Join(tmpDir, "clusterctl.yaml")
-		g.Expect(os.WriteFile(path, []byte("providers: foobar"), 0600)).To(Succeed())
+		g.Expect(os.WriteFile(path, []byte("providers: foobar"), 0o600)).To(Succeed())
 
 		buf := bytes.NewBufferString("")
 		g.Expect(runGetRepositories(path, buf)).ToNot(Succeed())

@@ -32,9 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-var (
-	ctx = ctrl.SetupSignalHandler()
-)
+var ctx = ctrl.SetupSignalHandler()
 
 const (
 	testClusterName = "test-cluster"

@@ -1055,9 +1055,10 @@ func selectorForControlPlaneMHC() *metav1.LabelSelector {
 func selectorForMachineDeploymentMHC(md *clusterv1.MachineDeployment) *metav1.LabelSelector {
 	// The selector returned here is the minimal common selector for all MachineSets belonging to a MachineDeployment.
 	// It does not include any labels set in ClusterClass, Cluster Topology or elsewhere.
-	return &metav1.LabelSelector{MatchLabels: map[string]string{
-		clusterv1.ClusterTopologyOwnedLabel:                 "",
-		clusterv1.ClusterTopologyMachineDeploymentNameLabel: md.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel],
-	},
+	return &metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			clusterv1.ClusterTopologyOwnedLabel:                 "",
+			clusterv1.ClusterTopologyMachineDeploymentNameLabel: md.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel],
+		},
 	}
 }

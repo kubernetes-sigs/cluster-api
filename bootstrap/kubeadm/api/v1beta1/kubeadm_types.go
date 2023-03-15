@@ -192,7 +192,7 @@ type ImageMeta struct {
 	// +optional
 	ImageTag string `json:"imageTag,omitempty"`
 
-	//TODO: evaluate if we need also a ImageName based on user feedbacks
+	// TODO: evaluate if we need also a ImageName based on user feedbacks
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -225,7 +225,6 @@ type APIEndpoint struct {
 // NodeRegistrationOptions holds fields that relate to registering a new control-plane or node to the cluster, either via "kubeadm init" or "kubeadm join".
 // Note: The NodeRegistrationOptions struct has to be kept in sync with the structs in MarshalJSON.
 type NodeRegistrationOptions struct {
-
 	// Name is the `.Metadata.Name` field of the Node API object that will be created in this `kubeadm init` or `kubeadm join` operation.
 	// This field is also used in the CommonName field of the kubelet's client certificate to the API server.
 	// Defaults to the hostname of the node if not provided.
@@ -355,7 +354,6 @@ type BootstrapToken struct {
 
 // Etcd contains elements describing Etcd configuration.
 type Etcd struct {
-
 	// Local provides configuration knobs for configuring the local etcd instance
 	// Local and External are mutually exclusive
 	// +optional

@@ -33,9 +33,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 )
 
-var (
-	localScheme = scheme.Scheme
-)
+var localScheme = scheme.Scheme
 
 // changeTrackerID represents a unique identifier of an object.
 type changeTrackerID struct {

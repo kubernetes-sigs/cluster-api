@@ -32,10 +32,8 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
-var (
-	// Scheme contains a set of API resources used by clusterctl.
-	Scheme = runtime.NewScheme()
-)
+// Scheme contains a set of API resources used by clusterctl.
+var Scheme = runtime.NewScheme()
 
 func init() {
 	_ = clientgoscheme.AddToScheme(Scheme)

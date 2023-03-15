@@ -60,7 +60,8 @@ func TestGetBlueprint(t *testing.T) {
 		Build()
 	machineHealthCheck := &clusterv1.MachineHealthCheckClass{
 		NodeStartupTimeout: &metav1.Duration{
-			Duration: time.Duration(1)},
+			Duration: time.Duration(1),
+		},
 	}
 
 	machineDeployment := builder.MachineDeploymentClass("workerclass1").

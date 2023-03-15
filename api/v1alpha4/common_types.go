@@ -111,10 +111,8 @@ const (
 	TemplateSuffix = "Template"
 )
 
-var (
-	// ZeroDuration is a zero value of the metav1.Duration type.
-	ZeroDuration = metav1.Duration{}
-)
+// ZeroDuration is a zero value of the metav1.Duration type.
+var ZeroDuration = metav1.Duration{}
 
 const (
 	// MachineNodeNameIndex is used by the Machine Controller to index Machines by Node name, and add a watch on Nodes.

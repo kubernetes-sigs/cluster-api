@@ -99,47 +99,45 @@ func testControlPlaneCRD(gvk schema.GroupVersionKind) *apiextensionsv1.CustomRes
 	})
 }
 
-var (
-	controPlaneSpecSchema = apiextensionsv1.JSONSchemaProps{
-		Type: "object",
-		Properties: map[string]apiextensionsv1.JSONSchemaProps{
-			// Mandatory field from the Cluster API contract - version support
-			"version": {
-				Type: "string",
+var controPlaneSpecSchema = apiextensionsv1.JSONSchemaProps{
+	Type: "object",
+	Properties: map[string]apiextensionsv1.JSONSchemaProps{
+		// Mandatory field from the Cluster API contract - version support
+		"version": {
+			Type: "string",
+		},
+		// mandatory field from the Cluster API contract - replicas support
+		"replicas": {
+			Type:   "integer",
+			Format: "int32",
+		},
+		// mandatory field from the Cluster API contract - using Machines support
+		"machineTemplate": {
+			Type: "object",
+			Properties: map[string]apiextensionsv1.JSONSchemaProps{
+				"metadata":            metadataSchema,
+				"infrastructureRef":   refSchema,
+				"nodeDeletionTimeout": {Type: "string"},
+				"nodeDrainTimeout":    {Type: "string"},
 			},
-			// mandatory field from the Cluster API contract - replicas support
-			"replicas": {
-				Type:   "integer",
-				Format: "int32",
-			},
-			// mandatory field from the Cluster API contract - using Machines support
-			"machineTemplate": {
-				Type: "object",
-				Properties: map[string]apiextensionsv1.JSONSchemaProps{
-					"metadata":            metadataSchema,
-					"infrastructureRef":   refSchema,
-					"nodeDeletionTimeout": {Type: "string"},
-					"nodeDrainTimeout":    {Type: "string"},
-				},
-			},
-			// General purpose fields to be used in different test scenario.
-			"foo": {Type: "string"},
-			"bar": {Type: "string"},
-			// Copy of a subset of KCP spec fields to test server side apply on deep nested structs
-			"kubeadmConfigSpec": {
-				Type: "object",
-				Properties: map[string]apiextensionsv1.JSONSchemaProps{
-					"clusterConfiguration": {
-						Type: "object",
-						Properties: map[string]apiextensionsv1.JSONSchemaProps{
-							"controllerManager": {
-								Type: "object",
-								Properties: map[string]apiextensionsv1.JSONSchemaProps{
-									"extraArgs": {
-										Type: "object",
-										AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
-											Schema: &apiextensionsv1.JSONSchemaProps{Type: "string"},
-										},
+		},
+		// General purpose fields to be used in different test scenario.
+		"foo": {Type: "string"},
+		"bar": {Type: "string"},
+		// Copy of a subset of KCP spec fields to test server side apply on deep nested structs
+		"kubeadmConfigSpec": {
+			Type: "object",
+			Properties: map[string]apiextensionsv1.JSONSchemaProps{
+				"clusterConfiguration": {
+					Type: "object",
+					Properties: map[string]apiextensionsv1.JSONSchemaProps{
+						"controllerManager": {
+							Type: "object",
+							Properties: map[string]apiextensionsv1.JSONSchemaProps{
+								"extraArgs": {
+									Type: "object",
+									AdditionalProperties: &apiextensionsv1.JSONSchemaPropsOrBool{
+										Schema: &apiextensionsv1.JSONSchemaProps{Type: "string"},
 									},
 								},
 							},
@@ -148,5 +146,5 @@ var (
 				},
 			},
 		},
-	}
-)
+	},
+}

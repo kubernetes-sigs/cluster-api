@@ -154,7 +154,7 @@ func (s *LoadBalancer) UpdateConfiguration(ctx context.Context) error {
 		return errors.WithStack(err)
 	}
 
-	var backendServers = map[string]string{}
+	backendServers := map[string]string{}
 	for _, n := range controlPlaneNodes {
 		controlPlaneIPv4, controlPlaneIPv6, err := n.IP(ctx)
 		if err != nil {

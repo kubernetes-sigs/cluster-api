@@ -47,7 +47,6 @@ func (r *ClusterCacheReconciler) SetupWithManager(ctx context.Context, mgr ctrl.
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Complete(r)
-
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}

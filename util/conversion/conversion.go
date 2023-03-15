@@ -50,9 +50,7 @@ const (
 	DataAnnotation = "cluster.x-k8s.io/conversion-data"
 )
 
-var (
-	contract = clusterv1.GroupVersion.String()
-)
+var contract = clusterv1.GroupVersion.String()
 
 // UpdateReferenceAPIContract takes a client and object reference, queries the API Server for
 // the Custom Resource Definition and looks which one is the stored version available.
@@ -98,7 +96,7 @@ func getLatestAPIVersionFromContract(metadata metav1.Object) (string, error) {
 
 // MarshalData stores the source object as json data in the destination object annotations map.
 // It ignores the metadata of the source object.
-func MarshalData(src metav1.Object, dst metav1.Object) error {
+func MarshalData(src, dst metav1.Object) error {
 	u, err := runtime.DefaultUnstructuredConverter.ToUnstructured(src)
 	if err != nil {
 		return err

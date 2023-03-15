@@ -237,7 +237,8 @@ func addObjectRow(prefix string, tbl *tablewriter.Table, objectTree *tree.Object
 		readyDescriptor.readyColor.Sprint(readyDescriptor.severity),
 		readyDescriptor.readyColor.Sprint(readyDescriptor.reason),
 		readyDescriptor.age,
-		readyDescriptor.message})
+		readyDescriptor.message,
+	})
 
 	// If it is required to show all the conditions for the object, add a row for each object's conditions.
 	if tree.IsShowConditionsObject(obj) {
@@ -287,7 +288,8 @@ func addOtherConditions(prefix string, tbl *tablewriter.Table, objectTree *tree.
 			otherDescriptor.readyColor.Sprint(otherDescriptor.severity),
 			otherDescriptor.readyColor.Sprint(otherDescriptor.reason),
 			otherDescriptor.age,
-			otherDescriptor.message})
+			otherDescriptor.message,
+		})
 	}
 }
 

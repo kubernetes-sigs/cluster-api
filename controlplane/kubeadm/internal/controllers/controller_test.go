@@ -82,7 +82,8 @@ func TestClusterToKubeadmControlPlane(t *testing.T) {
 		{
 			NamespacedName: client.ObjectKey{
 				Namespace: cluster.Spec.ControlPlaneRef.Namespace,
-				Name:      cluster.Spec.ControlPlaneRef.Name},
+				Name:      cluster.Spec.ControlPlaneRef.Name,
+			},
 		},
 	}
 

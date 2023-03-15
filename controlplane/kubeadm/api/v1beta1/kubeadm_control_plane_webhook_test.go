@@ -1192,6 +1192,7 @@ func TestValidateVersion(t *testing.T) {
 		})
 	}
 }
+
 func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 	before := &KubeadmControlPlane{
 		ObjectMeta: metav1.ObjectMeta{

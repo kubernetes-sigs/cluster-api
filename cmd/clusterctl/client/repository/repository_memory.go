@@ -73,7 +73,7 @@ func (f *MemoryRepository) ComponentsPath() string {
 
 // GetFile returns a file for a given provider version.
 // NOTE: If the provided version is missing, the default version is used.
-func (f *MemoryRepository) GetFile(version string, path string) ([]byte, error) {
+func (f *MemoryRepository) GetFile(version, path string) ([]byte, error) {
 	if version == "" {
 		version = f.DefaultVersion()
 	}
@@ -168,6 +168,6 @@ func (f *MemoryRepository) WithMetadata(version string, metadata *clusterctlv1.M
 	return f.WithFile(version, "metadata.yaml", data)
 }
 
-func vpath(version string, path string) string {
+func vpath(version, path string) string {
 	return fmt.Sprintf("%s/%s", version, path)
 }

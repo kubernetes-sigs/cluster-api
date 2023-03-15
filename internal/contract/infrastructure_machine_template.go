@@ -24,8 +24,10 @@ import (
 // like DockerMachineTemplates, AWSMachineTemplates, etc.
 type InfrastructureMachineTemplateContract struct{}
 
-var infrastructureMachineTemplate *InfrastructureMachineTemplateContract
-var onceInfrastructureMachineTemplate sync.Once
+var (
+	infrastructureMachineTemplate     *InfrastructureMachineTemplateContract
+	onceInfrastructureMachineTemplate sync.Once
+)
 
 // InfrastructureMachineTemplate provide access to the information about the Cluster API contract for InfrastructureMachineTemplate objects.
 func InfrastructureMachineTemplate() *InfrastructureMachineTemplateContract {

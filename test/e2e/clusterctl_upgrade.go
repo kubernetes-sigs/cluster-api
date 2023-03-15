@@ -94,7 +94,7 @@ type ClusterctlUpgradeSpecInput struct {
 	SkipCleanup                bool
 	// PreWaitForCluster is a function that can be used as a hook to apply extra resources (that cannot be part of the template) in the generated namespace hosting the cluster
 	// This function is called after applying the cluster template and before waiting for the cluster resources.
-	PreWaitForCluster   func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace string, workloadClusterName string)
+	PreWaitForCluster   func(managementClusterProxy framework.ClusterProxy, workloadClusterNamespace, workloadClusterName string)
 	ControlPlaneWaiters clusterctl.ControlPlaneWaiters
 	PreInit             func(managementClusterProxy framework.ClusterProxy)
 	PreUpgrade          func(managementClusterProxy framework.ClusterProxy)
@@ -199,7 +199,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		}
 
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
-		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
+		Expect(os.MkdirAll(input.ArtifactFolder, 0o750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
 		managementClusterNamespace, managementClusterCancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
@@ -260,7 +260,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		clusterctlBinaryPath := downloadToTmpFile(ctx, initClusterctlBinaryURL)
 		defer os.Remove(clusterctlBinaryPath) // clean up
 
-		err := os.Chmod(clusterctlBinaryPath, 0744) //nolint:gosec
+		err := os.Chmod(clusterctlBinaryPath, 0o744) //nolint:gosec
 		Expect(err).ToNot(HaveOccurred(), "failed to chmod temporary file")
 
 		// Adjusts the clusterctlConfigPath in case the clusterctl version <= v1.3 (thus using a config file with only the providers supported in those versions)
@@ -713,7 +713,7 @@ func waitForClusterDeletedV1alpha4(ctx context.Context, input waitForClusterDele
 	}, intervals...).Should(BeTrue())
 }
 
-func matchUnstructuredLists(l1 *unstructured.UnstructuredList, l2 *unstructured.UnstructuredList) bool {
+func matchUnstructuredLists(l1, l2 *unstructured.UnstructuredList) bool {
 	if l1 == nil && l2 == nil {
 		return true
 	}
@@ -735,7 +735,7 @@ func matchUnstructuredLists(l1 *unstructured.UnstructuredList, l2 *unstructured.
 }
 
 // getValueOrFallback returns the input value unless it is empty, then it returns the fallback input.
-func getValueOrFallback(value []string, fallback []string) []string {
+func getValueOrFallback(value, fallback []string) []string {
 	if value != nil {
 		return value
 	}

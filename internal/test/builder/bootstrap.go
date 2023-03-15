@@ -92,13 +92,11 @@ func testBootstrapConfigCRD(gvk schema.GroupVersionKind) *apiextensionsv1.Custom
 	})
 }
 
-var (
-	bootstrapConfigSpecSchema = apiextensionsv1.JSONSchemaProps{
-		Type: "object",
-		Properties: map[string]apiextensionsv1.JSONSchemaProps{
-			// General purpose fields to be used in different test scenario.
-			"foo": {Type: "string"},
-			"bar": {Type: "string"},
-		},
-	}
-)
+var bootstrapConfigSpecSchema = apiextensionsv1.JSONSchemaProps{
+	Type: "object",
+	Properties: map[string]apiextensionsv1.JSONSchemaProps{
+		// General purpose fields to be used in different test scenario.
+		"foo": {Type: "string"},
+		"bar": {Type: "string"},
+	},
+}

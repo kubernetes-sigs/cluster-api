@@ -178,7 +178,7 @@ func TestParseInvalidFile(t *testing.T) {
 func TestParseClusterYaml(t *testing.T) {
 	g := NewWithT(t)
 
-	var testcases = []struct {
+	testcases := []struct {
 		name         string
 		contents     string
 		expectedName string
@@ -232,7 +232,7 @@ func TestParseClusterYaml(t *testing.T) {
 func TestParseMachineYaml(t *testing.T) {
 	g := NewWithT(t)
 
-	var testcases = []struct {
+	testcases := []struct {
 		name                 string
 		contents             string
 		expectErr            bool

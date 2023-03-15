@@ -47,10 +47,8 @@ const (
 	EventDetectedUnhealthy string = "DetectedUnhealthy"
 )
 
-var (
-	// We allow users to disable the nodeStartupTimeout by setting the duration to 0.
-	disabledNodeStartupTimeout = clusterv1.ZeroDuration
-)
+// We allow users to disable the nodeStartupTimeout by setting the duration to 0.
+var disabledNodeStartupTimeout = clusterv1.ZeroDuration
 
 // healthCheckTarget contains the information required to perform a health check
 // on the node to determine if any remediation is required.

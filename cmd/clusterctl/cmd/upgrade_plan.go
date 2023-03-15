@@ -87,7 +87,6 @@ func runUpgradePlan() error {
 	upgradePlans, err := c.PlanUpgrade(client.PlanUpgradeOptions{
 		Kubeconfig: client.Kubeconfig{Path: up.kubeconfig, Context: up.kubeconfigContext},
 	})
-
 	if err != nil {
 		return err
 	}

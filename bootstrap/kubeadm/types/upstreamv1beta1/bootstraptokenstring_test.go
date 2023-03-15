@@ -26,7 +26,7 @@ import (
 )
 
 func TestMarshalJSON(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		bts      BootstrapTokenString
 		expected string
 	}{
@@ -46,7 +46,7 @@ func TestMarshalJSON(t *testing.T) {
 }
 
 func TestUnmarshalJSON(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		input         string
 		bts           *BootstrapTokenString
 		expectedError bool
@@ -77,7 +77,7 @@ func TestUnmarshalJSON(t *testing.T) {
 }
 
 func TestJSONRoundtrip(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		input string
 		bts   *BootstrapTokenString
 	}{
@@ -132,7 +132,7 @@ func roundtrip(input string, bts *BootstrapTokenString) error {
 }
 
 func TestTokenFromIDAndSecret(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		bts      BootstrapTokenString
 		expected string
 	}{
@@ -150,7 +150,7 @@ func TestTokenFromIDAndSecret(t *testing.T) {
 }
 
 func TestNewBootstrapTokenString(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		token         string
 		expectedError bool
 		bts           *BootstrapTokenString
@@ -188,7 +188,7 @@ func TestNewBootstrapTokenString(t *testing.T) {
 }
 
 func TestNewBootstrapTokenStringFromIDAndSecret(t *testing.T) {
-	var tests = []struct {
+	tests := []struct {
 		id, secret    string
 		expectedError bool
 		bts           *BootstrapTokenString

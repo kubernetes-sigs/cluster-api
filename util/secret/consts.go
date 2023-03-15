@@ -50,7 +50,5 @@ const (
 	APIServerEtcdClient = Purpose("apiserver-etcd-client")
 )
 
-var (
-	// allSecretPurposes defines a lists with all the secret suffix used by Cluster API.
-	allSecretPurposes = []Purpose{Kubeconfig, ClusterCA, EtcdCA, ServiceAccount, FrontProxyCA, APIServerEtcdClient}
-)
+// allSecretPurposes defines a lists with all the secret suffix used by Cluster API.
+var allSecretPurposes = []Purpose{Kubeconfig, ClusterCA, EtcdCA, ServiceAccount, FrontProxyCA, APIServerEtcdClient}

@@ -43,9 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-var (
-	externalReadyWait = 30 * time.Second
-)
+var externalReadyWait = 30 * time.Second
 
 func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
 	// Set the phase to "pending" if nil.

@@ -32,9 +32,7 @@ import (
 	etcdfake "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/fake"
 )
 
-var (
-	subject *EtcdClientGenerator
-)
+var subject *EtcdClientGenerator
 
 func TestNewEtcdClientGenerator(t *testing.T) {
 	g := NewWithT(t)
@@ -129,7 +127,8 @@ func TestForLeader(t *testing.T) {
 							},
 						},
 						AlarmResponse: &clientv3.AlarmResponse{},
-					}}, nil
+					},
+				}, nil
 			},
 			expectedClient: etcd.Client{
 				Endpoint: "etcd-node-leader",
@@ -141,7 +140,8 @@ func TestForLeader(t *testing.T) {
 						},
 					},
 					AlarmResponse: &clientv3.AlarmResponse{},
-				}},
+				},
+			},
 		},
 		{
 			name:  "Returns client for leader even when one or more nodes are down",
@@ -160,7 +160,8 @@ func TestForLeader(t *testing.T) {
 							},
 						},
 						AlarmResponse: &clientv3.AlarmResponse{},
-					}}, nil
+					},
+				}, nil
 			},
 			expectedClient: etcd.Client{
 				Endpoint: "etcd-node-leader",
@@ -171,7 +172,8 @@ func TestForLeader(t *testing.T) {
 						},
 					},
 					AlarmResponse: &clientv3.AlarmResponse{},
-				}},
+				},
+			},
 		},
 		{
 			name:        "Fails when called with an empty node list",
@@ -194,7 +196,8 @@ func TestForLeader(t *testing.T) {
 							},
 						},
 						AlarmResponse: &clientv3.AlarmResponse{},
-					}}, nil
+					},
+				}, nil
 			},
 			expectedErr: "etcd leader is reported as 6c1 with name \"node-leader\", but we couldn't find a corresponding Node in the cluster",
 		},

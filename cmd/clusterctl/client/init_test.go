@@ -32,9 +32,7 @@ import (
 	utilyaml "sigs.k8s.io/cluster-api/util/yaml"
 )
 
-var (
-	ctx = ctrl.SetupSignalHandler()
-)
+var ctx = ctrl.SetupSignalHandler()
 
 func Test_clusterctlClient_InitImages(t *testing.T) {
 	type field struct {
@@ -729,7 +727,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 		}).
 		WithFile("v3.0.0", "cluster-template.yaml", templateYAML("ns4", "test"))
 
-	var providerRepositories = []*fakeRepositoryClient{repository1, repository2, repository3, repository4}
+	providerRepositories := []*fakeRepositoryClient{repository1, repository2, repository3, repository4}
 
 	for _, provider := range providers {
 		providerRepositories = append(providerRepositories,
@@ -792,12 +790,12 @@ func fakeClusterWithCoreProvider() *fakeClient {
 }
 
 func componentsYAML(ns string) []byte {
-	var namespaceYaml = []byte("apiVersion: v1\n" +
+	namespaceYaml := []byte("apiVersion: v1\n" +
 		"kind: Namespace\n" +
 		"metadata:\n" +
 		fmt.Sprintf("  name: %s", ns))
 
-	var podYaml = []byte("apiVersion: v1\n" +
+	podYaml := []byte("apiVersion: v1\n" +
 		"kind: Pod\n" +
 		"metadata:\n" +
 		"  name: manager")
@@ -805,8 +803,8 @@ func componentsYAML(ns string) []byte {
 	return utilyaml.JoinYaml(namespaceYaml, podYaml)
 }
 
-func templateYAML(ns string, clusterName string) []byte {
-	var podYaml = []byte("apiVersion: v1\n" +
+func templateYAML(ns, clusterName string) []byte {
+	podYaml := []byte("apiVersion: v1\n" +
 		"kind: Cluster\n" +
 		"metadata:\n" +
 		fmt.Sprintf("  name: %s\n", clusterName) +
@@ -827,7 +825,7 @@ func mangedTopologyTemplateYAML(ns, clusterName, clusterClassName string) []byte
 }
 
 func clusterClassYAML(ns, clusterClassName string) []byte {
-	var podYaml = []byte(fmt.Sprintf("apiVersion: %s\n", clusterv1.GroupVersion.String()) +
+	podYaml := []byte(fmt.Sprintf("apiVersion: %s\n", clusterv1.GroupVersion.String()) +
 		"kind: ClusterClass\n" +
 		"metadata:\n" +
 		fmt.Sprintf("  name: %s\n", clusterClassName) +
@@ -839,7 +837,7 @@ func clusterClassYAML(ns, clusterClassName string) []byte {
 // infraComponentsYAML defines a namespace and deployment with container
 // images and a variable.
 func infraComponentsYAML(namespace string) []byte {
-	var infraComponentsYAML = `---
+	infraComponentsYAML := `---
 apiVersion: v1
 kind: Namespace
 metadata:

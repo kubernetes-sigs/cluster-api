@@ -1654,7 +1654,6 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 			expectedNamespaces: []string{"namespace-1", "namespace-2"},
 		},
 		{
-
 			name: "ensureNamespaces moves namespace-2 to target which already has namespace-1",
 			fields: fields{
 				objs: cluster2.Objs(),

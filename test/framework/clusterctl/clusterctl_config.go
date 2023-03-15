@@ -44,7 +44,7 @@ func (c *clusterctlConfig) write() {
 	data, err := yaml.Marshal(c.Values)
 	Expect(err).ToNot(HaveOccurred(), "Failed to marshal the clusterctl config file")
 
-	Expect(os.WriteFile(c.Path, data, 0600)).To(Succeed(), "Failed to write the clusterctl config file")
+	Expect(os.WriteFile(c.Path, data, 0o600)).To(Succeed(), "Failed to write the clusterctl config file")
 }
 
 // read reads a clusterctl config file from disk.

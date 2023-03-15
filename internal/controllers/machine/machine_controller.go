@@ -311,7 +311,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 	if err != nil {
 		switch err {
 		case errNoControlPlaneNodes, errLastControlPlaneNode, errNilNodeRef, errClusterIsBeingDeleted, errControlPlaneIsBeingDeleted:
-			var nodeName = ""
+			nodeName := ""
 			if m.Status.NodeRef != nil {
 				nodeName = m.Status.NodeRef.Name
 			}

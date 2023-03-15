@@ -919,15 +919,16 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 		{
 			name:       "MachineSet should have ResizedCondition=false on scale down",
 			machineSet: newMachineSet("ms-scale-down", cluster.Name, int32(0)),
-			machines: []*clusterv1.Machine{{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "machine-a",
-					Namespace: metav1.NamespaceDefault,
-					Labels: map[string]string{
-						clusterv1.ClusterNameLabel: cluster.Name,
+			machines: []*clusterv1.Machine{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "machine-a",
+						Namespace: metav1.NamespaceDefault,
+						Labels: map[string]string{
+							clusterv1.ClusterNameLabel: cluster.Name,
+						},
 					},
 				},
-			},
 			},
 			expectedReason:  clusterv1.ScalingDownReason,
 			expectedMessage: "Scaling down MachineSet to 0 replicas (actual 1)",
@@ -1448,7 +1449,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 	}
 }
 
-func assertMachine(g *WithT, actualMachine *clusterv1.Machine, expectedMachine *clusterv1.Machine) {
+func assertMachine(g *WithT, actualMachine, expectedMachine *clusterv1.Machine) {
 	// Check Name
 	if expectedMachine.Name != "" {
 		g.Expect(actualMachine.Name).Should(Equal(expectedMachine.Name))

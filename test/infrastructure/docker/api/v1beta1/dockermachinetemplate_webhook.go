@@ -54,7 +54,7 @@ func (*DockerMachineTemplateWebhook) ValidateCreate(_ context.Context, _ runtime
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (*DockerMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw runtime.Object, newRaw runtime.Object) error {
+func (*DockerMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw, newRaw runtime.Object) error {
 	newObj, ok := newRaw.(*DockerMachineTemplate)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expected a DockerMachineTemplate but got a %T", newRaw))

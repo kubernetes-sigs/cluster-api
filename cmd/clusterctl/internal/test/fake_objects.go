@@ -1304,20 +1304,20 @@ func setUID(obj client.Object) {
 }
 
 // FakeClusterCustomResourceDefinition returns a fake CRD object for the given group/versions/kind.
-func FakeClusterCustomResourceDefinition(group string, kind string, versions ...string) *apiextensionsv1.CustomResourceDefinition {
+func FakeClusterCustomResourceDefinition(group, kind string, versions ...string) *apiextensionsv1.CustomResourceDefinition {
 	crd := fakeCRD(group, kind, versions)
 	crd.Spec.Scope = apiextensionsv1.ClusterScoped
 	return crd
 }
 
 // FakeNamespacedCustomResourceDefinition returns a fake CRD object for the given group/versions/kind.
-func FakeNamespacedCustomResourceDefinition(group string, kind string, versions ...string) *apiextensionsv1.CustomResourceDefinition {
+func FakeNamespacedCustomResourceDefinition(group, kind string, versions ...string) *apiextensionsv1.CustomResourceDefinition {
 	crd := fakeCRD(group, kind, versions)
 	crd.Spec.Scope = apiextensionsv1.NamespaceScoped
 	return crd
 }
 
-func fakeCRD(group string, kind string, versions []string) *apiextensionsv1.CustomResourceDefinition {
+func fakeCRD(group, kind string, versions []string) *apiextensionsv1.CustomResourceDefinition {
 	crd := &apiextensionsv1.CustomResourceDefinition{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       apiextensionsv1.SchemeGroupVersion.String(),

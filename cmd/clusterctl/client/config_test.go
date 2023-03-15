@@ -474,7 +474,7 @@ func Test_clusterctlClient_GetClusterTemplate(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
-	g.Expect(os.WriteFile(path, rawTemplate, 0600)).To(Succeed())
+	g.Expect(os.WriteFile(path, rawTemplate, 0o600)).To(Succeed())
 
 	// Template on a repository & in a ConfigMap
 	configMap := &corev1.ConfigMap{
@@ -681,6 +681,7 @@ func Test_clusterctlClient_GetClusterTemplate_withClusterClass(t *testing.T) {
 	g.Expect(got.TargetNamespace()).To(Equal("ns1"))
 	g.Expect(got.Objs()).To(ContainElement(MatchClusterClass("dev", "ns1")))
 }
+
 func Test_clusterctlClient_GetClusterTemplate_onEmptyCluster(t *testing.T) {
 	g := NewWithT(t)
 
@@ -692,7 +693,7 @@ func Test_clusterctlClient_GetClusterTemplate_onEmptyCluster(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	path := filepath.Join(tmpDir, "cluster-template.yaml")
-	g.Expect(os.WriteFile(path, rawTemplate, 0600)).To(Succeed())
+	g.Expect(os.WriteFile(path, rawTemplate, 0o600)).To(Succeed())
 
 	// Template in a ConfigMap in a cluster not initialized
 	configMap := &corev1.ConfigMap{
@@ -959,7 +960,7 @@ v3: ${VAR3:-default3}`
 	defer os.RemoveAll(dir)
 
 	templateFile := filepath.Join(dir, "template.yaml")
-	g.Expect(os.WriteFile(templateFile, []byte(template), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(templateFile, []byte(template), 0o600)).To(Succeed())
 
 	inputReader := strings.NewReader(template)
 

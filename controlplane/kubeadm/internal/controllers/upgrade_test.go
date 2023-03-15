@@ -39,8 +39,10 @@ import (
 	"sigs.k8s.io/cluster-api/util/collections"
 )
 
-const UpdatedVersion string = "v1.17.4"
-const Host string = "nodomain.example.com"
+const (
+	UpdatedVersion string = "v1.17.4"
+	Host           string = "nodomain.example.com"
+)
 
 func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	setup := func(t *testing.T, g *WithT) *corev1.Namespace {

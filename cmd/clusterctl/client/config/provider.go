@@ -84,7 +84,7 @@ func (p *provider) Less(other Provider) bool {
 }
 
 // NewProvider creates a new Provider with the given input.
-func NewProvider(name string, url string, ttype clusterctlv1.ProviderType) Provider {
+func NewProvider(name, url string, ttype clusterctlv1.ProviderType) Provider {
 	return &provider{
 		name:         name,
 		url:          url,

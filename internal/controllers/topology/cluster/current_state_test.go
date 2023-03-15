@@ -400,7 +400,8 @@ func TestGetCurrentState(t *testing.T) {
 				ControlPlane:          &scope.ControlPlaneState{},
 				InfrastructureCluster: nil,
 				MachineDeployments: map[string]*scope.MachineDeploymentState{
-					"md1": {Object: machineDeployment, BootstrapTemplate: machineDeploymentBootstrap, InfrastructureMachineTemplate: machineDeploymentInfrastructure}},
+					"md1": {Object: machineDeployment, BootstrapTemplate: machineDeploymentBootstrap, InfrastructureMachineTemplate: machineDeploymentInfrastructure},
+				},
 			},
 		},
 		{

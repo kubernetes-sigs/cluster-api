@@ -154,7 +154,8 @@ func TestExtensionConfigValidate(t *testing.T) {
 					Port:      pointer.Int32(1),
 					Name:      "foo",
 					Namespace: "bar",
-				}},
+				},
+			},
 		},
 	}
 

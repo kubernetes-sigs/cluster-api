@@ -171,6 +171,7 @@ func assertStatusVariables(actualClusterClass *clusterv1.ClusterClass) error {
 	}
 	return nil
 }
+
 func assertInfrastructureClusterTemplate(ctx context.Context, actualClusterClass *clusterv1.ClusterClass, ns *corev1.Namespace) error {
 	// Assert the infrastructure cluster template has the correct owner reference.
 	actualInfraClusterTemplate := builder.InfrastructureClusterTemplate("", "").Build()
@@ -391,7 +392,9 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
 							DiscoverVariablesExtension: pointer.String("variables-one"),
-						}}}).
+						},
+					},
+				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{
@@ -494,7 +497,9 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 						Name: "patch1",
 						External: &clusterv1.ExternalPatchDefinition{
 							DiscoverVariablesExtension: pointer.String("variables-one"),
-						}}}).
+						},
+					},
+				}).
 				Build(),
 			patchResponse: &runtimehooksv1.DiscoverVariablesResponse{
 				CommonResponse: runtimehooksv1.CommonResponse{

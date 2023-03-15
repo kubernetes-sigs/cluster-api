@@ -84,7 +84,7 @@ func NewObjectTree(root client.Object, options ObjectTreeOptions) *ObjectTree {
 }
 
 // Add a object to the object tree.
-func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (added bool, visible bool) {
+func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (added, visible bool) {
 	if parent == nil || obj == nil {
 		return false, false
 	}
@@ -180,7 +180,7 @@ func (od ObjectTree) Add(parent, obj client.Object, opts ...AddObjectOption) (ad
 	return true, true
 }
 
-func (od ObjectTree) remove(parent client.Object, s client.Object) {
+func (od ObjectTree) remove(parent, s client.Object) {
 	for _, child := range od.GetObjectsByParent(s.GetUID()) {
 		od.remove(s, child)
 	}
@@ -188,7 +188,7 @@ func (od ObjectTree) remove(parent client.Object, s client.Object) {
 	delete(od.ownership[parent.GetUID()], s.GetUID())
 }
 
-func (od ObjectTree) addInner(parent client.Object, obj client.Object) {
+func (od ObjectTree) addInner(parent, obj client.Object) {
 	od.items[obj.GetUID()] = obj
 	if od.ownership[parent.GetUID()] == nil {
 		od.ownership[parent.GetUID()] = make(map[types.UID]bool)

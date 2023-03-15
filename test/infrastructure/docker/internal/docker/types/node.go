@@ -69,7 +69,7 @@ func (n *Node) Role() (string, error) {
 }
 
 // IP gets the docker ipv4 and ipv6 of the node.
-func (n *Node) IP(ctx context.Context) (ipv4 string, ipv6 string, err error) {
+func (n *Node) IP(ctx context.Context) (ipv4, ipv6 string, err error) {
 	// retrieve the IP address of the node using docker inspect
 	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {

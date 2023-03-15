@@ -145,7 +145,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.2=>current)", func() {
 			InitWithKubernetesVersion:         "v1.26.0",
 			// TODO(sbueringer) The topology flavor enables PSA.
 			// CAPD will only work with PSA after we have a release with https://github.com/kubernetes-sigs/cluster-api/pull/8313.
-			//MgmtFlavor:                        "topology",
+			// MgmtFlavor:                        "topology",
 			WorkloadFlavor: "",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
 			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
@@ -184,7 +184,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.2=>cur
 			InitWithKubernetesVersion:         "v1.26.0",
 			// TODO(sbueringer) The topology flavor enables PSA.
 			// CAPD will only work with PSA after we have a release with https://github.com/kubernetes-sigs/cluster-api/pull/8313.
-			//MgmtFlavor:                        "topology",
+			// MgmtFlavor:                        "topology",
 			WorkloadFlavor: "topology",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
 			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {

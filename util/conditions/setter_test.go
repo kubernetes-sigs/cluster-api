@@ -297,6 +297,7 @@ func (matcher *ConditionsMatcher) Match(actual interface{}) (success bool, err e
 func (matcher *ConditionsMatcher) FailureMessage(actual interface{}) (message string) {
 	return format.Message(actual, "to have the same conditions of", matcher.Expected)
 }
+
 func (matcher *ConditionsMatcher) NegatedFailureMessage(actual interface{}) (message string) {
 	return format.Message(actual, "not to have the same conditions of", matcher.Expected)
 }

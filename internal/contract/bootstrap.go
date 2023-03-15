@@ -21,8 +21,10 @@ import "sync"
 // BootstrapContract encodes information about the Cluster API contract for bootstrap objects.
 type BootstrapContract struct{}
 
-var bootstrap *BootstrapContract
-var onceBootstrap sync.Once
+var (
+	bootstrap     *BootstrapContract
+	onceBootstrap sync.Once
+)
 
 // Bootstrap provide access to the information about the Cluster API contract for bootstrap objects.
 func Bootstrap() *BootstrapContract {

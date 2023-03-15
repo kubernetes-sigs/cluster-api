@@ -18,9 +18,7 @@ package alpha
 
 import "context"
 
-var (
-	ctx = context.TODO()
-)
+var ctx = context.TODO()
 
 // Client is the alpha client.
 type Client interface {

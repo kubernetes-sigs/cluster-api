@@ -185,8 +185,10 @@ func traverse(root parse.Node, variables map[string]string) {
 
 // legacyVariableRegEx defines the regexp used for searching variables inside a YAML.
 // It searches for variables with the format ${ VAR}, ${ VAR }, ${VAR }.
-var legacyVariableRegEx = regexp.MustCompile(`(\${(\s+([A-Za-z0-9_$]+)\s+)})|(\${(\s+([A-Za-z0-9_$]+))})|(\${(([A-Za-z0-9_$]+)\s+)})`)
-var whitespaceRegEx = regexp.MustCompile(`\s`)
+var (
+	legacyVariableRegEx = regexp.MustCompile(`(\${(\s+([A-Za-z0-9_$]+)\s+)})|(\${(\s+([A-Za-z0-9_$]+))})|(\${(([A-Za-z0-9_$]+)\s+)})`)
+	whitespaceRegEx     = regexp.MustCompile(`\s`)
+)
 
 // convertLegacyVars parses through the yaml string and modifies it replacing
 // variables with the format ${ VAR}, ${ VAR }, ${VAR } to ${VAR}. This is

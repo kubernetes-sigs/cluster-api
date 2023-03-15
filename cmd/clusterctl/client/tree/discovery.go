@@ -280,7 +280,7 @@ func addMachinePoolsToObjectTree(ctx context.Context, c client.Client, namespace
 	}
 }
 
-func getResourceSetBindingInCluster(ctx context.Context, c client.Client, namespace string, name string) (*addonsv1.ClusterResourceSetBinding, error) {
+func getResourceSetBindingInCluster(ctx context.Context, c client.Client, namespace, name string) (*addonsv1.ClusterResourceSetBinding, error) {
 	if name == "" {
 		return nil, nil
 	}

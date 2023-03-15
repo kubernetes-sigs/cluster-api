@@ -47,10 +47,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-var (
-	// machineDeploymentKind contains the schema.GroupVersionKind for the MachineDeployment type.
-	machineDeploymentKind = clusterv1.GroupVersion.WithKind("MachineDeployment")
-)
+// machineDeploymentKind contains the schema.GroupVersionKind for the MachineDeployment type.
+var machineDeploymentKind = clusterv1.GroupVersion.WithKind("MachineDeployment")
 
 // machineDeploymentManagerName is the manager name used for Server-Side-Apply (SSA) operations
 // in the MachineDeployment controller.

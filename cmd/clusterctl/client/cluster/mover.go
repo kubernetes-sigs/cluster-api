@@ -47,7 +47,7 @@ type ObjectMover interface {
 	Move(namespace string, toCluster Client, dryRun bool) error
 
 	// ToDirectory writes all the Cluster API objects existing in a namespace (or from all the namespaces if empty) to a target directory.
-	ToDirectory(namespace string, directory string) error
+	ToDirectory(namespace, directory string) error
 
 	// FromDirectory reads all the Cluster API objects existing in a configured directory to a target management cluster.
 	FromDirectory(toCluster Client, directory string) error
@@ -94,7 +94,7 @@ func (o *objectMover) Move(namespace string, toCluster Client, dryRun bool) erro
 	return o.move(objectGraph, proxy)
 }
 
-func (o *objectMover) ToDirectory(namespace string, directory string) error {
+func (o *objectMover) ToDirectory(namespace, directory string) error {
 	log := logf.Log
 	log.Info("Moving to directory...")
 
@@ -532,7 +532,7 @@ func getMoveSequence(graph *objectGraph) *moveSequence {
 }
 
 // setClusterPause sets the paused field on nodes referring to Cluster objects.
-func setClusterPause(proxy Proxy, clusters []*node, value bool, dryRun bool) error {
+func setClusterPause(proxy Proxy, clusters []*node, value, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
@@ -562,7 +562,7 @@ func setClusterPause(proxy Proxy, clusters []*node, value bool, dryRun bool) err
 }
 
 // setClusterClassPause sets the paused annotation on nodes referring to ClusterClass objects.
-func setClusterClassPause(proxy Proxy, clusterclasses []*node, pause bool, dryRun bool) error {
+func setClusterClassPause(proxy Proxy, clusterclasses []*node, pause, dryRun bool) error {
 	if dryRun {
 		return nil
 	}
@@ -953,7 +953,7 @@ func (o *objectMover) backupTargetObject(nodeToCreate *node, directory string) e
 		}
 	}
 
-	err = os.WriteFile(objectFile, byObj, 0600)
+	err = os.WriteFile(objectFile, byObj, 0o600)
 	if err != nil {
 		return err
 	}
@@ -1054,7 +1054,6 @@ func (o *objectMover) deleteGroup(group moveGroup) error {
 		err := retryWithExponentialBackoff(deleteSourceObjectBackoff, func() error {
 			return o.deleteSourceObject(nodeToDelete)
 		})
-
 		if err != nil {
 			errList = append(errList, err)
 		}
@@ -1063,9 +1062,7 @@ func (o *objectMover) deleteGroup(group moveGroup) error {
 	return kerrors.NewAggregate(errList)
 }
 
-var (
-	removeFinalizersPatch = client.RawPatch(types.MergePatchType, []byte("{\"metadata\":{\"finalizers\":[]}}"))
-)
+var removeFinalizersPatch = client.RawPatch(types.MergePatchType, []byte("{\"metadata\":{\"finalizers\":[]}}"))
 
 // deleteSourceObject deletes the Kubernetes object corresponding to the node from the source management cluster, taking care of removing all the finalizers so
 // the objects gets immediately deleted (force delete).

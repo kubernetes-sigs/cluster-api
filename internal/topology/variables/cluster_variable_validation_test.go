@@ -592,7 +592,6 @@ func Test_ValidateClusterVariables(t *testing.T) {
 					// There are conflicting definitions which means values should include a `definitionFrom` field.
 					Definitions: []clusterv1.ClusterClassStatusVariableDefinition{
 						{
-
 							Schema: clusterv1.VariableSchema{
 								OpenAPIV3Schema: clusterv1.JSONSchemaProps{
 									Type: "string",

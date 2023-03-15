@@ -27,7 +27,7 @@ import (
 )
 
 func TestWriteFiles(t *testing.T) {
-	var useCases = []struct {
+	useCases := []struct {
 		name         string
 		w            writeFilesAction
 		expectedCmds []provisioning.Cmd
@@ -101,7 +101,7 @@ func TestWriteFiles(t *testing.T) {
 func TestFixContent(t *testing.T) {
 	v := "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	gv, _ := gZipData([]byte(v))
-	var useCases = []struct {
+	useCases := []struct {
 		name            string
 		content         string
 		encoding        string

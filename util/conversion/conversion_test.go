@@ -27,13 +27,11 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-var (
-	oldMachineGVK = schema.GroupVersionKind{
-		Group:   clusterv1.GroupVersion.Group,
-		Version: "v1old",
-		Kind:    "Machine",
-	}
-)
+var oldMachineGVK = schema.GroupVersionKind{
+	Group:   clusterv1.GroupVersion.Group,
+	Version: "v1old",
+	Kind:    "Machine",
+}
 
 func TestMarshalData(t *testing.T) {
 	g := NewWithT(t)

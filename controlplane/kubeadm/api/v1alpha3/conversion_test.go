@@ -60,6 +60,7 @@ func kubeadmBootstrapTokenStringFuzzer(in *upstreamv1beta1.BootstrapTokenString,
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"
 }
+
 func cabpkBootstrapTokenStringFuzzer(in *bootstrapv1.BootstrapTokenString, _ fuzz.Continue) {
 	in.ID = "abcdef"
 	in.Secret = "abcdef0123456789"

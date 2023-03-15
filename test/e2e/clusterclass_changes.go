@@ -119,7 +119,7 @@ func ClusterClassChangesSpec(ctx context.Context, inputGetter func() ClusterClas
 		Expect(input.E2EConfig).ToNot(BeNil(), "Invalid argument. input.E2EConfig can't be nil when calling %s spec", specName)
 		Expect(input.ClusterctlConfigPath).To(BeAnExistingFile(), "Invalid argument. input.ClusterctlConfigPath must be an existing file when calling %s spec", specName)
 		Expect(input.BootstrapClusterProxy).ToNot(BeNil(), "Invalid argument. input.BootstrapClusterProxy can't be nil when calling %s spec", specName)
-		Expect(os.MkdirAll(input.ArtifactFolder, 0750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
+		Expect(os.MkdirAll(input.ArtifactFolder, 0o750)).To(Succeed(), "Invalid argument. input.ArtifactFolder can't be created for %s spec", specName)
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 		Expect(input.E2EConfig.Variables).To(HaveValidVersion(input.E2EConfig.GetVariable(KubernetesVersion)))
 		Expect(input.ModifyControlPlaneFields).ToNot(BeEmpty(), "Invalid argument. input.ModifyControlPlaneFields can't be empty when calling %s spec", specName)
@@ -473,7 +473,7 @@ func rebaseClusterClassAndWait(ctx context.Context, input rebaseClusterClassAndW
 
 	mgmtClient := input.ClusterProxy.GetClient()
 
-	var testWorkerLabelName = "rebase-diff"
+	testWorkerLabelName := "rebase-diff"
 
 	// Create a new ClusterClass with a new name and the new worker label set.
 	newClusterClass := input.ClusterClass.DeepCopy()

@@ -48,6 +48,7 @@ func init() {
 	_ = clusterv1.AddToScheme(fakeScheme)
 	_ = apiextensionsv1.AddToScheme(fakeScheme)
 }
+
 func TestMain(m *testing.M) {
 	setupIndexes := func(ctx context.Context, mgr ctrl.Manager) {
 		if err := index.AddDefaultIndexes(ctx, mgr); err != nil {

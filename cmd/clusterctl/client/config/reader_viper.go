@@ -133,7 +133,7 @@ func (v *viperReader) Init(path string) error {
 	return nil
 }
 
-func downloadFile(url string, filepath string) error {
+func downloadFile(url, filepath string) error {
 	ctx := context.TODO()
 
 	// Create the file

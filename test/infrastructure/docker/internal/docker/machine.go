@@ -197,7 +197,7 @@ func (m *Machine) ContainerImage() string {
 }
 
 // Create creates a docker container hosting a Kubernetes node.
-func (m *Machine) Create(ctx context.Context, image string, role string, version *string, labels map[string]string, mounts []infrav1.Mount) error {
+func (m *Machine) Create(ctx context.Context, image, role string, version *string, labels map[string]string, mounts []infrav1.Mount) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	// Create if not exists.

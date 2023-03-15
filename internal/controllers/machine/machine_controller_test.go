@@ -150,7 +150,8 @@ func TestWatches(t *testing.T) {
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 				},
-			}},
+			},
+		},
 	}
 
 	g.Expect(env.Create(ctx, machine)).To(BeNil())
@@ -250,7 +251,8 @@ func TestMachine_Reconcile(t *testing.T) {
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 				},
-			}},
+			},
+		},
 		Status: clusterv1.MachineStatus{
 			NodeRef: &corev1.ObjectReference{
 				Name: "test",
@@ -1869,7 +1871,8 @@ func TestNodeToMachine(t *testing.T) {
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 				},
-			}},
+			},
+		},
 	}
 
 	g.Expect(env.Create(ctx, expectedMachine)).To(BeNil())
@@ -1908,7 +1911,8 @@ func TestNodeToMachine(t *testing.T) {
 					Kind:       "GenericBootstrapConfig",
 					Name:       "bootstrap-config-machinereconcile",
 				},
-			}},
+			},
+		},
 	}
 
 	g.Expect(env.Create(ctx, randomMachine)).To(BeNil())

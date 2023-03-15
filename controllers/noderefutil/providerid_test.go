@@ -22,8 +22,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-const aws = "aws"
-const azure = "azure"
+const (
+	aws   = "aws"
+	azure = "azure"
+)
 
 func TestNewProviderID(t *testing.T) {
 	tests := []struct {

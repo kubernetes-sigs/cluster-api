@@ -442,7 +442,6 @@ func TestMachineDeploymentVersionValidation(t *testing.T) {
 
 			md := &MachineDeployment{
 				Spec: MachineDeploymentSpec{
-
 					Template: MachineTemplateSpec{
 						Spec: MachineSpec{
 							Version: pointer.String(tt.version),

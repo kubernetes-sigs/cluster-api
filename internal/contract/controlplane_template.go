@@ -22,8 +22,10 @@ import "sync"
 // like e.g. the KubeadmControlPlane etc.
 type ControlPlaneTemplateContract struct{}
 
-var controlPlaneTemplate *ControlPlaneTemplateContract
-var onceControlPlaneTemplate sync.Once
+var (
+	controlPlaneTemplate     *ControlPlaneTemplateContract
+	onceControlPlaneTemplate sync.Once
+)
 
 // ControlPlaneTemplate provide access to the information about the Cluster API contract for ControlPlaneTemplate objects.
 func ControlPlaneTemplate() *ControlPlaneTemplateContract {

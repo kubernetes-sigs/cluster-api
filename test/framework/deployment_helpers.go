@@ -255,7 +255,7 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 
 		// Create log metadata file.
 		logMetadataFile := filepath.Clean(path.Join(eh.input.LogPath, eh.input.DeploymentName, pod.Name, container.Name+"-log-metadata.json"))
-		Expect(os.MkdirAll(filepath.Dir(logMetadataFile), 0750)).To(Succeed())
+		Expect(os.MkdirAll(filepath.Dir(logMetadataFile), 0o750)).To(Succeed())
 
 		metadata := logMetadata{
 			Job:       eh.input.Namespace + "/" + eh.input.DeploymentName,
@@ -268,16 +268,16 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 		}
 		metadataBytes, err := json.Marshal(&metadata)
 		Expect(err).To(BeNil())
-		Expect(os.WriteFile(logMetadataFile, metadataBytes, 0600)).To(Succeed())
+		Expect(os.WriteFile(logMetadataFile, metadataBytes, 0o600)).To(Succeed())
 
 		// Watch each container's logs in a goroutine so we can stream them all concurrently.
 		go func(pod *corev1.Pod, container corev1.Container) {
 			defer GinkgoRecover()
 
 			logFile := filepath.Clean(path.Join(eh.input.LogPath, eh.input.DeploymentName, pod.Name, container.Name+".log"))
-			Expect(os.MkdirAll(filepath.Dir(logFile), 0750)).To(Succeed())
+			Expect(os.MkdirAll(filepath.Dir(logFile), 0o750)).To(Succeed())
 
-			f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+			f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 			Expect(err).NotTo(HaveOccurred())
 			defer f.Close()
 
@@ -383,11 +383,11 @@ func WatchPodMetrics(ctx context.Context, input WatchPodMetricsInput) {
 }
 
 // dumpPodMetrics captures metrics from all pods. It expects to find port 8080 open on the controller.
-func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPath string, deploymentName string, pods *corev1.PodList) {
+func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPath, deploymentName string, pods *corev1.PodList) {
 	for _, pod := range pods.Items {
 		metricsDir := path.Join(metricsPath, deploymentName, pod.Name)
 		metricsFile := path.Join(metricsDir, "metrics.txt")
-		Expect(os.MkdirAll(metricsDir, 0750)).To(Succeed())
+		Expect(os.MkdirAll(metricsDir, 0o750)).To(Succeed())
 
 		res := client.CoreV1().RESTClient().Get().
 			Namespace(pod.Namespace).
@@ -397,14 +397,13 @@ func dumpPodMetrics(ctx context.Context, client *kubernetes.Clientset, metricsPa
 			Suffix("metrics").
 			Do(ctx)
 		data, err := res.Raw()
-
 		if err != nil {
 			// Failing to dump metrics should not cause the test to fail
 			data = []byte(fmt.Sprintf("Error retrieving metrics for pod %s: %v\n%s", klog.KRef(pod.Namespace, pod.Name), err, string(data)))
 			metricsFile = path.Join(metricsDir, "metrics-error.txt")
 		}
 
-		if err := os.WriteFile(metricsFile, data, 0600); err != nil {
+		if err := os.WriteFile(metricsFile, data, 0o600); err != nil {
 			// Failing to dump metrics should not cause the test to fail
 			log.Logf("Error writing metrics for pod %s: %v", klog.KRef(pod.Namespace, pod.Name), err)
 		}

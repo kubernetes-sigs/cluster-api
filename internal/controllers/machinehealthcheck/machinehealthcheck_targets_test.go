@@ -543,6 +543,6 @@ func newTestUnhealthyNode(name string, condition corev1.NodeConditionType, statu
 	}
 }
 
-func newFailedHealthCheckCondition(reason string, messageFormat string, messageArgs ...interface{}) clusterv1.Condition {
+func newFailedHealthCheckCondition(reason, messageFormat string, messageArgs ...interface{}) clusterv1.Condition {
 	return *conditions.FalseCondition(clusterv1.MachineHealthCheckSucceededCondition, reason, clusterv1.ConditionSeverityWarning, messageFormat, messageArgs...)
 }

@@ -235,7 +235,7 @@ func discoverClusterKubernetesVersion(proxy framework.ClusterProxy) (string, err
 	return serverVersionInfo.String(), nil
 }
 
-func dockeriseKubeconfig(kubetestConfigDir string, kubeConfigPath string) (string, error) {
+func dockeriseKubeconfig(kubetestConfigDir, kubeConfigPath string) (string, error) {
 	kubeConfig, err := clientcmd.LoadFromFile(kubeConfigPath)
 	if err != nil {
 		return "", err

@@ -24,7 +24,6 @@ import (
 
 // Proxy defines the API server port-forwarded proxy.
 type Proxy struct {
-
 	// Kind is the kind of Kubernetes resource
 	Kind string
 

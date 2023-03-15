@@ -132,7 +132,7 @@ type clusterProxy struct {
 
 // NewClusterProxy returns a clusterProxy given a KubeconfigPath and the scheme defining the types hosted in the cluster.
 // If a kubeconfig file isn't provided, standard kubeconfig locations will be used (kubectl loading rules apply).
-func NewClusterProxy(name string, kubeconfigPath string, scheme *runtime.Scheme, options ...Option) ClusterProxy {
+func NewClusterProxy(name, kubeconfigPath string, scheme *runtime.Scheme, options ...Option) ClusterProxy {
 	Expect(scheme).NotTo(BeNil(), "scheme is required for NewClusterProxy")
 
 	if kubeconfigPath == "" {
@@ -347,7 +347,7 @@ func getMachinePoolsInCluster(ctx context.Context, c client.Client, namespace, n
 	return machinePoolList, nil
 }
 
-func (p *clusterProxy) getKubeconfig(ctx context.Context, namespace string, name string) *api.Config {
+func (p *clusterProxy) getKubeconfig(ctx context.Context, namespace, name string) *api.Config {
 	cl := p.GetClient()
 
 	secret := &corev1.Secret{}
@@ -366,7 +366,7 @@ func (p *clusterProxy) getKubeconfig(ctx context.Context, namespace string, name
 	return config
 }
 
-func (p *clusterProxy) isDockerCluster(ctx context.Context, namespace string, name string) bool {
+func (p *clusterProxy) isDockerCluster(ctx context.Context, namespace, name string) bool {
 	cl := p.GetClient()
 
 	cluster := &clusterv1.Cluster{}

@@ -55,29 +55,27 @@ const (
 	controlPlaneTaint    = "node-role.kubernetes.io/control-plane"
 )
 
-var (
-	// Source: https://github.com/kubernetes/kubernetes/blob/v1.22.0-beta.1/cmd/kubeadm/app/phases/addons/dns/manifests.go#L178-L207
-	coreDNS181PolicyRules = []rbacv1.PolicyRule{
-		{
-			Verbs:     []string{"list", "watch"},
-			APIGroups: []string{""},
-			Resources: []string{"endpoints", "services", "pods", "namespaces"},
-		},
-		{
-			Verbs:     []string{"get"},
-			APIGroups: []string{""},
-			Resources: []string{"nodes"},
-		},
-		{
-			Verbs:     []string{"list", "watch"},
-			APIGroups: []string{"discovery.k8s.io"},
-			Resources: []string{"endpointslices"},
-		},
-	}
-)
+// Source: https://github.com/kubernetes/kubernetes/blob/v1.22.0-beta.1/cmd/kubeadm/app/phases/addons/dns/manifests.go#L178-L207
+var coreDNS181PolicyRules = []rbacv1.PolicyRule{
+	{
+		Verbs:     []string{"list", "watch"},
+		APIGroups: []string{""},
+		Resources: []string{"endpoints", "services", "pods", "namespaces"},
+	},
+	{
+		Verbs:     []string{"get"},
+		APIGroups: []string{""},
+		Resources: []string{"nodes"},
+	},
+	{
+		Verbs:     []string{"list", "watch"},
+		APIGroups: []string{"discovery.k8s.io"},
+		Resources: []string{"endpointslices"},
+	},
+}
 
 type coreDNSMigrator interface {
-	Migrate(currentVersion string, toVersion string, corefile string, deprecations bool) (string, error)
+	Migrate(currentVersion, toVersion, corefile string, deprecations bool) (string, error)
 }
 
 // CoreDNSMigrator is a shim that can be used to migrate CoreDNS files from one version to another.

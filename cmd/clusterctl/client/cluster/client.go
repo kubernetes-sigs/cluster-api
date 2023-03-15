@@ -29,9 +29,7 @@ import (
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 )
 
-var (
-	ctx = context.TODO()
-)
+var ctx = context.TODO()
 
 // Kubeconfig is a type that specifies inputs related to the actual
 // kubeconfig.

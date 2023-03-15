@@ -36,8 +36,10 @@ import (
 	secretutil "sigs.k8s.io/cluster-api/util/secret"
 )
 
-const clusterTopologyNameKey = "cluster.spec.topology.class"
-const clusterResourceSetBindingClusterNameKey = "clusterresourcesetbinding.spec.clustername"
+const (
+	clusterTopologyNameKey                  = "cluster.spec.topology.class"
+	clusterResourceSetBindingClusterNameKey = "clusterresourcesetbinding.spec.clustername"
+)
 
 type empty struct{}
 

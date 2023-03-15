@@ -41,9 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/version"
 )
 
-var (
-	localScheme = scheme.Scheme
-)
+var localScheme = scheme.Scheme
 
 // Proxy defines a client proxy interface.
 type Proxy interface {

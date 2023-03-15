@@ -229,7 +229,7 @@ func writeOutputFiles(out *cluster.TopologyPlanOutput, outDir string) error {
 
 	// Write created files
 	createdDir := path.Join(outDir, "created")
-	if err := os.MkdirAll(createdDir, 0750); err != nil {
+	if err := os.MkdirAll(createdDir, 0o750); err != nil {
 		return errors.Wrapf(err, "failed to create %q directory", createdDir)
 	}
 	for _, c := range out.Created {
@@ -239,7 +239,7 @@ func writeOutputFiles(out *cluster.TopologyPlanOutput, outDir string) error {
 		}
 		fileName := fmt.Sprintf("%s_%s_%s.yaml", c.GetKind(), c.GetNamespace(), c.GetName())
 		filePath := path.Join(createdDir, fileName)
-		if err := os.WriteFile(filePath, yaml, 0600); err != nil {
+		if err := os.WriteFile(filePath, yaml, 0o600); err != nil {
 			return errors.Wrapf(err, "failed to write yaml to file %q", filePath)
 		}
 	}
@@ -249,7 +249,7 @@ func writeOutputFiles(out *cluster.TopologyPlanOutput, outDir string) error {
 
 	// Write modified files
 	modifiedDir := path.Join(outDir, "modified")
-	if err := os.MkdirAll(modifiedDir, 0750); err != nil {
+	if err := os.MkdirAll(modifiedDir, 0o750); err != nil {
 		return errors.Wrapf(err, "failed to create %q directory", modifiedDir)
 	}
 	for _, m := range out.Modified {
@@ -275,14 +275,14 @@ func writeOutputFiles(out *cluster.TopologyPlanOutput, outDir string) error {
 		}
 		patchFileName := fmt.Sprintf("%s_%s_%s.jsonpatch", m.After.GetKind(), m.After.GetNamespace(), m.After.GetName())
 		patchFilePath := path.Join(modifiedDir, patchFileName)
-		if err := os.WriteFile(patchFilePath, jsonPatch, 0600); err != nil {
+		if err := os.WriteFile(patchFilePath, jsonPatch, 0o600); err != nil {
 			return errors.Wrapf(err, "failed to write jsonpatch to file %q", patchFilePath)
 		}
 
 		// Calculate the diff and write to a file.
 		diffFileName := fmt.Sprintf("%s_%s_%s.diff", m.After.GetKind(), m.After.GetNamespace(), m.After.GetName())
 		diffFilePath := path.Join(modifiedDir, diffFileName)
-		diffFile, err := os.OpenFile(filepath.Clean(diffFilePath), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		diffFile, err := os.OpenFile(filepath.Clean(diffFilePath), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 		if err != nil {
 			return errors.Wrapf(err, "unable to open file %q", diffFilePath)
 		}
@@ -302,7 +302,7 @@ func writeObjectToFile(filePath string, obj *unstructured.Unstructured) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to convert object to yaml")
 	}
-	if err := os.WriteFile(filePath, yaml, 0600); err != nil {
+	if err := os.WriteFile(filePath, yaml, 0o600); err != nil {
 		return errors.Wrapf(err, "failed to write yaml to file %q", filePath)
 	}
 	return nil

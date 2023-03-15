@@ -90,7 +90,7 @@ func (f *metadataClient) Get() (*clusterctlv1.Metadata, error) {
 		return nil, errors.Wrapf(err, "error decoding %q for provider %q", metadataFile, f.provider.ManifestLabel())
 	}
 
-	//TODO: consider if to add metadata validation (TBD)
+	// TODO: consider if to add metadata validation (TBD)
 
 	return obj, nil
 }

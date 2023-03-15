@@ -302,11 +302,11 @@ func (f *fakeObjectMover) Move(_ string, _ cluster.Client, _ bool) error {
 	return f.moveErr
 }
 
-func (f *fakeObjectMover) ToDirectory(_ string, _ string) error {
+func (f *fakeObjectMover) ToDirectory(_, _ string) error {
 	return f.toDirectoryErr
 }
 
-func (f *fakeObjectMover) Backup(_ string, _ string) error {
+func (f *fakeObjectMover) Backup(_, _ string) error {
 	return f.toDirectoryErr
 }
 

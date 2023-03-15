@@ -208,7 +208,8 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 				Name:       machine.Name,
 				UID:        machine.UID,
 				Controller: pointer.Bool(true),
-			}})
+			},
+		})
 		g.Expect(myclient.Update(ctx, actual)).To(Succeed())
 
 		_, err = k.Reconcile(ctx, request)

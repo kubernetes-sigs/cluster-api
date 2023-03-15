@@ -316,7 +316,6 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 					Replicas:       pointer.Int32(1),
 					Template: clusterv1.MachineTemplateSpec{
 						Spec: clusterv1.MachineSpec{
-
 							InfrastructureRef: corev1.ObjectReference{
 								APIVersion: builder.InfrastructureGroupVersion.String(),
 								Kind:       builder.TestInfrastructureMachineTemplateKind,

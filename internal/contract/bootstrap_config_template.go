@@ -24,8 +24,10 @@ import (
 // like KubeadmConfigTemplate, etc.
 type BootstrapConfigTemplateContract struct{}
 
-var bootstrapConfigTemplate *BootstrapConfigTemplateContract
-var onceBootstrapConfigTemplate sync.Once
+var (
+	bootstrapConfigTemplate     *BootstrapConfigTemplateContract
+	onceBootstrapConfigTemplate sync.Once
+)
 
 // BootstrapConfigTemplate provide access to the information about the Cluster API contract for BootstrapConfigTemplate objects.
 func BootstrapConfigTemplate() *BootstrapConfigTemplateContract {

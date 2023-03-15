@@ -37,9 +37,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-var (
-	errNoAvailableNodes = errors.New("cannot find nodes with matching ProviderIDs in ProviderIDList")
-)
+var errNoAvailableNodes = errors.New("cannot find nodes with matching ProviderIDs in ProviderIDList")
 
 type getNodeReferencesResult struct {
 	references []corev1.ObjectReference

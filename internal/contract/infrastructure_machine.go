@@ -31,8 +31,10 @@ import (
 // like DockerMachines, AWS Machines, etc.
 type InfrastructureMachineContract struct{}
 
-var infrastructureMachine *InfrastructureMachineContract
-var onceInfrastructureMachine sync.Once
+var (
+	infrastructureMachine     *InfrastructureMachineContract
+	onceInfrastructureMachine sync.Once
+)
 
 // InfrastructureMachine provide access to the information about the Cluster API contract for InfrastructureMachine objects.
 func InfrastructureMachine() *InfrastructureMachineContract {

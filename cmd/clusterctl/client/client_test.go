@@ -161,7 +161,7 @@ func newFakeClient(configClient config.Client) *fakeClient {
 		fake.configClient = newFakeConfig()
 	}
 
-	var clusterClientFactory = func(i ClusterClientFactoryInput) (cluster.Client, error) {
+	clusterClientFactory := func(i ClusterClientFactoryInput) (cluster.Client, error) {
 		// converting the client.Kubeconfig to cluster.Kubeconfig alias
 		k := cluster.Kubeconfig(i.Kubeconfig)
 		if _, ok := fake.clusters[k]; !ok {

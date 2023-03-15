@@ -56,13 +56,16 @@ func (c *FakeEtcdClient) AlarmList(_ context.Context) (*clientv3.AlarmResponse, 
 func (c *FakeEtcdClient) MemberList(_ context.Context) (*clientv3.MemberListResponse, error) {
 	return c.MemberListResponse, c.ErrorResponse
 }
+
 func (c *FakeEtcdClient) MemberRemove(_ context.Context, i uint64) (*clientv3.MemberRemoveResponse, error) {
 	c.RemovedMember = i
 	return c.MemberRemoveResponse, c.ErrorResponse
 }
+
 func (c *FakeEtcdClient) MemberUpdate(_ context.Context, _ uint64, _ []string) (*clientv3.MemberUpdateResponse, error) {
 	return c.MemberUpdateResponse, c.ErrorResponse
 }
+
 func (c *FakeEtcdClient) Status(_ context.Context, _ string) (*clientv3.StatusResponse, error) {
 	return c.StatusResponse, nil
 }

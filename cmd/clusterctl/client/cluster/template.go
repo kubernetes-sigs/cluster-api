@@ -219,7 +219,7 @@ func (t *templateClient) getGitHubFileContent(rURL *url.URL) ([]byte, error) {
 	return nil, fmt.Errorf("unknown github URL: %v", rURL)
 }
 
-func getGithubFileContentFromCode(ghClient *github.Client, fullPath string, owner string, repo string, path string, branch string) ([]byte, error) {
+func getGithubFileContentFromCode(ghClient *github.Client, fullPath, owner, repo, path, branch string) ([]byte, error) {
 	fileContent, _, _, err := ghClient.Repositories.GetContents(ctx, owner, repo, path, &github.RepositoryContentGetOptions{Ref: branch})
 	if err != nil {
 		return nil, handleGithubErr(err, "failed to get %q", fullPath)
@@ -261,7 +261,7 @@ func (t *templateClient) getRawURLFileContent(rURL string) ([]byte, error) {
 	return content, nil
 }
 
-func getGithubAssetFromRelease(ghClient *github.Client, path string, owner string, repo string, tag string, assetName string) ([]byte, error) {
+func getGithubAssetFromRelease(ghClient *github.Client, path, owner, repo, tag, assetName string) ([]byte, error) {
 	release, _, err := ghClient.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
 	if err != nil {
 		return nil, handleGithubErr(err, "failed to get release '%s' from %s/%s repository", tag, owner, repo)

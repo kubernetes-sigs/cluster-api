@@ -160,7 +160,7 @@ type Repository interface {
 	ComponentsPath() string
 
 	// GetFile return a file for a given provider version.
-	GetFile(version string, path string) ([]byte, error)
+	GetFile(version, path string) ([]byte, error)
 
 	// GetVersions return the list of versions that are available in a provider repository
 	GetVersions() ([]string, error)

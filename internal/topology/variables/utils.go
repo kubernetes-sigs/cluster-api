@@ -97,6 +97,7 @@ func newDefinitionsIndex(definitions []clusterv1.ClusterClassStatusVariable) def
 	}
 	return i
 }
+
 func (i definitionsIndex) store(definition clusterv1.ClusterClassStatusVariable) {
 	for _, d := range definition.Definitions {
 		if _, ok := i[definition.Name]; !ok {

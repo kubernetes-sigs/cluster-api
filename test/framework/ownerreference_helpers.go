@@ -281,10 +281,10 @@ func hasExactOwnersByGVK(refList []metav1.OwnerReference, wantGVKs []schema.Grou
 		}
 		refGVKs = append(refGVKs, refGVK)
 	}
-	sort.SliceStable(refGVKs, func(i int, j int) bool {
+	sort.SliceStable(refGVKs, func(i, j int) bool {
 		return refGVKs[i].String() > refGVKs[j].String()
 	})
-	sort.SliceStable(wantGVKs, func(i int, j int) bool {
+	sort.SliceStable(wantGVKs, func(i, j int) bool {
 		return wantGVKs[i].String() > wantGVKs[j].String()
 	})
 	if !reflect.DeepEqual(wantGVKs, refGVKs) {

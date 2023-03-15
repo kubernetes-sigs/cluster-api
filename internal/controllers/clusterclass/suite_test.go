@@ -52,6 +52,7 @@ func init() {
 	_ = clusterv1.AddToScheme(fakeScheme)
 	_ = apiextensionsv1.AddToScheme(fakeScheme)
 }
+
 func TestMain(m *testing.M) {
 	if err := feature.Gates.(featuregate.MutableFeatureGate).Set(fmt.Sprintf("%s=%v", feature.ClusterTopology, true)); err != nil {
 		panic(fmt.Sprintf("unable to set ClusterTopology feature gate: %v", err))

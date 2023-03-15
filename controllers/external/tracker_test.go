@@ -32,9 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
-var (
-	logger = logr.New(log.NullLogSink{})
-)
+var logger = logr.New(log.NullLogSink{})
 
 type fakeController struct {
 	controller.Controller

@@ -572,7 +572,8 @@ func TestClient_CallExtension(t *testing.T) {
 				URL:      pointer.String("https://127.0.0.1/"),
 				CABundle: testcerts.CACert,
 			},
-			NamespaceSelector: &metav1.LabelSelector{}},
+			NamespaceSelector: &metav1.LabelSelector{},
+		},
 		Status: runtimev1.ExtensionConfigStatus{
 			Handlers: []runtimev1.ExtensionHandler{
 				{

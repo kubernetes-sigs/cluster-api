@@ -59,8 +59,10 @@ type Cluster struct {
 	Client client.Reader
 }
 
-var _ webhook.CustomDefaulter = &Cluster{}
-var _ webhook.CustomValidator = &Cluster{}
+var (
+	_ webhook.CustomDefaulter = &Cluster{}
+	_ webhook.CustomValidator = &Cluster{}
+)
 
 var errClusterClassNotReconciled = errors.New("ClusterClass is not up to date")
 

@@ -43,9 +43,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-var (
-	externalReadyWait = 30 * time.Second
-)
+var externalReadyWait = 30 * time.Second
 
 func (r *Reconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
 	originalPhase := m.Status.Phase

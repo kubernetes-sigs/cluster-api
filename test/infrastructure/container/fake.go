@@ -21,10 +21,12 @@ import (
 	"io"
 )
 
-var runContainerCallLog []RunContainerArgs
-var deleteContainerCallLog []string
-var killContainerCallLog []KillContainerArgs
-var execContainerCallLog []ExecContainerArgs
+var (
+	runContainerCallLog    []RunContainerArgs
+	deleteContainerCallLog []string
+	killContainerCallLog   []KillContainerArgs
+	execContainerCallLog   []ExecContainerArgs
+)
 
 // RunContainerArgs contains the arguments passed to calls to RunContainer.
 type RunContainerArgs struct {
@@ -46,8 +48,7 @@ type ExecContainerArgs struct {
 	Args          []string
 }
 
-type FakeRuntime struct {
-}
+type FakeRuntime struct{}
 
 // NewFakeClient gets a client for testing.
 func NewFakeClient() (Runtime, error) {

@@ -160,7 +160,8 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 							ImageRepository: "foo.bar.example/baz/qux",
 						},
 					},
-				}},
+				},
+			},
 		},
 		{
 			name:        "does not update image repository if it is blank",
@@ -175,7 +176,8 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 							ImageRepository: "",
 						},
 					},
-				}},
+				},
+			},
 		},
 		{
 			name:        "does update image repository to new default registry for v1.25 updates",
@@ -185,7 +187,8 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 			KCP: &controlplanev1.KubeadmControlPlane{
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.25.0-alpha.1",
-				}},
+				},
+			},
 		},
 		{
 			name:      "returns error if image repository is invalid",
@@ -199,7 +202,8 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 							ImageRepository: "%%%",
 						},
 					},
-				}},
+				},
+			},
 		},
 		{
 			name:        "does not update image repository when no kube-proxy update is requested",
@@ -214,7 +218,8 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 				},
 				Spec: controlplanev1.KubeadmControlPlaneSpec{
 					Version: "v1.16.3",
-				}},
+				},
+			},
 		},
 	}
 

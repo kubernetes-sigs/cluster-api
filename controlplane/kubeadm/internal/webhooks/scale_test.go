@@ -42,9 +42,7 @@ func init() {
 	_ = admissionv1.AddToScheme(scheme)
 }
 
-var (
-	scheme *runtime.Scheme
-)
+var scheme *runtime.Scheme
 
 func TestKubeadmControlPlaneValidateScale(t *testing.T) {
 	kcpManagedEtcd := &controlplanev1.KubeadmControlPlane{

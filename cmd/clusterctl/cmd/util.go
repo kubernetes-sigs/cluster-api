@@ -47,7 +47,7 @@ func printYamlOutput(printer client.YamlPrinter, outputFile string) error {
 		return nil
 	}
 	outputFile = filepath.Clean(outputFile)
-	if err := os.WriteFile(outputFile, yaml, 0600); err != nil {
+	if err := os.WriteFile(outputFile, yaml, 0o600); err != nil {
 		return errors.Wrap(err, "failed to write to destination file")
 	}
 	return nil

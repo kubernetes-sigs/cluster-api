@@ -34,13 +34,11 @@ const (
 	statusPatch patchType = "status"
 )
 
-var (
-	preserveUnstructuredKeys = map[string]bool{
-		"kind":       true,
-		"apiVersion": true,
-		"metadata":   true,
-	}
-)
+var preserveUnstructuredKeys = map[string]bool{
+	"kind":       true,
+	"apiVersion": true,
+	"metadata":   true,
+}
 
 func unstructuredHasStatus(u *unstructured.Unstructured) bool {
 	_, ok := u.Object["status"]

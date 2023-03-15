@@ -233,7 +233,7 @@ func DeleteClusterAndWait(ctx context.Context, input DeleteClusterAndWaitInput, 
 		Cluster: input.Cluster,
 	}, intervals...)
 
-	//TODO: consider if to move in another func (what if there are more than one cluster?)
+	// TODO: consider if to move in another func (what if there are more than one cluster?)
 	log.Logf("Check for all the Cluster API resources being deleted")
 	Eventually(func() []*unstructured.Unstructured {
 		return GetCAPIResources(ctx, GetCAPIResourcesInput{

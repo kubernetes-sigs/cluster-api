@@ -760,7 +760,7 @@ func workloadTask(name, workloadType, binaryName, containerName string, ts *tilt
 
 // writeIfChanged writes yaml to a file if the file does not exist or if the content has changed.
 // NOTE: Skipping write in case the content is not changed avoids unnecessary Tiltfile reload.
-func writeIfChanged(prefix string, path string, yaml []byte) error {
+func writeIfChanged(prefix, path string, yaml []byte) error {
 	_, err := os.Stat(path)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return errors.Wrapf(err, "[%s] failed to check if %s exists", prefix, path)
@@ -777,12 +777,12 @@ func writeIfChanged(prefix string, path string, yaml []byte) error {
 		}
 	}
 
-	err = os.MkdirAll(filepath.Dir(path), 0750)
+	err = os.MkdirAll(filepath.Dir(path), 0o750)
 	if err != nil {
 		return errors.Wrapf(err, "[%s] failed to create dir %s", prefix, filepath.Dir(path))
 	}
 
-	if err := os.WriteFile(path, yaml, 0600); err != nil {
+	if err := os.WriteFile(path, yaml, 0o600); err != nil {
 		return errors.Wrapf(err, "[%s] failed to write %s", prefix, path)
 	}
 	return nil

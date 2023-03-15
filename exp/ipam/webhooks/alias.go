@@ -36,8 +36,7 @@ func (webhook *IPAddress) SetupWebhookWithManager(mgr ctrl.Manager) error {
 }
 
 // IPAddressClaim implements a validating and defaulting webhook for IPAddressClaim.
-type IPAddressClaim struct {
-}
+type IPAddressClaim struct{}
 
 // SetupWebhookWithManager sets up IPAddressClaim webhooks.
 func (webhook *IPAddressClaim) SetupWebhookWithManager(mgr ctrl.Manager) error {

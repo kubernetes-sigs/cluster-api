@@ -27,7 +27,7 @@ import (
 func TestAddAnnotations(t *testing.T) {
 	g := NewWithT(t)
 
-	var testcases = []struct {
+	testcases := []struct {
 		name     string
 		obj      metav1.Object
 		input    map[string]string

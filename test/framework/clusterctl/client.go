@@ -94,7 +94,7 @@ func InitWithBinary(_ context.Context, binary string, input InitInput) {
 	cmd := exec.Command(binary, args...) //nolint:gosec // We don't care about command injection here.
 
 	out, err := cmd.CombinedOutput()
-	_ = os.WriteFile(filepath.Join(input.LogFolder, "clusterctl-init.log"), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
+	_ = os.WriteFile(filepath.Join(input.LogFolder, "clusterctl-init.log"), out, 0o644) //nolint:gosec // this is a log file to be shared via prow artifacts
 	var stdErr string
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -356,7 +356,7 @@ func ConfigClusterWithBinary(_ context.Context, clusterctlBinaryPath string, inp
 	}
 
 	out, err = cmd.Output()
-	_ = os.WriteFile(filepath.Join(input.LogFolder, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName)), out, 0644) //nolint:gosec // this is a log file to be shared via prow artifacts
+	_ = os.WriteFile(filepath.Join(input.LogFolder, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName)), out, 0o644) //nolint:gosec // this is a log file to be shared via prow artifacts
 	var stdErr string
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok {
@@ -384,7 +384,7 @@ func Move(ctx context.Context, input MoveInput) {
 	Expect(input.FromKubeconfigPath).To(BeAnExistingFile(), "Invalid argument. input.FromKubeconfigPath must be an existing file when calling Move")
 	Expect(input.ToKubeconfigPath).To(BeAnExistingFile(), "Invalid argument. input.ToKubeconfigPath must be an existing file when calling Move")
 	logDir := path.Join(input.LogFolder, "logs", input.Namespace)
-	Expect(os.MkdirAll(logDir, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for Move")
+	Expect(os.MkdirAll(logDir, 0o750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for Move")
 
 	By("Moving workload clusters")
 	log.Logf("clusterctl move --from-kubeconfig %s --to-kubeconfig %s --namespace %s",

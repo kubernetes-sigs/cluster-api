@@ -48,91 +48,105 @@ func TestIsNodeAvaialble(t *testing.T) {
 		},
 		{
 			name: "no ready condition",
-			node: &corev1.Node{Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeDiskPressure,
-						Status: corev1.ConditionTrue,
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeDiskPressure,
+							Status: corev1.ConditionTrue,
+						},
 					},
-				}},
+				},
 			},
 			expectedAvailable: false,
 		},
 		{
 			name: "ready condition true, minReadySeconds = 0, lastTransitionTime now",
-			node: &corev1.Node{Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:               corev1.NodeReady,
-						Status:             corev1.ConditionTrue,
-						LastTransitionTime: metav1.Now(),
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:               corev1.NodeReady,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: metav1.Now(),
+						},
 					},
-				}},
+				},
 			},
 			expectedAvailable: true,
 		},
 		{
 			name: "ready condition true, minReadySeconds = 0, lastTransitionTime past",
-			node: &corev1.Node{Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:               corev1.NodeReady,
-						Status:             corev1.ConditionTrue,
-						LastTransitionTime: metav1.Time{Time: time.Now().Add(time.Duration(-700) * time.Second)},
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:               corev1.NodeReady,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: metav1.Time{Time: time.Now().Add(time.Duration(-700) * time.Second)},
+						},
 					},
-				}},
+				},
 			},
 			expectedAvailable: true,
 		},
 		{
 			name: "ready condition true, minReadySeconds = 300, lastTransitionTime now",
-			node: &corev1.Node{Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:               corev1.NodeReady,
-						Status:             corev1.ConditionTrue,
-						LastTransitionTime: metav1.Now(),
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:               corev1.NodeReady,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: metav1.Now(),
+						},
 					},
-				}},
+				},
 			},
 			minReadySeconds:   300,
 			expectedAvailable: false,
 		},
 		{
 			name: "ready condition true, minReadySeconds = 300, lastTransitionTime past",
-			node: &corev1.Node{Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:               corev1.NodeReady,
-						Status:             corev1.ConditionTrue,
-						LastTransitionTime: metav1.Time{Time: time.Now().Add(time.Duration(-700) * time.Second)},
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:               corev1.NodeReady,
+							Status:             corev1.ConditionTrue,
+							LastTransitionTime: metav1.Time{Time: time.Now().Add(time.Duration(-700) * time.Second)},
+						},
 					},
-				}},
+				},
 			},
 			minReadySeconds:   300,
 			expectedAvailable: true,
 		},
 		{
 			name: "ready condition false",
-			node: &corev1.Node{Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionFalse,
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
 					},
-				}},
+				},
 			},
 			expectedAvailable: false,
 		},
 		{
 			name: "ready condition unknown",
-			node: &corev1.Node{Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionUnknown,
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionUnknown,
+						},
 					},
-				}},
+				},
 			},
 			expectedAvailable: false,
 		},
@@ -249,49 +263,57 @@ func TestIsNodeReady(t *testing.T) {
 		},
 		{
 			name: "no ready condition",
-			node: &corev1.Node{Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeDiskPressure,
-						Status: corev1.ConditionTrue,
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeDiskPressure,
+							Status: corev1.ConditionTrue,
+						},
 					},
-				}},
+				},
 			},
 			expectedReady: false,
 		},
 		{
 			name: "ready condition true",
-			node: &corev1.Node{Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionTrue,
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionTrue,
+						},
 					},
-				}},
+				},
 			},
 			expectedReady: true,
 		},
 		{
 			name: "ready condition false",
-			node: &corev1.Node{Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionFalse,
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionFalse,
+						},
 					},
-				}},
+				},
 			},
 			expectedReady: false,
 		},
 		{
 			name: "ready condition unknown",
-			node: &corev1.Node{Status: corev1.NodeStatus{
-				Conditions: []corev1.NodeCondition{
-					{
-						Type:   corev1.NodeReady,
-						Status: corev1.ConditionUnknown,
+			node: &corev1.Node{
+				Status: corev1.NodeStatus{
+					Conditions: []corev1.NodeCondition{
+						{
+							Type:   corev1.NodeReady,
+							Status: corev1.ConditionUnknown,
+						},
 					},
-				}},
+				},
 			},
 			expectedReady: false,
 		},

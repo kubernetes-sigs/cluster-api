@@ -40,7 +40,8 @@ func TestRemoveNodeTaint(t *testing.T) {
 				Taints: []corev1.Taint{
 					taint1,
 					taint2,
-				}}},
+				},
+			}},
 			dropTaint:    taint1,
 			wantTaints:   []corev1.Taint{taint2},
 			wantModified: true,
@@ -50,7 +51,8 @@ func TestRemoveNodeTaint(t *testing.T) {
 			node: &corev1.Node{Spec: corev1.NodeSpec{
 				Taints: []corev1.Taint{
 					taint2,
-				}}},
+				},
+			}},
 			dropTaint:    taint1,
 			wantTaints:   []corev1.Taint{taint2},
 			wantModified: false,

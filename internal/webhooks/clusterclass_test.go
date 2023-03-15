@@ -219,7 +219,6 @@ func TestClusterClassValidation(t *testing.T) {
 		old       *clusterv1.ClusterClass
 		expectErr bool
 	}{
-
 		/*
 			CREATE Tests
 		*/
@@ -644,7 +643,9 @@ func TestClusterClassValidation(t *testing.T) {
 						},
 					},
 					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(6000000000000)}}).
+						Duration: time.Duration(6000000000000),
+					},
+				}).
 				Build(),
 		},
 		{
@@ -658,7 +659,9 @@ func TestClusterClassValidation(t *testing.T) {
 				// No ControlPlaneMachineInfrastructure makes this an invalid creation request.
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
 					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(6000000000000)}}).
+						Duration: time.Duration(6000000000000),
+					},
+				}).
 				Build(),
 			expectErr: true,
 		},
@@ -675,7 +678,9 @@ func TestClusterClassValidation(t *testing.T) {
 						Build()).
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{
 					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(6000000000000)}}).
+						Duration: time.Duration(6000000000000),
+					},
+				}).
 				Build(),
 			expectErr: true,
 		},
@@ -702,7 +707,9 @@ func TestClusterClassValidation(t *testing.T) {
 								},
 							},
 							NodeStartupTimeout: &metav1.Duration{
-								Duration: time.Duration(6000000000000)}}).
+								Duration: time.Duration(6000000000000),
+							},
+						}).
 						Build()).
 				Build(),
 		},
@@ -730,7 +737,9 @@ func TestClusterClassValidation(t *testing.T) {
 							},
 							NodeStartupTimeout: &metav1.Duration{
 								// nodeStartupTimeout is too short here - 600ns.
-								Duration: time.Duration(600)}}).
+								Duration: time.Duration(600),
+							},
+						}).
 						Build()).
 				Build(),
 			expectErr: true,
@@ -751,7 +760,9 @@ func TestClusterClassValidation(t *testing.T) {
 							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
 						WithMachineHealthCheckClass(&clusterv1.MachineHealthCheckClass{
 							NodeStartupTimeout: &metav1.Duration{
-								Duration: time.Duration(6000000000000)}}).
+								Duration: time.Duration(6000000000000),
+							},
+						}).
 						Build()).
 				Build(),
 			expectErr: true,

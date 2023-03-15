@@ -961,7 +961,7 @@ func TestComputeMachineSetAnnotations(t *testing.T) {
 	}
 }
 
-func machineSetWithRevisionAndHistory(revision string, revisionHistory string) *clusterv1.MachineSet {
+func machineSetWithRevisionAndHistory(revision, revisionHistory string) *clusterv1.MachineSet {
 	ms := &clusterv1.MachineSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Annotations: map[string]string{

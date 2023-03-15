@@ -75,7 +75,7 @@ func (k DockerLogCollector) CollectMachinePoolLog(ctx context.Context, _ client.
 	return kerrors.NewAggregate(errs)
 }
 
-func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath string, containerName string) error {
+func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath, containerName string) error {
 	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {
 		return errors.Wrap(err, "Failed to collect logs from node")

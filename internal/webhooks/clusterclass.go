@@ -55,8 +55,10 @@ type ClusterClass struct {
 	Client client.Reader
 }
 
-var _ webhook.CustomDefaulter = &ClusterClass{}
-var _ webhook.CustomValidator = &ClusterClass{}
+var (
+	_ webhook.CustomDefaulter = &ClusterClass{}
+	_ webhook.CustomValidator = &ClusterClass{}
+)
 
 // Default implements defaulting for ClusterClass create and update.
 func (webhook *ClusterClass) Default(_ context.Context, obj runtime.Object) error {
@@ -360,7 +362,8 @@ func validateMachineHealthCheckClass(fldPath *field.Path, namepace string, m *cl
 			UnhealthyConditions: m.UnhealthyConditions,
 			UnhealthyRange:      m.UnhealthyRange,
 			RemediationTemplate: m.RemediationTemplate,
-		}}
+		},
+	}
 
 	return mhc.ValidateCommonFields(fldPath)
 }

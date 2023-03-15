@@ -237,9 +237,9 @@ func ToUnstructured(rawyaml []byte) ([]unstructured.Unstructured, error) {
 // JoinYaml takes a list of YAML files and join them ensuring
 // each YAML that the yaml separator goes on a new line by adding \n where necessary.
 func JoinYaml(yamls ...[]byte) []byte {
-	var yamlSeparator = []byte("---")
+	yamlSeparator := []byte("---")
 
-	var cr = []byte("\n")
+	cr := []byte("\n")
 	var b [][]byte //nolint:prealloc
 	for _, y := range yamls {
 		if !bytes.HasPrefix(y, cr) {

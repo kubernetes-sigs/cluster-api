@@ -1413,7 +1413,8 @@ func TestComputeMachineDeployment(t *testing.T) {
 				MachineHealthCheck: &clusterv1.MachineHealthCheckClass{
 					UnhealthyConditions: unhealthyConditions,
 					NodeStartupTimeout: &metav1.Duration{
-						Duration: time.Duration(1)},
+						Duration: time.Duration(1),
+					},
 				},
 			},
 		},
@@ -2304,7 +2305,8 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 			},
 		},
 		NodeStartupTimeout: &metav1.Duration{
-			Duration: time.Duration(1)},
+			Duration: time.Duration(1),
+		},
 	}
 	selector := &metav1.LabelSelector{MatchLabels: map[string]string{
 		"foo": "bar",
@@ -2342,7 +2344,8 @@ func Test_computeMachineHealthCheck(t *testing.T) {
 				},
 			},
 			NodeStartupTimeout: &metav1.Duration{
-				Duration: time.Duration(1)},
+				Duration: time.Duration(1),
+			},
 		},
 	}
 

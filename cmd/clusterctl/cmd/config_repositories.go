@@ -37,10 +37,8 @@ const (
 	RepositoriesOutputText = "text"
 )
 
-var (
-	// RepositoriesOutputs is a list of valid repository list outputs.
-	RepositoriesOutputs = []string{RepositoriesOutputYaml, RepositoriesOutputText}
-)
+// RepositoriesOutputs is a list of valid repository list outputs.
+var RepositoriesOutputs = []string{RepositoriesOutputYaml, RepositoriesOutputText}
 
 type configRepositoriesOptions struct {
 	output string

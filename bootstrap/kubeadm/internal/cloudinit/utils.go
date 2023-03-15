@@ -21,11 +21,9 @@ import (
 	"text/template"
 )
 
-var (
-	defaultTemplateFuncMap = template.FuncMap{
-		"Indent": templateYAMLIndent,
-	}
-)
+var defaultTemplateFuncMap = template.FuncMap{
+	"Indent": templateYAMLIndent,
+}
 
 func templateYAMLIndent(i int, input string) string {
 	split := strings.Split(input, "\n")

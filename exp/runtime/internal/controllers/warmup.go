@@ -79,7 +79,6 @@ func (r *warmupRunnable) Start(ctx context.Context) error {
 		}
 		return true, nil
 	})
-
 	if err != nil {
 		return errors.Wrapf(err, "ExtensionConfig registry warmup timed out after %s", r.warmupTimeout.String())
 	}

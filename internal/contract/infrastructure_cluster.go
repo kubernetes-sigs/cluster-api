@@ -31,8 +31,10 @@ import (
 // like DockerClusters, AWS Clusters, etc.
 type InfrastructureClusterContract struct{}
 
-var infrastructureCluster *InfrastructureClusterContract
-var onceInfrastructureCluster sync.Once
+var (
+	infrastructureCluster     *InfrastructureClusterContract
+	onceInfrastructureCluster sync.Once
+)
 
 // InfrastructureCluster provide access to the information about the Cluster API contract for InfrastructureCluster objects.
 func InfrastructureCluster() *InfrastructureClusterContract {

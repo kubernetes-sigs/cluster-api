@@ -42,10 +42,10 @@ func Test_viperReader_Init(t *testing.T) {
 	defer os.RemoveAll(dir)
 
 	configFile := filepath.Join(dir, "clusterctl.yaml")
-	g.Expect(os.WriteFile(configFile, []byte("bar: bar"), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(configFile, []byte("bar: bar"), 0o600)).To(Succeed())
 
 	configFileBadContents := filepath.Join(dir, "clusterctl-bad.yaml")
-	g.Expect(os.WriteFile(configFileBadContents, []byte("bad-contents"), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(configFileBadContents, []byte("bad-contents"), 0o600)).To(Succeed())
 
 	// To test the remote config file
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -128,7 +128,7 @@ func Test_viperReader_Get(t *testing.T) {
 	_ = os.Setenv("FOO", "foo")
 
 	configFile := filepath.Join(dir, "clusterctl.yaml")
-	g.Expect(os.WriteFile(configFile, []byte("bar: bar"), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(configFile, []byte("bar: bar"), 0o600)).To(Succeed())
 
 	type args struct {
 		key string
@@ -211,7 +211,7 @@ func Test_viperReader_Set(t *testing.T) {
 
 	configFile := filepath.Join(dir, "clusterctl.yaml")
 
-	g.Expect(os.WriteFile(configFile, []byte("bar: bar"), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(configFile, []byte("bar: bar"), 0o600)).To(Succeed())
 
 	type args struct {
 		key   string
@@ -256,7 +256,7 @@ func Test_viperReader_checkDefaultConfig(t *testing.T) {
 	dir = strings.TrimSuffix(dir, "/")
 
 	configFile := filepath.Join(dir, "clusterctl.yaml")
-	g.Expect(os.WriteFile(configFile, []byte("bar: bar"), 0600)).To(Succeed())
+	g.Expect(os.WriteFile(configFile, []byte("bar: bar"), 0o600)).To(Succeed())
 
 	type fields struct {
 		configPaths []string

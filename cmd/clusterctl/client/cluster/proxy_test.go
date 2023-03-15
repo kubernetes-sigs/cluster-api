@@ -67,7 +67,7 @@ func TestProxyGetConfig(t *testing.T) {
 				g.Expect(err).NotTo(HaveOccurred())
 				defer os.RemoveAll(dir)
 				configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
-				g.Expect(os.WriteFile(configFile, []byte(tt.kubeconfigContents), 0600)).To(Succeed())
+				g.Expect(os.WriteFile(configFile, []byte(tt.kubeconfigContents), 0o600)).To(Succeed())
 
 				proxy := newProxy(Kubeconfig{Path: configFile, Context: tt.context})
 				conf, err := proxy.GetConfig()
@@ -94,7 +94,7 @@ func TestProxyGetConfig(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		defer os.RemoveAll(dir)
 		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
-		g.Expect(os.WriteFile(configFile, []byte(kubeconfig("management", "default")), 0600)).To(Succeed())
+		g.Expect(os.WriteFile(configFile, []byte(kubeconfig("management", "default")), 0o600)).To(Succeed())
 
 		proxy := newProxy(Kubeconfig{Path: configFile, Context: "management"}, InjectProxyTimeout(23*time.Second))
 		conf, err := proxy.GetConfig()
@@ -121,7 +121,7 @@ func TestKUBECONFIGEnvVar(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		defer os.RemoveAll(dir)
 		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
-		g.Expect(os.WriteFile(configFile, []byte(kubeconfigContents), 0600)).To(Succeed())
+		g.Expect(os.WriteFile(configFile, []byte(kubeconfigContents), 0o600)).To(Succeed())
 
 		proxy := newProxy(
 			// dont't give an explicit path but rather define the file in the
@@ -149,7 +149,7 @@ func TestKUBECONFIGEnvVar(t *testing.T) {
 		g.Expect(err).NotTo(HaveOccurred())
 		defer os.RemoveAll(dir)
 		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
-		g.Expect(os.WriteFile(configFile, []byte(kubeconfigContents), 0600)).To(Succeed())
+		g.Expect(os.WriteFile(configFile, []byte(kubeconfigContents), 0o600)).To(Succeed())
 
 		proxy := newProxy(
 			// dont't give an explicit path but rather define the file in the
@@ -226,7 +226,7 @@ func TestProxyCurrentNamespace(t *testing.T) {
 				g.Expect(err).NotTo(HaveOccurred())
 				defer os.RemoveAll(dir)
 				configFile = filepath.Join(dir, ".test-kubeconfig.yaml")
-				g.Expect(os.WriteFile(configFile, []byte(tt.kubeconfigContents), 0600)).To(Succeed())
+				g.Expect(os.WriteFile(configFile, []byte(tt.kubeconfigContents), 0o600)).To(Succeed())
 			}
 
 			proxy := newProxy(Kubeconfig{Path: configFile, Context: tt.kubeconfigContext})

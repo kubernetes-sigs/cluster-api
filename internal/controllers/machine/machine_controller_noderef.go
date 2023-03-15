@@ -41,10 +41,8 @@ import (
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
-var (
-	// ErrNodeNotFound signals that a corev1.Node could not be found for the given provider id.
-	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
-)
+// ErrNodeNotFound signals that a corev1.Node could not be found for the given provider id.
+var ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
 
 func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)

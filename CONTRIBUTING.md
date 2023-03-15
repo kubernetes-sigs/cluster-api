@@ -35,6 +35,8 @@
 
 Read the following guide if you're interested in contributing to cluster-api.
 
+Contributors who are not used to working in the Kubernetes ecosystem should also take a look at the Kubernetes [New Contributor Course.](https://www.kubernetes.dev/docs/onboarding/)
+
 ## Contributor License Agreements
 
 We'd love to accept your patches! Before we can take them, we have to jump a couple of legal hurdles.

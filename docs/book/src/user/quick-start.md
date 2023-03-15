@@ -1567,7 +1567,9 @@ kind delete cluster
 
 ## Next steps
 
-See the [clusterctl] documentation for more detail about clusterctl supported actions.
+- Create a second workload cluster. Simply follow the steps outlined above, but remember to provide a different name for your second workload cluster.
+- Deploy applications to your workload cluster. Use the [CNI deployment steps](#deploy-a-cni-solution) for pointers.
+- See the [clusterctl] documentation for more detail about clusterctl supported actions.
 
 <!-- links -->
 [Experimental Features]: ../tasks/experimental-features/experimental-features.md

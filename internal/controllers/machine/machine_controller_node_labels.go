@@ -85,7 +85,7 @@ func (r *Reconciler) setInterruptibleNodeLabel(ctx context.Context, remoteClient
 		return nil
 	}
 
-	patchHelper, err := patch.NewHelper(node, r.Client)
+	patchHelper, err := patch.NewHelper(node, remoteClient)
 	if err != nil {
 		return err
 	}

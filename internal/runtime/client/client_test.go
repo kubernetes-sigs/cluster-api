@@ -23,10 +23,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"regexp"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -1210,8 +1210,8 @@ func Test_aggregateResponses(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			aggregateSuccessfulResponses(tt.aggregateResponse, tt.responses)
 
-			if !reflect.DeepEqual(tt.aggregateResponse, tt.want) {
-				t.Errorf("aggregateSuccessfulResponses() got = %v, want %v", tt.aggregateResponse, tt.want)
+			if diff := cmp.Diff(tt.aggregateResponse, tt.want); diff != "" {
+				t.Errorf("aggregateSuccessfulResponses() got = %v, want %v, diff = %v", tt.aggregateResponse, tt.want, diff)
 			}
 		})
 	}

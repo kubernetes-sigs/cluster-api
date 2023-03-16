@@ -17,9 +17,9 @@ limitations under the License.
 package variables
 
 import (
-	"reflect"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"k8s.io/apiextensions-apiserver/pkg/apis/apiextensions"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -196,8 +196,8 @@ func Test_convertToAPIExtensionsJSONSchemaProps(t *testing.T) {
 				}
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("convertToAPIExtensionsJSONSchemaProps() got = %v, want %v", got, tt.want)
+			if diff := cmp.Diff(got, tt.want); diff != "" {
+				t.Errorf("convertToAPIExtensionsJSONSchemaProps() got = %v, want %v, diff %v", got, tt.want, diff)
 			}
 		})
 	}

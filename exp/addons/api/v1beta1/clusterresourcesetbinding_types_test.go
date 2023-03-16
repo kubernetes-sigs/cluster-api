@@ -17,10 +17,10 @@ limitations under the License.
 package v1beta1
 
 import (
-	"reflect"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -207,7 +207,7 @@ func TestSetResourceBinding(t *testing.T) {
 			tt.resourceSetBinding.SetBinding(tt.resourceBinding)
 			exist := false
 			for _, b := range tt.resourceSetBinding.Resources {
-				if reflect.DeepEqual(b.ResourceRef, tt.resourceBinding.ResourceRef) {
+				if diff := cmp.Diff(b.ResourceRef, tt.resourceBinding.ResourceRef); diff == "" {
 					gs.Expect(tt.resourceBinding.Applied).To(BeEquivalentTo(b.Applied))
 					exist = true
 				}

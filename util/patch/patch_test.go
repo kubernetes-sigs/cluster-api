@@ -17,7 +17,6 @@ limitations under the License.
 package patch
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -108,7 +107,8 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-				return reflect.DeepEqual(obj.GetOwnerReferences(), objAfter.GetOwnerReferences())
+				result, _ := conditions.Check(obj.GetOwnerReferences(), objAfter.GetOwnerReferences())
+				return result
 			}, timeout).Should(BeTrue())
 		})
 	})
@@ -542,8 +542,8 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-
-				return reflect.DeepEqual(obj.Finalizers, objAfter.Finalizers)
+				result, _ := conditions.Check(obj.Finalizers, objAfter.Finalizers)
+				return result
 			}, timeout).Should(BeTrue())
 		})
 
@@ -626,9 +626,8 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-
-				return objAfter.Spec.Paused &&
-					reflect.DeepEqual(obj.Spec.InfrastructureRef, objAfter.Spec.InfrastructureRef)
+				result, _ := conditions.Check(obj.Spec.InfrastructureRef, objAfter.Spec.InfrastructureRef)
+				return objAfter.Spec.Paused && result
 			}, timeout).Should(BeTrue())
 		})
 
@@ -666,7 +665,8 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-				return reflect.DeepEqual(objAfter.Status, obj.Status)
+				result, _ := conditions.Check(objAfter.Status, obj.Status)
+				return result
 			}, timeout).Should(BeTrue())
 		})
 
@@ -715,10 +715,10 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-
+				result, _ := conditions.Check(obj.Spec, objAfter.Spec)
 				return obj.Status.InfrastructureReady == objAfter.Status.InfrastructureReady &&
 					conditions.IsTrue(objAfter, clusterv1.ReadyCondition) &&
-					reflect.DeepEqual(obj.Spec, objAfter.Spec)
+					result
 			}, timeout).Should(BeTrue())
 		})
 	})
@@ -773,8 +773,8 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-
-				return reflect.DeepEqual(obj.Spec, objAfter.Spec) &&
+				result, _ := conditions.Check(obj.Spec, objAfter.Spec)
+				return result &&
 					obj.GetGeneration() == objAfter.Status.ObservedGeneration
 			}, timeout).Should(BeTrue())
 		})
@@ -822,9 +822,9 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-
-				return reflect.DeepEqual(obj.Spec, objAfter.Spec) &&
-					reflect.DeepEqual(obj.Status, objAfter.Status) &&
+				specResult, _ := conditions.Check(obj.Spec, objAfter.Spec)
+				statusResult, _ := conditions.Check(obj.Status, objAfter.Status)
+				return specResult && statusResult &&
 					obj.GetGeneration() == objAfter.Status.ObservedGeneration
 			}, timeout).Should(BeTrue())
 		})

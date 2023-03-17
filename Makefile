@@ -140,7 +140,7 @@ HADOLINT_FAILURE_THRESHOLD = warning
 
 SHELLCHECK_VER := v0.9.0
 
-KPROMO_VER := v3.4.5
+KPROMO_VER := v3.5.1
 KPROMO_BIN := kpromo
 KPROMO :=  $(abspath $(TOOLS_BIN_DIR)/$(KPROMO_BIN)-$(KPROMO_VER))
 KPROMO_PKG := sigs.k8s.io/promo-tools/v3/cmd/kpromo

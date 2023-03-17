@@ -31,7 +31,6 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -88,7 +87,7 @@ func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*
 	// If required, compute the desired state of the MachineDeployments from the list of MachineDeploymentTopologies
 	// defined in the cluster.
 	if s.Blueprint.HasMachineDeployments() {
-		desiredState.MachineDeployments, err = computeMachineDeployments(ctx, s, desiredState.ControlPlane)
+		desiredState.MachineDeployments, err = r.computeMachineDeployments(ctx, s)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to compute MachineDeployments")
 		}
@@ -302,164 +301,59 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 		}
 	}
 
-	// Sets the desired Kubernetes version for the control plane.
-	version, err := r.computeControlPlaneVersion(ctx, s)
+	// Note: We will always (!!) write the Cluster.spec.topology.version, we just hold the rollout
+	// if necessary.
+	shouldHold, err := r.shouldHoldControlPlaneMachineCreations(ctx, s)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to compute version of control plane")
+		return nil, errors.Wrap(err, "failed to compute if we should hold Machine creations for control plane")
 	}
-	if err := contract.ControlPlane().Version().Set(controlPlane, version); err != nil {
+	if shouldHold {
+		annotations := controlPlane.GetAnnotations()
+		if annotations == nil {
+			annotations = map[string]string{}
+		}
+		annotations[clusterv1.HoldMachineCreationAnnotation] = ""
+		controlPlane.SetAnnotations(annotations)
+	}
+
+	// Sets the desired Kubernetes version for the control plane.
+	if err := contract.ControlPlane().Version().Set(controlPlane, s.Current.Cluster.Spec.Topology.Version); err != nil {
 		return nil, errors.Wrap(err, "failed to set spec.version in the ControlPlane object")
 	}
 
 	return controlPlane, nil
 }
 
-// computeControlPlaneVersion calculates the version of the desired control plane.
+// shouldHoldControlPlaneMachineCreations calculates the version of the desired control plane.
 // The version is calculated using the state of the current machine deployments, the current control plane
 // and the version defined in the topology.
-func (r *Reconciler) computeControlPlaneVersion(ctx context.Context, s *scope.Scope) (string, error) {
-	log := tlog.LoggerFrom(ctx)
-	desiredVersion := s.Blueprint.Topology.Version
-	// If we are creating the control plane object (current control plane is nil), use version from topology.
+func (r *Reconciler) shouldHoldControlPlaneMachineCreations(ctx context.Context, s *scope.Scope) (bool, error) {
 	if s.Current.ControlPlane == nil || s.Current.ControlPlane.Object == nil {
-		return desiredVersion, nil
+		return false, nil
 	}
 
-	// Get the current currentVersion of the control plane.
 	currentVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get the version from control plane spec")
+		return false, errors.Wrap(err, "failed to get the version from control plane spec")
 	}
+	desiredVersion := s.Blueprint.Topology.Version
 
-	s.UpgradeTracker.ControlPlane.PendingUpgrade = true
-	if *currentVersion == desiredVersion {
-		// Mark that the control plane spec is already at the desired version.
-		// This information is used to show the appropriate message for the TopologyReconciled
-		// condition.
-		s.UpgradeTracker.ControlPlane.PendingUpgrade = false
-	}
-
-	// Check if the control plane is being created for the first time.
-	cpProvisioning, err := contract.ControlPlane().IsProvisioning(s.Current.ControlPlane.Object)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to check if the control plane is being provisioned")
-	}
-	// If the control plane is being provisioned (being craeted for the first time), then do not
-	// pick up the desiredVersion yet.
-	// Return the current version of the control plane. We will pick up the new version after the
-	// control plane is provisioned.
-	if cpProvisioning {
-		s.UpgradeTracker.ControlPlane.IsProvisioning = true
-		return *currentVersion, nil
-	}
-
-	// Check if the current control plane is upgrading
-	cpUpgrading, err := contract.ControlPlane().IsUpgrading(s.Current.ControlPlane.Object)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to check if control plane is upgrading")
-	}
-	// If the current control plane is upgrading  (still completing a previous upgrade),
-	// then do not pick up the desiredVersion yet.
-	// Return the current version of the control plane. We will pick up the new version
-	// after the control plane is stable.
-	if cpUpgrading {
-		s.UpgradeTracker.ControlPlane.IsUpgrading = true
-		return *currentVersion, nil
-	}
-
-	// Return here if the control plane is already at the desired version
-	if !s.UpgradeTracker.ControlPlane.PendingUpgrade {
-		// At this stage the control plane is not upgrading and is already at the desired version.
-		// We can return.
-		// Nb. We do not return early in the function if the control plane is already at the desired version so as
-		// to know if the control plane is being upgraded. This information
-		// is required when updating the TopologyReconciled condition on the cluster.
-
-		// Call the AfterControlPlaneUpgrade now that the control plane is upgraded.
-		if feature.Gates.Enabled(feature.RuntimeSDK) {
-			// Call the hook only if we are tracking the intent to do so. If it is not tracked it means we don't need to call the
-			// hook because we didn't go through an upgrade or we already called the hook after the upgrade.
-			if hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
-				// Call all the registered extension for the hook.
-				hookRequest := &runtimehooksv1.AfterControlPlaneUpgradeRequest{
-					Cluster:           *s.Current.Cluster,
-					KubernetesVersion: desiredVersion,
-				}
-				hookResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{}
-				if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
-					return "", err
-				}
-				// Add the response to the tracker so we can later update condition or requeue when required.
-				s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, hookResponse)
-
-				// If the extension responds to hold off on starting Machine deployments upgrades,
-				// change the UpgradeTracker accordingly, otherwise the hook call is completed and we
-				// can remove this hook from the list of pending-hooks.
-				if hookResponse.RetryAfterSeconds != 0 {
-					log.Infof("MachineDeployments upgrade to version %q are blocked by %q hook", desiredVersion, runtimecatalog.HookName(runtimehooksv1.AfterControlPlaneUpgrade))
-					s.UpgradeTracker.MachineDeployments.HoldUpgrades(true)
-				} else {
-					if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
-						return "", err
-					}
-				}
+	if feature.Gates.Enabled(feature.RuntimeSDK) {
+		if *currentVersion != desiredVersion {
+			// Detected that we will write a new version to the control plane.
+			// Track the intent of calling BeforeClusterUpgrade, AfterControlPlaneUpgrade and AfterClusterUpgrade hooks.
+			if err := hooks.MarkAsPending(ctx, r.Client, s.Current.Cluster, runtimehooksv1.BeforeClusterUpgrade, runtimehooksv1.AfterControlPlaneUpgrade, runtimehooksv1.AfterClusterUpgrade); err != nil {
+				return false, err
 			}
 		}
 
-		return *currentVersion, nil
-	}
-
-	// If the control plane supports replicas, check if the control plane is in the middle of a scale operation.
-	// If yes, then do not pick up the desiredVersion yet. We will pick up the new version after the control plane is stable.
-	if s.Blueprint.Topology.ControlPlane.Replicas != nil {
-		cpScaling, err := contract.ControlPlane().IsScaling(s.Current.ControlPlane.Object)
-		if err != nil {
-			return "", errors.Wrap(err, "failed to check if the control plane is scaling")
-		}
-		if cpScaling {
-			s.UpgradeTracker.ControlPlane.IsScaling = true
-			return *currentVersion, nil
+		// Hold rollout if BeforeClusterUpgrade is pending.
+		if hooks.IsPending(runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster) {
+			return true, nil
 		}
 	}
 
-	// If the control plane is not upgrading or scaling, we can assume the control plane is stable.
-	// However, we should also check for the MachineDeployments to be stable.
-	// If the MachineDeployments are rolling out (still completing a previous upgrade), then do not pick
-	// up the desiredVersion yet. We will pick up the new version after the MachineDeployments are stable.
-	if s.Current.MachineDeployments.IsAnyRollingOut() {
-		return *currentVersion, nil
-	}
-
-	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		// At this point the control plane and the machine deployments are stable and we are almost ready to pick
-		// up the desiredVersion. Call the BeforeClusterUpgrade hook before picking up the desired version.
-		hookRequest := &runtimehooksv1.BeforeClusterUpgradeRequest{
-			Cluster:               *s.Current.Cluster,
-			FromKubernetesVersion: *currentVersion,
-			ToKubernetesVersion:   desiredVersion,
-		}
-		hookResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{}
-		if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
-			return "", err
-		}
-		// Add the response to the tracker so we can later update condition or requeue when required.
-		s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, hookResponse)
-		if hookResponse.RetryAfterSeconds != 0 {
-			// Cannot pickup the new version right now. Need to try again later.
-			log.Infof("Cluster upgrade to version %q is blocked by %q hook", desiredVersion, runtimecatalog.HookName(runtimehooksv1.BeforeClusterUpgrade))
-			return *currentVersion, nil
-		}
-
-		// We are picking up the new version here.
-		// Track the intent of calling the AfterControlPlaneUpgrade and the AfterClusterUpgrade hooks once we are done with the upgrade.
-		if err := hooks.MarkAsPending(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade, runtimehooksv1.AfterClusterUpgrade); err != nil {
-			return "", err
-		}
-	}
-
-	// Control plane and machine deployments are stable. All the required hook are called.
-	// Ready to pick up the topology version.
-	return desiredVersion, nil
+	return false, nil
 }
 
 // computeCluster computes the desired state for the Cluster object.
@@ -522,15 +416,16 @@ func calculateRefDesiredAPIVersion(currentRef *corev1.ObjectReference, desiredRe
 }
 
 // computeMachineDeployments computes the desired state of the list of MachineDeployments.
-func computeMachineDeployments(ctx context.Context, s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState) (scope.MachineDeploymentsStateMap, error) {
+func (r *Reconciler) computeMachineDeployments(ctx context.Context, s *scope.Scope) (scope.MachineDeploymentsStateMap, error) {
 	// Mark all the machine deployments that are currently rolling out.
 	// This captured information will be used for
 	//   - Building the TopologyReconciled condition.
 	//   - Making upgrade decisions on machine deployments.
-	s.UpgradeTracker.MachineDeployments.MarkRollingOut(s.Current.MachineDeployments.RollingOut()...)
+	// FIXME(sbueringer) let's not do this for now, this could lead to flipping hold/unhold on MDs if an MD becomes unstable
+	// s.UpgradeTracker.MachineDeployments.MarkRollingOut(s.Current.MachineDeployments.RollingOut()...)
 	machineDeploymentsStateMap := make(scope.MachineDeploymentsStateMap)
 	for _, mdTopology := range s.Blueprint.Topology.Workers.MachineDeployments {
-		desiredMachineDeployment, err := computeMachineDeployment(ctx, s, desiredControlPlaneState, mdTopology)
+		desiredMachineDeployment, err := r.computeMachineDeployment(ctx, s, mdTopology)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to compute MachineDepoyment for topology %q", mdTopology.Name)
 		}
@@ -542,7 +437,7 @@ func computeMachineDeployments(ctx context.Context, s *scope.Scope, desiredContr
 // computeMachineDeployment computes the desired state for a MachineDeploymentTopology.
 // The generated machineDeployment object is calculated using the values from the machineDeploymentTopology and
 // the machineDeployment class.
-func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState, machineDeploymentTopology clusterv1.MachineDeploymentTopology) (*scope.MachineDeploymentState, error) {
+func (r *Reconciler) computeMachineDeployment(ctx context.Context, s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology) (*scope.MachineDeploymentState, error) {
 	desiredMachineDeployment := &scope.MachineDeploymentState{}
 
 	// Gets the blueprint for the MachineDeployment class.
@@ -614,10 +509,6 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	// Add ClusterTopologyMachineDeploymentLabel to the generated InfrastructureMachine template
 	infraMachineTemplateLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
 	desiredMachineDeployment.InfrastructureMachineTemplate.SetLabels(infraMachineTemplateLabels)
-	version, err := computeMachineDeploymentVersion(s, machineDeploymentTopology, desiredControlPlaneState, currentMachineDeployment)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to compute version for %s", machineDeploymentTopology.Name)
-	}
 
 	// Compute values that can be set both in the MachineDeploymentClass and in the MachineDeploymentTopology
 	minReadySeconds := machineDeploymentClass.MinReadySeconds
@@ -676,7 +567,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName:             s.Current.Cluster.Name,
-					Version:                 pointer.String(version),
+					Version:                 pointer.String(s.Current.Cluster.Spec.Topology.Version),
 					Bootstrap:               clusterv1.Bootstrap{ConfigRef: desiredBootstrapTemplateRef},
 					InfrastructureRef:       *desiredInfraMachineTemplateRef,
 					FailureDomain:           failureDomain,
@@ -701,6 +592,21 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	delete(machineDeploymentAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
 	desiredMachineDeploymentObj.SetAnnotations(machineDeploymentAnnotations)
 	desiredMachineDeploymentObj.Spec.Template.Annotations = machineDeploymentAnnotations
+	// Note: We will always (!!) write the Cluster.spec.topology.version, we just hold the rollout
+	// if necessary.
+	shouldHold, err := r.shouldHoldMachineDeploymentMachineCreations(ctx, s, machineDeploymentTopology, currentMachineDeployment)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to compute if we should hold Machine creations for MachineDeployment topology %s", machineDeploymentTopology.Name)
+	}
+	if shouldHold {
+		annotations := desiredMachineDeploymentObj.GetAnnotations()
+		if annotations == nil {
+			annotations = map[string]string{}
+		}
+		annotations[clusterv1.HoldMachineCreationAnnotation] = ""
+		desiredMachineDeploymentObj.SetAnnotations(annotations)
+		// FIXME(sbueringer): TBD If we should stop this annotation from propagating from MD.annotations to MS.annotations.
+	}
 
 	// Apply Labels
 	// NOTE: On top of all the labels applied to managed objects we are applying the ClusterTopologyMachineDeploymentLabel
@@ -744,115 +650,90 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	return desiredMachineDeployment, nil
 }
 
-// computeMachineDeploymentVersion calculates the version of the desired machine deployment.
+// shouldHoldMachineDeploymentMachineCreations calculates the version of the desired machine deployment.
 // The version is calculated using the state of the current machine deployments,
 // the current control plane and the version defined in the topology.
 // Nb: No MachineDeployment upgrades will be triggered while any MachineDeployment is in the middle
 // of an upgrade. Even if the number of MachineDeployments that are being upgraded is less
 // than the number of allowed concurrent upgrades.
-func computeMachineDeploymentVersion(s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology, desiredControlPlaneState *scope.ControlPlaneState, currentMDState *scope.MachineDeploymentState) (string, error) {
-	desiredVersion := s.Blueprint.Topology.Version
-	// If creating a new machine deployment, we can pick up the desired version
-	// Note: We are not blocking the creation of new machine deployments when
-	// the control plane or any of the machine deployments are upgrading/scaling.
+func (r *Reconciler) shouldHoldMachineDeploymentMachineCreations(ctx context.Context, s *scope.Scope, machineDeploymentTopology clusterv1.MachineDeploymentTopology, currentMDState *scope.MachineDeploymentState) (bool, error) {
 	if currentMDState == nil || currentMDState.Object == nil {
-		return desiredVersion, nil
+		return false, nil
 	}
 
-	// Get the current version of the machine deployment.
-	currentVersion := *currentMDState.Object.Spec.Template.Spec.Version
-
-	// Return early if the currentVersion is already equal to the desiredVersion
-	// no further checks required.
-	if currentVersion == desiredVersion {
-		return currentVersion, nil
+	alreadyRolledOut, err := versionAlreadyRolledOutToMachineDeployment(ctx, r.Client, s, currentMDState.Object)
+	if err != nil {
+		return false, err
+	}
+	// Don't hold as the version is already rolled out.
+	if alreadyRolledOut {
+		return false, nil
 	}
 
-	// Return early if the upgrade for the MachineDeployment is deferred.
+	// Hold rollout if BeforeClusterUpgrade is pending.
+	if hooks.IsPending(runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster) {
+		return true, nil
+	}
+
+	// Hold rollout if AfterControlPlaneUpgrade is pending.
+	if hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
+		return true, nil
+	}
+
+	// Hold rollout if the upgrade for the MachineDeployment is deferred.
 	if isMachineDeploymentDeferred(s.Blueprint.Topology, machineDeploymentTopology) {
 		s.UpgradeTracker.MachineDeployments.MarkDeferredUpgrade(currentMDState.Object.Name)
-		return currentVersion, nil
+		return true, nil
 	}
 
-	// Return early if we are not allowed to upgrade the machine deployment.
+	// Hold rollout if there are already too many other MachineDeployments rolling out.
 	if !s.UpgradeTracker.MachineDeployments.AllowUpgrade() {
 		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
-		return currentVersion, nil
+		return true, nil // FIXME(sbueringer) why do we care about concurrency of MD rollouts for version changes but not for all other changes? Not sure if there is a big/relevant difference
 	}
 
-	// If the control plane is being created (current control plane is nil), do not perform
-	// any machine deployment upgrade in this case.
-	// Return the current version of the machine deployment.
-	// NOTE: this case should never happen (upgrading a MachineDeployment) before creating a CP,
-	// but we are implementing this check for extra safety.
-	if s.Current.ControlPlane == nil || s.Current.ControlPlane.Object == nil {
-		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
-		return currentVersion, nil
-	}
-
-	// If the current control plane is upgrading, then do not pick up the desiredVersion yet.
-	// Return the current version of the machine deployment. We will pick up the new version after the control
-	// plane is stable.
-	cpUpgrading, err := contract.ControlPlane().IsUpgrading(s.Current.ControlPlane.Object)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to check if control plane is upgrading")
-	}
-	if cpUpgrading {
-		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
-		return currentVersion, nil
-	}
-
-	// If control plane supports replicas, check if the control plane is in the middle of a scale operation.
-	// If the current control plane is scaling, then do not pick up the desiredVersion yet.
-	// Return the current version of the machine deployment. We will pick up the new version after the control
-	// plane is stable.
-	if s.Blueprint.Topology.ControlPlane.Replicas != nil {
-		cpScaling, err := contract.ControlPlane().IsScaling(s.Current.ControlPlane.Object)
-		if err != nil {
-			return "", errors.Wrap(err, "failed to check if the control plane is scaling")
-		}
-		if cpScaling {
-			s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
-			return currentVersion, nil
-		}
-	}
-
-	// Check if we are about to upgrade the control plane. In that case, do not upgrade the machine deployment yet.
-	// Wait for the new upgrade operation on the control plane to finish before picking up the new version for the
-	// machine deployment.
-	currentCPVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get version of current control plane")
-	}
-	desiredCPVersion, err := contract.ControlPlane().Version().Get(desiredControlPlaneState.Object)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to get version of desired control plane")
-	}
-	if *currentCPVersion != *desiredCPVersion {
-		// The versions of the current and desired control planes do no match,
-		// implies we are about to upgrade the control plane.
-		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
-		return currentVersion, nil
-	}
-
-	// If the ControlPlane is pending picking up an upgrade then do not pick up the new version yet.
-	if s.UpgradeTracker.ControlPlane.PendingUpgrade {
-		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
-		return currentVersion, nil
-	}
-
-	// At this point the control plane is stable (not scaling, not upgrading, not being upgraded).
-	// Checking to see if the machine deployments are also stable.
-	// If any of the MachineDeployments is rolling out, do not upgrade the machine deployment yet.
-	if s.Current.MachineDeployments.IsAnyRollingOut() {
-		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
-		return currentVersion, nil
-	}
-
-	// Control plane and machine deployments are stable.
-	// Ready to pick up the topology version.
+	// Unhold as there's no reason to hold and version hasn't been rolled out yet
 	s.UpgradeTracker.MachineDeployments.MarkRollingOut(currentMDState.Object.Name)
-	return desiredVersion, nil
+	return false, nil
+}
+
+func versionAlreadyRolledOutToMachineDeployment(ctx context.Context, c client.Client, s *scope.Scope, currentMD *clusterv1.MachineDeployment) (bool, error) {
+	desiredVersion := s.Blueprint.Topology.Version
+
+	// Version will be rolled out in the current reconcile.
+	if *currentMD.Spec.Template.Spec.Version != desiredVersion {
+		return false, nil
+	}
+	// FIXME(sbueringer) this comes down to "all existing Machines must have the version". Probably that's okay, if we look at replicas we would also detect scale ups as version upgrades which seems wrong as we only want to hold for new version upgrades.
+	machines, err := getMachinesForMachineDeployment(ctx, c, currentMD)
+	if err != nil {
+		return false, err
+	}
+	for _, machine := range machines {
+		if *machine.Spec.Version != desiredVersion {
+			// Found a Machine which doesn't have the right version yet.
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
+// getMachinesForMachineDeployment returns a list of Machines associated with a MachineDeployment.
+func getMachinesForMachineDeployment(ctx context.Context, c client.Reader, md *clusterv1.MachineDeployment) ([]*clusterv1.Machine, error) {
+	// List MachineSets based on the MachineDeployment label.
+	machineList := &clusterv1.MachineList{}
+	if err := c.List(ctx, machineList,
+		client.InNamespace(md.Namespace), client.MatchingLabels{clusterv1.MachineDeploymentNameLabel: md.Name}); err != nil {
+		return nil, errors.Wrapf(err, "failed to list MachineSets for MachineDeployment/%s", md.Name)
+	}
+
+	// Copy the Machines to an array of Machine pointers, to avoid Machine copying later.
+	res := make([]*clusterv1.Machine, 0, len(machineList.Items))
+	for i := range machineList.Items {
+		res = append(res, &machineList.Items[i])
+	}
+	return res, nil
 }
 
 // isMachineDeploymentDeferred returns true if the upgrade for the mdTopology is deferred.

@@ -371,8 +371,8 @@ func beforeClusterUpgradeTestHandler(ctx context.Context, c client.Client, clust
 	}, intervals)
 }
 
-// afterControlPlaneUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if any
-// MachineDeployment in the Cluster has upgraded to the target Kubernetes version.
+// afterControlPlaneUpgradeTestHandler calls runtimeHookTestHandler with a blocking function which returns false if
+// // any of the machines of any MachineDeployment in the Cluster has been updated to the target Kubernetes version.
 func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, cluster types.NamespacedName, version string, intervals []interface{}) {
 	hookName := "AfterControlPlaneUpgrade"
 	runtimeHookTestHandler(ctx, c, cluster, hookName, true, func() bool {
@@ -382,8 +382,11 @@ func afterControlPlaneUpgradeTestHandler(ctx context.Context, c client.Client, c
 			framework.GetMachineDeploymentsByClusterInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, Lister: c})
 		// If any of the MachineDeployments have the target Kubernetes Version, the hook is unblocked.
 		for _, md := range mds {
-			if *md.Spec.Template.Spec.Version == version {
-				blocked = false
+			machines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{ClusterName: cluster.Name, Namespace: cluster.Namespace, MachineDeployment: *md, Lister: c})
+			for _, machine := range machines {
+				if *machine.Spec.Version == version {
+					blocked = false
+				}
 			}
 		}
 		return blocked

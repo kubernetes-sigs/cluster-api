@@ -49,7 +49,6 @@ type MachineDeploymentUpgradeTracker struct {
 	pendingNames    sets.Set[string]
 	deferredNames   sets.Set[string]
 	rollingOutNames sets.Set[string]
-	holdUpgrades    bool
 }
 
 // NewUpgradeTracker returns an upgrade tracker with empty tracking information.
@@ -80,22 +79,12 @@ func (m *MachineDeploymentUpgradeTracker) RolloutNames() []string {
 	return sets.List(m.rollingOutNames)
 }
 
-// HoldUpgrades is used to set if any subsequent upgrade operations should be paused,
-// e.g. because a AfterControlPlaneUpgrade hook response asked to do so.
-// If HoldUpgrades is called with `true` then AllowUpgrade would return false.
-func (m *MachineDeploymentUpgradeTracker) HoldUpgrades(val bool) {
-	m.holdUpgrades = val
-}
-
 // AllowUpgrade returns true if a MachineDeployment is allowed to upgrade,
 // returns false otherwise.
 // Note: If AllowUpgrade returns true the machine deployment will pick up
 // the topology version. This will eventually trigger a machine deployment
 // rollout.
 func (m *MachineDeploymentUpgradeTracker) AllowUpgrade() bool {
-	if m.holdUpgrades {
-		return false
-	}
 	return m.rollingOutNames.Len() < maxMachineDeploymentUpgradeConcurrency
 }
 

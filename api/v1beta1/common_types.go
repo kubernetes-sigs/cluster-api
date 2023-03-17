@@ -33,6 +33,11 @@ const (
 	// to track the name of the MachineDeployment topology it represents.
 	ClusterTopologyMachineDeploymentNameLabel = "topology.cluster.x-k8s.io/deployment-name"
 
+	// HoldMachineCreationAnnotation hold the machine creations of control plane and MachineDeployments.
+	// FIXME(sbueringer): check if we can dedup with cluster.x-k8s.io/disable-machine-create
+	// Note: this requires some sort of extension of the contract for control planes using machines with ClusterClass.
+	HoldMachineCreationAnnotation = "cluster.x-k8s.io/hold-machine-create"
+
 	// ClusterTopologyHoldUpgradeSequenceAnnotation can be used to hold the entire MachineDeployment upgrade sequence.
 	// If the annotation is set on a MachineDeployment topology in Cluster.spec.topology.workers, the Kubernetes upgrade
 	// for this MachineDeployment topology and all subsequent ones is deferred.

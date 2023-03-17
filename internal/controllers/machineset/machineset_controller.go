@@ -298,23 +298,33 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 	// Remediate failed Machines by deleting them.
 	var errs []error
+	var machinesToRemediate []*clusterv1.Machine
 	for _, machine := range filteredMachines {
-		log := log.WithValues("Machine", klog.KObj(machine))
 		// filteredMachines contains machines in deleting status to calculate correct status.
 		// skip remediation for those in deleting status.
 		if !machine.DeletionTimestamp.IsZero() {
 			continue
 		}
 		if conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition) {
-			log.Info("Deleting machine because marked as unhealthy by the MachineHealthCheck controller")
-			patch := client.MergeFrom(machine.DeepCopy())
-			if err := r.Client.Delete(ctx, machine); err != nil {
-				errs = append(errs, errors.Wrap(err, "failed to delete"))
-				continue
-			}
-			conditions.MarkTrue(machine, clusterv1.MachineOwnerRemediatedCondition)
-			if err := r.Client.Status().Patch(ctx, machine, patch); err != nil && !apierrors.IsNotFound(err) {
-				errs = append(errs, errors.Wrap(err, "failed to update status"))
+			machinesToRemediate = append(machinesToRemediate, machine)
+		}
+	}
+	if len(machinesToRemediate) > 0 {
+		if err := r.runPreflightChecks(ctx, cluster, machineSet); err != nil {
+			errs = append(errs, errors.Wrapf(err, "preflight checks for machine creation failed, delaying Machine deletion for remediation to minimize disruptions"))
+		} else {
+			for _, machine := range machinesToRemediate {
+				log := log.WithValues("Machine", klog.KObj(machine))
+				log.Info("Deleting machine because marked as unhealthy by the MachineHealthCheck controller")
+				patch := client.MergeFrom(machine.DeepCopy())
+				if err := r.Client.Delete(ctx, machine); err != nil {
+					errs = append(errs, errors.Wrapf(err, "failed to delete Machine %s", klog.KObj(machine)))
+					continue
+				}
+				conditions.MarkTrue(machine, clusterv1.MachineOwnerRemediatedCondition)
+				if err := r.Client.Status().Patch(ctx, machine, patch); err != nil && !apierrors.IsNotFound(err) {
+					errs = append(errs, errors.Wrapf(err, "failed to update status of Machine %s", klog.KObj(machine)))
+				}
 			}
 		}
 	}
@@ -329,7 +339,7 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		return ctrl.Result{}, errors.Wrap(err, "failed to update Machines")
 	}
 
-	syncErr := r.syncReplicas(ctx, machineSet, filteredMachines)
+	syncErr := r.syncReplicas(ctx, cluster, machineSet, filteredMachines)
 
 	// Always updates status as machines come up or die.
 	if err := r.updateStatus(ctx, cluster, machineSet, filteredMachines); err != nil {
@@ -444,7 +454,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.Mac
 }
 
 // syncReplicas scales Machine resources up or down.
-func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine) error {
+func (r *Reconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, machines []*clusterv1.Machine) error {
 	log := ctrl.LoggerFrom(ctx)
 	if ms.Spec.Replicas == nil {
 		return errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", ms.Name)
@@ -460,6 +470,11 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 				return nil
 			}
 		}
+
+		if err := r.runPreflightChecks(ctx, cluster, ms); err != nil {
+			return errors.Wrapf(err, "failed to scale up")
+		}
+
 		var (
 			machineList []*clusterv1.Machine
 			errs        []error
@@ -964,6 +979,89 @@ func (r *Reconciler) getMachineNode(ctx context.Context, cluster *clusterv1.Clus
 		return nil, errors.Wrapf(err, "error retrieving node %s for machine %s/%s", machine.Status.NodeRef.Name, machine.Namespace, machine.Name)
 	}
 	return node, nil
+}
+
+func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet) error {
+	if err := r.runControlPlanePreflightCheck(ctx, cluster, ms); err != nil {
+		return errors.Wrapf(err, "preflight checks failed")
+	}
+
+	if err := r.runHoldPreflightCheck(ctx, ms); err != nil {
+		return errors.Wrapf(err, "preflight checks failed")
+	}
+
+	return nil
+}
+
+func (r *Reconciler) runControlPlanePreflightCheck(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet) error {
+	// Run control plane precheck only if the cluster has a control plane.
+	if cluster.Spec.ControlPlaneRef == nil {
+		return nil
+	}
+
+	controlPlane, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Namespace)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get controlPlane %s", klog.KRef(cluster.Spec.ControlPlaneRef.Namespace, cluster.Spec.ControlPlaneRef.Name))
+	}
+
+	// Check if ControlPlane.spec.version is set.
+	// If the spec version is not set one of the following is the case:
+	// * the control plane does not support the version contract
+	//   => nothing to do.
+	// * the control plane supports the version contract, but the version field is optional:
+	//   => nothing to do if the version is unset, the precheck is only run when it is set.
+	controlPlaneVersion, err := contract.ControlPlane().Version().Get(controlPlane)
+	if err != nil {
+		if err == contract.ErrNotFound {
+			return nil
+		}
+		return err
+	}
+
+	if isProvisioning, err := contract.ControlPlane().IsProvisioning(controlPlane); err != nil {
+		return err
+	} else if isProvisioning {
+		return errors.New("control plane is provisioning")
+	}
+
+	if isUpgrading, err := contract.ControlPlane().IsUpgrading(controlPlane); err != nil {
+		return err
+	} else if isUpgrading {
+		return errors.New("control plane is upgrading")
+	}
+
+	// If kubeadm bootstrap provider is used and version is set on MachineSet,
+	// fail if MS version is not equal to control plane version
+	if ms.Spec.Template.Spec.Bootstrap.ConfigRef != nil &&
+		ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind == "KubeadmConfigTemplate" &&
+		ms.Spec.Template.Spec.Version != nil {
+		if *controlPlaneVersion != *ms.Spec.Template.Spec.Version {
+			return errors.Errorf("MachineSet version (%s) diverges from control plane version (%s): kubeadm bootstrap provider only supports joining with the same version as the control plane",
+				*ms.Spec.Template.Spec.Version, *controlPlaneVersion)
+		}
+	}
+
+	return nil
+}
+
+func (r *Reconciler) runHoldPreflightCheck(ctx context.Context, ms *clusterv1.MachineSet) error {
+	if _, isMachineSetHold := ms.Annotations[clusterv1.HoldMachineCreationAnnotation]; isMachineSetHold {
+		return errors.New("Machine creations for MachineSet are on hold")
+	}
+
+	mdName, isMachineSetManagedByMachineDeployment := ms.Annotations[clusterv1.MachineDeploymentNameLabel]
+	if isMachineSetManagedByMachineDeployment {
+		md := &clusterv1.MachineDeployment{}
+		if err := r.Client.Get(ctx, client.ObjectKey{Namespace: ms.Namespace, Name: mdName}, md); err != nil {
+			return err
+		}
+
+		if _, isMachineDeploymentHold := md.Annotations[clusterv1.HoldMachineCreationAnnotation]; isMachineDeploymentHold {
+			return errors.New("Machine creations for MachineDeployment are on hold")
+		}
+	}
+
+	return nil
 }
 
 func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {

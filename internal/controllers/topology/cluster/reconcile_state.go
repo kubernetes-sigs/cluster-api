@@ -65,7 +65,7 @@ func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 	}
 
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		if err := r.callAfterHooks(ctx, s); err != nil {
+		if err := r.callRuntimeHooks(ctx, s); err != nil {
 			return err
 		}
 	}
@@ -185,8 +185,16 @@ func getOwnerReferenceFrom(obj, owner client.Object) *metav1.OwnerReference {
 	return nil
 }
 
-func (r *Reconciler) callAfterHooks(ctx context.Context, s *scope.Scope) error {
+func (r *Reconciler) callRuntimeHooks(ctx context.Context, s *scope.Scope) error {
 	if err := r.callAfterControlPlaneInitialized(ctx, s); err != nil {
+		return err
+	}
+
+	if err := r.callBeforeClusterUpgrade(ctx, s); err != nil {
+		return err
+	}
+
+	if err := r.callAfterControlPlaneUpgrade(ctx, s); err != nil {
 		return err
 	}
 
@@ -232,6 +240,80 @@ func isControlPlaneInitialized(cluster *clusterv1.Cluster) bool {
 		}
 	}
 	return false
+}
+
+func (r *Reconciler) callBeforeClusterUpgrade(ctx context.Context, s *scope.Scope) error {
+	// If BeforeClusterUpgrade pending, call it.
+	if hooks.IsPending(runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster) {
+		// FIXME(sbueringer) not sure if that's safe enough, but we can't read it from control plane spec anymore as we always immediately rollout.
+		currentVersion, err := contract.ControlPlane().StatusVersion().Get(s.Current.ControlPlane.Object)
+		if err != nil {
+			return err
+		}
+
+		hookRequest := &runtimehooksv1.BeforeClusterUpgradeRequest{
+			Cluster:               *s.Current.Cluster,
+			FromKubernetesVersion: *currentVersion,
+			ToKubernetesVersion:   s.Blueprint.Topology.Version,
+		}
+		hookResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{}
+		if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
+			return err
+		}
+		// Add the response to the tracker so we can later update condition or requeue when required.
+		s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, hookResponse)
+
+		if hookResponse.RetryAfterSeconds == 0 {
+			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.BeforeClusterUpgrade); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (r *Reconciler) callAfterControlPlaneUpgrade(ctx context.Context, s *scope.Scope) error {
+	if hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
+		// Check if control plane already has the current version.
+		currentVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
+		if err != nil {
+			return err
+		}
+		if *currentVersion != s.Blueprint.Topology.Version {
+			return nil
+		}
+
+		// Check if the current control plane is upgrading
+		cpUpgrading, err := contract.ControlPlane().IsUpgrading(s.Current.ControlPlane.Object)
+		if err != nil {
+			return errors.Wrap(err, "failed to check if control plane is upgrading")
+		}
+
+		// If CP is still upgrading we can't call to hook yet.
+		if cpUpgrading {
+			return nil
+		}
+
+		hookRequest := &runtimehooksv1.AfterControlPlaneUpgradeRequest{
+			Cluster:           *s.Current.Cluster,
+			KubernetesVersion: s.Blueprint.Topology.Version,
+		}
+		hookResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{}
+		if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
+			return err
+		}
+		// Add the response to the tracker so we can later update condition or requeue when required.
+		s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, hookResponse)
+
+		if hookResponse.RetryAfterSeconds == 0 {
+			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
 
 func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope) error {

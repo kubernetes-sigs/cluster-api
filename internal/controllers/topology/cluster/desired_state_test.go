@@ -909,7 +909,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					APIReader:     fakeClient,
 					RuntimeClient: runtimeClient,
 				}
-				version, err := r.computeControlPlaneVersion(ctx, s)
+				version, err := r.shouldHoldControlPlaneMachineCreations(ctx, s)
 				if tt.wantErr {
 					g.Expect(err).NotTo(BeNil())
 				} else {
@@ -1211,7 +1211,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 					RuntimeClient: fakeRuntimeClient,
 				}
 
-				_, err := r.computeControlPlaneVersion(ctx, tt.s)
+				_, err := r.shouldHoldControlPlaneMachineCreations(ctx, tt.s)
 				g.Expect(fakeRuntimeClient.CallAllCount(runtimehooksv1.AfterControlPlaneUpgrade) == 1).To(Equal(tt.wantHookToBeCalled))
 				g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, tt.s.Current.Cluster)).To(Equal(tt.wantIntentToCall))
 				g.Expect(err != nil).To(Equal(tt.wantErr))
@@ -1288,7 +1288,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 			RuntimeClient: runtimeClient,
 		}
 
-		desiredVersion, err := r.computeControlPlaneVersion(ctx, s)
+		desiredVersion, err := r.shouldHoldControlPlaneMachineCreations(ctx, s)
 		g := NewWithT(t)
 		g.Expect(err).To(BeNil())
 		// When successfully picking up the new version the intent to call AfterControlPlaneUpgrade and AfterClusterUpgrade hooks should be registered.
@@ -1456,7 +1456,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		scope := scope.New(cluster)
 		scope.Blueprint = blueprint
 
-		actual, err := computeMachineDeployment(ctx, scope, nil, mdTopology)
+		actual, err := (&Reconciler{}).computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(actual.BootstrapTemplate.GetLabels()).To(HaveKeyWithValue(clusterv1.ClusterTopologyMachineDeploymentNameLabel, "big-pool-of-machines"))
@@ -1525,7 +1525,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			// missing FailureDomain, NodeDrainTimeout, NodeVolumeDetachTimeout, NodeDeletionTimeout, MinReadySeconds, Strategy
 		}
 
-		actual, err := computeMachineDeployment(ctx, scope, nil, mdTopology)
+		actual, err := (&Reconciler{}).computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// checking only values from CC defaults
@@ -1569,7 +1569,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			},
 		}
 
-		actual, err := computeMachineDeployment(ctx, s, nil, mdTopology)
+		actual, err := (&Reconciler{}).computeMachineDeployment(ctx, s, mdTopology)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		actualMd := actual.Object
@@ -1617,7 +1617,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Name:  "big-pool-of-machines",
 		}
 
-		_, err := computeMachineDeployment(ctx, scope, nil, mdTopology)
+		_, err := (&Reconciler{}).computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).To(HaveOccurred())
 	})
 
@@ -1722,9 +1722,6 @@ func TestComputeMachineDeployment(t *testing.T) {
 				s.Current.ControlPlane = &scope.ControlPlaneState{
 					Object: controlPlaneStable123,
 				}
-				desiredControlPlaneState := &scope.ControlPlaneState{
-					Object: controlPlaneStable123,
-				}
 
 				mdTopology := clusterv1.MachineDeploymentTopology{
 					Class:    "linux-worker",
@@ -1732,7 +1729,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 					Replicas: pointer.Int32(2),
 				}
 
-				obj, err := computeMachineDeployment(ctx, s, desiredControlPlaneState, mdTopology)
+				obj, err := (&Reconciler{}).computeMachineDeployment(ctx, s, mdTopology)
 				g.Expect(err).NotTo(HaveOccurred())
 				g.Expect(*obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
 			})
@@ -1748,7 +1745,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			Name:  "big-pool-of-machines",
 		}
 
-		actual, err := computeMachineDeployment(ctx, scope, nil, mdTopology)
+		actual, err := (&Reconciler{}).computeMachineDeployment(ctx, scope, mdTopology)
 		g.Expect(err).To(BeNil())
 		// Check that the ClusterName and selector are set properly for the MachineHealthCheck.
 		g.Expect(actual.MachineHealthCheck.Spec.ClusterName).To(Equal(cluster.Name))
@@ -1961,8 +1958,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 				},
 				UpgradeTracker: scope.NewUpgradeTracker(),
 			}
-			desiredControlPlaneState := &scope.ControlPlaneState{Object: tt.desiredControlPlane}
-			version, err := computeMachineDeploymentVersion(s, tt.machineDeploymentTopology, desiredControlPlaneState, tt.currentMachineDeploymentState)
+			version, err := (&Reconciler{}).shouldHoldMachineDeploymentMachineCreations(ctx, s, tt.machineDeploymentTopology, tt.currentMachineDeploymentState)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(version).To(Equal(tt.expectedVersion))
 		})

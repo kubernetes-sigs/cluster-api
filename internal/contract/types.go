@@ -25,7 +25,9 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-var errNotFound = errors.New("not found")
+// ErrNotFound is the error returned when a field cannot be found.
+// FIXME(sbueringer): check if that's the ideal way to expose this error.
+var ErrNotFound = errors.New("not found")
 
 // Path defines a how to access a field in an Unstructured object.
 type Path []string
@@ -88,7 +90,7 @@ func (i *Int64) Get(obj *unstructured.Unstructured) (*int64, error) {
 		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(i.path, "."))
 	}
 	if !ok {
-		return nil, errors.Wrapf(errNotFound, "path %s", "."+strings.Join(i.path, "."))
+		return nil, errors.Wrapf(ErrNotFound, "path %s", "."+strings.Join(i.path, "."))
 	}
 	return &value, nil
 }
@@ -118,7 +120,7 @@ func (b *Bool) Get(obj *unstructured.Unstructured) (*bool, error) {
 		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(b.path, "."))
 	}
 	if !ok {
-		return nil, errors.Wrapf(errNotFound, "path %s", "."+strings.Join(b.path, "."))
+		return nil, errors.Wrapf(ErrNotFound, "path %s", "."+strings.Join(b.path, "."))
 	}
 	return &value, nil
 }
@@ -148,7 +150,7 @@ func (s *String) Get(obj *unstructured.Unstructured) (*string, error) {
 		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(s.path, "."))
 	}
 	if !ok {
-		return nil, errors.Wrapf(errNotFound, "path %s", "."+strings.Join(s.path, "."))
+		return nil, errors.Wrapf(ErrNotFound, "path %s", "."+strings.Join(s.path, "."))
 	}
 	return &value, nil
 }
@@ -178,7 +180,7 @@ func (i *Duration) Get(obj *unstructured.Unstructured) (*metav1.Duration, error)
 		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(i.path, "."))
 	}
 	if !ok {
-		return nil, errors.Wrapf(errNotFound, "path %s", "."+strings.Join(i.path, "."))
+		return nil, errors.Wrapf(ErrNotFound, "path %s", "."+strings.Join(i.path, "."))
 	}
 
 	d := &metav1.Duration{}

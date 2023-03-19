@@ -39,6 +39,8 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>current)", func() {
 			UpgradeClusterctlVariables: map[string]string{
 				"CLUSTER_TOPOLOGY": "false",
 			},
+			MgmtFlavor:     "topology",
+			WorkloadFlavor: "",
 		}
 	})
 })
@@ -54,6 +56,8 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1alpha4",
 			InitWithKubernetesVersion: "v1.23.13",
+			MgmtFlavor:                "topology",
+			WorkloadFlavor:            "",
 		}
 	})
 })
@@ -78,6 +82,10 @@ var _ = Describe("When testing clusterctl upgrades (v1.2=>current)", func() {
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
 			InitWithKubernetesVersion:         "v1.26.0",
+			// TODO(sbueringer) The topology flavor enables PSA.
+			// CAPD will only work with PSA after we have a release with https://github.com/kubernetes-sigs/cluster-api/pull/8313.
+			//MgmtFlavor:                        "topology",
+			WorkloadFlavor: "",
 		}
 	})
 })
@@ -102,7 +110,10 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.2=>cur
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
 			InitWithKubernetesVersion:         "v1.26.0",
-			WorkloadFlavor:                    "topology",
+			// TODO(sbueringer) The topology flavor enables PSA.
+			// CAPD will only work with PSA after we have a release with https://github.com/kubernetes-sigs/cluster-api/pull/8313.
+			//MgmtFlavor:                        "topology",
+			WorkloadFlavor: "topology",
 		}
 	})
 })

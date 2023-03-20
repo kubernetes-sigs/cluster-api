@@ -37,5 +37,19 @@ Cluster API Machines:
   [Machine Deletion Phase Hooks proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20200602-machine-deletion-phase-hooks.md)
   for additional details.
 
+### In-place propagation
+Changes to the following fields of KubeadmControlPlane are propagated in-place to the Machines and do not trigger a full rollout:
+- `.spec.machineTemplate.metadata.labels`
+- `.spec.machineTemplate.metadata.annotations`
+- `.spec.nodeDrainTimeout`
+- `.spec.nodeDeletionTimeout`
+- `.spec.nodeVolumeDetachTimeout`
+
+Changes to the following fields of KubeadmControlPlane are propagated in-place to the InfrastructureMachine and KubeadmConfig:
+- `.spec.machineTemplate.metadata.labels`
+- `.spec.machineTemplate.metadata.annotations`
+
+Note: Changes to these fields will not be propagated to Machines, InfraMachines and KubeadmConfigs that are marked for deletion (example: because of scale down).
+
 <!-- links -->
 [upgrades]: ../upgrading-clusters.md#how-to-upgrade-the-kubernetes-control-plane-version

@@ -29,8 +29,9 @@ contributing guide for more details.
 
 <h1>ClusterAPI documentation versions</h1>
 
-This book documents ClusterAPI v1.4. For other Cluster API versions please see the corresponding documentation:
+This book documents ClusterAPI v1.5. For other Cluster API versions please see the corresponding documentation:
 * [main.cluster-api.sigs.k8s.io](https://main.cluster-api.sigs.k8s.io)
+* [release-1-4.cluster-api.sigs.k8s.io](https://release-1-4.cluster-api.sigs.k8s.io)
 * [release-1-3.cluster-api.sigs.k8s.io](https://release-1-3.cluster-api.sigs.k8s.io)
 * [release-1-2.cluster-api.sigs.k8s.io](https://release-1-2.cluster-api.sigs.k8s.io)
 * [release-1-1.cluster-api.sigs.k8s.io](https://release-1-1.cluster-api.sigs.k8s.io)

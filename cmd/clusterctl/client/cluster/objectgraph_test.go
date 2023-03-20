@@ -1120,6 +1120,8 @@ var objectGraphsTests = []struct {
 				"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster1": {
 					owners: []string{
 						"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+					},
+					softOwners: []string{
 						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
 					},
 				},
@@ -1201,12 +1203,16 @@ var objectGraphsTests = []struct {
 				"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster1": {
 					owners: []string{
 						"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+					},
+					softOwners: []string{
 						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
 					},
 				},
 				"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster2": {
 					owners: []string{
 						"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+					},
+					softOwners: []string{
 						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster2",
 					},
 				},
@@ -1887,32 +1893,148 @@ func Test_objectGraph_setSoftOwnership(t *testing.T) {
 		objs []client.Object
 	}
 	tests := []struct {
-		name        string
-		fields      fields
-		wantSecrets map[string][]string
+		name   string
+		fields fields
+		want   wantGraph
 	}{
 		{
 			name: "A cluster with a soft owned secret",
 			fields: fields{
-				objs: test.NewFakeCluster("ns1", "foo").Objs(),
+				objs: test.NewFakeCluster("ns1", "cluster1").Objs(),
 			},
-			wantSecrets: map[string][]string{ // wantSecrets is a map[node UID] --> list of soft owner UIDs
-				"/v1, Kind=Secret, ns1/foo-ca": { // the ca secret has no explicit OwnerRef to the cluster, so it should be identified as a soft ownership
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo",
+			want: wantGraph{
+				nodes: map[string]wantGraphItem{
+					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
+					"/v1, Kind=Secret, ns1/cluster1-ca": { // the ca secret has no explicit OwnerRef to the cluster, so it should be identified as a soft ownership
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
+					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": { // the kubeconfig secret has explicit OwnerRef to the cluster, so it should NOT be identified as a soft ownership
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
 				},
-				"/v1, Kind=Secret, ns1/foo-kubeconfig": {}, // the kubeconfig secret has explicit OwnerRef to the cluster, so it should NOT be identified as a soft ownership
 			},
 		},
 		{
-			name: "A cluster with a soft owned secret (cluster name with - in the middle)",
+			name: "A ClusterClass with a soft owned Cluster",
 			fields: fields{
-				objs: test.NewFakeCluster("ns1", "foo-bar").Objs(),
+				objs: func() []client.Object {
+					objs := test.NewFakeClusterClass("ns1", "class1").Objs()
+					objs = append(objs, test.NewFakeCluster("ns1", "cluster1").WithTopologyClass("class1").Objs()...)
+
+					return objs
+				}(),
 			},
-			wantSecrets: map[string][]string{ // wantSecrets is a map[node UID] --> list of soft owner UIDs
-				"/v1, Kind=Secret, ns1/foo-bar-ca": { // the ca secret has no explicit OwnerRef to the cluster, so it should be identified as a soft ownership
-					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo-bar",
+			want: wantGraph{
+				nodes: map[string]wantGraphItem{
+					"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+					},
+					"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+						},
+					},
+					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1", // NB. this cluster is not linked to the clusterclass through owner ref, but it is detected as soft ownership
+						},
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
+					"/v1, Kind=Secret, ns1/cluster1-ca": {
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref, but it is detected as soft ownership
+						},
+					},
+					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
 				},
-				"/v1, Kind=Secret, ns1/foo-bar-kubeconfig": {}, // the kubeconfig secret has explicit OwnerRef to the cluster, so it should NOT be identified as a soft ownership
+			},
+		},
+		{
+			name: "A Cluster with a soft owned ClusterResourceSetBinding",
+			fields: fields{
+				objs: func() []client.Object {
+					objs := test.NewFakeCluster("ns1", "cluster1").Objs()
+					objs = append(objs, test.NewFakeClusterResourceSet("ns1", "crs1").
+						WithSecret("resource-s1").
+						WithConfigMap("resource-c1").
+						ApplyToCluster(test.SelectClusterObj(objs, "ns1", "cluster1")).
+						Objs()...)
+
+					return objs
+				}(),
+			},
+			want: wantGraph{
+				nodes: map[string]wantGraphItem{
+					"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+					},
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
+					"/v1, Kind=Secret, ns1/cluster1-ca": {
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref, but it is detected as soft ownership
+						},
+					},
+					"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
+						owners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+						},
+					},
+					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1": {
+						forceMove:          true,
+						forceMoveHierarchy: true,
+					},
+					"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSetBinding, ns1/cluster1": {
+						owners: []string{
+							"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+						},
+						softOwners: []string{
+							"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this ClusterResourceSetBinding is not linked to the cluster through owner ref, but it is detected as soft ownership
+						},
+					},
+					"/v1, Kind=Secret, ns1/resource-s1": {
+						owners: []string{
+							"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+						},
+					},
+					"/v1, Kind=ConfigMap, ns1/resource-c1": {
+						owners: []string{
+							"addons.cluster.x-k8s.io/v1beta1, Kind=ClusterResourceSet, ns1/crs1",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -1925,20 +2047,7 @@ func Test_objectGraph_setSoftOwnership(t *testing.T) {
 
 			graph.setSoftOwnership()
 
-			gotSecrets := graph.getSecrets()
-			g.Expect(gotSecrets).To(HaveLen(len(tt.wantSecrets)))
-
-			for _, secret := range gotSecrets {
-				wantObjects, ok := tt.wantSecrets[string(secret.identity.UID)]
-				g.Expect(ok).To(BeTrue())
-
-				gotObjects := []string{}
-				for softOwners := range secret.softOwners {
-					gotObjects = append(gotObjects, string(softOwners.identity.UID))
-				}
-
-				g.Expect(gotObjects).To(ConsistOf(wantObjects))
-			}
+			assertGraph(t, graph, tt.want)
 		})
 	}
 }

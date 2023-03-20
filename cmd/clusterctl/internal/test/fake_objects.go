@@ -1099,6 +1099,7 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 				Namespace: cluster.Namespace,
 			},
 			Spec: addonsv1.ClusterResourceSetBindingSpec{
+				ClusterName: cluster.Name,
 				Bindings: []*addonsv1.ResourceSetBinding{
 					{
 						ClusterResourceSetName: crs.Name,
@@ -1118,14 +1119,6 @@ func (f *FakeClusterResourceSet) Objs() []client.Object {
 		})
 
 		objs = append(objs, binding)
-
-		// binding are owned by the Cluster / ownership set by the ClusterResourceSet controller
-		binding.SetOwnerReferences(append(binding.OwnerReferences, metav1.OwnerReference{
-			APIVersion: cluster.APIVersion,
-			Kind:       cluster.Kind,
-			Name:       cluster.Name,
-			UID:        cluster.UID,
-		}))
 
 		resourceSetBinding := addonsv1.ResourceSetBinding{
 			ClusterResourceSetName: crs.Name,

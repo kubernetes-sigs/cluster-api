@@ -37,6 +37,7 @@ import (
 )
 
 const clusterTopologyNameKey = "cluster.spec.topology.class"
+const clusterResourceSetBindingClusterNameKey = "clusterresourcesetbinding.spec.clustername"
 
 type empty struct{}
 
@@ -146,6 +147,17 @@ func (n *node) captureAdditionalInformation(obj *unstructured.Unstructured) erro
 		}
 	}
 
+	// If the node is a ClusterResourceSetBinding capture the name of the cluster it is referencing to.
+	if n.identity.GroupVersionKind().GroupKind() == addonsv1.GroupVersion.WithKind("ClusterResourceSetBinding").GroupKind() {
+		binding := &addonsv1.ClusterResourceSetBinding{}
+		if err := localScheme.Convert(obj, binding, nil); err != nil {
+			return errors.Wrapf(err, "failed to convert object %s to ClusterResourceSetBinding", n.identityStr())
+		}
+		if n.additionalInfo == nil {
+			n.additionalInfo = map[string]interface{}{}
+		}
+		n.additionalInfo[clusterResourceSetBindingClusterNameKey] = binding.Spec.ClusterName
+	}
 	return nil
 }
 
@@ -504,6 +516,17 @@ func (o *objectGraph) getClusterClasses() []*node {
 	return clusterClasses
 }
 
+// getClusterResourceSetBinding returns the list of ClusterResourceSetBinding existing in the object graph.
+func (o *objectGraph) getClusterResourceSetBinding() []*node {
+	crs := []*node{}
+	for _, node := range o.uidToNode {
+		if node.identity.GroupVersionKind().GroupKind() == addonsv1.GroupVersion.WithKind("ClusterResourceSetBinding").GroupKind() {
+			crs = append(crs, node)
+		}
+	}
+	return crs
+}
+
 // getClusters returns the list of Secrets existing in the object graph.
 func (o *objectGraph) getSecrets() []*node {
 	secrets := []*node{}
@@ -588,12 +611,27 @@ func (o *objectGraph) setSoftOwnership() {
 	// Cluster that uses a ClusterClass are soft owned by that ClusterClass.
 	for _, clusterClass := range clusterClasses {
 		for _, cluster := range clusters {
-			// if the cluster uses a managed topoloy and uses the clusterclass
+			// if the cluster uses a managed topology and uses the clusterclass
 			// set the clusterclass as a soft owner of the cluster.
 			if className, ok := cluster.additionalInfo[clusterTopologyNameKey]; ok {
 				if className == clusterClass.identity.Name && clusterClass.identity.Namespace == cluster.identity.Namespace {
 					cluster.addSoftOwner(clusterClass)
 				}
+			}
+		}
+	}
+
+	crsBindings := o.getClusterResourceSetBinding()
+	// ClusterResourceSetBinding that refers to a Cluster are soft owned by that Cluster.
+	for _, binding := range crsBindings {
+		clusterName, ok := binding.additionalInfo[clusterResourceSetBindingClusterNameKey]
+		if !ok {
+			continue
+		}
+
+		for _, cluster := range clusters {
+			if clusterName == cluster.identity.Name && binding.identity.Namespace == cluster.identity.Namespace {
+				binding.addSoftOwner(cluster)
 			}
 		}
 	}

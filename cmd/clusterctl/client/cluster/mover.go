@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -1064,7 +1065,8 @@ func (o *objectMover) deleteGroup(group moveGroup) error {
 }
 
 var (
-	removeFinalizersPatch = client.RawPatch(types.MergePatchType, []byte("{\"metadata\":{\"finalizers\":[]}}"))
+	removeFinalizersPatch           = client.RawPatch(types.MergePatchType, []byte("{\"metadata\":{\"finalizers\":[]}}"))
+	addDeleteForMoveAnnotationPatch = client.RawPatch(types.JSONPatchType, []byte(fmt.Sprintf("[{\"op\": \"add\", \"path\":\"/metadata/annotations\", \"value\":{%q:\"\"}}]", clusterctlv1.DeleteForMoveAnnotation)))
 )
 
 // deleteSourceObject deletes the Kubernetes object corresponding to the node from the source management cluster, taking care of removing all the finalizers so
@@ -1103,6 +1105,11 @@ func (o *objectMover) deleteSourceObject(nodeToDelete *node) error {
 			return nil
 		}
 		return errors.Wrapf(err, "error reading %q %s/%s",
+			sourceObj.GroupVersionKind(), sourceObj.GetNamespace(), sourceObj.GetName())
+	}
+
+	if err := cFrom.Patch(ctx, sourceObj, addDeleteForMoveAnnotationPatch); err != nil {
+		return errors.Wrapf(err, "error adding delete-for-move annotation from %q %s/%s",
 			sourceObj.GroupVersionKind(), sourceObj.GetNamespace(), sourceObj.GetName())
 	}
 

@@ -25,4 +25,10 @@ const (
 	// Note: Only CRDs that are referenced by core Cluster API CRDs have to comply with the naming scheme.
 	// See the following issue for more information: https://github.com/kubernetes-sigs/cluster-api/issues/5686#issuecomment-1260897278
 	SkipCRDNamePreflightCheckAnnotation = "clusterctl.cluster.x-k8s.io/skip-crd-name-preflight-check"
+
+	// DeleteForMoveAnnotation will be set to objects that are going to be deleted from the
+	// source cluster after being moved to the target cluster during the clusterctl move operation.
+	//
+	// It will help any validation webhook to take decision based on it.
+	DeleteForMoveAnnotation = "clusterctl.cluster.x-k8s.io/delete-for-move"
 )

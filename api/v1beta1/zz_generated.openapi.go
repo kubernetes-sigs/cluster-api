@@ -3147,7 +3147,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_Topology(ref common.ReferenceCallb
 					},
 					"rolloutAfter": {
 						SchemaProps: spec.SchemaProps{
-							Description: "RolloutAfter performs a rollout of the entire cluster one component at a time, control plane first and then machine deployments.",
+							Description: "RolloutAfter performs a rollout of the entire cluster one component at a time, control plane first and then machine deployments. Deprecated: This field has no function and is going to be removed in the next apiVersion.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},

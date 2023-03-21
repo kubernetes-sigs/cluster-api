@@ -92,6 +92,50 @@ in order to prevent conflicts or unexpected behaviors when trying to remediate t
 
 </aside>
 
+## Controlling remediation retries
+
+<aside class="note warning">
+
+<h1> Important </h1>
+
+This feature is only available for KubeadmControlPlane.
+
+</aside>
+
+KubeadmControlPlane allows to control how remediation happen by defining an optional `remediationStrategy`;
+this feature can be used for preventing unnecessary load on infrastructure provider e.g. in case of quota problems,
+or for allowing the infrastructure provider to stabilize in case of temporary problems:
+
+```yaml
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlane
+metadata:
+  name: my-control-plane
+spec:
+  ...
+  remediationStrategy:
+    maxRetry: 5
+    retryPeriod: 2m
+    minHealthyPeriod: 2h
+```
+
+`maxRetry` is the Max number of retries while attempting to remediate an unhealthy machine.
+A retry happens when a machine that was created as a replacement for an unhealthy machine also fails.
+For example, given a control plane with three machines M1, M2, M3:
+
+- M1 become unhealthy; remediation happens, and M1-1 is created as a replacement.
+- If M1-1 (replacement of M1) has problems while bootstrapping it will become unhealthy, and then be 
+  remediated; such operation is considered a retry, remediation-retry #1.
+- If M1-2 (replacement of M1-1) becomes unhealthy, remediation-retry #2 will happen, etc.
+
+A retry could happen only after `retryPeriod` from the previous retry; if `retryPeriod` is not set (default), 
+a retry will happen immediately.
+
+If a machine is marked as unhealthy after `minHealthyPeriod` (default 1h) from the previous remediation expired,
+this is not considered a retry anymore because the new issue is assumed unrelated from the previous one.
+
+If `maxRetry` is not set (default), the remedation will be retried infinitely.
+
 ## Remediation Short-Circuiting
 
 To ensure that MachineHealthChecks only remediate Machines when the cluster is healthy,
@@ -174,6 +218,13 @@ Before deploying a MachineHealthCheck, please familiarise yourself with the foll
 
 - Only Machines owned by a MachineSet or a KubeadmControlPlane can be remediated by a MachineHealthCheck (since a MachineDeployment uses a MachineSet, then this includes Machines that are part of a MachineDeployment)
 - Machines managed by a KubeadmControlPlane are remediated according to [the delete-and-recreate guidelines described in the KubeadmControlPlane proposal](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20191017-kubeadm-based-control-plane.md#remediation-using-delete-and-recreate)
+  - Following rules should be satisfied in order to start remediation of a control plane machine:
+    - One of the following apply:
+        - The cluster MUST not be initialized yet (the failure happens before KCP reaches the initialized state)
+        - The cluster MUST have at least two control plane machines, because this is the smallest cluster size that can be remediated.
+    - Previous remediation (delete and re-create) MUST have been completed. This rule prevents KCP to remediate more machines while the replacement for the previous machine is not yet created.
+    - The cluster MUST have no machines with a deletion timestamp. This rule prevents KCP taking actions while the cluster is in a transitional state.
+    - Remediation MUST preserve etcd quorum. This rule ensures that we will not remove a member that would result in etcd losing a majority of members and thus become unable to field new requests (note: this rule applies only to CP already initialized and with managed etcd)
 - If the Node for a Machine is removed from the cluster, a MachineHealthCheck will consider this Machine unhealthy and remediate it immediately
 - If no Node joins the cluster for a Machine after the `NodeStartupTimeout`, the Machine will be remediated
 - If a Machine fails for any reason (if the FailureReason is set), the Machine will be remediated immediately

@@ -65,7 +65,7 @@ func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 	}
 
 	if feature.Gates.Enabled(feature.RuntimeSDK) {
-		if err := r.callRuntimeHooks(ctx, s); err != nil {
+		if err := r.callAfterHooks(ctx, s); err != nil {
 			return err
 		}
 	}
@@ -185,16 +185,8 @@ func getOwnerReferenceFrom(obj, owner client.Object) *metav1.OwnerReference {
 	return nil
 }
 
-func (r *Reconciler) callRuntimeHooks(ctx context.Context, s *scope.Scope) error {
+func (r *Reconciler) callAfterHooks(ctx context.Context, s *scope.Scope) error {
 	if err := r.callAfterControlPlaneInitialized(ctx, s); err != nil {
-		return err
-	}
-
-	if err := r.callBeforeClusterUpgrade(ctx, s); err != nil {
-		return err
-	}
-
-	if err := r.callAfterControlPlaneUpgrade(ctx, s); err != nil {
 		return err
 	}
 
@@ -240,80 +232,6 @@ func isControlPlaneInitialized(cluster *clusterv1.Cluster) bool {
 		}
 	}
 	return false
-}
-
-func (r *Reconciler) callBeforeClusterUpgrade(ctx context.Context, s *scope.Scope) error {
-	// If BeforeClusterUpgrade pending, call it.
-	if hooks.IsPending(runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster) {
-		// FIXME(sbueringer) not sure if that's safe enough, but we can't read it from control plane spec anymore as we always immediately rollout.
-		currentVersion, err := contract.ControlPlane().StatusVersion().Get(s.Current.ControlPlane.Object)
-		if err != nil {
-			return err
-		}
-
-		hookRequest := &runtimehooksv1.BeforeClusterUpgradeRequest{
-			Cluster:               *s.Current.Cluster,
-			FromKubernetesVersion: *currentVersion,
-			ToKubernetesVersion:   s.Blueprint.Topology.Version,
-		}
-		hookResponse := &runtimehooksv1.BeforeClusterUpgradeResponse{}
-		if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.BeforeClusterUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
-			return err
-		}
-		// Add the response to the tracker so we can later update condition or requeue when required.
-		s.HookResponseTracker.Add(runtimehooksv1.BeforeClusterUpgrade, hookResponse)
-
-		if hookResponse.RetryAfterSeconds == 0 {
-			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.BeforeClusterUpgrade); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (r *Reconciler) callAfterControlPlaneUpgrade(ctx context.Context, s *scope.Scope) error {
-	if hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster) {
-		// Check if control plane already has the current version.
-		currentVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
-		if err != nil {
-			return err
-		}
-		if *currentVersion != s.Blueprint.Topology.Version {
-			return nil
-		}
-
-		// Check if the current control plane is upgrading
-		cpUpgrading, err := contract.ControlPlane().IsUpgrading(s.Current.ControlPlane.Object)
-		if err != nil {
-			return errors.Wrap(err, "failed to check if control plane is upgrading")
-		}
-
-		// If CP is still upgrading we can't call to hook yet.
-		if cpUpgrading {
-			return nil
-		}
-
-		hookRequest := &runtimehooksv1.AfterControlPlaneUpgradeRequest{
-			Cluster:           *s.Current.Cluster,
-			KubernetesVersion: s.Blueprint.Topology.Version,
-		}
-		hookResponse := &runtimehooksv1.AfterControlPlaneUpgradeResponse{}
-		if err := r.RuntimeClient.CallAllExtensions(ctx, runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster, hookRequest, hookResponse); err != nil {
-			return err
-		}
-		// Add the response to the tracker so we can later update condition or requeue when required.
-		s.HookResponseTracker.Add(runtimehooksv1.AfterControlPlaneUpgrade, hookResponse)
-
-		if hookResponse.RetryAfterSeconds == 0 {
-			if err := hooks.MarkAsDone(ctx, r.Client, s.Current.Cluster, runtimehooksv1.AfterControlPlaneUpgrade); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }
 
 func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope) error {
@@ -389,6 +307,10 @@ func (r *Reconciler) reconcileInfrastructureCluster(ctx context.Context, s *scop
 // reconcileControlPlane works to bring the current state of a managed topology in line with the desired state. This involves
 // updating the cluster where needed.
 func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) error {
+	if s.UpgradeTracker.ControlPlane.HoldReconcile {
+		return nil
+	}
+
 	// If the clusterClass mandates the controlPlane has infrastructureMachines, reconcile it.
 	if s.Blueprint.HasControlPlaneInfrastructureMachine() {
 		ctx, _ := tlog.LoggerFrom(ctx).WithObject(s.Desired.ControlPlane.InfrastructureMachineTemplate).Into(ctx)
@@ -538,6 +460,10 @@ func (r *Reconciler) reconcileMachineDeployments(ctx context.Context, s *scope.S
 
 	// Create MachineDeployments.
 	for _, mdTopologyName := range diff.toCreate {
+		if s.UpgradeTracker.MachineDeployments.IsReconcileHold(mdTopologyName) {
+			continue
+		}
+
 		md := s.Desired.MachineDeployments[mdTopologyName]
 		if err := r.createMachineDeployment(ctx, s.Current.Cluster, md); err != nil {
 			return err
@@ -546,6 +472,10 @@ func (r *Reconciler) reconcileMachineDeployments(ctx context.Context, s *scope.S
 
 	// Update MachineDeployments.
 	for _, mdTopologyName := range diff.toUpdate {
+		if s.UpgradeTracker.MachineDeployments.IsReconcileHold(mdTopologyName) {
+			continue
+		}
+
 		currentMD := s.Current.MachineDeployments[mdTopologyName]
 		desiredMD := s.Desired.MachineDeployments[mdTopologyName]
 		if err := r.updateMachineDeployment(ctx, s.Current.Cluster, mdTopologyName, currentMD, desiredMD); err != nil {
@@ -555,6 +485,10 @@ func (r *Reconciler) reconcileMachineDeployments(ctx context.Context, s *scope.S
 
 	// Delete MachineDeployments.
 	for _, mdTopologyName := range diff.toDelete {
+		if s.UpgradeTracker.MachineDeployments.IsReconcileHold(mdTopologyName) {
+			continue
+		}
+
 		md := s.Current.MachineDeployments[mdTopologyName]
 		if err := r.deleteMachineDeployment(ctx, s.Current.Cluster, md); err != nil {
 			return err

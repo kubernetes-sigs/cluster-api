@@ -41,14 +41,20 @@ type ControlPlaneUpgradeTracker struct {
 	// IsScaling is true if the control plane is in the middle of a scale operation.
 	// Note: Refer to control plane contract for definition of scaling.
 	IsScaling bool
+
+	// HoldReconcile decides if we reconcile the control plane.
+	// We set this to true if we hold back a version change and thus want to hold back all changes.
+	HoldReconcile bool
 }
 
 // MachineDeploymentUpgradeTracker holds the current upgrade status and makes upgrade
 // decisions for MachineDeployments.
 type MachineDeploymentUpgradeTracker struct {
-	pendingNames    sets.Set[string]
-	deferredNames   sets.Set[string]
-	rollingOutNames sets.Set[string]
+	pendingNames               sets.Set[string]
+	deferredNames              sets.Set[string]
+	rollingOutNames            sets.Set[string]
+	holdReconcileTopologyNames sets.Set[string]
+	holdUpgrades               bool
 }
 
 // NewUpgradeTracker returns an upgrade tracker with empty tracking information.
@@ -79,12 +85,22 @@ func (m *MachineDeploymentUpgradeTracker) RolloutNames() []string {
 	return sets.List(m.rollingOutNames)
 }
 
+// HoldUpgrades is used to set if any subsequent upgrade operations should be paused,
+// e.g. because a AfterControlPlaneUpgrade hook response asked to do so.
+// If HoldUpgrades is called with `true` then AllowUpgrade would return false.
+func (m *MachineDeploymentUpgradeTracker) HoldUpgrades(val bool) {
+	m.holdUpgrades = val
+}
+
 // AllowUpgrade returns true if a MachineDeployment is allowed to upgrade,
 // returns false otherwise.
 // Note: If AllowUpgrade returns true the machine deployment will pick up
 // the topology version. This will eventually trigger a machine deployment
 // rollout.
 func (m *MachineDeploymentUpgradeTracker) AllowUpgrade() bool {
+	if m.holdUpgrades {
+		return false
+	}
 	return m.rollingOutNames.Len() < maxMachineDeploymentUpgradeConcurrency
 }
 
@@ -123,4 +139,14 @@ func (m *MachineDeploymentUpgradeTracker) DeferredUpgradeNames() []string {
 // MachineDeployments. Returns false, otherwise.
 func (m *MachineDeploymentUpgradeTracker) DeferredUpgrade() bool {
 	return len(m.deferredNames) != 0
+}
+
+// HoldReconcile holds reconcile of a MD.
+func (m *MachineDeploymentUpgradeTracker) HoldReconcile(topologyName string) {
+	m.holdReconcileTopologyNames.Insert(topologyName)
+}
+
+// IsReconcileHold checks if reconcile for a MD is held.
+func (m *MachineDeploymentUpgradeTracker) IsReconcileHold(topologyName string) bool {
+	return m.holdReconcileTopologyNames.Has(topologyName)
 }

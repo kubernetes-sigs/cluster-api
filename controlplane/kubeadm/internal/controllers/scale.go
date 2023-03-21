@@ -153,15 +153,6 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	return ctrl.Result{Requeue: true}, nil
 }
 
-// preflightChecks checks if a new Machine can be created.
-func (r *KubeadmControlPlaneReconciler) createPreflightChecks(kcp *controlplanev1.KubeadmControlPlane) error {
-	if _, isHold := kcp.Annotations[clusterv1.HoldMachineCreationAnnotation]; isHold {
-		return errors.New("Machine creations are on hold")
-	}
-
-	return nil
-}
-
 // preflightChecks checks if the control plane is stable before proceeding with a scale up/scale down operation,
 // where stable means that:
 // - There are no machine deletion in progress

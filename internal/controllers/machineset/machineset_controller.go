@@ -986,10 +986,6 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 		return errors.Wrapf(err, "preflight checks failed")
 	}
 
-	if err := r.runHoldPreflightCheck(ctx, ms); err != nil {
-		return errors.Wrapf(err, "preflight checks failed")
-	}
-
 	return nil
 }
 
@@ -1030,34 +1026,25 @@ func (r *Reconciler) runControlPlanePreflightCheck(ctx context.Context, cluster 
 		return errors.New("control plane is upgrading")
 	}
 
-	// If kubeadm bootstrap provider is used and version is set on MachineSet,
-	// fail if MS version is not equal to control plane version
-	if ms.Spec.Template.Spec.Bootstrap.ConfigRef != nil &&
-		ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind == "KubeadmConfigTemplate" &&
-		ms.Spec.Template.Spec.Version != nil {
-		if *controlPlaneVersion != *ms.Spec.Template.Spec.Version {
+	// Return as we can only compare MS and control plane version if MS has a version set.
+	if ms.Spec.Template.Spec.Version == nil {
+		return nil
+	}
+
+	msVersion := *ms.Spec.Template.Spec.Version
+
+	// TODO: return error if msVersion (minor) > controlPlaneVersion (minor)
+	// Kubernetes skew policy: https://kubernetes.io/releases/version-skew-policy/#kubelet
+
+	kubeadmBootstrapProviderUsed := ms.Spec.Template.Spec.Bootstrap.ConfigRef != nil &&
+		ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind == "KubeadmConfigTemplate"
+
+	// If kubeadm bootstrap provider is used, fail if MS minor version is different from control plane version.
+	// kubeadm skew policy: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/create-cluster-kubeadm/#kubeadm-s-skew-against-kubeadm
+	if kubeadmBootstrapProviderUsed {
+		if *controlPlaneVersion != msVersion {
 			return errors.Errorf("MachineSet version (%s) diverges from control plane version (%s): kubeadm bootstrap provider only supports joining with the same version as the control plane",
 				*ms.Spec.Template.Spec.Version, *controlPlaneVersion)
-		}
-	}
-
-	return nil
-}
-
-func (r *Reconciler) runHoldPreflightCheck(ctx context.Context, ms *clusterv1.MachineSet) error {
-	if _, isMachineSetHold := ms.Annotations[clusterv1.HoldMachineCreationAnnotation]; isMachineSetHold {
-		return errors.New("Machine creations for MachineSet are on hold")
-	}
-
-	mdName, isMachineSetManagedByMachineDeployment := ms.Annotations[clusterv1.MachineDeploymentNameLabel]
-	if isMachineSetManagedByMachineDeployment {
-		md := &clusterv1.MachineDeployment{}
-		if err := r.Client.Get(ctx, client.ObjectKey{Namespace: ms.Namespace, Name: mdName}, md); err != nil {
-			return err
-		}
-
-		if _, isMachineDeploymentHold := md.Annotations[clusterv1.HoldMachineCreationAnnotation]; isMachineDeploymentHold {
-			return errors.New("Machine creations for MachineDeployment are on hold")
 		}
 	}
 

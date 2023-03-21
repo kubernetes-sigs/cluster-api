@@ -180,10 +180,6 @@ func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.C
 func (r *KubeadmControlPlaneReconciler) cloneConfigsAndGenerateMachine(ctx context.Context, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, bootstrapSpec *bootstrapv1.KubeadmConfigSpec, failureDomain *string) error {
 	var errs []error
 
-	if err := r.createPreflightChecks(kcp); err != nil {
-		return errors.Wrapf(err, "create preflight checks failed")
-	}
-
 	// Since the cloned resource should eventually have a controller ref for the Machine, we create an
 	// OwnerReference here without the Controller field set
 	infraCloneOwner := &metav1.OwnerReference{

@@ -663,6 +663,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		},
 	}
 
+	switchFromCloudInitToIgnition := before.DeepCopy()
+	switchFromCloudInitToIgnition.Spec.KubeadmConfigSpec.Format = bootstrapv1.Ignition
+	switchFromCloudInitToIgnition.Spec.KubeadmConfigSpec.Mounts = []bootstrapv1.MountPoints{
+		{"/var/lib/testdir", "/var/lib/etcd/data"},
+	}
+
 	tests := []struct {
 		name                  string
 		enableIgnitionFeature bool
@@ -1000,6 +1006,13 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr:             false,
 			before:                validIgnitionConfigurationBefore,
 			kcp:                   validIgnitionConfigurationAfter,
+		},
+		{
+			name:                  "should succeed when CloudInit was used before",
+			enableIgnitionFeature: true,
+			expectErr:             false,
+			before:                before,
+			kcp:                   switchFromCloudInitToIgnition,
 		},
 	}
 

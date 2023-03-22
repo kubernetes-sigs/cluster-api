@@ -226,7 +226,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 		// No new machine should be created.
 		// Note: expected length is 0 because no machine is created and hence no machine is on the API server.
 		// Other machines are in-memory only during the test.
-		g.Expect(controlPlaneMachines.Items).To(HaveLen(0))
+		g.Expect(controlPlaneMachines.Items).To(BeEmpty())
 
 		endMachines := collections.FromMachineList(controlPlaneMachines)
 		for _, m := range endMachines {

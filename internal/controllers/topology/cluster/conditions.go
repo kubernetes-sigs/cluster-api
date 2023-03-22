@@ -103,19 +103,19 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 
 		switch {
 		case s.UpgradeTracker.ControlPlane.PendingUpgrade:
-			msgBuilder.WriteString(fmt.Sprintf("Control plane upgrade to %s on hold.", s.Blueprint.Topology.Version))
+			fmt.Fprintf(msgBuilder, "Control plane upgrade to %s on hold.", s.Blueprint.Topology.Version)
 			reason = clusterv1.TopologyReconciledControlPlaneUpgradePendingReason
 		case s.UpgradeTracker.MachineDeployments.PendingUpgrade():
-			msgBuilder.WriteString(fmt.Sprintf("MachineDeployment(s) %s upgrade to version %s on hold.",
+			fmt.Fprintf(msgBuilder, "MachineDeployment(s) %s upgrade to version %s on hold.",
 				computeMachineDeploymentNameList(s.UpgradeTracker.MachineDeployments.PendingUpgradeNames()),
 				s.Blueprint.Topology.Version,
-			))
+			)
 			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradePendingReason
 		case s.UpgradeTracker.MachineDeployments.DeferredUpgrade():
-			msgBuilder.WriteString(fmt.Sprintf("MachineDeployment(s) %s upgrade to version %s deferred.",
+			fmt.Fprintf(msgBuilder, "MachineDeployment(s) %s upgrade to version %s deferred.",
 				computeMachineDeploymentNameList(s.UpgradeTracker.MachineDeployments.DeferredUpgradeNames()),
 				s.Blueprint.Topology.Version,
-			))
+			)
 			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredReason
 		}
 
@@ -128,15 +128,15 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 			if err != nil {
 				return errors.Wrap(err, "failed to get control plane spec version")
 			}
-			msgBuilder.WriteString(fmt.Sprintf(" Control plane is upgrading to version %s", *cpVersion))
+			fmt.Fprintf(msgBuilder, " Control plane is upgrading to version %s", *cpVersion)
 
 		case s.UpgradeTracker.ControlPlane.IsScaling:
 			msgBuilder.WriteString(" Control plane is reconciling desired replicas")
 
 		case s.Current.MachineDeployments.IsAnyRollingOut():
-			msgBuilder.WriteString(fmt.Sprintf(" MachineDeployment(s) %s are rolling out",
+			fmt.Fprintf(msgBuilder, " MachineDeployment(s) %s are rolling out",
 				computeMachineDeploymentNameList(s.UpgradeTracker.MachineDeployments.RolloutNames()),
-			))
+			)
 		}
 
 		conditions.Set(

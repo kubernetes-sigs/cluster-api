@@ -1007,9 +1007,10 @@ spec:
                         type: integer
                     type: object
                   rolloutAfter:
-                    description: RolloutAfter performs a rollout of the entire cluster
+                    description: 'RolloutAfter performs a rollout of the entire cluster
                       one component at a time, control plane first and then machine
-                      deployments.
+                      deployments. Deprecated: This field has no function and is going
+                      to be removed in the next apiVersion.'
                     format: date-time
                     type: string
                   variables:

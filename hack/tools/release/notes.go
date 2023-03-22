@@ -22,11 +22,14 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
 	"os/exec"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -104,7 +107,70 @@ func increaseDateByOneDay(date string) (string, error) {
 	return datetime.Format(layout), nil
 }
 
+const (
+	missingAreaLabelPrefix   = "MISSING_AREA"
+	areaLabelPrefix          = "area/"
+	multipleAreaLabelsPrefix = "MULTIPLE_AREAS["
+)
+
+type githubPullRequest struct {
+	Labels []githubLabel `json:"labels"`
+}
+
+type githubLabel struct {
+	Name string `json:"name"`
+}
+
+func getAreaLabel(merge string) (string, error) {
+	// Get pr id from merge commit
+	prID := strings.Replace(strings.TrimSpace(strings.Split(merge, " ")[3]), "#", "", -1)
+
+	cmd := exec.Command("gh", "api", "repos/kubernetes-sigs/cluster-api/pulls/"+prID) //nolint:gosec
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", err
+	}
+
+	pr := &githubPullRequest{}
+	if err := json.Unmarshal(out, pr); err != nil {
+		return "", err
+	}
+
+	var areaLabels []string
+	for _, label := range pr.Labels {
+		if area, ok := trimAreaLabel(label.Name); ok {
+			areaLabels = append(areaLabels, area)
+		}
+	}
+
+	switch len(areaLabels) {
+	case 0:
+		return missingAreaLabelPrefix, nil
+	case 1:
+		return areaLabels[0], nil
+	default:
+		return multipleAreaLabelsPrefix + strings.Join(areaLabels, "|") + "]", nil
+	}
+}
+
+// trimAreaLabel removes the "area/" prefix from area labels and returns it.
+// If the label is an area label, the second return value is true, otherwise false.
+func trimAreaLabel(label string) (string, bool) {
+	trimmed := strings.TrimPrefix(label, areaLabelPrefix)
+	if len(trimmed) < len(label) {
+		return trimmed, true
+	}
+
+	return label, false
+}
+
 func run() int {
+	if err := ensureInstalledDependencies(); err != nil {
+		fmt.Println(err)
+		return 1
+	}
+
 	var commitRange string
 	var cmd *exec.Cmd
 
@@ -160,6 +226,11 @@ func run() int {
 	for _, c := range commits {
 		body := trimTitle(c.body)
 		var key, prNumber, fork string
+		prefix, err := getAreaLabel(c.merge)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 		switch {
 		case strings.HasPrefix(body, ":sparkles:"), strings.HasPrefix(body, "✨"):
 			key = features
@@ -192,7 +263,7 @@ func run() int {
 		if body == "" {
 			continue
 		}
-		body = fmt.Sprintf("- %s", body)
+		body = fmt.Sprintf("- %s: %s", prefix, body)
 		_, _ = fmt.Sscanf(c.merge, "Merge pull request %s from %s", &prNumber, &fork)
 		if key == documentation {
 			merges[key] = append(merges[key], prNumber)
@@ -226,6 +297,7 @@ func run() int {
 			)
 		default:
 			fmt.Println("## " + key)
+			sort.Strings(mergeslice)
 			for _, merge := range mergeslice {
 				fmt.Println(merge)
 			}
@@ -256,4 +328,21 @@ func formatMerge(line, prNumber string) string {
 		return line
 	}
 	return fmt.Sprintf("%s (%s)", line, prNumber)
+}
+
+func ensureInstalledDependencies() error {
+	if !commandExists("git") {
+		return errors.New("git not available. Git is required to be present in the PATH")
+	}
+
+	if !commandExists("gh") {
+		return errors.New("gh GitHub CLI not available. GitHub CLI is required to be present in the PATH. Refer to https://cli.github.com/ for installation")
+	}
+
+	return nil
+}
+
+func commandExists(cmd string) bool {
+	_, err := exec.LookPath(cmd)
+	return err == nil
 }

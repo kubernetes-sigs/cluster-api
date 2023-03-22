@@ -27,6 +27,7 @@ import (
 	"os"
 	"os/exec"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -104,6 +105,28 @@ func increaseDateByOneDay(date string) (string, error) {
 	return datetime.Format(layout), nil
 }
 
+func getAreaLabel(merge string) (string, error) {
+	// Get pr id from merge commit
+	prID := strings.Replace(strings.TrimSpace(strings.Split(merge, " ")[3]), "#", "", -1)
+
+	// Get labels on the pr
+	cmd := exec.Command("gh", "api", "repos/kubernetes-sigs/cluster-api/pulls/"+prID, "--jq", ".labels[] | select(.name | contains (\"area\")) | .name") //nolint:gosec
+
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println("Error", err)
+		return "", err
+	}
+
+	areaLabel := string(out)
+	if areaLabel == "" {
+		return "TODO", nil
+	}
+
+	area := strings.TrimSpace(strings.Split(areaLabel, "/")[1])
+	return area, nil
+}
+
 func run() int {
 	var commitRange string
 	var cmd *exec.Cmd
@@ -122,6 +145,7 @@ func run() int {
 		return 1
 	} else {
 		commitRange = lastTag()
+		fmt.Println("git", "rev-list", commitRange+"..HEAD", "--merges", "--pretty=format:%B")
 		cmd = exec.Command("git", "rev-list", commitRange+"..HEAD", "--merges", "--pretty=format:%B") //nolint:gosec
 	}
 
@@ -160,6 +184,7 @@ func run() int {
 	for _, c := range commits {
 		body := trimTitle(c.body)
 		var key, prNumber, fork string
+		prefix, _ := getAreaLabel(c.merge)
 		switch {
 		case strings.HasPrefix(body, ":sparkles:"), strings.HasPrefix(body, "✨"):
 			key = features
@@ -192,7 +217,7 @@ func run() int {
 		if body == "" {
 			continue
 		}
-		body = fmt.Sprintf("- %s", body)
+		body = fmt.Sprintf("- %s: %s", prefix, body)
 		_, _ = fmt.Sscanf(c.merge, "Merge pull request %s from %s", &prNumber, &fork)
 		if key == documentation {
 			merges[key] = append(merges[key], prNumber)
@@ -226,6 +251,7 @@ func run() int {
 			)
 		default:
 			fmt.Println("## " + key)
+			sort.Strings(mergeslice)
 			for _, merge := range mergeslice {
 				fmt.Println(merge)
 			}

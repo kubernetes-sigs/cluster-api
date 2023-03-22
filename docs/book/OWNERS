@@ -1,0 +1,11 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+approvers:
+  - cluster-api-docs-maintainers
+
+reviewers:
+  - cluster-api-reviewers
+  - cluster-api-docs-reviewers
+
+labels:
+  - area/docs

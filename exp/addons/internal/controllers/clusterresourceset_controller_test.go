@@ -916,14 +916,6 @@ metadata:
 		ns := setup(t, g)
 		defer teardown(t, g, ns)
 
-		kubernetesAPIServerService := &corev1.Service{
-			TypeMeta: metav1.TypeMeta{Kind: "Service", APIVersion: "v1"},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "kubernetes",
-				Namespace: metav1.NamespaceDefault,
-			},
-		}
-
 		fakeService := &corev1.Service{
 			TypeMeta: metav1.TypeMeta{Kind: "Service", APIVersion: "v1"},
 			ObjectMeta: metav1.ObjectMeta{
@@ -941,8 +933,9 @@ metadata:
 			},
 		}
 
+		kubernetesAPIServerService := &corev1.Service{}
 		t.Log("Verifying Kubernetes API Server Service has been created")
-		g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kubernetesAPIServerService), kubernetesAPIServerService)).To(Succeed())
+		g.Expect(env.Get(ctx, client.ObjectKey{Name: "kubernetes", Namespace: metav1.NamespaceDefault}, kubernetesAPIServerService)).To(Succeed())
 
 		fakeService.Spec.ClusterIP = kubernetesAPIServerService.Spec.ClusterIP
 
@@ -958,7 +951,7 @@ metadata:
 			}
 			return nil
 		}, timeout).Should(Succeed())
-		g.Expect(apierrors.IsNotFound(env.Get(ctx, client.ObjectKeyFromObject(kubernetesAPIServerService), kubernetesAPIServerService))).To(BeTrue())
+		g.Expect(apierrors.IsNotFound(env.Get(ctx, client.ObjectKeyFromObject(kubernetesAPIServerService), &corev1.Service{}))).To(BeTrue())
 
 		clusterResourceSetInstance := &addonsv1.ClusterResourceSet{
 			ObjectMeta: metav1.ObjectMeta{
@@ -978,10 +971,7 @@ metadata:
 		g.Expect(env.Update(ctx, testCluster)).To(Succeed())
 
 		// ClusterResourceSetBinding for the Cluster is not created because the Kubernetes API Server Service doesn't exist.
-		clusterResourceSetBindingKey := client.ObjectKey{
-			Namespace: testCluster.Namespace,
-			Name:      testCluster.Name,
-		}
+		clusterResourceSetBindingKey := client.ObjectKey{Namespace: testCluster.Namespace, Name: testCluster.Name}
 		g.Consistently(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
 
@@ -989,17 +979,19 @@ metadata:
 			return apierrors.IsNotFound(err)
 		}, timeout).Should(BeTrue())
 
-		t.Log("Make sure Kubernetes API Server Service has been created")
+		t.Log("Create Kubernetes API Server Service")
 		g.Expect(env.Delete(ctx, fakeService)).Should(Succeed())
-		g.Eventually(func() bool {
-			err := env.Get(ctx, client.ObjectKeyFromObject(kubernetesAPIServerService), kubernetesAPIServerService)
-			return err == nil
-		}, timeout).Should(BeTrue())
+		kubernetesAPIServerService.ResourceVersion = ""
+		g.Expect(env.Create(ctx, kubernetesAPIServerService)).Should(Succeed())
+
+		// Label the CRS to trigger reconciliation.
+		labels["new"] = ""
+		clusterResourceSetInstance.SetLabels(labels)
+		g.Expect(env.Patch(ctx, clusterResourceSetInstance, client.MergeFrom(clusterResourceSetInstance.DeepCopy()))).To(Succeed())
 
 		// Wait until ClusterResourceSetBinding is created for the Cluster
 		g.Eventually(func() bool {
 			binding := &addonsv1.ClusterResourceSetBinding{}
-
 			err := env.Get(ctx, clusterResourceSetBindingKey, binding)
 			return err == nil
 		}, timeout).Should(BeTrue())

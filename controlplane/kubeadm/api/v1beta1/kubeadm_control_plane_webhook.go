@@ -163,6 +163,8 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, ntp, "*"},
 		{spec, kubeadmConfigSpec, ignition},
 		{spec, kubeadmConfigSpec, ignition, "*"},
+		{spec, kubeadmConfigSpec, "format"},
+		{spec, kubeadmConfigSpec, "mounts"},
 		{spec, "machineTemplate", "metadata"},
 		{spec, "machineTemplate", "metadata", "*"},
 		{spec, "machineTemplate", "infrastructureRef", "apiVersion"},
@@ -182,12 +184,6 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 	prev, ok := old.(*KubeadmControlPlane)
 	if !ok {
 		return apierrors.NewBadRequest(fmt.Sprintf("expecting KubeadmControlPlane but got a %T", old))
-	}
-
-	// NOTE: Defaulting for the format field has been added in v1.1.0 after implementing ignition support.
-	// This allows existing KCP objects to pick up the new default.
-	if prev.Spec.KubeadmConfigSpec.Format == "" && in.Spec.KubeadmConfigSpec.Format == bootstrapv1.CloudConfig {
-		allowedPaths = append(allowedPaths, []string{spec, kubeadmConfigSpec, "format"})
 	}
 
 	originalJSON, err := json.Marshal(prev)

@@ -61,6 +61,7 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, _ client.Object, req *r
 	errs := []error{}
 	for i := range req.Items {
 		item := &req.Items[i]
+		objectKind := item.Object.Object.GetObjectKind().GroupVersionKind().Kind
 
 		templateVariables := patchvariables.ToMap(item.Variables)
 
@@ -81,13 +82,13 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, _ client.Object, req *r
 		// Merge template-specific and global variables.
 		variables, err := patchvariables.MergeVariableMaps(globalVariables, templateVariables)
 		if err != nil {
-			errs = append(errs, errors.Wrapf(err, "failed to merge global and template-specific variables for item with uid %q", item.UID))
+			errs = append(errs, errors.Wrapf(err, "failed to merge global and template-specific variables for %q", objectKind))
 			continue
 		}
 
 		enabled, err := patchIsEnabled(j.patch.EnabledIf, variables)
 		if err != nil {
-			errs = append(errs, errors.Wrapf(err, "failed to calculate if patch %s is enabled for item with uid %q", j.patch.Name, item.UID))
+			errs = append(errs, errors.Wrapf(err, "failed to calculate if patch is enabled for %q", objectKind))
 			continue
 		}
 		if !enabled {
@@ -100,7 +101,7 @@ func (j *jsonPatchGenerator) Generate(_ context.Context, _ client.Object, req *r
 			// Generate JSON patches.
 			jsonPatches, err := generateJSONPatches(patch.JSONPatches, variables)
 			if err != nil {
-				errs = append(errs, errors.Wrapf(err, "failed to generate JSON patches for item with uid %q", item.UID))
+				errs = append(errs, errors.Wrapf(err, "failed to generate JSON patches for %q", objectKind))
 				continue
 			}
 

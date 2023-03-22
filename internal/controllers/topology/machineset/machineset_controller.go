@@ -193,7 +193,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, ms *clusterv1.MachineS
 
 // getMachineDeploymentName calculates the MachineDeployment name based on owner references.
 func getMachineDeploymentName(ms *clusterv1.MachineSet) (*types.NamespacedName, error) {
-	for _, ref := range ms.OwnerReferences {
+	for _, ref := range ms.GetOwnerReferences() {
 		if ref.Kind != "MachineDeployment" {
 			continue
 		}

@@ -225,12 +225,12 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	// If the machine set is a stand alone one, meaning not originated from a MachineDeployment, then set it as directly
 	// owned by the Cluster (if not already present).
 	if r.shouldAdopt(machineSet) {
-		machineSet.OwnerReferences = util.EnsureOwnerRef(machineSet.OwnerReferences, metav1.OwnerReference{
+		machineSet.SetOwnerReferences(util.EnsureOwnerRef(machineSet.GetOwnerReferences(), metav1.OwnerReference{
 			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "Cluster",
 			Name:       cluster.Name,
 			UID:        cluster.UID,
-		})
+		}))
 	}
 
 	// Make sure to reconcile the external infrastructure reference.
@@ -719,7 +719,7 @@ func shouldExcludeMachine(machineSet *clusterv1.MachineSet, machine *clusterv1.M
 func (r *Reconciler) adoptOrphan(ctx context.Context, machineSet *clusterv1.MachineSet, machine *clusterv1.Machine) error {
 	patch := client.MergeFrom(machine.DeepCopy())
 	newRef := *metav1.NewControllerRef(machineSet, machineSetKind)
-	machine.OwnerReferences = append(machine.OwnerReferences, newRef)
+	machine.SetOwnerReferences(util.EnsureOwnerRef(machine.GetOwnerReferences(), newRef))
 	return r.Client.Patch(ctx, machine, patch)
 }
 
@@ -788,7 +788,7 @@ func (r *Reconciler) MachineToMachineSets(o client.Object) []ctrl.Request {
 
 	// Check if the controller reference is already set and
 	// return an empty result when one is found.
-	for _, ref := range m.ObjectMeta.OwnerReferences {
+	for _, ref := range m.ObjectMeta.GetOwnerReferences() {
 		if ref.Controller != nil && *ref.Controller {
 			return result
 		}
@@ -835,7 +835,7 @@ func (r *Reconciler) getMachineSetsForMachine(ctx context.Context, m *clusterv1.
 // shouldAdopt returns true if the MachineSet should be adopted as a stand-alone MachineSet directly owned by the Cluster.
 func (r *Reconciler) shouldAdopt(ms *clusterv1.MachineSet) bool {
 	// if the MachineSet is controlled by a MachineDeployment, or if it is a stand-alone MachinesSet directly owned by the Cluster, then no-op.
-	if util.HasOwner(ms.OwnerReferences, clusterv1.GroupVersion.String(), []string{"MachineDeployment", "Cluster"}) {
+	if util.HasOwner(ms.GetOwnerReferences(), clusterv1.GroupVersion.String(), []string{"MachineDeployment", "Cluster"}) {
 		return false
 	}
 

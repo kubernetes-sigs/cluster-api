@@ -34,7 +34,7 @@ import (
 
 // GetOwnerMachinePool returns the MachinePool objects owning the current resource.
 func GetOwnerMachinePool(ctx context.Context, c client.Client, obj metav1.ObjectMeta) (*expv1.MachinePool, error) {
-	for _, ref := range obj.OwnerReferences {
+	for _, ref := range obj.GetOwnerReferences() {
 		if ref.Kind != "MachinePool" {
 			continue
 		}

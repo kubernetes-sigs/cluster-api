@@ -276,7 +276,12 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 	}()
 
 	// Ensure that the owner references are set on the ClusterResourceSetBinding.
-	clusterResourceSetBinding.OwnerReferences = ensureOwnerRefs(clusterResourceSetBinding, clusterResourceSet)
+	clusterResourceSetBinding.SetOwnerReferences(util.EnsureOwnerRef(clusterResourceSetBinding.GetOwnerReferences(), metav1.OwnerReference{
+		APIVersion: addonsv1.GroupVersion.String(),
+		Kind:       clusterResourceSet.Kind,
+		Name:       clusterResourceSet.Name,
+		UID:        clusterResourceSet.UID,
+	}))
 	errList := []error{}
 	resourceSetBinding := clusterResourceSetBinding.GetOrCreateBinding(clusterResourceSet)
 
@@ -395,21 +400,19 @@ func (r *ClusterResourceSetReconciler) getResource(ctx context.Context, resource
 
 // ensureResourceOwnerRef adds the ClusterResourceSet as a OwnerReference to the resource.
 func (r *ClusterResourceSetReconciler) ensureResourceOwnerRef(ctx context.Context, clusterResourceSet *addonsv1.ClusterResourceSet, resource *unstructured.Unstructured) error {
+	obj := resource.DeepCopy()
+	patchHelper, err := patch.NewHelper(obj, r.Client)
+	if err != nil {
+		return err
+	}
 	newRef := metav1.OwnerReference{
-		APIVersion: clusterResourceSet.GroupVersionKind().GroupVersion().String(),
+		APIVersion: addonsv1.GroupVersion.String(),
 		Kind:       clusterResourceSet.GroupVersionKind().Kind,
 		Name:       clusterResourceSet.GetName(),
 		UID:        clusterResourceSet.GetUID(),
 	}
-
-	if !util.IsOwnedByObject(resource, clusterResourceSet) {
-		refs := resource.GetOwnerReferences()
-		patch := client.MergeFrom(resource.DeepCopy())
-		refs = append(refs, newRef)
-		resource.SetOwnerReferences(refs)
-		return r.Client.Patch(ctx, resource, patch)
-	}
-	return nil
+	obj.SetOwnerReferences(util.EnsureOwnerRef(obj.GetOwnerReferences(), newRef))
+	return patchHelper.Patch(ctx, obj)
 }
 
 // clusterToClusterResourceSet is mapper function that maps clusters to ClusterResourceSet.

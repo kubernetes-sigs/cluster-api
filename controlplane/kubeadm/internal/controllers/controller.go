@@ -57,7 +57,10 @@ import (
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
-const kcpManagerName = "capi-kubeadmcontrolplane"
+const (
+	kcpManagerName          = "capi-kubeadmcontrolplane"
+	kubeadmControlPlaneKind = "KubeadmControlPlane"
+)
 
 // +kubebuilder:rbac:groups=core,resources=events,verbs=get;list;watch;create;patch
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch
@@ -290,7 +293,7 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		config.ClusterConfiguration = &bootstrapv1.ClusterConfiguration{}
 	}
 	certificates := secret.NewCertificatesForInitialControlPlane(config.ClusterConfiguration)
-	controllerRef := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind("KubeadmControlPlane"))
+	controllerRef := metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
 	if err := certificates.LookupOrGenerate(ctx, r.Client, util.ObjectKey(cluster), *controllerRef); err != nil {
 		log.Error(err, "unable to lookup or create cluster certificates")
 		conditions.MarkFalse(kcp, controlplanev1.CertificatesAvailableCondition, controlplanev1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
@@ -528,7 +531,7 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(o client.Ob
 	}
 
 	controlPlaneRef := c.Spec.ControlPlaneRef
-	if controlPlaneRef != nil && controlPlaneRef.Kind == "KubeadmControlPlane" {
+	if controlPlaneRef != nil && controlPlaneRef.Kind == kubeadmControlPlaneKind {
 		return []ctrl.Request{{NamespacedName: client.ObjectKey{Namespace: controlPlaneRef.Namespace, Name: controlPlaneRef.Name}}}
 	}
 
@@ -888,21 +891,29 @@ func ensureCertificatesOwnerRef(ctx context.Context, ctrlclient client.Client, c
 		if err := ctrlclient.Get(ctx, secretKey, s); err != nil {
 			return errors.Wrapf(err, "failed to get Secret %s", secretKey)
 		}
-		// If the Type doesn't match the type used for secrets created by core components, KCP included
-		if s.Type != clusterv1.ClusterSecretType {
-			continue
-		}
+
 		patchHelper, err := patch.NewHelper(s, ctrlclient)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create patchHelper for Secret %s", secretKey)
 		}
 
-		// Remove the current controller if one exists.
-		if controller := metav1.GetControllerOf(s); controller != nil {
-			s.SetOwnerReferences(util.RemoveOwnerRef(s.OwnerReferences, *controller))
+		controller := metav1.GetControllerOf(s)
+		// If the current controller is KCP, ensure the owner reference is up to date.
+		// Note: This ensures secrets created prior to v1alpha4 are updated to have the correct owner reference apiVersion.
+		if controller != nil && controller.Kind == kubeadmControlPlaneKind {
+			s.SetOwnerReferences(util.EnsureOwnerRef(s.GetOwnerReferences(), owner))
 		}
 
-		s.OwnerReferences = util.EnsureOwnerRef(s.OwnerReferences, owner)
+		// If the Type doesn't match the type used for secrets created by core components continue without altering the owner reference further.
+		// Note: This ensures that control plane related secrets created by KubeadmConfig are eventually owned by KCP.
+		// TODO: Remove this logic once standalone control plane machines are no longer allowed.
+		if s.Type == clusterv1.ClusterSecretType {
+			// Remove the current controller if one exists.
+			if controller != nil {
+				s.SetOwnerReferences(util.RemoveOwnerRef(s.GetOwnerReferences(), *controller))
+			}
+			s.SetOwnerReferences(util.EnsureOwnerRef(s.GetOwnerReferences(), owner))
+		}
 		if err := patchHelper.Patch(ctx, s); err != nil {
 			return errors.Wrapf(err, "failed to patch Secret %s with ownerReference %s", secretKey, owner.String())
 		}

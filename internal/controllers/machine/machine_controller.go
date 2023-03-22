@@ -275,12 +275,12 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	// If the machine is a stand-alone one, meaning not originated from a MachineDeployment, then set it as directly
 	// owned by the Cluster (if not already present).
 	if r.shouldAdopt(m) {
-		m.OwnerReferences = util.EnsureOwnerRef(m.OwnerReferences, metav1.OwnerReference{
+		m.SetOwnerReferences(util.EnsureOwnerRef(m.GetOwnerReferences(), metav1.OwnerReference{
 			APIVersion: clusterv1.GroupVersion.String(),
 			Kind:       "Cluster",
 			Name:       cluster.Name,
 			UID:        cluster.UID,
-		})
+		}))
 	}
 
 	phases := []func(context.Context, *clusterv1.Cluster, *clusterv1.Machine) (ctrl.Result, error){
@@ -765,7 +765,7 @@ func (r *Reconciler) reconcileDeleteExternal(ctx context.Context, m *clusterv1.M
 // shouldAdopt returns true if the Machine should be adopted as a stand-alone Machine directly owned by the Cluster.
 func (r *Reconciler) shouldAdopt(m *clusterv1.Machine) bool {
 	// if the machine is controlled by something (MS or KCP), or if it is a stand-alone machine directly owned by the Cluster, then no-op.
-	if metav1.GetControllerOf(m) != nil || util.HasOwner(m.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"}) {
+	if metav1.GetControllerOf(m) != nil || util.HasOwner(m.GetOwnerReferences(), clusterv1.GroupVersion.String(), []string{"Cluster"}) {
 		return false
 	}
 

@@ -205,16 +205,13 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 	md.Labels[clusterv1.ClusterNameLabel] = md.Spec.ClusterName
 
-	// Set the MachineDeployment as directly owned by the Cluster (if not already present).
-	if r.shouldAdopt(md) {
-		md.OwnerReferences = util.EnsureOwnerRef(md.OwnerReferences, metav1.OwnerReference{
-			APIVersion: clusterv1.GroupVersion.String(),
-			Kind:       "Cluster",
-			Name:       cluster.Name,
-			UID:        cluster.UID,
-		})
-		return ctrl.Result{}, nil
-	}
+	// Ensure the MachineDeployment is owned by the Cluster.
+	md.SetOwnerReferences(util.EnsureOwnerRef(md.GetOwnerReferences(), metav1.OwnerReference{
+		APIVersion: clusterv1.GroupVersion.String(),
+		Kind:       "Cluster",
+		Name:       cluster.Name,
+		UID:        cluster.UID,
+	}))
 
 	// Make sure to reconcile the external infrastructure reference.
 	if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, &md.Spec.Template.Spec.InfrastructureRef); err != nil {
@@ -345,7 +342,7 @@ func (r *Reconciler) getMachineSetsForDeployment(ctx context.Context, md *cluste
 func (r *Reconciler) adoptOrphan(ctx context.Context, deployment *clusterv1.MachineDeployment, machineSet *clusterv1.MachineSet) error {
 	patch := client.MergeFrom(machineSet.DeepCopy())
 	newRef := *metav1.NewControllerRef(deployment, machineDeploymentKind)
-	machineSet.OwnerReferences = append(machineSet.OwnerReferences, newRef)
+	machineSet.SetOwnerReferences(util.EnsureOwnerRef(machineSet.GetOwnerReferences(), newRef))
 	return r.Client.Patch(ctx, machineSet, patch)
 }
 
@@ -394,7 +391,7 @@ func (r *Reconciler) MachineSetToDeployments(o client.Object) []ctrl.Request {
 
 	// Check if the controller reference is already set and
 	// return an empty result when one is found.
-	for _, ref := range ms.ObjectMeta.OwnerReferences {
+	for _, ref := range ms.ObjectMeta.GetOwnerReferences() {
 		if ref.Controller != nil && *ref.Controller {
 			return result
 		}
@@ -411,10 +408,6 @@ func (r *Reconciler) MachineSetToDeployments(o client.Object) []ctrl.Request {
 	}
 
 	return result
-}
-
-func (r *Reconciler) shouldAdopt(md *clusterv1.MachineDeployment) bool {
-	return !util.HasOwner(md.OwnerReferences, clusterv1.GroupVersion.String(), []string{"Cluster"})
 }
 
 func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {

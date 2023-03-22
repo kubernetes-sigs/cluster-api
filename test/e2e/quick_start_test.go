@@ -37,7 +37,7 @@ var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", fun
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
 				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName,
-					framework.CoreTypeOwnerReferenceAssertion,
+					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
 					framework.DockerInfraOwnerReferenceAssertions,
 					framework.KubeadmBootstrapOwnerReferenceAssertions,
@@ -61,7 +61,7 @@ var _ = Describe("When following the Cluster API quick-start with ClusterClass [
 			// This check ensures that owner references are resilient - i.e. correctly re-reconciled - when removed.
 			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				framework.ValidateOwnerReferencesResilience(ctx, proxy, namespace, clusterName,
-					framework.CoreTypeOwnerReferenceAssertion,
+					framework.CoreOwnerReferenceAssertion,
 					framework.ExpOwnerReferenceAssertions,
 					framework.DockerInfraOwnerReferenceAssertions,
 					framework.KubeadmBootstrapOwnerReferenceAssertions,

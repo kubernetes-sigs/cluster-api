@@ -114,8 +114,8 @@ make docker-push
 
 # Apply the manifests
 kustomize build config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
-kustomize build bootstrap/kubeadm/config | ./hack/tools/bin/envsubst | kubectl apply -f -
-kustomize build controlplane/kubeadm/config | ./hack/tools/bin/envsubst | kubectl apply -f -
+kustomize build bootstrap/kubeadm/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
+kustomize build controlplane/kubeadm/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
 kustomize build test/infrastructure/docker/config/default | ./hack/tools/bin/envsubst | kubectl apply -f -
 ```
 

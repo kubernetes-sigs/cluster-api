@@ -76,7 +76,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 		return ctrl.Result{}, errors.Wrap(err, "failed to retrieve kubeconfig Secret")
 	}
 
-	if err := r.adoptKubeconfigSecret(ctx, cluster, configSecret, kcp); err != nil {
+	if err := r.adoptKubeconfigSecret(ctx, configSecret, kcp); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -101,7 +101,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 }
 
 // Ensure the KubeadmConfigSecret has an owner reference to the control plane if it is not a user-provided secret.
-func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, cluster *clusterv1.Cluster, configSecret *corev1.Secret, kcp *controlplanev1.KubeadmControlPlane) (reterr error) {
+func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, configSecret *corev1.Secret, kcp *controlplanev1.KubeadmControlPlane) (reterr error) {
 	patchHelper, err := patch.NewHelper(configSecret, r.Client)
 	if err != nil {
 		return errors.Wrap(err, "failed to create patch helper for the kubeconfig secret")
@@ -127,17 +127,6 @@ func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Contex
 			configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.GetOwnerReferences(), *controller))
 		}
 		configSecret.SetOwnerReferences(util.EnsureOwnerRef(configSecret.GetOwnerReferences(), *metav1.NewControllerRef(kcp, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))))
-
-		// If the kubeconfig secret was created by v1alpha2 controllers, and thus it has the Cluster as the owner instead of KCP.
-		// In this case remove the ownerReference to the Cluster.
-		if util.IsOwnedByObject(configSecret, cluster) {
-			configSecret.SetOwnerReferences(util.RemoveOwnerRef(configSecret.GetOwnerReferences(), metav1.OwnerReference{
-				APIVersion: clusterv1.GroupVersion.String(),
-				Kind:       "Cluster",
-				Name:       cluster.Name,
-				UID:        cluster.UID,
-			}))
-		}
 	}
 	return nil
 }

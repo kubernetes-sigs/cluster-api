@@ -147,13 +147,13 @@ func WatchNamespaceEvents(ctx context.Context, input WatchNamespaceEventsInput) 
 	_, err = eventInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			e := obj.(*corev1.Event)
-			_, _ = f.WriteString(fmt.Sprintf("[New Event] %s\n\tresource: %s/%s/%s\n\treason: %s\n\tmessage: %s\n\tfull: %#v\n",
-				klog.KObj(e), e.InvolvedObject.APIVersion, e.InvolvedObject.Kind, e.InvolvedObject.Name, e.Reason, e.Message, e))
+			_, _ = fmt.Fprintf(f, "[New Event] %s\n\tresource: %s/%s/%s\n\treason: %s\n\tmessage: %s\n\tfull: %#v\n",
+				klog.KObj(e), e.InvolvedObject.APIVersion, e.InvolvedObject.Kind, e.InvolvedObject.Name, e.Reason, e.Message, e)
 		},
 		UpdateFunc: func(_, obj interface{}) {
 			e := obj.(*corev1.Event)
-			_, _ = f.WriteString(fmt.Sprintf("[Updated Event] %s\n\tresource: %s/%s/%s\n\treason: %s\n\tmessage: %s\n\tfull: %#v\n",
-				klog.KObj(e), e.InvolvedObject.APIVersion, e.InvolvedObject.Kind, e.InvolvedObject.Name, e.Reason, e.Message, e))
+			_, _ = fmt.Fprintf(f, "[Updated Event] %s\n\tresource: %s/%s/%s\n\treason: %s\n\tmessage: %s\n\tfull: %#v\n",
+				klog.KObj(e), e.InvolvedObject.APIVersion, e.InvolvedObject.Kind, e.InvolvedObject.Name, e.Reason, e.Message, e)
 		},
 		DeleteFunc: func(obj interface{}) {},
 	})

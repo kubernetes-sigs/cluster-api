@@ -394,7 +394,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 				return false
 			}
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseRunning))
-			g.Expect(machine.Status.Addresses).To(HaveLen(0))
+			g.Expect(machine.Status.Addresses).To(BeEmpty())
 			// Verify that the LastUpdated timestamp was updated
 			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
 			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())

@@ -17,9 +17,11 @@ limitations under the License.
 package ssa
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -69,8 +71,8 @@ func TestPatch(t *testing.T) {
 		// Verify that request was not cached (as it changed the object)
 		g.Expect(ssaCache.Has(requestIdentifier)).To(BeFalse())
 
-		// 3. Repeat the same update and verify that the request was cached as the object was not changed.
-		// Get the original object.
+		// 3. Repeat the same update and verify  the request was cached as the object was not changed.
+		// Get the original object.that
 		originalObject = initialObject.DeepCopy()
 		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject))
 		// Modify the object
@@ -160,12 +162,18 @@ func TestPatch(t *testing.T) {
 		modifiedObject.Spec.NodeDrainTimeout = &metav1.Duration{Duration: 5 * time.Second}
 		// Compute request identifier, so we can later verify that the update call was cached.
 		modifiedUnstructured, err = prepareModified(env.Scheme(), modifiedObject)
+		modifiedUnstructured.SetResourceVersion("")
 		g.Expect(err).ToNot(HaveOccurred())
 		requestIdentifier, err = ComputeRequestIdentifier(env.GetScheme(), originalObject, modifiedUnstructured)
 		g.Expect(err).ToNot(HaveOccurred())
 		// Update the object
+		time.Sleep(2 * time.Second)
 		g.Expect(Patch(ctx, env.GetClient(), fieldManager, modifiedObject, WithCachingProxy{Cache: ssaCache, Original: originalObject})).To(Succeed())
 		// Verify that request was cached (as it did not change the object)
-		g.Expect(ssaCache.Has(requestIdentifier)).To(BeTrue())
+		if !ssaCache.Has(requestIdentifier) {
+			l := cmp.Diff(originalObject, modifiedObject)
+			fmt.Print(l)
+			t.Errorf("expected request to be cached, but it was not")
+		}
 	})
 }

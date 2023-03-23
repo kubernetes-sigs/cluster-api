@@ -25,7 +25,6 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -221,15 +220,13 @@ func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result
 		return ctrl.Result{}, nil
 	}
 
-	// Default and Validate the Cluster based on information from the ClusterClass.
+	// Default and Validate the Cluster variables based on information from the ClusterClass.
 	// This step is needed as if the ClusterClass does not exist at Cluster creation some fields may not be defaulted or
 	// validated in the webhook.
-	if errs := webhooks.DefaultVariables(s.Current.Cluster, clusterClass); len(errs) > 0 {
+	if errs := webhooks.DefaultAndValidateVariables(s.Current.Cluster, clusterClass); len(errs) > 0 {
 		return ctrl.Result{}, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), s.Current.Cluster.Name, errs)
 	}
-	if errs := webhooks.ValidateClusterForClusterClass(s.Current.Cluster, clusterClass, field.NewPath("spec", "topology")); len(errs) > 0 {
-		return ctrl.Result{}, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), s.Current.Cluster.Name, errs)
-	}
+
 	// Gets the blueprint with the ClusterClass and the referenced templates
 	// and store it in the request scope.
 	s.Blueprint, err = r.getBlueprint(ctx, s.Current.Cluster, s.Blueprint.ClusterClass)

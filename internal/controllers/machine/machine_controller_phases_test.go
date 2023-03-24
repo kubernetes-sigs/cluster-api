@@ -139,7 +139,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		}, 10*time.Second).Should(BeTrue())
 
 		// Wait until InfraMachine has the ownerReference.
-		g.Eventually(func() bool {
+		g.Eventually(func(g Gomega) bool {
 			if err := env.Get(ctx, client.ObjectKeyFromObject(infraMachine), infraMachine); err != nil {
 				return false
 			}

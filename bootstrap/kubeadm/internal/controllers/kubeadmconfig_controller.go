@@ -64,24 +64,6 @@ const (
 	KubeadmConfigControllerName = "kubeadmconfig-controller"
 )
 
-var (
-	// controlPlaneTaint is the taint that kubeadm applies to the control plane nodes
-	// for Kubernetes version >= v1.24.0.
-	// The values are copied from kubeadm codebase.
-	controlPlaneTaint = corev1.Taint{
-		Key:    "node-role.kubernetes.io/control-plane",
-		Effect: corev1.TaintEffectNoSchedule,
-	}
-
-	// oldControlPlaneTaint is the taint that kubeadm applies to the control plane nodes
-	// for Kubernetes version < v1.25.0.
-	// The values are copied from kubeadm codebase.
-	oldControlPlaneTaint = corev1.Taint{
-		Key:    "node-role.kubernetes.io/master",
-		Effect: corev1.TaintEffectNoSchedule,
-	}
-)
-
 const (
 	// DefaultTokenTTL is the default TTL used for tokens.
 	DefaultTokenTTL = 15 * time.Minute
@@ -432,14 +414,7 @@ func (r *KubeadmConfigReconciler) handleClusterNotInitialized(ctx context.Contex
 		}
 	}
 
-	// Add the node uninitialized taint to the list of taints.
-	// DeepCopy the InitConfiguration to prevent updating the actual KubeadmConfig.
-	// Do not modify the KubeadmConfig in etcd as this is a temporary taint that will be dropped after the node
-	// is initialized by ClusterAPI.
-	initConfiguration := scope.Config.Spec.InitConfiguration.DeepCopy()
-	addNodeUninitializedTaint(&initConfiguration.NodeRegistration, true, parsedVersion)
-
-	initdata, err := kubeadmtypes.MarshalInitConfigurationForVersion(initConfiguration, parsedVersion)
+	initdata, err := kubeadmtypes.MarshalInitConfigurationForVersion(scope.Config.Spec.InitConfiguration, parsedVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal init configuration")
 		return ctrl.Result{}, err
@@ -580,7 +555,9 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	// Do not modify the KubeadmConfig in etcd as this is a temporary taint that will be dropped after the node
 	// is initialized by ClusterAPI.
 	joinConfiguration := scope.Config.Spec.JoinConfiguration.DeepCopy()
-	addNodeUninitializedTaint(&joinConfiguration.NodeRegistration, false, parsedVersion)
+	if !hasTaint(joinConfiguration.NodeRegistration.Taints, clusterv1.NodeUninitializedTaint) {
+		joinConfiguration.NodeRegistration.Taints = append(joinConfiguration.NodeRegistration.Taints, clusterv1.NodeUninitializedTaint)
+	}
 
 	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(joinConfiguration, parsedVersion)
 	if err != nil {
@@ -688,14 +665,7 @@ func (r *KubeadmConfigReconciler) joinControlplane(ctx context.Context, scope *S
 		return ctrl.Result{}, errors.Wrapf(err, "failed to parse kubernetes version %q", kubernetesVersion)
 	}
 
-	// Add the node uninitialized taint to the list of taints.
-	// DeepCopy the JoinConfiguration to prevent updating the actual KubeadmConfig.
-	// Do not modify the KubeadmConfig in etcd as this is a temporary taint that will be dropped after the node
-	// is initialized by ClusterAPI.
-	joinConfiguration := scope.Config.Spec.JoinConfiguration.DeepCopy()
-	addNodeUninitializedTaint(&joinConfiguration.NodeRegistration, true, parsedVersion)
-
-	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(joinConfiguration, parsedVersion)
+	joinData, err := kubeadmtypes.MarshalJoinConfigurationForVersion(scope.Config.Spec.JoinConfiguration, parsedVersion)
 	if err != nil {
 		scope.Error(err, "Failed to marshal join configuration")
 		return ctrl.Result{}, err
@@ -1103,37 +1073,6 @@ func (r *KubeadmConfigReconciler) ensureBootstrapSecretOwnersRef(ctx context.Con
 		return errors.Wrapf(err, "could not add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())
 	}
 	return nil
-}
-
-// addNodeUninitializedTaint adds the NodeUninitializedTaint to the nodeRegistration.
-// Note: If isControlPlane is true then it also adds the control plane taint if the initial set of taints is nil.
-// This is to ensure consistency with kubeadm's defaulting behavior.
-func addNodeUninitializedTaint(nodeRegistration *bootstrapv1.NodeRegistrationOptions, isControlPlane bool, kubernetesVersion semver.Version) {
-	var taints []corev1.Taint
-	taints = nodeRegistration.Taints
-	if hasTaint(taints, clusterv1.NodeUninitializedTaint) {
-		return
-	}
-
-	// For a control plane, kubeadm adds the default control plane taint if the provided taints are nil.
-	// Since we are adding the uninitialized taint we also have to add the default taints kubeadm would have added if
-	// the taints were nil.
-	if isControlPlane && taints == nil {
-		// Note: Kubeadm uses a different default control plane taint depending on the kubernetes version.
-		// Ref: https://github.com/kubernetes/kubeadm/issues/2200
-		if kubernetesVersion.LT(semver.MustParse("1.24.0")) {
-			taints = []corev1.Taint{oldControlPlaneTaint}
-		} else if kubernetesVersion.GTE(semver.MustParse("1.24.0")) && kubernetesVersion.LT(semver.MustParse("1.25.0")) {
-			taints = []corev1.Taint{
-				oldControlPlaneTaint,
-				controlPlaneTaint,
-			}
-		} else {
-			taints = []corev1.Taint{controlPlaneTaint}
-		}
-	}
-	taints = append(taints, clusterv1.NodeUninitializedTaint)
-	nodeRegistration.Taints = taints
 }
 
 func hasTaint(taints []corev1.Taint, targetTaint corev1.Taint) bool {

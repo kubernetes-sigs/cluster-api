@@ -125,7 +125,7 @@ A bootstrap provider's bootstrap data must create `/run/cluster-api/bootstrap-su
 
 ## Taint Nodes at creation
 
-A bootstrap provider can optionally taint nodes at creation with `node.cluster.x-k8s.io/uninitialized:NoSchedule`.
+A bootstrap provider can optionally taint worker nodes at creation with `node.cluster.x-k8s.io/uninitialized:NoSchedule`.
 This taint is used to prevent workloads to be scheduled on Nodes before the node is initialized by Cluster API.
 As of today the Node initialization consists of syncing labels from Machines to Nodes. Once the labels have been 
 initially synced the taint is removed form the Node.

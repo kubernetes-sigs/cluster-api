@@ -193,7 +193,7 @@ type RemediationStrategy struct {
 	//	M1 become unhealthy; remediation happens, and M1-1 is created as a replacement.
 	//	If M1-1 (replacement of M1) has problems while bootstrapping it will become unhealthy, and then be
 	//	remediated; such operation is considered a retry, remediation-retry #1.
-	//	If M1-2 (replacement of M1-2) becomes unhealthy, remediation-retry #2 will happen, etc.
+	//	If M1-2 (replacement of M1-1) becomes unhealthy, remediation-retry #2 will happen, etc.
 	//
 	// A retry could happen only after RetryPeriod from the previous retry.
 	// If a machine is marked as unhealthy after MinHealthyPeriod from the previous remediation expired,

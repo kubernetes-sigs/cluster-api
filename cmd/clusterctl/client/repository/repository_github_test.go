@@ -166,13 +166,13 @@ func Test_githubRepository_getFile(t *testing.T) {
 
 	providerConfig := config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/file.yaml", clusterctlv1.CoreProviderType)
 
-	// test.NewFakeGitHub and handler for returning a fake release
+	// Setup a handler for returning a fake release.
 	mux.HandleFunc("/repos/o/r/releases/tags/v0.4.1", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		fmt.Fprint(w, `{"id":13, "tag_name": "v0.4.1", "assets": [{"id": 1, "name": "file.yaml"}] }`)
 	})
 
-	// test.NewFakeGitHub an handler for returning a fake release asset
+	// Setup a handler for returning a fake release asset.
 	mux.HandleFunc("/repos/o/r/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -238,16 +238,36 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 	client, mux, teardown := test.NewFakeGitHub()
 	defer teardown()
 
-	// setup an handler for returning 5 fake releases
+	// Setup a handler for returning fake releases in a paginated manner
+	// Each response contains a link to the next page (if available) which
+	// is parsed by the handler to navigate through all pages
 	mux.HandleFunc("/repos/o/r1/releases", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
-		fmt.Fprint(w, `[`)
-		fmt.Fprint(w, `{"id":1, "tag_name": "v0.4.0"},`)
-		fmt.Fprint(w, `{"id":2, "tag_name": "v0.4.1"},`)
-		fmt.Fprint(w, `{"id":3, "tag_name": "v0.4.2"},`)
-		fmt.Fprint(w, `{"id":4, "tag_name": "v0.4.3-alpha"},`) // prerelease
-		fmt.Fprint(w, `{"id":5, "tag_name": "foo"}`)           // no semantic version tag
-		fmt.Fprint(w, `]`)
+		page := r.URL.Query().Get("page")
+		switch page {
+		case "", "1":
+			// Page 1
+			w.Header().Set("Link", `<https://api.github.com/repositories/12345/releases?page=2>; rel="next"`) // Link to page 2
+			fmt.Fprint(w, `[`)
+			fmt.Fprint(w, `{"id":1, "tag_name": "v0.4.0"},`)
+			fmt.Fprint(w, `{"id":2, "tag_name": "v0.4.1"}`)
+			fmt.Fprint(w, `]`)
+		case "2":
+			// Page 2
+			w.Header().Set("Link", `<https://api.github.com/repositories/12345/releases?page=3>; rel="next"`) // Link to page 3
+			fmt.Fprint(w, `[`)
+			fmt.Fprint(w, `{"id":3, "tag_name": "v0.4.2"},`)
+			fmt.Fprint(w, `{"id":4, "tag_name": "v0.4.3-alpha"}`) // Pre-release
+			fmt.Fprint(w, `]`)
+		case "3":
+			// Page 3 (last page)
+			fmt.Fprint(w, `[`)
+			fmt.Fprint(w, `{"id":4, "tag_name": "v0.4.4-beta"},`) // Pre-release
+			fmt.Fprint(w, `{"id":5, "tag_name": "foo"}`)          // No semantic version tag
+			fmt.Fprint(w, `]`)
+		default:
+			t.Fatalf("unexpected page requested")
+		}
 	})
 
 	configVariablesClient := test.NewFakeVariableClient()
@@ -262,11 +282,11 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "Get versions",
+			name: "Get versions with all releases",
 			field: field{
 				providerConfig: config.NewProvider("test", "https://github.com/o/r1/releases/v0.4.1/path", clusterctlv1.CoreProviderType),
 			},
-			want:    []string{"v0.4.0", "v0.4.1", "v0.4.2", "v0.4.3-alpha"},
+			want:    []string{"v0.4.0", "v0.4.1", "v0.4.2", "v0.4.3-alpha", "v0.4.4-beta"},
 			wantErr: false,
 		},
 	}
@@ -313,7 +333,7 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 		fmt.Fprint(w, `{"id":13, "tag_name": "v0.5.0", "assets": [{"id": 1, "name": "metadata.yaml"}] }`)
 	})
 
-	// test.NewFakeGitHub an handler for returning a fake release metadata file
+	// Setup a handler for returning a fake release metadata file.
 	mux.HandleFunc("/repos/o/r1/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -623,7 +643,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 
 	providerConfig := config.NewProvider("test", "https://github.com/o/r/releases/v0.4.1/file.yaml", clusterctlv1.CoreProviderType) // tree/main/path not relevant for the test
 
-	// test.NewFakeGitHub an handler for returning a fake release asset
+	// Setup a handler for returning a fake release asset.
 	mux.HandleFunc("/repos/o/r/releases/assets/1", func(w http.ResponseWriter, r *http.Request) {
 		testMethod(t, r, "GET")
 		w.Header().Set("Content-Type", "application/octet-stream")

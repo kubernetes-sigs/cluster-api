@@ -96,7 +96,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 			SkipCleanup:           skipCleanup,
 			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.5/clusterctl-{OS}-{ARCH}",
 			// We have to pin the providers because with `InitWithProvidersContract` the test would
-			// use the latest version for the contract (which is v1.3.0 for v1beta1).
+			// use the latest version for the contract (which is v1.3.X for v1beta1).
 			InitWithCoreProvider:            "cluster-api:v1.0.5",
 			InitWithBootstrapProviders:      []string{"kubeadm:v1.0.5"},
 			InitWithControlPlaneProviders:   []string{"kubeadm:v1.0.5"},
@@ -131,13 +131,13 @@ var _ = Describe("When testing clusterctl upgrades (v1.2=>current)", func() {
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.7/clusterctl-{OS}-{ARCH}",
+			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.11/clusterctl-{OS}-{ARCH}",
 			// We have to pin the providers because with `InitWithProvidersContract` the test would
-			// use the latest version for the contract (which is v1.3.0 for v1beta1).
-			InitWithCoreProvider:            "cluster-api:v1.2.8",
-			InitWithBootstrapProviders:      []string{"kubeadm:v1.2.8"},
-			InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.8"},
-			InitWithInfrastructureProviders: []string{"docker:v1.2.8"},
+			// use the latest version for the contract (which is v1.3.X for v1beta1).
+			InitWithCoreProvider:            "cluster-api:v1.2.11",
+			InitWithBootstrapProviders:      []string{"kubeadm:v1.2.11"},
+			InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.11"},
+			InitWithInfrastructureProviders: []string{"docker:v1.2.11"},
 			// We have to set this to an empty array as clusterctl v1.2 doesn't support
 			// runtime extension providers. If we don't do this the test will automatically
 			// try to deploy the latest version of our test-extension from docker.yaml.
@@ -170,13 +170,13 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.2=>cur
 			BootstrapClusterProxy: bootstrapClusterProxy,
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
-			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.7/clusterctl-{OS}-{ARCH}",
+			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.11/clusterctl-{OS}-{ARCH}",
 			// We have to pin the providers because with `InitWithProvidersContract` the test would
-			// use the latest version for the contract (which is v1.3.0 for v1beta1).
-			InitWithCoreProvider:            "cluster-api:v1.2.8",
-			InitWithBootstrapProviders:      []string{"kubeadm:v1.2.8"},
-			InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.8"},
-			InitWithInfrastructureProviders: []string{"docker:v1.2.8"},
+			// use the latest version for the contract (which is v1.3.X for v1beta1).
+			InitWithCoreProvider:            "cluster-api:v1.2.11",
+			InitWithBootstrapProviders:      []string{"kubeadm:v1.2.11"},
+			InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.11"},
+			InitWithInfrastructureProviders: []string{"docker:v1.2.11"},
 			// We have to set this to an empty array as clusterctl v1.2 doesn't support
 			// runtime extension providers. If we don't do this the test will automatically
 			// try to deploy the latest version of our test-extension from docker.yaml.
@@ -209,7 +209,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
 			BootstrapClusterProxy:     bootstrapClusterProxy,
 			ArtifactFolder:            artifactFolder,
 			SkipCleanup:               skipCleanup,
-			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.0/clusterctl-{OS}-{ARCH}",
+			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.5/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			InitWithKubernetesVersion: "v1.26.0",
 			MgmtFlavor:                "topology",
@@ -237,7 +237,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>cur
 			BootstrapClusterProxy:     bootstrapClusterProxy,
 			ArtifactFolder:            artifactFolder,
 			SkipCleanup:               skipCleanup,
-			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.0/clusterctl-{OS}-{ARCH}",
+			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.5/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			InitWithKubernetesVersion: "v1.26.0",
 			MgmtFlavor:                "topology",

@@ -7,6 +7,17 @@ Started by the Kubernetes Special Interest Group (SIG) [Cluster Lifecycle](https
 ## ⚠️ Breaking Changes ⚠️
 
 <aside class="note">
+<h1>Legacy k8s.gcr.io container image registry will be redirected to registry.k8s.io</h1>
+
+k8s.gcr.io image registry will be redirected to registry.k8s.io on Monday March 20th.
+All images available in k8s.gcr.io are available at registry.k8s.io.
+Please read the [announcement](https://kubernetes.io/blog/2023/03/10/image-registry-redirect/) for more details.
+
+Also, this [guide](https://github.com/kubernetes/registry.k8s.io/tree/main/docs/mirroring) provide instructions about how to identify images to mirror and how to use mirrored images.
+
+</aside>
+
+<aside class="note">
 <h1>Deprecated API removal</h1>
 
 - API version v1alpha3 support will be removed in the upcoming release of v1.5

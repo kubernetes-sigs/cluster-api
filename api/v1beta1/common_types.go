@@ -148,12 +148,12 @@ const (
 
 // NodeUninitializedTaint can be added to Nodes at creation by the bootstrap provider, e.g. the
 // KubeadmBootstrap provider will add the taint.
-// This taint is used to prevent workloads to be scheduled on Nodes before the node is initialized by Cluster API.
+// This taint is used try to prevent workloads to be scheduled on Nodes before the node is initialized by Cluster API.
 // As of today the Node initialization consists of syncing labels from Machines to Nodes. Once the labels
 // have been initially synced the taint is removed from the Node.
 var NodeUninitializedTaint = corev1.Taint{
 	Key:    "node.cluster.x-k8s.io/uninitialized",
-	Effect: corev1.TaintEffectNoSchedule,
+	Effect: corev1.TaintEffectPreferNoSchedule,
 }
 
 const (

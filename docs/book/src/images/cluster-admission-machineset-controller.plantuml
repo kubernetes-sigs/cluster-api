@@ -11,6 +11,7 @@ repeat
       #LightBlue:Adopt machine;
     endif
   repeat while (More machines) is (yes)
+  :Propagate in-place changes to existing Machines;
   if (Not enough replicas) then (yes)
     #LightBlue:Boot new machine;
   elseif (Too many replicas) then (yes)

@@ -51,7 +51,6 @@ const (
 
 	btrfsStorage = "btrfs"
 	zfsStorage   = "zfs"
-	xfsStorage   = "xfs"
 )
 
 type dockerRuntime struct {
@@ -445,15 +444,6 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 	}
 	containerConfig.Env = envVars
 
-	// handle Docker on Btrfs or ZFS
-	// https://github.com/kubernetes-sigs/kind/issues/1416#issuecomment-606514724
-	if d.mountDevMapper(info) {
-		runConfig.Mounts = append(runConfig.Mounts, Mount{
-			Source: "/dev/mapper",
-			Target: "/dev/mapper",
-		})
-	}
-
 	configureVolumes(runConfig, &containerConfig, &hostConfig)
 	configurePortMappings(runConfig.PortMappings, &containerConfig, &hostConfig)
 
@@ -690,28 +680,6 @@ func (d *dockerRuntime) usernsRemap(info types.Info) bool {
 		}
 	}
 	return false
-}
-
-// mountDevMapper checks if the Docker storage driver is Btrfs or ZFS
-// or if the backing filesystem is Btrfs.
-func (d *dockerRuntime) mountDevMapper(info types.Info) bool {
-	storage := ""
-	storage = strings.ToLower(strings.TrimSpace(info.Driver))
-	if storage == btrfsStorage || storage == zfsStorage || storage == "devicemapper" {
-		return true
-	}
-
-	// check the backing file system
-	// docker info -f '{{json .DriverStatus  }}'
-	// [["Backing Filesystem","extfs"],["Supports d_type","true"],["Native Overlay Diff","true"]]
-	for _, item := range info.DriverStatus {
-		if item[0] == "Backing Filesystem" {
-			storage = strings.ToLower(item[1])
-			break
-		}
-	}
-
-	return storage == btrfsStorage || storage == zfsStorage || storage == xfsStorage
 }
 
 // rootless: use fuse-overlayfs by default

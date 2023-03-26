@@ -87,7 +87,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Clust
 		}
 		log.Error(err, "Failed to retrieve Node by ProviderID")
 		r.recorder.Event(machine, corev1.EventTypeWarning, "Failed to retrieve Node by ProviderID", err.Error())
-		conditions.MarkUnknown(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeInspectionFailedReason, "Failed to get the node which is hosting this component: %v", err)
+		conditions.MarkUnknown(machine, clusterv1.MachineNodeHealthyCondition, clusterv1.NodeInspectionFailedReason, "Failed to get the node")
 		return ctrl.Result{}, err
 	}
 

@@ -55,6 +55,16 @@ type IPAddressClaim struct {
 	Status IPAddressClaimStatus `json:"status,omitempty"`
 }
 
+// GetConditions returns the set of conditions for this object.
+func (m *IPAddressClaim) GetConditions() clusterv1.Conditions {
+	return m.Status.Conditions
+}
+
+// SetConditions sets the conditions on this object.
+func (m *IPAddressClaim) SetConditions(conditions clusterv1.Conditions) {
+	m.Status.Conditions = conditions
+}
+
 // +kubebuilder:object:root=true
 
 // IPAddressClaimList is a list of IPAddressClaims.

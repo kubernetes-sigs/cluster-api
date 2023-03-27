@@ -592,3 +592,22 @@ func IsNil(i interface{}) bool {
 	}
 	return false
 }
+
+// MergeMap merges maps.
+// NOTE: In case a key exists in multiple maps, the value of the first map is preserved.
+func MergeMap(maps ...map[string]string) map[string]string {
+	m := make(map[string]string)
+	for i := len(maps) - 1; i >= 0; i-- {
+		for k, v := range maps[i] {
+			m[k] = v
+		}
+	}
+
+	// Nil the result if the map is empty, thus avoiding triggering infinite reconcile
+	// given that at json level label: {} or annotation: {} is different from no field, which is the
+	// corresponding value stored in etcd given that those fields are defined as omitempty.
+	if len(m) == 0 {
+		return nil
+	}
+	return m
+}

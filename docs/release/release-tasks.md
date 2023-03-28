@@ -230,7 +230,7 @@ to a newer Go minor version according to our [backport policy](./../../CONTRIBUT
       * For an example please see: [PR: clusterctl 1.1.5](https://github.com/Homebrew/homebrew-core/pull/105075/files).
       * Homebrew has [conventions for commit messages](https://docs.brew.sh/Formula-Cookbook#commit) usually
         the commit message for us should look like: `clusterctl 1.1.5`.
-6. Set EOL date for previous release (prior art: https://github.com/kubernetes-sigs/cluster-api/issues/7146).
+6. **For minor releases** Set EOL date for previous release (prior art: https://github.com/kubernetes-sigs/cluster-api/issues/7146) and update Cluster API support and guarantees in CONTRIBUTING.md (prior art: https://github.com/kubernetes-sigs/cluster-api/pull/8308).
 
 Additional information:
 * [Versioning documentation](./../../CONTRIBUTING.md#versioning) for more information.
@@ -298,7 +298,7 @@ The goal of this task to make the book for the current release available under e
 1. Add a DNS entry for the book of the new release (should be available under e.g. `https://release-1-4.cluster-api.sigs.k8s.io`).
    <br>Prior art: [Add DNS for CAPI release-1.2 release branch](https://github.com/kubernetes/k8s.io/pull/3872)
 2. Open `https://release-1-4.cluster-api.sigs.k8s.io/` and verify that the certificates are valid
-   If they are not, talk to someone with access to Netlify, they have to click the `renew certificate` button in the Netlify UI.
+   If they are not, talk to someone with access to Netlify, they have to [click the `renew certificate` button](https://app.netlify.com/sites/kubernetes-sigs-cluster-api/settings/domain#https) in the Netlify UI.
 3. Update references in introduction.md only on the main branch (drop unsupported versions, add the new release version).
    <br>Prior art: [Add release 1.2 book link](https://github.com/kubernetes-sigs/cluster-api/pull/6697)
 
@@ -334,27 +334,30 @@ The goal of this task to make the book for the current release available under e
 The goal of this task to make the book for the current release available under `https://cluster-api.sigs.k8s.io`.
 
 Someone with access to Netlify should:
-1. Change production branch in Netlify the current release branch (e.g. `release-1.4`) to make the book available under `https://cluster-api.sigs.k8s.io`.
-2. Re-deploy via the Netlify UI.
+1. Change production branch in Netlify the current release branch (e.g. `release-1.4`) to make the book available under `https://cluster-api.sigs.k8s.io`. It's done under [production branch settings](https://app.netlify.com/sites/kubernetes-sigs-cluster-api/settings/deploys#branches-and-deploy-contexts)
+2. [Trigger a redeploy](https://app.netlify.com/sites/kubernetes-sigs-cluster-api/deploys).
 
 #### Update clusterctl links in the quickstart
 
 The goal of this task is to ensure the quickstart has links to the latest `clusterctl` binaries.
 
-1. Update clusterctl links in the quickstart (on main and cherry-pick onto release-1.4).
-   <br>Prior art: [Update clusterctl version to v1.2.x in quick start](https://github.com/kubernetes-sigs/cluster-api/pull/6716)
+Update clusterctl links in the quickstart (on main and cherry-pick onto release-1.4).
+<br>Prior art: [Update clusterctl version to v1.2.x in quick start](https://github.com/kubernetes-sigs/cluster-api/pull/6716)
 
-**Note**: The PR for this should be merged after the minor release has been published.
+**Note**: The PR for this should be merged after the minor release has been published. Recommended to create it before
+the release but with `/hold`. This will allow maintainers to review and approve before the release. When the release is
+done just remove the hold to merge it.
 
 #### Continuously: Communicate key dates to the community
 
-The goal of this task is to ensure all stakeholders are informed about the current release cycle.
+The goal of this task is to ensure all stakeholders are informed about the current release cycle. For example announcing
+upcoming code freezes etc based on the [release timeline (1.4 example)](./releases/release-1.4.md).
 
-Information can be distributed via: (TBD)
+Information can be distributed via:
 * `sig-cluster-lifecycle` mailing list
 * Slack
 * Office hours
-* ClusterAPI book
+* Cluster API book
 * ...
 
 Relevant information includes: (TBD)
@@ -364,8 +367,8 @@ Relevant information includes: (TBD)
 * ...
 
 Stakeholders are: (TBD)
-* End users of ClusterAPI
-* Contributors to core ClusterAPI
+* End users of Cluster API
+* Contributors to core Cluster API
 * Provider implementers
 * ...
 

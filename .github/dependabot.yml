@@ -27,4 +27,5 @@ updates:
   commit-message:
     prefix: ":seedling:"
   labels:
+    - "area/dependency"
     - "ok-to-test"

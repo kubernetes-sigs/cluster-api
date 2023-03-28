@@ -152,14 +152,15 @@ Cluster API maintains the most recent release/releases for all supported API and
 - We will maintain test coverage for all supported minor releases and for one additional release for the current stable API version in case we have to do an emergency patch release.
   For example, if v1.2 and v1.3 are currently supported, we will also maintain test coverage for v1.1 for one additional release cycle. When v1.4 is released, tests for v1.1 will be removed.
 
-| Minor Release | API Version  | Supported Until                                      |
-|---------------|--------------|------------------------------------------------------|
-| v1.3.x        | **v1beta1**  | when v1.5.0 will be released                         |
-| v1.2.x        | **v1beta1**  | when v1.4.0 will be released, tentatively March 2023 |
-| v1.1.x        | **v1beta1**  | EOL since 2022-07-18 - v1.2.0 release date (*)       |
-| v1.0.x        | **v1beta1**  | EOL since 2022-02-02 - v1.1.0 release date (*)       |
-| v0.4.x        | **v1alpha4** | EOL since 2022-04-06 - API version EOL               |
-| v0.3.x        | **v1alpha3** | EOL since 2022-02-23 - API version EOL               |
+| Minor Release | API Version  | Supported Until                                     |
+|---------------|--------------|-----------------------------------------------------|
+| v1.4.x        | **v1beta1**  | when v1.6.0 will be released                        |
+| v1.3.x        | **v1beta1**  | when v1.5.0 will be released, tentatively July 2023 |
+| v1.2.x        | **v1beta1**  | EOL since 2023-03-28 - v1.4.0 release date          |
+| v1.1.x        | **v1beta1**  | EOL since 2022-07-18 - v1.2.0 release date (*)      |
+| v1.0.x        | **v1beta1**  | EOL since 2022-02-02 - v1.1.0 release date (*)      |
+| v0.4.x        | **v1alpha4** | EOL since 2022-04-06 - API version EOL              |
+| v0.3.x        | **v1alpha3** | EOL since 2022-02-23 - API version EOL              |
 
 (*) Previous support policy applies, older minor releases were immediately unsupported when a new major/minor release was available
 

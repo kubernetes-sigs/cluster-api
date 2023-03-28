@@ -43,7 +43,7 @@ type OwnerGraphNode struct {
 // own owner references; there is no guarantee about the stability of this API. Using this test with providers may require
 // a custom implementation of this function, or the OwnerGraph it returns.
 func GetOwnerGraph(namespace, kubeconfigPath string) (OwnerGraph, error) {
-	p := newProxy(Kubeconfig{Path: kubeconfigPath, Context: ""})
+	p := NewProxy(Kubeconfig{Path: kubeconfigPath, Context: ""})
 	invClient := newInventoryClient(p, nil)
 
 	graph := newObjectGraph(p, invClient)

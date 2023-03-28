@@ -152,6 +152,9 @@ type GetClusterTemplateOptions struct {
 	// YamlProcessor defines the yaml processor to use for the cluster
 	// template processing. If not defined, SimpleProcessor will be used.
 	YamlProcessor Processor
+
+	// RESTThrottle defines parameters for the rest.Config's throttle.
+	RESTThrottle RESTThrottle
 }
 
 // numSources return the number of template sources currently set on a GetClusterTemplateOptions.
@@ -217,7 +220,11 @@ func (c *clusterctlClient) GetClusterTemplate(options GetClusterTemplateOptions)
 	}
 
 	// Gets  the client for the current management cluster
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{options.Kubeconfig, options.YamlProcessor})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		Processor:    options.YamlProcessor,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return nil, err
 	}

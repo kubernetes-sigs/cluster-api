@@ -83,6 +83,9 @@ type InitOptions struct {
 	// allowMissingProviderCRD is used to allow for a missing provider CRD when listing images.
 	// It is set to false to enforce that provider CRD is available when performing the standard init operation.
 	allowMissingProviderCRD bool
+
+	// RESTThrottle defines parameters for the rest.Config's throttle.
+	RESTThrottle RESTThrottle
 }
 
 // Init initializes a management cluster by adding the requested list of providers.
@@ -90,7 +93,10 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	log := logf.Log
 
 	// gets access to the management cluster
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +173,10 @@ func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 // InitImages returns the list of images required for init.
 func (c *clusterctlClient) InitImages(options InitOptions) ([]string, error) {
 	// gets access to the management cluster
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return nil, err
 	}

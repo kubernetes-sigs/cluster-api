@@ -60,10 +60,16 @@ type DeleteOptions struct {
 
 	// SkipInventory forces the deletion of the inventory items used by clusterctl to track providers.
 	SkipInventory bool
+
+	// RESTThrottle defines parameters for the rest.Config's throttle.
+	RESTThrottle RESTThrottle
 }
 
 func (c *clusterctlClient) Delete(options DeleteOptions) error {
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return err
 	}

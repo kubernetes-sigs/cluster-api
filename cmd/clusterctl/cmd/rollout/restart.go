@@ -21,6 +21,7 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 // restartOptions is the start of the data required to perform the operation.
@@ -29,6 +30,8 @@ type restartOptions struct {
 	kubeconfigContext string
 	resources         []string
 	namespace         string
+	restQPS           float32
+	restBurst         int
 }
 
 var restartOpt = &restartOptions{}
@@ -64,6 +67,10 @@ func NewCmdRolloutRestart(cfgFile string) *cobra.Command {
 	cmd.Flags().StringVar(&restartOpt.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 	cmd.Flags().StringVarP(&restartOpt.namespace, "namespace", "n", "", "Namespace where the resource(s) reside. If unspecified, the defult namespace will be used.")
+	cmd.Flags().Float32Var(&restartOpt.restQPS, "kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver.")
+	cmd.Flags().IntVar(&restartOpt.restBurst, "kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver.")
 
 	return cmd
 }
@@ -80,5 +87,9 @@ func runRestart(cfgFile string, _ *cobra.Command, args []string) error {
 		Kubeconfig: client.Kubeconfig{Path: restartOpt.kubeconfig, Context: restartOpt.kubeconfigContext},
 		Namespace:  restartOpt.namespace,
 		Resources:  restartOpt.resources,
+		RESTThrottle: client.RESTThrottle{
+			QPS:   restartOpt.restQPS,
+			Burst: restartOpt.restBurst,
+		},
 	})
 }

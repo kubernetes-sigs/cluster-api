@@ -41,6 +41,13 @@ import (
 	"sigs.k8s.io/cluster-api/version"
 )
 
+const (
+	// DefaultRESTConfigQPS is the default maximum queries per second for the Kubernetes client.
+	DefaultRESTConfigQPS float32 = 20
+	// DefaultRESTConfigBurst is the default maximum request burst for the Kubernetes client.
+	DefaultRESTConfigBurst = 300
+)
+
 var (
 	localScheme = scheme.Scheme
 )
@@ -77,10 +84,17 @@ type Proxy interface {
 	GetResourceNames(groupVersion, kind string, options []client.ListOption, prefix string) ([]string, error)
 }
 
+// RESTThrottle is a type that specifies inputs related to the throttle on the rest.Config.
+type RESTThrottle struct {
+	QPS   float32
+	Burst int
+}
+
 type proxy struct {
 	kubeconfig         Kubeconfig
 	timeout            time.Duration
 	configLoadingRules *clientcmd.ClientConfigLoadingRules
+	throttle           RESTThrottle
 }
 
 var _ Proxy = &proxy{}
@@ -148,9 +162,8 @@ func (k *proxy) GetConfig() (*rest.Config, error) {
 	}
 	restConfig.UserAgent = fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)
 
-	// Set QPS and Burst to a threshold that ensures the controller runtime client/client go doesn't generate throttling log messages
-	restConfig.QPS = 20
-	restConfig.Burst = 100
+	restConfig.QPS = k.throttle.QPS
+	restConfig.Burst = k.throttle.Burst
 
 	return restConfig, nil
 }
@@ -373,7 +386,22 @@ func InjectKubeconfigPaths(paths []string) ProxyOption {
 	}
 }
 
-func newProxy(kubeconfig Kubeconfig, opts ...ProxyOption) Proxy {
+// InjectRESTConfigQPS sets the QPS for the REST config.
+func InjectRESTConfigQPS(qps float32) ProxyOption {
+	return func(p *proxy) {
+		p.throttle.QPS = qps
+	}
+}
+
+// InjectRESTConfigBurst sets the burst for the REST config.
+func InjectRESTConfigBurst(burst int) ProxyOption {
+	return func(p *proxy) {
+		p.throttle.Burst = burst
+	}
+}
+
+// NewProxy creates a new proxy.
+func NewProxy(kubeconfig Kubeconfig, opts ...ProxyOption) Proxy {
 	// If a kubeconfig file isn't provided, find one in the standard locations.
 	rules := clientcmd.NewDefaultClientConfigLoadingRules()
 	if kubeconfig.Path != "" {
@@ -383,6 +411,11 @@ func newProxy(kubeconfig Kubeconfig, opts ...ProxyOption) Proxy {
 		kubeconfig:         kubeconfig,
 		timeout:            30 * time.Second,
 		configLoadingRules: rules,
+		// Set QPS and Burst to a threshold that ensures the controller runtime client/client go doesn't get throttled. This is especially important in environments with many CustomResourceDefinitions.
+		throttle: RESTThrottle{
+			QPS:   DefaultRESTConfigQPS,
+			Burst: DefaultRESTConfigBurst,
+		},
 	}
 
 	for _, o := range opts {

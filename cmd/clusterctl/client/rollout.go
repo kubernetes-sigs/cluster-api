@@ -38,6 +38,9 @@ type RolloutRestartOptions struct {
 	// Namespace where the resource(s) live. If unspecified, the namespace name will be inferred
 	// from the current configuration.
 	Namespace string
+
+	// RESTThrottle defines parameters for the rest.Config's throttle.
+	RESTThrottle RESTThrottle
 }
 
 // RolloutPauseOptions carries the options supported by RolloutPause.
@@ -52,6 +55,9 @@ type RolloutPauseOptions struct {
 	// Namespace where the resource(s) live. If unspecified, the namespace name will be inferred
 	// from the current configuration.
 	Namespace string
+
+	// RESTThrottle defines parameters for the rest.Config's throttle.
+	RESTThrottle RESTThrottle
 }
 
 // RolloutResumeOptions carries the options supported by RolloutResume.
@@ -66,6 +72,9 @@ type RolloutResumeOptions struct {
 	// Namespace where the resource(s) live. If unspecified, the namespace name will be inferred
 	// from the current configuration.
 	Namespace string
+
+	// RESTThrottle defines parameters for the rest.Config's throttle.
+	RESTThrottle RESTThrottle
 }
 
 // RolloutUndoOptions carries the options supported by RolloutUndo.
@@ -83,10 +92,16 @@ type RolloutUndoOptions struct {
 
 	// Revision number to rollback to when issuing the undo command.
 	ToRevision int64
+
+	// RESTThrottle defines parameters for the rest.Config's throttle.
+	RESTThrottle RESTThrottle
 }
 
 func (c *clusterctlClient) RolloutRestart(options RolloutRestartOptions) error {
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return err
 	}
@@ -103,7 +118,10 @@ func (c *clusterctlClient) RolloutRestart(options RolloutRestartOptions) error {
 }
 
 func (c *clusterctlClient) RolloutPause(options RolloutPauseOptions) error {
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return err
 	}
@@ -120,7 +138,10 @@ func (c *clusterctlClient) RolloutPause(options RolloutPauseOptions) error {
 }
 
 func (c *clusterctlClient) RolloutResume(options RolloutResumeOptions) error {
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return err
 	}
@@ -137,7 +158,10 @@ func (c *clusterctlClient) RolloutResume(options RolloutResumeOptions) error {
 }
 
 func (c *clusterctlClient) RolloutUndo(options RolloutUndoOptions) error {
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return err
 	}

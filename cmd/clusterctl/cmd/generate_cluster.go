@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 type generateClusterOptions struct {
@@ -44,6 +45,9 @@ type generateClusterOptions struct {
 	listVariables bool
 
 	output string
+
+	restQPS   float32
+	restBurst int
 }
 
 var gc = &generateClusterOptions{}
@@ -108,6 +112,11 @@ func init() {
 	generateClusterClusterCmd.Flags().StringVar(&gc.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 
+	generateClusterClusterCmd.Flags().Float32Var(&gc.restQPS, "kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver.")
+	generateClusterClusterCmd.Flags().IntVar(&gc.restBurst, "kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver.")
+
 	// flags for the template variables
 	generateClusterClusterCmd.Flags().StringVarP(&gc.targetNamespace, "target-namespace", "n", "",
 		"The namespace to use for the workload cluster. If unspecified, the current namespace will be used.")
@@ -156,6 +165,10 @@ func runGenerateClusterTemplate(cmd *cobra.Command, name string) error {
 		TargetNamespace:   gc.targetNamespace,
 		KubernetesVersion: gc.kubernetesVersion,
 		ListVariablesOnly: gc.listVariables,
+		RESTThrottle: client.RESTThrottle{
+			QPS:   gc.restQPS,
+			Burst: gc.restBurst,
+		},
 	}
 
 	if cmd.Flags().Changed("control-plane-machine-count") {

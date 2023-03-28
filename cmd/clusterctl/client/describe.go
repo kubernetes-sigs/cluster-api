@@ -57,12 +57,18 @@ type DescribeClusterOptions struct {
 	// Grouping groups machines objects in case the ready conditions
 	// have the same Status, Severity and Reason.
 	Grouping bool
+
+	// RESTThrottle defines parameters for the rest.Config's throttle.
+	RESTThrottle RESTThrottle
 }
 
 // DescribeCluster returns the object tree representing the status of a Cluster API cluster.
 func (c *clusterctlClient) DescribeCluster(options DescribeClusterOptions) (*tree.ObjectTree, error) {
 	// gets access to the management cluster
-	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -31,11 +31,17 @@ type GetKubeconfigOptions struct {
 
 	// WorkloadClusterName is the name of the workload cluster.
 	WorkloadClusterName string
+
+	// RESTThrottle defines parameters for the rest.Config's throttle.
+	RESTThrottle RESTThrottle
 }
 
 func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, error) {
 	// gets access to the management cluster
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return "", err
 	}

@@ -69,7 +69,7 @@ func TestProxyGetConfig(t *testing.T) {
 				configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
 				g.Expect(os.WriteFile(configFile, []byte(tt.kubeconfigContents), 0600)).To(Succeed())
 
-				proxy := newProxy(Kubeconfig{Path: configFile, Context: tt.context})
+				proxy := NewProxy(Kubeconfig{Path: configFile, Context: tt.context})
 				conf, err := proxy.GetConfig()
 				if tt.expectErr {
 					g.Expect(err).To(HaveOccurred())
@@ -82,7 +82,7 @@ func TestProxyGetConfig(t *testing.T) {
 				g.Expect(conf.Host).To(Equal(tt.expectedHost))
 				g.Expect(conf.UserAgent).To(Equal(fmt.Sprintf("clusterctl/%s (%s)", version.Get().GitVersion, version.Get().Platform)))
 				g.Expect(conf.QPS).To(BeEquivalentTo(20))
-				g.Expect(conf.Burst).To(BeEquivalentTo(100))
+				g.Expect(conf.Burst).To(BeEquivalentTo(300))
 				g.Expect(conf.Timeout.String()).To(Equal("30s"))
 			})
 		}
@@ -96,10 +96,29 @@ func TestProxyGetConfig(t *testing.T) {
 		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
 		g.Expect(os.WriteFile(configFile, []byte(kubeconfig("management", "default")), 0600)).To(Succeed())
 
-		proxy := newProxy(Kubeconfig{Path: configFile, Context: "management"}, InjectProxyTimeout(23*time.Second))
+		proxy := NewProxy(Kubeconfig{Path: configFile, Context: "management"}, InjectProxyTimeout(23*time.Second))
 		conf, err := proxy.GetConfig()
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(conf.Timeout.String()).To(Equal("23s"))
+	})
+
+	t.Run("configure throttle", func(t *testing.T) {
+		g := NewWithT(t)
+		dir, err := os.MkdirTemp("", "clusterctl")
+		g.Expect(err).NotTo(HaveOccurred())
+		defer os.RemoveAll(dir)
+		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
+		g.Expect(os.WriteFile(configFile, []byte(kubeconfig("management", "default")), 0600)).To(Succeed())
+
+		proxy := NewProxy(
+			Kubeconfig{Path: configFile, Context: "management"},
+			InjectRESTConfigQPS(30),
+			InjectRESTConfigBurst(400),
+		)
+		conf, err := proxy.GetConfig()
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(conf.QPS).To(Equal(float32(30)))
+		g.Expect(conf.Burst).To(Equal(400))
 	})
 }
 
@@ -123,7 +142,7 @@ func TestKUBECONFIGEnvVar(t *testing.T) {
 		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
 		g.Expect(os.WriteFile(configFile, []byte(kubeconfigContents), 0600)).To(Succeed())
 
-		proxy := newProxy(
+		proxy := NewProxy(
 			// dont't give an explicit path but rather define the file in the
 			// configLoadingRules precedence chain.
 			Kubeconfig{Path: "", Context: context},
@@ -151,7 +170,7 @@ func TestKUBECONFIGEnvVar(t *testing.T) {
 		configFile := filepath.Join(dir, ".test-kubeconfig.yaml")
 		g.Expect(os.WriteFile(configFile, []byte(kubeconfigContents), 0600)).To(Succeed())
 
-		proxy := newProxy(
+		proxy := NewProxy(
 			// dont't give an explicit path but rather define the file in the
 			// configLoadingRules precedence chain.
 			Kubeconfig{Path: "", Context: context},
@@ -229,7 +248,7 @@ func TestProxyCurrentNamespace(t *testing.T) {
 				g.Expect(os.WriteFile(configFile, []byte(tt.kubeconfigContents), 0600)).To(Succeed())
 			}
 
-			proxy := newProxy(Kubeconfig{Path: configFile, Context: tt.kubeconfigContext})
+			proxy := NewProxy(Kubeconfig{Path: configFile, Context: tt.kubeconfigContext})
 			ns, err := proxy.CurrentNamespace()
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())

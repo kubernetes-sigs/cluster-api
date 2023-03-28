@@ -46,6 +46,14 @@ type MoveOptions struct {
 
 	// DryRun means the move action is a dry run, no real action will be performed.
 	DryRun bool
+
+	// FromRESTThrottle defines parameters for the rest.Config's throttle for
+	// the source management cluster's Kubernetes client.
+	FromRESTThrottle RESTThrottle
+
+	// ToRESTThrottle defines parameters for the rest.Config's throttle for
+	// the destination management cluster's Kubernetes client.
+	ToRESTThrottle RESTThrottle
 }
 
 func (c *clusterctlClient) Move(options MoveOptions) error {
@@ -72,7 +80,7 @@ func (c *clusterctlClient) Move(options MoveOptions) error {
 
 func (c *clusterctlClient) move(options MoveOptions) error {
 	// Get the client for interacting with the source management cluster.
-	fromCluster, err := c.getClusterClient(options.FromKubeconfig)
+	fromCluster, err := c.getClusterClient(options.FromKubeconfig, options.FromRESTThrottle)
 	if err != nil {
 		return err
 	}
@@ -89,7 +97,7 @@ func (c *clusterctlClient) move(options MoveOptions) error {
 	var toCluster cluster.Client
 	if !options.DryRun {
 		// Get the client for interacting with the target management cluster.
-		if toCluster, err = c.getClusterClient(options.ToKubeconfig); err != nil {
+		if toCluster, err = c.getClusterClient(options.ToKubeconfig, options.ToRESTThrottle); err != nil {
 			return err
 		}
 	}
@@ -98,7 +106,7 @@ func (c *clusterctlClient) move(options MoveOptions) error {
 }
 
 func (c *clusterctlClient) fromDirectory(options MoveOptions) error {
-	toCluster, err := c.getClusterClient(options.ToKubeconfig)
+	toCluster, err := c.getClusterClient(options.ToKubeconfig, options.ToRESTThrottle)
 	if err != nil {
 		return err
 	}
@@ -111,7 +119,7 @@ func (c *clusterctlClient) fromDirectory(options MoveOptions) error {
 }
 
 func (c *clusterctlClient) toDirectory(options MoveOptions) error {
-	fromCluster, err := c.getClusterClient(options.FromKubeconfig)
+	fromCluster, err := c.getClusterClient(options.FromKubeconfig, options.FromRESTThrottle)
 	if err != nil {
 		return err
 	}
@@ -132,8 +140,11 @@ func (c *clusterctlClient) toDirectory(options MoveOptions) error {
 	return fromCluster.ObjectMover().ToDirectory(options.Namespace, options.ToDirectory)
 }
 
-func (c *clusterctlClient) getClusterClient(kubeconfig Kubeconfig) (cluster.Client, error) {
-	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: kubeconfig})
+func (c *clusterctlClient) getClusterClient(kubeconfig Kubeconfig, throttle RESTThrottle) (cluster.Client, error) {
+	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   kubeconfig,
+		RESTThrottle: throttle,
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -22,6 +22,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 type initOptions struct {
@@ -37,6 +38,8 @@ type initOptions struct {
 	validate                  bool
 	waitProviders             bool
 	waitProviderTimeout       int
+	restQPS                   float32
+	restBurst                 int
 }
 
 var initOpts = &initOptions{}
@@ -103,6 +106,10 @@ func init() {
 		"IPAM providers and versions (e.g. infoblox:v0.0.1) to add to the management cluster.")
 	initCmd.PersistentFlags().StringSliceVar(&initOpts.runtimeExtensionProviders, "runtime-extension", nil,
 		"Runtime extension providers and versions (e.g. test:v0.0.1) to add to the management cluster.")
+	initCmd.PersistentFlags().Float32Var(&initOpts.restQPS, "kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver.")
+	initCmd.PersistentFlags().IntVar(&initOpts.restBurst, "kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver.")
 	initCmd.Flags().StringVarP(&initOpts.targetNamespace, "target-namespace", "n", "",
 		"The target namespace where the providers should be deployed. If unspecified, the provider components' default namespace is used.")
 	initCmd.Flags().BoolVar(&initOpts.waitProviders, "wait-providers", false,
@@ -135,6 +142,10 @@ func runInit() error {
 		WaitProviders:             initOpts.waitProviders,
 		WaitProviderTimeout:       time.Duration(initOpts.waitProviderTimeout) * time.Second,
 		IgnoreValidationErrors:    !initOpts.validate,
+		RESTThrottle: client.RESTThrottle{
+			QPS:   initOpts.restQPS,
+			Burst: initOpts.restBurst,
+		},
 	}
 
 	if _, err := c.Init(options); err != nil {

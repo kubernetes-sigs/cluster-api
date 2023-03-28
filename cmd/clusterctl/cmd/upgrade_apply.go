@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 type upgradeApplyOptions struct {
@@ -37,6 +38,8 @@ type upgradeApplyOptions struct {
 	runtimeExtensionProviders []string
 	waitProviders             bool
 	waitProviderTimeout       int
+	restQPS                   float32
+	restBurst                 int
 }
 
 var ua = &upgradeApplyOptions{}
@@ -72,6 +75,11 @@ func init() {
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 	upgradeApplyCmd.Flags().StringVar(&ua.contract, "contract", "",
 		"The API Version of Cluster API (contract, e.g. v1alpha4) the management cluster should upgrade to")
+
+	upgradeApplyCmd.Flags().Float32Var(&ua.restQPS, "kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver.")
+	upgradeApplyCmd.Flags().IntVar(&ua.restBurst, "kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver.")
 
 	upgradeApplyCmd.Flags().StringVar(&ua.coreProvider, "core", "",
 		"Core provider instance version (e.g. cluster-api:v1.1.5) to upgrade to. This flag can be used as alternative to --contract.")
@@ -122,5 +130,9 @@ func runUpgradeApply() error {
 		RuntimeExtensionProviders: ua.runtimeExtensionProviders,
 		WaitProviders:             ua.waitProviders,
 		WaitProviderTimeout:       time.Duration(ua.waitProviderTimeout) * time.Second,
+		RESTThrottle: client.RESTThrottle{
+			QPS:   ua.restQPS,
+			Burst: ua.restBurst,
+		},
 	})
 }

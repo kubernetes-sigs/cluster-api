@@ -48,6 +48,9 @@ type CertManagerUpgradePlan cluster.CertManagerUpgradePlan
 // Kubeconfig is a type that specifies inputs related to the actual kubeconfig.
 type Kubeconfig cluster.Kubeconfig
 
+// RESTThrottle is a type that specifies inputs related to the throttle on the rest.Config.
+type RESTThrottle cluster.RESTThrottle
+
 // Processor defines the methods necessary for creating a specific yaml
 // processor.
 type Processor yaml.Processor

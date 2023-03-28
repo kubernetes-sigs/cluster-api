@@ -36,11 +36,17 @@ const upgradeItemProviderNameError = "invalid provider name %q. Provider name sh
 type PlanUpgradeOptions struct {
 	// Kubeconfig defines the kubeconfig to use for accessing the management cluster. If empty, default discovery rules apply.
 	Kubeconfig Kubeconfig
+
+	// RESTThrottle defines parameters for the rest.Config's throttle.
+	RESTThrottle RESTThrottle
 }
 
 func (c *clusterctlClient) PlanCertManagerUpgrade(options PlanUpgradeOptions) (CertManagerUpgradePlan, error) {
 	// Get the client for interacting with the management cluster.
-	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	cluster, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return CertManagerUpgradePlan{}, err
 	}
@@ -52,7 +58,10 @@ func (c *clusterctlClient) PlanCertManagerUpgrade(options PlanUpgradeOptions) (C
 
 func (c *clusterctlClient) PlanUpgrade(options PlanUpgradeOptions) ([]UpgradePlan, error) {
 	// Get the client for interacting with the management cluster.
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -126,6 +135,9 @@ type ApplyUpgradeOptions struct {
 
 	// WaitProviderTimeout sets the timeout per provider upgrade.
 	WaitProviderTimeout time.Duration
+
+	// RESTThrottle defines parameters for the rest.Config's throttle.
+	RESTThrottle RESTThrottle
 }
 
 func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
@@ -134,7 +146,10 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 	}
 
 	// Get the client for interacting with the management cluster.
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return err
 	}

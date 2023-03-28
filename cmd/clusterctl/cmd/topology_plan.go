@@ -45,6 +45,8 @@ type topologyPlanOptions struct {
 	cluster           string
 	namespace         string
 	outDir            string
+	restQPS           float32
+	restBurst         int
 }
 
 var tp = &topologyPlanOptions{}
@@ -88,10 +90,15 @@ var topologyPlanCmd = &cobra.Command{
 }
 
 func init() {
-	topologyPlanCmd.Flags().StringVar(&initOpts.kubeconfig, "kubeconfig", "",
+	topologyPlanCmd.Flags().StringVar(&tp.kubeconfig, "kubeconfig", "",
 		"Path to the kubeconfig for the management cluster. If unspecified, default discovery rules apply.")
-	topologyPlanCmd.Flags().StringVar(&initOpts.kubeconfigContext, "kubeconfig-context", "",
+	topologyPlanCmd.Flags().StringVar(&tp.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
+
+	topologyPlanCmd.Flags().Float32Var(&tp.restQPS, "kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver.")
+	topologyPlanCmd.Flags().IntVar(&tp.restBurst, "kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver.")
 
 	topologyPlanCmd.Flags().StringArrayVarP(&tp.files, "file", "f", nil, "path to the file with new or modified resources to be applied; the file should not contain more than one Cluster or more than one ClusterClass")
 	topologyPlanCmd.Flags().StringVarP(&tp.cluster, "cluster", "c", "", "name of the target cluster; this parameter is required when more than one cluster is affected")
@@ -132,6 +139,10 @@ func runTopologyPlan() error {
 		Objs:       convertToPtrSlice(objs),
 		Cluster:    tp.cluster,
 		Namespace:  tp.namespace,
+		RESTThrottle: client.RESTThrottle{
+			QPS:   tp.restQPS,
+			Burst: tp.restBurst,
+		},
 	})
 	if err != nil {
 		return err

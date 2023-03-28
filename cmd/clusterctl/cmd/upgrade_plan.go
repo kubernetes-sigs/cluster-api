@@ -25,11 +25,14 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 type upgradePlanOptions struct {
 	kubeconfig        string
 	kubeconfigContext string
+	restQPS           float32
+	restBurst         int
 }
 
 var up = &upgradePlanOptions{}
@@ -62,6 +65,10 @@ func init() {
 		"Path to the kubeconfig file to use for accessing the management cluster. If empty, default discovery rules apply.")
 	upgradePlanCmd.Flags().StringVar(&up.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
+	upgradePlanCmd.Flags().Float32Var(&up.restQPS, "kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver.")
+	upgradePlanCmd.Flags().IntVar(&up.restBurst, "kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver.")
 }
 
 func runUpgradePlan() error {
@@ -72,6 +79,10 @@ func runUpgradePlan() error {
 
 	certManUpgradePlan, err := c.PlanCertManagerUpgrade(client.PlanUpgradeOptions{
 		Kubeconfig: client.Kubeconfig{Path: up.kubeconfig, Context: up.kubeconfigContext},
+		RESTThrottle: client.RESTThrottle{
+			QPS:   up.restQPS,
+			Burst: up.restBurst,
+		},
 	})
 	if err != nil {
 		return err
@@ -86,6 +97,10 @@ func runUpgradePlan() error {
 
 	upgradePlans, err := c.PlanUpgrade(client.PlanUpgradeOptions{
 		Kubeconfig: client.Kubeconfig{Path: up.kubeconfig, Context: up.kubeconfigContext},
+		RESTThrottle: client.RESTThrottle{
+			QPS:   up.restQPS,
+			Burst: up.restBurst,
+		},
 	})
 
 	if err != nil {

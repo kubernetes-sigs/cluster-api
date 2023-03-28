@@ -39,6 +39,9 @@ type TopologyPlanOptions struct {
 	// This namespace is used as default for objects with missing namespaces.
 	// If the namespace of any of the input objects conflicts with Namespace an error is returned.
 	Namespace string
+
+	// RESTThrottle defines parameters for the rest.Config's throttle.
+	RESTThrottle RESTThrottle
 }
 
 // TopologyPlanOutput defines the output of the topology plan operation.
@@ -47,7 +50,10 @@ type TopologyPlanOutput = cluster.TopologyPlanOutput
 // TopologyPlan performs a dry run execution of the topology reconciler using the given inputs.
 // It returns a summary of the changes observed during the execution.
 func (c *clusterctlClient) TopologyPlan(options TopologyPlanOptions) (*TopologyPlanOutput, error) {
-	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
+	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{
+		Kubeconfig:   options.Kubeconfig,
+		RESTThrottle: options.RESTThrottle,
+	})
 	if err != nil {
 		return nil, err
 	}

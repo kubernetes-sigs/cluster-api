@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 type moveOptions struct {
@@ -32,6 +33,10 @@ type moveOptions struct {
 	fromDirectory         string
 	toDirectory           string
 	dryRun                bool
+	fromRestQPS           float32
+	toRestQPS             float32
+	fromRestBurst         int
+	toRestBurst           int
 }
 
 var mo = &moveOptions{}
@@ -79,6 +84,15 @@ func init() {
 	moveCmd.Flags().StringVar(&mo.fromDirectory, "from-directory", "",
 		"Read Cluster API objects and all dependencies from a directory into a management cluster.")
 
+	moveCmd.Flags().Float32Var(&mo.fromRestQPS, "kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver of the source management cluster.")
+	moveCmd.Flags().Float32Var(&mo.toRestQPS, "to-kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver of the destination management cluster.")
+	moveCmd.Flags().IntVar(&mo.fromRestBurst, "kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver of the source management cluster.")
+	moveCmd.Flags().IntVar(&mo.toRestBurst, "to-kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver of the destination management cluster.")
+
 	moveCmd.MarkFlagsMutuallyExclusive("to-directory", "to-kubeconfig")
 	moveCmd.MarkFlagsMutuallyExclusive("from-directory", "to-directory")
 	moveCmd.MarkFlagsMutuallyExclusive("from-directory", "kubeconfig")
@@ -106,5 +120,13 @@ func runMove() error {
 		ToDirectory:    mo.toDirectory,
 		Namespace:      mo.namespace,
 		DryRun:         mo.dryRun,
+		FromRESTThrottle: client.RESTThrottle{
+			QPS:   mo.fromRestQPS,
+			Burst: mo.fromRestBurst,
+		},
+		ToRESTThrottle: client.RESTThrottle{
+			QPS:   mo.toRestQPS,
+			Burst: mo.toRestBurst,
+		},
 	})
 }

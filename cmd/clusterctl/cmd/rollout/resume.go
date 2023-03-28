@@ -21,6 +21,7 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 // resumeOptions is the start of the data required to perform the operation.
@@ -29,6 +30,8 @@ type resumeOptions struct {
 	kubeconfigContext string
 	resources         []string
 	namespace         string
+	restQPS           float32
+	restBurst         int
 }
 
 var resumeOpt = &resumeOptions{}
@@ -64,6 +67,10 @@ func NewCmdRolloutResume(cfgFile string) *cobra.Command {
 	cmd.Flags().StringVar(&resumeOpt.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 	cmd.Flags().StringVarP(&resumeOpt.namespace, "namespace", "n", "", "Namespace where the resource(s) reside. If unspecified, the defult namespace will be used.")
+	cmd.Flags().Float32Var(&resumeOpt.restQPS, "kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver.")
+	cmd.Flags().IntVar(&resumeOpt.restBurst, "kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver.")
 
 	return cmd
 }
@@ -80,5 +87,9 @@ func runResume(cfgFile string, args []string) error {
 		Kubeconfig: client.Kubeconfig{Path: resumeOpt.kubeconfig, Context: resumeOpt.kubeconfigContext},
 		Namespace:  resumeOpt.namespace,
 		Resources:  resumeOpt.resources,
+		RESTThrottle: client.RESTThrottle{
+			QPS:   resumeOpt.restQPS,
+			Burst: resumeOpt.restBurst,
+		},
 	})
 }

@@ -21,6 +21,7 @@ import (
 	"k8s.io/kubectl/pkg/util/templates"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 // undoOptions is the start of the data required to perform the operation.
@@ -30,6 +31,8 @@ type undoOptions struct {
 	resources         []string
 	namespace         string
 	toRevision        int64
+	restQPS           float32
+	restBurst         int
 }
 
 var undoOpt = &undoOptions{}
@@ -64,6 +67,10 @@ func NewCmdRolloutUndo(cfgFile string) *cobra.Command {
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 	cmd.Flags().StringVarP(&undoOpt.namespace, "namespace", "n", "", "Namespace where the resource(s) reside. If unspecified, the defult namespace will be used.")
 	cmd.Flags().Int64Var(&undoOpt.toRevision, "to-revision", undoOpt.toRevision, "The revision to rollback to. Default to 0 (last revision).")
+	cmd.Flags().Float32Var(&undoOpt.restQPS, "kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver.")
+	cmd.Flags().IntVar(&undoOpt.restBurst, "kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver.")
 
 	return cmd
 }
@@ -81,5 +88,9 @@ func runUndo(cfgFile string, args []string) error {
 		Namespace:  undoOpt.namespace,
 		Resources:  undoOpt.resources,
 		ToRevision: undoOpt.toRevision,
+		RESTThrottle: client.RESTThrottle{
+			QPS:   undoOpt.restQPS,
+			Burst: undoOpt.restBurst,
+		},
 	})
 }

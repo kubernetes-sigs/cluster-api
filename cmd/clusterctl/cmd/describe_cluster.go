@@ -34,6 +34,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/tree"
 )
 
@@ -65,6 +66,8 @@ type describeClusterOptions struct {
 	grouping                bool
 	disableGrouping         bool
 	color                   bool
+	restQPS                 float32
+	restBurst               int
 }
 
 var dc = &describeClusterOptions{}
@@ -114,6 +117,11 @@ func init() {
 	describeClusterClusterCmd.Flags().StringVarP(&dc.namespace, "namespace", "n", "",
 		"The namespace where the workload cluster is located. If unspecified, the current namespace will be used.")
 
+	describeClusterClusterCmd.Flags().Float32Var(&dc.restQPS, "kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver.")
+	describeClusterClusterCmd.Flags().IntVar(&dc.restBurst, "kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver.")
+
 	describeClusterClusterCmd.Flags().StringVar(&dc.showOtherConditions, "show-conditions", "",
 		"list of comma separated kind or kind/name for which the command should show all the object's conditions (use 'all' to show conditions for everything).")
 	describeClusterClusterCmd.Flags().BoolVar(&dc.showMachineSets, "show-machinesets", false,
@@ -162,6 +170,10 @@ func runDescribeCluster(cmd *cobra.Command, name string) error {
 		AddTemplateVirtualNode:  true,
 		Echo:                    dc.echo,
 		Grouping:                dc.grouping && !dc.disableGrouping,
+		RESTThrottle: client.RESTThrottle{
+			QPS:   dc.restQPS,
+			Burst: dc.restBurst,
+		},
 	})
 	if err != nil {
 		return err

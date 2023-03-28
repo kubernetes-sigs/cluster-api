@@ -117,8 +117,9 @@ type RepositoryClientFactory func(RepositoryClientFactoryInput) (repository.Clie
 
 // ClusterClientFactoryInput represents the inputs required by the factory.
 type ClusterClientFactoryInput struct {
-	Kubeconfig Kubeconfig
-	Processor  Processor
+	Kubeconfig   Kubeconfig
+	Processor    Processor
+	RESTThrottle RESTThrottle
 }
 
 // ClusterClientFactory is a factory of cluster.Client from a given input.
@@ -207,11 +208,24 @@ func defaultRepositoryFactory(configClient config.Client) RepositoryClientFactor
 // defaultClusterFactory is a ClusterClientFactory func the uses the default client provided by the cluster low level library.
 func defaultClusterFactory(configClient config.Client) ClusterClientFactory {
 	return func(input ClusterClientFactoryInput) (cluster.Client, error) {
+		var proxyOpts []cluster.ProxyOption
+		if input.RESTThrottle.QPS > 0 {
+			proxyOpts = append(proxyOpts, cluster.InjectRESTConfigQPS(input.RESTThrottle.QPS))
+		}
+		if input.RESTThrottle.Burst > 0 {
+			proxyOpts = append(proxyOpts, cluster.InjectRESTConfigBurst(input.RESTThrottle.Burst))
+		}
 		return cluster.New(
 			// Kubeconfig is a type alias to cluster.Kubeconfig
 			cluster.Kubeconfig(input.Kubeconfig),
 			configClient,
 			cluster.InjectYamlProcessor(input.Processor),
+			cluster.InjectProxy(
+				cluster.NewProxy(
+					cluster.Kubeconfig(input.Kubeconfig),
+					proxyOpts...,
+				),
+			),
 		), nil
 	}
 }

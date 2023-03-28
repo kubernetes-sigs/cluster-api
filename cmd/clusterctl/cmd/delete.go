@@ -21,6 +21,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 type deleteOptions struct {
@@ -35,6 +36,8 @@ type deleteOptions struct {
 	includeNamespace          bool
 	includeCRDs               bool
 	deleteAll                 bool
+	restQPS                   float32
+	restBurst                 int
 }
 
 var dd = &deleteOptions{}
@@ -92,6 +95,11 @@ func init() {
 	deleteCmd.Flags().StringVar(&dd.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 
+	deleteCmd.Flags().Float32Var(&dd.restQPS, "kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver.")
+	deleteCmd.Flags().IntVar(&dd.restBurst, "kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver.")
+
 	deleteCmd.Flags().BoolVar(&dd.includeNamespace, "include-namespace", false,
 		"Forces the deletion of the namespace where the providers are hosted (and of all the contained objects)")
 	deleteCmd.Flags().BoolVar(&dd.includeCRDs, "include-crd", false,
@@ -148,5 +156,9 @@ func runDelete() error {
 		IPAMProviders:             dd.ipamProviders,
 		RuntimeExtensionProviders: dd.runtimeExtensionProviders,
 		DeleteAll:                 dd.deleteAll,
+		RESTThrottle: client.RESTThrottle{
+			QPS:   dd.restQPS,
+			Burst: dd.restBurst,
+		},
 	})
 }

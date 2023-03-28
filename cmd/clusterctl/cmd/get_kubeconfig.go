@@ -24,12 +24,15 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client"
+	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/cluster"
 )
 
 type getKubeconfigOptions struct {
 	kubeconfig        string
 	kubeconfigContext string
 	namespace         string
+	restQPS           float32
+	restBurst         int
 }
 
 var gk = &getKubeconfigOptions{}
@@ -66,6 +69,11 @@ func init() {
 	getKubeconfigCmd.Flags().StringVar(&gk.kubeconfigContext, "kubeconfig-context", "",
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 
+	getKubeconfigCmd.Flags().Float32Var(&gk.restQPS, "kube-api-qps", cluster.DefaultRESTConfigQPS,
+		"QPS to use while talking with kubernetes apiserver.")
+	getKubeconfigCmd.Flags().IntVar(&gk.restBurst, "kube-api-burst", cluster.DefaultRESTConfigBurst,
+		"Burst to use while talking with kubernetes apiserver.")
+
 	// completions
 	getKubeconfigCmd.ValidArgsFunction = resourceNameCompletionFunc(
 		getKubeconfigCmd.Flags().Lookup("kubeconfig"),
@@ -88,6 +96,10 @@ func runGetKubeconfig(workloadClusterName string) error {
 		Kubeconfig:          client.Kubeconfig{Path: gk.kubeconfig, Context: gk.kubeconfigContext},
 		WorkloadClusterName: workloadClusterName,
 		Namespace:           gk.namespace,
+		RESTThrottle: client.RESTThrottle{
+			QPS:   gk.restQPS,
+			Burst: gk.restBurst,
+		},
 	}
 
 	out, err := c.GetKubeconfig(options)

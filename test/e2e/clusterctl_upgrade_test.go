@@ -123,7 +123,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 	})
 })
 
-var _ = Describe("When testing clusterctl upgrades (v1.2=>current)", func() {
+var _ = Describe("When testing clusterctl upgrades (v1.2=>current) [PR-Informing]", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{
 			E2EConfig:             e2eConfig,

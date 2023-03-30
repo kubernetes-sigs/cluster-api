@@ -171,7 +171,7 @@ func applyOptions(in *applyOptionsInput) ([]byte, error) {
 			path:               contract.Path{},
 			original:           originalMap,
 			modified:           modifiedMap,
-			shouldDropDiffFunc: ssa.IsNotAllowedPath(in.options.allowedPaths),
+			shouldDropDiffFunc: ssa.IsPathNotAllowed(in.options.allowedPaths),
 		})
 	}
 
@@ -183,7 +183,7 @@ func applyOptions(in *applyOptionsInput) ([]byte, error) {
 			path:               contract.Path{},
 			original:           originalMap,
 			modified:           modifiedMap,
-			shouldDropDiffFunc: ssa.IsIgnorePath(in.options.ignorePaths),
+			shouldDropDiffFunc: ssa.IsPathIgnored(in.options.ignorePaths),
 		})
 	}
 

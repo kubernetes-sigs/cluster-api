@@ -183,7 +183,7 @@ func cleanupManagedFieldsAndAnnotation(obj *unstructured.Unstructured) error {
 	ssa.FilterIntent(&ssa.FilterIntentInput{
 		Path:  contract.Path{},
 		Value: obj.Object,
-		ShouldFilter: ssa.IsIgnorePath([]contract.Path{
+		ShouldFilter: ssa.IsPathIgnored([]contract.Path{
 			{"metadata", "annotations", clusterv1.TopologyDryRunAnnotation},
 			// In case the ClusterClass we are reconciling is using not the latest apiVersion the conversion
 			// annotation might be added to objects. As we don't care about differences in conversion as we
@@ -220,7 +220,7 @@ func cleanupManagedFieldsAndAnnotation(obj *unstructured.Unstructured) error {
 		ssa.FilterIntent(&ssa.FilterIntentInput{
 			Path:  contract.Path{},
 			Value: fieldsV1,
-			ShouldFilter: ssa.IsIgnorePath([]contract.Path{
+			ShouldFilter: ssa.IsPathIgnored([]contract.Path{
 				{"f:metadata", "f:annotations", "f:" + clusterv1.TopologyDryRunAnnotation},
 				{"f:metadata", "f:annotations", "f:" + conversion.DataAnnotation},
 			}),

@@ -803,6 +803,17 @@ func clusterClassUsesTemplate(cc *clusterv1.ClusterClass, templateRef *corev1.Ob
 		}
 	}
 
+	for _, mpClass := range cc.Spec.Workers.MachinePools {
+		// Check the bootstrap ref
+		if equalRef(mpClass.Template.Bootstrap.Ref, templateRef) {
+			return true
+		}
+		// Check the infrastructure ref.
+		if equalRef(mpClass.Template.Infrastructure.Ref, templateRef) {
+			return true
+		}
+	}
+
 	return false
 }
 

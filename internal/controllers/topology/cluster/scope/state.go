@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 // ClusterState holds all the objects representing the state of a managed Cluster topology.
@@ -43,6 +44,9 @@ type ClusterState struct {
 
 	// MachineDeployments holds the machine deployments in the Cluster.
 	MachineDeployments MachineDeploymentsStateMap
+
+	// MachinePools holds the machine deployments in the Cluster.
+	MachinePools MachinePoolsStateMap
 }
 
 // ControlPlaneState holds all the objects representing the state of a managed control plane.
@@ -122,4 +126,48 @@ func (md *MachineDeploymentState) IsUpgrading(ctx context.Context, c client.Clie
 		}
 	}
 	return false, nil
+}
+
+// -----------------
+
+// MachinePoolsStateMap holds a collection of MachinePool states.
+type MachinePoolsStateMap map[string]*MachinePoolState
+
+// RollingOut returns the list of the machine pools
+// that are rolling out.
+func (mds MachinePoolsStateMap) RollingOut() []string {
+	names := []string{}
+	for _, md := range mds {
+		if md.IsRollingOut() {
+			names = append(names, md.Object.Name)
+		}
+	}
+	return names
+}
+
+// IsAnyRollingOut returns true if at least one of the
+// machine deployments is rolling out. False, otherwise.
+func (mds MachinePoolsStateMap) IsAnyRollingOut() bool {
+	return len(mds.RollingOut()) != 0
+}
+
+// MachinePoolState holds all the objects representing the state of a managed pool.
+type MachinePoolState struct {
+	// Object holds the MachinePool object.
+	Object *expv1.MachinePool
+
+	// BootstrapTemplate holds the bootstrap template referenced by the MachinePool object.
+	BootstrapTemplate *unstructured.Unstructured
+
+	// InfrastructureMachineTemplate holds the infrastructure machine template referenced by the MachinePool object.
+	InfrastructureMachineTemplate *unstructured.Unstructured
+}
+
+// IsRollingOut determines if the machine pool is upgrading.
+// A machine pool is considered upgrading if:
+// - if any of the replicas of the machine pool is not ready.
+func (md *MachinePoolState) IsRollingOut() bool {
+	// TODO(richardcase) - implement this
+	return true
+	//return !mdutil.DeploymentComplete(md.Object, &md.Object.Status) || *md.Object.Spec.Replicas != md.Object.Status.ReadyReplicas
 }

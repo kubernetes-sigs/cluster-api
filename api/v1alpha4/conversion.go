@@ -139,6 +139,8 @@ func (src *ClusterClass) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.Workers.MachineDeployments[i].Strategy = restored.Spec.Workers.MachineDeployments[i].Strategy
 	}
 
+	dst.Spec.Workers.MachinePools = restored.Spec.Workers.MachinePools
+
 	dst.Status = restored.Status
 
 	return nil

@@ -22,6 +22,7 @@ import "k8s.io/apimachinery/pkg/util/sets"
 type UpgradeTracker struct {
 	ControlPlane       ControlPlaneUpgradeTracker
 	MachineDeployments MachineDeploymentUpgradeTracker
+	MachinePools       MachinePoolUpgradeTracker
 }
 
 // ControlPlaneUpgradeTracker holds the current upgrade status of the Control Plane.
@@ -136,6 +137,10 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 			upgradingNames:                         sets.Set[string]{},
 			maxMachineDeploymentUpgradeConcurrency: options.maxMDUpgradeConcurrency,
 		},
+		MachinePools: MachinePoolUpgradeTracker{
+			pendingNames:    sets.Set[string]{},
+			rollingOutNames: sets.Set[string]{},
+		},
 	}
 }
 
@@ -221,4 +226,67 @@ func (m *MachineDeploymentUpgradeTracker) DeferredUpgradeNames() []string {
 // MachineDeployments. Returns false, otherwise.
 func (m *MachineDeploymentUpgradeTracker) DeferredUpgrade() bool {
 	return len(m.deferredNames) != 0
+// TODO(richardcase) - this could probably be refactored to be more generic
+
+// MachinePoolUpgradeTracker holds the current upgrade status and makes upgrade
+// decisions for MachinePools.
+type MachinePoolUpgradeTracker struct {
+	pendingNames    sets.Set[string]
+	rollingOutNames sets.Set[string]
+	holdUpgrades    bool
+}
+
+// MarkRollingOut marks a MachinePool as currently rolling out or
+// is about to rollout.
+// NOTE: We are using Rollout because this includes upgrades and also other changes
+// that could imply Machines being created/deleted; in both cases we should wait for
+// the operation to complete before moving to the next step of the Cluster upgrade.
+func (m *MachinePoolUpgradeTracker) MarkRollingOut(names ...string) {
+	for _, name := range names {
+		m.rollingOutNames.Insert(name)
+	}
+}
+
+// RolloutNames returns the list of machine pools that are rolling out or
+// are about to rollout.
+func (m *MachinePoolUpgradeTracker) RolloutNames() []string {
+	return sets.List(m.rollingOutNames)
+}
+
+// HoldUpgrades is used to set if any subsequent upgrade operations should be paused,
+// e.g. because a AfterControlPlaneUpgrade hook response asked to do so.
+// If HoldUpgrades is called with `true` then AllowUpgrade would return false.
+func (m *MachinePoolUpgradeTracker) HoldUpgrades(val bool) {
+	m.holdUpgrades = val
+}
+
+// AllowUpgrade returns true if a MachinePool is allowed to upgrade,
+// returns false otherwise.
+// Note: If AllowUpgrade returns true the machine pool will pick up
+// the topology version. This will eventually trigger a machine pool
+// rollout.
+func (m *MachinePoolUpgradeTracker) AllowUpgrade() bool {
+	if m.holdUpgrades {
+		return false
+	}
+	return m.rollingOutNames.Len() < maxMachineDeploymentUpgradeConcurrency
+}
+
+// MarkPendingUpgrade marks a machine pool as in need of an upgrade.
+// This is generally used to capture machine pools that have not yet
+// picked up the topology version.
+func (m *MachinePoolUpgradeTracker) MarkPendingUpgrade(name string) {
+	m.pendingNames.Insert(name)
+}
+
+// PendingUpgradeNames returns the list of machine pool names that
+// are pending an upgrade.
+func (m *MachinePoolUpgradeTracker) PendingUpgradeNames() []string {
+	return sets.List(m.pendingNames)
+}
+
+// PendingUpgrade returns true if any of the machine pools are pending
+// an upgrade. Returns false, otherwise.
+func (m *MachinePoolUpgradeTracker) PendingUpgrade() bool {
+	return len(m.pendingNames) != 0
 }

@@ -169,6 +169,15 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, clusterCla
 		}
 	}
 
+	for _, mpClass := range clusterClass.Spec.Workers.MachinePools {
+		if mpClass.Template.Bootstrap.Ref != nil {
+			refs = append(refs, mpClass.Template.Bootstrap.Ref)
+		}
+		if mpClass.Template.Infrastructure.Ref != nil {
+			refs = append(refs, mpClass.Template.Infrastructure.Ref)
+		}
+	}
+
 	// Ensure all referenced objects are owned by the ClusterClass.
 	// Nb. Some external objects can be referenced multiple times in the ClusterClass,
 	// but we only want to set the owner reference once per unique external object.

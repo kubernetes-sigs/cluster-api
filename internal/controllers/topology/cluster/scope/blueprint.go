@@ -39,6 +39,9 @@ type ClusterBlueprint struct {
 
 	// MachineDeployments holds the MachineDeploymentBlueprints derived from ClusterClass.
 	MachineDeployments map[string]*MachineDeploymentBlueprint
+
+	// MachinePools holds the MachinePoolsBlueprints derived from ClusterClass.
+	MachinePools map[string]*MachinePoolBlueprint
 }
 
 // ControlPlaneBlueprint holds the templates required for computing the desired state of a managed control plane.
@@ -71,6 +74,21 @@ type MachineDeploymentBlueprint struct {
 	// MachineHealthCheck holds the MachineHealthCheckClass for this MachineDeployment.
 	// +optional
 	MachineHealthCheck *clusterv1.MachineHealthCheckClass
+}
+
+// MachinePoolBlueprint holds the templates required for computing the desired state of a managed MachinePools;
+// it also holds a copy of the MachinePool metadata from Cluster.Topology, thus providing all the required info
+// in a single place.
+type MachinePoolBlueprint struct {
+	// Metadata holds the metadata for a MachinePool.
+	// NOTE: This is a convenience copy of the metadata field from Cluster.Spec.Topology.Workers.MachinePools[x].
+	Metadata clusterv1.ObjectMeta
+
+	// BootstrapTemplate holds the bootstrap template for a MachinePool referenced from ClusterClass.
+	BootstrapTemplate *unstructured.Unstructured
+
+	// InfrastructureMachineTemplate holds the infrastructure machine template for a MachinePool referenced from ClusterClass.
+	InfrastructureMachineTemplate *unstructured.Unstructured
 }
 
 // HasControlPlaneInfrastructureMachine checks whether the clusterClass mandates the controlPlane has infrastructureMachines.
@@ -136,4 +154,9 @@ func (b *ClusterBlueprint) MachineDeploymentMachineHealthCheckClass(md *clusterv
 // HasMachineDeployments checks whether the topology has MachineDeployments.
 func (b *ClusterBlueprint) HasMachineDeployments() bool {
 	return b.Topology.Workers != nil && len(b.Topology.Workers.MachineDeployments) > 0
+}
+
+// HasMachinePools checks whether the topology has MachinePools.
+func (b *ClusterBlueprint) HasMachinePools() bool {
+	return b.Topology.Workers != nil && len(b.Topology.Workers.MachinePools) > 0
 }

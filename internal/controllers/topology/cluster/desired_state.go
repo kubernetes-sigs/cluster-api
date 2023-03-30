@@ -31,6 +31,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
@@ -103,6 +104,15 @@ func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*
 		desiredState.MachineDeployments, err = r.computeMachineDeployments(ctx, s)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to compute MachineDeployments")
+		}
+	}
+
+	// If required, compute the desired state of the MachinePools from the list of MachinePoolTopologies
+	// defined in the cluster.
+	if s.Blueprint.HasMachinePools() {
+		desiredState.MachinePools, err = computeMachinePools(ctx, s, desiredState.ControlPlane)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to compute MachinePools")
 		}
 	}
 
@@ -868,6 +878,311 @@ func isMachineDeploymentDeferred(clusterTopology *clusterv1.Topology, mdTopology
 
 	// This case should be impossible as mdTopology should have been found in workers.machineDeployments.
 	return false
+}
+
+// computeMachinePools computes the desired state of the list of MachinePools.
+func computeMachinePools(ctx context.Context, s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState) (scope.MachinePoolsStateMap, error) {
+	// Mark all the machine pools that are currently rolling out.
+	// This captured information will be used for
+	//   - Building the TopologyReconciled condition.
+	//   - Making upgrade decisions on machine pools.
+	s.UpgradeTracker.MachinePools.MarkRollingOut(s.Current.MachinePools.RollingOut()...)
+	machinePoolsStateMap := make(scope.MachinePoolsStateMap)
+	for _, mpTopology := range s.Blueprint.Topology.Workers.MachinePools {
+		desiredMachinePool, err := computeMachinePool(ctx, s, desiredControlPlaneState, mpTopology)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to compute MachinePool for topology %q", mpTopology.Name)
+		}
+		machinePoolsStateMap[mpTopology.Name] = desiredMachinePool
+	}
+	return machinePoolsStateMap, nil
+}
+
+// computeMachinePool computes the desired state for a MachinePoolTopology.
+// The generated machinePool object is calculated using the values from the machinePoolTopology and
+// the machinePool class.
+func computeMachinePool(_ context.Context, s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState, machinePoolTopology clusterv1.MachinePoolTopology) (*scope.MachinePoolState, error) {
+	desiredMachinePool := &scope.MachinePoolState{}
+
+	// Gets the blueprint for the MachinePool class.
+	className := machinePoolTopology.Class
+	machinePoolBlueprint, ok := s.Blueprint.MachinePools[className]
+	if !ok {
+		return nil, errors.Errorf("MachinePool class %s not found in %s", className, tlog.KObj{Obj: s.Blueprint.ClusterClass})
+	}
+
+	var machinePoolClass *clusterv1.MachinePoolClass
+	for _, mpClass := range s.Blueprint.ClusterClass.Spec.Workers.MachinePools {
+		mpClass := mpClass
+		if mpClass.Class == className {
+			machinePoolClass = &mpClass
+			break
+		}
+	}
+	if machinePoolClass == nil {
+		return nil, errors.Errorf("MachinePool class %s not found in %s", className, tlog.KObj{Obj: s.Blueprint.ClusterClass})
+	}
+
+	// Compute the bootstrap template.
+	currentMachinePool := s.Current.MachinePools[machinePoolTopology.Name]
+	var currentBootstrapTemplateRef *corev1.ObjectReference
+	if currentMachinePool != nil && currentMachinePool.BootstrapTemplate != nil {
+		currentBootstrapTemplateRef = currentMachinePool.Object.Spec.Template.Spec.Bootstrap.ConfigRef
+	}
+	desiredMachinePool.BootstrapTemplate = templateToTemplate(templateToInput{
+		template:              machinePoolBlueprint.BootstrapTemplate,
+		templateClonedFromRef: contract.ObjToRef(machinePoolBlueprint.BootstrapTemplate),
+		cluster:               s.Current.Cluster,
+		namePrefix:            bootstrapTemplateNamePrefix(s.Current.Cluster.Name, machinePoolTopology.Name),
+		currentObjectRef:      currentBootstrapTemplateRef,
+		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
+		// in case of errors in between creating this template and creating/updating the MachinePool object
+		// with the reference to the ControlPlane object using this template.
+		ownerRef: ownerReferenceTo(s.Current.Cluster),
+	})
+
+	bootstrapTemplateLabels := desiredMachinePool.BootstrapTemplate.GetLabels()
+	if bootstrapTemplateLabels == nil {
+		bootstrapTemplateLabels = map[string]string{}
+	}
+	// Add ClusterTopologyMachinePoolLabel to the generated Bootstrap template
+	bootstrapTemplateLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
+	desiredMachinePool.BootstrapTemplate.SetLabels(bootstrapTemplateLabels)
+
+	// Compute the Infrastructure template.
+	var currentInfraMachineTemplateRef *corev1.ObjectReference
+	if currentMachinePool != nil && currentMachinePool.InfrastructureMachineTemplate != nil {
+		currentInfraMachineTemplateRef = &currentMachinePool.Object.Spec.Template.Spec.InfrastructureRef
+	}
+	desiredMachinePool.InfrastructureMachineTemplate = templateToTemplate(templateToInput{
+		template:              machinePoolBlueprint.InfrastructureMachineTemplate,
+		templateClonedFromRef: contract.ObjToRef(machinePoolBlueprint.InfrastructureMachineTemplate),
+		cluster:               s.Current.Cluster,
+		namePrefix:            infrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name, machinePoolTopology.Name),
+		currentObjectRef:      currentInfraMachineTemplateRef,
+		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
+		// in case of errors in between creating this template and creating/updating the MachinePool object
+		// with the reference to the ControlPlane object using this template.
+		ownerRef: ownerReferenceTo(s.Current.Cluster),
+	})
+
+	infraMachineTemplateLabels := desiredMachinePool.InfrastructureMachineTemplate.GetLabels()
+	if infraMachineTemplateLabels == nil {
+		infraMachineTemplateLabels = map[string]string{}
+	}
+	// Add ClusterTopologyMachinePoolLabel to the generated InfrastructureMachine template
+	infraMachineTemplateLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
+	desiredMachinePool.InfrastructureMachineTemplate.SetLabels(infraMachineTemplateLabels)
+	version, err := computeMachinePoolVersion(s, desiredControlPlaneState, currentMachinePool)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to compute version for %s", machinePoolTopology.Name)
+	}
+
+	// Compute values that can be set both in the MachinePoolClass and in the MachinePoolTopology
+	// failureDomains := machinePoolClass.FailureDomains
+	// if machinePoolTopology.FailureDomains != nil {
+	// 	failureDomains = machinePoolTopology.FailureDomains
+	// }
+
+	// nodeDrainTimeout := machineDeploymentClass.NodeDrainTimeout
+	// if machineDeploymentTopology.NodeDrainTimeout != nil {
+	// 	nodeDrainTimeout = machineDeploymentTopology.NodeDrainTimeout
+	// }
+
+	// nodeVolumeDetachTimeout := machineDeploymentClass.NodeVolumeDetachTimeout
+	// if machineDeploymentTopology.NodeVolumeDetachTimeout != nil {
+	// 	nodeVolumeDetachTimeout = machineDeploymentTopology.NodeVolumeDetachTimeout
+	// }
+
+	// nodeDeletionTimeout := machineDeploymentClass.NodeDeletionTimeout
+	// if machineDeploymentTopology.NodeDeletionTimeout != nil {
+	// 	nodeDeletionTimeout = machineDeploymentTopology.NodeDeletionTimeout
+	// }
+
+	// Compute the MachinePool object.
+	desiredBootstrapTemplateRef, err := calculateRefDesiredAPIVersion(currentBootstrapTemplateRef, desiredMachinePool.BootstrapTemplate)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to calculate desired bootstrap template ref")
+	}
+	desiredInfraMachineTemplateRef, err := calculateRefDesiredAPIVersion(currentInfraMachineTemplateRef, desiredMachinePool.InfrastructureMachineTemplate)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to calculate desired infrastructure machine template ref")
+	}
+
+	desiredMachinePoolObj := &expv1.MachinePool{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       expv1.GroupVersion.WithKind("MachinePool").Kind,
+			APIVersion: expv1.GroupVersion.String(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-%s-", s.Current.Cluster.Name, machinePoolTopology.Name)),
+			Namespace: s.Current.Cluster.Namespace,
+		},
+		Spec: expv1.MachinePoolSpec{
+			ClusterName: s.Current.Cluster.Name,
+			//Replicas: ,
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					ClusterName:       s.Current.Cluster.Name,
+					Version:           pointer.String(version),
+					Bootstrap:         clusterv1.Bootstrap{ConfigRef: desiredBootstrapTemplateRef},
+					InfrastructureRef: *desiredInfraMachineTemplateRef,
+					//FailureDomain:           failureDomain,
+					//NodeDrainTimeout:        nodeDrainTimeout,
+					//NodeVolumeDetachTimeout: nodeVolumeDetachTimeout,
+					//NodeDeletionTimeout:     nodeDeletionTimeout,
+				},
+			},
+		},
+	}
+
+	// If an existing MachinePool is present, override the MachinePool generate name
+	// re-using the existing name (this will help in reconcile).
+	if currentMachinePool != nil && currentMachinePool.Object != nil {
+		desiredMachinePoolObj.SetName(currentMachinePool.Object.Name)
+	}
+
+	// Apply annotations
+	machinePoolAnnotations := mergeMap(machinePoolTopology.Metadata.Annotations, machinePoolBlueprint.Metadata.Annotations)
+	desiredMachinePoolObj.SetAnnotations(machinePoolAnnotations)
+	desiredMachinePoolObj.Spec.Template.Annotations = machinePoolAnnotations
+
+	// Apply Labels
+	// NOTE: On top of all the labels applied to managed objects we are applying the ClusterTopologyMachinePoolLabel
+	// keeping track of the MachinePool name from the Topology; this will be used to identify the object in next reconcile loops.
+	machinePoolLabels := mergeMap(machinePoolTopology.Metadata.Labels, machinePoolBlueprint.Metadata.Labels)
+	if machinePoolLabels == nil {
+		machinePoolLabels = map[string]string{}
+	}
+	machinePoolLabels[clusterv1.ClusterNameLabel] = s.Current.Cluster.Name
+	machinePoolLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
+	machinePoolLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
+	desiredMachinePoolObj.SetLabels(machinePoolLabels)
+
+	// Also set the labels in .spec.template.labels so that they are propagated to
+	// MachineSet.labels and MachineSet.spec.template.labels and thus to Machine.labels.
+	// Note: the labels in MachineSet are used to properly cleanup templates when the MachineSet is deleted.
+	desiredMachinePoolObj.Spec.Template.Labels = machinePoolLabels
+
+	// Set the selector with the subset of labels identifying controlled machines.
+	// NOTE: this prevents the web hook to add cluster.x-k8s.io/pool-name label, that is
+	// redundant for managed MachinePool given that we already have topology.cluster.x-k8s.io/pool-name.
+	//desiredMachineDeploymentObj.Spec.Selector.MatchLabels = map[string]string{}
+	//desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = s.Current.Cluster.Name
+	//desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
+	//desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
+
+	// Set the desired replicas.
+	desiredMachinePoolObj.Spec.Replicas = machinePoolTopology.Replicas
+
+	desiredMachinePool.Object = desiredMachinePoolObj
+
+	return desiredMachinePool, nil
+}
+
+// computeMachinePoolVersion calculates the version of the desired machine pool.
+// The version is calculated using the state of the current machine pools,
+// the current control plane and the version defined in the topology.
+// Nb: No MachinePool upgrades will be triggered while any MachinePool is in the middle
+// of an upgrade. Even if the number of MachinePools that are being upgraded is less
+// than the number of allowed concurrent upgrades.
+func computeMachinePoolVersion(s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState, currentMPState *scope.MachinePoolState) (string, error) {
+	desiredVersion := s.Blueprint.Topology.Version
+	// If creating a new machine pool, we can pick up the desired version
+	// Note: We are not blocking the creation of new machine pools when
+	// the control plane or any of the machine pools are upgrading/scaling.
+	if currentMPState == nil || currentMPState.Object == nil {
+		return desiredVersion, nil
+	}
+
+	// Get the current version of the machine pool.
+	currentVersion := *currentMPState.Object.Spec.Template.Spec.Version
+
+	// Return early if the currentVersion is already equal to the desiredVersion
+	// no further checks required.
+	if currentVersion == desiredVersion {
+		return currentVersion, nil
+	}
+
+	// Return early if we are not allowed to upgrade the machine pool.
+	if !s.UpgradeTracker.MachinePools.AllowUpgrade() {
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// If the control plane is being created (current control plane is nil), do not perform
+	// any machine pool upgrade in this case.
+	// Return the current version of the machine pool.
+	// NOTE: this case should never happen (upgrading a MachinePool) before creating a CP,
+	// but we are implementing this check for extra safety.
+	if s.Current.ControlPlane == nil || s.Current.ControlPlane.Object == nil {
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// If the current control plane is upgrading, then do not pick up the desiredVersion yet.
+	// Return the current version of the machine pool. We will pick up the new version after the control
+	// plane is stable.
+	cpUpgrading, err := contract.ControlPlane().IsUpgrading(s.Current.ControlPlane.Object)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to check if control plane is upgrading")
+	}
+	if cpUpgrading {
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// If control plane supports replicas, check if the control plane is in the middle of a scale operation.
+	// If the current control plane is scaling, then do not pick up the desiredVersion yet.
+	// Return the current version of the machine pool. We will pick up the new version after the control
+	// plane is stable.
+	if s.Blueprint.Topology.ControlPlane.Replicas != nil {
+		cpScaling, err := contract.ControlPlane().IsScaling(s.Current.ControlPlane.Object)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to check if the control plane is scaling")
+		}
+		if cpScaling {
+			s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+			return currentVersion, nil
+		}
+	}
+
+	// Check if we are about to upgrade the control plane. In that case, do not upgrade the machine pool yet.
+	// Wait for the new upgrade operation on the control plane to finish before picking up the new version for the
+	// machine pool.
+	currentCPVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get version of current control plane")
+	}
+	desiredCPVersion, err := contract.ControlPlane().Version().Get(desiredControlPlaneState.Object)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to get version of desired control plane")
+	}
+	if *currentCPVersion != *desiredCPVersion {
+		// The versions of the current and desired control planes do no match,
+		// implies we are about to upgrade the control plane.
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// If the ControlPlane is pending picking up an upgrade then do not pick up the new version yet.
+	if s.UpgradeTracker.ControlPlane.PendingUpgrade {
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// At this point the control plane is stable (not scaling, not upgrading, not being upgraded).
+	// Checking to see if the machine pool are also stable.
+	// If any of the MachinePools is rolling out, do not upgrade the machine pool yet.
+	if s.Current.MachinePools.IsAnyRollingOut() {
+		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
+		return currentVersion, nil
+	}
+
+	// Control plane and machine pools are stable.
+	// Ready to pick up the topology version.
+	s.UpgradeTracker.MachinePools.MarkRollingOut(currentMPState.Object.Name)
+	return desiredVersion, nil
 }
 
 type templateToInput struct {

@@ -34,6 +34,7 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 		Topology:           cluster.Spec.Topology,
 		ClusterClass:       clusterClass,
 		MachineDeployments: map[string]*scope.MachineDeploymentBlueprint{},
+		MachinePools:       map[string]*scope.MachinePoolBlueprint{},
 	}
 
 	var err error
@@ -90,6 +91,31 @@ func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluste
 			machineDeploymentBlueprint.MachineHealthCheck = machineDeploymentClass.MachineHealthCheck
 		}
 		blueprint.MachineDeployments[machineDeploymentClass.Class] = machineDeploymentBlueprint
+	}
+
+	// Loop over the machine pool classes in ClusterClass
+	// and fetch the related templates.
+	for _, machinePoolClass := range blueprint.ClusterClass.Spec.Workers.MachinePools {
+		machinePoolBlueprint := &scope.MachinePoolBlueprint{}
+
+		// Make sure to copy the metadata from the blueprint, which is later layered
+		// with the additional metadata defined in the Cluster's topology section
+		// for the MachinePool that is created or updated.
+		machinePoolClass.Template.Metadata.DeepCopyInto(&machinePoolBlueprint.Metadata)
+
+		// Get the infrastructure machine template.
+		machinePoolBlueprint.InfrastructureMachineTemplate, err = r.getReference(ctx, machinePoolClass.Template.Infrastructure.Ref)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get infrastructure machine template for %s, MachinePool class %q", tlog.KObj{Obj: blueprint.ClusterClass}, machinePoolClass.Class)
+		}
+
+		// Get the bootstrap machine template.
+		machinePoolBlueprint.BootstrapTemplate, err = r.getReference(ctx, machinePoolClass.Template.Bootstrap.Ref)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get bootstrap machine template for %s, MachinePool class %q", tlog.KObj{Obj: blueprint.ClusterClass}, machinePoolClass.Class)
+		}
+
+		blueprint.MachinePools[machinePoolClass.Class] = machinePoolBlueprint
 	}
 
 	return blueprint, nil

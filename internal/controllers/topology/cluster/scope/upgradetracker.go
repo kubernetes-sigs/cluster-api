@@ -22,6 +22,7 @@ import "k8s.io/apimachinery/pkg/util/sets"
 type UpgradeTracker struct {
 	ControlPlane       ControlPlaneUpgradeTracker
 	MachineDeployments MachineDeploymentUpgradeTracker
+	MachinePools       MachinePoolUpgradeTracker
 }
 
 // ControlPlaneUpgradeTracker holds the current upgrade status of the Control Plane.
@@ -102,6 +103,7 @@ type MachineDeploymentUpgradeTracker struct {
 // UpgradeTrackerOptions contains the options for NewUpgradeTracker.
 type UpgradeTrackerOptions struct {
 	maxMDUpgradeConcurrency int
+	maxMPUpgradeConcurrency int
 }
 
 // UpgradeTrackerOption returns an option for the NewUpgradeTracker function.
@@ -118,6 +120,15 @@ func (m MaxMDUpgradeConcurrency) ApplyToUpgradeTracker(options *UpgradeTrackerOp
 	options.maxMDUpgradeConcurrency = int(m)
 }
 
+// MaxMPUpgradeConcurrency sets the upper limit for the number of Machine Pools that can upgrade
+// concurrently.
+type MaxMPUpgradeConcurrency int
+
+// ApplyToUpgradeTracker applies the given UpgradeTrackerOptions.
+func (m MaxMPUpgradeConcurrency) ApplyToUpgradeTracker(options *UpgradeTrackerOptions) {
+	options.maxMPUpgradeConcurrency = int(m)
+}
+
 // NewUpgradeTracker returns an upgrade tracker with empty tracking information.
 func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 	options := &UpgradeTrackerOptions{}
@@ -128,6 +139,10 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 		// The concurrency should be at least 1.
 		options.maxMDUpgradeConcurrency = 1
 	}
+	if options.maxMPUpgradeConcurrency < 1 {
+		// The concurrency should be at least 1.
+		options.maxMPUpgradeConcurrency = 1
+	}
 	return &UpgradeTracker{
 		MachineDeployments: MachineDeploymentUpgradeTracker{
 			pendingCreateTopologyNames:             sets.Set[string]{},
@@ -135,6 +150,13 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 			deferredNames:                          sets.Set[string]{},
 			upgradingNames:                         sets.Set[string]{},
 			maxMachineDeploymentUpgradeConcurrency: options.maxMDUpgradeConcurrency,
+		},
+		MachinePools: MachinePoolUpgradeTracker{
+			pendingCreateTopologyNames:       sets.Set[string]{},
+			pendingUpgradeNames:              sets.Set[string]{},
+			deferredNames:                    sets.Set[string]{},
+			upgradingNames:                   sets.Set[string]{},
+			maxMachinePoolUpgradeConcurrency: options.maxMPUpgradeConcurrency,
 		},
 	}
 }
@@ -220,5 +242,125 @@ func (m *MachineDeploymentUpgradeTracker) DeferredUpgradeNames() []string {
 // DeferredUpgrade returns true if the upgrade has been deferred for any of the
 // MachineDeployments. Returns false, otherwise.
 func (m *MachineDeploymentUpgradeTracker) DeferredUpgrade() bool {
+	return len(m.deferredNames) != 0
+}
+
+// MachinePoolUpgradeTracker holds the current upgrade status and makes upgrade
+// decisions for MachinePools.
+type MachinePoolUpgradeTracker struct {
+	// pendingCreateTopologyNames is the set of MachinePool topology names that are newly added to the
+	// Cluster Topology but will not be created in the current reconcile loop.
+	// By marking a MachinePool topology as pendingCreate we skip creating the MachinePool.
+	// Nb. We use MachinePool topology names instead of MachinePool names because the new MachinePool
+	// names can keep changing for each reconcile loop leading to continuous updates to the TopologyReconciled condition.
+	pendingCreateTopologyNames sets.Set[string]
+
+	// pendingUpgradeNames is the set of MachinePool names that are not going to pick up the new version
+	// in the current reconcile loop.
+	// By marking a MachinePool as pendingUpgrade we skip reconciling the MachinePool.
+	pendingUpgradeNames sets.Set[string]
+
+	// deferredNames is the set of MachinePool names that are not going to pick up the new version
+	// in the current reconcile loop because they are deferred by the user.
+	// Note: If a MachinePool is marked as deferred it should also be marked as pendingUpgrade.
+	deferredNames sets.Set[string]
+
+	// upgradingNames is the set of MachinePool names that are upgrading. This set contains the names of
+	// MachinePools that are currently upgrading and the names of MachinePools that will pick up the upgrade
+	// in the current reconcile loop.
+	// Note: This information is used to:
+	// - decide if ControlPlane can be upgraded.
+	// - calculate MachinePool upgrade concurrency.
+	// - update TopologyReconciled Condition.
+	// - decide if the AfterClusterUpgrade hook can be called.
+	upgradingNames sets.Set[string]
+
+	// maxMachinePoolUpgradeConcurrency defines the maximum number of MachinePools that should be in an
+	// upgrading state. This includes the MachinePools that are currently upgrading and the MachinePools that
+	// will start the upgrade after the current reconcile loop.
+	maxMachinePoolUpgradeConcurrency int
+}
+
+// MarkUpgrading marks a MachinePool as currently upgrading or about to upgrade.
+func (m *MachinePoolUpgradeTracker) MarkUpgrading(names ...string) {
+	for _, name := range names {
+		m.upgradingNames.Insert(name)
+	}
+}
+
+// UpgradingNames returns the list of machine pools that are upgrading or
+// are about to upgrade.
+func (m *MachinePoolUpgradeTracker) UpgradingNames() []string {
+	return sets.List(m.upgradingNames)
+}
+
+// UpgradeConcurrencyReached returns true if the number of MachinePools upgrading is at the concurrency limit.
+func (m *MachinePoolUpgradeTracker) UpgradeConcurrencyReached() bool {
+	return m.upgradingNames.Len() >= m.maxMachinePoolUpgradeConcurrency
+}
+
+// MarkPendingCreate marks a machine pool topology that is pending to be created.
+// This is generally used to capture machine pools that are yet to be created
+// because the control plane is not yet stable.
+func (m *MachinePoolUpgradeTracker) MarkPendingCreate(mdTopologyName string) {
+	m.pendingCreateTopologyNames.Insert(mdTopologyName)
+}
+
+// IsPendingCreate returns true is the MachinePool topology is marked as pending create.
+func (m *MachinePoolUpgradeTracker) IsPendingCreate(mdTopologyName string) bool {
+	return m.pendingCreateTopologyNames.Has(mdTopologyName)
+}
+
+// IsAnyPendingCreate returns true if any of the machine pools are pending
+// to be created. Returns false, otherwise.
+func (m *MachinePoolUpgradeTracker) IsAnyPendingCreate() bool {
+	return len(m.pendingCreateTopologyNames) != 0
+}
+
+// PendingCreateTopologyNames returns the list of machine pool topology names that
+// are pending create.
+func (m *MachinePoolUpgradeTracker) PendingCreateTopologyNames() []string {
+	return sets.List(m.pendingCreateTopologyNames)
+}
+
+// MarkPendingUpgrade marks a machine pool as in need of an upgrade.
+// This is generally used to capture machine pools that have not yet
+// picked up the topology version.
+func (m *MachinePoolUpgradeTracker) MarkPendingUpgrade(name string) {
+	m.pendingUpgradeNames.Insert(name)
+}
+
+// IsPendingUpgrade returns true is the MachinePool marked as pending upgrade.
+func (m *MachinePoolUpgradeTracker) IsPendingUpgrade(name string) bool {
+	return m.pendingUpgradeNames.Has(name)
+}
+
+// IsAnyPendingUpgrade returns true if any of the machine pools are pending
+// an upgrade. Returns false, otherwise.
+func (m *MachinePoolUpgradeTracker) IsAnyPendingUpgrade() bool {
+	return len(m.pendingUpgradeNames) != 0
+}
+
+// PendingUpgradeNames returns the list of machine pool names that
+// are pending an upgrade.
+func (m *MachinePoolUpgradeTracker) PendingUpgradeNames() []string {
+	return sets.List(m.pendingUpgradeNames)
+}
+
+// MarkDeferredUpgrade marks that the upgrade for a MachinePool
+// has been deferred.
+func (m *MachinePoolUpgradeTracker) MarkDeferredUpgrade(name string) {
+	m.deferredNames.Insert(name)
+}
+
+// DeferredUpgradeNames returns the list of MachinePool names for
+// which the upgrade has been deferred.
+func (m *MachinePoolUpgradeTracker) DeferredUpgradeNames() []string {
+	return sets.List(m.deferredNames)
+}
+
+// DeferredUpgrade returns true if the upgrade has been deferred for any of the
+// MachinePools. Returns false, otherwise.
+func (m *MachinePoolUpgradeTracker) DeferredUpgrade() bool {
 	return len(m.deferredNames) != 0
 }

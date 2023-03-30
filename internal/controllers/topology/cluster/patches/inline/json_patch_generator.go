@@ -186,6 +186,35 @@ func matchesSelector(req *runtimehooksv1.GeneratePatchesRequestItem, templateVar
 		}
 	}
 
+	// Check if the request is for a BootstrapConfigTemplate or an InfrastructureMachinePoolTemplate
+	// of one of the configured MachinePoolClasses.
+	if selector.MatchResources.MachinePoolClass != nil {
+		if req.HolderReference.Kind == "MachinePool" &&
+			(req.HolderReference.FieldPath == "spec.template.spec.bootstrap.configRef" ||
+				req.HolderReference.FieldPath == "spec.template.spec.infrastructureRef") {
+			// Read the builtin.machinePool.class variable.
+			templateMPClassJSON, err := patchvariables.GetVariableValue(templateVariables, "builtin.machinePool.class")
+
+			// If the builtin variable could be read.
+			if err == nil {
+				// If templateMPClass matches one of the configured MachinePoolClasses.
+				for _, mpClass := range selector.MatchResources.MachinePoolClass.Names {
+					// We have to quote mpClass as templateMPClassJSON is a JSON string (e.g. "default-worker").
+					if mpClass == "*" || string(templateMPClassJSON.Raw) == strconv.Quote(mpClass) {
+						return true
+					}
+					unquoted, _ := strconv.Unquote(string(templateMPClassJSON.Raw))
+					if strings.HasPrefix(mpClass, "*") && strings.HasSuffix(unquoted, strings.TrimPrefix(mpClass, "*")) {
+						return true
+					}
+					if strings.HasSuffix(mpClass, "*") && strings.HasPrefix(unquoted, strings.TrimSuffix(mpClass, "*")) {
+						return true
+					}
+				}
+			}
+		}
+	}
+
 	return false
 }
 

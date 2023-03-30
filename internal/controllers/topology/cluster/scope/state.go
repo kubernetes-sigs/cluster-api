@@ -21,11 +21,13 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 // ClusterState holds all the objects representing the state of a managed Cluster topology.
@@ -43,6 +45,9 @@ type ClusterState struct {
 
 	// MachineDeployments holds the machine deployments in the Cluster.
 	MachineDeployments MachineDeploymentsStateMap
+
+	// MachinePools holds the MachinePools in the Cluster.
+	MachinePools MachinePoolsStateMap
 }
 
 // ControlPlaneState holds all the objects representing the state of a managed control plane.
@@ -118,6 +123,60 @@ func (md *MachineDeploymentState) IsUpgrading(ctx context.Context, c client.Clie
 			return false, fmt.Errorf("failed to check if MachineDeployment %s is upgrading: Machine %s has no version", md.Object.Name, machine.Name)
 		}
 		if *machine.Spec.Version != mdVersion {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// MachinePoolsStateMap holds a collection of MachinePool states.
+type MachinePoolsStateMap map[string]*MachinePoolState
+
+// Upgrading returns the list of the machine pools
+// that are upgrading.
+func (mps MachinePoolsStateMap) Upgrading(ctx context.Context, c client.Client) ([]string, error) {
+	names := []string{}
+	for _, mp := range mps {
+		upgrading, err := mp.IsUpgrading(ctx, c)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to list upgrading MachinePools")
+		}
+		if upgrading {
+			names = append(names, mp.Object.Name)
+		}
+	}
+	return names, nil
+}
+
+// MachinePoolState holds all the objects representing the state of a managed pool.
+type MachinePoolState struct {
+	// Object holds the MachinePool object.
+	Object *expv1.MachinePool
+
+	// BootstrapObject holds the MachinePool bootstrap object.
+	BootstrapObject *unstructured.Unstructured
+
+	// InfrastructureMachinePoolObject holds the infrastructure machine template referenced by the MachinePool object.
+	InfrastructureMachinePoolObject *unstructured.Unstructured
+}
+
+// IsUpgrading determines if the MachinePool is upgrading.
+// A machine deployment is considered upgrading if at least one of the Machines of this
+// MachinePool has a different version.
+func (mp *MachinePoolState) IsUpgrading(ctx context.Context, c client.Client) (bool, error) {
+	// If the MachinePool has no version there is no definitive way to check if it is upgrading. Therefore, return false.
+	// Note: This case should not happen.
+	if mp.Object.Spec.Template.Spec.Version == nil {
+		return false, nil
+	}
+	mpVersion := *mp.Object.Spec.Template.Spec.Version
+	// Check if the kubelet versions of the MachinePool noderefs match the MachinePool version.
+	for _, nodeRef := range mp.Object.Status.NodeRefs {
+		node := &corev1.Node{}
+		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
+			return false, fmt.Errorf("failed to check if MachinePool %s is upgrading: failed to get Node %s", mp.Object.Name, nodeRef.Name)
+		}
+		if mpVersion != node.Status.NodeInfo.KubeletVersion {
 			return true, nil
 		}
 	}

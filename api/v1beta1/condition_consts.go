@@ -299,6 +299,19 @@ const (
 	// not yet completed because the upgrade for at least one of the MachineDeployments has been deferred.
 	TopologyReconciledMachineDeploymentsUpgradeDeferredReason = "MachineDeploymentsUpgradeDeferred"
 
+	// TopologyReconciledMachinePoolsUpgradePendingReason (Severity=Info) documents reconciliation of a Cluster topology
+	// not yet completed because at least one of the MachinePools is not yet updated to match the desired topology spec.
+	TopologyReconciledMachinePoolsUpgradePendingReason = "MachinePoolsUpgradePending"
+
+	// TopologyReconciledMachinePoolsCreatePendingReason (Severity=Info) documents reconciliation of a Cluster topology
+	// not yet completed because at least one of the MachinePools is yet to be created.
+	// This generally happens because new MachinePool creations are held off while the ControlPlane is not stable.
+	TopologyReconciledMachinePoolsCreatePendingReason = "MachinePoolsCreatePending"
+
+	// TopologyReconciledMachinePoolsUpgradeDeferredReason (Severity=Info) documents reconciliation of a Cluster topology
+	// not yet completed because the upgrade for at least one of the MachinePools has been deferred.
+	TopologyReconciledMachinePoolsUpgradeDeferredReason = "MachinePoolsUpgradeDeferred"
+
 	// TopologyReconciledHookBlockingReason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the lifecycle hooks is blocking.
 	TopologyReconciledHookBlockingReason = "LifecycleHookBlocking"

@@ -258,6 +258,17 @@ func TestNodeLabelSync(t *testing.T) {
 				GenerateName: "machine-test-node-",
 			},
 			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+			Status: corev1.NodeStatus{Addresses: []corev1.NodeAddress{
+				{
+					Type:    corev1.NodeInternalIP,
+					Address: "1.1.1.1",
+				},
+				{
+					Type:    corev1.NodeInternalIP,
+					Address: "2.2.2.2",
+				},
+			},
+			},
 		}
 
 		// Set Node labels

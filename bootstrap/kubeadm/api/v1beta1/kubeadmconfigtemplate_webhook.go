@@ -63,6 +63,8 @@ func (r *KubeadmConfigTemplateSpec) validate(name string) error {
 	var allErrs field.ErrorList
 
 	allErrs = append(allErrs, r.Template.Spec.Validate(field.NewPath("spec", "template", "spec"))...)
+	// Validate the metadata of the template.
+	allErrs = append(allErrs, r.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
 
 	if len(allErrs) == 0 {
 		return nil

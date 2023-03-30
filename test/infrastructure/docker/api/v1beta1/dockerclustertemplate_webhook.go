@@ -63,6 +63,10 @@ func (r *DockerClusterTemplate) ValidateCreate() (admission.Warnings, error) {
 	}
 
 	allErrs := validateDockerClusterSpec(r.Spec.Template.Spec)
+
+	// Validate the metadata of the template.
+	allErrs = append(allErrs, r.Spec.Template.ObjectMeta.Validate(field.NewPath("spec", "template", "metadata"))...)
+
 	if len(allErrs) > 0 {
 		return nil, apierrors.NewInvalid(GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), r.Name, allErrs)
 	}

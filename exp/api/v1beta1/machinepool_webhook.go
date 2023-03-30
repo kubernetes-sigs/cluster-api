@@ -152,6 +152,9 @@ func (m *MachinePool) validate(old *MachinePool) error {
 		}
 	}
 
+	// Validate the metadata of the MachinePool template.
+	allErrs = append(allErrs, m.Spec.Template.ObjectMeta.Validate(specPath.Child("template", "metadata"))...)
+
 	if len(allErrs) == 0 {
 		return nil
 	}

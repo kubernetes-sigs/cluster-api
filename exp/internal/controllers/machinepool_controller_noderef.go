@@ -49,6 +49,12 @@ type getNodeReferencesResult struct {
 
 func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
+
+	// Create a watch on the nodes in the Cluster.
+	if err := r.watchClusterNodes(ctx, cluster); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Check that the MachinePool hasn't been deleted or in the process.
 	if !mp.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil
@@ -80,7 +86,8 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	if err != nil {
 		if err == errNoAvailableNodes {
 			log.Info("Cannot assign NodeRefs to MachinePool, no matching Nodes")
-			return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
+			// No need to requeue here. Nodes emit an event that triggers reconciliation.
+			return ctrl.Result{}, nil
 		}
 		r.recorder.Event(mp, corev1.EventTypeWarning, "FailedSetNodeRef", err.Error())
 		return ctrl.Result{}, errors.Wrapf(err, "failed to get node references")

@@ -462,6 +462,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		if err := (&expcontrollers.MachinePoolReconciler{
 			Client:           mgr.GetClient(),
 			APIReader:        mgr.GetAPIReader(),
+			Tracker:          tracker,
 			WatchFilterValue: watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(machinePoolConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "MachinePool")

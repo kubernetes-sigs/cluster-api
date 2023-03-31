@@ -53,6 +53,10 @@ const (
 	//   will not be completed until the annotation is removed and all MachineDeployments are upgraded.
 	ClusterTopologyDeferUpgradeAnnotation = "topology.cluster.x-k8s.io/defer-upgrade"
 
+	// ClusterTopologyUpgradeConcurrencyAnnotation can be set as top-level annotation on the Cluster object of
+	// a classy Cluster to define the maximum concurrency while upgrading MachineDeployments.
+	ClusterTopologyUpgradeConcurrencyAnnotation = "topology.cluster.x-k8s.io/upgrade-concurrency"
+
 	// ClusterTopologyUnsafeUpdateClassNameAnnotation can be used to disable the webhook check on
 	// update that disallows a pre-existing Cluster to be populated with Topology information and Class.
 	ClusterTopologyUnsafeUpdateClassNameAnnotation = "unsafe.topology.cluster.x-k8s.io/disable-update-class-name-check"

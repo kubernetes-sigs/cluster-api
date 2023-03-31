@@ -1206,6 +1206,45 @@ func TestClusterTopologyValidation(t *testing.T) {
 					Build()).
 				Build(),
 		},
+		{
+			name:      "should return error when upgrade concurrency annotation value is < 1",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithAnnotations(map[string]string{
+					clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation: "-1",
+				}).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.2").
+					Build()).
+				Build(),
+		},
+		{
+			name:      "should return error when upgrade concurrency annotation value is not numeric",
+			expectErr: true,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithAnnotations(map[string]string{
+					clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation: "abc",
+				}).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.2").
+					Build()).
+				Build(),
+		},
+		{
+			name:      "should pass upgrade concurrency annotation value is >= 1",
+			expectErr: false,
+			in: builder.Cluster("fooboo", "cluster1").
+				WithAnnotations(map[string]string{
+					clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation: "2",
+				}).
+				WithTopology(builder.ClusterTopology().
+					WithClass("foo").
+					WithVersion("v1.19.2").
+					Build()).
+				Build(),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

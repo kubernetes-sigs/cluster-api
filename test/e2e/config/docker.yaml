@@ -1,4 +1,6 @@
----
+# This is a file for CAPI end-to-end test configuration. 
+# The format of this file follows https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework/clusterctl#E2EConfig
+# 
 # CI E2E test configuration scenario using locally build images and manifests for:
 # - cluster-api
 # - bootstrap kubeadm

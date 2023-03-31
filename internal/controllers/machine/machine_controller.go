@@ -60,10 +60,6 @@ import (
 const (
 	// controllerName defines the controller used when creating clients.
 	controllerName = "machine-controller"
-
-	// machineManagerName is the manager name used for Server-Side-Apply (SSA) operations
-	// in the Machine controller.
-	machineManagerName = "capi-machine"
 )
 
 var (

@@ -881,6 +881,11 @@ manifest-modification-dev: # Set the manifest images to the staging bucket.
 		MANIFEST_IMG=$(REGISTRY)/$(CAPD_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
 		TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_image_patch.yaml"
 	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
+	$(MAKE) set-manifest-image \
+		MANIFEST_IMG=$(REGISTRY)/$(TEST_EXTENSION_IMAGE_NAME) MANIFEST_TAG=$(RELEASE_TAG) \
+		TARGET_RESOURCE="$(TEST_EXTENSION_DIR)/config/default/manager_image_patch.yaml"
+	$(MAKE) set-manifest-pull-policy PULL_POLICY=IfNotPresent TARGET_RESOURCE="$(CAPD_DIR)/config/default/manager_pull_policy.yaml"
+
 
 
 .PHONY: release-manifests
@@ -908,6 +913,9 @@ release-manifests: $(RELEASE_DIR) $(KUSTOMIZE) $(RUNTIME_OPENAPI_GEN) ## Build t
 release-manifests-dev: $(RELEASE_DIR) $(KUSTOMIZE) ## Build the development manifests and copies them in the release folder
 	cd $(CAPD_DIR); $(KUSTOMIZE) build config/default > ../../../$(RELEASE_DIR)/infrastructure-components-development.yaml
 	cp $(CAPD_DIR)/templates/* $(RELEASE_DIR)/
+	cd $(TEST_EXTENSION_DIR); $(KUSTOMIZE) build config/default > ../../$(RELEASE_DIR)/runtime-extension-components-development.yaml
+	cp $(CAPD_DIR)/templates/* $(RELEASE_DIR)/
+
 
 .PHONY: release-binaries
 release-binaries: ## Build the binaries to publish with a release

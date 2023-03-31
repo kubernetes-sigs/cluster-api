@@ -23,7 +23,7 @@ if [[ "${TRACE-0}" == "1" ]]; then
 fi
 
 GOPATH_BIN="$(go env GOPATH)/bin"
-MINIMUM_KIND_VERSION=v0.17.0
+MINIMUM_KIND_VERSION=v0.18.0
 goarch="$(go env GOARCH)"
 goos="$(go env GOOS)"
 

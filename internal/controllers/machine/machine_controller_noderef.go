@@ -24,8 +24,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -33,12 +31,10 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
-	"sigs.k8s.io/cluster-api/internal/util/ssa"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
-	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 var (
@@ -105,40 +101,26 @@ func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Clust
 	// Set the NodeSystemInfo.
 	machine.Status.NodeInfo = &node.Status.NodeInfo
 
-	// Reconcile node annotations.
-	patchHelper, err := patch.NewHelper(node, remoteClient)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	desired := map[string]string{
+	// Compute all the annotations that CAPI is setting on nodes;
+	// CAPI only enforces some annotations and never changes or removes them.
+	nodeAnnotations := map[string]string{
 		clusterv1.ClusterNameAnnotation:      machine.Spec.ClusterName,
 		clusterv1.ClusterNamespaceAnnotation: machine.GetNamespace(),
 		clusterv1.MachineAnnotation:          machine.Name,
 	}
 	if owner := metav1.GetControllerOfNoCopy(machine); owner != nil {
-		desired[clusterv1.OwnerKindAnnotation] = owner.Kind
-		desired[clusterv1.OwnerNameAnnotation] = owner.Name
-	}
-	if annotations.AddAnnotations(node, desired) {
-		if err := patchHelper.Patch(ctx, node); err != nil {
-			log.V(2).Info("Failed patch node to set annotations", "err", err, "node name", node.Name)
-			return ctrl.Result{}, err
-		}
+		nodeAnnotations[clusterv1.OwnerKindAnnotation] = owner.Kind
+		nodeAnnotations[clusterv1.OwnerNameAnnotation] = owner.Name
 	}
 
-	updatedNode := unstructuredNode(node.Name, node.UID, getManagedLabels(machine.Labels))
-	err = ssa.Patch(ctx, remoteClient, machineManagerName, updatedNode, ssa.WithCachingProxy{Cache: r.ssaCache, Original: node})
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to apply labels to Node")
-	}
-	// Update `node` with the new version of the object.
-	if err := r.Client.Scheme().Convert(updatedNode, node, nil); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to convert node to structured object %s", klog.KObj(node))
-	}
+	// Compute labels to be propagated from Machines to nodes.
+	// NOTE: CAPI should manage only a subset of node labels, everything else should be preserved.
+	// NOTE: Once we reconcile node labels for the first time, the NodeUninitializedTaint is removed from the node.
+	nodeLabels := getManagedLabels(machine.Labels)
 
 	// Reconcile node taints
-	if err := r.reconcileNodeTaints(ctx, remoteClient, node); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile taints on Node %s", klog.KObj(node))
+	if err := r.patchNode(ctx, remoteClient, node, nodeLabels, nodeAnnotations); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile Node %s", klog.KObj(node))
 	}
 
 	// Do the remaining node health checks, then set the node health to true if all checks pass.
@@ -154,17 +136,6 @@ func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Clust
 
 	conditions.MarkTrue(machine, clusterv1.MachineNodeHealthyCondition)
 	return ctrl.Result{}, nil
-}
-
-// unstructuredNode returns a raw unstructured from Node input.
-func unstructuredNode(name string, uid types.UID, labels map[string]string) *unstructured.Unstructured {
-	obj := &unstructured.Unstructured{}
-	obj.SetAPIVersion("v1")
-	obj.SetKind("Node")
-	obj.SetName(name)
-	obj.SetUID(uid)
-	obj.SetLabels(labels)
-	return obj
 }
 
 // getManagedLabels gets a map[string]string and returns another map[string]string
@@ -269,16 +240,48 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID *n
 	return &nodeList.Items[0], nil
 }
 
-func (r *Reconciler) reconcileNodeTaints(ctx context.Context, remoteClient client.Client, node *corev1.Node) error {
-	patchHelper, err := patch.NewHelper(node, remoteClient)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create patch helper for Node %s", klog.KObj(node))
+// PatchNode is required to workaround an issue on Node.Status.Address which is incorrectly annotated as patchStrategy=merge
+// and this causes SSA patch to fail in case there are two addresses with the same key https://github.com/kubernetes-sigs/cluster-api/issues/8417
+func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, node *corev1.Node, newLabels, newAnnotations map[string]string) error {
+	newNode := node.DeepCopy()
+
+	// Adds the annotations CAPI sets on the node.
+	hasAnnotationChanges := annotations.AddAnnotations(newNode, newAnnotations)
+
+	// Adds the labels from the Machine.
+	// NOTE: in order to handle deletion we are tracking the labels set from the Machine in an annotation.
+	// At the next reconcile we are going to use this for deleting labels previously set by the Machine, but
+	// not present anymore. Labels not set from machines should be always preserved.
+	if newNode.Labels == nil {
+		newNode.Labels = make(map[string]string)
 	}
-	// Drop the NodeUninitializedTaint taint on the node.
-	if taints.RemoveNodeTaint(node, clusterv1.NodeUninitializedTaint) {
-		if err := patchHelper.Patch(ctx, node); err != nil {
-			return errors.Wrapf(err, "failed to patch Node %s to modify taints", klog.KObj(node))
+	hasLabelChanges := false
+	labelsFromPreviousReconcile := strings.Split(newNode.Annotations[clusterv1.LabelsFromMachineAnnotation], ",")
+	if len(labelsFromPreviousReconcile) == 1 && labelsFromPreviousReconcile[0] == "" {
+		labelsFromPreviousReconcile = []string{}
+	}
+	labelsFromCurrentReconcile := []string{}
+	for k, v := range newLabels {
+		if cur, ok := newNode.Labels[k]; !ok || cur != v {
+			newNode.Labels[k] = v
+			hasLabelChanges = true
+		}
+		labelsFromCurrentReconcile = append(labelsFromCurrentReconcile, k)
+	}
+	for _, k := range labelsFromPreviousReconcile {
+		if _, ok := newLabels[k]; !ok {
+			delete(newNode.Labels, k)
+			hasLabelChanges = true
 		}
 	}
-	return nil
+	annotations.AddAnnotations(newNode, map[string]string{clusterv1.LabelsFromMachineAnnotation: strings.Join(labelsFromCurrentReconcile, ",")})
+
+	// Drop the NodeUninitializedTaint taint on the node given that we are reconciling labels.
+	hasTaintChanges := taints.RemoveNodeTaint(newNode, clusterv1.NodeUninitializedTaint)
+
+	if !hasAnnotationChanges && !hasLabelChanges && !hasTaintChanges {
+		return nil
+	}
+
+	return remoteClient.Patch(ctx, newNode, client.StrategicMergeFrom(node))
 }

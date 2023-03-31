@@ -27,7 +27,6 @@ import (
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -258,6 +257,18 @@ func TestNodeLabelSync(t *testing.T) {
 				GenerateName: "machine-test-node-",
 			},
 			Spec: corev1.NodeSpec{ProviderID: nodeProviderID},
+			Status: corev1.NodeStatus{
+				Addresses: []corev1.NodeAddress{
+					{
+						Type:    corev1.NodeInternalIP,
+						Address: "1.1.1.1",
+					},
+					{
+						Type:    corev1.NodeInternalIP,
+						Address: "2.2.2.2",
+					},
+				},
+			},
 		}
 
 		// Set Node labels
@@ -461,29 +472,209 @@ func TestGetManagedLabels(t *testing.T) {
 	g.Expect(got).To(BeEquivalentTo(managedLabels))
 }
 
-func TestReconcileNodeTaints(t *testing.T) {
-	tests := []struct {
-		name string
-		node *corev1.Node
+func TestPatchNode(t *testing.T) {
+	testCases := []struct {
+		name                string
+		oldNode             *corev1.Node
+		newLabels           map[string]string
+		newAnnotations      map[string]string
+		expectedLabels      map[string]string
+		expectedAnnotations map[string]string
+		expectedTaints      []corev1.Taint
 	}{
 		{
-			name: "if the node has the uninitialized taint it should be dropped from the node",
-			node: &corev1.Node{
+			name: "Check that patch works even if there are Status.Addresses with the same key",
+			oldNode: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-node-1",
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
 				},
-				Spec: corev1.NodeSpec{
-					Taints: []corev1.Taint{
-						clusterv1.NodeUninitializedTaint,
+				Status: corev1.NodeStatus{
+					Addresses: []corev1.NodeAddress{
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "1.1.1.1",
+						},
+						{
+							Type:    corev1.NodeInternalIP,
+							Address: "2.2.2.2",
+						},
 					},
 				},
 			},
+			newLabels:      map[string]string{"foo": "bar"},
+			expectedLabels: map[string]string{"foo": "bar"},
+			expectedAnnotations: map[string]string{
+				clusterv1.LabelsFromMachineAnnotation: "foo",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
+		},
+		// Labels (CAPI owns a subset of labels, everything else should be preserved)
+		{
+			name: "Existing labels should be preserved if there are no label from machines",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+					Labels: map[string]string{
+						"not-managed-by-capi": "foo",
+					},
+				},
+			},
+			expectedLabels: map[string]string{
+				"not-managed-by-capi": "foo",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
 		},
 		{
-			name: "if the node is a control plane and has the uninitialized taint it should be dropped from the node",
-			node: &corev1.Node{
+			name: "Add label must preserve existing labels",
+			oldNode: &corev1.Node{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-node-1",
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+					Labels: map[string]string{
+						"not-managed-by-capi": "foo",
+					},
+				},
+			},
+			newLabels: map[string]string{
+				"label-from-machine": "foo",
+			},
+			expectedLabels: map[string]string{
+				"not-managed-by-capi": "foo",
+				"label-from-machine":  "foo",
+			},
+			expectedAnnotations: map[string]string{
+				clusterv1.LabelsFromMachineAnnotation: "label-from-machine",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
+		},
+		{
+			name: "CAPI takes ownership of existing labels if they are set from machines",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+					Labels: map[string]string{
+						clusterv1.NodeRoleLabelPrefix: "foo",
+					},
+				},
+			},
+			newLabels: map[string]string{
+				clusterv1.NodeRoleLabelPrefix: "control-plane",
+			},
+			expectedLabels: map[string]string{
+				clusterv1.NodeRoleLabelPrefix: "control-plane",
+			},
+			expectedAnnotations: map[string]string{
+				clusterv1.LabelsFromMachineAnnotation: clusterv1.NodeRoleLabelPrefix,
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
+		},
+		{
+			name: "change a label previously set from machines",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+					Labels: map[string]string{
+						clusterv1.NodeRoleLabelPrefix: "foo",
+					},
+					Annotations: map[string]string{
+						clusterv1.LabelsFromMachineAnnotation: clusterv1.NodeRoleLabelPrefix,
+					},
+				},
+			},
+			newLabels: map[string]string{
+				clusterv1.NodeRoleLabelPrefix: "control-plane",
+			},
+			expectedLabels: map[string]string{
+				clusterv1.NodeRoleLabelPrefix: "control-plane",
+			},
+			expectedAnnotations: map[string]string{
+				clusterv1.LabelsFromMachineAnnotation: clusterv1.NodeRoleLabelPrefix,
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
+		},
+		{
+			name: "Delete a label previously set from machines",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+					Labels: map[string]string{
+						clusterv1.NodeRoleLabelPrefix: "foo",
+						"not-managed-by-capi":         "foo",
+					},
+					Annotations: map[string]string{
+						clusterv1.LabelsFromMachineAnnotation: clusterv1.NodeRoleLabelPrefix,
+					},
+				},
+			},
+			expectedLabels: map[string]string{
+				"not-managed-by-capi": "foo",
+			},
+			expectedAnnotations: map[string]string{
+				clusterv1.LabelsFromMachineAnnotation: "",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
+		},
+		{
+			name: "Label previously set from machine, already removed out of band, annotation should be cleaned up",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+					Annotations: map[string]string{
+						clusterv1.LabelsFromMachineAnnotation: clusterv1.NodeRoleLabelPrefix,
+					},
+				},
+			},
+			expectedAnnotations: map[string]string{
+				clusterv1.LabelsFromMachineAnnotation: "",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
+		},
+		// Add annotations (CAPI only enforces some annotations and never changes or removes them)
+		{
+			name: "Add CAPI annotations",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+					Annotations: map[string]string{
+						"not-managed-by-capi": "foo",
+					},
+				},
+			},
+			newAnnotations: map[string]string{
+				clusterv1.ClusterNameAnnotation:      "foo",
+				clusterv1.ClusterNamespaceAnnotation: "bar",
+				clusterv1.MachineAnnotation:          "baz",
+			},
+			expectedAnnotations: map[string]string{
+				clusterv1.ClusterNameAnnotation:       "foo",
+				clusterv1.ClusterNamespaceAnnotation:  "bar",
+				clusterv1.MachineAnnotation:           "baz",
+				"not-managed-by-capi":                 "foo",
+				clusterv1.LabelsFromMachineAnnotation: "",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
+		},
+		// Taint (CAPI only remove one taint if it exists, other taints should be preserved)
+		{
+			name: "Removes NodeUninitializedTaint if present",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
 				},
 				Spec: corev1.NodeSpec{
 					Taints: []corev1.Taint{
@@ -495,35 +686,42 @@ func TestReconcileNodeTaints(t *testing.T) {
 					},
 				},
 			},
-		},
-		{
-			name: "if the node does not have the uninitialized taint it should remain absent from the node",
-			node: &corev1.Node{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-node-1",
+			expectedAnnotations: map[string]string{
+				clusterv1.LabelsFromMachineAnnotation: "",
+			},
+			expectedTaints: []corev1.Taint{
+				{
+					Key:    "node-role.kubernetes.io/control-plane",
+					Effect: corev1.TaintEffectNoSchedule,
 				},
-				Spec: corev1.NodeSpec{
-					Taints: []corev1.Taint{},
-				},
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
 			},
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+	r := Reconciler{Client: env}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			fakeClient := fake.NewClientBuilder().WithObjects(tt.node).WithScheme(fakeScheme).Build()
-			nodeBefore := tt.node.DeepCopy()
-			r := &Reconciler{}
-			g.Expect(r.reconcileNodeTaints(ctx, fakeClient, tt.node)).Should(Succeed())
-			// Verify the NodeUninitializedTaint is dropped.
-			g.Expect(tt.node.Spec.Taints).ShouldNot(ContainElement(clusterv1.NodeUninitializedTaint))
-			// Verify all other taints are same.
-			for _, taint := range nodeBefore.Spec.Taints {
-				if !taint.MatchTaint(&clusterv1.NodeUninitializedTaint) {
-					g.Expect(tt.node.Spec.Taints).Should(ContainElement(taint))
-				}
-			}
+			oldNode := tc.oldNode.DeepCopy()
+
+			g.Expect(env.Create(ctx, oldNode)).To(Succeed())
+			t.Cleanup(func() {
+				_ = env.Cleanup(ctx, oldNode)
+			})
+
+			err := r.patchNode(ctx, env, oldNode, tc.newLabels, tc.newAnnotations)
+			g.Expect(err).ToNot(HaveOccurred())
+
+			g.Eventually(func(g Gomega) {
+				gotNode := &corev1.Node{}
+				err = env.Get(ctx, client.ObjectKeyFromObject(oldNode), gotNode)
+				g.Expect(err).ToNot(HaveOccurred())
+
+				g.Expect(gotNode.Labels).To(BeComparableTo(tc.expectedLabels))
+				g.Expect(gotNode.Annotations).To(BeComparableTo(tc.expectedAnnotations))
+				g.Expect(gotNode.Spec.Taints).To(BeComparableTo(tc.expectedTaints))
+			}, 10*time.Second).Should(Succeed())
 		})
 	}
 }

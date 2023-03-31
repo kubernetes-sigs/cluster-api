@@ -168,7 +168,8 @@ def create_local_repositories():
         components_file = p.get('componentsFile')
         assert components_file is not None, 'invalid configuration for provider {}: please provide componentsFile value'.format(provider)
 
-        components_yaml = execCmd(['kustomize', 'build', os.path.join(repo, config_folder)])
+        execCmd(['make', 'kustomize'])
+        components_yaml = execCmd(['./hack/tools/bin/kustomize', 'build', os.path.join(repo, config_folder)])
         components_path = write_local_repository(provider, next_version, components_file, components_yaml, metadata_file)
 
         yield name, type, next_version, components_path

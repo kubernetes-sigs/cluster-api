@@ -41,5 +41,15 @@ func AddDefaultIndexes(ctx context.Context, mgr ctrl.Manager) error {
 		}
 	}
 
+	if feature.Gates.Enabled(feature.MachinePool) {
+		if err := ByMachinePoolNode(ctx, mgr); err != nil {
+			return err
+		}
+
+		if err := ByMachinePoolProviderID(ctx, mgr); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

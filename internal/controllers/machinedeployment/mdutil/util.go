@@ -439,11 +439,8 @@ func shouldRolloutAfter(ms *clusterv1.MachineSet, reconciliationTime *metav1.Tim
 }
 
 // FindOldMachineSets returns the old machine sets targeted by the given Deployment, within the given slice of MSes.
-// Returns two list of machine sets
-//   - the first contains all old machine sets with non-zero replicas
-//   - the second contains all old machine sets
-func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, reconciliationTime *metav1.Time) ([]*clusterv1.MachineSet, []*clusterv1.MachineSet) {
-	var requiredMSs []*clusterv1.MachineSet
+// Returns a list of machine sets which contains all old machine sets.
+func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, reconciliationTime *metav1.Time) []*clusterv1.MachineSet {
 	allMSs := make([]*clusterv1.MachineSet, 0, len(msList))
 	newMS := FindNewMachineSet(deployment, msList, reconciliationTime)
 	for _, ms := range msList {
@@ -452,11 +449,8 @@ func FindOldMachineSets(deployment *clusterv1.MachineDeployment, msList []*clust
 			continue
 		}
 		allMSs = append(allMSs, ms)
-		if *(ms.Spec.Replicas) != 0 {
-			requiredMSs = append(requiredMSs, ms)
-		}
 	}
-	return requiredMSs, allMSs
+	return allMSs
 }
 
 // GetReplicaCountForMachineSets returns the sum of Replicas of the given machine sets.

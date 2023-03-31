@@ -115,7 +115,9 @@ This comes down to changing occurrences of the old version to the new version, e
 3. Update `.github/workflows/scan.yml` - to setup Trivy scanning - and `.github/workflows/lint-docs-weekly.yml` - to setup link checking in the CAPI book - for the currently supported branches.
 4. Make sure all tests are green (also run `pull-cluster-api-e2e-full-main` and `pull-cluster-api-e2e-workload-upgrade-1-23-latest-main`).
 
-Prior art: https://github.com/kubernetes-sigs/cluster-api/pull/6834/files
+Prior art: 
+- 1.3 - https://github.com/kubernetes-sigs/cluster-api/pull/6834/files
+- 1.4 - https://github.com/kubernetes-sigs/cluster-api/pull/7692/files
 
 #### Create a new GitHub milestone for the next release
 

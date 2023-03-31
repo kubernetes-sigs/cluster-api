@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	fakeruntimeclient "sigs.k8s.io/cluster-api/internal/runtime/client/fake"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 var (
@@ -328,8 +329,8 @@ func TestComputeControlPlane(t *testing.T) {
 			template:    blueprint.ControlPlane.Template,
 			currentRef:  nil,
 			obj:         obj,
-			labels:      mergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: mergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			labels:      util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
@@ -419,8 +420,8 @@ func TestComputeControlPlane(t *testing.T) {
 			template:    blueprint.ControlPlane.Template,
 			currentRef:  nil,
 			obj:         obj,
-			labels:      mergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: mergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			labels:      util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
@@ -471,18 +472,18 @@ func TestComputeControlPlane(t *testing.T) {
 			template:    controlPlaneTemplateWithoutMachineTemplate,
 			currentRef:  nil,
 			obj:         obj,
-			labels:      mergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: mergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			labels:      util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 		gotMetadata, err := contract.ControlPlane().MachineTemplate().Metadata().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		expectedLabels := mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels, controlPlaneMachineTemplateLabels)
+		expectedLabels := util.MergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels, controlPlaneMachineTemplateLabels)
 		expectedLabels[clusterv1.ClusterNameLabel] = cluster.Name
 		expectedLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
 		g.Expect(gotMetadata).To(Equal(&clusterv1.ObjectMeta{
 			Labels:      expectedLabels,
-			Annotations: mergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations, controlPlaneMachineTemplateAnnotations),
+			Annotations: util.MergeMap(s.Current.Cluster.Spec.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations, controlPlaneMachineTemplateAnnotations),
 		}))
 
 		assertNestedField(g, obj, version, contract.ControlPlane().Version().Path()...)
@@ -525,8 +526,8 @@ func TestComputeControlPlane(t *testing.T) {
 			template:    blueprint.ControlPlane.Template,
 			currentRef:  scope.Current.Cluster.Spec.ControlPlaneRef,
 			obj:         obj,
-			labels:      mergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
-			annotations: mergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
+			labels:      util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Labels, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Labels),
+			annotations: util.MergeMap(blueprint.Topology.ControlPlane.Metadata.Annotations, blueprint.ClusterClass.Spec.ControlPlane.Metadata.Annotations),
 		})
 	})
 	t.Run("Should choose the correct version for control plane", func(t *testing.T) {
@@ -1485,13 +1486,13 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(actualMd.Name).To(ContainSubstring("cluster1"))
 		g.Expect(actualMd.Name).To(ContainSubstring("big-pool-of-machines"))
 
-		expectedAnnotations := mergeMap(mdTopology.Metadata.Annotations, md1.Template.Metadata.Annotations)
+		expectedAnnotations := util.MergeMap(mdTopology.Metadata.Annotations, md1.Template.Metadata.Annotations)
 		delete(expectedAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
 		delete(expectedAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
 		g.Expect(actualMd.Annotations).To(Equal(expectedAnnotations))
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 
-		g.Expect(actualMd.Labels).To(Equal(mergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMd.Labels).To(Equal(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
@@ -1501,7 +1502,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
 		}))
-		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(Equal(mergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(Equal(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
@@ -1578,13 +1579,13 @@ func TestComputeMachineDeployment(t *testing.T) {
 		g.Expect(*actualMd.Spec.Template.Spec.FailureDomain).To(Equal(topologyFailureDomain))
 		g.Expect(actualMd.Name).To(Equal("existing-deployment-1"))
 
-		expectedAnnotations := mergeMap(mdTopology.Metadata.Annotations, md1.Template.Metadata.Annotations)
+		expectedAnnotations := util.MergeMap(mdTopology.Metadata.Annotations, md1.Template.Metadata.Annotations)
 		delete(expectedAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
 		delete(expectedAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
 		g.Expect(actualMd.Annotations).To(Equal(expectedAnnotations))
 		g.Expect(actualMd.Spec.Template.ObjectMeta.Annotations).To(Equal(expectedAnnotations))
 
-		g.Expect(actualMd.Labels).To(Equal(mergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMd.Labels).To(Equal(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
@@ -1594,7 +1595,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
 		}))
-		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(Equal(mergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
+		g.Expect(actualMd.Spec.Template.ObjectMeta.Labels).To(Equal(util.MergeMap(mdTopology.Metadata.Labels, md1.Template.Metadata.Labels, map[string]string{
 			clusterv1.ClusterNameLabel:                          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel:                 "",
 			clusterv1.ClusterTopologyMachineDeploymentNameLabel: "big-pool-of-machines",
@@ -2267,7 +2268,7 @@ func TestMergeMap(t *testing.T) {
 	t.Run("Merge maps", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m := mergeMap(
+		m := util.MergeMap(
 			map[string]string{
 				"a": "a",
 				"b": "b",
@@ -2283,7 +2284,7 @@ func TestMergeMap(t *testing.T) {
 	t.Run("Nils empty maps", func(t *testing.T) {
 		g := NewWithT(t)
 
-		m := mergeMap(map[string]string{}, map[string]string{})
+		m := util.MergeMap(map[string]string{}, map[string]string{})
 		g.Expect(m).To(BeNil())
 	})
 }

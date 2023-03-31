@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	"sigs.k8s.io/cluster-api/util"
 )
 
 // computeDesiredState computes the desired state of the cluster topology.
@@ -185,14 +186,14 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 	topologyMetadata := s.Blueprint.Topology.ControlPlane.Metadata
 	clusterClassMetadata := s.Blueprint.ClusterClass.Spec.ControlPlane.Metadata
 
-	controlPlaneLabels := mergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels)
+	controlPlaneLabels := util.MergeMap(topologyMetadata.Labels, clusterClassMetadata.Labels)
 	if controlPlaneLabels == nil {
 		controlPlaneLabels = map[string]string{}
 	}
 	controlPlaneLabels[clusterv1.ClusterNameLabel] = cluster.Name
 	controlPlaneLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
 
-	controlPlaneAnnotations := mergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations)
+	controlPlaneAnnotations := util.MergeMap(topologyMetadata.Annotations, clusterClassMetadata.Annotations)
 
 	controlPlane, err := templateToObject(templateToInput{
 		template:              template,
@@ -248,8 +249,8 @@ func (r *Reconciler) computeControlPlane(ctx context.Context, s *scope.Scope, in
 			return nil, errors.Wrap(err, "failed to get spec.machineTemplate.metadata from the ControlPlane object")
 		}
 
-		controlPlaneMachineTemplateMetadata.Labels = mergeMap(controlPlaneLabels, controlPlaneMachineTemplateMetadata.Labels)
-		controlPlaneMachineTemplateMetadata.Annotations = mergeMap(controlPlaneAnnotations, controlPlaneMachineTemplateMetadata.Annotations)
+		controlPlaneMachineTemplateMetadata.Labels = util.MergeMap(controlPlaneLabels, controlPlaneMachineTemplateMetadata.Labels)
+		controlPlaneMachineTemplateMetadata.Annotations = util.MergeMap(controlPlaneAnnotations, controlPlaneMachineTemplateMetadata.Annotations)
 
 		if err := contract.ControlPlane().MachineTemplate().Metadata().Set(controlPlane,
 			&clusterv1.ObjectMeta{
@@ -695,7 +696,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	}
 
 	// Apply annotations
-	machineDeploymentAnnotations := mergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations)
+	machineDeploymentAnnotations := util.MergeMap(machineDeploymentTopology.Metadata.Annotations, machineDeploymentBlueprint.Metadata.Annotations)
 	// Ensure the annotations used to control the upgrade sequence are never propagated.
 	delete(machineDeploymentAnnotations, clusterv1.ClusterTopologyHoldUpgradeSequenceAnnotation)
 	delete(machineDeploymentAnnotations, clusterv1.ClusterTopologyDeferUpgradeAnnotation)
@@ -705,7 +706,7 @@ func computeMachineDeployment(_ context.Context, s *scope.Scope, desiredControlP
 	// Apply Labels
 	// NOTE: On top of all the labels applied to managed objects we are applying the ClusterTopologyMachineDeploymentLabel
 	// keeping track of the MachineDeployment name from the Topology; this will be used to identify the object in next reconcile loops.
-	machineDeploymentLabels := mergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels)
+	machineDeploymentLabels := util.MergeMap(machineDeploymentTopology.Metadata.Labels, machineDeploymentBlueprint.Metadata.Labels)
 	if machineDeploymentLabels == nil {
 		machineDeploymentLabels = map[string]string{}
 	}
@@ -1000,25 +1001,6 @@ func templateToTemplate(in templateToInput) *unstructured.Unstructured {
 	}
 
 	return template
-}
-
-// mergeMap merges maps.
-// NOTE: In case a key exists in multiple maps, the value of the first map is preserved.
-func mergeMap(maps ...map[string]string) map[string]string {
-	m := make(map[string]string)
-	for i := len(maps) - 1; i >= 0; i-- {
-		for k, v := range maps[i] {
-			m[k] = v
-		}
-	}
-
-	// Nil the result if the map is empty, thus avoiding triggering infinite reconcile
-	// given that at json level label: {} or annotation: {} is different from no field, which is the
-	// corresponding value stored in etcd given that those fields are defined as omitempty.
-	if len(m) == 0 {
-		return nil
-	}
-	return m
 }
 
 func ownerReferenceTo(obj client.Object) *metav1.OwnerReference {

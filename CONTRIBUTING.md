@@ -102,6 +102,15 @@ We generally allow backports of following changes only to the latest supported b
 - Improvements to CI signal
 - Improvements to the test framework
 
+While we recommend to target following type of changes to the next minor release, CAPI maintainers will also consider
+exceptions for backport of following changes only to the latest supported branch:
+- Enhancements or additions to experimental Cluster API features, with the goal of allowing faster adoption and iteration;
+  Please note that stability of the branch will always be top priority while evaluating those PRs, and thus approval
+  requires /lgtm from at least two maintainers that, on top of checking that the backport is not introducing any breaking
+  change for either API or behavior, will evaluate if the impact of those backport is limited and well-scoped e.g. 
+  by checking that those changes should not touch non-experimental code paths like utils and/or by applying other 
+  considerations depending on the specific PR.
+
 Like any other activity in the project, backporting a fix/change is a community-driven effort and requires that someone volunteers to own the task. 
 In most cases, the cherry-pick bot can (and should) be used to automate opening a cherry-pick PR.
 

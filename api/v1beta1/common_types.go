@@ -74,6 +74,9 @@ const (
 	// OwnerKindAnnotation is the annotation set on nodes identifying the owner kind.
 	OwnerKindAnnotation = "cluster.x-k8s.io/owner-kind"
 
+	// LabelsFromMachineAnnotation is the annotation set on nodes to track the labels originated from machines.
+	LabelsFromMachineAnnotation = "cluster.x-k8s.io/labels-from-machine"
+
 	// OwnerNameAnnotation is the annotation set on nodes identifying the owner name.
 	OwnerNameAnnotation = "cluster.x-k8s.io/owner-name"
 

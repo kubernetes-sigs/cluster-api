@@ -107,7 +107,10 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-				result, _ := conditions.Check(obj.GetOwnerReferences(), objAfter.GetOwnerReferences())
+				result, diff, _ := conditions.Check(obj.GetOwnerReferences(), objAfter.GetOwnerReferences())
+				if diff != "" {
+					t.Logf("mismatch of objects actual %v expected %v diff %v", obj.GetOwnerReferences(), objAfter.GetOwnerReferences(), diff)
+				}
 				return result
 			}, timeout).Should(BeTrue())
 		})
@@ -542,7 +545,10 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-				result, _ := conditions.Check(obj.Finalizers, objAfter.Finalizers)
+				result, diff, _ := conditions.Check(obj.Finalizers, objAfter.Finalizers)
+				if diff != "" {
+					t.Logf("mismatch of objects actual %v expected %v diff %v", obj.Finalizers, objAfter.Finalizers, diff)
+				}
 				return result
 			}, timeout).Should(BeTrue())
 		})
@@ -626,7 +632,10 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-				result, _ := conditions.Check(obj.Spec.InfrastructureRef, objAfter.Spec.InfrastructureRef)
+				result, diff, _ := conditions.Check(obj.Spec.InfrastructureRef, objAfter.Spec.InfrastructureRef)
+				if diff != "" {
+					t.Logf("mismatch of objects actual %v expected %v diff %v", obj.Spec.InfrastructureRef, objAfter.Spec.InfrastructureRef, diff)
+				}
 				return objAfter.Spec.Paused && result
 			}, timeout).Should(BeTrue())
 		})
@@ -665,7 +674,10 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-				result, _ := conditions.Check(objAfter.Status, obj.Status)
+				result, diff, _ := conditions.Check(objAfter.Status, obj.Status)
+				if diff != "" {
+					t.Logf("mismatch of objects actual %v expected %v diff %v", obj.Status, objAfter.Status, diff)
+				}
 				return result
 			}, timeout).Should(BeTrue())
 		})
@@ -715,7 +727,10 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-				result, _ := conditions.Check(obj.Spec, objAfter.Spec)
+				result, diff, _ := conditions.Check(obj.Spec, objAfter.Spec)
+				if diff != "" {
+					t.Logf("mismatch of objects actual %v expected %v diff %v", obj.Spec, objAfter.Spec, diff)
+				}
 				return obj.Status.InfrastructureReady == objAfter.Status.InfrastructureReady &&
 					conditions.IsTrue(objAfter, clusterv1.ReadyCondition) &&
 					result
@@ -773,7 +788,10 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-				result, _ := conditions.Check(obj.Spec, objAfter.Spec)
+				result, diff, _ := conditions.Check(obj.Spec, objAfter.Spec)
+				if diff != "" {
+					t.Logf("mismatch of objects actual %v expected %v diff %v", obj.Spec, objAfter.Spec, diff)
+				}
 				return result &&
 					obj.GetGeneration() == objAfter.Status.ObservedGeneration
 			}, timeout).Should(BeTrue())
@@ -822,8 +840,14 @@ func TestPatchHelper(t *testing.T) {
 				if err := env.Get(ctx, key, objAfter); err != nil {
 					return false
 				}
-				specResult, _ := conditions.Check(obj.Spec, objAfter.Spec)
-				statusResult, _ := conditions.Check(obj.Status, objAfter.Status)
+				specResult, diff, _ := conditions.Check(obj.Spec, objAfter.Spec)
+				if diff != "" {
+					t.Logf("mismatch of objects actual %v expected %v diff %v", obj.Spec, objAfter.Spec, diff)
+				}
+				statusResult, diff, _ := conditions.Check(obj.Status, objAfter.Status)
+				if diff != "" {
+					t.Logf("mismatch of objects actual %v expected %v diff %v", obj.Status, objAfter.Status, diff)
+				}
 				return specResult && statusResult &&
 					obj.GetGeneration() == objAfter.Status.ObservedGeneration
 			}, timeout).Should(BeTrue())

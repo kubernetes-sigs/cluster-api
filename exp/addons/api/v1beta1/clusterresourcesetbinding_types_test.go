@@ -207,7 +207,7 @@ func TestSetResourceBinding(t *testing.T) {
 			tt.resourceSetBinding.SetBinding(tt.resourceBinding)
 			exist := false
 			for _, b := range tt.resourceSetBinding.Resources {
-				if diff := cmp.Diff(b.ResourceRef, tt.resourceBinding.ResourceRef); diff == "" {
+				if cmp.Equal(b.ResourceRef, tt.resourceBinding.ResourceRef) {
 					gs.Expect(tt.resourceBinding.Applied).To(BeEquivalentTo(b.Applied))
 					exist = true
 				}

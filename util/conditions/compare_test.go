@@ -21,7 +21,8 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	unstructv1 "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 )
 
@@ -154,7 +155,7 @@ func TestCompareConditions(t *testing.T) {
 		},
 		{
 			name: "with similar unstructed object",
-			actual: &unstructured.Unstructured{
+			actual: &unstructv1.Unstructured{
 				Object: map[string]interface{}{
 					"kind":       "GenericBootstrapConfig",
 					"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
@@ -168,7 +169,7 @@ func TestCompareConditions(t *testing.T) {
 					},
 				},
 			},
-			expected: &unstructured.Unstructured{
+			expected: &unstructv1.Unstructured{
 				Object: map[string]interface{}{
 					"kind":       "GenericBootstrapConfig",
 					"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
@@ -186,7 +187,7 @@ func TestCompareConditions(t *testing.T) {
 		},
 		{
 			name: "with unsimilar dataSecretName type object",
-			actual: &unstructured.Unstructured{
+			actual: &unstructv1.Unstructured{
 				Object: map[string]interface{}{
 					"kind":       "GenericBootstrapConfig",
 					"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
@@ -200,7 +201,7 @@ func TestCompareConditions(t *testing.T) {
 					},
 				},
 			},
-			expected: &unstructured.Unstructured{
+			expected: &unstructv1.Unstructured{
 				Object: map[string]interface{}{
 					"kind":       "GenericBootstrapConfig",
 					"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
@@ -218,7 +219,7 @@ func TestCompareConditions(t *testing.T) {
 		},
 		{
 			name: "with unsimilar types",
-			actual: &unstructured.Unstructured{
+			actual: &unstructv1.Unstructured{
 				Object: map[string]interface{}{
 					"kind":       "GenericBootstrapConfig",
 					"apiVersion": "bootstrap.cluster.x-k8s.io/v1beta1",
@@ -254,7 +255,7 @@ func TestCompareConditions(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
-			result, _ := Check(tc.actual, tc.expected)
+			result, _, _ := Check(tc.actual, tc.expected)
 			g.Expect(result).To(Equal(tc.expectMatch))
 		})
 	}

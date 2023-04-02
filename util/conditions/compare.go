@@ -18,23 +18,25 @@ package conditions
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/google/go-cmp/cmp"
 )
 
-func Check(actual interface{}, expected interface{}) (result bool, err error) {
-	defer func() error {
+// Check compares the actual and expected values provided using the
+// cmp package and handles panic errors in case of comparison.
+func Check(actual interface{}, expected interface{}) (result bool, diff string, err error) {
+	result = true
+	defer func() {
 		if recover() != nil {
-			log.Printf("panic occured got %v expected %v", actual, expected)
-			err = fmt.Errorf("panic occured got %v expected %v", actual, expected)
+			err = fmt.Errorf("panic occurred got %v expected %v", actual, expected)
 		}
-		return nil
 	}()
-	diff := cmp.Diff(actual, expected)
-	if diff == "" {
-		return true, err
+	diff = cmp.Diff(actual, expected)
+	if err != nil {
+		return !result, "", err
 	}
-	log.Printf("mismatch of objects actual %v expected %v diff %v", actual, expected, diff)
-	return false, err
+	if diff != "" {
+		return !result, diff, nil
+	}
+	return result, diff, nil
 }

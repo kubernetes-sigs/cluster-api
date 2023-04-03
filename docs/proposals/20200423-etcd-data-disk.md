@@ -49,7 +49,7 @@ A "side effect" motivation is to open up the option of putting other directories
 
 References:
 https://docs.microsoft.com/en-us/archive/blogs/xiangwu/azure-vm-storage-performance-and-throttling-demystify
-https://docs.d2iq.com/mesosphere/dcos/1.13/installing/production/system-requirements/azure-recommendations/#disk-configurations
+https://archive-docs.d2iq.com/mesosphere/dcos/1.13/installing/production/system-requirements/azure-recommendations/#disk-configurations
 
 ### Goals
 

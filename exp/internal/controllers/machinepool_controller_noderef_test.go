@@ -25,6 +25,9 @@ import (
 	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
 func TestMachinePoolGetNodeReference(t *testing.T) {
@@ -195,6 +198,234 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 			for n := range test.expected.references {
 				g.Expect(result.references[n].Name).To(Equal(test.expected.references[n].Name), "Expected NodeRef's name to be %v, got %v", result.references[n].Name, test.expected.references[n].Name)
 				g.Expect(result.references[n].Namespace).To(Equal(test.expected.references[n].Namespace), "Expected NodeRef's namespace to be %v, got %v", result.references[n].Namespace, test.expected.references[n].Namespace)
+			}
+		})
+	}
+}
+
+func TestMachinePoolPatchNodes(t *testing.T) {
+	r := &MachinePoolReconciler{
+		Client:   fake.NewClientBuilder().Build(),
+		recorder: record.NewFakeRecorder(32),
+	}
+
+	nodeList := []client.Object{
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node-1",
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "aws://us-east-1/id-node-1",
+				Taints: []corev1.Taint{
+					clusterv1.NodeUninitializedTaint,
+				},
+			},
+		},
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node-2",
+				Annotations: map[string]string{
+					"foo": "bar",
+				},
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "aws://us-west-2/id-node-2",
+				Taints: []corev1.Taint{
+					{
+						Key:   "some-other-taint",
+						Value: "SomeEffect",
+					},
+					clusterv1.NodeUninitializedTaint,
+				},
+			},
+		},
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node-3",
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/cluster-name":      "cluster-1",
+					"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+					"cluster.x-k8s.io/owner-kind":        "MachinePool",
+					"cluster.x-k8s.io/owner-name":        "machinepool-3",
+				},
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "aws://us-west-2/id-node-3",
+				Taints: []corev1.Taint{
+					{
+						Key:   "some-other-taint",
+						Value: "SomeEffect",
+					},
+					clusterv1.NodeUninitializedTaint,
+				},
+			},
+		},
+		&corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "node-4",
+				Annotations: map[string]string{
+					"cluster.x-k8s.io/cluster-name":      "cluster-1",
+					"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+				},
+			},
+			Spec: corev1.NodeSpec{
+				ProviderID: "aws://us-west-2/id-node-4",
+				Taints: []corev1.Taint{
+					{
+						Key:   "some-other-taint",
+						Value: "SomeEffect",
+					},
+				},
+			},
+		},
+	}
+
+	testCases := []struct {
+		name          string
+		machinePool   *expv1.MachinePool
+		nodeRefs      []corev1.ObjectReference
+		expectedNodes []corev1.Node
+		err           error
+	}{
+		{
+			name: "Node with uninitialized taint should be patched",
+			machinePool: &expv1.MachinePool{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "MachinePool",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machinepool-1",
+					Namespace: "my-namespace",
+				},
+				Spec: expv1.MachinePoolSpec{
+					ClusterName:    "cluster-1",
+					ProviderIDList: []string{"aws://us-east-1/id-node-1"},
+				},
+			},
+			nodeRefs: []corev1.ObjectReference{
+				{Name: "node-1"},
+			},
+			expectedNodes: []corev1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node-1",
+						Annotations: map[string]string{
+							"cluster.x-k8s.io/cluster-name":      "cluster-1",
+							"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+							"cluster.x-k8s.io/owner-kind":        "MachinePool",
+							"cluster.x-k8s.io/owner-name":        "machinepool-1",
+						},
+					},
+					Spec: corev1.NodeSpec{
+						Taints: nil,
+					},
+				},
+			},
+		},
+		{
+			name: "Node with existing annotations and taints should be patched",
+			machinePool: &expv1.MachinePool{
+				TypeMeta: metav1.TypeMeta{
+					Kind: "MachinePool",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "machinepool-2",
+					Namespace: "my-namespace",
+				},
+				Spec: expv1.MachinePoolSpec{
+					ClusterName:    "cluster-1",
+					ProviderIDList: []string{"aws://us-west-2/id-node-2"},
+				},
+			},
+			nodeRefs: []corev1.ObjectReference{
+				{Name: "node-2"},
+				{Name: "node-3"},
+				{Name: "node-4"},
+			},
+			expectedNodes: []corev1.Node{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node-2",
+						Annotations: map[string]string{
+							"cluster.x-k8s.io/cluster-name":      "cluster-1",
+							"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+							"cluster.x-k8s.io/owner-kind":        "MachinePool",
+							"cluster.x-k8s.io/owner-name":        "machinepool-2",
+							"foo":                                "bar",
+						},
+					},
+					Spec: corev1.NodeSpec{
+						Taints: []corev1.Taint{
+							{
+								Key:   "some-other-taint",
+								Value: "SomeEffect",
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node-3",
+						Annotations: map[string]string{
+							"cluster.x-k8s.io/cluster-name":      "cluster-1",
+							"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+							"cluster.x-k8s.io/owner-kind":        "MachinePool",
+							"cluster.x-k8s.io/owner-name":        "machinepool-2",
+						},
+					},
+					Spec: corev1.NodeSpec{
+						Taints: []corev1.Taint{
+							{
+								Key:   "some-other-taint",
+								Value: "SomeEffect",
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "node-4",
+						Annotations: map[string]string{
+							"cluster.x-k8s.io/cluster-name":      "cluster-1",
+							"cluster.x-k8s.io/cluster-namespace": "my-namespace",
+							"cluster.x-k8s.io/owner-kind":        "MachinePool",
+							"cluster.x-k8s.io/owner-name":        "machinepool-2",
+						},
+					},
+					Spec: corev1.NodeSpec{
+						Taints: []corev1.Taint{
+							{
+								Key:   "some-other-taint",
+								Value: "SomeEffect",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			fakeClient := fake.NewClientBuilder().WithObjects(nodeList...).Build()
+
+			err := r.patchNodes(ctx, fakeClient, test.nodeRefs, test.machinePool)
+			if test.err == nil {
+				g.Expect(err).To(BeNil())
+			} else {
+				g.Expect(err).NotTo(BeNil())
+				g.Expect(err).To(Equal(test.err), "Expected error %v, got %v", test.err, err)
+			}
+
+			// Check that the nodes have the desired taints and annotations
+			for _, expected := range test.expectedNodes {
+				node := &corev1.Node{}
+				err := fakeClient.Get(ctx, client.ObjectKey{Name: expected.Name}, node)
+				g.Expect(err).To(BeNil())
+				g.Expect(node.Annotations).To(Equal(expected.Annotations))
+				g.Expect(node.Spec.Taints).To(Equal(expected.Spec.Taints))
 			}
 		})
 	}

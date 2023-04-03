@@ -55,6 +55,7 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	}
 
 	// Check that the Machine doesn't already have a NodeRefs.
+	// Return early if there is no work to do.
 	if mp.Status.Replicas == mp.Status.ReadyReplicas && len(mp.Status.NodeRefs) == int(mp.Status.ReadyReplicas) {
 		conditions.MarkTrue(mp, expv1.ReplicasReadyCondition)
 		return ctrl.Result{}, nil
@@ -94,30 +95,10 @@ func (r *MachinePoolReconciler) reconcileNodeRefs(ctx context.Context, cluster *
 	log.Info("Set MachinePools's NodeRefs", "noderefs", mp.Status.NodeRefs)
 	r.recorder.Event(mp, corev1.EventTypeNormal, "SuccessfulSetNodeRefs", fmt.Sprintf("%+v", mp.Status.NodeRefs))
 
-	// Reconcile node annotations.
-	for _, nodeRef := range nodeRefsResult.references {
-		node := &corev1.Node{}
-		if err := clusterClient.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
-			log.V(2).Info("Failed to get Node, skipping setting annotations", "err", err, "nodeRef.Name", nodeRef.Name)
-			continue
-		}
-		patchHelper, err := patch.NewHelper(node, clusterClient)
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		desired := map[string]string{
-			clusterv1.ClusterNameAnnotation:      mp.Spec.ClusterName,
-			clusterv1.ClusterNamespaceAnnotation: mp.GetNamespace(),
-			clusterv1.OwnerKindAnnotation:        mp.Kind,
-			clusterv1.OwnerNameAnnotation:        mp.Name,
-		}
-		// Add annotations and drop NodeUninitializedTaint.
-		if annotations.AddAnnotations(node, desired) || taints.RemoveNodeTaint(node, clusterv1.NodeUninitializedTaint) {
-			if err := patchHelper.Patch(ctx, node); err != nil {
-				log.V(2).Info("Failed patch node to set annotations and drop taints", "err", err, "node name", node.Name)
-				return ctrl.Result{}, err
-			}
-		}
+	// Reconcile node annotations and taints.
+	err = r.patchNodes(ctx, clusterClient, nodeRefsResult.references, mp)
+	if err != nil {
+		return ctrl.Result{}, err
 	}
 
 	if mp.Status.Replicas != mp.Status.ReadyReplicas || len(nodeRefsResult.references) != int(mp.Status.ReadyReplicas) {
@@ -219,6 +200,39 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 		return getNodeReferencesResult{}, errNoAvailableNodes
 	}
 	return getNodeReferencesResult{nodeRefs, available, ready}, nil
+}
+
+// patchNodes patches the nodes with the cluster name and cluster namespace annotations.
+func (r *MachinePoolReconciler) patchNodes(ctx context.Context, c client.Client, references []corev1.ObjectReference, mp *expv1.MachinePool) error {
+	log := ctrl.LoggerFrom(ctx)
+	for _, nodeRef := range references {
+		node := &corev1.Node{}
+		if err := c.Get(ctx, client.ObjectKey{Name: nodeRef.Name}, node); err != nil {
+			log.V(2).Info("Failed to get Node, skipping setting annotations", "err", err, "nodeRef.Name", nodeRef.Name)
+			continue
+		}
+		patchHelper, err := patch.NewHelper(node, c)
+		if err != nil {
+			return err
+		}
+		desired := map[string]string{
+			clusterv1.ClusterNameAnnotation:      mp.Spec.ClusterName,
+			clusterv1.ClusterNamespaceAnnotation: mp.GetNamespace(),
+			clusterv1.OwnerKindAnnotation:        mp.Kind,
+			clusterv1.OwnerNameAnnotation:        mp.Name,
+		}
+		// Add annotations and drop NodeUninitializedTaint.
+		hasAnnotationChanges := annotations.AddAnnotations(node, desired)
+		hasTaintChanges := taints.RemoveNodeTaint(node, clusterv1.NodeUninitializedTaint)
+		// Patch the node if needed.
+		if hasAnnotationChanges || hasTaintChanges {
+			if err := patchHelper.Patch(ctx, node); err != nil {
+				log.V(2).Info("Failed patch node to set annotations and drop taints", "err", err, "node name", node.Name)
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func nodeIsReady(node *corev1.Node) bool {

@@ -275,6 +275,9 @@ func getComponentSourceFromURL(ctx context.Context, source ProviderVersionSource
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get %s", source.Value)
 		}
+		if resp.StatusCode != http.StatusOK {
+			return nil, errors.Errorf("failed to get %s: got status code %d", source.Value, resp.StatusCode)
+		}
 		defer resp.Body.Close()
 		buf, err = io.ReadAll(resp.Body)
 		if err != nil {

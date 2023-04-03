@@ -1598,6 +1598,7 @@ func TestComputeDesiredMachine(t *testing.T) {
 				clusterv1.MachineDeploymentNameLabel: "md1",
 			},
 			Annotations: map[string]string{"machine-annotation1": "machine-value1"},
+			Finalizers:  []string{clusterv1.MachineFinalizer},
 		},
 		Spec: clusterv1.MachineSpec{
 			ClusterName:             "test-cluster",
@@ -1684,4 +1685,8 @@ func assertMachine(g *WithT, actualMachine *clusterv1.Machine, expectedMachine *
 	}
 	// Check Spec
 	g.Expect(actualMachine.Spec).Should(Equal(expectedMachine.Spec))
+	// Check Finalizer
+	if expectedMachine.Finalizers != nil {
+		g.Expect(actualMachine.Finalizers).Should(Equal(expectedMachine.Finalizers))
+	}
 }

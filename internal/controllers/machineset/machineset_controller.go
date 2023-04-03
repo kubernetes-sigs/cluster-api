@@ -604,6 +604,7 @@ func (r *Reconciler) computeDesiredMachine(machineSet *clusterv1.MachineSet, exi
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(machineSet, machineSetKind)},
 			Labels:          map[string]string{},
 			Annotations:     map[string]string{},
+			Finalizers:      []string{clusterv1.MachineFinalizer},
 		},
 		Spec: *machineSet.Spec.Template.Spec.DeepCopy(),
 	}

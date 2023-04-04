@@ -1147,6 +1147,7 @@ type MachineDeploymentBuilder struct {
 	clusterName            string
 	bootstrapTemplate      *unstructured.Unstructured
 	infrastructureTemplate *unstructured.Unstructured
+	selector               *metav1.LabelSelector
 	version                *string
 	replicas               *int32
 	defaulter              bool
@@ -1172,6 +1173,12 @@ func (m *MachineDeploymentBuilder) WithBootstrapTemplate(ref *unstructured.Unstr
 // WithInfrastructureTemplate adds the passed unstructured object to the MachineDeployment builder as an infrastructureMachineTemplate.
 func (m *MachineDeploymentBuilder) WithInfrastructureTemplate(ref *unstructured.Unstructured) *MachineDeploymentBuilder {
 	m.infrastructureTemplate = ref
+	return m
+}
+
+// WithSelector adds the passed selector to the MachineDeployment as the selector.
+func (m *MachineDeploymentBuilder) WithSelector(selector metav1.LabelSelector) *MachineDeploymentBuilder {
+	m.selector = &selector
 	return m
 }
 
@@ -1243,15 +1250,19 @@ func (m *MachineDeploymentBuilder) Build() *clusterv1.MachineDeployment {
 	if m.infrastructureTemplate != nil {
 		obj.Spec.Template.Spec.InfrastructureRef = *objToRef(m.infrastructureTemplate)
 	}
+	if m.selector != nil {
+		obj.Spec.Selector = *m.selector
+	}
 	if m.status != nil {
 		obj.Status = *m.status
 	}
 	if m.clusterName != "" {
 		obj.Spec.Template.Spec.ClusterName = m.clusterName
 		obj.Spec.ClusterName = m.clusterName
-		obj.Spec.Selector.MatchLabels = map[string]string{
-			clusterv1.ClusterNameLabel: m.clusterName,
+		if obj.Spec.Selector.MatchLabels == nil {
+			obj.Spec.Selector.MatchLabels = map[string]string{}
 		}
+		obj.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = m.clusterName
 		obj.Spec.Template.Labels = map[string]string{
 			clusterv1.ClusterNameLabel: m.clusterName,
 		}

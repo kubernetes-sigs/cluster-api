@@ -24,7 +24,7 @@ const (
 	DefaultImageRepository = "kindest"
 
 	// DefaultImageTag is the loadbalancer image tag.
-	DefaultImageTag = "v20230227-d46f45b6"
+	DefaultImageTag = "v20230330-2f738c2"
 
 	// ConfigPath is the path to the config file in the image.
 	ConfigPath = "/usr/local/etc/haproxy/haproxy.cfg"

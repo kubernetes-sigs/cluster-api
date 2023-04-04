@@ -46,6 +46,7 @@ type ControlPlaneUpgradeTracker struct {
 type MachineDeploymentUpgradeTracker struct {
 	pendingNames                           sets.Set[string]
 	deferredNames                          sets.Set[string]
+	upgradingNames                         sets.Set[string]
 	rollingOutNames                        sets.Set[string]
 	holdUpgrades                           bool
 	maxMachineDeploymentUpgradeConcurrency int
@@ -85,6 +86,7 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 			pendingNames:                           sets.Set[string]{},
 			deferredNames:                          sets.Set[string]{},
 			rollingOutNames:                        sets.Set[string]{},
+			upgradingNames:                         sets.Set[string]{},
 			maxMachineDeploymentUpgradeConcurrency: options.maxMDUpgradeConcurrency,
 		},
 	}
@@ -101,10 +103,27 @@ func (m *MachineDeploymentUpgradeTracker) MarkRollingOut(names ...string) {
 	}
 }
 
+// MarkUpgradingAndRollingOut marks a MachineDeployment as currently upgrading or about to upgrade.
+// NOTE: Marking a MachineDeployment as upgrading also marks it as RollingOut.
+func (m *MachineDeploymentUpgradeTracker) MarkUpgradingAndRollingOut(names ...string) {
+	for _, name := range names {
+		m.upgradingNames.Insert(name)
+		m.rollingOutNames.Insert(name)
+	}
+}
+
 // RolloutNames returns the list of machine deployments that are rolling out or
 // are about to rollout.
+// Note: This also includes the names of MachineDeployments that are upgrading
+// MachineDeployments are also considered rolling out.
 func (m *MachineDeploymentUpgradeTracker) RolloutNames() []string {
 	return sets.List(m.rollingOutNames)
+}
+
+// UpgradingNames returns the list of machine deployments that are upgrading or
+// are about to upgrade.
+func (m *MachineDeploymentUpgradeTracker) UpgradingNames() []string {
+	return sets.List(m.upgradingNames)
 }
 
 // HoldUpgrades is used to set if any subsequent upgrade operations should be paused,
@@ -123,7 +142,7 @@ func (m *MachineDeploymentUpgradeTracker) AllowUpgrade() bool {
 	if m.holdUpgrades {
 		return false
 	}
-	return m.rollingOutNames.Len() < m.maxMachineDeploymentUpgradeConcurrency
+	return m.upgradingNames.Len() < m.maxMachineDeploymentUpgradeConcurrency
 }
 
 // MarkPendingUpgrade marks a machine deployment as in need of an upgrade.

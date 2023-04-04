@@ -89,7 +89,7 @@ func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*
 	// If required, compute the desired state of the MachineDeployments from the list of MachineDeploymentTopologies
 	// defined in the cluster.
 	if s.Blueprint.HasMachineDeployments() {
-		desiredState.MachineDeployments, err = computeMachineDeployments(ctx, s, desiredState.ControlPlane)
+		desiredState.MachineDeployments, err = r.computeMachineDeployments(ctx, s, desiredState.ControlPlane)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to compute MachineDeployments")
 		}
@@ -523,12 +523,22 @@ func calculateRefDesiredAPIVersion(currentRef *corev1.ObjectReference, desiredRe
 }
 
 // computeMachineDeployments computes the desired state of the list of MachineDeployments.
-func computeMachineDeployments(ctx context.Context, s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState) (scope.MachineDeploymentsStateMap, error) {
-	// Mark all the machine deployments that are currently rolling out.
-	// This captured information will be used for
-	//   - Building the TopologyReconciled condition.
-	//   - Making upgrade decisions on machine deployments.
+func (r *Reconciler) computeMachineDeployments(ctx context.Context, s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState) (scope.MachineDeploymentsStateMap, error) {
+	// Mark all the MachineDeployments that are currently upgrading.
+	// This captured information is used for:
+	// - Building the TopologyReconciled condition.
+	// - Making upgrade decisions on machine deployments.
+	upgradingMDs, err := s.Current.MachineDeployments.Upgrading(ctx, r.Client)
+	if err != nil {
+		return nil, err
+	}
+	s.UpgradeTracker.MachineDeployments.MarkUpgradingAndRollingOut(upgradingMDs...)
+
+	// Mark all MachineDeployments that are currently rolling out.
+	// This captured information is used for:
+	// - Building the TopologyReconciled condition (when control plane upgrade is pending)
 	s.UpgradeTracker.MachineDeployments.MarkRollingOut(s.Current.MachineDeployments.RollingOut()...)
+
 	machineDeploymentsStateMap := make(scope.MachineDeploymentsStateMap)
 	for _, mdTopology := range s.Blueprint.Topology.Workers.MachineDeployments {
 		desiredMachineDeployment, err := computeMachineDeployment(ctx, s, desiredControlPlaneState, mdTopology)
@@ -844,7 +854,7 @@ func computeMachineDeploymentVersion(s *scope.Scope, machineDeploymentTopology c
 
 	// Control plane and machine deployments are stable.
 	// Ready to pick up the topology version.
-	s.UpgradeTracker.MachineDeployments.MarkRollingOut(currentMDState.Object.Name)
+	s.UpgradeTracker.MachineDeployments.MarkUpgradingAndRollingOut(currentMDState.Object.Name)
 	return desiredVersion, nil
 }
 

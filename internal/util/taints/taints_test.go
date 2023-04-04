@@ -55,6 +55,16 @@ func TestRemoveNodeTaint(t *testing.T) {
 			wantTaints:   []corev1.Taint{taint2},
 			wantModified: false,
 		},
+		{
+			name: "drop last taint should return true",
+			node: &corev1.Node{Spec: corev1.NodeSpec{
+				Taints: []corev1.Taint{
+					taint1,
+				}}},
+			dropTaint:    taint1,
+			wantTaints:   []corev1.Taint{},
+			wantModified: true,
+		},
 	}
 
 	for _, tt := range tests {

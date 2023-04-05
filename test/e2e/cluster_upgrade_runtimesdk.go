@@ -142,106 +142,117 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 			extensionConfig(specName, namespace.Name))).
 			To(Succeed(), "Failed to create the extension config")
 
-		By("Creating a workload cluster; creation waits for BeforeClusterCreateHook to gate the operation")
+		for i := 0; i < 100; i++ {
 
-		clusterRef := types.NamespacedName{
-			Name:      clusterName,
-			Namespace: namespace.Name,
-		}
+			By("Creating a workload cluster; creation waits for BeforeClusterCreateHook to gate the operation")
 
-		clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-			ClusterProxy: input.BootstrapClusterProxy,
-			ConfigCluster: clusterctl.ConfigClusterInput{
-				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
-				ClusterctlConfigPath:     input.ClusterctlConfigPath,
-				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
-				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-				Flavor:                   pointer.StringDeref(input.Flavor, "upgrades"),
-				Namespace:                namespace.Name,
-				ClusterName:              clusterName,
-				KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
-				ControlPlaneMachineCount: pointer.Int64(controlPlaneMachineCount),
-				WorkerMachineCount:       pointer.Int64(workerMachineCount),
-			},
-			PreWaitForCluster: func() {
-				beforeClusterCreateTestHandler(ctx,
-					input.BootstrapClusterProxy.GetClient(),
-					clusterRef,
-					input.E2EConfig.GetIntervals(specName, "wait-cluster"))
-			},
-			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
-			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
-			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-			WaitForMachinePools:          input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
-		}, clusterResources)
+			clusterRef := types.NamespacedName{
+				Name:      clusterName,
+				Namespace: namespace.Name,
+			}
 
-		// TODO: check if AfterControlPlaneInitialized has been called (or add this check to the operation above)
+			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
+				ClusterProxy: input.BootstrapClusterProxy,
+				ConfigCluster: clusterctl.ConfigClusterInput{
+					LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
+					ClusterctlConfigPath:     input.ClusterctlConfigPath,
+					KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
+					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+					Flavor:                   pointer.StringDeref(input.Flavor, "upgrades"),
+					Namespace:                namespace.Name,
+					ClusterName:              clusterName,
+					KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersionUpgradeFrom),
+					ControlPlaneMachineCount: pointer.Int64(controlPlaneMachineCount),
+					WorkerMachineCount:       pointer.Int64(workerMachineCount),
+				},
+				PreWaitForCluster: func() {
+					beforeClusterCreateTestHandler(ctx,
+						input.BootstrapClusterProxy.GetClient(),
+						clusterRef,
+						input.E2EConfig.GetIntervals(specName, "wait-cluster"))
+				},
+				WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
+				WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+				WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+				WaitForMachinePools:          input.E2EConfig.GetIntervals(specName, "wait-machine-pool-nodes"),
+			}, clusterResources)
 
-		// Upgrade the Cluster topology to run through an entire cluster lifecycle to test the lifecycle hooks.
-		By("Upgrading the Cluster topology; creation waits for BeforeClusterUpgradeHook and AfterControlPlaneUpgradeHook to gate the operation")
-		framework.UpgradeClusterTopologyAndWaitForUpgrade(ctx, framework.UpgradeClusterTopologyAndWaitForUpgradeInput{
-			ClusterProxy:                input.BootstrapClusterProxy,
-			Cluster:                     clusterResources.Cluster,
-			ControlPlane:                clusterResources.ControlPlane,
-			MachineDeployments:          clusterResources.MachineDeployments,
-			KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-			WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
-			PreWaitForControlPlaneToBeUpgraded: func() {
-				beforeClusterUpgradeTestHandler(ctx,
-					input.BootstrapClusterProxy.GetClient(),
-					clusterRef,
-					input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-					input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
-			},
-			PreWaitForMachineDeploymentToBeUpgraded: func() {
-				afterControlPlaneUpgradeTestHandler(ctx,
-					input.BootstrapClusterProxy.GetClient(),
-					clusterRef,
-					input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-					input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
-			},
-		})
+			// TODO: check if AfterControlPlaneInitialized has been called (or add this check to the operation above)
 
-		// Only attempt to upgrade MachinePools if they were provided in the template.
-		if len(clusterResources.MachinePools) > 0 && workerMachineCount > 0 {
-			By("Upgrading the machinepool instances")
-			framework.UpgradeMachinePoolAndWait(ctx, framework.UpgradeMachinePoolAndWaitInput{
-				ClusterProxy:                   input.BootstrapClusterProxy,
-				Cluster:                        clusterResources.Cluster,
-				UpgradeVersion:                 input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-				WaitForMachinePoolToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
-				MachinePools:                   clusterResources.MachinePools,
+			// Upgrade the Cluster topology to run through an entire cluster lifecycle to test the lifecycle hooks.
+			By("Upgrading the Cluster topology; creation waits for BeforeClusterUpgradeHook and AfterControlPlaneUpgradeHook to gate the operation")
+			framework.UpgradeClusterTopologyAndWaitForUpgrade(ctx, framework.UpgradeClusterTopologyAndWaitForUpgradeInput{
+				ClusterProxy:                input.BootstrapClusterProxy,
+				Cluster:                     clusterResources.Cluster,
+				ControlPlane:                clusterResources.ControlPlane,
+				MachineDeployments:          clusterResources.MachineDeployments,
+				KubernetesUpgradeVersion:    input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+				WaitForMachinesToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForKubeProxyUpgrade:     input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForDNSUpgrade:           input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				WaitForEtcdUpgrade:          input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"),
+				PreWaitForControlPlaneToBeUpgraded: func() {
+					beforeClusterUpgradeTestHandler(ctx,
+						input.BootstrapClusterProxy.GetClient(),
+						clusterRef,
+						input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+						input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
+				},
+				PreWaitForMachineDeploymentToBeUpgraded: func() {
+					afterControlPlaneUpgradeTestHandler(ctx,
+						input.BootstrapClusterProxy.GetClient(),
+						clusterRef,
+						input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+						input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
+				},
 			})
+
+			// Only attempt to upgrade MachinePools if they were provided in the template.
+			if len(clusterResources.MachinePools) > 0 && workerMachineCount > 0 {
+				By("Upgrading the machinepool instances")
+				framework.UpgradeMachinePoolAndWait(ctx, framework.UpgradeMachinePoolAndWaitInput{
+					ClusterProxy:                   input.BootstrapClusterProxy,
+					Cluster:                        clusterResources.Cluster,
+					UpgradeVersion:                 input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+					WaitForMachinePoolToBeUpgraded: input.E2EConfig.GetIntervals(specName, "wait-machine-pool-upgrade"),
+					MachinePools:                   clusterResources.MachinePools,
+				})
+			}
+
+			By("Waiting until nodes are ready")
+			workloadProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterResources.Cluster.Name)
+			workloadClient := workloadProxy.GetClient()
+			framework.WaitForNodesReady(ctx, framework.WaitForNodesReadyInput{
+				Lister:            workloadClient,
+				KubernetesVersion: input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
+				Count:             int(clusterResources.ExpectedTotalNodes()),
+				WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
+			})
+
+			By("Dumping resources and deleting the workload cluster; deletion waits for BeforeClusterDeleteHook to gate the operation")
+			dumpAndDeleteCluster(ctx, input.BootstrapClusterProxy, namespace.Name, clusterName, input.ArtifactFolder+"/"+fmt.Sprintf("%03d", i))
+
+			beforeClusterDeleteHandler(ctx, input.BootstrapClusterProxy.GetClient(), clusterRef, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster"))
+
+			By("Checking all lifecycle hooks have been called")
+			// Assert that each hook has been called and returned "Success" during the test.
+			Expect(checkLifecycleHookResponses(ctx, input.BootstrapClusterProxy.GetClient(), clusterRef, map[string]string{
+				"BeforeClusterCreate":          "Status: Success, RetryAfterSeconds: 0",
+				"BeforeClusterUpgrade":         "Status: Success, RetryAfterSeconds: 0",
+				"BeforeClusterDelete":          "Status: Success, RetryAfterSeconds: 0",
+				"AfterControlPlaneUpgrade":     "Status: Success, RetryAfterSeconds: 0",
+				"AfterControlPlaneInitialized": "Success",
+				"AfterClusterUpgrade":          "Success",
+			})).To(Succeed(), "Lifecycle hook calls were not as expected")
+
+			cm := corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: namespace.Name,
+					Name:      hookResponsesConfigMapName(clusterName),
+				},
+			}
+			Expect(input.BootstrapClusterProxy.GetClient().Delete(ctx, &cm)).To(Succeed())
 		}
-
-		By("Waiting until nodes are ready")
-		workloadProxy := input.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterResources.Cluster.Name)
-		workloadClient := workloadProxy.GetClient()
-		framework.WaitForNodesReady(ctx, framework.WaitForNodesReadyInput{
-			Lister:            workloadClient,
-			KubernetesVersion: input.E2EConfig.GetVariable(KubernetesVersionUpgradeTo),
-			Count:             int(clusterResources.ExpectedTotalNodes()),
-			WaitForNodesReady: input.E2EConfig.GetIntervals(specName, "wait-nodes-ready"),
-		})
-
-		By("Dumping resources and deleting the workload cluster; deletion waits for BeforeClusterDeleteHook to gate the operation")
-		dumpAndDeleteCluster(ctx, input.BootstrapClusterProxy, namespace.Name, clusterName, input.ArtifactFolder)
-
-		beforeClusterDeleteHandler(ctx, input.BootstrapClusterProxy.GetClient(), clusterRef, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster"))
-
-		By("Checking all lifecycle hooks have been called")
-		// Assert that each hook has been called and returned "Success" during the test.
-		Expect(checkLifecycleHookResponses(ctx, input.BootstrapClusterProxy.GetClient(), clusterRef, map[string]string{
-			"BeforeClusterCreate":          "Status: Success, RetryAfterSeconds: 0",
-			"BeforeClusterUpgrade":         "Status: Success, RetryAfterSeconds: 0",
-			"BeforeClusterDelete":          "Status: Success, RetryAfterSeconds: 0",
-			"AfterControlPlaneUpgrade":     "Status: Success, RetryAfterSeconds: 0",
-			"AfterControlPlaneInitialized": "Success",
-			"AfterClusterUpgrade":          "Success",
-		})).To(Succeed(), "Lifecycle hook calls were not as expected")
 
 		By("PASSED!")
 	})
@@ -333,6 +344,11 @@ func getLifecycleHookResponsesFromConfigMap(ctx context.Context, c client.Client
 	Eventually(func() error {
 		return c.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: hookResponsesConfigMapName(cluster.Name)}, configMap)
 	}).Should(Succeed(), "Failed to get the hook response configmap")
+	fmt.Println("FOO Printing configmap:")
+	fmt.Printf("FOO > Printing metadata: %++v\n", configMap.GetObjectMeta())
+	for k, v := range configMap.Data {
+		fmt.Printf("FOO > printing data k,v k=%q: %s\n", k, v)
+	}
 	return configMap.Data
 }
 

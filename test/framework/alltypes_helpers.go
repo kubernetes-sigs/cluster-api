@@ -101,6 +101,12 @@ func getClusterAPITypes(ctx context.Context, lister Lister) []metav1.TypeMeta {
 			})
 		}
 	}
+	// Also include configmaps because these also contain information refered from CAPI resources
+	discoveredTypes = append(discoveredTypes, metav1.TypeMeta{
+		Kind:       "ConfigMap",
+		APIVersion: "v1",
+	})
+
 	return discoveredTypes
 }
 

@@ -637,9 +637,9 @@ func pauseClusterClass(proxy Proxy, n *node, pause bool, mutators ...ResourceMut
 		return errors.Wrap(err, "error creating client")
 	}
 
-	// Since the patch has been generated already in caller of this function, the ONLY affect that mutators can have
-	// here is on namespace of the resource.
-	clusterClass, err := applyMutators(&clusterv1.ClusterClass{
+	// Get a mutated copy of the ClusterClass to identify the target namespace.
+	// The ClusterClass could have been moved to a different namespace after the move.
+	mutatedClusterClass, err := applyMutators(&clusterv1.ClusterClass{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       clusterv1.ClusterClassKind,
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -647,10 +647,21 @@ func pauseClusterClass(proxy Proxy, n *node, pause bool, mutators ...ResourceMut
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      n.identity.Name,
 			Namespace: n.identity.Namespace,
-		},
-	}, mutators...)
+		}}, mutators...)
 	if err != nil {
 		return err
+	}
+
+	clusterClass := &clusterv1.ClusterClass{}
+	// Construct an object key using the mutatedClusterClass reflecting any changes to the namespace.
+	clusterClassObjKey := client.ObjectKey{
+		Name:      mutatedClusterClass.GetName(),
+		Namespace: mutatedClusterClass.GetNamespace(),
+	}
+	// Get a copy of the ClusterClass.
+	// This will ensure that any other changes from the mutator are ignored here as we work with a fresh copy of the cluster class.
+	if err := cFrom.Get(ctx, clusterClassObjKey, clusterClass); err != nil {
+		return errors.Wrapf(err, "error reading ClusterClass %s/%s", n.identity.Namespace, n.identity.Name)
 	}
 
 	patchHelper, err := patch.NewHelper(clusterClass, cFrom)

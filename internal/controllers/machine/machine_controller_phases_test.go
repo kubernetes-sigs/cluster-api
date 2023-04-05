@@ -367,14 +367,13 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
 		modifiedMachine := machine.DeepCopy()
 		// Set NodeRef.
 		machine.Status.NodeRef = &corev1.ObjectReference{Kind: "Node", Name: node.Name}
-		// Set the LastUpdated to be able to verify it is updated when the phase changes
-		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
-		machine.Status.LastUpdated = &lastUpdated
 		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
@@ -397,7 +396,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			g.Expect(machine.Status.Addresses).To(HaveLen(0))
 			// Verify that the LastUpdated timestamp was updated
 			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
 	})
@@ -506,15 +505,9 @@ func TestReconcileMachinePhases(t *testing.T) {
 
 		g.Expect(env.Create(ctx, bootstrapConfig)).To(Succeed())
 		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		// We have to subtract 2 seconds, because .status.lastUpdated does not contain miliseconds.
+		preUpdate := time.Now().Add(-2 * time.Second)
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
-
-		modifiedMachine := machine.DeepCopy()
-		// Set NodeRef to nil.
-		machine.Status.NodeRef = nil
-		// Set the LastUpdated to be able to verify it is updated when the phase changes
-		lastUpdated := metav1.NewTime(time.Now().Add(-10 * time.Second))
-		machine.Status.LastUpdated = &lastUpdated
-		g.Expect(env.Status().Patch(ctx, modifiedMachine, client.MergeFrom(machine))).To(Succeed())
 
 		// Set bootstrap ready.
 		modifiedBootstrapConfig := bootstrapConfig.DeepCopy()
@@ -535,7 +528,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 			g.Expect(machine.Status.GetTypedPhase()).To(Equal(clusterv1.MachinePhaseProvisioned))
 			// Verify that the LastUpdated timestamp was updated
 			g.Expect(machine.Status.LastUpdated).NotTo(BeNil())
-			g.Expect(machine.Status.LastUpdated.After(lastUpdated.Time)).To(BeTrue())
+			g.Expect(machine.Status.LastUpdated.After(preUpdate)).To(BeTrue())
 			return true
 		}, 10*time.Second).Should(BeTrue())
 	})

@@ -95,7 +95,7 @@ but in this case the distinctive value of the two layers of testing is determine
 
 Run `make test` to execute all unit and integration tests.
 
-Integration tests use the [envtest](https://github.com/kubernetes-sigs/controller-runtime/blob/master/pkg/envtest/doc.go) test framework. The tests need to know the location of the executables called by the framework. The `make test` target installs these executables, and passes this location to the tests as an environment variable.
+Integration tests use the [envtest](https://github.com/kubernetes-sigs/controller-runtime/blob/main/pkg/envtest/doc.go) test framework. The tests need to know the location of the executables called by the framework. The `make test` target installs these executables, and passes this location to the tests as an environment variable.
 
 <aside class="note">
 
@@ -555,8 +555,8 @@ In Cluster API Unit and integration test MUST use [go test].
 [Gomega]: http://onsi.github.io/gomega/
 [go test]: https://golang.org/pkg/testing/
 [controller-runtime]: https://github.com/kubernetes-sigs/controller-runtime
-[envtest]: https://github.com/kubernetes-sigs/controller-runtime/tree/master/pkg/envtest
-[fakeclient]: https://github.com/kubernetes-sigs/controller-runtime/tree/master/pkg/client/fake
+[envtest]: https://github.com/kubernetes-sigs/controller-runtime/tree/main/pkg/envtest
+[fakeclient]: https://github.com/kubernetes-sigs/controller-runtime/tree/main/pkg/client/fake
 [test/helpers]: https://github.com/kubernetes-sigs/cluster-api/tree/main/test/helpers
 
 [vscode-go]: https://marketplace.visualstudio.com/items?itemName=golang.Go

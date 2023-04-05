@@ -17,6 +17,7 @@ limitations under the License.
 package webhooks
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -1140,6 +1141,30 @@ func TestClusterClassValidation(t *testing.T) {
 				Build(),
 			expectErr: true,
 		},
+		{
+			name: "should return error for invalid labels and annotations",
+			in: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					builder.ControlPlaneTemplate(metav1.NamespaceDefault, "cp1").
+						Build()).
+				WithControlPlaneInfrastructureMachineTemplate(
+					builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "cpInfra1").
+						Build()).
+				WithWorkerMachineDeploymentClasses(
+					*builder.MachineDeploymentClass("aa").
+						WithInfrastructureTemplate(
+							builder.InfrastructureMachineTemplate(metav1.NamespaceDefault, "infra1").Build()).
+						WithBootstrapTemplate(
+							builder.BootstrapTemplate(metav1.NamespaceDefault, "bootstrap1").Build()).
+						WithLabels(invalidLabels()).
+						WithAnnotations(invalidAnnotations()).
+						Build()).
+				WithControlPlaneMetadata(invalidLabels(), invalidAnnotations()).
+				Build(),
+			expectErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1639,5 +1664,19 @@ func TestClusterClassValidationWithClusterAwareChecks(t *testing.T) {
 			}
 			g.Expect(err).ToNot(HaveOccurred())
 		})
+	}
+}
+
+func invalidLabels() map[string]string {
+	return map[string]string{
+		"foo":          "$invalid-key",
+		"bar":          strings.Repeat("a", 64) + "too-long-value",
+		"/invalid-key": "foo",
+	}
+}
+
+func invalidAnnotations() map[string]string {
+	return map[string]string{
+		"/invalid-key": "foo",
 	}
 }

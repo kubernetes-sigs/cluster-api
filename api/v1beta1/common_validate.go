@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Kubernetes Authors.
+Copyright 2023 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
-	metavalidation "k8s.io/apimachinery/pkg/api/validation"
+	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1validation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
@@ -28,7 +28,7 @@ func (metadata *ObjectMeta) Validate(parent *field.Path) field.ErrorList {
 		metadata.Labels,
 		parent.Child("labels"),
 	)
-	allErrs = append(allErrs, metavalidation.ValidateAnnotations(
+	allErrs = append(allErrs, apivalidation.ValidateAnnotations(
 		metadata.Annotations,
 		parent.Child("annotations"),
 	)...)

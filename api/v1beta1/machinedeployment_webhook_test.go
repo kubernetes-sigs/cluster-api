@@ -18,6 +18,7 @@ package v1beta1
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -566,6 +567,59 @@ func defaultValidateTestCustomDefaulter(object admission.Validator, customDefaul
 			warnings, err := deleteCopy.ValidateDelete()
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
+		})
+	}
+}
+
+func TestMachineDeploymentTemplateMetadataValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		labels      map[string]string
+		annotations map[string]string
+		expectErr   bool
+	}{
+		{
+			name: "should return error for invalid labels and annotations",
+			labels: map[string]string{
+				"foo":          "$invalid-key",
+				"bar":          strings.Repeat("a", 64) + "too-long-value",
+				"/invalid-key": "foo",
+			},
+			annotations: map[string]string{
+				"/invalid-key": "foo",
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			md := &MachineDeployment{
+				Spec: MachineDeploymentSpec{
+					Template: MachineTemplateSpec{
+						ObjectMeta: ObjectMeta{
+							Labels:      tt.labels,
+							Annotations: tt.annotations,
+						},
+					},
+				},
+			}
+			if tt.expectErr {
+				warnings, err := md.ValidateCreate()
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = md.ValidateUpdate(md)
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			} else {
+				warnings, err := md.ValidateCreate()
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = md.ValidateUpdate(md)
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			}
 		})
 	}
 }

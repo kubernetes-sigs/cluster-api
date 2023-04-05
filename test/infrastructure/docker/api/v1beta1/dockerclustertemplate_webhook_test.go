@@ -17,12 +17,14 @@ limitations under the License.
 package v1beta1
 
 import (
+	"strings"
 	"testing"
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilfeature "k8s.io/component-base/featuregate/testing"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 )
 
@@ -67,4 +69,63 @@ func TestDockerClusterTemplateValidationFeatureGateDisabled(t *testing.T) {
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(warnings).To(BeEmpty())
 	})
+}
+
+func TestDockerClusterTemplateValidationMetadata(t *testing.T) {
+	defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.ClusterTopology, true)()
+
+	tests := []struct {
+		name        string
+		labels      map[string]string
+		annotations map[string]string
+		expectErr   bool
+	}{
+		{
+			name: "should return error for invalid labels and annotations",
+			labels: map[string]string{
+				"foo":          "$invalid-key",
+				"bar":          strings.Repeat("a", 64) + "too-long-value",
+				"/invalid-key": "foo",
+			},
+			annotations: map[string]string{
+				"/invalid-key": "foo",
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			dct := &DockerClusterTemplate{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "dockerclustertemplate-test",
+					Namespace: "test-namespace",
+				},
+				Spec: DockerClusterTemplateSpec{
+					Template: DockerClusterTemplateResource{
+						ObjectMeta: clusterv1.ObjectMeta{
+							Labels: map[string]string{
+								"foo":          "$invalid-key",
+								"bar":          strings.Repeat("a", 64) + "too-long-value",
+								"/invalid-key": "foo",
+							},
+							Annotations: map[string]string{
+								"/invalid-key": "foo",
+							},
+						},
+						Spec: DockerClusterSpec{},
+					},
+				},
+			}
+			warnings, err := dct.ValidateCreate()
+			if tt.expectErr {
+				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
+			}
+		})
+	}
 }

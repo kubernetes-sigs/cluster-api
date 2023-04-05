@@ -17,6 +17,7 @@ limitations under the License.
 package v1beta1
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -152,6 +153,16 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 	validIgnitionConfiguration.Spec.KubeadmConfigSpec.Format = bootstrapv1.Ignition
 	validIgnitionConfiguration.Spec.KubeadmConfigSpec.Ignition = &bootstrapv1.IgnitionSpec{}
 
+	invalidMetadata := valid.DeepCopy()
+	invalidMetadata.Spec.MachineTemplate.ObjectMeta.Labels = map[string]string{
+		"foo":          "$invalid-key",
+		"bar":          strings.Repeat("a", 64) + "too-long-value",
+		"/invalid-key": "foo",
+	}
+	invalidMetadata.Spec.MachineTemplate.ObjectMeta.Annotations = map[string]string{
+		"/invalid-key": "foo",
+	}
+
 	tests := []struct {
 		name                  string
 		enableIgnitionFeature bool
@@ -235,6 +246,12 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 			enableIgnitionFeature: true,
 			expectErr:             false,
 			kcp:                   validIgnitionConfiguration,
+		},
+		{
+			name:                  "should return error for invalid metadata",
+			enableIgnitionFeature: true,
+			expectErr:             true,
+			kcp:                   invalidMetadata,
 		},
 	}
 
@@ -671,6 +688,16 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 		{"/var/lib/testdir", "/var/lib/etcd/data"},
 	}
 
+	invalidMetadata := before.DeepCopy()
+	invalidMetadata.Spec.MachineTemplate.ObjectMeta.Labels = map[string]string{
+		"foo":          "$invalid-key",
+		"bar":          strings.Repeat("a", 64) + "too-long-value",
+		"/invalid-key": "foo",
+	}
+	invalidMetadata.Spec.MachineTemplate.ObjectMeta.Annotations = map[string]string{
+		"/invalid-key": "foo",
+	}
+
 	tests := []struct {
 		name                  string
 		enableIgnitionFeature bool
@@ -1015,6 +1042,13 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr:             false,
 			before:                before,
 			kcp:                   switchFromCloudInitToIgnition,
+		},
+		{
+			name:                  "should return error for invalid metadata",
+			enableIgnitionFeature: true,
+			expectErr:             true,
+			before:                before,
+			kcp:                   invalidMetadata,
 		},
 	}
 

@@ -123,85 +123,83 @@ var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 	})
 })
 
-var _ = Describe("When testing clusterctl upgrades (v1.2=>current)", func() {
-	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
-		return ClusterctlUpgradeSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.11/clusterctl-{OS}-{ARCH}",
-			// We have to pin the providers because with `InitWithProvidersContract` the test would
-			// use the latest version for the contract (which is v1.3.X for v1beta1).
-			InitWithCoreProvider:            "cluster-api:v1.2.11",
-			InitWithBootstrapProviders:      []string{"kubeadm:v1.2.11"},
-			InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.11"},
-			InitWithInfrastructureProviders: []string{"docker:v1.2.11"},
-			// We have to set this to an empty array as clusterctl v1.2 doesn't support
-			// runtime extension providers. If we don't do this the test will automatically
-			// try to deploy the latest version of our test-extension from docker.yaml.
-			InitWithRuntimeExtensionProviders: []string{},
-			InitWithKubernetesVersion:         "v1.26.0",
-			// TODO(sbueringer) The topology flavor enables PSA.
-			// CAPD will only work with PSA after we have a release with https://github.com/kubernetes-sigs/cluster-api/pull/8313.
-			//MgmtFlavor:                        "topology",
-			WorkloadFlavor: "",
-			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
-			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
-					framework.CoreOwnerReferenceAssertion,
-					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.KubernetesReferenceAssertions,
-				)
-			},
-		}
-	})
-})
-
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.2=>current) [ClusterClass]", func() {
-	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
-		return ClusterctlUpgradeSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.11/clusterctl-{OS}-{ARCH}",
-			// We have to pin the providers because with `InitWithProvidersContract` the test would
-			// use the latest version for the contract (which is v1.3.X for v1beta1).
-			InitWithCoreProvider:            "cluster-api:v1.2.11",
-			InitWithBootstrapProviders:      []string{"kubeadm:v1.2.11"},
-			InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.11"},
-			InitWithInfrastructureProviders: []string{"docker:v1.2.11"},
-			// We have to set this to an empty array as clusterctl v1.2 doesn't support
-			// runtime extension providers. If we don't do this the test will automatically
-			// try to deploy the latest version of our test-extension from docker.yaml.
-			InitWithRuntimeExtensionProviders: []string{},
-			InitWithKubernetesVersion:         "v1.26.0",
-			// TODO(sbueringer) The topology flavor enables PSA.
-			// CAPD will only work with PSA after we have a release with https://github.com/kubernetes-sigs/cluster-api/pull/8313.
-			//MgmtFlavor:                        "topology",
-			WorkloadFlavor: "topology",
-			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
-			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
-					framework.CoreOwnerReferenceAssertion,
-					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.KubernetesReferenceAssertions,
-				)
-			},
-		}
-	})
-})
-
 var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.6/clusterctl-{OS}-{ARCH}",
+			// We have to pin the providers because with `InitWithProvidersContract` the test would
+			// use the latest version for the contract (which is v1.4.X for v1beta1).
+			InitWithCoreProvider:            "cluster-api:v1.3.6",
+			InitWithBootstrapProviders:      []string{"kubeadm:v1.3.6"},
+			InitWithControlPlaneProviders:   []string{"kubeadm:v1.3.6"},
+			InitWithInfrastructureProviders: []string{"docker:v1.3.6"},
+			// We have to set this to an empty array as clusterctl v1.3 doesn't support
+			// runtime extension providers. If we don't do this the test will automatically
+			// try to deploy the latest version of our test-extension from docker.yaml.
+			InitWithRuntimeExtensionProviders: []string{},
+			InitWithProvidersContract:         "v1beta1",
+			InitWithKubernetesVersion:         "v1.26.0",
+			MgmtFlavor:                        "topology",
+			WorkloadFlavor:                    "",
+			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
+			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
+					framework.CoreOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+			},
+		}
+	})
+})
+
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>current) [ClusterClass]", func() {
+	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
+		return ClusterctlUpgradeSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.6/clusterctl-{OS}-{ARCH}",
+			// We have to pin the providers because with `InitWithProvidersContract` the test would
+			// use the latest version for the contract (which is v1.4.X for v1beta1).
+			InitWithCoreProvider:            "cluster-api:v1.3.6",
+			InitWithBootstrapProviders:      []string{"kubeadm:v1.3.6"},
+			InitWithControlPlaneProviders:   []string{"kubeadm:v1.3.6"},
+			InitWithInfrastructureProviders: []string{"docker:v1.3.6"},
+			// We have to set this to an empty array as clusterctl v1.3 doesn't support
+			// runtime extension providers. If we don't do this the test will automatically
+			// try to deploy the latest version of our test-extension from docker.yaml.
+			InitWithRuntimeExtensionProviders: []string{},
+			InitWithProvidersContract:         "v1beta1",
+			InitWithKubernetesVersion:         "v1.26.0",
+			MgmtFlavor:                        "topology",
+			WorkloadFlavor:                    "topology",
+			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
+			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
+					framework.CoreOwnerReferenceAssertion,
+					framework.ExpOwnerReferenceAssertions,
+					framework.DockerInfraOwnerReferenceAssertions,
+					framework.KubeadmBootstrapOwnerReferenceAssertions,
+					framework.KubeadmControlPlaneOwnerReferenceAssertions,
+					framework.KubernetesReferenceAssertions,
+				)
+			},
+		}
+	})
+})
+
+var _ = Describe("When testing clusterctl upgrades (v1.4=>current)", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{
 			E2EConfig:                 e2eConfig,
@@ -209,7 +207,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
 			BootstrapClusterProxy:     bootstrapClusterProxy,
 			ArtifactFolder:            artifactFolder,
 			SkipCleanup:               skipCleanup,
-			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.5/clusterctl-{OS}-{ARCH}",
+			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			InitWithKubernetesVersion: "v1.26.0",
 			MgmtFlavor:                "topology",
@@ -229,7 +227,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
 	})
 })
 
-var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>current) [ClusterClass]", func() {
+var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.4=>current) [ClusterClass]", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{
 			E2EConfig:                 e2eConfig,
@@ -237,7 +235,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>cur
 			BootstrapClusterProxy:     bootstrapClusterProxy,
 			ArtifactFolder:            artifactFolder,
 			SkipCleanup:               skipCleanup,
-			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.5/clusterctl-{OS}-{ARCH}",
+			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			InitWithKubernetesVersion: "v1.26.0",
 			MgmtFlavor:                "topology",

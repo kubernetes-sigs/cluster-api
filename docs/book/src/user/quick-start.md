@@ -46,7 +46,7 @@ a target [management cluster] on the selected [infrastructure provider].
 
    [kind] is not designed for production use.
 
-   **Minimum [kind] supported version**: v0.17.0
+   **Minimum [kind] supported version**: v0.18.0
 
    **Help with common issues can be found in the [Troubleshooting Guide](./troubleshooting.md).**
 

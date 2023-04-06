@@ -598,7 +598,10 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 			return errors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
 		}
 
-		kubeadmConfig := controlPlane.KubeadmConfigs[machineName]
+		kubeadmConfig, ok := controlPlane.GetKubeadmConfig(machineName)
+		if !ok || kubeadmConfig == nil {
+			return errors.Wrapf(err, "failed to retrieve KubeadmConfig for machine %s", machineName)
+		}
 		// Note: Set the GroupVersionKind because updateExternalObject depends on it.
 		kubeadmConfig.SetGroupVersionKind(m.Spec.Bootstrap.ConfigRef.GroupVersionKind())
 		// Cleanup managed fields of all KubeadmConfigs to drop ownership of labels and annotations

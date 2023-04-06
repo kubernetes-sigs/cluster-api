@@ -82,7 +82,7 @@ func (r *Reconciler) sync(ctx context.Context, md *clusterv1.MachineDeployment, 
 // This may lead to stale reads of machine sets, thus incorrect deployment status.
 func (r *Reconciler) getAllMachineSetsAndSyncRevision(ctx context.Context, md *clusterv1.MachineDeployment, msList []*clusterv1.MachineSet, createIfNotExisted bool) (*clusterv1.MachineSet, []*clusterv1.MachineSet, error) {
 	reconciliationTime := metav1.Now()
-	_, allOldMSs := mdutil.FindOldMachineSets(md, msList, &reconciliationTime)
+	allOldMSs := mdutil.FindOldMachineSets(md, msList, &reconciliationTime)
 
 	// Get new machine set with the updated revision number
 	newMS, err := r.getNewMachineSet(ctx, md, msList, allOldMSs, createIfNotExisted, &reconciliationTime)

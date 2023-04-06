@@ -112,8 +112,7 @@ This comes down to changing occurrences of the old version to the new version, e
    5. Modify the test specs in `test/e2e/clusterctl_upgrade_test.go` (according to the versions we want to test described above).
       Please note that `InitWithKubernetesVersion` should be the highest mgmt cluster version supported by the respective Cluster API version.
 2. Update `create-local-repository.py` and `tools/tilt-prepare/main.go`: `v1.3.99` => `v1.4.99`.
-3. Update `.github/workflows/scan.yml` - to setup Trivy scanning - and `.github/workflows/lint-docs-weekly.yml` - to setup link checking in the CAPI book - for the currently supported branches.
-4. Make sure all tests are green (also run `pull-cluster-api-e2e-full-main` and `pull-cluster-api-e2e-workload-upgrade-1-23-latest-main`).
+3. Make sure all tests are green (also run `pull-cluster-api-e2e-full-main` and `pull-cluster-api-e2e-workload-upgrade-1-23-latest-main`).
 
 Prior art: 
 - 1.3 - https://github.com/kubernetes-sigs/cluster-api/pull/6834/files
@@ -410,8 +409,12 @@ While we add test coverage for the new release branch we will also drop the test
 3. Remove tests for old release branches according to our policy documented in [Support and guarantees](../../CONTRIBUTING.md#support-and-guarantees)
    For example, let's assume we just created tests for v1.4, then we can now drop test coverage for the release-1.1 branch.
 4. Verify the jobs and dashboards a day later by taking a look at: `https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api-1.4`
+5. Update `.github/workflows/scan.yml` - to setup Trivy scanning - `.github/workflows/lint-docs-weekly.yml` - to setup link checking in the CAPI book - and `.github/workflows/test-release-weekly.yml` - to verify the release target is working - for the currently supported branches.
 
-Prior art: [Add jobs for CAPI release 1.2](https://github.com/kubernetes/test-infra/pull/26621)
+
+Prior art:
+* [Add jobs for CAPI release 1.2](https://github.com/kubernetes/test-infra/pull/26621)
+* [Update github workflows](https://github.com/kubernetes-sigs/cluster-api/pull/8398)
 
 #### [Continuously] Monitor CI signal
 

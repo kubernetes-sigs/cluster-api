@@ -32,7 +32,8 @@ type IPAddressClaimSpec struct {
 // IPAddressClaimStatus is the observed status of a IPAddressClaim.
 type IPAddressClaimStatus struct {
 	// AddressRef is a reference to the address that was created for this claim.
-	AddressRef corev1.LocalObjectReference `json:"addressRef"`
+	// +optional
+	AddressRef corev1.LocalObjectReference `json:"addressRef,omitempty"`
 
 	// Conditions summarises the current state of the IPAddressClaim
 	// +optional

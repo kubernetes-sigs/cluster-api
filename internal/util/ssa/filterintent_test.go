@@ -55,7 +55,7 @@ func Test_filterNotAllowedPaths(t *testing.T) {
 						"foo": "123",
 					},
 				},
-				ShouldFilter: IsNotAllowedPath(
+				ShouldFilter: IsPathNotAllowed(
 					[]contract.Path{ // NOTE: we are dropping everything not in this list
 						{"apiVersion"},
 						{"kind"},
@@ -96,7 +96,7 @@ func Test_filterNotAllowedPaths(t *testing.T) {
 						"foo": "123",
 					},
 				},
-				ShouldFilter: IsNotAllowedPath(
+				ShouldFilter: IsPathNotAllowed(
 					[]contract.Path{}, // NOTE: we are filtering out everything not in this list (everything)
 				),
 			},
@@ -135,7 +135,7 @@ func Test_filterIgnoredPaths(t *testing.T) {
 						},
 					},
 				},
-				ShouldFilter: IsIgnorePath(
+				ShouldFilter: IsPathIgnored(
 					[]contract.Path{
 						{"spec", "controlPlaneEndpoint"},
 					},
@@ -157,7 +157,7 @@ func Test_filterIgnoredPaths(t *testing.T) {
 						"foo": "123",
 					},
 				},
-				ShouldFilter: IsIgnorePath(
+				ShouldFilter: IsPathIgnored(
 					[]contract.Path{
 						{"spec", "foo"},
 					},
@@ -178,7 +178,7 @@ func Test_filterIgnoredPaths(t *testing.T) {
 						},
 					},
 				},
-				ShouldFilter: IsIgnorePath(
+				ShouldFilter: IsPathIgnored(
 					[]contract.Path{
 						{"spec", "bar", "foo"},
 					},

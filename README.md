@@ -4,6 +4,8 @@
 <!-- join kubernetes slack channel for cluster-api -->
 <a href="http://slack.k8s.io/">
 <img src="https://img.shields.io/badge/join%20slack-%23cluster--api-brightgreen"></a>
+<!-- latest stable release badge -->
+<img alt="GitHub release (latest SemVer)" src="https://img.shields.io/github/v/release/kubernetes-sigs/cluster-api">
 </p>
 
 # Cluster API

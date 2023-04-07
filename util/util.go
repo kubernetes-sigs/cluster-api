@@ -583,6 +583,51 @@ func ClusterToTypedObjectsMapper(c client.Client, ro client.ObjectList, scheme *
 	}, nil
 }
 
+// MachineSetToObjectsMapper returns a mapper function that gets a machineset and lists all objects for the object passed in
+// and returns a list of requests.
+func MachineSetToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runtime.Scheme) (handler.MapFunc, error) {
+	gvk, err := apiutil.GVKForObject(ro, scheme)
+	if err != nil {
+		return nil, err
+	}
+
+	isNamespaced, err := isAPINamespaced(gvk, c.RESTMapper())
+	if err != nil {
+		return nil, err
+	}
+
+	return func(_ context.Context, o client.Object) []ctrl.Request {
+		ms, ok := o.(*clusterv1.MachineSet)
+		if !ok {
+			return nil
+		}
+
+		listOpts := []client.ListOption{
+			client.MatchingLabels{
+				clusterv1.MachineSetNameLabel: ms.Name,
+			},
+		}
+
+		if isNamespaced {
+			listOpts = append(listOpts, client.InNamespace(ms.Namespace))
+		}
+
+		list := &unstructured.UnstructuredList{}
+		list.SetGroupVersionKind(gvk)
+		if err := c.List(context.TODO(), list, listOpts...); err != nil {
+			return nil
+		}
+
+		results := []ctrl.Request{}
+		for _, obj := range list.Items {
+			results = append(results, ctrl.Request{
+				NamespacedName: client.ObjectKey{Namespace: obj.GetNamespace(), Name: obj.GetName()},
+			})
+		}
+		return results
+	}, nil
+}
+
 // isAPINamespaced detects if a GroupVersionKind is namespaced.
 func isAPINamespaced(gk schema.GroupVersionKind, restmapper meta.RESTMapper) (bool, error) {
 	restMapping, err := restmapper.RESTMapping(schema.GroupKind{Group: gk.Group, Kind: gk.Kind})

@@ -217,6 +217,14 @@ const (
 	MachineSetPreflightCheckControlPlaneIsStable MachineSetPreflightCheck = "ControlPlaneIsStable"
 )
 
+// NodeOutdatedRevisionTaint can be added to Nodes at rolling updates in general triggered by updating MachineDeployment
+// This taint is used to prevent unnecessary pod churn, i.e., as the first node is drained, pods previously running on
+// that node are scheduled onto nodes who have yet to be replaced, but will be torn down soon.
+var NodeOutdatedRevisionTaint = corev1.Taint{
+	Key:    "node.cluster.x-k8s.io/outdated-revision",
+	Effect: corev1.TaintEffectPreferNoSchedule,
+}
+
 // NodeUninitializedTaint can be added to Nodes at creation by the bootstrap provider, e.g. the
 // KubeadmBootstrap provider will add the taint.
 // This taint is used to prevent workloads to be scheduled on Nodes before the node is initialized by Cluster API.

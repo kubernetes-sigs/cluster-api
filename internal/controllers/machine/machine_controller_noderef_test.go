@@ -515,6 +515,8 @@ func TestGetManagedLabels(t *testing.T) {
 }
 
 func TestPatchNode(t *testing.T) {
+	clusterName := "test-cluster"
+
 	testCases := []struct {
 		name                string
 		oldNode             *corev1.Node
@@ -523,6 +525,9 @@ func TestPatchNode(t *testing.T) {
 		expectedLabels      map[string]string
 		expectedAnnotations map[string]string
 		expectedTaints      []corev1.Taint
+		machine             *clusterv1.Machine
+		ms                  *clusterv1.MachineSet
+		md                  *clusterv1.MachineDeployment
 	}{
 		{
 			name: "Check that patch works even if there are Status.Addresses with the same key",
@@ -551,6 +556,9 @@ func TestPatchNode(t *testing.T) {
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
 			},
+			machine: newFakeMachine(metav1.NamespaceDefault, clusterName),
+			ms:      newFakeMachineSet(metav1.NamespaceDefault, clusterName),
+			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
 		},
 		// Labels (CAPI owns a subset of labels, everything else should be preserved)
 		{
@@ -569,6 +577,9 @@ func TestPatchNode(t *testing.T) {
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
 			},
+			machine: newFakeMachine(metav1.NamespaceDefault, clusterName),
+			ms:      newFakeMachineSet(metav1.NamespaceDefault, clusterName),
+			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
 		},
 		{
 			name: "Add label must preserve existing labels",
@@ -593,6 +604,9 @@ func TestPatchNode(t *testing.T) {
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
 			},
+			machine: newFakeMachine(metav1.NamespaceDefault, clusterName),
+			ms:      newFakeMachineSet(metav1.NamespaceDefault, clusterName),
+			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
 		},
 		{
 			name: "CAPI takes ownership of existing labels if they are set from machines",
@@ -616,6 +630,9 @@ func TestPatchNode(t *testing.T) {
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
 			},
+			machine: newFakeMachine(metav1.NamespaceDefault, clusterName),
+			ms:      newFakeMachineSet(metav1.NamespaceDefault, clusterName),
+			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
 		},
 		{
 			name: "change a label previously set from machines",
@@ -642,6 +659,9 @@ func TestPatchNode(t *testing.T) {
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
 			},
+			machine: newFakeMachine(metav1.NamespaceDefault, clusterName),
+			ms:      newFakeMachineSet(metav1.NamespaceDefault, clusterName),
+			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
 		},
 		{
 			name: "Delete a label previously set from machines",
@@ -666,6 +686,9 @@ func TestPatchNode(t *testing.T) {
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
 			},
+			machine: newFakeMachine(metav1.NamespaceDefault, clusterName),
+			ms:      newFakeMachineSet(metav1.NamespaceDefault, clusterName),
+			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
 		},
 		{
 			name: "Label previously set from machine, already removed out of band, annotation should be cleaned up",
@@ -683,6 +706,9 @@ func TestPatchNode(t *testing.T) {
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
 			},
+			machine: newFakeMachine(metav1.NamespaceDefault, clusterName),
+			ms:      newFakeMachineSet(metav1.NamespaceDefault, clusterName),
+			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
 		},
 		// Add annotations (CAPI only enforces some annotations and never changes or removes them)
 		{
@@ -710,6 +736,9 @@ func TestPatchNode(t *testing.T) {
 			expectedTaints: []corev1.Taint{
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
 			},
+			machine: newFakeMachine(metav1.NamespaceDefault, clusterName),
+			ms:      newFakeMachineSet(metav1.NamespaceDefault, clusterName),
+			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
 		},
 		// Taint (CAPI only remove one taint if it exists, other taints should be preserved)
 		{
@@ -738,6 +767,125 @@ func TestPatchNode(t *testing.T) {
 				},
 				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
 			},
+			machine: newFakeMachine(metav1.NamespaceDefault, clusterName),
+			ms:      newFakeMachineSet(metav1.NamespaceDefault, clusterName),
+			md:      newFakeMachineDeployment(metav1.NamespaceDefault, clusterName),
+		},
+		{
+			name: "Ensure NodeOutdatedRevisionTaint to be set if a node is associated to an outdated machineset",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				},
+			},
+			expectedAnnotations: map[string]string{
+				clusterv1.LabelsFromMachineAnnotation: "",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+				clusterv1.NodeOutdatedRevisionTaint,
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineSetNameLabel:        "test-ms-outdated",
+						clusterv1.MachineDeploymentNameLabel: "test-md-outdated",
+					},
+				},
+				Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+			},
+			ms: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-ms-outdated",
+					Namespace: metav1.NamespaceDefault,
+					Annotations: map[string]string{
+						clusterv1.RevisionAnnotation: "1",
+					},
+				},
+				Spec: clusterv1.MachineSetSpec{
+					ClusterName: clusterName,
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+					},
+				},
+			},
+			md: &clusterv1.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-md-outdated",
+					Namespace: metav1.NamespaceDefault,
+					Annotations: map[string]string{
+						clusterv1.RevisionAnnotation: "2",
+					},
+				},
+				Spec: clusterv1.MachineDeploymentSpec{
+					ClusterName: clusterName,
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+					},
+				},
+			},
+		},
+		{
+			name: "Removes NodeOutdatedRevisionTaint if a node is associated to a non-outdated machineset",
+			oldNode: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: fmt.Sprintf("node-%s", util.RandomString(6)),
+				},
+				Spec: corev1.NodeSpec{
+					Taints: []corev1.Taint{
+						clusterv1.NodeOutdatedRevisionTaint,
+					},
+				},
+			},
+			expectedAnnotations: map[string]string{
+				clusterv1.LabelsFromMachineAnnotation: "",
+			},
+			expectedTaints: []corev1.Taint{
+				{Key: "node.kubernetes.io/not-ready", Effect: "NoSchedule"}, // Added by the API server
+			},
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
+					Namespace: metav1.NamespaceDefault,
+					Labels: map[string]string{
+						clusterv1.MachineSetNameLabel:        "test-ms-not-outdated",
+						clusterv1.MachineDeploymentNameLabel: "test-md-not-outdated",
+					},
+				},
+				Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+			},
+			ms: &clusterv1.MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-ms-not-outdated",
+					Namespace: metav1.NamespaceDefault,
+					Annotations: map[string]string{
+						clusterv1.RevisionAnnotation: "3",
+					},
+				},
+				Spec: clusterv1.MachineSetSpec{
+					ClusterName: clusterName,
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+					},
+				},
+			},
+			md: &clusterv1.MachineDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-md-not-outdated",
+					Namespace: metav1.NamespaceDefault,
+					Annotations: map[string]string{
+						clusterv1.RevisionAnnotation: "2",
+					},
+				},
+				Spec: clusterv1.MachineDeploymentSpec{
+					ClusterName: clusterName,
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: newFakeMachineSpec(metav1.NamespaceDefault, clusterName),
+					},
+				},
+			},
 		},
 	}
 
@@ -749,13 +897,19 @@ func TestPatchNode(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 			oldNode := tc.oldNode.DeepCopy()
+			machine := tc.machine.DeepCopy()
+			ms := tc.ms.DeepCopy()
+			md := tc.md.DeepCopy()
 
 			g.Expect(env.Create(ctx, oldNode)).To(Succeed())
+			g.Expect(env.Create(ctx, machine)).To(Succeed())
+			g.Expect(env.Create(ctx, ms)).To(Succeed())
+			g.Expect(env.Create(ctx, md)).To(Succeed())
 			t.Cleanup(func() {
-				_ = env.Cleanup(ctx, oldNode)
+				_ = env.Cleanup(ctx, oldNode, machine, ms, md)
 			})
 
-			err := r.patchNode(ctx, env, oldNode, tc.newLabels, tc.newAnnotations)
+			err := r.patchNode(ctx, env, oldNode, tc.newLabels, tc.newAnnotations, tc.machine)
 			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Eventually(func(g Gomega) {
@@ -768,5 +922,65 @@ func TestPatchNode(t *testing.T) {
 				g.Expect(gotNode.Spec.Taints).To(BeComparableTo(tc.expectedTaints))
 			}, 10*time.Second).Should(Succeed())
 		})
+	}
+}
+
+func newFakeMachineSpec(namespace, clusterName string) clusterv1.MachineSpec {
+	return clusterv1.MachineSpec{
+		ClusterName: clusterName,
+		Bootstrap: clusterv1.Bootstrap{
+			ConfigRef: &corev1.ObjectReference{
+				APIVersion: "bootstrap.cluster.x-k8s.io/v1alpha3",
+				Kind:       "KubeadmConfigTemplate",
+				Name:       fmt.Sprintf("%s-md-0", clusterName),
+				Namespace:  namespace,
+			},
+		},
+		InfrastructureRef: corev1.ObjectReference{
+			APIVersion: "infrastructure.cluster.x-k8s.io/v1alpha3",
+			Kind:       "FakeMachineTemplate",
+			Name:       fmt.Sprintf("%s-md-0", clusterName),
+			Namespace:  namespace,
+		},
+	}
+}
+
+func newFakeMachine(namespace, clusterName string) *clusterv1.Machine {
+	return &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("ma-%s", util.RandomString(6)),
+			Namespace: namespace,
+		},
+		Spec: newFakeMachineSpec(namespace, clusterName),
+	}
+}
+
+func newFakeMachineSet(namespace, clusterName string) *clusterv1.MachineSet {
+	return &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("ms-%s", util.RandomString(6)),
+			Namespace: namespace,
+		},
+		Spec: clusterv1.MachineSetSpec{
+			ClusterName: clusterName,
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: newFakeMachineSpec(namespace, clusterName),
+			},
+		},
+	}
+}
+
+func newFakeMachineDeployment(namespace, clusterName string) *clusterv1.MachineDeployment {
+	return &clusterv1.MachineDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("md-%s", util.RandomString(6)),
+			Namespace: namespace,
+		},
+		Spec: clusterv1.MachineDeploymentSpec{
+			ClusterName: clusterName,
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: newFakeMachineSpec(namespace, clusterName),
+			},
+		},
 	}
 }

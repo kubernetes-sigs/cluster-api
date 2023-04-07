@@ -745,6 +745,70 @@ func TestClusterToObjectsMapper(t *testing.T) {
 	}
 }
 
+func TestMachineDeploymentToObjectsMapper(t *testing.T) {
+	g := NewWithT(t)
+
+	cluster := &clusterv1.MachineSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster-md-0-jgbsb-5684b789c9",
+		},
+	}
+
+	table := []struct {
+		name        string
+		objects     []client.Object
+		input       client.ObjectList
+		output      []ctrl.Request
+		expectError bool
+	}{
+		{
+			name:  "should return a list of requests with labelled machines",
+			input: &clusterv1.MachineList{},
+			objects: []client.Object{
+				&clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "machine1",
+						Labels: map[string]string{
+							clusterv1.MachineSetNameLabel: "cluster-md-0-jgbsb-5684b789c9",
+						},
+					},
+				},
+				&clusterv1.Machine{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "machine2",
+						Labels: map[string]string{
+							clusterv1.MachineSetNameLabel: "cluster-md-0-jgbsb-5684b789c9",
+						},
+					},
+				},
+			},
+			output: []ctrl.Request{
+				{NamespacedName: client.ObjectKey{Name: "machine1"}},
+				{NamespacedName: client.ObjectKey{Name: "machine2"}},
+			},
+		},
+	}
+
+	for _, tc := range table {
+		tc.objects = append(tc.objects, cluster)
+
+		scheme := runtime.NewScheme()
+		_ = clusterv1.AddToScheme(scheme)
+
+		restMapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{clusterv1.GroupVersion})
+
+		// Add tc.input gvk to the restMapper.
+		gvk, err := apiutil.GVKForObject(tc.input, scheme)
+		g.Expect(err).ToNot(HaveOccurred())
+		restMapper.Add(gvk, meta.RESTScopeNamespace)
+
+		client := fake.NewClientBuilder().WithObjects(tc.objects...).WithRESTMapper(restMapper).Build()
+		f, err := MachineSetToObjectsMapper(client, tc.input, scheme)
+		g.Expect(err != nil, err).To(Equal(tc.expectError))
+		g.Expect(f(ctx, cluster)).To(ConsistOf(tc.output))
+	}
+}
+
 func TestOrdinalize(t *testing.T) {
 	tests := []struct {
 		input    int

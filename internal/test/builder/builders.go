@@ -1776,6 +1776,7 @@ func (m *MachineSetBuilder) Build() *clusterv1.MachineSet {
 		},
 	}
 	obj.Spec.ClusterName = m.clusterName
+	obj.Spec.Template.Spec.ClusterName = m.clusterName
 	obj.Spec.Replicas = m.replicas
 	if m.bootstrapTemplate != nil {
 		obj.Spec.Template.Spec.Bootstrap.ConfigRef = objToRef(m.bootstrapTemplate)

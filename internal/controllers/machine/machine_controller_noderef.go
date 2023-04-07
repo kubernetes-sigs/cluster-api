@@ -25,12 +25,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
+	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -133,7 +135,7 @@ func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, 
 	_, nodeHadInterruptibleLabel := node.Labels[clusterv1.InterruptibleLabel]
 
 	// Reconcile node taints
-	if err := r.patchNode(ctx, remoteClient, node, nodeLabels, nodeAnnotations); err != nil {
+	if err := r.patchNode(ctx, remoteClient, node, nodeLabels, nodeAnnotations, machine); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile Node %s", klog.KObj(node))
 	}
 	if !nodeHadInterruptibleLabel && interruptible {
@@ -255,7 +257,7 @@ func (r *Reconciler) getNode(ctx context.Context, c client.Reader, providerID st
 
 // PatchNode is required to workaround an issue on Node.Status.Address which is incorrectly annotated as patchStrategy=merge
 // and this causes SSA patch to fail in case there are two addresses with the same key https://github.com/kubernetes-sigs/cluster-api/issues/8417
-func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, node *corev1.Node, newLabels, newAnnotations map[string]string) error {
+func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, node *corev1.Node, newLabels, newAnnotations map[string]string, m *clusterv1.Machine) error {
 	newNode := node.DeepCopy()
 
 	// Adds the annotations CAPI sets on the node.
@@ -292,9 +294,70 @@ func (r *Reconciler) patchNode(ctx context.Context, remoteClient client.Client, 
 	// Drop the NodeUninitializedTaint taint on the node given that we are reconciling labels.
 	hasTaintChanges := taints.RemoveNodeTaint(newNode, clusterv1.NodeUninitializedTaint)
 
+	// Set Taint to a node in an old MachineSet and unset Taint from a node in a new MachineSet
+	isOutdated, err := shouldNodeHaveOutdatedTaint(ctx, r.Client, m)
+	if err != nil {
+		return errors.Wrapf(err, "failed to check if Node %s is outdated", klog.KRef("", node.Name))
+	}
+	if isOutdated {
+		hasTaintChanges = taints.EnsureNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
+	} else {
+		hasTaintChanges = taints.RemoveNodeTaint(newNode, clusterv1.NodeOutdatedRevisionTaint) || hasTaintChanges
+	}
+
 	if !hasAnnotationChanges && !hasLabelChanges && !hasTaintChanges {
 		return nil
 	}
 
 	return remoteClient.Patch(ctx, newNode, client.StrategicMergeFrom(node))
+}
+
+func shouldNodeHaveOutdatedTaint(ctx context.Context, c client.Client, m *clusterv1.Machine) (bool, error) {
+	if _, hasLabel := m.Labels[clusterv1.MachineDeploymentNameLabel]; !hasLabel {
+		return false, nil
+	}
+
+	// Resolve the MachineSet name via owner references because the label value
+	// could also be a hash.
+	objKey, err := getOwnerMachineSetObjectKey(m.ObjectMeta)
+	if err != nil {
+		return false, err
+	}
+	ms := &clusterv1.MachineSet{}
+	if err := c.Get(ctx, *objKey, ms); err != nil {
+		return false, err
+	}
+	md := &clusterv1.MachineDeployment{}
+	objKey = &client.ObjectKey{
+		Namespace: m.ObjectMeta.Namespace,
+		Name:      m.Labels[clusterv1.MachineDeploymentNameLabel],
+	}
+	if err := c.Get(ctx, *objKey, md); err != nil {
+		return false, err
+	}
+	msRev, err := mdutil.Revision(ms)
+	if err != nil {
+		return false, err
+	}
+	mdRev, err := mdutil.Revision(md)
+	if err != nil {
+		return false, err
+	}
+	if msRev < mdRev {
+		return true, nil
+	}
+	return false, nil
+}
+
+func getOwnerMachineSetObjectKey(obj metav1.ObjectMeta) (*client.ObjectKey, error) {
+	for _, ref := range obj.GetOwnerReferences() {
+		gv, err := schema.ParseGroupVersion(ref.APIVersion)
+		if err != nil {
+			return nil, err
+		}
+		if ref.Kind == "MachineSet" && gv.Group == clusterv1.GroupVersion.Group {
+			return &client.ObjectKey{Namespace: obj.Namespace, Name: ref.Name}, nil
+		}
+	}
+	return nil, errors.Errorf("failed to find MachineSet owner reference for Machine %s", klog.KRef(obj.GetNamespace(), obj.GetName()))
 }

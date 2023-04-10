@@ -125,7 +125,7 @@ require (
 	golang.org/x/crypto v0.3.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
 	golang.org/x/term v0.6.0 // indirect
-	golang.org/x/text v0.8.0
+	golang.org/x/text v0.9.0
 	golang.org/x/time v0.3.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0
 	google.golang.org/appengine v1.6.7 // indirect

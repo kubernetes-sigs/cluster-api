@@ -14,9 +14,9 @@ reviewers:
   - "@shyamradhakrishnan"
   - "@yastij"
 creation-date: 2022-07-25
-last-updated: 2022-08-23
+last-updated: 2023-06-15
 status: implementable
-see-also:
+see-also: ./20230407-managed-k8s-capi-contract-changes.md
 replaces:
 superseded-by:
 ---
@@ -68,13 +68,13 @@ superseded-by:
 - [Implementation History](#implementation-history)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-  
+
 ## Glossary
 
 - **Managed Kubernetes** - a Kubernetes service offered/hosted by a service provider where the control plane is run & managed by the service provider. As a cluster service consumer, you don’t have to worry about managing/operating the control plane machines. Additionally, the managed Kubernetes service may extend to cover running managed worker nodes. Examples are EKS in AWS and AKS in Azure. This is different from a traditional implementation in Cluster API, where the control plane and worker nodes are deployed and managed by the cluster admin.
 - **Unmanaged Kubernetes** - a Kubernetes cluster where a cluster admin is responsible for provisioning and operating the control plane and worker nodes. In Cluster API this traditionally means a Kubeadm bootstrapped cluster on infrastructure machines (virtual or physical).
 - **Managed Worker Node** - an individual Kubernetes worker node where the underlying compute (vm or bare-metal) is provisioned and managed by the service provider. This usually includes the joining of the newly provisioned node into a Managed Kubernetes cluster. The lifecycle is normally controlled via a higher level construct such as a Managed Node Group.
-- **Managed Node Group** - is a service that a service provider offers that automates the provisioning of managed worker nodes. Depending on the service provider this group of nodes could contain a fixed number of replicas or it might contain a dynamic pool of replicas that auto-scales up and down. Examples are Node Pools in GCP and EKS managed node groups.  
+- **Managed Node Group** - is a service that a service provider offers that automates the provisioning of managed worker nodes. Depending on the service provider this group of nodes could contain a fixed number of replicas or it might contain a dynamic pool of replicas that auto-scales up and down. Examples are Node Pools in GCP and EKS managed node groups.
 - **Cluster Infrastructure Provider (Infrastructure)** - an Infrastructure provider supplies whatever prerequisites are necessary for creating & running clusters such as networking, load balancers, firewall rules, and so on. ([docs](../book/src/developer/providers/cluster-infrastructure.md))
 - **ControlPlane Provider (ControlPlane)** - a control plane provider instantiates a Kubernetes control plane consisting of k8s control plane components such as kube-apiserver, etcd, kube-scheduler and kube-controller-manager. ([docs](../book/src/developer/architecture/controllers/control-plane.md#control-plane-provider))
 - **MachineDeployment** - a MachineDeployment orchestrates deployments over a fleet of MachineSets, which is an immutable abstraction over Machines. ([docs](../book/src/developer/architecture/controllers/machine-deployment.md))
@@ -90,7 +90,9 @@ Cluster API was originally designed with unmanaged Kubernetes clusters in mind a
 
 Some Cluster API Providers (i.e. Azure with AKS first and then AWS with EKS) have implemented support for their managed Kubernetes services. These implementations have followed the existing documentation & contracts (that were designed for unmanaged Kubernetes) and have ended up with 2 different implementations.
 
-While working on supporting ClusterClass for EKS in Cluster API Provider AWS (CAPA), it was discovered that the current implementation of EKS within CAPA, where a single resource kind (AWSManagedControlPlane) is used for both ControlPlane and Infrastructure, is incompatible with ClusterClass (See the [issue](https://github.com/kubernetes-sigs/cluster-api/issues/6126)). Separation of ControlPlane and Infrastructure is expected for the ClusterClass implementation to work correctly.
+> _While working on supporting ClusterClass for EKS in Cluster API Provider AWS (CAPA), it was discovered that the current implementation of EKS within CAPA, where a single resource kind (AWSManagedControlPlane) is used for both ControlPlane and Infrastructure, is incompatible with other parts of CAPI assuming the two objects are different (Reference [issue here](https://github.com/kubernetes-sigs/cluster-api/issues/6126)). Separation of ControlPlane and Infrastructure is expected for the ClusterClass implementation to work correctly._
+
+(Note: the above quoted, italicized text matter is no longer relevant once CAEP https://github.com/kubernetes-sigs/cluster-api/pull/8500 is implemented.)
 
 The responsibilities between the CAPI control plane and infrastructure are blurred with a managed Kubernetes service like AKS or EKS. For example, when you create a EKS control plane in AWS it also creates infrastructure that CAPI would traditionally view as the responsibility of the cluster “infrastructure provider”.
 
@@ -238,7 +240,7 @@ type GCPManagedControlPlaneSpec struct {
     // +optional
     Network NetworkSpec `json:"network"`
 
-    // AddonsConfig defines the addons to enable with the GKE cluster.  
+    // AddonsConfig defines the addons to enable with the GKE cluster.
     // +optional
     AddonsConfig *AddonsConfig `json:"addonsConfig,omitempty"`
 
@@ -265,7 +267,9 @@ CAPA decided to represent an EKS cluster as a CAPI control-plane. This meant tha
 
 Initially CAPA had an infrastructure cluster kind that reported back the control plane endpoint. This required less than ideal code in its controller to watch the control plane and use its value of the control plane endpoint.
 
-As the infrastructure cluster kind only acted as a passthrough (to satisfy the contract with CAPI) it was decided that it would be removed and the control-plane kind (AWSManagedControlPlane) could be used to satisfy both the “infrastructure” and “control-plane” contracts. This worked well until ClusterClass arrived with its expectation that the “infrastructure” and “control-plane” are 2 different resource kinds.
+As the infrastructure cluster kind only acted as a passthrough (to satisfy the contract with CAPI) it was decided that it would be removed and the control-plane kind (AWSManagedControlPlane) could be used to satisfy both the “infrastructure” and “control-plane” contracts. _This worked well until ClusterClass arrived with its expectation that the “infrastructure” and “control-plane” are 2 different resource kinds._
+
+(Note: the above italicized text matter is no longer relevant once CAEP https://github.com/kubernetes-sigs/cluster-api/pull/8500 merges is implemented.)
 
 Note that CAPZ had a similar discussion and an [issue](https://github.com/kubernetes-sigs/cluster-api-provider-azure/issues/1396) to remove AzureManagedCluster: AzureManagedCluster is useless; let's remove it (and keep AzureManagedControlPlane)
 
@@ -276,6 +280,7 @@ Note that CAPZ had a similar discussion and an [issue](https://github.com/kubern
 **Cons**
 
 - Doesn’t work with the current implementation of ClusterClass, which expects a separation of ControlPlane and Infrastructure.
+  - when CAEP https://github.com/kubernetes-sigs/cluster-api/pull/8500 is implemented this con will no longer be true
 - Doesn’t provide separation of responsibilities between creating the general cloud infrastructure for the cluster and the actual cluster control plane.
 - Managed Kubernetes look different from unmanaged Kubernetes where two separate kinds are used for a control plane and infrastructure. This would impact products building on top of CAPI.
 
@@ -333,6 +338,8 @@ type GCPManagedClusterSpec struct {
 
 - Need to maintain Infra cluster kind, which is a pass-through layer and has no other functions. In addition to the CRD, controllers, webhooks and conversions webhooks need to be maintained.
 - Infra provider doesn’t provision infrastructure and whilst it may meet the CAPI contract, it doesn’t actually create infrastructure as this is done via the control plane.
+
+Note: when CAEP https://github.com/kubernetes-sigs/cluster-api/pull/8500 is implemented this option will no longer be relevant, as we can simply drop the InfraCluster altogether.
 
 #### Option 3: Two kinds with a Managed Control Plane and Managed Infra Cluster with Better Separation of Responsibilities
 
@@ -438,11 +445,9 @@ The reasons for this recommendation are as follows:
 - The infra cluster provisions and manages the general infrastructure required for the cluster but not the control plane.
 - By having a separate infra cluster API definition, it allows differences in the API between managed and unmanaged clusters.
 
-Providers like CAPZ and CAPA have already implemented managed Kubernetes support and there should be no requirement on them to move to Option 3. Both Options 2 and 4 are solutions that would work with ClusterClass and so could be used if required.
+Providers like CAPZ and CAPA have already implemented managed Kubernetes support and there should be no requirement on them to move to Option 3. Both Options 4 also works well with ClusterClass and so could be used if required. Option 2 will no longer be relevant once CAEP https://github.com/kubernetes-sigs/cluster-api/pull/8500 is implemented.
 
-Option 1 is the only option that will not work with ClusterClass and would require a change to CAPI. Therefore this option is not recommended.
-
-*** This means that CAPA will have to make changes to move away from Option 1 if it wants to support ClusterClass.
+Option 1 will be available when CAEP https://github.com/kubernetes-sigs/cluster-api/pull/8500 is implemented. Until then it is not recommended.
 
 ### Additional notes on option 3
 

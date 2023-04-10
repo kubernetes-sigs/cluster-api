@@ -45,7 +45,7 @@ func TestIndexNodeByProviderID(t *testing.T) {
 			name: "Node has invalid providerID",
 			object: &corev1.Node{
 				Spec: corev1.NodeSpec{
-					ProviderID: "invalid",
+					ProviderID: "",
 				},
 			},
 			expected: nil,

@@ -27,29 +27,40 @@ const azure = "azure"
 
 func TestNewProviderID(t *testing.T) {
 	tests := []struct {
-		name       string
-		input      string
-		expectedID string
+		name                    string
+		input                   string
+		expectedID              string
+		expectedCloudProviderID string
 	}{
 		{
-			name:       "2 slashes after colon, one segment",
-			input:      "aws://instance-id",
-			expectedID: "instance-id",
+			name:                    "2 slashes after colon, one segment",
+			input:                   "aws://instance-id",
+			expectedID:              "instance-id",
+			expectedCloudProviderID: "aws",
 		},
 		{
-			name:       "more than 2 slashes after colon, one segment",
-			input:      "aws:////instance-id",
-			expectedID: "instance-id",
+			name:                    "more than 2 slashes after colon, one segment",
+			input:                   "aws:////instance-id",
+			expectedID:              "instance-id",
+			expectedCloudProviderID: "aws",
 		},
 		{
-			name:       "multiple filled-in segments (aws format)",
-			input:      "aws:///zone/instance-id",
-			expectedID: "instance-id",
+			name:                    "multiple filled-in segments (aws format)",
+			input:                   "aws:///zone/instance-id",
+			expectedID:              "instance-id",
+			expectedCloudProviderID: "aws",
 		},
 		{
-			name:       "multiple filled-in segments",
-			input:      "aws://bar/baz/instance-id",
-			expectedID: "instance-id",
+			name:                    "multiple filled-in segments",
+			input:                   "aws://bar/baz/instance-id",
+			expectedID:              "instance-id",
+			expectedCloudProviderID: "aws",
+		},
+		{
+			name:                    "a providerID on the road less traveled",
+			input:                   "aDifferentlyFormulatedProviderID",
+			expectedID:              "",
+			expectedCloudProviderID: "",
 		},
 	}
 
@@ -59,7 +70,6 @@ func TestNewProviderID(t *testing.T) {
 
 			id, err := NewProviderID(tc.input)
 			g.Expect(err).NotTo(HaveOccurred())
-			g.Expect(id.CloudProvider()).To(Equal(aws))
 			g.Expect(id.ID()).To(Equal(tc.expectedID))
 		})
 	}
@@ -75,31 +85,6 @@ func TestInvalidProviderID(t *testing.T) {
 			name:  "empty id",
 			input: "",
 			err:   ErrEmptyProviderID,
-		},
-		{
-			name:  "only empty segments",
-			input: "aws:///////",
-			err:   ErrInvalidProviderID,
-		},
-		{
-			name:  "missing cloud provider",
-			input: "://instance-id",
-			err:   ErrInvalidProviderID,
-		},
-		{
-			name:  "missing cloud provider and colon",
-			input: "//instance-id",
-			err:   ErrInvalidProviderID,
-		},
-		{
-			name:  "missing cloud provider, colon, one leading slash",
-			input: "/instance-id",
-			err:   ErrInvalidProviderID,
-		},
-		{
-			name:  "just an id",
-			input: "instance-id",
-			err:   ErrInvalidProviderID,
 		},
 	}
 
@@ -146,6 +131,20 @@ func TestProviderIDEquals(t *testing.T) {
 
 	// Test for equality
 	g.Expect(parsedAzure1.Equals(parsedAzure2)).To(BeTrue())
+
+	inputOther1 := "aDifferentlyFormulatedProviderID"
+	parsedOther1, err := NewProviderID(inputOther1)
+	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(parsedOther1.String()).To(Equal(inputOther1))
+	g.Expect(parsedOther1.ID()).To(Equal(""))
+	g.Expect(parsedOther1.CloudProvider()).To(Equal(""))
+
+	inputOther2 := inputOther1
+	parsedOther2, err := NewProviderID(inputOther2)
+	g.Expect(err).NotTo(HaveOccurred())
+
+	// Test for equality
+	g.Expect(parsedOther1.Equals(parsedOther2)).To(BeTrue())
 
 	// Here we ensure that two different ProviderID strings that happen to have the same 'ID' are not equal
 	// We use Azure VMSS as an example, two different '0' VMs in different pools: k8s-pool1-vmss, and k8s-pool2-vmss

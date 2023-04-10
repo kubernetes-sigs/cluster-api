@@ -86,7 +86,7 @@ func TestIndexMachinePoolByProviderID(t *testing.T) {
 			name: "MachinePool has invalid providerID",
 			object: &expv1.MachinePool{
 				Spec: expv1.MachinePoolSpec{
-					ProviderIDList: []string{"invalid"},
+					ProviderIDList: []string{""},
 				},
 			},
 			expected: []string{},

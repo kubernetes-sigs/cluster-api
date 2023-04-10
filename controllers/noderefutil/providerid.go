@@ -53,24 +53,17 @@ func NewProviderID(id string) (*ProviderID, error) {
 		return nil, ErrEmptyProviderID
 	}
 
-	if !providerIDRegex.MatchString(id) {
-		return nil, ErrInvalidProviderID
-	}
-
-	colonIndex := strings.Index(id, ":")
-	cloudProvider := id[0:colonIndex]
-
-	lastSlashIndex := strings.LastIndex(id, "/")
-	instance := id[lastSlashIndex+1:]
-
 	res := &ProviderID{
 		original:      id,
-		cloudProvider: cloudProvider,
-		id:            instance,
+		cloudProvider: "",
+		id:            "",
 	}
+	if providerIDRegex.MatchString(id) {
+		colonIndex := strings.Index(id, ":")
+		res.cloudProvider = id[0:colonIndex]
 
-	if !res.Validate() {
-		return nil, ErrInvalidProviderID
+		lastSlashIndex := strings.LastIndex(id, "/")
+		res.id = id[lastSlashIndex+1:]
 	}
 
 	return res, nil
@@ -94,11 +87,6 @@ func (p *ProviderID) Equals(o *ProviderID) bool {
 // String returns the string representation of this object.
 func (p ProviderID) String() string {
 	return p.original
-}
-
-// Validate returns true if the provider id is valid.
-func (p *ProviderID) Validate() bool {
-	return p.CloudProvider() != "" && p.ID() != ""
 }
 
 // IndexKey returns the required level of uniqueness

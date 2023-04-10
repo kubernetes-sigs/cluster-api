@@ -80,7 +80,7 @@ func TestIndexMachineByProviderID(t *testing.T) {
 			name: "Machine has invalid providerID",
 			object: &clusterv1.Machine{
 				Spec: clusterv1.MachineSpec{
-					ProviderID: pointer.String("invalid"),
+					ProviderID: pointer.String(""),
 				},
 			},
 			expected: nil,

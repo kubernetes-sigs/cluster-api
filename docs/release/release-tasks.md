@@ -425,14 +425,15 @@ The goal of this task is to keep our tests running in CI stable.
 1. Add yourself to the [Cluster API alert mailing list](https://github.com/kubernetes/k8s.io/blob/151899b2de933e58a4dfd1bfc2c133ce5a8bbe22/groups/sig-cluster-lifecycle/groups.yaml#L20-L35)
     <br\>**Note**: An alternative to the alert mailing list is manually monitoring the [testgrid dashboards](https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api)
     (also dashboards of previous releases). Using the alert mailing list has proven to be a lot less effort though.
-2. Check the existing **failing-test** and **flaking-test** issue templates under `.github/ISSUE_TEMPLATE/` folder of the repo, used to create an issue for failing or flaking tests respectively. Please make sure they are up-to-date and if not, send a PR to update or improve them.
-3. Triage CI failures reported by mail alerts or found by monitoring the testgrid dashboards:
+2. Subscribe to `CI Activity` notifications for the Cluster API repo.
+3. Check the existing **failing-test** and **flaking-test** issue templates under `.github/ISSUE_TEMPLATE/` folder of the repo, used to create an issue for failing or flaking tests respectively. Please make sure they are up-to-date and if not, send a PR to update or improve them.
+4. Triage CI failures reported by mail alerts or found by monitoring the testgrid dashboards:
     1. Create an issue using an appropriate template (failing-test) in the Cluster API repository to surface the CI failure.
     2. Identify if the issue is a known issue, new issue or a regression.
     3. Mark the issue as `release-blocking` if applicable.
-4. Triage periodic GitHub actions failures, with special attention to image scan results;
+5. Triage periodic GitHub actions failures, with special attention to image scan results;
    Eventually open issues as described above.
-5. Monitor IPv6 testing PR informing jobs (look for `capi-pr-e2e-informing-ipv6-<branch_name>` tab on main and supported releases testgrid dashboards), since they are not part of any periodic jobs.
+6. Monitor IPv6 testing PR informing jobs (look for `capi-pr-e2e-informing-ipv6-<branch_name>` tab on main and supported releases testgrid dashboards), since they are not part of any periodic jobs.
 
 #### [Continuously] Reduce the amount of flaky tests
 

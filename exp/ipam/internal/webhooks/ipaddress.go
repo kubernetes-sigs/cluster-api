@@ -123,14 +123,15 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 			))
 	}
 
-	_, err = netip.ParseAddr(ip.Spec.Gateway)
-	if err != nil {
-		allErrs = append(allErrs,
-			field.Invalid(
-				specPath.Child("gateway"),
-				ip.Spec.Gateway,
-				"not a valid IP address",
-			))
+	if ip.Spec.Gateway != "" {
+		if _, err := netip.ParseAddr(ip.Spec.Gateway); err != nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					specPath.Child("gateway"),
+					ip.Spec.Gateway,
+					"not a valid IP address",
+				))
+		}
 	}
 
 	if ip.Spec.PoolRef.APIGroup == nil {

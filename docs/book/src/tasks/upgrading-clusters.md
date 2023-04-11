@@ -63,7 +63,7 @@ The rollout can be triggered by running the following command:
 
 ```shell
 # Trigger a KubeadmControlPlane rollout.
-clusterctl alpha rollout restart kubeadmcontrollplane/my-kcp
+clusterctl alpha rollout restart kubeadmcontrolplane/my-kcp
 
 # Trigger a MachineDeployment rollout.
 clusterctl alpha rollout restart machinedeployment/my-md-0

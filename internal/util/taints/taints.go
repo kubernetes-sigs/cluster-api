@@ -36,3 +36,13 @@ func RemoveNodeTaint(node *corev1.Node, drop corev1.Taint) bool {
 	node.Spec.Taints = taints
 	return droppedTaint
 }
+
+// HasTaint returns true if the targetTaint is in the list of taints.
+func HasTaint(taints []corev1.Taint, targetTaint corev1.Taint) bool {
+	for _, taint := range taints {
+		if taint.MatchTaint(&targetTaint) {
+			return true
+		}
+	}
+	return false
+}

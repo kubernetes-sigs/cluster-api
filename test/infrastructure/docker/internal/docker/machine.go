@@ -38,6 +38,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker/types"
@@ -53,6 +54,10 @@ const (
 	defaultImageTag  = "v1.27.0"
 )
 
+var (
+	cloudProviderTaint = corev1.Taint{Key: "node.cloudprovider.kubernetes.io/uninitialized", Effect: corev1.TaintEffectNoSchedule}
+)
+
 type nodeCreator interface {
 	CreateControlPlaneNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily) (node *types.Node, err error)
 	CreateWorkerNode(ctx context.Context, name, image, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily) (node *types.Node, err error)
@@ -60,11 +65,10 @@ type nodeCreator interface {
 
 // Machine implement a service for managing the docker containers hosting a kubernetes nodes.
 type Machine struct {
-	cluster   string
-	machine   string
-	ipFamily  clusterv1.ClusterIPFamily
-	container *types.Node
-
+	cluster     string
+	machine     string
+	ipFamily    clusterv1.ClusterIPFamily
+	container   *types.Node
 	nodeCreator nodeCreator
 }
 
@@ -173,18 +177,22 @@ func (m *Machine) ProviderID() string {
 	return fmt.Sprintf("docker:////%s", m.ContainerName())
 }
 
-// Address will get the IP address of the machine. If IPv6 is enabled, it will return
-// the IPv6 address, otherwise an IPv4 address.
-func (m *Machine) Address(ctx context.Context) (string, error) {
+// Address will get the IP address of the machine. It can return
+// a single IPv4 address, a single IPv6 address or one of each depending on the machine.ipFamily.
+func (m *Machine) Address(ctx context.Context) ([]string, error) {
 	ipv4, ipv6, err := m.container.IP(ctx)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-
-	if m.ipFamily == clusterv1.IPv6IPFamily {
-		return ipv6, nil
+	switch m.ipFamily {
+	case clusterv1.IPv6IPFamily:
+		return []string{ipv6}, nil
+	case clusterv1.IPv4IPFamily:
+		return []string{ipv4}, nil
+	case clusterv1.DualStackIPFamily:
+		return []string{ipv4, ipv6}, nil
 	}
-	return ipv4, nil
+	return nil, errors.New("unknown ipFamily")
 }
 
 // ContainerImage return the image of the container for this machine
@@ -390,12 +398,12 @@ func (m *Machine) CheckForBootstrapSuccess(ctx context.Context, logResult bool) 
 func (m *Machine) SetNodeProviderID(ctx context.Context, c client.Client) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	kubectlNode, err := m.getKubectlNode(ctx)
+	dockerNode, err := m.getDockerNode(ctx)
 	if err != nil {
 		return errors.Wrapf(err, "unable to set NodeProviderID. error getting a kubectl node")
 	}
-	if !kubectlNode.IsRunning() {
-		return errors.Wrapf(ContainerNotRunningError{Name: kubectlNode.Name}, "unable to set NodeProviderID")
+	if !dockerNode.IsRunning() {
+		return errors.Wrapf(ContainerNotRunningError{Name: dockerNode.Name}, "unable to set NodeProviderID")
 	}
 
 	node := &corev1.Node{}
@@ -419,23 +427,90 @@ func (m *Machine) SetNodeProviderID(ctx context.Context, c client.Client) error 
 	return nil
 }
 
-func (m *Machine) getKubectlNode(ctx context.Context) (*types.Node, error) {
+// CloudProviderNodePatch performs the tasks that would normally be down by an external cloud provider.
+// 1) For all CAPD Nodes it sets the ProviderID on the Kubernetes Node.
+// 2) If the cloudProviderTaint is set it updates the addresses in the Kubernetes Node `.status.addresses`.
+// 3) If the cloudProviderTaint is set it removes it to inform Kubernetes that this Node is now initialized.
+func (m *Machine) CloudProviderNodePatch(ctx context.Context, c client.Client, dockerMachine *infrav1.DockerMachine) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	dockerNode, err := m.getDockerNode(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "unable to complete Docker Cloud Provider tasks. Error getting a docker node")
+	}
+	if !dockerNode.IsRunning() {
+		return errors.Wrapf(ContainerNotRunningError{Name: dockerNode.Name}, "unable to complete Docker Cloud Provider tasks")
+	}
+
+	node := &corev1.Node{}
+	if err = c.Get(ctx, apimachinerytypes.NamespacedName{Name: m.ContainerName()}, node); err != nil {
+		return errors.Wrap(err, "unable to complete Docker Cloud Provider tasks: failed to retrieve node")
+	}
+
+	patchHelper, err := patch.NewHelper(node, c)
+	if err != nil {
+		return err
+	}
+
+	// 1) Set the providerID on the node.
+	log.Info("Setting Kubernetes node providerID")
+	node.Spec.ProviderID = m.ProviderID()
+
+	// If the node is managed by an external cloud provider - e.g. in dualstack tests - add the
+	// machine addresses on the node and remove the cloudProviderTaint.
+	if taints.HasTaint(node.Spec.Taints, cloudProviderTaint) {
+		// The machine addresses must retain their order - i.e. new addresses should only be appended to the list.
+		// This is what Kubelet expects when setting new IPs for pods using the host network.
+		nodeAddressMap := map[corev1.NodeAddress]bool{}
+		for _, addr := range node.Status.Addresses {
+			nodeAddressMap[addr] = true
+		}
+		log.Info("Setting Kubernetes node IP Addresses")
+		for _, addr := range dockerMachine.Status.Addresses {
+			if _, ok := nodeAddressMap[corev1.NodeAddress{Address: addr.Address, Type: corev1.NodeAddressType(addr.Type)}]; ok {
+				continue
+			}
+			// Set the addresses in the Node `.status.addresses`
+			// Only add "InternalIP" type addresses.
+			// Node "ExternalIP" addresses are not well defined in Kubernetes across different cloud providers.
+			// This keeps parity with what is done for dualstack nodes in Kind.
+			if addr.Type != clusterv1.MachineInternalIP {
+				continue
+			}
+			node.Status.Addresses = append(node.Status.Addresses, corev1.NodeAddress{
+				Type:    corev1.NodeAddressType(addr.Type),
+				Address: addr.Address,
+			})
+		}
+		// R3) emove the cloud provider taint on the node - if it exists - to initialize it.
+		if taints.RemoveNodeTaint(node, cloudProviderTaint) {
+			log.Info("Removing the cloudprovider taint to initialize node")
+		}
+	}
+
+	if err = patchHelper.Patch(ctx, node); err != nil {
+		return errors.Wrap(err, "failed to patch node")
+	}
+	return nil
+}
+
+func (m *Machine) getDockerNode(ctx context.Context) (*types.Node, error) {
 	// collect info about the existing nodes
 	filters := container.FilterBuilder{}
 	filters.AddKeyNameValue(filterLabel, clusterLabelKey, m.cluster)
 
-	kubectlNodes, err := listContainers(ctx, filters)
+	dockerNodes, err := listContainers(ctx, filters)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	// Return the node matching the current machine, required to patch itself using its kubelet config
-	for _, node := range kubectlNodes {
+	for _, node := range dockerNodes {
 		if node.Name == m.container.Name {
 			return node, nil
 		}
 	}
 
-	return nil, fmt.Errorf("there are no Kubernetes nodes matching the container name")
+	return nil, fmt.Errorf("there are no Docker nodes matching the container name")
 }
 
 // Delete deletes a docker container hosting a Kubernetes node.

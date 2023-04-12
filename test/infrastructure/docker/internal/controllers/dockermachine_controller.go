@@ -371,7 +371,7 @@ func (r *DockerMachineReconciler) reconcileNormal(ctx context.Context, cluster *
 	if err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to generate workload cluster client")
 	}
-	if err := externalMachine.SetNodeProviderID(ctx, remoteClient); err != nil {
+	if err := externalMachine.CloudProviderNodePatch(ctx, remoteClient, dockerMachine); err != nil {
 		if errors.As(err, &docker.ContainerNotRunningError{}) {
 			return ctrl.Result{}, errors.Wrap(err, "failed to patch the Kubernetes node with the machine providerID")
 		}
@@ -509,24 +509,26 @@ func (r *DockerMachineReconciler) getBootstrapData(ctx context.Context, machine 
 
 // setMachineAddress gets the address from the container corresponding to a docker node and sets it on the Machine object.
 func setMachineAddress(ctx context.Context, dockerMachine *infrav1.DockerMachine, externalMachine *docker.Machine) error {
-	machineAddress, err := externalMachine.Address(ctx)
+	machineAddresses, err := externalMachine.Address(ctx)
 	if err != nil {
 		return err
 	}
-
-	dockerMachine.Status.Addresses = []clusterv1.MachineAddress{
-		{
-			Type:    clusterv1.MachineHostName,
-			Address: externalMachine.ContainerName(),
-		},
-		{
-			Type:    clusterv1.MachineInternalIP,
-			Address: machineAddress,
-		},
-		{
-			Type:    clusterv1.MachineExternalIP,
-			Address: machineAddress,
-		},
+	dockerMachine.Status.Addresses = []clusterv1.MachineAddress{{
+		Type:    clusterv1.MachineHostName,
+		Address: externalMachine.ContainerName()},
 	}
+
+	for _, addr := range machineAddresses {
+		dockerMachine.Status.Addresses = append(dockerMachine.Status.Addresses,
+			clusterv1.MachineAddress{
+				Type:    clusterv1.MachineInternalIP,
+				Address: addr,
+			},
+			clusterv1.MachineAddress{
+				Type:    clusterv1.MachineExternalIP,
+				Address: addr,
+			})
+	}
+
 	return nil
 }

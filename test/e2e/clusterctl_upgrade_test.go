@@ -211,7 +211,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.5/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
-			InitWithKubernetesVersion: "v1.26.0",
+			InitWithKubernetesVersion: "v1.27.0",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
@@ -239,7 +239,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>cur
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.5/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
-			InitWithKubernetesVersion: "v1.26.0",
+			InitWithKubernetesVersion: "v1.27.0",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "topology",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.

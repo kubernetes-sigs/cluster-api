@@ -104,35 +104,27 @@ func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMach
 	Expect(input.MachineDeployment).ToNot(BeNil(), "Invalid argument. input.MachineDeployment can't be nil when calling WaitForMachineDeploymentNodesToExist")
 
 	By("Waiting for the workload nodes to exist")
-	Eventually(func() (int, error) {
+	Eventually(func(g Gomega) {
 		selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
-		if err != nil {
-			return 0, err
-		}
+		g.Expect(err).NotTo(HaveOccurred())
 		ms := &clusterv1.MachineSetList{}
-		if err := input.Lister.List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap)); err != nil {
-			return 0, err
-		}
-		if len(ms.Items) == 0 {
-			return 0, errors.New("no machinesets were found")
-		}
+		err = input.Lister.List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap))
+		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(ms.Items).NotTo(BeEmpty())
 		machineSet := ms.Items[0]
 		selectorMap, err = metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
-		if err != nil {
-			return 0, err
-		}
+		g.Expect(err).NotTo(HaveOccurred())
 		machines := &clusterv1.MachineList{}
-		if err := input.Lister.List(ctx, machines, client.InNamespace(machineSet.Namespace), client.MatchingLabels(selectorMap)); err != nil {
-			return 0, err
-		}
+		err = input.Lister.List(ctx, machines, client.InNamespace(machineSet.Namespace), client.MatchingLabels(selectorMap))
+		g.Expect(err).NotTo(HaveOccurred())
 		count := 0
 		for _, machine := range machines.Items {
 			if machine.Status.NodeRef != nil {
 				count++
 			}
 		}
-		return count, nil
-	}, intervals...).Should(Equal(int(*input.MachineDeployment.Spec.Replicas)), "Timed out waiting for %d nodes to be created for MachineDeployment %s", int(*input.MachineDeployment.Spec.Replicas), klog.KObj(input.MachineDeployment))
+		g.Expect(count).To(Equal(int(*input.MachineDeployment.Spec.Replicas)))
+	}, intervals...).Should(Succeed(), "Timed out waiting for %d nodes to be created for MachineDeployment %s", int(*input.MachineDeployment.Spec.Replicas), klog.KObj(input.MachineDeployment))
 }
 
 // AssertMachineDeploymentFailureDomainsInput is the input for AssertMachineDeploymentFailureDomains.

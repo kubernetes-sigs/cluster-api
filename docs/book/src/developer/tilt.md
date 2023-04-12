@@ -325,7 +325,7 @@ Custom values for variable substitutions can be set using `kustomize_substitutio
 ```yaml
 kustomize_substitutions:
   NAMESPACE: default
-  KUBERNETES_VERSION: v1.26.0
+  KUBERNETES_VERSION: v1.27.0
   CONTROL_PLANE_MACHINE_COUNT: 1
   WORKER_MACHINE_COUNT: 3
 ```

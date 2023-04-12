@@ -1215,7 +1215,7 @@ The Docker provider is not designed for production use and is intended for devel
 
 ```bash
 clusterctl generate cluster capi-quickstart --flavor development \
-  --kubernetes-version v1.26.0 \
+  --kubernetes-version v1.27.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1227,7 +1227,7 @@ clusterctl generate cluster capi-quickstart --flavor development \
 ```bash
 export CLUSTER_NAME=kind
 export CLUSTER_NAMESPACE=vcluster
-export KUBERNETES_VERSION=1.26.0
+export KUBERNETES_VERSION=1.27.0
 export HELM_VALUES="service:\n  type: NodePort"
 
 kubectl create namespace ${CLUSTER_NAMESPACE}
@@ -1258,7 +1258,7 @@ clusterctl generate cluster capi-quickstart \
 
 ```bash
 clusterctl generate cluster capi-quickstart \
-  --kubernetes-version v1.26.0 \
+  --kubernetes-version v1.27.0 \
   --control-plane-machine-count=3 \
   --worker-machine-count=3 \
   > capi-quickstart.yaml
@@ -1308,6 +1308,13 @@ You can also get an "at glance" view of the cluster and its resources by running
 clusterctl describe cluster capi-quickstart
 ```
 
+and see an output similar to this:
+
+```bash
+NAME              PHASE         AGE   VERSION
+capi-quickstart   Provisioned   8s    v1.27.0
+```
+
 To verify the first control plane is up:
 
 ```bash
@@ -1318,7 +1325,7 @@ You should see an output is similar to this:
 
 ```bash
 NAME                    CLUSTER           INITIALIZED   API SERVER AVAILABLE   REPLICAS   READY   UPDATED   UNAVAILABLE   AGE    VERSION
-capi-quickstart-g2trk   capi-quickstart   true                                 3                  3         3             4m7s   v1.26.0
+capi-quickstart-g2trk   capi-quickstart   true                                 3                  3         3             4m7s   v1.27.0
 ```
 
 <aside class="note warning">
@@ -1537,13 +1544,13 @@ let's check the status using `kubectl get nodes`:
 kubectl --kubeconfig=./capi-quickstart.kubeconfig get nodes
 ```
 ```bash
-NAME                                          STATUS   ROLES           AGE   VERSION
-capi-quickstart-g2trk-9xrjv                   Ready    control-plane   12m   v1.26.0
-capi-quickstart-g2trk-bmm9v                   Ready    control-plane   11m   v1.26.0
-capi-quickstart-g2trk-hvs9q                   Ready    control-plane   13m   v1.26.0
-capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          12m   v1.26.0
-capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          12m   v1.26.0
-capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          12m   v1.26.0
+NAME                                          STATUS   ROLES           AGE    VERSION
+capi-quickstart-vs89t-gmbld                   Ready    control-plane   5m33s  v1.27.0
+capi-quickstart-vs89t-kf9l5                   Ready    control-plane   6m20s  v1.27.0
+capi-quickstart-vs89t-t8cfn                   Ready    control-plane   7m10s  v1.27.0
+capi-quickstart-md-0-55x6t-5649968bd7-8tq9v   Ready    <none>          6m5s   v1.27.0
+capi-quickstart-md-0-55x6t-5649968bd7-glnjd   Ready    <none>          6m9s   v1.27.0
+capi-quickstart-md-0-55x6t-5649968bd7-sfzp6   Ready    <none>          6m9s   v1.27.0
 ```
 
 {{#/tab }}

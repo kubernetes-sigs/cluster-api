@@ -91,6 +91,38 @@ func TestIPAddressValidateCreate(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			name: "a valid IPv6 Address with no gateway should be accepted",
+			ip: getAddress(true, func(addr *ipamv1.IPAddress) {
+				addr.Spec.Gateway = ""
+			}),
+			extraObjs: []client.Object{claim},
+			expectErr: false,
+		},
+		{
+			name: "an IPv4 Address with no gateway should be rejected",
+			ip: getAddress(false, func(addr *ipamv1.IPAddress) {
+				addr.Spec.Gateway = ""
+			}),
+			extraObjs: []client.Object{claim},
+			expectErr: true,
+		},
+		{
+			name: "a valid IPv4 Address with valid IPv6 gateway should be rejected",
+			ip: getAddress(false, func(addr *ipamv1.IPAddress) {
+				addr.Spec.Gateway = "42::ffff"
+			}),
+			extraObjs: []client.Object{claim},
+			expectErr: true,
+		},
+		{
+			name: "a valid IPv6 Address with valid IPv4 gateway should be rejected",
+			ip: getAddress(true, func(addr *ipamv1.IPAddress) {
+				addr.Spec.Gateway = "10.0.0.254"
+			}),
+			extraObjs: []client.Object{claim},
+			expectErr: true,
+		},
+		{
 			name: "a prefix that is negative should be rejected",
 			ip: getAddress(false, func(addr *ipamv1.IPAddress) {
 				addr.Spec.Prefix = -1

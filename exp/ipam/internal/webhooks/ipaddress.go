@@ -122,17 +122,35 @@ func (webhook *IPAddress) validate(ctx context.Context, ip *ipamv1.IPAddress) er
 				"prefix is too large for an IPv6 address",
 			))
 	}
-
-	_, err = netip.ParseAddr(ip.Spec.Gateway)
-	if err != nil {
+	if addr.Is4() && ip.Spec.Gateway == "" {
 		allErrs = append(allErrs,
 			field.Invalid(
 				specPath.Child("gateway"),
 				ip.Spec.Gateway,
-				"not a valid IP address",
+				"gateway is required for an IPv4 address",
 			))
 	}
+	if ip.Spec.Gateway != "" {
+		gateway, err := netip.ParseAddr(ip.Spec.Gateway)
+		if err != nil {
+			allErrs = append(allErrs,
+				field.Invalid(
+					specPath.Child("gateway"),
+					ip.Spec.Gateway,
+					"not a valid IP address",
+				))
+		}
 
+		if addr.Is4() && gateway.Is6() ||
+			addr.Is6() && gateway.Is4() {
+			allErrs = append(allErrs,
+				field.Invalid(
+					specPath.Child("gateway"),
+					ip.Spec.Gateway,
+					"gateway and address IP family must match",
+				))
+		}
+	}
 	if ip.Spec.PoolRef.APIGroup == nil {
 		allErrs = append(allErrs,
 			field.Invalid(

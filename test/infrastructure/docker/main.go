@@ -21,7 +21,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"os"
 	"time"
@@ -111,7 +110,6 @@ func initFlags(fs *pflag.FlagSet) {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
 	if _, err := os.ReadDir("/tmp/"); err != nil {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)

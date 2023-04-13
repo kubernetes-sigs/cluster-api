@@ -335,7 +335,7 @@ variables:
   DOCKER_POD_CIDRS: "192.168.0.0/16"
   DOCKER_SERVICE_IPV6_CIDRS: "fd00:100:64::/108"
   DOCKER_POD_IPV6_CIDRS: "fd00:100:96::/48"
-  CNI: "./data/cni/kindnet/kindnet.yaml"
+  CNI: "./data/cni/calico/calico.yaml"
   KUBETEST_CONFIGURATION: "./data/kubetest/conformance.yaml"
   NODE_DRAIN_TIMEOUT: "60s"
   # Enabling the feature flags by setting the env variables.

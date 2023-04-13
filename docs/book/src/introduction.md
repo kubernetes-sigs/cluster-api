@@ -20,8 +20,8 @@ Also, this [guide](https://github.com/kubernetes/registry.k8s.io/tree/main/docs/
 <aside class="note">
 <h1>Deprecated API removal</h1>
 
-- API version v1alpha3 support will be removed in the upcoming release of v1.5
-- API version v1alpha4 support will be removed in the upcoming release of v1.6
+- API version v1alpha3 support will be removed in the upcoming release of v1.6
+- API version v1alpha4 support will be removed in the upcoming release of v1.7
 
 Review the [support-and-guarantees](./CONTRIBUTING.md#support-and-guarantees) section of the
 contributing guide for more details.

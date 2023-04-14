@@ -28,7 +28,7 @@ changes should be cherry-picked to all release series that will support the new 
   * Ensure the latest available kind version is used (including the latest images for this kind release)
   * Verify the quickstart manually
   * Prior art: #7156
-  * bump `InitWithKubernetesVersion` in `clusterctl_upgrade_test.go`
+  * bump `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` in `clusterctl_upgrade_test.go`
 * [ ] Ensure the jobs are adjusted to provide test coverage according to our [support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions):
   * For the main branch and the release branch of the latest supported Cluster API minor release:
     * Add new periodic upgrade job.

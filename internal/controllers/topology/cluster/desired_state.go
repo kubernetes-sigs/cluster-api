@@ -842,14 +842,6 @@ func computeMachineDeploymentVersion(s *scope.Scope, machineDeploymentTopology c
 		return currentVersion, nil
 	}
 
-	// At this point the control plane is stable (not scaling, not upgrading, not being upgraded).
-	// Checking to see if the machine deployments are also stable.
-	// If any of the MachineDeployments is rolling out, do not upgrade the machine deployment yet.
-	if s.Current.MachineDeployments.IsAnyRollingOut() {
-		s.UpgradeTracker.MachineDeployments.MarkPendingUpgrade(currentMDState.Object.Name)
-		return currentVersion, nil
-	}
-
 	// Control plane and machine deployments are stable.
 	// Ready to pick up the topology version.
 	s.UpgradeTracker.MachineDeployments.MarkRollingOut(currentMDState.Object.Name)

@@ -1636,23 +1636,25 @@ func TestComputeMachineDeployment(t *testing.T) {
 			}).
 			Build()
 
-		machineDeploymentStable := builder.MachineDeployment("test-namespace", "md-1").
+		machineDeploymentStable := builder.MachineDeployment("test-namespace", "md-stable").
 			WithGeneration(1).
 			WithReplicas(2).
 			WithStatus(clusterv1.MachineDeploymentStatus{
 				ObservedGeneration: 2,
 				Replicas:           2,
+				ReadyReplicas:      2,
 				UpdatedReplicas:    2,
 				AvailableReplicas:  2,
 			}).
 			Build()
 
-		machineDeploymentRollingOut := builder.MachineDeployment("test-namespace", "md-1").
+		machineDeploymentRollingOut := builder.MachineDeployment("test-namespace", "md-rolling").
 			WithGeneration(1).
 			WithReplicas(2).
 			WithStatus(clusterv1.MachineDeploymentStatus{
 				ObservedGeneration: 2,
 				Replicas:           1,
+				ReadyReplicas:      1,
 				UpdatedReplicas:    1,
 				AvailableReplicas:  1,
 			}).
@@ -1670,28 +1672,46 @@ func TestComputeMachineDeployment(t *testing.T) {
 			name                    string
 			machineDeploymentsState scope.MachineDeploymentsStateMap
 			currentMDVersion        *string
+			upgradeConcurrency      string
 			topologyVersion         string
 			expectedVersion         string
 		}{
 			{
 				name:                    "use cluster.spec.topology.version if creating a new machine deployment",
 				machineDeploymentsState: nil,
+				upgradeConcurrency:      "1",
 				currentMDVersion:        nil,
 				topologyVersion:         "v1.2.3",
 				expectedVersion:         "v1.2.3",
 			},
 			{
-				name:                    "use machine deployment's spec.template.spec.version if one of the machine deployments is rolling out",
+				name:                    "use machine deployment's spec.template.spec.version if one of the machine deployments is rolling out, concurrency limit reached",
 				machineDeploymentsState: machineDeploymentsStateRollingOut,
+				upgradeConcurrency:      "1",
 				currentMDVersion:        pointer.String("v1.2.2"),
 				topologyVersion:         "v1.2.3",
 				expectedVersion:         "v1.2.2",
+			},
+			{
+				name:                    "use cluster.spec.topology.version if one of the machine deployments is rolling out, concurrency limit not reached",
+				machineDeploymentsState: machineDeploymentsStateRollingOut,
+				upgradeConcurrency:      "2",
+				currentMDVersion:        pointer.String("v1.2.2"),
+				topologyVersion:         "v1.2.3",
+				expectedVersion:         "v1.2.3",
 			},
 		}
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
-				s := scope.New(cluster)
+
+				testCluster := cluster.DeepCopy()
+				if testCluster.Annotations == nil {
+					testCluster.Annotations = map[string]string{}
+				}
+				testCluster.Annotations[clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation] = tt.upgradeConcurrency
+
+				s := scope.New(testCluster)
 				s.Blueprint = blueprint
 				s.Blueprint.Topology.Version = tt.topologyVersion
 				s.Blueprint.Topology.ControlPlane = clusterv1.ControlPlaneTopology{
@@ -1710,6 +1730,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 						WithStatus(clusterv1.MachineDeploymentStatus{
 							ObservedGeneration: 2,
 							Replicas:           2,
+							ReadyReplicas:      2,
 							UpdatedReplicas:    2,
 							AvailableReplicas:  2,
 						}).
@@ -1723,6 +1744,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				s.Current.ControlPlane = &scope.ControlPlaneState{
 					Object: controlPlaneStable123,
 				}
+				s.UpgradeTracker.MachineDeployments.MarkRollingOut(s.Current.MachineDeployments.RollingOut()...)
 				desiredControlPlaneState := &scope.ControlPlaneState{
 					Object: controlPlaneStable123,
 				}
@@ -1829,38 +1851,47 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 	//
 	// A machine deployment is considered upgrading if any of the above conditions
 	// is false.
-	machineDeploymentStable := builder.MachineDeployment("test-namespace", "md-1").
-		WithGeneration(1).
-		WithReplicas(2).
-		WithStatus(clusterv1.MachineDeploymentStatus{
-			ObservedGeneration:  2,
-			Replicas:            2,
-			UpdatedReplicas:     2,
-			AvailableReplicas:   2,
-			ReadyReplicas:       2,
-			UnavailableReplicas: 0,
-		}).
-		Build()
-	machineDeploymentRollingOut := builder.MachineDeployment("test-namespace", "md-2").
-		WithGeneration(1).
-		WithReplicas(2).
-		WithStatus(clusterv1.MachineDeploymentStatus{
-			ObservedGeneration:  2,
-			Replicas:            1,
-			UpdatedReplicas:     1,
-			AvailableReplicas:   1,
-			ReadyReplicas:       1,
-			UnavailableReplicas: 1,
-		}).
-		Build()
-
-	machineDeploymentsStateStable := scope.MachineDeploymentsStateMap{
-		"md1": &scope.MachineDeploymentState{Object: machineDeploymentStable},
-		"md2": &scope.MachineDeploymentState{Object: machineDeploymentStable},
+	stableMachineDeployment := func(ns, name string) *clusterv1.MachineDeployment {
+		return builder.MachineDeployment(ns, name).
+			WithGeneration(1).
+			WithReplicas(2).
+			WithStatus(clusterv1.MachineDeploymentStatus{
+				ObservedGeneration:  2,
+				Replicas:            2,
+				UpdatedReplicas:     2,
+				AvailableReplicas:   2,
+				ReadyReplicas:       2,
+				UnavailableReplicas: 0,
+			}).
+			Build()
 	}
-	machineDeploymentsStateRollingOut := scope.MachineDeploymentsStateMap{
-		"md1": &scope.MachineDeploymentState{Object: machineDeploymentStable},
-		"md2": &scope.MachineDeploymentState{Object: machineDeploymentRollingOut},
+
+	rollingMachineDeployment := func(ns, name string) *clusterv1.MachineDeployment {
+		return builder.MachineDeployment(ns, name).
+			WithGeneration(1).
+			WithReplicas(2).
+			WithStatus(clusterv1.MachineDeploymentStatus{
+				ObservedGeneration:  2,
+				Replicas:            1,
+				UpdatedReplicas:     1,
+				AvailableReplicas:   1,
+				ReadyReplicas:       1,
+				UnavailableReplicas: 1,
+			}).
+			Build()
+	}
+
+	twoMachineDeploymentsStateStable := scope.MachineDeploymentsStateMap{
+		"md1": &scope.MachineDeploymentState{Object: stableMachineDeployment("test1", "md1")},
+		"md2": &scope.MachineDeploymentState{Object: stableMachineDeployment("test1", "md2")},
+	}
+	oneStableOneRollingMachineDeploymentState := scope.MachineDeploymentsStateMap{
+		"md1": &scope.MachineDeploymentState{Object: stableMachineDeployment("test1", "md1")},
+		"md2": &scope.MachineDeploymentState{Object: rollingMachineDeployment("test1", "md2")},
+	}
+	twoRollingMachineDeploymentState := scope.MachineDeploymentsStateMap{
+		"md1": &scope.MachineDeploymentState{Object: rollingMachineDeployment("test1", "md1")},
+		"md2": &scope.MachineDeploymentState{Object: rollingMachineDeployment("test1", "md2")},
 	}
 
 	tests := []struct {
@@ -1868,6 +1899,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 		machineDeploymentTopology     clusterv1.MachineDeploymentTopology
 		currentMachineDeploymentState *scope.MachineDeploymentState
 		machineDeploymentsStateMap    scope.MachineDeploymentsStateMap
+		upgradeConcurrency            int
 		currentControlPlane           *unstructured.Unstructured
 		desiredControlPlane           *unstructured.Unstructured
 		topologyVersion               string
@@ -1890,16 +1922,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 				},
 			},
 			currentMachineDeploymentState: &scope.MachineDeploymentState{Object: builder.MachineDeployment("test1", "md-current").WithVersion("v1.2.2").Build()},
-			machineDeploymentsStateMap:    machineDeploymentsStateStable,
-			currentControlPlane:           controlPlaneStable123,
-			desiredControlPlane:           controlPlaneDesired,
-			topologyVersion:               "v1.2.3",
-			expectedVersion:               "v1.2.2",
-		},
-		{
-			name:                          "should return machine deployment's spec.template.spec.version if any one of the machine deployments is rolling out",
-			currentMachineDeploymentState: &scope.MachineDeploymentState{Object: builder.MachineDeployment("test1", "md-current").WithVersion("v1.2.2").Build()},
-			machineDeploymentsStateMap:    machineDeploymentsStateRollingOut,
+			machineDeploymentsStateMap:    twoMachineDeploymentsStateStable,
 			currentControlPlane:           controlPlaneStable123,
 			desiredControlPlane:           controlPlaneDesired,
 			topologyVersion:               "v1.2.3",
@@ -1909,7 +1932,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			// Control plane is considered upgrading if the control plane's spec.version and status.version is not equal.
 			name:                          "should return machine deployment's spec.template.spec.version if control plane is upgrading",
 			currentMachineDeploymentState: &scope.MachineDeploymentState{Object: builder.MachineDeployment("test1", "md-current").WithVersion("v1.2.2").Build()},
-			machineDeploymentsStateMap:    machineDeploymentsStateStable,
+			machineDeploymentsStateMap:    twoMachineDeploymentsStateStable,
 			currentControlPlane:           controlPlaneUpgrading,
 			topologyVersion:               "v1.2.3",
 			expectedVersion:               "v1.2.2",
@@ -1918,7 +1941,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			// Control plane is considered ready to upgrade if spec.version of current and desired control planes are not equal.
 			name:                          "should return machine deployment's spec.template.spec.version if control plane is ready to upgrade",
 			currentMachineDeploymentState: &scope.MachineDeploymentState{Object: builder.MachineDeployment("test1", "md-current").WithVersion("v1.2.2").Build()},
-			machineDeploymentsStateMap:    machineDeploymentsStateStable,
+			machineDeploymentsStateMap:    twoMachineDeploymentsStateStable,
 			currentControlPlane:           controlPlaneStable122,
 			desiredControlPlane:           controlPlaneDesired,
 			topologyVersion:               "v1.2.3",
@@ -1928,7 +1951,7 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 			// Control plane is considered scaling if its spec.replicas is not equal to any of status.replicas, status.readyReplicas or status.updatedReplicas.
 			name:                          "should return machine deployment's spec.template.spec.version if control plane is scaling",
 			currentMachineDeploymentState: &scope.MachineDeploymentState{Object: builder.MachineDeployment("test1", "md-current").WithVersion("v1.2.2").Build()},
-			machineDeploymentsStateMap:    machineDeploymentsStateStable,
+			machineDeploymentsStateMap:    twoMachineDeploymentsStateStable,
 			currentControlPlane:           controlPlaneScaling,
 			topologyVersion:               "v1.2.3",
 			expectedVersion:               "v1.2.2",
@@ -1936,11 +1959,31 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 		{
 			name:                          "should return cluster.spec.topology.version if the control plane is not upgrading, not scaling, not ready to upgrade and none of the machine deployments are rolling out",
 			currentMachineDeploymentState: &scope.MachineDeploymentState{Object: builder.MachineDeployment("test1", "md-current").WithVersion("v1.2.2").Build()},
-			machineDeploymentsStateMap:    machineDeploymentsStateStable,
+			machineDeploymentsStateMap:    twoMachineDeploymentsStateStable,
 			currentControlPlane:           controlPlaneStable123,
 			desiredControlPlane:           controlPlaneDesired,
 			topologyVersion:               "v1.2.3",
 			expectedVersion:               "v1.2.3",
+		},
+		{
+			name:                          "should return cluster.spec.topology.version if control plane is stable, other machine deployments are rolling out, concurrency limit not reached",
+			currentMachineDeploymentState: &scope.MachineDeploymentState{Object: builder.MachineDeployment("test1", "md-current").WithVersion("v1.2.2").Build()},
+			machineDeploymentsStateMap:    oneStableOneRollingMachineDeploymentState,
+			upgradeConcurrency:            2,
+			currentControlPlane:           controlPlaneStable123,
+			desiredControlPlane:           controlPlaneDesired,
+			topologyVersion:               "v1.2.3",
+			expectedVersion:               "v1.2.3",
+		},
+		{
+			name:                          "should return machine deployment's spec.template.spec.version if control plane is stable, other machine deployments are rolling out, concurrency limit reached",
+			currentMachineDeploymentState: &scope.MachineDeploymentState{Object: builder.MachineDeployment("test1", "md-current").WithVersion("v1.2.2").Build()},
+			machineDeploymentsStateMap:    twoRollingMachineDeploymentState,
+			upgradeConcurrency:            2,
+			currentControlPlane:           controlPlaneStable123,
+			desiredControlPlane:           controlPlaneDesired,
+			topologyVersion:               "v1.2.3",
+			expectedVersion:               "v1.2.2",
 		},
 	}
 
@@ -1960,9 +2003,10 @@ func TestComputeMachineDeploymentVersion(t *testing.T) {
 					ControlPlane:       &scope.ControlPlaneState{Object: tt.currentControlPlane},
 					MachineDeployments: tt.machineDeploymentsStateMap,
 				},
-				UpgradeTracker: scope.NewUpgradeTracker(),
+				UpgradeTracker: scope.NewUpgradeTracker(scope.MaxMDUpgradeConcurrency(tt.upgradeConcurrency)),
 			}
 			desiredControlPlaneState := &scope.ControlPlaneState{Object: tt.desiredControlPlane}
+			s.UpgradeTracker.MachineDeployments.MarkRollingOut(s.Current.MachineDeployments.RollingOut()...)
 			version, err := computeMachineDeploymentVersion(s, tt.machineDeploymentTopology, desiredControlPlaneState, tt.currentMachineDeploymentState)
 			g.Expect(err).NotTo(HaveOccurred())
 			g.Expect(version).To(Equal(tt.expectedVersion))

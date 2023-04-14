@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 
@@ -244,6 +245,25 @@ func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newClu
 				"version must be a valid semantic version",
 			),
 		)
+	}
+
+	// upgrade concurrency should be a numeric value.
+	if concurrency, ok := newCluster.Annotations[clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation]; ok {
+		concurrencyAnnotationField := field.NewPath("metadata", "annotations", clusterv1.ClusterTopologyUpgradeConcurrencyAnnotation)
+		concurrencyInt, err := strconv.Atoi(concurrency)
+		if err != nil {
+			allErrs = append(allErrs, field.Invalid(
+				concurrencyAnnotationField,
+				concurrency,
+				errors.Wrap(err, "could not parse the value of the annotation").Error(),
+			))
+		} else if concurrencyInt < 1 {
+			allErrs = append(allErrs, field.Invalid(
+				concurrencyAnnotationField,
+				concurrency,
+				"value cannot be less than 1",
+			))
+		}
 	}
 
 	// Get the ClusterClass referenced in the Cluster.

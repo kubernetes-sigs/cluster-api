@@ -43,6 +43,19 @@ func (r *Reconciler) reconcileConditions(s *scope.Scope, cluster *clusterv1.Clus
 //     In such a case, since some of the component's spec would be adrift from the topology the
 //     topology cannot be considered fully reconciled.
 func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluster *clusterv1.Cluster, reconcileErr error) error {
+	// Mark TopologyReconciled as false due to cluster deletion.
+	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		conditions.Set(
+			cluster,
+			conditions.FalseCondition(
+				clusterv1.TopologyReconciledCondition,
+				clusterv1.DeletedReason,
+				clusterv1.ConditionSeverityInfo,
+				"",
+			),
+		)
+		return nil
+	}
 	// If an error occurred during reconciliation set the TopologyReconciled condition to false.
 	// Add the error message from the reconcile function to the message of the condition.
 	if reconcileErr != nil {

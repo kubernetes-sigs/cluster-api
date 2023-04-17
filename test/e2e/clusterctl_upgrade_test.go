@@ -36,7 +36,8 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>current)", func() {
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1alpha3",
 			// CAPI v0.3.x does not work on Kubernetes >= v1.22.
-			InitWithKubernetesVersion: "v1.21.12",
+			InitWithKubernetesVersion: "v1.21.14",
+			WorkloadKubernetesVersion: "v1.22.17",
 			// CAPI does not work with Kubernetes < v1.22 if ClusterClass is enabled, so we have to disable it.
 			UpgradeClusterctlVariables: map[string]string{
 				"CLUSTER_TOPOLOGY": "false",
@@ -68,7 +69,8 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1alpha4",
-			InitWithKubernetesVersion: "v1.23.13",
+			InitWithKubernetesVersion: "v1.23.17",
+			WorkloadKubernetesVersion: "v1.23.17",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
@@ -105,7 +107,8 @@ var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 			// runtime extension providers. If we don't do this the test will automatically
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
-			InitWithKubernetesVersion:         "v1.23.13",
+			InitWithKubernetesVersion:         "v1.23.17",
+			WorkloadKubernetesVersion:         "v1.23.17",
 			MgmtFlavor:                        "topology",
 			WorkloadFlavor:                    "",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
@@ -143,7 +146,8 @@ var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
 			InitWithProvidersContract:         "v1beta1",
-			InitWithKubernetesVersion:         "v1.26.0",
+			InitWithKubernetesVersion:         "v1.26.3",
+			WorkloadKubernetesVersion:         "v1.26.3",
 			MgmtFlavor:                        "topology",
 			WorkloadFlavor:                    "",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
@@ -181,7 +185,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>cur
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
 			InitWithProvidersContract:         "v1beta1",
-			InitWithKubernetesVersion:         "v1.26.0",
+			InitWithKubernetesVersion:         "v1.26.3",
+			WorkloadKubernetesVersion:         "v1.26.3",
 			MgmtFlavor:                        "topology",
 			WorkloadFlavor:                    "topology",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
@@ -209,7 +214,8 @@ var _ = Describe("When testing clusterctl upgrades (v1.4=>current)", func() {
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
-			InitWithKubernetesVersion: "v1.26.0",
+			InitWithKubernetesVersion: "v1.27.0",
+			WorkloadKubernetesVersion: "v1.27.0",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
@@ -237,7 +243,8 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.4=>cur
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
-			InitWithKubernetesVersion: "v1.26.0",
+			InitWithKubernetesVersion: "v1.27.0",
+			WorkloadKubernetesVersion: "v1.27.0",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "topology",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.

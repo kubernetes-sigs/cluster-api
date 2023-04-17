@@ -110,7 +110,7 @@ This comes down to changing occurrences of the old version to the new version, e
          we use in the clusterctl upgrade tests (as of today `cluster-template` and `cluster-template-topology`).
       2. Remove old folders that are not used anymore (for `v1.4` we don't have to remove any).
    5. Modify the test specs in `test/e2e/clusterctl_upgrade_test.go` (according to the versions we want to test described above).
-      Please note that `InitWithKubernetesVersion` should be the highest mgmt cluster version supported by the respective Cluster API version.
+      Please note that both `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` should be the highest mgmt cluster version supported by the respective Cluster API version.
 2. Update `create-local-repository.py` and `tools/tilt-prepare/main.go`: `v1.3.99` => `v1.4.99`.
 3. Make sure all tests are green (also run `pull-cluster-api-e2e-full-main` and `pull-cluster-api-e2e-workload-upgrade-1-23-latest-main`).
 

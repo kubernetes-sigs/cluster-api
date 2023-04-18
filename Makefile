@@ -545,6 +545,7 @@ generate-metrics-config: $(ENVSUBST_BIN) ## Generate ./hack/observability/kube-s
 generate-diagrams: ## Generate diagrams for *.plantuml files
 	$(MAKE) -C docs diagrams
 
+
 ## --------------------------------------
 ## Lint / Verify
 ## --------------------------------------

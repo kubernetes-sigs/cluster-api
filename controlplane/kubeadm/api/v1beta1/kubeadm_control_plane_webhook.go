@@ -121,6 +121,9 @@ const (
 	directory            = "directory"
 	preKubeadmCommands   = "preKubeadmCommands"
 	postKubeadmCommands  = "postKubeadmCommands"
+	networking           = "networking"
+	podSubnet            = "podSubnet"
+	serviceSubnet        = "serviceSubnet"
 	files                = "files"
 	users                = "users"
 	apiServer            = "apiServer"
@@ -146,6 +149,8 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageRepository"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "dns", "imageTag"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, "imageRepository"},
+		{spec, kubeadmConfigSpec, clusterConfiguration, networking, podSubnet},
+		{spec, kubeadmConfigSpec, clusterConfiguration, networking, serviceSubnet},
 		{spec, kubeadmConfigSpec, clusterConfiguration, apiServer},
 		{spec, kubeadmConfigSpec, clusterConfiguration, apiServer, "*"},
 		{spec, kubeadmConfigSpec, clusterConfiguration, controllerManager},

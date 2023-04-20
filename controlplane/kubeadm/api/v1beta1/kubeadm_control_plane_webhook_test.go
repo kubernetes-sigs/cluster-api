@@ -653,6 +653,12 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 	updateJoinConfigurationSkipPhases := before.DeepCopy()
 	updateJoinConfigurationSkipPhases.Spec.KubeadmConfigSpec.JoinConfiguration.SkipPhases = []string{"addon/kube-proxy"}
 
+	updateNetworkingPodSubnet := before.DeepCopy()
+	updateNetworkingPodSubnet.Spec.KubeadmConfigSpec.ClusterConfiguration.Networking.PodSubnet = "100.64.0.0/16"
+
+	updateNetworkingServiceSubnet := before.DeepCopy()
+	updateNetworkingServiceSubnet.Spec.KubeadmConfigSpec.ClusterConfiguration.Networking.ServiceSubnet = "10.254.0.0/16"
+
 	updateDiskSetup := before.DeepCopy()
 	updateDiskSetup.Spec.KubeadmConfigSpec.DiskSetup = &bootstrapv1.DiskSetup{
 		Filesystems: []bootstrapv1.Filesystem{
@@ -974,6 +980,18 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 			expectErr: false,
 			before:    before,
 			kcp:       updateJoinConfigurationSkipPhases,
+		},
+		{
+			name:      "should allow changes to clusterConfiguration.networking.podSubnet",
+			expectErr: false,
+			before:    before,
+			kcp:       updateNetworkingPodSubnet,
+		},
+		{
+			name:      "should allow changes to clusterConfiguration.networking.serviceSubnet",
+			expectErr: false,
+			before:    before,
+			kcp:       updateNetworkingServiceSubnet,
 		},
 		{
 			name:      "should allow changes to diskSetup",

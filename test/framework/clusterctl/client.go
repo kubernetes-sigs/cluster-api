@@ -310,6 +310,7 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 // ConfigClusterWithBinary uses clusterctl binary to run config cluster or generate cluster.
 // NOTE: This func detects the clusterctl version and uses config cluster or generate cluster
 // accordingly. We can drop the detection when we don't have to support clusterctl v0.3.x anymore.
+// TODO: (killianmuldoon) remove this detection.
 func ConfigClusterWithBinary(_ context.Context, clusterctlBinaryPath string, input ConfigClusterInput) []byte {
 	log.Logf("Detect clusterctl version via: clusterctl version")
 

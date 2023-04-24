@@ -101,6 +101,7 @@ func (c *ClusterResourceSetBinding) DeleteBinding(clusterResourceSet *ClusterRes
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 // +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=clusterresourcesetbindings,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status

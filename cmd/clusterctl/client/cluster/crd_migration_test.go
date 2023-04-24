@@ -52,7 +52,7 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1alpha1"}, // No storage version as storage is not set.
+						{Name: "v1alpha1", Served: true}, // No storage version as storage is not set.
 					},
 				},
 				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1alpha1"}},
@@ -61,7 +61,7 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1alpha1"},
+						{Name: "v1alpha1", Served: true},
 					},
 				},
 			},
@@ -74,7 +74,7 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1alpha1", Storage: true},
+						{Name: "v1alpha1", Storage: true, Served: true},
 					},
 				},
 				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1alpha1"}},
@@ -83,7 +83,7 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1alpha1", Storage: true},
+						{Name: "v1alpha1", Storage: true, Served: true},
 					},
 				},
 			},
@@ -95,7 +95,7 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1alpha1", Storage: true},
+						{Name: "v1alpha1", Storage: true, Served: true},
 					},
 				},
 				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1alpha1"}},
@@ -104,8 +104,8 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1beta1", Storage: true}, // v1beta1 is being added
-						{Name: "v1alpha1"},               // v1alpha1 still exists
+						{Name: "v1beta1", Storage: true, Served: true}, // v1beta1 is being added
+						{Name: "v1alpha1", Served: true},               // v1alpha1 still exists
 					},
 				},
 			},
@@ -117,7 +117,7 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1alpha1", Storage: true},
+						{Name: "v1alpha1", Storage: true, Served: true},
 					},
 				},
 				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1alpha1"}},
@@ -126,14 +126,14 @@ func Test_CRDMigrator(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
 				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1", Storage: true}, // CRD is jumping to v1, but dropping current storage version without allowing migration.
+						{Name: "v1", Storage: true, Served: true}, // CRD is jumping to v1, but dropping current storage version without allowing migration.
 					},
 				},
 			},
 			wantErr: true,
 		},
 		{
-			name: "Migrate",
+			name: "Migrate CRs if their storage version is removed from the CRD",
 			CRs: []unstructured.Unstructured{
 				{
 					Object: map[string]interface{}{
@@ -172,8 +172,8 @@ func Test_CRDMigrator(t *testing.T) {
 					Group: "foo",
 					Names: apiextensionsv1.CustomResourceDefinitionNames{Kind: "Foo", ListKind: "FooList"},
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1beta1", Storage: true},
-						{Name: "v1alpha1"},
+						{Name: "v1beta1", Storage: true, Served: true},
+						{Name: "v1alpha1", Served: true},
 					},
 				},
 				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1beta1", "v1alpha1"}},
@@ -184,9 +184,70 @@ func Test_CRDMigrator(t *testing.T) {
 					Group: "foo",
 					Names: apiextensionsv1.CustomResourceDefinitionNames{Kind: "Foo", ListKind: "FooList"},
 					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
-						{Name: "v1", Storage: true}, // v1 is being added
-						{Name: "v1beta1"},           // v1beta1 still there (required for migration)
+						{Name: "v1", Storage: true, Served: true}, // v1 is being added
+						{Name: "v1beta1", Served: true},           // v1beta1 still there (required for migration)
 						// v1alpha1 is being dropped
+					},
+				},
+			},
+			wantStoredVersions: []string{"v1beta1"}, // v1alpha1 should be dropped from current CRD's stored versions
+			wantIsMigrated:     true,
+		},
+		{
+			name: "Migrate the CR if their storage version is no longer served by the CRD",
+			CRs: []unstructured.Unstructured{
+				{
+					Object: map[string]interface{}{
+						"apiVersion": "foo/v1beta1",
+						"kind":       "Foo",
+						"metadata": map[string]interface{}{
+							"name":      "cr1",
+							"namespace": metav1.NamespaceDefault,
+						},
+					},
+				},
+				{
+					Object: map[string]interface{}{
+						"apiVersion": "foo/v1beta1",
+						"kind":       "Foo",
+						"metadata": map[string]interface{}{
+							"name":      "cr2",
+							"namespace": metav1.NamespaceDefault,
+						},
+					},
+				},
+				{
+					Object: map[string]interface{}{
+						"apiVersion": "foo/v1beta1",
+						"kind":       "Foo",
+						"metadata": map[string]interface{}{
+							"name":      "cr3",
+							"namespace": metav1.NamespaceDefault,
+						},
+					},
+				},
+			},
+			currentCRD: &apiextensionsv1.CustomResourceDefinition{
+				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
+				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+					Group: "foo",
+					Names: apiextensionsv1.CustomResourceDefinitionNames{Kind: "Foo", ListKind: "FooList"},
+					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+						{Name: "v1beta1", Storage: true, Served: true},
+						{Name: "v1alpha1", Served: true},
+					},
+				},
+				Status: apiextensionsv1.CustomResourceDefinitionStatus{StoredVersions: []string{"v1beta1", "v1alpha1"}},
+			},
+			newCRD: &apiextensionsv1.CustomResourceDefinition{
+				ObjectMeta: metav1.ObjectMeta{Name: "foo"},
+				Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+					Group: "foo",
+					Names: apiextensionsv1.CustomResourceDefinitionNames{Kind: "Foo", ListKind: "FooList"},
+					Versions: []apiextensionsv1.CustomResourceDefinitionVersion{
+						{Name: "v1", Storage: true, Served: true}, // v1 is being added
+						{Name: "v1beta1", Served: true},           // v1beta1 still there (required for migration)
+						{Name: "v1alpha1", Served: false},         // v1alpha1 is no longer being served (required for migration)
 					},
 				},
 			},

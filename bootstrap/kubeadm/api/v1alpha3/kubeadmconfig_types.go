@@ -132,6 +132,7 @@ type KubeadmConfigStatus struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 // +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=kubeadmconfigs,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status

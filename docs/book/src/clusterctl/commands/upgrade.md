@@ -83,11 +83,10 @@ Cluster API only tests a subset of possible clusterctl upgrade paths as otherwis
 Untested upgrade paths are not blocked by clusterctl and should work in general, they are just not tested. Users 
 intending to use an upgrade path not tested by us should do their own validation to ensure the operation works correctly.
 
-The following is an example of the tested upgrade paths while v1.4 is being developed:
+The following is an example of the tested upgrade paths while v1.5 is being developed:
 
 | From | To     | Note                                                                                                                                                                                    |
 |------|--------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| v0.3 | latest | v0.3 is the latest supported minor release with the v1alpha3 contract (v0.3 is EOL since 2022-02-23). This test will be removed once the v1alpha3 apiVersion has been entirely removed. |
 | v0.4 | latest | v0.4 is the latest supported minor release with the v1alpha4 contract (v0.4 is EOL since 2022-04-06). This test will be removed once the v1alpha4 apiVersion has been entirely removed. |
 | v1.0 | latest | v1.0 is the first release with the v1beta1 contract.                                                                                                                                    |
 | v1.2 | latest | v1.2 is a currently supported release. This test will be removed when v1.4 is released and a new test for v1.4 is added.                                                                |

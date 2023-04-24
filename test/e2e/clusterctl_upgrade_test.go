@@ -73,19 +73,17 @@ var _ = Describe("When testing clusterctl upgrades (v1.2=>current)", func() {
 			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.7/clusterctl-{OS}-{ARCH}",
 			// We have to pin the providers because with `InitWithProvidersContract` the test would
 			// use the latest version for the contract (which is v1.3.0 for v1beta1).
-			InitWithCoreProvider:            "cluster-api:v1.2.8",
-			InitWithBootstrapProviders:      []string{"kubeadm:v1.2.8"},
-			InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.8"},
-			InitWithInfrastructureProviders: []string{"docker:v1.2.8"},
+			InitWithCoreProvider:            "cluster-api:v1.2.12",
+			InitWithBootstrapProviders:      []string{"kubeadm:v1.2.12"},
+			InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.12"},
+			InitWithInfrastructureProviders: []string{"docker:v1.2.12"},
 			// We have to set this to an empty array as clusterctl v1.2 doesn't support
 			// runtime extension providers. If we don't do this the test will automatically
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
 			InitWithKubernetesVersion:         "v1.26.0",
-			// TODO(sbueringer) The topology flavor enables PSA.
-			// CAPD will only work with PSA after we have a release with https://github.com/kubernetes-sigs/cluster-api/pull/8313.
-			//MgmtFlavor:                        "topology",
-			WorkloadFlavor: "",
+			MgmtFlavor:                        "topology",
+			WorkloadFlavor:                    "",
 		}
 	})
 })
@@ -101,19 +99,17 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.2=>cur
 			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.7/clusterctl-{OS}-{ARCH}",
 			// We have to pin the providers because with `InitWithProvidersContract` the test would
 			// use the latest version for the contract (which is v1.3.0 for v1beta1).
-			InitWithCoreProvider:            "cluster-api:v1.2.8",
-			InitWithBootstrapProviders:      []string{"kubeadm:v1.2.8"},
-			InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.8"},
-			InitWithInfrastructureProviders: []string{"docker:v1.2.8"},
+			InitWithCoreProvider:            "cluster-api:v1.2.12",
+			InitWithBootstrapProviders:      []string{"kubeadm:v1.2.12"},
+			InitWithControlPlaneProviders:   []string{"kubeadm:v1.2.12"},
+			InitWithInfrastructureProviders: []string{"docker:v1.2.12"},
 			// We have to set this to an empty array as clusterctl v1.2 doesn't support
 			// runtime extension providers. If we don't do this the test will automatically
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
 			InitWithKubernetesVersion:         "v1.26.0",
-			// TODO(sbueringer) The topology flavor enables PSA.
-			// CAPD will only work with PSA after we have a release with https://github.com/kubernetes-sigs/cluster-api/pull/8313.
-			//MgmtFlavor:                        "topology",
-			WorkloadFlavor: "topology",
+			MgmtFlavor:                        "topology",
+			WorkloadFlavor:                    "topology",
 		}
 	})
 })

@@ -49,8 +49,8 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v0.4/metadata.yaml"
-  - name: v1.2.8 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.8/core-components.yaml"
+  - name: v1.2.12 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.12/core-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -87,8 +87,8 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v0.4/metadata.yaml"
-  - name: v1.2.8 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.8/bootstrap-components.yaml"
+  - name: v1.2.12 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.12/bootstrap-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -125,8 +125,8 @@ providers:
       new: --metrics-addr=:8080
     files:
     - sourcePath: "../data/shared/v0.4/metadata.yaml"
-  - name: v1.2.8 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.8/control-plane-components.yaml"
+  - name: v1.2.12 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.12/control-plane-components.yaml"
     type: "url"
     contract: v1beta1
     replacements:
@@ -165,8 +165,8 @@ providers:
     files:
     - sourcePath: "../data/shared/v0.4/metadata.yaml"
     - sourcePath: "../data/infrastructure-docker/v0.4/cluster-template.yaml"
-  - name: v1.2.8 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
-    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.8/infrastructure-components-development.yaml"
+  - name: v1.2.12 # supported release in the v1beta1 series; this is used for v1beta1 --> main clusterctl upgrades test only.
+    value: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.12/infrastructure-components-development.yaml"
     type: "url"
     contract: v1beta1
     replacements:

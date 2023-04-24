@@ -1137,7 +1137,7 @@ The initial plan is to rollout Cluster Class and support for managed topologies 
 - [x] 04/05/2021: Proposed idea in an [issue](https://github.com/kubernetes-sigs/cluster-api/issues/4430)
 - [x] 05/05/2021: Compile a [Google Doc](https://docs.google.com/document/d/1lwxgBK3Q7zmNkOSFqzTGmrSys_vinkwubwgoyqSRAbI/edit#) following the CAEP template
 - [ ] MM/DD/YYYY: First round of feedback from community
-- [x] 05/19/2021: Present proposal at a [community meeting](https://docs.google.com/document/d/1LdooNTbb9PZMFWy3_F-XAsl7Og5F2lvG3tCgQvoB5e4/edit#heading=h.bz527cpoqorn)
+- [x] 05/19/2021: Present proposal at a community meeting
 - [x] 05/26/2021: Open proposal PR
 
 <!-- Links -->

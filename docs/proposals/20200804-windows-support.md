@@ -112,7 +112,7 @@ Using cloudbase-init requires the creation of an image with the tooling installe
 provided out of the box by any cloud providers.  We'll provide packer scripts as part of 
 the [image-builder project](https://github.com/kubernetes-sigs/image-builder) that pre-installs 
 `cloudbase-init`.  It is important to note that while scripts can be provided to build an image, all images 
-built need to adhere to [Windows licensing requirements](https://www.microsoft.com/en-us/licensing/product-licensing/windows-server).
+built need to adhere to [Windows licensing requirements](https://learn.microsoft.com/windows-server/windows-server-licensing/windows-server-licensing).
 
 There is prior art for building Windows base images. For example, AKS-Engine has an example implementation for using packer and scripts to do image configuration: https://github.com/Azure/aks-engine/blob/master/vhd/packer/windows-vhd-builder.json.  
 Another example is the [sig-windows-tools](https://github.com/kubernetes-sigs/sig-windows-tools) which provide scripts for image configuration when using Kubeadm.
@@ -209,7 +209,7 @@ to issue [#3761](https://github.com/kubernetes-sigs/cluster-api/issues/3761) for
   - This project is under Apache 2.0 License : https://github.com/cloudbase/cloudbase-init which is cleared under the CNCF Allow list: https://github.com/cncf/foundation/blob/master/allowed-third-party-license-policy.md
 - Windows image Distribution
   - Infrastructure providers can provide the ability to use user provided images and images provided by image-promoter are recommended for testing and demonstration purposes. It is recommended the user creates their own image. 
-  - Users using the image scripts must ensure they are following [Windows licensing requirements](https://www.microsoft.com/en-us/licensing/product-licensing/windows-server)
+  - Users using the image scripts must ensure they are following [Windows licensing requirements](https://learn.microsoft.com/windows-server/windows-server-licensing/windows-server-licensing)
 - Wins.exe is a third party dependency
   - The project is under the Apache 2.0 License
 

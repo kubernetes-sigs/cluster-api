@@ -21,7 +21,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -208,8 +207,6 @@ func InitFlags(fs *pflag.FlagSet) {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
-
 	InitFlags(pflag.CommandLine)
 	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)

@@ -493,11 +493,27 @@ func TestPreflightChecks(t *testing.T) {
 			expectResult: ctrl.Result{RequeueAfter: deleteRequeueAfter},
 		},
 		{
+			name: "control plane without a nodeRef should requeue",
+			kcp:  &controlplanev1.KubeadmControlPlane{},
+			machines: []*clusterv1.Machine{
+				{
+					Status: clusterv1.MachineStatus{
+						NodeRef: nil,
+					},
+				},
+			},
+			expectResult: ctrl.Result{RequeueAfter: preflightFailedRequeueAfter},
+		},
+		{
 			name: "control plane with an unhealthy machine condition should requeue",
 			kcp:  &controlplanev1.KubeadmControlPlane{},
 			machines: []*clusterv1.Machine{
 				{
 					Status: clusterv1.MachineStatus{
+						NodeRef: &corev1.ObjectReference{
+							Kind: "Node",
+							Name: "node-1",
+						},
 						Conditions: clusterv1.Conditions{
 							*conditions.FalseCondition(controlplanev1.MachineAPIServerPodHealthyCondition, "fooReason", clusterv1.ConditionSeverityError, ""),
 							*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),
@@ -523,6 +539,10 @@ func TestPreflightChecks(t *testing.T) {
 			machines: []*clusterv1.Machine{
 				{
 					Status: clusterv1.MachineStatus{
+						NodeRef: &corev1.ObjectReference{
+							Kind: "Node",
+							Name: "node-1",
+						},
 						Conditions: clusterv1.Conditions{
 							*conditions.TrueCondition(controlplanev1.MachineAPIServerPodHealthyCondition),
 							*conditions.TrueCondition(controlplanev1.MachineControllerManagerPodHealthyCondition),

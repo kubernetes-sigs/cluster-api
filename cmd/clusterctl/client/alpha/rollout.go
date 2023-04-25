@@ -45,7 +45,7 @@ type Rollout interface {
 	ObjectRestarter(context.Context, cluster.Proxy, corev1.ObjectReference) error
 	ObjectPauser(context.Context, cluster.Proxy, corev1.ObjectReference) error
 	ObjectResumer(context.Context, cluster.Proxy, corev1.ObjectReference) error
-	ObjectRollbacker(context.Context, cluster.Proxy, corev1.ObjectReference, int64) error
+	ObjectRollbacker(context.Context, cluster.Proxy, corev1.ObjectReference, int64, bool) error
 }
 
 var _ Rollout = &rollout{}

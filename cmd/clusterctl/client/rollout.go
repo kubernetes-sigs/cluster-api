@@ -84,6 +84,9 @@ type RolloutUndoOptions struct {
 
 	// Revision number to rollback to when issuing the undo command.
 	ToRevision int64
+
+	// Force execute rollback
+	Force bool
 }
 
 func (c *clusterctlClient) RolloutRestart(ctx context.Context, options RolloutRestartOptions) error {
@@ -147,7 +150,7 @@ func (c *clusterctlClient) RolloutUndo(ctx context.Context, options RolloutUndoO
 		return err
 	}
 	for _, ref := range objRefs {
-		if err := c.alphaClient.Rollout().ObjectRollbacker(ctx, clusterClient.Proxy(), ref, options.ToRevision); err != nil {
+		if err := c.alphaClient.Rollout().ObjectRollbacker(ctx, clusterClient.Proxy(), ref, options.ToRevision, options.Force); err != nil {
 			return err
 		}
 	}

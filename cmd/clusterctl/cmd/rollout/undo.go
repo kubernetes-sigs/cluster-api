@@ -32,6 +32,7 @@ type undoOptions struct {
 	resources         []string
 	namespace         string
 	toRevision        int64
+	force             bool
 }
 
 var undoOpt = &undoOptions{}
@@ -66,6 +67,7 @@ func NewCmdRolloutUndo(cfgFile string) *cobra.Command {
 		"Context to be used within the kubeconfig file. If empty, current context will be used.")
 	cmd.Flags().StringVarP(&undoOpt.namespace, "namespace", "n", "", "Namespace where the resource(s) reside. If unspecified, the defult namespace will be used.")
 	cmd.Flags().Int64Var(&undoOpt.toRevision, "to-revision", undoOpt.toRevision, "The revision to rollback to. Default to 0 (last revision).")
+	cmd.Flags().BoolVarP(&undoOpt.force, "force", "f", undoOpt.force, "Force rollback without validating the Kubernetes version skew policy.")
 
 	return cmd
 }
@@ -85,5 +87,6 @@ func runUndo(cfgFile string, args []string) error {
 		Namespace:  undoOpt.namespace,
 		Resources:  undoOpt.resources,
 		ToRevision: undoOpt.toRevision,
+		Force:      undoOpt.force,
 	})
 }

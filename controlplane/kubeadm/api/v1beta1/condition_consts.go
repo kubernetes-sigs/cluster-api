@@ -44,6 +44,9 @@ const (
 	// WaitingForKubeadmInitReason (Severity=Info) documents a KubeadmControlPlane object waiting for the first
 	// control plane instance to complete the kubeadm init operation.
 	WaitingForKubeadmInitReason = "WaitingForKubeadmInit"
+
+	// KubeadmInitFailedReason (Severity=Error) documents kubeadm init operation of the first cp node failed.
+	KubeadmInitFailedReason = "KubeadmInitFailed"
 )
 
 const (

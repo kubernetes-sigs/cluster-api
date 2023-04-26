@@ -42,6 +42,7 @@ Week 13:
 * [ ] [Release Lead] [Cut the v1.4.0-beta.0 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)
 * [ ] [Release Lead] [Cut the v1.3.3 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)
 * [ ] [Release Lead] [Create a new GitHub milestone for the next release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#create-a-new-github-milestone-for-the-next-release)
+* [ ] [Communications Manager] [Communicate beta to providers](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#communicate-beta-to-providers)
 
 Week 14:
 * [ ] [Release Lead] [Cut the v1.4.0-beta.1 release](https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/release/release-tasks.md#repeatedly-cut-a-release)

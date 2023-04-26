@@ -39,6 +39,7 @@ This document details the responsibilities and tasks for each role in the releas
       - [Change production branch in Netlify to the new release branch](#change-production-branch-in-netlify-to-the-new-release-branch)
       - [Update clusterctl links in the quickstart](#update-clusterctl-links-in-the-quickstart)
       - [Continuously: Communicate key dates to the community](#continuously-communicate-key-dates-to-the-community)
+      - [Communicate beta to providers](#communicate-beta-to-providers)
   - [CI Signal/Bug Triage/Automation Manager](#ci-signalbug-triageautomation-manager)
     - [Responsibilities](#responsibilities-2)
     - [Tasks](#tasks-2)
@@ -372,6 +373,30 @@ Stakeholders are: (TBD)
 * Contributors to core Cluster API
 * Provider implementers
 * ...
+
+#### Communicate beta to providers
+
+The goal of this task is to inform all providers that a new beta.0 version a release is out and that it should be tested. We want to prevent issues where providers don't have enough time to test before a new version of CAPI is released. This stems from a previous issue we are trying to avoid: https://github.com/kubernetes-sigs/cluster-api/issues/8498
+
+We should inform at least the following providers via a new issue on their respective repos that a new version of CAPI is being released (provide the release date) and that the beta.0 version is ready for them to test.
+
+ - Addon provider helm: https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/issues/new
+ - AWS: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/new
+ - Azure: https://github.com/kubernetes-sigs/cluster-api-provider-azure/issues/new
+ - Cloudstack: https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/issues/new
+ - Digital Ocean: https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean/issues/new
+ - GCP: https://github.com/kubernetes-sigs/cluster-api-provider-gcp/issues/new
+ - Kubemark: https://github.com/kubernetes-sigs/cluster-api-provider-kubemark/issues/new
+ - Kubevirt: https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/issues/new
+ - IBMCloud: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/issues/new
+ - Nested: https://github.com/kubernetes-sigs/cluster-api-provider-nested/issues/new
+ - OCI: https://github.com/oracle/cluster-api-provider-oci/issues/new
+ - Openstack: https://github.com/kubernetes-sigs/cluster-api-provider-openstack/issues/new
+ - Operator: https://github.com/kubernetes-sigs/cluster-api-operator/issues/new
+ - Packet: https://github.com/kubernetes-sigs/cluster-api-provider-packet/issues/new
+ - vSphere: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new
+
+TODO: Right now we don't have a template for this message but the Comms Team will provide one later. 
 
 ## CI Signal/Bug Triage/Automation Manager
 

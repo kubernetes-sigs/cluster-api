@@ -96,6 +96,15 @@ func (m *ClusterResourceSet) validate(old *ClusterResourceSet) error {
 		)
 	}
 
+	// Validate that the strategy is either "ApplyOnce" or "Reconcile".
+	if m.Spec.Strategy != string(ClusterResourceSetStrategyApplyOnce) && m.Spec.Strategy != string(ClusterResourceSetStrategyReconcile) {
+		allErrs = append(
+			allErrs,
+			field.Invalid(field.NewPath("spec", "strategy"), m.Spec.Strategy, fmt.Sprintf("should be one of %q or %q", ClusterResourceSetStrategyApplyOnce, ClusterResourceSetStrategyReconcile)),
+		)
+	}
+
+	// Validate that the strategy has not been changed.
 	if old != nil && old.Spec.Strategy != "" && old.Spec.Strategy != m.Spec.Strategy {
 		allErrs = append(
 			allErrs,

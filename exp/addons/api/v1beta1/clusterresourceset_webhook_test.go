@@ -64,6 +64,7 @@ func TestClusterResourceSetLabelSelectorAsSelectorValidation(t *testing.T) {
 					ClusterSelector: metav1.LabelSelector{
 						MatchLabels: tt.selectors,
 					},
+					Strategy: string(ClusterResourceSetStrategyApplyOnce),
 				},
 			}
 			if tt.expectErr {
@@ -77,7 +78,7 @@ func TestClusterResourceSetLabelSelectorAsSelectorValidation(t *testing.T) {
 	}
 }
 
-func TestClusterResourceSetStrategyImmutable(t *testing.T) {
+func TestClusterResourceSetStrategyValid(t *testing.T) {
 	tests := []struct {
 		name        string
 		oldStrategy string
@@ -85,13 +86,18 @@ func TestClusterResourceSetStrategyImmutable(t *testing.T) {
 		expectErr   bool
 	}{
 		{
-			name:        "when the Strategy has not changed",
+			name:        "fail when Strategy name is not valid",
+			newStrategy: string("InvalidStrategy"),
+			expectErr:   true,
+		},
+		{
+			name:        "pass when the Strategy has not changed",
 			oldStrategy: string(ClusterResourceSetStrategyApplyOnce),
 			newStrategy: string(ClusterResourceSetStrategyApplyOnce),
 			expectErr:   false,
 		},
 		{
-			name:        "when the Strategy has changed",
+			name:        "fail when the Strategy has changed",
 			oldStrategy: string(ClusterResourceSetStrategyApplyOnce),
 			newStrategy: "",
 			expectErr:   true,
@@ -103,6 +109,9 @@ func TestClusterResourceSetStrategyImmutable(t *testing.T) {
 			g := NewWithT(t)
 
 			newClusterResourceSet := &ClusterResourceSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "crs-one",
+				},
 				Spec: ClusterResourceSetSpec{
 					ClusterSelector: metav1.LabelSelector{
 						MatchLabels: map[string]string{
@@ -125,10 +134,10 @@ func TestClusterResourceSetStrategyImmutable(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				g.Expect(newClusterResourceSet.ValidateUpdate(oldClusterResourceSet)).NotTo(Succeed())
+				g.Expect(newClusterResourceSet.validate(oldClusterResourceSet)).NotTo(Succeed())
 				return
 			}
-			g.Expect(newClusterResourceSet.ValidateUpdate(oldClusterResourceSet)).To(Succeed())
+			g.Expect(newClusterResourceSet.validate(oldClusterResourceSet)).To(Succeed())
 		})
 	}
 }
@@ -163,6 +172,7 @@ func TestClusterResourceSetClusterSelectorImmutable(t *testing.T) {
 					ClusterSelector: metav1.LabelSelector{
 						MatchLabels: tt.newClusterSelector,
 					},
+					Strategy: string(ClusterResourceSetStrategyApplyOnce),
 				},
 			}
 

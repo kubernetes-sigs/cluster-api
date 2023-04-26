@@ -93,6 +93,8 @@ a target [management cluster] on the selected [infrastructure provider].
    Then follow the instruction for your kind version using  `kind create cluster --config kind-cluster-with-extramounts.yaml`
    to create the management cluster using the above file.
 
+   Note for Docker Desktop users: you may also need to [add `/var/run/docker.sock` to File sharing](https://docs.docker.com/desktop/settings/mac/#file-sharing) in Docker Desktop.
+
    {{#/tab }}
    {{#tab KubeVirt}}
 

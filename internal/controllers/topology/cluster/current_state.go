@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
@@ -63,11 +64,19 @@ func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scop
 
 	// A Cluster may have zero or more MachineDeployments and a Cluster is expected to have zero MachineDeployments on
 	// first reconcile.
-	m, err := r.getCurrentMachineDeploymentState(ctx, s.Blueprint.MachineDeployments, currentState.Cluster)
+	md, err := r.getCurrentMachineDeploymentState(ctx, s.Blueprint.MachineDeployments, currentState.Cluster)
 	if err != nil {
 		return nil, err
 	}
-	currentState.MachineDeployments = m
+	currentState.MachineDeployments = md
+
+	// A Cluster may have zero or more MachinePools and a Cluster is expected to have zero MachinePools on
+	// first reconcile.
+	mp, err := r.getCurrentMachinePoolState(ctx, s.Blueprint.MachinePools, currentState.Cluster)
+	if err != nil {
+		return nil, err
+	}
+	currentState.MachinePools = mp
 
 	return currentState, nil
 }
@@ -272,6 +281,108 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 	return state, nil
 }
 
+// getCurrentMachinePoolState queries for all MachinePools and filters them for their linked Cluster and
+// whether they are managed by a ClusterClass using labels. A Cluster may have zero or more MachinePools. Zero is
+// expected on first reconcile. If MachinePools are found for the Cluster their Infrastructure and Bootstrap references
+// are inspected. Where these are not found the function will throw an error.
+func (r *Reconciler) getCurrentMachinePoolState(ctx context.Context, blueprintMachinePools map[string]*scope.MachinePoolBlueprint, cluster *clusterv1.Cluster) (map[string]*scope.MachinePoolState, error) {
+	state := make(scope.MachinePoolsStateMap)
+
+	// List all the machine pools in the current cluster and in a managed topology.
+	mp := &expv1.MachinePoolList{}
+	err := r.APIReader.List(ctx, mp,
+		client.MatchingLabels{
+			clusterv1.ClusterNameLabel:          cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel: "",
+		},
+		client.InNamespace(cluster.Namespace),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read MachinePools for managed topology")
+	}
+
+	// Loop over each machine pool and create the current
+	// state by retrieving all required references.
+	for i := range mp.Items {
+		m := &mp.Items[i]
+
+		// Retrieve the name which is assigned in Cluster's topology
+		// from a well-defined label.
+		mpTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]
+		if !ok || mpTopologyName == "" {
+			return nil, fmt.Errorf("failed to find label %s in %s", clusterv1.ClusterTopologyMachineDeploymentNameLabel, tlog.KObj{Obj: m})
+		}
+
+		// Make sure that the name of the MachinePool stays unique.
+		// If we've already seen a MachinePool with the same name
+		// this is an error, probably caused from manual modifications or a race condition.
+		if _, ok := state[mpTopologyName]; ok {
+			return nil, fmt.Errorf("duplicate %s found for label %s: %s", tlog.KObj{Obj: m}, clusterv1.ClusterTopologyMachineDeploymentNameLabel, mpTopologyName)
+		}
+
+		// Gets the bootstrapRef.
+		bootstrapRef := m.Spec.Template.Spec.Bootstrap.ConfigRef
+		if bootstrapRef == nil {
+			return nil, fmt.Errorf("%s does not have a reference to a Bootstrap Config", tlog.KObj{Obj: m})
+		}
+		// Gets the infraRef.
+		infraRef := &m.Spec.Template.Spec.InfrastructureRef
+		if infraRef.Name == "" {
+			return nil, fmt.Errorf("%s does not have a reference to a InfrastructureMachineTemplate", tlog.KObj{Obj: m})
+		}
+
+		// If the mpTopology exists in the Cluster, lookup the corresponding mpBluePrint and align
+		// the apiVersions in the bootstrapRef and infraRef.
+		// If the mpTopology doesn't exist, do nothing (this can happen if the mpTopology was deleted).
+		// **Note** We can't check if the MachinePool has a DeletionTimestamp, because at this point it could not be set yet.
+		if mpTopologyExistsInCluster, mpClassName := getMPClassName(cluster, mpTopologyName); mpTopologyExistsInCluster {
+			mpBluePrint, ok := blueprintMachinePools[mpClassName]
+			if !ok {
+				return nil, fmt.Errorf("failed to find MachinePool class %s in ClusterClass", mpClassName)
+			}
+			bootstrapRef, err = alignRefAPIVersion(mpBluePrint.BootstrapTemplate, bootstrapRef)
+			if err != nil {
+				return nil, errors.Wrap(err, fmt.Sprintf("%s Bootstrap reference could not be retrieved", tlog.KObj{Obj: m}))
+			}
+			infraRef, err = alignRefAPIVersion(mpBluePrint.InfrastructureMachineTemplate, infraRef)
+			if err != nil {
+				return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
+			}
+		}
+
+		// Get the BootstrapTemplate.
+		bootstrapTemplate, err := r.getReference(ctx, bootstrapRef)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("%s Bootstrap reference could not be retrieved", tlog.KObj{Obj: m}))
+		}
+		// check that the referenced object has the ClusterTopologyOwnedLabel label.
+		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
+		// owned by the topology.
+		if !labels.IsTopologyOwned(bootstrapTemplate) {
+			return nil, fmt.Errorf("BootstrapTemplate object %s referenced from MD %s is not topology owned", tlog.KObj{Obj: bootstrapTemplate}, tlog.KObj{Obj: m})
+		}
+
+		// Get the InfraMachineTemplate.
+		infraMachineTemplate, err := r.getReference(ctx, infraRef)
+		if err != nil {
+			return nil, errors.Wrap(err, fmt.Sprintf("%s Infrastructure reference could not be retrieved", tlog.KObj{Obj: m}))
+		}
+		// check that the referenced object has the ClusterTopologyOwnedLabel label.
+		// Nb. This is to make sure that a managed topology cluster does not have a reference to an object that is not
+		// owned by the topology.
+		if !labels.IsTopologyOwned(infraMachineTemplate) {
+			return nil, fmt.Errorf("InfrastructureMachineTemplate object %s referenced from MD %s is not topology owned", tlog.KObj{Obj: infraMachineTemplate}, tlog.KObj{Obj: m})
+		}
+
+		state[mpTopologyName] = &scope.MachinePoolState{
+			Object:                        m,
+			BootstrapTemplate:             bootstrapTemplate,
+			InfrastructureMachineTemplate: infraMachineTemplate,
+		}
+	}
+	return state, nil
+}
+
 // alignRefAPIVersion returns an aligned copy of the currentRef so it matches the apiVersion in ClusterClass.
 // This is required so the topology controller can diff current and desired state objects of the same
 // version during reconcile.
@@ -301,6 +412,20 @@ func alignRefAPIVersion(templateFromClusterClass *unstructured.Unstructured, cur
 
 // getMDClassName retrieves the MDClass name by looking up the MDTopology in the Cluster.
 func getMDClassName(cluster *clusterv1.Cluster, mdTopologyName string) (bool, string) {
+	if cluster.Spec.Topology.Workers == nil {
+		return false, ""
+	}
+
+	for _, mdTopology := range cluster.Spec.Topology.Workers.MachineDeployments {
+		if mdTopology.Name == mdTopologyName {
+			return true, mdTopology.Class
+		}
+	}
+	return false, ""
+}
+
+// getMPClassName retrieves the MPClass name by looking up the MPTopology in the Cluster.
+func getMPClassName(cluster *clusterv1.Cluster, mdTopologyName string) (bool, string) {
 	if cluster.Spec.Topology.Workers == nil {
 		return false, ""
 	}

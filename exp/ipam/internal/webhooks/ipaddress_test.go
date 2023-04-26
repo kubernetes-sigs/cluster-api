@@ -131,6 +131,14 @@ func TestIPAddressValidateCreate(t *testing.T) {
 			expectErr: true,
 		},
 		{
+			name: "an empty gateway should be allowed",
+			ip: getAddress(false, func(addr *ipamv1.IPAddress) {
+				addr.Spec.Gateway = ""
+			}),
+			extraObjs: []client.Object{claim},
+			expectErr: false,
+		},
+		{
 			name: "a pool reference that does not match the claim should be rejected",
 			ip: getAddress(false, func(addr *ipamv1.IPAddress) {
 				addr.Spec.PoolRef.Name = "nothing"

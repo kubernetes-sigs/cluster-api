@@ -92,7 +92,6 @@ spec:
             required:
             - address
             - claimRef
-            - gateway
             - poolRef
             - prefix
             type: object

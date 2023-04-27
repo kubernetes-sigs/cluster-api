@@ -23,7 +23,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
@@ -66,11 +65,8 @@ func TestIndexMachinePoolByNodeName(t *testing.T) {
 }
 
 func TestIndexMachinePoolByProviderID(t *testing.T) {
-	g := NewWithT(t)
-	validProviderID, err := noderefutil.NewProviderID("aws://region/zone/1")
-	g.Expect(err).ToNot(HaveOccurred())
-	otherValidProviderID, err := noderefutil.NewProviderID("aws://region/zone/2")
-	g.Expect(err).ToNot(HaveOccurred())
+	validProviderID := "aws://region/zone/1"
+	otherValidProviderID := "aws://region/zone/2"
 
 	testCases := []struct {
 		name     string
@@ -86,7 +82,7 @@ func TestIndexMachinePoolByProviderID(t *testing.T) {
 			name: "MachinePool has invalid providerID",
 			object: &expv1.MachinePool{
 				Spec: expv1.MachinePoolSpec{
-					ProviderIDList: []string{"invalid"},
+					ProviderIDList: []string{""},
 				},
 			},
 			expected: []string{},
@@ -95,10 +91,10 @@ func TestIndexMachinePoolByProviderID(t *testing.T) {
 			name: "MachinePool has valid providerIDs",
 			object: &expv1.MachinePool{
 				Spec: expv1.MachinePoolSpec{
-					ProviderIDList: []string{validProviderID.String(), otherValidProviderID.String()},
+					ProviderIDList: []string{validProviderID, otherValidProviderID},
 				},
 			},
-			expected: []string{validProviderID.IndexKey(), otherValidProviderID.IndexKey()},
+			expected: []string{validProviderID, otherValidProviderID},
 		},
 	}
 

@@ -41,7 +41,6 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/util"
@@ -352,15 +351,14 @@ func (r *MachinePoolReconciler) nodeToMachinePool(o client.Object) []reconcile.R
 
 	// Otherwise let's match by providerID. This is useful when e.g the NodeRef has not been set yet.
 	// Match by providerID
-	nodeProviderID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
-	if err != nil {
+	if node.Spec.ProviderID == "" {
 		return nil
 	}
 	machinePoolList = &expv1.MachinePoolList{}
 	if err := r.Client.List(
 		context.TODO(),
 		machinePoolList,
-		append(filters, client.MatchingFields{index.MachinePoolProviderIDField: nodeProviderID.IndexKey()})...); err != nil {
+		append(filters, client.MatchingFields{index.MachinePoolProviderIDField: node.Spec.ProviderID})...); err != nil {
 		return nil
 	}
 

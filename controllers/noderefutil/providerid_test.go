@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// The ProviderID type is deprecated and unused by Cluster API internally.
+// It will be removed entirely in a future release.
 package noderefutil
 
 import (

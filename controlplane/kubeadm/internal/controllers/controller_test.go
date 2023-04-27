@@ -2321,6 +2321,10 @@ func createMachineNodePair(name string, cluster *clusterv1.Cluster, kcp *control
 }
 
 func setMachineHealthy(m *clusterv1.Machine) {
+	m.Status.NodeRef = &corev1.ObjectReference{
+		Kind: "Node",
+		Name: "node-1",
+	}
 	conditions.MarkTrue(m, controlplanev1.MachineAPIServerPodHealthyCondition)
 	conditions.MarkTrue(m, controlplanev1.MachineControllerManagerPodHealthyCondition)
 	conditions.MarkTrue(m, controlplanev1.MachineSchedulerPodHealthyCondition)

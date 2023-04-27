@@ -21,8 +21,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 )
 
 const (
@@ -42,10 +40,5 @@ func NodeByProviderID(o client.Object) []string {
 		return nil
 	}
 
-	providerID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
-	if err != nil {
-		// Failed to create providerID, skipping.
-		return nil
-	}
-	return []string{providerID.IndexKey()}
+	return []string{node.Spec.ProviderID}
 }

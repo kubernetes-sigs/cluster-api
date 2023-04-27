@@ -15,6 +15,8 @@ limitations under the License.
 */
 
 // Package noderefutil implements NodeRef utils.
+// The ProviderID type is deprecated and unused by Cluster API internally.
+// It will be removed entirely in a future release.
 package noderefutil
 
 import (
@@ -25,14 +27,20 @@ import (
 
 var (
 	// ErrEmptyProviderID means that the provider id is empty.
+	//
+	// Deprecated: This var is going to be removed in a future release.
 	ErrEmptyProviderID = errors.New("providerID is empty")
 
 	// ErrInvalidProviderID means that the provider id has an invalid form.
+	//
+	// Deprecated: This var is going to be removed in a future release.
 	ErrInvalidProviderID = errors.New("providerID must be of the form <cloudProvider>://<optional>/<segments>/<provider id>")
 )
 
 // ProviderID is a struct representation of a Kubernetes ProviderID.
 // Format: cloudProvider://optional/segments/etc/id
+//
+// Deprecated: This struct is going to be removed in a future release.
 type ProviderID struct {
 	original      string
 	cloudProvider string
@@ -48,6 +56,8 @@ type ProviderID struct {
 var providerIDRegex = regexp.MustCompile("^[^:]+://.*[^/]$")
 
 // NewProviderID parses the input string and returns a new ProviderID.
+//
+// Deprecated: This constructor is going to be removed in a future release.
 func NewProviderID(id string) (*ProviderID, error) {
 	if id == "" {
 		return nil, ErrEmptyProviderID
@@ -77,32 +87,44 @@ func NewProviderID(id string) (*ProviderID, error) {
 }
 
 // CloudProvider returns the cloud provider portion of the ProviderID.
+//
+// Deprecated: This method is going to be removed in a future release.
 func (p *ProviderID) CloudProvider() string {
 	return p.cloudProvider
 }
 
 // ID returns the identifier portion of the ProviderID.
+//
+// Deprecated: This method is going to be removed in a future release.
 func (p *ProviderID) ID() string {
 	return p.id
 }
 
 // Equals returns true if this ProviderID string matches another ProviderID string.
+//
+// Deprecated: This method is going to be removed in a future release.
 func (p *ProviderID) Equals(o *ProviderID) bool {
 	return p.String() == o.String()
 }
 
 // String returns the string representation of this object.
+//
+// Deprecated: This method is going to be removed in a future release.
 func (p ProviderID) String() string {
 	return p.original
 }
 
 // Validate returns true if the provider id is valid.
+//
+// Deprecated: This method is going to be removed in a future release.
 func (p *ProviderID) Validate() bool {
 	return p.CloudProvider() != "" && p.ID() != ""
 }
 
 // IndexKey returns the required level of uniqueness
 // to represent and index machines uniquely from their node providerID.
+//
+// Deprecated: This method is going to be removed in a future release.
 func (p *ProviderID) IndexKey() string {
 	return p.String()
 }

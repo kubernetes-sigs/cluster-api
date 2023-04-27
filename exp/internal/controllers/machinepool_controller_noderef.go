@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
@@ -132,21 +131,19 @@ func (r *MachinePoolReconciler) deleteRetiredNodes(ctx context.Context, c client
 			continue
 		}
 
-		nodeProviderID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
-		if err != nil {
-			log.V(2).Info("Failed to parse ProviderID, skipping", "err", err, "providerID", node.Spec.ProviderID)
+		if node.Spec.ProviderID == "" {
+			log.V(2).Info("No ProviderID detected, skipping", "providerID", node.Spec.ProviderID)
 			continue
 		}
 
-		nodeRefsMap[nodeProviderID.String()] = node
+		nodeRefsMap[node.Spec.ProviderID] = node
 	}
 	for _, providerID := range providerIDList {
-		pid, err := noderefutil.NewProviderID(providerID)
-		if err != nil {
-			log.V(2).Info("Failed to parse ProviderID, skipping", "err", err, "providerID", providerID)
+		if providerID == "" {
+			log.V(2).Info("No ProviderID detected, skipping", "providerID", providerID)
 			continue
 		}
-		delete(nodeRefsMap, pid.String())
+		delete(nodeRefsMap, providerID)
 	}
 	for _, node := range nodeRefsMap {
 		if err := c.Delete(ctx, node); err != nil {
@@ -168,13 +165,12 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 		}
 
 		for _, node := range nodeList.Items {
-			nodeProviderID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
-			if err != nil {
-				log.V(2).Info("Failed to parse ProviderID, skipping", "err", err, "providerID", node.Spec.ProviderID)
+			if node.Spec.ProviderID == "" {
+				log.V(2).Info("No ProviderID detected, skipping", "providerID", node.Spec.ProviderID)
 				continue
 			}
 
-			nodeRefsMap[nodeProviderID.String()] = node
+			nodeRefsMap[node.Spec.ProviderID] = node
 		}
 
 		if nodeList.Continue == "" {
@@ -184,12 +180,11 @@ func (r *MachinePoolReconciler) getNodeReferences(ctx context.Context, c client.
 
 	var nodeRefs []corev1.ObjectReference
 	for _, providerID := range providerIDList {
-		pid, err := noderefutil.NewProviderID(providerID)
-		if err != nil {
-			log.V(2).Info("Failed to parse ProviderID, skipping", "err", err, "providerID", providerID)
+		if providerID == "" {
+			log.V(2).Info("No ProviderID detected, skipping", "providerID", providerID)
 			continue
 		}
-		if node, ok := nodeRefsMap[pid.String()]; ok {
+		if node, ok := nodeRefsMap[providerID]; ok {
 			available++
 			if nodeIsReady(&node) {
 				ready++

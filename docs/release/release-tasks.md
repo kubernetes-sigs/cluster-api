@@ -99,17 +99,17 @@ This comes down to changing occurrences of the old version to the new version, e
       * v1beta1: `v1.0`, `v1.2`, `v1.3` (will change with each new release)
    2. Update providers in `docker.yaml`:
        1. Add a new `v1.3.0` entry.
-       2. Remove providers that are not used anymore (for `v1.4` we don't have to remove any).
+       2. Remove providers that are not used anymore in clusterctl upgrade tests.
        3. Change `v1.3.99` to `v1.4.99`.
    3. Adjust `metadata.yaml`'s:
       1. Create a new `v1.3` `metadata.yaml` (`test/e2e/data/shared/v1.3/metadata.yaml`) by copying
    `test/e2e/data/shared/main/metadata.yaml`
       2. Add the new release to the main `metadata.yaml` (`test/e2e/data/shared/main/metadata.yaml`).
-      3. Remove old `metadata.yaml`'s that are not used anymore (for `v1.4` we don't have to remove any).
+      3. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests.
    4. Adjust cluster templates in `test/e2e/data/infrastructure-docker`:
       1. Create a new `v1.3` folder. It should be created based on the `main` folder and only contain the templates
          we use in the clusterctl upgrade tests (as of today `cluster-template` and `cluster-template-topology`).
-      2. Remove old folders that are not used anymore (for `v1.4` we don't have to remove any).
+      2. Remove old folders that are not used anymore in clusterctl upgrade tests.
    5. Modify the test specs in `test/e2e/clusterctl_upgrade_test.go` (according to the versions we want to test described above).
       Please note that both `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` should be the highest mgmt cluster version supported by the respective Cluster API version.
 2. Update `create-local-repository.py` and `tools/tilt-prepare/main.go`: `v1.3.99` => `v1.4.99`.

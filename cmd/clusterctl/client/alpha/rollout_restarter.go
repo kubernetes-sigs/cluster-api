@@ -48,7 +48,7 @@ func (r *rollout) ObjectRestarter(proxy cluster.Proxy, ref corev1.ObjectReferenc
 		if err != nil || kcp == nil {
 			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
-		if annotations.HasPaused(kcp.GetObjectMeta()) {
+		if annotations.HasPausedValue(kcp.GetObjectMeta()) {
 			return errors.Errorf("can't restart paused KubeadmControlPlane (remove annotation 'cluster.x-k8s.io/paused' first): %v/%v", ref.Kind, ref.Name)
 		}
 		if kcp.Spec.RolloutAfter != nil && kcp.Spec.RolloutAfter.After(time.Now()) {

@@ -49,7 +49,7 @@ func (r *rollout) ObjectResumer(proxy cluster.Proxy, ref corev1.ObjectReference)
 		if err != nil || kcp == nil {
 			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
-		if !annotations.HasPaused(kcp.GetObjectMeta()) {
+		if !annotations.HasPausedValue(kcp.GetObjectMeta()) {
 			return errors.Errorf("KubeadmControlPlane is not currently paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // KubeadmControlPlane is intentionally capitalized.
 		}
 		if err := resumeKubeadmControlPlane(proxy, ref.Name, ref.Namespace); err != nil {

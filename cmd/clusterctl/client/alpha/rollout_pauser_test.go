@@ -166,7 +166,7 @@ func Test_ObjectPauser(t *testing.T) {
 					kcp := &controlplanev1.KubeadmControlPlane{}
 					err = cl.Get(context.TODO(), key, kcp)
 					g.Expect(err).ToNot(HaveOccurred())
-					g.Expect(annotations.HasPaused(kcp.GetObjectMeta())).To(Equal(tt.wantPaused))
+					g.Expect(annotations.HasPausedValue(kcp.GetObjectMeta())).To(Equal(tt.wantPaused))
 				}
 			}
 		})

@@ -191,7 +191,6 @@ test specs for the most common Cluster API use cases.
 <!-- links -->
 [Cluster API quick start]:  ../user/quick-start.md
 [Cluster API test framework]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc
-[deprecated E2E config file]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#Config
 [Apply method]: https://pkg.go.dev/sigs.k8s.io/cluster-api/test/framework?tab=doc#Applier
 [CAPA E2E tests]: https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/scripts/ci-e2e.sh
 [CAPG E2E tests]: https://github.com/kubernetes-sigs/cluster-api-provider-gcp/blob/main/scripts/ci-e2e.sh

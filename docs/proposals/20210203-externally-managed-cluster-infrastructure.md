@@ -110,7 +110,7 @@ Additionally, the external management system must provide all required fields wi
 While an "externally managed" InfraCluster won't reconcile or manage the lifecycle of the cluster infrastructure, CAPI will still be able to create compute nodes within it.
 
 The machine controller must be able to operate without hard dependencies regardless of the cluster infrastructure being managed or externally managed.
-![](https://i.imgur.com/nA61XJt.png)
+![](./images/externally-managed-cluster-infrastructure/infrastructure.png)
 
 ### User Stories
 

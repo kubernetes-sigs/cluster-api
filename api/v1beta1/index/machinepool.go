@@ -24,7 +24,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 )
 
@@ -93,12 +92,11 @@ func machinePoolByProviderID(o client.Object) []string {
 
 	providerIDs := make([]string, 0, len(machinepool.Spec.ProviderIDList))
 	for _, id := range machinepool.Spec.ProviderIDList {
-		providerID, err := noderefutil.NewProviderID(id)
-		if err != nil {
-			// Failed to create providerID, skipping.
+		if id == "" {
+			// Valid providerID not found, skipping.
 			continue
 		}
-		providerIDs = append(providerIDs, providerID.IndexKey())
+		providerIDs = append(providerIDs, id)
 	}
 
 	return providerIDs

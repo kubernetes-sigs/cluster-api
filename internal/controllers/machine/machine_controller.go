@@ -837,15 +837,14 @@ func (r *Reconciler) nodeToMachine(o client.Object) []reconcile.Request {
 
 	// Otherwise let's match by providerID. This is useful when e.g the NodeRef has not been set yet.
 	// Match by providerID
-	nodeProviderID, err := noderefutil.NewProviderID(node.Spec.ProviderID)
-	if err != nil {
+	if node.Spec.ProviderID == "" {
 		return nil
 	}
 	machineList = &clusterv1.MachineList{}
 	if err := r.Client.List(
 		context.TODO(),
 		machineList,
-		append(filters, client.MatchingFields{index.MachineProviderIDField: nodeProviderID.IndexKey()})...); err != nil {
+		append(filters, client.MatchingFields{index.MachineProviderIDField: node.Spec.ProviderID})...); err != nil {
 		return nil
 	}
 

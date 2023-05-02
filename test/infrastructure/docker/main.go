@@ -67,6 +67,8 @@ var (
 	profilerAddress      string
 	syncPeriod           time.Duration
 	concurrency          int
+	restConfigQPS        float32
+	restConfigBurst      int
 	healthAddr           string
 	webhookPort          int
 	webhookCertDir       string
@@ -99,6 +101,10 @@ func initFlags(fs *pflag.FlagSet) {
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
 	fs.DurationVar(&syncPeriod, "sync-period", 10*time.Minute,
 		"The minimum interval at which watched resources are reconciled (e.g. 15m)")
+	fs.Float32Var(&restConfigQPS, "kube-api-qps", 20,
+		"Maximum queries per second from the controller client to the Kubernetes API server. Defaults to 20")
+	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
+		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server. Default 30")
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
@@ -139,6 +145,8 @@ func main() {
 	}
 
 	restConfig := ctrl.GetConfigOrDie()
+	restConfig.QPS = restConfigQPS
+	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-docker-controller-manager")
 	ctrlOptions := ctrl.Options{
 		Scheme:                     myscheme,

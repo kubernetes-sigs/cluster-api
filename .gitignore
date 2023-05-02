@@ -86,3 +86,6 @@ tmp
 
 # asdf (not a typo! ;) used to manage multiple versions of tools
 .tool-versions
+
+# Development container configurations (https://containers.dev/)
+.devcontainer

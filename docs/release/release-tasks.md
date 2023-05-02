@@ -188,6 +188,9 @@ to a newer Go minor version according to our [backport policy](./../../CONTRIBUT
 1. Ensure CI is stable before cutting the release (e.g. by checking with the CI manager)
    Note: special attention should be given to image scan results, so we can avoid cutting a release with CVE or document known CVEs in release notes.
 2. Create and push the release tags to the GitHub repository:
+
+   **NOTE:** clusterctl will have issues installing providers between the time the release tag is cut and the Github release is published. See [issue 7889](https://github.com/kubernetes-sigs/cluster-api/issues/7889) for more details
+
    ```bash
    # Export the tag of the release to be cut, e.g.:
    export RELEASE_TAG=v1.0.1
@@ -216,12 +219,13 @@ to a newer Go minor version according to our [backport policy](./../../CONTRIBUT
           git to use `https` instead via `git config --global url."https://github.com/".insteadOf git@github.com:`.
         * This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPI maintainers.
     4. Merge the PR (/lgtm + /hold cancel) and verify the images are available in the production registry:
-       ```bash
-       docker pull registry.k8s.io/cluster-api/clusterctl:${RELEASE_TAG}
-       docker pull registry.k8s.io/cluster-api/cluster-api-controller:${RELEASE_TAG}
-       docker pull registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:${RELEASE_TAG}
-       docker pull registry.k8s.io/cluster-api/kubeadm-control-plane-controller:${RELEASE_TAG}
-       ```
+         * Wait for the [promotion prow job](https://prow.k8s.io/?repo=kubernetes%2Fk8s.io&job=post-k8sio-image-promo) to complete successfully. Then test the production images are accessible:
+         ```bash
+         docker pull registry.k8s.io/cluster-api/clusterctl:${RELEASE_TAG}
+         docker pull registry.k8s.io/cluster-api/cluster-api-controller:${RELEASE_TAG}
+         docker pull registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:${RELEASE_TAG}
+         docker pull registry.k8s.io/cluster-api/kubeadm-control-plane-controller:${RELEASE_TAG}
+         ```
 4. Publish the release in GitHub:
     1. Get the final release notes from the docs team and add them to the GitHub release.
     2. Publish the release (ensure to flag the release as pre-release if necessary).

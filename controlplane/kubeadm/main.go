@@ -42,9 +42,12 @@ import (
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -173,16 +176,6 @@ func main() {
 	// klog.Background will automatically use the right logger.
 	ctrl.SetLogger(klog.Background())
 
-	if profilerAddress != "" {
-		setupLog.Info(fmt.Sprintf("Profiler listening for requests at %s", profilerAddress))
-		go func() {
-			srv := http.Server{Addr: profilerAddress, ReadHeaderTimeout: 2 * time.Second}
-			if err := srv.ListenAndServe(); err != nil {
-				setupLog.Error(err, "problem running profiler server")
-			}
-		}()
-	}
-
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
@@ -194,6 +187,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	var watchNamespaces []string
+	if watchNamespace != "" {
+		watchNamespaces = []string{watchNamespace}
+	}
+
 	ctrlOptions := ctrl.Options{
 		Scheme:                     scheme,
 		MetricsBindAddress:         metricsBindAddr,
@@ -203,21 +201,30 @@ func main() {
 		RenewDeadline:              &leaderElectionRenewDeadline,
 		RetryPeriod:                &leaderElectionRetryPeriod,
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
-		Namespace:                  watchNamespace,
-		SyncPeriod:                 &syncPeriod,
-		ClientDisableCacheFor: []client.Object{
-			&corev1.ConfigMap{},
-			&corev1.Secret{},
+		HealthProbeBindAddress:     healthAddr,
+		PprofBindAddress:           profilerAddress,
+		Cache: cache.Options{
+			Namespaces: watchNamespaces,
+			SyncPeriod: &syncPeriod,
 		},
-		Port:                   webhookPort,
-		HealthProbeBindAddress: healthAddr,
-		CertDir:                webhookCertDir,
-		TLSOpts:                tlsOptionOverrides,
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+			},
+		},
+		WebhookServer: &webhook.Server{
+			Port:    webhookPort,
+			CertDir: webhookCertDir,
+			TLSOpts: tlsOptionOverrides,
+		},
 	}
 
 	if feature.Gates.Enabled(feature.LazyRestmapper) {
-		ctrlOptions.MapperProvider = func(c *rest.Config) (meta.RESTMapper, error) {
-			return apiutil.NewDynamicRESTMapper(c, apiutil.WithExperimentalLazyMapper)
+		ctrlOptions.MapperProvider = func(c *rest.Config, httpClient *http.Client) (meta.RESTMapper, error) {
+			return apiutil.NewDynamicRESTMapper(c, httpClient, apiutil.WithExperimentalLazyMapper)
 		}
 	}
 
@@ -315,5 +322,5 @@ func setupWebhooks(mgr ctrl.Manager) {
 }
 
 func concurrency(c int) controller.Options {
-	return controller.Options{MaxConcurrentReconciles: c}
+	return controller.Options{Controller: config.Controller{MaxConcurrentReconciles: c}}
 }

@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -49,6 +50,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -251,14 +253,20 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	}
 
 	options := manager.Options{
-		Scheme:                scheme.Scheme,
-		MetricsBindAddress:    "0",
-		CertDir:               env.WebhookInstallOptions.LocalServingCertDir,
-		Port:                  env.WebhookInstallOptions.LocalServingPort,
-		ClientDisableCacheFor: objs,
-		Host:                  host,
-		MapperProvider: func(c *rest.Config) (meta.RESTMapper, error) {
-			return apiutil.NewDynamicRESTMapper(c, apiutil.WithExperimentalLazyMapper)
+		Scheme:             scheme.Scheme,
+		MetricsBindAddress: "0",
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: objs,
+			},
+		},
+		WebhookServer: &webhook.Server{
+			Port:    env.WebhookInstallOptions.LocalServingPort,
+			CertDir: env.WebhookInstallOptions.LocalServingCertDir,
+			Host:    host,
+		},
+		MapperProvider: func(c *rest.Config, httpClient *http.Client) (meta.RESTMapper, error) {
+			return apiutil.NewDynamicRESTMapper(c, httpClient, apiutil.WithExperimentalLazyMapper)
 		},
 	}
 

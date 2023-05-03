@@ -267,6 +267,7 @@ kustomize_substitutions:
   EXP_CLUSTER_RESOURCE_SET: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_RUNTIME_SDK: "true"
+  EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
 ```
 
 </aside>

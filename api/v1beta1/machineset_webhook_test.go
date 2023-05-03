@@ -228,3 +228,73 @@ func TestMachineSetVersionValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateSkippedMachineSetPreflightChecks(t *testing.T) {
+	tests := []struct {
+		name      string
+		ms        *MachineSet
+		expectErr bool
+	}{
+		{
+			name:      "should pass if the machine set skip preflight checks annotation is not set",
+			ms:        &MachineSet{},
+			expectErr: false,
+		},
+		{
+			name: "should pass if not preflight checks are skipped",
+			ms: &MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						MachineSetSkipPreflightChecksAnnotation: "",
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name: "should pass if only valid preflight checks are skipped (single)",
+			ms: &MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						MachineSetSkipPreflightChecksAnnotation: string(MachineSetPreflightCheckKubeadmVersionSkew),
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name: "should pass if only valid preflight checks are skipped (multiple)",
+			ms: &MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						MachineSetSkipPreflightChecksAnnotation: string(MachineSetPreflightCheckKubeadmVersionSkew) + "," + string(MachineSetPreflightCheckControlPlaneIsStable),
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name: "should fail if invalid preflight checks are skipped",
+			ms: &MachineSet{
+				ObjectMeta: metav1.ObjectMeta{
+					Annotations: map[string]string{
+						MachineSetSkipPreflightChecksAnnotation: string(MachineSetPreflightCheckKubeadmVersionSkew) + ",invalid-preflight-check-name",
+					},
+				},
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			err := validateSkippedMachineSetPreflightChecks(tt.ms)
+			if tt.expectErr {
+				g.Expect(err).NotTo(BeNil())
+			} else {
+				g.Expect(err).To(BeNil())
+			}
+		})
+	}
+}

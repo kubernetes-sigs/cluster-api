@@ -34,6 +34,7 @@ variables:
   EXP_MACHINE_POOL: "true"
   CLUSTER_TOPOLOGY: "true"
   EXP_RUNTIME_SDK: "true"
+  EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
 ```
 
 Another way is to set them as environmental variables before running e2e tests.
@@ -48,6 +49,7 @@ kustomize_substitutions:
   EXP_MACHINE_POOL: 'true'
   CLUSTER_TOPOLOGY: 'true'
   EXP_RUNTIME_SDK: 'true'
+  EXP_MACHINE_SET_PREFLIGHT_CHECKS: 'true'
 ```
 
 For more details on setting up a development environment with `tilt`, see [Developing Cluster API with Tilt](../../developer/tilt.md)

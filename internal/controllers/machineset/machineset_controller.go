@@ -298,24 +298,41 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 	// Remediate failed Machines by deleting them.
 	var errs []error
+	machinesToRemediate := make([]*clusterv1.Machine, 0, len(filteredMachines))
 	for _, machine := range filteredMachines {
-		log := log.WithValues("Machine", klog.KObj(machine))
 		// filteredMachines contains machines in deleting status to calculate correct status.
 		// skip remediation for those in deleting status.
 		if !machine.DeletionTimestamp.IsZero() {
 			continue
 		}
 		if conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition) {
-			log.Info("Deleting machine because marked as unhealthy by the MachineHealthCheck controller")
-			patch := client.MergeFrom(machine.DeepCopy())
-			if err := r.Client.Delete(ctx, machine); err != nil {
-				errs = append(errs, errors.Wrap(err, "failed to delete"))
-				continue
+			machinesToRemediate = append(machinesToRemediate, machine)
+		}
+	}
+
+	result := ctrl.Result{}
+	if len(machinesToRemediate) > 0 {
+		preflightChecksResult, err := r.runPreflightChecks(ctx, cluster, machineSet, "Machine Remediation")
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		// Delete the machines only if the preflight checks have passed. Do not delete machines if we cannot
+		// guarantee creating new machines.
+		if preflightChecksResult.IsZero() {
+			for _, machine := range machinesToRemediate {
+				log.Info("Deleting machine because marked as unhealthy by the MachineHealthCheck controller")
+				patch := client.MergeFrom(machine.DeepCopy())
+				if err := r.Client.Delete(ctx, machine); err != nil {
+					errs = append(errs, errors.Wrap(err, "failed to delete"))
+					continue
+				}
+				conditions.MarkTrue(machine, clusterv1.MachineOwnerRemediatedCondition)
+				if err := r.Client.Status().Patch(ctx, machine, patch); err != nil && !apierrors.IsNotFound(err) {
+					errs = append(errs, errors.Wrap(err, "failed to update status"))
+				}
 			}
-			conditions.MarkTrue(machine, clusterv1.MachineOwnerRemediatedCondition)
-			if err := r.Client.Status().Patch(ctx, machine, patch); err != nil && !apierrors.IsNotFound(err) {
-				errs = append(errs, errors.Wrap(err, "failed to update status"))
-			}
+		} else {
+			result = util.LowestNonZeroResult(result, preflightChecksResult)
 		}
 	}
 
@@ -329,7 +346,8 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		return ctrl.Result{}, errors.Wrap(err, "failed to update Machines")
 	}
 
-	syncErr := r.syncReplicas(ctx, machineSet, filteredMachines)
+	syncReplicasResult, syncErr := r.syncReplicas(ctx, cluster, machineSet, filteredMachines)
+	result = util.LowestNonZeroResult(result, syncReplicasResult)
 
 	// Always updates status as machines come up or die.
 	if err := r.updateStatus(ctx, cluster, machineSet, filteredMachines); err != nil {
@@ -355,15 +373,18 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	if machineSet.Spec.MinReadySeconds > 0 &&
 		machineSet.Status.ReadyReplicas == replicas &&
 		machineSet.Status.AvailableReplicas != replicas {
-		return ctrl.Result{RequeueAfter: time.Duration(machineSet.Spec.MinReadySeconds) * time.Second}, nil
+		minReadyResult := ctrl.Result{RequeueAfter: time.Duration(machineSet.Spec.MinReadySeconds) * time.Second}
+		result = util.LowestNonZeroResult(result, minReadyResult)
+		return result, nil
 	}
 
 	// Quickly reconcile until the nodes become Ready.
 	if machineSet.Status.ReadyReplicas != replicas {
-		return ctrl.Result{RequeueAfter: 15 * time.Second}, nil
+		result = util.LowestNonZeroResult(result, ctrl.Result{RequeueAfter: 15 * time.Second})
+		return result, nil
 	}
 
-	return ctrl.Result{}, nil
+	return result, nil
 }
 
 // syncMachines updates Machines, InfrastructureMachine and BootstrapConfig to propagate in-place mutable fields
@@ -444,10 +465,10 @@ func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.Mac
 }
 
 // syncReplicas scales Machine resources up or down.
-func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet, machines []*clusterv1.Machine) error {
+func (r *Reconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, machines []*clusterv1.Machine) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	if ms.Spec.Replicas == nil {
-		return errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", ms.Name)
+		return ctrl.Result{}, errors.Errorf("the Replicas field in Spec for machineset %v is nil, this should not be allowed", ms.Name)
 	}
 	diff := len(machines) - int(*(ms.Spec.Replicas))
 	switch {
@@ -457,9 +478,15 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 		if ms.Annotations != nil {
 			if _, ok := ms.Annotations[clusterv1.DisableMachineCreateAnnotation]; ok {
 				log.Info("Automatic creation of new machines disabled for machine set")
-				return nil
+				return ctrl.Result{}, nil
 			}
 		}
+
+		result, err := r.runPreflightChecks(ctx, cluster, ms, "Scale up")
+		if err != nil || !result.IsZero() {
+			return result, err
+		}
+
 		var (
 			machineList []*clusterv1.Machine
 			errs        []error
@@ -493,7 +520,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 				})
 				if err != nil {
 					conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.BootstrapTemplateCloningFailedReason, clusterv1.ConditionSeverityError, err.Error())
-					return errors.Wrapf(err, "failed to clone bootstrap configuration from %s %s while creating a machine",
+					return ctrl.Result{}, errors.Wrapf(err, "failed to clone bootstrap configuration from %s %s while creating a machine",
 						ms.Spec.Template.Spec.Bootstrap.ConfigRef.Kind,
 						klog.KRef(ms.Spec.Template.Spec.Bootstrap.ConfigRef.Namespace, ms.Spec.Template.Spec.Bootstrap.ConfigRef.Name))
 				}
@@ -518,7 +545,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 			})
 			if err != nil {
 				conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.InfrastructureTemplateCloningFailedReason, clusterv1.ConditionSeverityError, err.Error())
-				return errors.Wrapf(err, "failed to clone infrastructure machine from %s %s while creating a machine",
+				return ctrl.Result{}, errors.Wrapf(err, "failed to clone infrastructure machine from %s %s while creating a machine",
 					ms.Spec.Template.Spec.InfrastructureRef.Kind,
 					klog.KRef(ms.Spec.Template.Spec.InfrastructureRef.Namespace, ms.Spec.Template.Spec.InfrastructureRef.Name))
 			}
@@ -551,15 +578,15 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 		}
 
 		if len(errs) > 0 {
-			return kerrors.NewAggregate(errs)
+			return ctrl.Result{}, kerrors.NewAggregate(errs)
 		}
-		return r.waitForMachineCreation(ctx, machineList)
+		return ctrl.Result{}, r.waitForMachineCreation(ctx, machineList)
 	case diff > 0:
 		log.Info(fmt.Sprintf("MachineSet is scaling down to %d replicas by deleting %d machines", *(ms.Spec.Replicas), diff), "replicas", *(ms.Spec.Replicas), "machineCount", len(machines), "deletePolicy", ms.Spec.DeletePolicy)
 
 		deletePriorityFunc, err := getDeletePriorityFunc(ms)
 		if err != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 
 		var errs []error
@@ -581,12 +608,12 @@ func (r *Reconciler) syncReplicas(ctx context.Context, ms *clusterv1.MachineSet,
 		}
 
 		if len(errs) > 0 {
-			return kerrors.NewAggregate(errs)
+			return ctrl.Result{}, kerrors.NewAggregate(errs)
 		}
-		return r.waitForMachineDeletion(ctx, machinesToDelete)
+		return ctrl.Result{}, r.waitForMachineDeletion(ctx, machinesToDelete)
 	}
 
-	return nil
+	return ctrl.Result{}, nil
 }
 
 // computeDesiredMachine computes the desired Machine.

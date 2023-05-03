@@ -117,6 +117,18 @@ const (
 	// MachineSkipRemediationAnnotation is the annotation used to mark the machines that should not be considered for remediation by MachineHealthCheck reconciler.
 	MachineSkipRemediationAnnotation = "cluster.x-k8s.io/skip-remediation"
 
+	// MachineSetSkipPreflightChecksAnnotation is the annotation used to provide a comma-separated list of
+	// preflight checks that should be skipped during the MachineSet reconciliation.
+	// Supported items are:
+	// - KubeadmVersion (skips the kubeadm version skew preflight check)
+	// - KubernetesVersion (skips the kubernetes version skew preflight check)
+	// - ControlPlaneStable (skips checking that the control plane is neither provisioning nor upgrading)
+	// - All (skips all preflight checks)
+	// Example: "machineset.cluster.x-k8s.io/skip-preflight-checks": "ControlPlaneStable,KubernetesVersion".
+	// Note: The annotation can also be set on a MachineDeployment as MachineDeployment annotations are synced to
+	// the MachineSet.
+	MachineSetSkipPreflightChecksAnnotation = "machineset.cluster.x-k8s.io/skip-preflight-checks"
+
 	// ClusterSecretType defines the type of secret created by core components.
 	// Note: This is used by core CAPI, CAPBK, and KCP to determine whether a secret is created by the controllers
 	// themselves or supplied by the user (e.g. bring your own certificates).
@@ -171,6 +183,38 @@ const (
 	// VariableDefinitionFromInline indicates a patch or variable was defined in the `.spec` of a ClusterClass
 	// rather than from an external patch extension.
 	VariableDefinitionFromInline = "inline"
+)
+
+// MachineSetPreflightCheck defines a valid MachineSet preflight check.
+type MachineSetPreflightCheck string
+
+const (
+	// MachineSetPreflightCheckAll can be used to represent all the MachineSet preflight checks.
+	MachineSetPreflightCheckAll MachineSetPreflightCheck = "All"
+
+	// MachineSetPreflightCheckKubeadmVersionSkew is the name of the preflight check
+	// that verifies if the machine being created or remediated for the MachineSet conforms to the kubeadm version
+	// skew policy that requires the machine to be at the same version as the control plane.
+	// Note: This is a stopgap while the root cause of the problem is fixed in kubeadm; this check will become
+	// a no-op when this check will be available in kubeadm, and then eventually be dropped when all the
+	// supported Kuberenetes/kubeadm versions have implemented the fix.
+	// The preflight check is only run if a ControlPlane is used (controlPlaneRef must exist in the Cluster),
+	// the ControlPlane has a version, the MachineSet has a version and the MachineSet uses the Kubeadm bootstrap
+	// provider.
+	MachineSetPreflightCheckKubeadmVersionSkew MachineSetPreflightCheck = "KubeadmVersionSkew"
+
+	// MachineSetPreflightCheckKubernetesVersionSkew is the name of the preflight check that verifies
+	// if the machines being created or remediated for the MachineSet conform to the Kubernetes version skew policy
+	// that requires the machines to be at a version that is not more than 2 minor lower than the ControlPlane version.
+	// The preflight check is only run if a ControlPlane is used (controlPlaneRef must exist in the Cluster),
+	// the ControlPlane has a version and the MachineSet has a version.
+	MachineSetPreflightCheckKubernetesVersionSkew MachineSetPreflightCheck = "KubernetesVersionSkew"
+
+	// MachineSetPreflightCheckControlPlaneIsStable is the name of the preflight check
+	// that verifies if the control plane is not provisioning and not upgrading.
+	// The preflight check is only run if a ControlPlane is used (controlPlaneRef must exist in the Cluster)
+	// and the ControlPlane has a version.
+	MachineSetPreflightCheckControlPlaneIsStable MachineSetPreflightCheck = "ControlPlaneIsStable"
 )
 
 // NodeUninitializedTaint can be added to Nodes at creation by the bootstrap provider, e.g. the

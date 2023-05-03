@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -212,6 +213,14 @@ func (m *MachineDeployment) validate(old *MachineDeployment) error {
 				fmt.Sprintf("must match spec.selector %q", selector.String()),
 			),
 		)
+	}
+
+	// MachineSet preflight checks that should be skipped could also be set as annotation on the MachineDeployment
+	// since MachineDeployment annotations are synced to the MachineSet.
+	if feature.Gates.Enabled(feature.MachineSetPreflightChecks) {
+		if err := validateSkippedMachineSetPreflightChecks(m); err != nil {
+			allErrs = append(allErrs, err)
+		}
 	}
 
 	if old != nil && old.Spec.ClusterName != m.Spec.ClusterName {

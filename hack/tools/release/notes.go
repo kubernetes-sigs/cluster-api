@@ -204,7 +204,7 @@ func run() int {
 	// TODO Turn this into a link (requires knowing the project name + organization)
 	fmt.Printf("Changes since %v\n---\n", commitRange)
 
-	fmt.Printf("## :chart_with_upwards_trend: Fun stats\n")
+	fmt.Printf("## :chart_with_upwards_trend: Overview\n")
 	fmt.Printf("- %d new commits merged\n", len(commits))
 	fmt.Printf("- %d breaking changes :warning:\n", len(merges[warning]))
 	fmt.Printf("- %d feature additions ✨\n", len(merges[features]))

@@ -123,6 +123,7 @@ func main() {
 	ctrl.SetLogger(klog.Background())
 
 	// Initialize the golang profiler server, if required.
+	// TODO(sbueringer): remove this once we switched to using a manager.
 	if profilerAddress != "" {
 		setupLog.Info(fmt.Sprintf("Profiler listening for requests at %s", profilerAddress))
 		go func() {

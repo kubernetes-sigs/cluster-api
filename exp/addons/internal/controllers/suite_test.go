@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
@@ -56,13 +57,13 @@ func TestMain(m *testing.M) {
 			Client:  mgr.GetClient(),
 			Tracker: tracker,
 		}
-		if err = reconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		if err = reconciler.SetupWithManager(ctx, mgr, controller.Options{Controller: config.Controller{MaxConcurrentReconciles: 1}}); err != nil {
 			panic(fmt.Sprintf("Failed to set up cluster resource set reconciler: %v", err))
 		}
 		bindingReconciler := ClusterResourceSetBindingReconciler{
 			Client: mgr.GetClient(),
 		}
-		if err = bindingReconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		if err = bindingReconciler.SetupWithManager(ctx, mgr, controller.Options{Controller: config.Controller{MaxConcurrentReconciles: 1}}); err != nil {
 			panic(fmt.Sprintf("Failed to set up cluster resource set binding reconciler: %v", err))
 		}
 	}

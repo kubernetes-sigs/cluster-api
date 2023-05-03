@@ -396,7 +396,7 @@ func TestMain(m *testing.M) {
 		if err := (&MyReconciler{
 			Client:  mgr.GetClient(),
 			Log:     log.NullLogger{},
-		}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
+		}).SetupWithManager(mgr, controller.Options{Controller: config.Controller{MaxConcurrentReconciles: 1}}); err != nil {
 			panic(fmt.Sprintf("Failed to start the MyReconciler: %v", err))
 		}
 	}

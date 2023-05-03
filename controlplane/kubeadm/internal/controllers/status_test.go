@@ -66,7 +66,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusNoMachines(t *testing.T) {
 		},
 	}
 	kcp.Default()
-	g.Expect(kcp.ValidateCreate()).To(Succeed())
+	_, err := kcp.ValidateCreate()
+	g.Expect(err).NotTo(HaveOccurred())
 
 	fakeClient := newFakeClient(kcp.DeepCopy(), cluster.DeepCopy())
 	log.SetLogger(klogr.New())
@@ -122,7 +123,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesNotReady(t *testin
 		},
 	}
 	kcp.Default()
-	g.Expect(kcp.ValidateCreate()).To(Succeed())
+	_, err := kcp.ValidateCreate()
+	g.Expect(err).NotTo(HaveOccurred())
 
 	machines := map[string]*clusterv1.Machine{}
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
@@ -187,7 +189,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusAllMachinesReady(t *testing.T
 		},
 	}
 	kcp.Default()
-	g.Expect(kcp.ValidateCreate()).To(Succeed())
+	_, err := kcp.ValidateCreate()
+	g.Expect(err).NotTo(HaveOccurred())
 
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), kubeadmConfigMap()}
 	machines := map[string]*clusterv1.Machine{}
@@ -260,7 +263,8 @@ func TestKubeadmControlPlaneReconciler_updateStatusMachinesReadyMixed(t *testing
 		},
 	}
 	kcp.Default()
-	g.Expect(kcp.ValidateCreate()).To(Succeed())
+	_, err := kcp.ValidateCreate()
+	g.Expect(err).NotTo(HaveOccurred())
 	machines := map[string]*clusterv1.Machine{}
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 	for i := 0; i < 4; i++ {
@@ -333,7 +337,8 @@ func TestKubeadmControlPlaneReconciler_machinesCreatedIsIsTrueEvenWhenTheNodesAr
 		},
 	}
 	kcp.Default()
-	g.Expect(kcp.ValidateCreate()).To(Succeed())
+	_, err := kcp.ValidateCreate()
+	g.Expect(err).NotTo(HaveOccurred())
 	machines := map[string]*clusterv1.Machine{}
 	objs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 	// Create the desired number of machines

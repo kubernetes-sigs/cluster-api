@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
@@ -70,21 +69,19 @@ func (r *ClusterResourceSetReconciler) SetupWithManager(ctx context.Context, mgr
 	err := ctrl.NewControllerManagedBy(mgr).
 		For(&addonsv1.ClusterResourceSet{}).
 		Watches(
-			&source.Kind{Type: &clusterv1.Cluster{}},
+			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(r.clusterToClusterResourceSet),
 		).
-		Watches(
-			&source.Kind{Type: &corev1.ConfigMap{}},
+		WatchesMetadata(
+			&corev1.ConfigMap{},
 			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
-			builder.OnlyMetadata,
 			builder.WithPredicates(
 				resourcepredicates.ResourceCreateOrUpdate(ctrl.LoggerFrom(ctx)),
 			),
 		).
-		Watches(
-			&source.Kind{Type: &corev1.Secret{}},
+		WatchesMetadata(
+			&corev1.Secret{},
 			handler.EnqueueRequestsFromMapFunc(r.resourceToClusterResourceSet),
-			builder.OnlyMetadata,
 			builder.WithPredicates(
 				resourcepredicates.ResourceCreateOrUpdate(ctrl.LoggerFrom(ctx)),
 			),
@@ -416,7 +413,7 @@ func (r *ClusterResourceSetReconciler) ensureResourceOwnerRef(ctx context.Contex
 }
 
 // clusterToClusterResourceSet is mapper function that maps clusters to ClusterResourceSet.
-func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o client.Object) []ctrl.Request {
+func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(ctx context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	cluster, ok := o.(*clusterv1.Cluster)
@@ -425,7 +422,7 @@ func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o client.Obje
 	}
 
 	resourceList := &addonsv1.ClusterResourceSetList{}
-	if err := r.Client.List(context.TODO(), resourceList, client.InNamespace(cluster.Namespace)); err != nil {
+	if err := r.Client.List(ctx, resourceList, client.InNamespace(cluster.Namespace)); err != nil {
 		return nil
 	}
 
@@ -454,7 +451,7 @@ func (r *ClusterResourceSetReconciler) clusterToClusterResourceSet(o client.Obje
 }
 
 // resourceToClusterResourceSet is mapper function that maps resources to ClusterResourceSet.
-func (r *ClusterResourceSetReconciler) resourceToClusterResourceSet(o client.Object) []ctrl.Request {
+func (r *ClusterResourceSetReconciler) resourceToClusterResourceSet(ctx context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	// Add all ClusterResourceSet owners.
@@ -477,7 +474,7 @@ func (r *ClusterResourceSetReconciler) resourceToClusterResourceSet(o client.Obj
 	}
 
 	crsList := &addonsv1.ClusterResourceSetList{}
-	if err := r.Client.List(context.TODO(), crsList, client.InNamespace(o.GetNamespace())); err != nil {
+	if err := r.Client.List(ctx, crsList, client.InNamespace(o.GetNamespace())); err != nil {
 		return nil
 	}
 	objKind, err := apiutil.GVKForObject(o, r.Client.Scheme())

@@ -799,7 +799,7 @@ func setupWebhookWithManager(ns *corev1.Namespace) (*KubeadmConfigTemplateTestDe
 	// Note: This should only ever be called once with the same path, otherwise we get a panic.
 	defaulter := &KubeadmConfigTemplateTestDefaulter{}
 	webhookServer.Register(webhookPath,
-		admission.WithCustomDefaulter(&bootstrapv1.KubeadmConfigTemplate{}, defaulter))
+		admission.WithCustomDefaulter(env.Manager.GetScheme(), &bootstrapv1.KubeadmConfigTemplate{}, defaulter))
 
 	// Calculate the MutatingWebhookConfiguration
 	caBundle, err := os.ReadFile(filepath.Join(webhookServer.CertDir, webhookServer.CertName))

@@ -32,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -430,15 +429,15 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPaused(ctrl.LoggerFrom(ctx))).
 		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(util.MachineToInfrastructureMapFunc(infrav1.GroupVersion.WithKind("DockerMachine"))),
 		).
 		Watches(
-			&source.Kind{Type: &infrav1.DockerCluster{}},
+			&infrav1.DockerCluster{},
 			handler.EnqueueRequestsFromMapFunc(r.DockerClusterToDockerMachines),
 		).
 		Watches(
-			&source.Kind{Type: &clusterv1.Cluster{}},
+			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToDockerMachines),
 			builder.WithPredicates(
 				predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
@@ -452,14 +451,14 @@ func (r *DockerMachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl
 
 // DockerClusterToDockerMachines is a handler.ToRequestsFunc to be used to enqueue
 // requests for reconciliation of DockerMachines.
-func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o client.Object) []ctrl.Request {
+func (r *DockerMachineReconciler) DockerClusterToDockerMachines(ctx context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 	c, ok := o.(*infrav1.DockerCluster)
 	if !ok {
 		panic(fmt.Sprintf("Expected a DockerCluster but got a %T", o))
 	}
 
-	cluster, err := util.GetOwnerCluster(context.TODO(), r.Client, c.ObjectMeta)
+	cluster, err := util.GetOwnerCluster(ctx, r.Client, c.ObjectMeta)
 	switch {
 	case apierrors.IsNotFound(err) || cluster == nil:
 		return result
@@ -469,7 +468,7 @@ func (r *DockerMachineReconciler) DockerClusterToDockerMachines(o client.Object)
 
 	labels := map[string]string{clusterv1.ClusterNameLabel: cluster.Name}
 	machineList := &clusterv1.MachineList{}
-	if err := r.Client.List(context.TODO(), machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
+	if err := r.Client.List(ctx, machineList, client.InNamespace(c.Namespace), client.MatchingLabels(labels)); err != nil {
 		return nil
 	}
 	for _, m := range machineList.Items {

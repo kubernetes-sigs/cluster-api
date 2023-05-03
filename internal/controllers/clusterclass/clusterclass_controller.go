@@ -37,7 +37,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -79,7 +78,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		Named("clusterclass").
 		WithOptions(options).
 		Watches(
-			&source.Kind{Type: &runtimev1.ExtensionConfig{}},
+			&runtimev1.ExtensionConfig{},
 			handler.EnqueueRequestsFromMapFunc(r.extensionConfigToClusterClass),
 		).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
@@ -388,7 +387,7 @@ func uniqueObjectRefKey(ref *corev1.ObjectReference) string {
 
 // extensionConfigToClusterClass maps an ExtensionConfigs to the corresponding ClusterClass to reconcile them on updates
 // of the ExtensionConfig.
-func (r *Reconciler) extensionConfigToClusterClass(o client.Object) []reconcile.Request {
+func (r *Reconciler) extensionConfigToClusterClass(ctx context.Context, o client.Object) []reconcile.Request {
 	res := []ctrl.Request{}
 
 	ext, ok := o.(*runtimev1.ExtensionConfig)
@@ -401,11 +400,11 @@ func (r *Reconciler) extensionConfigToClusterClass(o client.Object) []reconcile.
 	if err != nil {
 		return nil
 	}
-	if err := r.Client.List(context.TODO(), &clusterClasses); err != nil {
+	if err := r.Client.List(ctx, &clusterClasses); err != nil {
 		return nil
 	}
 	for _, clusterClass := range clusterClasses.Items {
-		if !matchNamespace(context.TODO(), r.Client, selector, clusterClass.Namespace) {
+		if !matchNamespace(ctx, r.Client, selector, clusterClass.Namespace) {
 			continue
 		}
 		for _, patch := range clusterClass.Spec.Patches {

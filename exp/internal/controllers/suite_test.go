@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	// +kubebuilder:scaffold:imports
@@ -47,7 +48,7 @@ func TestMain(m *testing.M) {
 			Client:   mgr.GetClient(),
 			recorder: mgr.GetEventRecorderFor("machinepool-controller"),
 		}
-		err := machinePoolReconciler.SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1})
+		err := machinePoolReconciler.SetupWithManager(ctx, mgr, controller.Options{Controller: config.Controller{MaxConcurrentReconciles: 1}})
 		if err != nil {
 			panic(fmt.Sprintf("Failed to set up machine pool reconciler: %v", err))
 		}

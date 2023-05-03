@@ -89,6 +89,12 @@ type InitOptions struct {
 func (c *clusterctlClient) Init(options InitOptions) ([]Components, error) {
 	log := logf.Log
 
+	// Default WaitProviderTimeout as we cannot rely on defaulting in the CLI
+	// when clusterctl is used as a library.
+	if options.WaitProviderTimeout.Nanoseconds() == 0 {
+		options.WaitProviderTimeout = time.Duration(5*60) * time.Second
+	}
+
 	// gets access to the management cluster
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {

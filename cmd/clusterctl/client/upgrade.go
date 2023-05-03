@@ -133,6 +133,12 @@ func (c *clusterctlClient) ApplyUpgrade(options ApplyUpgradeOptions) error {
 		return errors.Errorf("current version of clusterctl could only upgrade to %s contract, requested %s", clusterv1.GroupVersion.Version, options.Contract)
 	}
 
+	// Default WaitProviderTimeout as we cannot rely on defaulting in the CLI
+	// when clusterctl is used as a library.
+	if options.WaitProviderTimeout.Nanoseconds() == 0 {
+		options.WaitProviderTimeout = time.Duration(5*60) * time.Second
+	}
+
 	// Get the client for interacting with the management cluster.
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {

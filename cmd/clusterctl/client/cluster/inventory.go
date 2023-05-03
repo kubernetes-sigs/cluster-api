@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -197,7 +198,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 		// If the object is a CRDs, waits for it being Established.
 		if apiextensionsv1.SchemeGroupVersion.WithKind("CustomResourceDefinition").GroupKind() == o.GroupVersionKind().GroupKind() {
 			crdKey := client.ObjectKeyFromObject(&o)
-			if err := p.pollImmediateWaiter(waitInventoryCRDInterval, waitInventoryCRDTimeout, func() (bool, error) {
+			if err := p.pollImmediateWaiter(ctx, waitInventoryCRDInterval, waitInventoryCRDTimeout, func(ctx context.Context) (bool, error) {
 				c, err := p.proxy.NewClient()
 				if err != nil {
 					return false, err

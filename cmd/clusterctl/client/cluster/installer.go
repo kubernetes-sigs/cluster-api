@@ -150,7 +150,7 @@ func waitManagerDeploymentsReady(opts InstallOptions, installQueue []repository.
 }
 
 func waitDeploymentReady(deployment unstructured.Unstructured, timeout time.Duration, proxy Proxy) error {
-	return wait.Poll(100*time.Millisecond, timeout, func() (bool, error) {
+	return wait.PollUntilContextTimeout(context.TODO(), 100*time.Millisecond, timeout, false, func(ctx context.Context) (bool, error) {
 		c, err := proxy.NewClient()
 		if err != nil {
 			return false, err
@@ -160,7 +160,7 @@ func waitDeploymentReady(deployment unstructured.Unstructured, timeout time.Dura
 			Name:      deployment.GetName(),
 		}
 		dep := &appsv1.Deployment{}
-		if err := c.Get(context.TODO(), key, dep); err != nil {
+		if err := c.Get(ctx, key, dep); err != nil {
 			return false, err
 		}
 		for _, c := range dep.Status.Conditions {

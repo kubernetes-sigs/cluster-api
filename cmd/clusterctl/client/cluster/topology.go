@@ -567,11 +567,11 @@ func (t *topologyClient) defaultAndValidateObjs(ctx context.Context, objs []*uns
 			}
 		}
 		if oldObject != nil {
-			if err := validator.ValidateUpdate(ctx, oldObject, object); err != nil {
+			if _, err := validator.ValidateUpdate(ctx, oldObject, object); err != nil {
 				return errors.Wrapf(err, "failed validation of %s %s/%s", obj.GroupVersionKind().String(), obj.GetNamespace(), obj.GetName())
 			}
 		} else {
-			if err := validator.ValidateCreate(ctx, object); err != nil {
+			if _, err := validator.ValidateCreate(ctx, object); err != nil {
 				return errors.Wrapf(err, "failed validation of %s %s/%s", obj.GroupVersionKind().String(), obj.GetNamespace(), obj.GetName())
 			}
 		}

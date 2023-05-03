@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
@@ -36,6 +37,7 @@ type ObjectTracker struct {
 	m sync.Map
 
 	Controller controller.Controller
+	Cache      cache.Cache
 }
 
 // Watch uses the controller to issue a Watch only if the object hasn't been seen before.
@@ -56,7 +58,7 @@ func (o *ObjectTracker) Watch(log logr.Logger, obj runtime.Object, handler handl
 
 	log.Info("Adding watcher on external object", "groupVersionKind", gvk.String())
 	err := o.Controller.Watch(
-		&source.Kind{Type: u},
+		source.Kind(o.Cache, u),
 		handler,
 		append(p, predicates.ResourceNotPaused(log))...,
 	)

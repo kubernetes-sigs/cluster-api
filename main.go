@@ -369,6 +369,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if feature.Gates.Enabled(feature.ClusterTopology) {
 		unstructuredCachingClient, err := client.New(mgr.GetConfig(), client.Options{
+			HTTPClient: mgr.GetHTTPClient(),
 			Cache: &client.CacheOptions{
 				Reader:       mgr.GetCache(),
 				Unstructured: true,

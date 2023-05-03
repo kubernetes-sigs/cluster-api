@@ -782,7 +782,6 @@ func (r *Reconciler) MachineToMachineSets(ctx context.Context, o client.Object) 
 		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
 	}
 
-	// FIXME(sbueringer): This won't log unless the global logger is set
 	log := ctrl.LoggerFrom(ctx, "Machine", klog.KObj(m))
 
 	// Check if the controller reference is already set and

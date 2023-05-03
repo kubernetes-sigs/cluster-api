@@ -1004,7 +1004,7 @@ func TestClusterValidation(t *testing.T) {
 			// Create the webhook.
 			webhook := &Cluster{}
 
-			err := webhook.validate(ctx, tt.old, tt.in)
+			_, err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1268,7 +1268,7 @@ func TestClusterTopologyValidation(t *testing.T) {
 			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
 			webhook := &Cluster{Client: fakeClient}
 
-			err := webhook.validate(ctx, tt.old, tt.in)
+			_, err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1549,10 +1549,11 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			c := &Cluster{Client: fakeClient}
 
 			// Checks the return error.
+			_, err := c.ValidateCreate(ctx, tt.cluster)
 			if tt.wantErr {
-				g.Expect(c.ValidateCreate(ctx, tt.cluster)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(c.ValidateCreate(ctx, tt.cluster)).To(Succeed())
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
@@ -1970,10 +1971,11 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 			secondCluster.Spec.Topology.Class = tt.secondClass.Name
 
 			// Checks the return error.
+			_, err := c.ValidateUpdate(ctx, cluster, secondCluster)
 			if tt.wantErr {
-				g.Expect(c.ValidateUpdate(ctx, cluster, secondCluster)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(c.ValidateUpdate(ctx, cluster, secondCluster)).To(Succeed())
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
@@ -2091,10 +2093,11 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 			updatedCluster.Spec.Topology = tt.updatedTopology
 
 			// Checks the return error.
+			_, err := c.ValidateUpdate(ctx, tt.cluster, updatedCluster)
 			if tt.wantErr {
-				g.Expect(c.ValidateUpdate(ctx, tt.cluster, updatedCluster)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(c.ValidateUpdate(ctx, tt.cluster, updatedCluster)).To(Succeed())
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
@@ -2214,10 +2217,11 @@ func TestClusterClassPollingErrors(t *testing.T) {
 				Build()}
 
 			// Checks the return error.
+			_, err := c.validate(ctx, tt.oldCluster, tt.cluster)
 			if tt.wantErr {
-				g.Expect(c.validate(ctx, tt.oldCluster, tt.cluster)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(c.validate(ctx, tt.oldCluster, tt.cluster)).To(Succeed())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}

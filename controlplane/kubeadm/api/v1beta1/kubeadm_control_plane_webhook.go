@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
@@ -98,15 +99,15 @@ func defaultRolloutStrategy(rolloutStrategy *RolloutStrategy) *RolloutStrategy {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (in *KubeadmControlPlane) ValidateCreate() error {
+func (in *KubeadmControlPlane) ValidateCreate() (admission.Warnings, error) {
 	spec := in.Spec
 	allErrs := validateKubeadmControlPlaneSpec(spec, in.Namespace, field.NewPath("spec"))
 	allErrs = append(allErrs, validateClusterConfiguration(spec.KubeadmConfigSpec.ClusterConfiguration, nil, field.NewPath("spec", "kubeadmConfigSpec", "clusterConfiguration"))...)
 	allErrs = append(allErrs, spec.KubeadmConfigSpec.Validate(field.NewPath("spec", "kubeadmConfigSpec"))...)
 	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
+		return nil, apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
 	}
-	return nil
+	return nil, nil
 }
 
 const (
@@ -134,7 +135,7 @@ const (
 const minimumCertificatesExpiryDays = 7
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
+func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	// add a * to indicate everything beneath is ok.
 	// For example, {"spec", "*"} will allow any path under "spec" to change.
 	allowedPaths := [][]string{
@@ -196,25 +197,25 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 
 	prev, ok := old.(*KubeadmControlPlane)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expecting KubeadmControlPlane but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expecting KubeadmControlPlane but got a %T", old))
 	}
 
 	originalJSON, err := json.Marshal(prev)
 	if err != nil {
-		return apierrors.NewInternalError(err)
+		return nil, apierrors.NewInternalError(err)
 	}
 	modifiedJSON, err := json.Marshal(in)
 	if err != nil {
-		return apierrors.NewInternalError(err)
+		return nil, apierrors.NewInternalError(err)
 	}
 
 	diff, err := jsonpatch.CreateMergePatch(originalJSON, modifiedJSON)
 	if err != nil {
-		return apierrors.NewInternalError(err)
+		return nil, apierrors.NewInternalError(err)
 	}
 	jsonPatch := map[string]interface{}{}
 	if err := json.Unmarshal(diff, &jsonPatch); err != nil {
-		return apierrors.NewInternalError(err)
+		return nil, apierrors.NewInternalError(err)
 	}
 	// Build a list of all paths that are trying to change
 	diffpaths := paths([]string{}, jsonPatch)
@@ -239,10 +240,10 @@ func (in *KubeadmControlPlane) ValidateUpdate(old runtime.Object) error {
 	allErrs = append(allErrs, in.Spec.KubeadmConfigSpec.Validate(field.NewPath("spec", "kubeadmConfigSpec"))...)
 
 	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
+		return nil, apierrors.NewInvalid(GroupVersion.WithKind("KubeadmControlPlane").GroupKind(), in.Name, allErrs)
 	}
 
-	return nil
+	return nil, nil
 }
 
 func validateKubeadmControlPlaneSpec(s KubeadmControlPlaneSpec, namespace string, pathPrefix *field.Path) field.ErrorList {
@@ -659,6 +660,6 @@ func (in *KubeadmControlPlane) validateVersion(previousVersion string) (allErrs 
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (in *KubeadmControlPlane) ValidateDelete() error {
-	return nil
+func (in *KubeadmControlPlane) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }

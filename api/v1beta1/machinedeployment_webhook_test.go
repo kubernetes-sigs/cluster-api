@@ -393,11 +393,15 @@ func TestMachineDeploymentValidation(t *testing.T) {
 				},
 			}
 			if tt.expectErr {
-				g.Expect(md.ValidateCreate()).NotTo(Succeed())
-				g.Expect(md.ValidateUpdate(md)).NotTo(Succeed())
+				_, err := md.ValidateCreate()
+				g.Expect(err).To(HaveOccurred())
+				_, err = md.ValidateUpdate(md)
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(md.ValidateCreate()).To(Succeed())
-				g.Expect(md.ValidateUpdate(md)).To(Succeed())
+				_, err := md.ValidateCreate()
+				g.Expect(err).NotTo(HaveOccurred())
+				_, err = md.ValidateUpdate(md)
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
@@ -452,11 +456,15 @@ func TestMachineDeploymentVersionValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				g.Expect(md.ValidateCreate()).NotTo(Succeed())
-				g.Expect(md.ValidateUpdate(md)).NotTo(Succeed())
+				_, err := md.ValidateCreate()
+				g.Expect(err).To(HaveOccurred())
+				_, err = md.ValidateUpdate(md)
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(md.ValidateCreate()).To(Succeed())
-				g.Expect(md.ValidateUpdate(md)).To(Succeed())
+				_, err := md.ValidateCreate()
+				g.Expect(err).ToNot(HaveOccurred())
+				_, err = md.ValidateUpdate(md)
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -499,10 +507,11 @@ func TestMachineDeploymentClusterNameImmutable(t *testing.T) {
 				},
 			}
 
+			_, err := newMD.ValidateUpdate(oldMD)
 			if tt.expectErr {
-				g.Expect(newMD.ValidateUpdate(oldMD)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(newMD.ValidateUpdate(oldMD)).To(Succeed())
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
@@ -530,18 +539,21 @@ func defaultValidateTestCustomDefaulter(object admission.Validator, customDefaul
 		t.Run("validate-on-create", func(t *testing.T) {
 			g := NewWithT(t)
 			g.Expect(customDefaulter.Default(ctx, createCopy)).To(Succeed())
-			g.Expect(createCopy.ValidateCreate()).To(Succeed())
+			_, err := createCopy.ValidateCreate()
+			g.Expect(err).NotTo(HaveOccurred())
 		})
 		t.Run("validate-on-update", func(t *testing.T) {
 			g := NewWithT(t)
 			g.Expect(customDefaulter.Default(ctx, defaultingUpdateCopy)).To(Succeed())
 			g.Expect(customDefaulter.Default(ctx, updateCopy)).To(Succeed())
-			g.Expect(defaultingUpdateCopy.ValidateUpdate(updateCopy)).To(Succeed())
+			_, err := defaultingUpdateCopy.ValidateUpdate(updateCopy)
+			g.Expect(err).NotTo(HaveOccurred())
 		})
 		t.Run("validate-on-delete", func(t *testing.T) {
 			g := NewWithT(t)
 			g.Expect(customDefaulter.Default(ctx, deleteCopy)).To(Succeed())
-			g.Expect(deleteCopy.ValidateDelete()).To(Succeed())
+			_, err := deleteCopy.ValidateDelete()
+			g.Expect(err).NotTo(HaveOccurred())
 		})
 	}
 }

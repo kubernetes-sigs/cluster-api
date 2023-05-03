@@ -26,6 +26,7 @@ import (
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
@@ -75,22 +76,22 @@ func (m *MachinePool) Default() {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (m *MachinePool) ValidateCreate() error {
-	return m.validate(nil)
+func (m *MachinePool) ValidateCreate() (admission.Warnings, error) {
+	return nil, m.validate(nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (m *MachinePool) ValidateUpdate(old runtime.Object) error {
+func (m *MachinePool) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	oldMP, ok := old.(*MachinePool)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachinePool but got a %T", old))
 	}
-	return m.validate(oldMP)
+	return nil, m.validate(oldMP)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (m *MachinePool) ValidateDelete() error {
-	return m.validate(nil)
+func (m *MachinePool) ValidateDelete() (admission.Warnings, error) {
+	return nil, m.validate(nil)
 }
 
 func (m *MachinePool) validate(old *MachinePool) error {

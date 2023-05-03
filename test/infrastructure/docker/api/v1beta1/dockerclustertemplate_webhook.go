@@ -25,6 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"sigs.k8s.io/cluster-api/feature"
 )
@@ -51,11 +52,11 @@ func (r *DockerClusterTemplate) Default() {
 var _ webhook.Validator = &DockerClusterTemplate{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (r *DockerClusterTemplate) ValidateCreate() error {
+func (r *DockerClusterTemplate) ValidateCreate() (admission.Warnings, error) {
 	// NOTE: DockerClusterTemplate is behind ClusterTopology feature gate flag; the web hook
 	// must prevent creating new objects in case the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
-		return field.Forbidden(
+		return nil, field.Forbidden(
 			field.NewPath("spec"),
 			"can be set only if the ClusterTopology feature flag is enabled",
 		)
@@ -63,28 +64,28 @@ func (r *DockerClusterTemplate) ValidateCreate() error {
 
 	allErrs := validateDockerClusterSpec(r.Spec.Template.Spec)
 	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), r.Name, allErrs)
+		return nil, apierrors.NewInvalid(GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), r.Name, allErrs)
 	}
-	return nil
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (r *DockerClusterTemplate) ValidateUpdate(oldRaw runtime.Object) error {
+func (r *DockerClusterTemplate) ValidateUpdate(oldRaw runtime.Object) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	old, ok := oldRaw.(*DockerClusterTemplate)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a DockerClusterTemplate but got a %T", oldRaw))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerClusterTemplate but got a %T", oldRaw))
 	}
 	if !reflect.DeepEqual(r.Spec.Template.Spec, old.Spec.Template.Spec) {
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec"), r, dockerClusterTemplateImmutableMsg))
 	}
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), r.Name, allErrs)
+	return nil, apierrors.NewInvalid(GroupVersion.WithKind("DockerClusterTemplate").GroupKind(), r.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (r *DockerClusterTemplate) ValidateDelete() error {
-	return nil
+func (r *DockerClusterTemplate) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }

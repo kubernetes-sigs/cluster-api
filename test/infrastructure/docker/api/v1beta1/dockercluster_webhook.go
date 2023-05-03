@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func (c *DockerCluster) SetupWebhookWithManager(mgr ctrl.Manager) error {
@@ -44,21 +45,21 @@ func (c *DockerCluster) Default() {
 var _ webhook.Validator = &DockerCluster{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (c *DockerCluster) ValidateCreate() error {
+func (c *DockerCluster) ValidateCreate() (admission.Warnings, error) {
 	if allErrs := validateDockerClusterSpec(c.Spec); len(allErrs) > 0 {
-		return apierrors.NewInvalid(GroupVersion.WithKind("DockerCluster").GroupKind(), c.Name, allErrs)
+		return nil, apierrors.NewInvalid(GroupVersion.WithKind("DockerCluster").GroupKind(), c.Name, allErrs)
 	}
-	return nil
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (c *DockerCluster) ValidateUpdate(_ runtime.Object) error {
-	return nil
+func (c *DockerCluster) ValidateUpdate(_ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (c *DockerCluster) ValidateDelete() error {
-	return nil
+func (c *DockerCluster) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }
 
 func defaultDockerClusterSpec(s *DockerClusterSpec) {

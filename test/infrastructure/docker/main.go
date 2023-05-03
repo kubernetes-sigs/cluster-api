@@ -43,7 +43,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -284,7 +283,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Client:  mgr.GetClient(),
 		Tracker: tracker,
 	}).SetupWithManager(ctx, mgr, controller.Options{
-		Controller: config.Controller{MaxConcurrentReconciles: concurrency},
+		MaxConcurrentReconciles: concurrency,
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
 		os.Exit(1)
@@ -295,7 +294,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		ContainerRuntime: runtimeClient,
 		Tracker:          tracker,
 	}).SetupWithManager(ctx, mgr, controller.Options{
-		Controller: config.Controller{MaxConcurrentReconciles: concurrency},
+		MaxConcurrentReconciles: concurrency,
 	}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DockerMachine")
 		os.Exit(1)
@@ -314,9 +313,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			Client:           mgr.GetClient(),
 			ContainerRuntime: runtimeClient,
 			Tracker:          tracker,
-		}).SetupWithManager(ctx, mgr, controller.Options{
-			Controller: config.Controller{MaxConcurrentReconciles: concurrency},
-		}); err != nil {
+		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: concurrency}); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "DockerMachinePool")
 			os.Exit(1)
 		}

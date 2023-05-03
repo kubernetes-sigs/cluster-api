@@ -17,6 +17,7 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -56,7 +57,7 @@ func TestDockerMachineReconciler_DockerClusterToDockerMachines(t *testing.T) {
 	r := DockerMachineReconciler{
 		Client: c,
 	}
-	out := r.DockerClusterToDockerMachines(dockerCluster)
+	out := r.DockerClusterToDockerMachines(context.Background(), dockerCluster)
 	machineNames := make([]string, len(out))
 	for i := range out {
 		machineNames[i] = out[i].Name

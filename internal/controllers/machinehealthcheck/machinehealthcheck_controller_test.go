@@ -1876,7 +1876,7 @@ func TestClusterToMachineHealthCheck(t *testing.T) {
 				gs.Eventually(getObj).Should(Succeed())
 			}
 
-			got := r.clusterToMachineHealthCheck(tc.object)
+			got := r.clusterToMachineHealthCheck(ctx, tc.object)
 			gs.Expect(got).To(ConsistOf(tc.expected))
 		})
 	}
@@ -1951,7 +1951,7 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 				gs.Eventually(getObj).Should(Succeed())
 			}
 
-			got := r.machineToMachineHealthCheck(tc.object)
+			got := r.machineToMachineHealthCheck(ctx, tc.object)
 			gs.Expect(got).To(ConsistOf(tc.expected))
 		})
 	}
@@ -1960,6 +1960,7 @@ func TestMachineToMachineHealthCheck(t *testing.T) {
 func TestNodeToMachineHealthCheck(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().
 		WithIndex(&clusterv1.Machine{}, index.MachineNodeNameField, index.MachineByNodeName).
+		WithStatusSubresource(&clusterv1.MachineHealthCheck{}, &clusterv1.Machine{}).
 		Build()
 
 	r := &Reconciler{
@@ -2078,7 +2079,7 @@ func TestNodeToMachineHealthCheck(t *testing.T) {
 				gs.Eventually(checkStatus).Should(Equal(o.Status))
 			}
 
-			got := r.nodeToMachineHealthCheck(tc.object)
+			got := r.nodeToMachineHealthCheck(ctx, tc.object)
 			gs.Expect(got).To(ConsistOf(tc.expected))
 		})
 	}
@@ -2592,7 +2593,7 @@ func TestPatchTargets(t *testing.T) {
 		machine1,
 		machine2,
 		mhc,
-	).Build()
+	).WithStatusSubresource(&clusterv1.MachineHealthCheck{}, &clusterv1.Machine{}).Build()
 	r := &Reconciler{
 		Client:   cl,
 		recorder: record.NewFakeRecorder(32),

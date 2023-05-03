@@ -735,7 +735,7 @@ func TestMachineSetToDeployments(t *testing.T) {
 	}
 
 	for _, tc := range testsCases {
-		got := r.MachineSetToDeployments(tc.mapObject)
+		got := r.MachineSetToDeployments(ctx, tc.mapObject)
 		g.Expect(got).To(Equal(tc.expected))
 	}
 }

@@ -527,7 +527,7 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 				r := &Reconciler{
 					Client: fake.NewClientBuilder().WithObjects(cluster, controlPlaneWithNoderef, controlPlaneWithoutNoderef, nonControlPlaneWithNoderef, nonControlPlaneWithoutNoderef).Build(),
 				}
-				requests := r.controlPlaneMachineToCluster(tt.o)
+				requests := r.controlPlaneMachineToCluster(ctx, tt.o)
 				g.Expect(requests).To(Equal(tt.want))
 			})
 		}

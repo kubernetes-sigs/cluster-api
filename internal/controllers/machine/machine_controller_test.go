@@ -554,7 +554,7 @@ func TestMachineOwnerReference(t *testing.T) {
 				machineValidCluster,
 				machineValidMachine,
 				machineValidControlled,
-			).Build()
+			).WithStatusSubresource(&clusterv1.Machine{}).Build()
 			mr := &Reconciler{
 				Client:    c,
 				APIReader: c,
@@ -724,7 +724,7 @@ func TestReconcileRequest(t *testing.T) {
 				&tc.machine,
 				builder.GenericInfrastructureMachineCRD.DeepCopy(),
 				&infraConfig,
-			).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
+			).WithStatusSubresource(&clusterv1.Machine{}).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 
 			r := &Reconciler{
 				Client:   clientFake,
@@ -971,6 +971,7 @@ func TestMachineConditions(t *testing.T) {
 				node,
 			).
 				WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).
+				WithStatusSubresource(&clusterv1.Machine{}).
 				Build()
 
 			r := &Reconciler{
@@ -1106,7 +1107,7 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	mr := &Reconciler{
-		Client: fake.NewClientBuilder().WithObjects(testCluster, m).Build(),
+		Client: fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&clusterv1.Machine{}).Build(),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1980,7 +1981,7 @@ func TestNodeToMachine(t *testing.T) {
 		Client: env,
 	}
 	for _, node := range fakeNodes {
-		request := r.nodeToMachine(node)
+		request := r.nodeToMachine(ctx, node)
 		g.Expect(request).To(BeEquivalentTo([]reconcile.Request{
 			{
 				NamespacedName: client.ObjectKeyFromObject(expectedMachine),
@@ -2087,6 +2088,7 @@ func TestNodeDeletion(t *testing.T) {
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				return fake.NewClientBuilder().
 					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
 					Build()
 			},
 		},
@@ -2098,6 +2100,7 @@ func TestNodeDeletion(t *testing.T) {
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
 					Build()
 				return fakeClientWithNodeDeletionErr{fc}
 			},
@@ -2110,6 +2113,7 @@ func TestNodeDeletion(t *testing.T) {
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
 					Build()
 				return fakeClientWithNodeDeletionErr{fc}
 			},
@@ -2122,6 +2126,7 @@ func TestNodeDeletion(t *testing.T) {
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
 					Build()
 				return fakeClientWithNodeDeletionErr{fc}
 			},
@@ -2135,6 +2140,7 @@ func TestNodeDeletion(t *testing.T) {
 			createFakeClient: func(initObjs ...client.Object) client.Client {
 				fc := fake.NewClientBuilder().
 					WithObjects(initObjs...).
+					WithStatusSubresource(&clusterv1.Machine{}).
 					Build()
 				return fakeClientWithNodeDeletionErr{fc}
 			},

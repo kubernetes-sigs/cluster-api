@@ -468,7 +468,7 @@ func TestMachineSetOwnerReference(t *testing.T) {
 					ms1,
 					ms2,
 					ms3,
-				).Build(),
+				).WithStatusSubresource(&clusterv1.MachineSet{}).Build(),
 				recorder: record.NewFakeRecorder(32),
 			}
 
@@ -515,7 +515,7 @@ func TestMachineSetReconcile(t *testing.T) {
 		}
 
 		msr := &Reconciler{
-			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).Build(),
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build(),
 			recorder: record.NewFakeRecorder(32),
 		}
 		result, err := msr.Reconcile(ctx, request)
@@ -537,7 +537,7 @@ func TestMachineSetReconcile(t *testing.T) {
 
 		rec := record.NewFakeRecorder(32)
 		msr := &Reconciler{
-			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).Build(),
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build(),
 			recorder: rec,
 		}
 		_, _ = msr.Reconcile(ctx, request)
@@ -558,7 +558,7 @@ func TestMachineSetReconcile(t *testing.T) {
 
 		rec := record.NewFakeRecorder(32)
 		msr := &Reconciler{
-			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).Build(),
+			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build(),
 			recorder: rec,
 		}
 		_, err := msr.Reconcile(ctx, request)
@@ -651,7 +651,7 @@ func TestMachineSetToMachines(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			got := r.MachineToMachineSets(tc.mapObject)
+			got := r.MachineToMachineSets(ctx, tc.mapObject)
 			gs.Expect(got).To(Equal(tc.expected))
 		})
 	}
@@ -879,7 +879,7 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 	request := reconcile.Request{
 		NamespacedName: key,
 	}
-	fakeClient := fake.NewClientBuilder().WithObjects(cluster, ms, builder.GenericInfrastructureMachineTemplateCRD.DeepCopy()).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(cluster, ms, builder.GenericInfrastructureMachineTemplateCRD.DeepCopy()).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 
 	msr := &Reconciler{
 		Client:   fakeClient,

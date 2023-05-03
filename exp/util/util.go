@@ -63,7 +63,7 @@ func GetMachinePoolByName(ctx context.Context, c client.Client, namespace, name 
 // MachinePool events and returns reconciliation requests for an infrastructure provider object.
 func MachinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind, log logr.Logger) handler.MapFunc {
 	log = log.WithValues("machine-pool-to-infra-map-func", gvk.String())
-	return func(o client.Object) []reconcile.Request {
+	return func(_ context.Context, o client.Object) []reconcile.Request {
 		m, ok := o.(*expv1.MachinePool)
 		if !ok {
 			log.V(4).Info("Not a machine pool", "Object", klog.KObj(o))

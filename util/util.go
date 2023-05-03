@@ -198,7 +198,7 @@ func ObjectKey(object metav1.Object) client.ObjectKey {
 // Cluster events and returns reconciliation requests for an infrastructure provider object.
 func ClusterToInfrastructureMapFunc(ctx context.Context, gvk schema.GroupVersionKind, c client.Client, providerCluster client.Object) handler.MapFunc {
 	log := ctrl.LoggerFrom(ctx)
-	return func(o client.Object) []reconcile.Request {
+	return func(ctx context.Context, o client.Object) []reconcile.Request {
 		cluster, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			return nil
@@ -265,7 +265,7 @@ func GetMachineByName(ctx context.Context, c client.Client, namespace, name stri
 // MachineToInfrastructureMapFunc returns a handler.ToRequestsFunc that watches for
 // Machine events and returns reconciliation requests for an infrastructure provider object.
 func MachineToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.MapFunc {
-	return func(o client.Object) []reconcile.Request {
+	return func(_ context.Context, o client.Object) []reconcile.Request {
 		m, ok := o.(*clusterv1.Machine)
 		if !ok {
 			return nil
@@ -481,7 +481,7 @@ func ClusterToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runti
 		return nil, err
 	}
 
-	return func(o client.Object) []ctrl.Request {
+	return func(ctx context.Context, o client.Object) []ctrl.Request {
 		cluster, ok := o.(*clusterv1.Cluster)
 		if !ok {
 			return nil
@@ -499,7 +499,7 @@ func ClusterToObjectsMapper(c client.Client, ro client.ObjectList, scheme *runti
 
 		list := &unstructured.UnstructuredList{}
 		list.SetGroupVersionKind(gvk)
-		if err := c.List(context.TODO(), list, listOpts...); err != nil {
+		if err := c.List(ctx, list, listOpts...); err != nil {
 			return nil
 		}
 

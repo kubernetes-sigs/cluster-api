@@ -103,7 +103,7 @@ func TestMachineToInfrastructureMapFunc(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
 			fn := MachineToInfrastructureMapFunc(tc.input)
-			out := fn(tc.request)
+			out := fn(ctx, tc.request)
 			g.Expect(out).To(Equal(tc.output))
 		})
 	}
@@ -225,7 +225,7 @@ func TestClusterToInfrastructureMapFunc(t *testing.T) {
 			referenceObject.SetKind(tc.request.Spec.InfrastructureRef.Kind)
 
 			fn := ClusterToInfrastructureMapFunc(context.Background(), tc.input, clientBuilder.Build(), referenceObject)
-			out := fn(tc.request)
+			out := fn(ctx, tc.request)
 			g.Expect(out).To(Equal(tc.output))
 		})
 	}
@@ -741,7 +741,7 @@ func TestClusterToObjectsMapper(t *testing.T) {
 		client := fake.NewClientBuilder().WithObjects(tc.objects...).WithRESTMapper(restMapper).Build()
 		f, err := ClusterToObjectsMapper(client, tc.input, scheme)
 		g.Expect(err != nil, err).To(Equal(tc.expectError))
-		g.Expect(f(cluster)).To(ConsistOf(tc.output))
+		g.Expect(f(ctx, cluster)).To(ConsistOf(tc.output))
 	}
 }
 

@@ -19,6 +19,7 @@ package server
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -36,8 +37,6 @@ import (
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 )
-
-const tlsVersion13 = "1.3"
 
 // DefaultPort is the default port that the webhook server serves.
 var DefaultPort = 9443
@@ -83,13 +82,17 @@ func New(options Options) (*Server, error) {
 	}
 
 	webhookServer := &webhook.Server{
-		Port:          options.Port,
-		Host:          options.Host,
-		CertDir:       options.CertDir,
-		CertName:      "tls.crt",
-		KeyName:       "tls.key",
-		WebhookMux:    http.NewServeMux(),
-		TLSMinVersion: tlsVersion13,
+		Port:       options.Port,
+		Host:       options.Host,
+		CertDir:    options.CertDir,
+		CertName:   "tls.crt",
+		KeyName:    "tls.key",
+		WebhookMux: http.NewServeMux(),
+		TLSOpts: []func(*tls.Config){
+			func(cfg *tls.Config) {
+				cfg.MinVersion = tls.VersionTLS13
+			},
+		},
 	}
 
 	return &Server{
@@ -230,7 +233,7 @@ func (s *Server) Start(ctx context.Context) error {
 		s.server.Register(handlerPath, http.HandlerFunc(wrappedHandler))
 	}
 
-	return s.server.StartStandalone(ctx, nil)
+	return s.server.Start(ctx)
 }
 
 // discoveryHandler generates a discovery handler based on a list of handlers.

@@ -255,7 +255,7 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 		}
 		// After creating a node we need to wait a small amount of time until crictl does not return an error.
 		// This fixes an issue where we try to kubeadm init too quickly after creating the container.
-		err = wait.PollImmediate(500*time.Millisecond, 4*time.Second, func() (bool, error) {
+		err = wait.PollUntilContextTimeout(ctx, 500*time.Millisecond, 4*time.Second, true, func(ctx context.Context) (bool, error) {
 			ps := m.container.Commander.Command("crictl", "ps")
 			return ps.Run(ctx) == nil, nil
 		})

@@ -89,7 +89,7 @@ type Client interface {
 }
 
 // PollImmediateWaiter tries a condition func until it returns true, an error, or the timeout is reached.
-type PollImmediateWaiter func(interval, timeout time.Duration, condition wait.ConditionFunc) error
+type PollImmediateWaiter func(ctx context.Context, interval, timeout time.Duration, condition wait.ConditionWithContextFunc) error
 
 // clusterClient implements Client.
 type clusterClient struct {
@@ -214,7 +214,9 @@ func newClusterClient(kubeconfig Kubeconfig, configClient config.Client, options
 
 	// if there is an injected PollImmediateWaiter, use it, otherwise use the default one
 	if client.pollImmediateWaiter == nil {
-		client.pollImmediateWaiter = wait.PollImmediate
+		client.pollImmediateWaiter = func(ctx context.Context, interval, timeout time.Duration, condition wait.ConditionWithContextFunc) error {
+			return wait.PollUntilContextTimeout(ctx, interval, timeout, true, condition)
+		}
 	}
 
 	return client

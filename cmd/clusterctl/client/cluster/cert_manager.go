@@ -526,7 +526,7 @@ func (cm *certManagerClient) deleteObj(obj unstructured.Unstructured) error {
 // cert-manager API group.
 // If retry is true, the createObj call will be retried if it fails. Otherwise, the
 // 'create' operations will only be attempted once.
-func (cm *certManagerClient) waitForAPIReady(_ context.Context, retry bool) error {
+func (cm *certManagerClient) waitForAPIReady(ctx context.Context, retry bool) error {
 	log := logf.Log
 	// Waits for the cert-manager to be available.
 	if retry {
@@ -544,7 +544,7 @@ func (cm *certManagerClient) waitForAPIReady(_ context.Context, retry bool) erro
 		// Create the Kubernetes object.
 		// This is wrapped with a retry as the cert-manager API may not be available
 		// yet, so we need to keep retrying until it is.
-		if err := cm.pollImmediateWaiter(waitCertManagerInterval, cm.getWaitTimeout(), func() (bool, error) {
+		if err := cm.pollImmediateWaiter(ctx, waitCertManagerInterval, cm.getWaitTimeout(), func(ctx context.Context) (bool, error) {
 			if err := cm.createObj(o); err != nil {
 				// If retrying is disabled, return the error here.
 				if !retry {

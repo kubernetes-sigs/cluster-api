@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -31,7 +32,7 @@ import (
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/test"
 )
 
-func fakePollImmediateWaiter(_, _ time.Duration, _ wait.ConditionFunc) error {
+func fakePollImmediateWaiter(_ context.Context, _, _ time.Duration, _ wait.ConditionWithContextFunc) error {
 	return nil
 }
 

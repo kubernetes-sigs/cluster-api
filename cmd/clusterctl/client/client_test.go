@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -209,7 +210,7 @@ func newFakeCluster(kubeconfig cluster.Kubeconfig, configClient config.Client) *
 	}
 
 	fake.fakeProxy = test.NewFakeProxy()
-	pollImmediateWaiter := func(interval, timeout time.Duration, condition wait.ConditionFunc) error {
+	pollImmediateWaiter := func(ctx context.Context, interval, timeout time.Duration, condition wait.ConditionWithContextFunc) error {
 		return nil
 	}
 

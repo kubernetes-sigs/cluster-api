@@ -286,7 +286,7 @@ func getMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolIn
 	versions := make([]string, len(instances))
 	for i, instance := range instances {
 		node := &corev1.Node{}
-		err := wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
+		err := wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
 			err := input.WorkloadClusterGetter.Get(ctx, client.ObjectKey{Name: instance.Name}, node)
 			if err != nil {
 				return false, nil //nolint:nilerr

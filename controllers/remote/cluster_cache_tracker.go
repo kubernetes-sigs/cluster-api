@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"fmt"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -263,8 +264,8 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 		return nil, errors.Wrapf(err, "error fetching REST client config for remote cluster %q", cluster.String())
 	}
 
-	// Create a client and a mapper for the cluster.
-	c, mapper, err := t.createClient(config, cluster)
+	// Create a client and a cache for the cluster.
+	c, cache, err := t.createClient(ctx, config, cluster, indexes)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +281,7 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 	if runningOnCluster {
 		inClusterConfig, err := ctrl.GetConfig()
 		if err != nil {
-			return nil, errors.Wrap(err, "error creating client for self-hosted cluster")
+			return nil, errors.Wrapf(err, "error creating client for self-hosted cluster %q", cluster.String())
 		}
 
 		// Use CA and Host from in-cluster config.
@@ -289,63 +290,13 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 		config.Host = inClusterConfig.Host
 
 		// Create a new client and overwrite the previously created client.
-		c, mapper, err = t.createClient(config, cluster)
+		c, cache, err = t.createClient(ctx, config, cluster, indexes)
 		if err != nil {
 			return nil, errors.Wrap(err, "error creating client for self-hosted cluster")
 		}
 		log.Info(fmt.Sprintf("Creating cluster accessor for cluster %q with in-cluster service %q", cluster.String(), config.Host))
 	} else {
 		log.Info(fmt.Sprintf("Creating cluster accessor for cluster %q with the regular apiserver endpoint %q", cluster.String(), config.Host))
-	}
-
-	// Create the cache for the remote cluster
-	cacheOptions := cache.Options{
-		Scheme: t.scheme,
-		Mapper: mapper,
-	}
-	remoteCache, err := cache.New(config, cacheOptions)
-	if err != nil {
-		return nil, errors.Wrapf(err, "error creating cache for remote cluster %q", cluster.String())
-	}
-
-	cacheCtx, cacheCtxCancel := context.WithCancel(ctx)
-
-	// We need to be able to stop the cache's shared informers, so wrap this in a stoppableCache.
-	cache := &stoppableCache{
-		Cache:      remoteCache,
-		cancelFunc: cacheCtxCancel,
-	}
-
-	for _, index := range indexes {
-		if err := cache.IndexField(ctx, index.Object, index.Field, index.ExtractValue); err != nil {
-			return nil, fmt.Errorf("failed to index field %s: %w", index.Field, err)
-		}
-	}
-
-	// Start the cache!!!
-	go cache.Start(cacheCtx) //nolint:errcheck
-
-	// Wait until the cache is initially synced
-	cacheSyncCtx, cacheSyncCtxCancel := context.WithTimeout(ctx, initialCacheSyncTimeout)
-	defer cacheSyncCtxCancel()
-	if !cache.WaitForCacheSync(cacheSyncCtx) {
-		cache.Stop()
-		return nil, fmt.Errorf("failed waiting for cache for remote cluster %v to sync: %w", cluster, cacheCtx.Err())
-	}
-
-	// Start cluster healthcheck!!!
-	go t.healthCheckCluster(cacheCtx, &healthCheckInput{
-		cluster: cluster,
-		cfg:     config,
-	})
-
-	delegatingClient, err := client.NewDelegatingClient(client.NewDelegatingClientInput{
-		CacheReader:     cache,
-		Client:          c,
-		UncachedObjects: t.clientUncachedObjects,
-	})
-	if err != nil {
-		return nil, err
 	}
 
 	// Generating a new private key to be used for generating temporary certificates to connect to
@@ -359,7 +310,7 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 	return &clusterAccessor{
 		cache:                    cache,
 		config:                   config,
-		client:                   delegatingClient,
+		client:                   c,
 		watches:                  sets.Set[string]{},
 		etcdClientCertificateKey: etcdKey,
 	}, nil
@@ -392,27 +343,83 @@ func (t *ClusterCacheTracker) runningOnWorkloadCluster(ctx context.Context, c cl
 }
 
 // createClient creates a client and a mapper based on a rest.Config.
-func (t *ClusterCacheTracker) createClient(config *rest.Config, cluster client.ObjectKey) (client.Client, meta.RESTMapper, error) {
-	var mapper meta.RESTMapper
-	var err error
+func (t *ClusterCacheTracker) createClient(ctx context.Context, config *rest.Config, cluster client.ObjectKey, indexes []Index) (client.Client, *stoppableCache, error) {
+	// Create a http client for the cluster.
+	httpClient, err := rest.HTTPClientFor(config)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "error creating http client for remote cluster %q", cluster.String())
+	}
 
+	var mapper meta.RESTMapper
 	// Create a mapper for it
 	if !feature.Gates.Enabled(feature.LazyRestmapper) {
-		mapper, err = apiutil.NewDynamicRESTMapper(config)
+		mapper, err = apiutil.NewDynamicRESTMapper(config, httpClient)
 	} else {
-		mapper, err = apiutil.NewDynamicRESTMapper(config, apiutil.WithExperimentalLazyMapper)
+		mapper, err = apiutil.NewDynamicRESTMapper(config, httpClient, apiutil.WithExperimentalLazyMapper)
 	}
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error creating dynamic rest mapper for remote cluster %q", cluster.String())
 	}
 
+	// Create the cache for the remote cluster
+	cacheOptions := cache.Options{
+		HTTPClient: httpClient,
+		Scheme:     t.scheme,
+		Mapper:     mapper,
+	}
+	remoteCache, err := cache.New(config, cacheOptions)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "error creating cache for remote cluster %q", cluster.String())
+	}
+
+	cacheCtx, cacheCtxCancel := context.WithCancel(ctx)
+
+	// We need to be able to stop the cache's shared informers, so wrap this in a stoppableCache.
+	cache := &stoppableCache{
+		Cache:      remoteCache,
+		cancelFunc: cacheCtxCancel,
+	}
+
+	for _, index := range indexes {
+		if err := cache.IndexField(ctx, index.Object, index.Field, index.ExtractValue); err != nil {
+			return nil, nil, errors.Wrapf(err, "error adding index for field %q to cache for remote cluster %q", index.Field, cluster.String())
+		}
+	}
+
 	// Create the client for the remote cluster
-	c, err := client.New(config, client.Options{Scheme: t.scheme, Mapper: mapper})
+	c, err := client.New(config, client.Options{
+		Scheme:     t.scheme,
+		Mapper:     mapper,
+		HTTPClient: httpClient,
+		Cache: &client.CacheOptions{
+			Reader:       cache,
+			DisableFor:   t.clientUncachedObjects,
+			Unstructured: true,
+		},
+	})
 	if err != nil {
 		return nil, nil, errors.Wrapf(err, "error creating client for remote cluster %q", cluster.String())
 	}
 
-	return c, mapper, nil
+	// Start the cache!!!
+	go cache.Start(cacheCtx) //nolint:errcheck
+
+	// Wait until the cache is initially synced
+	cacheSyncCtx, cacheSyncCtxCancel := context.WithTimeout(ctx, initialCacheSyncTimeout)
+	defer cacheSyncCtxCancel()
+	if !cache.WaitForCacheSync(cacheSyncCtx) {
+		cache.Stop()
+		return nil, nil, fmt.Errorf("failed waiting for cache for remote cluster %v to sync: %w", cluster, cacheCtx.Err())
+	}
+
+	// Start cluster healthcheck!!!
+	go t.healthCheckCluster(cacheCtx, &healthCheckInput{
+		cluster:    cluster,
+		cfg:        config,
+		httpClient: httpClient,
+	})
+
+	return c, cache, nil
 }
 
 // deleteAccessor stops a clusterAccessor's cache and removes the clusterAccessor from the tracker.
@@ -486,7 +493,7 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 	}
 
 	// Need to create the watch
-	if err := input.Watcher.Watch(source.NewKindWithCache(input.Kind, accessor.cache), input.EventHandler, input.Predicates...); err != nil {
+	if err := input.Watcher.Watch(source.Kind(accessor.cache, input.Kind), input.EventHandler, input.Predicates...); err != nil {
 		return errors.Wrapf(err, "failed to add %s watch on cluster %s: failed to create watch", input.Kind, klog.KRef(input.Cluster.Namespace, input.Cluster.Name))
 	}
 
@@ -498,6 +505,7 @@ func (t *ClusterCacheTracker) Watch(ctx context.Context, input WatchInput) error
 // healthCheckInput provides the input for the healthCheckCluster method.
 type healthCheckInput struct {
 	cluster            client.ObjectKey
+	httpClient         *http.Client
 	cfg                *rest.Config
 	interval           time.Duration
 	requestTimeout     time.Duration
@@ -535,9 +543,9 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 	codec := runtime.NoopEncoder{Decoder: scheme.Codecs.UniversalDecoder()}
 	cfg := rest.CopyConfig(in.cfg)
 	cfg.NegotiatedSerializer = serializer.NegotiatedSerializerWrapper(runtime.SerializerInfo{Serializer: codec})
-	restClient, restClientErr := rest.UnversionedRESTClientFor(cfg)
+	restClient, restClientErr := rest.UnversionedRESTClientForConfigAndClient(cfg, in.httpClient)
 
-	runHealthCheckWithThreshold := func() (bool, error) {
+	runHealthCheckWithThreshold := func(ctx context.Context) (bool, error) {
 		if restClientErr != nil {
 			return false, restClientErr
 		}
@@ -593,12 +601,12 @@ func (t *ClusterCacheTracker) healthCheckCluster(ctx context.Context, in *health
 		return false, nil
 	}
 
-	err := wait.PollImmediateUntil(in.interval, runHealthCheckWithThreshold, ctx.Done())
+	err := wait.PollUntilContextCancel(ctx, in.interval, true, runHealthCheckWithThreshold)
 	// An error returned implies the health check has failed a sufficient number of
 	// times for the cluster to be considered unhealthy
 	// NB. we are ignoring ErrWaitTimeout because this error happens when the channel is close, that in this case
 	// happens when the cache is explicitly stopped.
-	if err != nil && err != wait.ErrWaitTimeout {
+	if err != nil && !wait.Interrupted(err) {
 		t.log.Error(err, "Error health checking cluster", "Cluster", klog.KRef(in.cluster.Namespace, in.cluster.Name))
 		t.deleteAccessor(ctx, in.cluster)
 	}

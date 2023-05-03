@@ -25,6 +25,7 @@ import (
 	"k8s.io/component-base/featuregate"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/config"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
@@ -48,16 +49,12 @@ func TestMain(m *testing.M) {
 		}
 	}
 	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
-		unstructuredCachingClient, err := client.NewDelegatingClient(
-			client.NewDelegatingClientInput{
-				// Use the default client for write operations.
-				Client: mgr.GetClient(),
-				// For read operations, use the same cache used by all the controllers but ensure
-				// unstructured objects will be also cached (this does not happen with the default client).
-				CacheReader:       mgr.GetCache(),
-				CacheUnstructured: true,
+		unstructuredCachingClient, err := client.New(mgr.GetConfig(), client.Options{
+			Cache: &client.CacheOptions{
+				Reader:       mgr.GetCache(),
+				Unstructured: true,
 			},
-		)
+		})
 		if err != nil {
 			panic(fmt.Sprintf("unable to create unstructuredCachineClient: %v", err))
 		}
@@ -65,7 +62,7 @@ func TestMain(m *testing.M) {
 			Client:                    mgr.GetClient(),
 			APIReader:                 mgr.GetAPIReader(),
 			UnstructuredCachingClient: unstructuredCachingClient,
-		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 5}); err != nil {
+		}).SetupWithManager(ctx, mgr, controller.Options{Controller: config.Controller{MaxConcurrentReconciles: 5}}); err != nil {
 			panic(fmt.Sprintf("unable to create clusterclass reconciler: %v", err))
 		}
 	}

@@ -79,7 +79,8 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(kcpTemplate.ValidateCreate()).To(Succeed())
+		_, err := kcpTemplate.ValidateCreate()
+		g.Expect(err).NotTo(HaveOccurred())
 	})
 }
 
@@ -103,6 +104,7 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateDisabled(t *testing.T) 
 				},
 			},
 		}
-		g.Expect(kcpTemplate.ValidateCreate()).NotTo(Succeed())
+		_, err := kcpTemplate.ValidateCreate()
+		g.Expect(err).To(HaveOccurred())
 	})
 }

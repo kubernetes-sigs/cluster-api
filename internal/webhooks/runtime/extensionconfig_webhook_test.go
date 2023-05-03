@@ -95,7 +95,7 @@ func TestExtensionConfigValidationFeatureGated(t *testing.T) {
 			defer utilfeature.SetFeatureGateDuringTest(t, feature.Gates, feature.RuntimeSDK, tt.featureGate)()
 			webhook := ExtensionConfig{}
 			g := NewWithT(t)
-			err := webhook.validate(context.TODO(), tt.old, tt.new)
+			_, err := webhook.validate(context.TODO(), tt.old, tt.new)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -340,7 +340,7 @@ func TestExtensionConfigValidate(t *testing.T) {
 				g.Expect(webhook.Default(ctx, tt.old)).To(Succeed())
 			}
 
-			err := webhook.validate(ctx, tt.old, tt.in)
+			_, err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return

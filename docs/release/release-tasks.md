@@ -215,15 +215,18 @@ to a newer Go minor version according to our [backport policy](./../../CONTRIBUT
        make promote-images
        ```
        **Notes**:
+        * `make promote-images` target tries to figure out your Github user handle in order to find the forked [k8s.io](https://github.com/kubernetes/k8s.io) repository.
+          If you have not forked the repo, please do it before running the Makefile target.
+        * if `make promote-images` fails with an error like `FATAL while checking fork of kubernetes/k8s.io` you may be able to solve it by manually setting the USER_FORK variable i.e.  `export USER_FORK=<personal GitHub handle>`
         * `kpromo` uses `git@github.com:...` as remote to push the branch for the PR. If you don't have `ssh` set up you can configure
           git to use `https` instead via `git config --global url."https://github.com/".insteadOf git@github.com:`.
         * This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPI maintainers.
     4. Merge the PR (/lgtm + /hold cancel) and verify the images are available in the production registry:
          * Wait for the [promotion prow job](https://prow.k8s.io/?repo=kubernetes%2Fk8s.io&job=post-k8sio-image-promo) to complete successfully. Then test the production images are accessible:
          ```bash
-         docker pull registry.k8s.io/cluster-api/clusterctl:${RELEASE_TAG}
-         docker pull registry.k8s.io/cluster-api/cluster-api-controller:${RELEASE_TAG}
-         docker pull registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:${RELEASE_TAG}
+         docker pull registry.k8s.io/cluster-api/clusterctl:${RELEASE_TAG} &&
+         docker pull registry.k8s.io/cluster-api/cluster-api-controller:${RELEASE_TAG} &&
+         docker pull registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:${RELEASE_TAG} &&
          docker pull registry.k8s.io/cluster-api/kubeadm-control-plane-controller:${RELEASE_TAG}
          ```
 4. Publish the release in GitHub:
@@ -233,6 +236,8 @@ to a newer Go minor version according to our [backport policy](./../../CONTRIBUT
    <br>**Notes**:
     * This is only done for new latest stable releases, not for beta / RC releases and not for previous release branches.
     * Check if homebrew already has a PR to update the version (homebrew introduced automation that picks it up). Open one if no PR exists.
+      * To open a PR, you need two things: `tag` (i.e v1.4.2 & v1.3.7 releases are being published, where release-1.4 is the latest stable release branch, so tag would be v1.4.2) and `revision` (it is a commit hash of the tag, i.e if the tag is v1.4.2, it can be found by looking for commit id in [v1.4.2 tag page](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.4.2)).
+      * Once the PR is open, no action should be needed. Homebrew bot should push a second commit (see an example [here](https://github.com/Homebrew/homebrew-core/pull/129986/commits/0da6edddf1143aa50033f7e8ae1ebd07ecdd0941)) to the same PR to update the binary hashes automatically.
       * For an example please see: [PR: clusterctl 1.1.5](https://github.com/Homebrew/homebrew-core/pull/105075/files).
       * Homebrew has [conventions for commit messages](https://docs.brew.sh/Formula-Cookbook#commit) usually
         the commit message for us should look like: `clusterctl 1.1.5`.

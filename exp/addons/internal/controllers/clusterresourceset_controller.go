@@ -145,16 +145,30 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return r.reconcileDelete(ctx, clusters, clusterResourceSet)
 	}
 
+	errs := []error{}
+	errClusterLockedOccurred := false
 	for _, cluster := range clusters {
 		if err := r.ApplyClusterResourceSet(ctx, cluster, clusterResourceSet); err != nil {
 			// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
 			// the current cluster because of concurrent access.
 			if errors.Is(err, remote.ErrClusterLocked) {
 				log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
-				return ctrl.Result{Requeue: true}, nil
+				errClusterLockedOccurred = true
+			} else {
+				// Append the error if the error is not ErrClusterLocked.
+				errs = append(errs, err)
 			}
-			return ctrl.Result{}, err
 		}
+	}
+
+	// Return an aggregated error if errors occurred.
+	if len(errs) > 0 {
+		return ctrl.Result{}, kerrors.NewAggregate(errs)
+	}
+
+	// Requeue if ErrClusterLocked was returned for one of the clusters.
+	if errClusterLockedOccurred {
+		return ctrl.Result{Requeue: true}, nil
 	}
 
 	return ctrl.Result{}, nil

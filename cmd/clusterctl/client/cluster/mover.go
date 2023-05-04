@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -342,6 +343,17 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy) error {
 	// - then all the MachineSets, then all the Machines, etc.
 	moveSequence := getMoveSequence(graph)
 
+	// Check if there are any nodes that were skipped from the move sequence and log them.
+	// This happens if the node has owners that will not be moved.
+	if len(moveSequence.skippedNodes) > 0 {
+		nodeNames := []string{}
+		for _, n := range moveSequence.skippedNodes {
+			nodeNames = append(nodeNames, fmt.Sprintf(" * %s", n.identityStr()))
+		}
+		warningMsg := fmt.Sprintf("[Warning] The following objects will not be moved because they are owned by objects that are not part of the move sequence: \n%s", strings.Join(nodeNames, "\n"))
+		log.V(1).Info(warningMsg)
+	}
+
 	// Create all objects group by group, ensuring all the ownerReferences are re-created.
 	log.Info("Creating objects in the target cluster")
 	for groupIndex := 0; groupIndex < len(moveSequence.groups); groupIndex++ {
@@ -396,6 +408,17 @@ func (o *objectMover) toDirectory(graph *objectGraph, directory string) error {
 	// - then all the MachineSets, then all the Machines, etc.
 	moveSequence := getMoveSequence(graph)
 
+	// Check if there are any nodes that were skipped from the move sequence and log them.
+	// This happens if the node has owners that will not be moved.
+	if len(moveSequence.skippedNodes) > 0 {
+		nodeNames := []string{}
+		for _, n := range moveSequence.skippedNodes {
+			nodeNames = append(nodeNames, fmt.Sprintf(" * %s", n.identityStr()))
+		}
+		warningMsg := fmt.Sprintf("[Warning] The following objects will not be moved because they are owned by objects that are not part of the move sequence: \n%s", strings.Join(nodeNames, "\n"))
+		log.V(1).Info(warningMsg)
+	}
+
 	// Save all objects group by group
 	log.Info(fmt.Sprintf("Saving files to %s", directory))
 	for groupIndex := 0; groupIndex < len(moveSequence.groups); groupIndex++ {
@@ -436,6 +459,17 @@ func (o *objectMover) fromDirectory(graph *objectGraph, toProxy Proxy) error {
 	// - then all the MachineSets, then all the Machines, etc.
 	moveSequence := getMoveSequence(graph)
 
+	// Check if there are any nodes that were skipped from the move sequence and log them.
+	// This happens if the node has owners that will not be moved.
+	if len(moveSequence.skippedNodes) > 0 {
+		nodeNames := []string{}
+		for _, n := range moveSequence.skippedNodes {
+			nodeNames = append(nodeNames, fmt.Sprintf(" * %s", n.identityStr()))
+		}
+		warningMsg := fmt.Sprintf("[Warning] The following objects will not be moved because they are owned by objects that are not part of the move sequence: \n%s", strings.Join(nodeNames, "\n"))
+		log.V(1).Info(warningMsg)
+	}
+
 	// Create all objects group by group, ensuring all the ownerReferences are re-created.
 	log.Info("Restoring objects into the target cluster")
 	for groupIndex := 0; groupIndex < len(moveSequence.groups); groupIndex++ {
@@ -459,8 +493,9 @@ func (o *objectMover) fromDirectory(graph *objectGraph, toProxy Proxy) error {
 
 // moveSequence defines a list of group of moveGroups.
 type moveSequence struct {
-	groups   []moveGroup
-	nodesMap map[*node]empty
+	groups       []moveGroup
+	nodesMap     map[*node]empty
+	skippedNodes []*node
 }
 
 // moveGroup defines is a list of nodes read from the object graph that can be moved in parallel.
@@ -487,8 +522,9 @@ func (s *moveSequence) getGroup(i int) moveGroup {
 // Define the move sequence by processing the ownerReference chain.
 func getMoveSequence(graph *objectGraph) *moveSequence {
 	moveSequence := &moveSequence{
-		groups:   []moveGroup{},
-		nodesMap: make(map[*node]empty),
+		groups:       []moveGroup{},
+		nodesMap:     make(map[*node]empty),
+		skippedNodes: []*node{},
 	}
 
 	for {
@@ -529,6 +565,15 @@ func getMoveSequence(graph *objectGraph) *moveSequence {
 		}
 		moveSequence.addGroup(moveGroup)
 	}
+
+	// Calculate the list of nodes that are part of the graph but are skipped from the move sequence.
+	// This happens if a node has owners that are not part of the move.
+	for _, n := range graph.getMoveNodes() {
+		if !moveSequence.hasNode(n) {
+			moveSequence.skippedNodes = append(moveSequence.skippedNodes, n)
+		}
+	}
+
 	return moveSequence
 }
 

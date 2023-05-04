@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"net/http"
 	"os"
 	"path"
 	"path/filepath"
@@ -36,7 +35,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -47,7 +45,6 @@ import (
 	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -264,9 +261,6 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 			Port:    env.WebhookInstallOptions.LocalServingPort,
 			CertDir: env.WebhookInstallOptions.LocalServingCertDir,
 			Host:    host,
-		},
-		MapperProvider: func(c *rest.Config, httpClient *http.Client) (meta.RESTMapper, error) {
-			return apiutil.NewDynamicRESTMapper(c, httpClient, apiutil.WithExperimentalLazyMapper)
 		},
 	}
 

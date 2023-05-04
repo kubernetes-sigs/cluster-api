@@ -314,7 +314,6 @@ variables:
   EXP_MACHINE_POOL: "true"
   CLUSTER_TOPOLOGY: "true"
   EXP_RUNTIME_SDK: "true"
-  EXP_LAZY_RESTMAPPER: "true"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]

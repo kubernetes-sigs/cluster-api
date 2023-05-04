@@ -343,6 +343,11 @@ func (in *MachineDeploymentBuilder) DeepCopyInto(out *MachineDeploymentBuilder) 
 		in, out := &in.infrastructureTemplate, &out.infrastructureTemplate
 		*out = (*in).DeepCopy()
 	}
+	if in.selector != nil {
+		in, out := &in.selector, &out.selector
+		*out = new(v1.LabelSelector)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.version != nil {
 		in, out := &in.version, &out.version
 		*out = new(string)

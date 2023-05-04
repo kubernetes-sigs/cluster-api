@@ -31,7 +31,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
@@ -154,10 +153,7 @@ func TestGetNode(t *testing.T) {
 			remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(testCluster))
 			g.Expect(err).ToNot(HaveOccurred())
 
-			providerID, err := noderefutil.NewProviderID(tc.providerIDInput)
-			g.Expect(err).ToNot(HaveOccurred())
-
-			node, err := r.getNode(ctx, remoteClient, providerID)
+			node, err := r.getNode(ctx, remoteClient, tc.providerIDInput)
 			if tc.error != nil {
 				g.Expect(err).To(Equal(tc.error))
 				return

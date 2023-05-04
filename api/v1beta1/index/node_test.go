@@ -22,14 +22,10 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 )
 
 func TestIndexNodeByProviderID(t *testing.T) {
-	validProviderID, err := noderefutil.NewProviderID("aws://region/zone/id")
-	g := NewWithT(t)
-	g.Expect(err).ToNot(HaveOccurred())
+	validProviderID := "aws://region/zone/id"
 
 	testCases := []struct {
 		name     string
@@ -45,7 +41,7 @@ func TestIndexNodeByProviderID(t *testing.T) {
 			name: "Node has invalid providerID",
 			object: &corev1.Node{
 				Spec: corev1.NodeSpec{
-					ProviderID: "invalid",
+					ProviderID: "",
 				},
 			},
 			expected: nil,
@@ -54,10 +50,10 @@ func TestIndexNodeByProviderID(t *testing.T) {
 			name: "Node has valid providerID",
 			object: &corev1.Node{
 				Spec: corev1.NodeSpec{
-					ProviderID: validProviderID.String(),
+					ProviderID: validProviderID,
 				},
 			},
-			expected: []string{validProviderID.IndexKey()},
+			expected: []string{validProviderID},
 		},
 	}
 

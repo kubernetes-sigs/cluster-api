@@ -23,7 +23,7 @@ SHELL:=/usr/bin/env bash
 #
 # Go.
 #
-GO_VERSION ?= 1.19.6
+GO_VERSION ?= 1.20.3
 GO_CONTAINER_IMAGE ?= docker.io/library/golang:$(GO_VERSION)
 
 # Use GOPROXY environment variable if set
@@ -39,7 +39,7 @@ export GO111MODULE=on
 #
 # Kubebuilder.
 #
-export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.26.0
+export KUBEBUILDER_ENVTEST_KUBERNETES_VERSION ?= 1.27.1
 export KUBEBUILDER_CONTROLPLANE_START_TIMEOUT ?= 60s
 export KUBEBUILDER_CONTROLPLANE_STOP_TIMEOUT ?= 60s
 
@@ -111,7 +111,7 @@ SETUP_ENVTEST_BIN := setup-envtest
 SETUP_ENVTEST := $(abspath $(TOOLS_BIN_DIR)/$(SETUP_ENVTEST_BIN)-$(SETUP_ENVTEST_VER))
 SETUP_ENVTEST_PKG := sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-CONTROLLER_GEN_VER := v0.11.3
+CONTROLLER_GEN_VER := v0.12.0
 CONTROLLER_GEN_BIN := controller-gen
 CONTROLLER_GEN := $(abspath $(TOOLS_BIN_DIR)/$(CONTROLLER_GEN_BIN)-$(CONTROLLER_GEN_VER))
 CONTROLLER_GEN_PKG := sigs.k8s.io/controller-tools/cmd/controller-gen
@@ -121,7 +121,7 @@ GOTESTSUM_BIN := gotestsum
 GOTESTSUM := $(abspath $(TOOLS_BIN_DIR)/$(GOTESTSUM_BIN)-$(GOTESTSUM_VER))
 GOTESTSUM_PKG := gotest.tools/gotestsum
 
-CONVERSION_GEN_VER := v0.26.0
+CONVERSION_GEN_VER := v0.27.1
 CONVERSION_GEN_BIN := conversion-gen
 # We are intentionally using the binary without version suffix, to avoid the version
 # in generated files.
@@ -472,7 +472,7 @@ generate-modules: ## Run go mod tidy to ensure modules are up to date
 	cd $(TEST_DIR); go mod tidy
 
 .PHONY: generate-e2e-templates
-generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.3 v0.4 v1.0 v1.2 v1.3 v1.4 main) ## Generate cluster templates for all versions
+generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.3 v0.4 v1.0 v1.3 v1.4 main) ## Generate cluster templates for all versions
 
 DOCKER_TEMPLATES := test/e2e/data/infrastructure-docker
 
@@ -487,11 +487,6 @@ generate-e2e-templates-v0.4: $(KUSTOMIZE)
 .PHONY: generate-e2e-templates-v1.0
 generate-e2e-templates-v1.0: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.0/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.0/cluster-template.yaml
-
-.PHONY: generate-e2e-templates-v1.2
-generate-e2e-templates-v1.2: $(KUSTOMIZE)
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.2/cluster-template --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.2/cluster-template.yaml
-	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/v1.2/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/v1.2/cluster-template-topology.yaml
 
 .PHONY: generate-e2e-templates-v1.3
 generate-e2e-templates-v1.3: $(KUSTOMIZE)
@@ -521,11 +516,6 @@ generate-e2e-templates-main: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-topology-single-node-cluster --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-topology-single-node-cluster.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-topology.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-ignition --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-ignition.yaml
-
-.PHONY: generate-test-extension-deployment
-generate-test-extension-deployment: $(KUSTOMIZE)
-	mkdir -p test/e2e/data/test-extension
-	$(KUSTOMIZE) build test/extension/config/default > test/e2e/data/test-extension/deployment.yaml
 
 .PHONY: generate-metrics-config
 generate-metrics-config: $(ENVSUBST_BIN) ## Generate ./hack/observability/kube-state-metrics/crd-config.yaml
@@ -790,7 +780,7 @@ test-test-extension-junit: $(SETUP_ENVTEST) $(GOTESTSUM) ## Run unit and integra
 	exit $$(cat $(ARTIFACTS)/junit.test_extension.exitcode)
 
 .PHONY: test-e2e
-test-e2e: $(GINKGO) generate-e2e-templates generate-test-extension-deployment ## Run the end-to-end tests
+test-e2e: $(GINKGO) generate-e2e-templates ## Run the end-to-end tests
 	$(GINKGO) -v --trace -poll-progress-after=$(GINKGO_POLL_PROGRESS_AFTER) \
 		-poll-progress-interval=$(GINKGO_POLL_PROGRESS_INTERVAL) --tags=e2e --focus="$(GINKGO_FOCUS)" \
 		$(_SKIP_ARGS) --nodes=$(GINKGO_NODES) --timeout=$(GINKGO_TIMEOUT) --no-color=$(GINKGO_NOCOLOR) \
@@ -920,8 +910,6 @@ release-manifests-dev: $(RELEASE_DIR) $(KUSTOMIZE) ## Build the development mani
 	cd $(CAPD_DIR); $(KUSTOMIZE) build config/default > ../../../$(RELEASE_DIR)/infrastructure-components-development.yaml
 	cp $(CAPD_DIR)/templates/* $(RELEASE_DIR)/
 	cd $(TEST_EXTENSION_DIR); $(KUSTOMIZE) build config/default > ../../$(RELEASE_DIR)/runtime-extension-components-development.yaml
-	cp $(CAPD_DIR)/templates/* $(RELEASE_DIR)/
-
 
 .PHONY: release-binaries
 release-binaries: ## Build the binaries to publish with a release

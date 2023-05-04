@@ -200,9 +200,17 @@ loopmachines:
 			}
 		}
 
-		for _, condition := range allMachineHealthConditions {
-			if err := preflightCheckCondition("machine", machine, condition); err != nil {
-				machineErrors = append(machineErrors, err)
+		if machine.Status.NodeRef == nil {
+			// The conditions will only ever be set on a Machine if we're able to correlate a Machine to a Node.
+			// Correlating Machines to Nodes requires the nodeRef to be set.
+			// Instead of confusing users with errors about that the conditions are not set, let's point them
+			// towards the unset nodeRef (which is the root cause of the conditions not being there).
+			machineErrors = append(machineErrors, errors.Errorf("Machine %s does not have a corresponding Node yet (Machine.status.nodeRef not set)", machine.Name))
+		} else {
+			for _, condition := range allMachineHealthConditions {
+				if err := preflightCheckCondition("Machine", machine, condition); err != nil {
+					machineErrors = append(machineErrors, err)
+				}
 			}
 		}
 	}

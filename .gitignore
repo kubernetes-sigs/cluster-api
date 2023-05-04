@@ -13,9 +13,6 @@ hack/tools/bin
 # E2E test templates
 test/e2e/data/infrastructure-docker/**/cluster-template*.yaml
 
-# E2e test extension deployment
-test/e2e/data/test-extension/deployment.yaml
-
 # Output of Makefile targets using sed on MacOS systems
 *.yaml-e
 
@@ -89,3 +86,6 @@ tmp
 
 # asdf (not a typo! ;) used to manage multiple versions of tools
 .tool-versions
+
+# Development container configurations (https://containers.dev/)
+.devcontainer

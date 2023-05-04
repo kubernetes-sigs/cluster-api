@@ -39,6 +39,7 @@ This document details the responsibilities and tasks for each role in the releas
       - [Change production branch in Netlify to the new release branch](#change-production-branch-in-netlify-to-the-new-release-branch)
       - [Update clusterctl links in the quickstart](#update-clusterctl-links-in-the-quickstart)
       - [Continuously: Communicate key dates to the community](#continuously-communicate-key-dates-to-the-community)
+      - [Communicate beta to providers](#communicate-beta-to-providers)
   - [CI Signal/Bug Triage/Automation Manager](#ci-signalbug-triageautomation-manager)
     - [Responsibilities](#responsibilities-2)
     - [Tasks](#tasks-2)
@@ -98,17 +99,17 @@ This comes down to changing occurrences of the old version to the new version, e
       * v1beta1: `v1.0`, `v1.2`, `v1.3` (will change with each new release)
    2. Update providers in `docker.yaml`:
        1. Add a new `v1.3.0` entry.
-       2. Remove providers that are not used anymore (for `v1.4` we don't have to remove any).
+       2. Remove providers that are not used anymore in clusterctl upgrade tests.
        3. Change `v1.3.99` to `v1.4.99`.
    3. Adjust `metadata.yaml`'s:
       1. Create a new `v1.3` `metadata.yaml` (`test/e2e/data/shared/v1.3/metadata.yaml`) by copying
    `test/e2e/data/shared/main/metadata.yaml`
       2. Add the new release to the main `metadata.yaml` (`test/e2e/data/shared/main/metadata.yaml`).
-      3. Remove old `metadata.yaml`'s that are not used anymore (for `v1.4` we don't have to remove any).
+      3. Remove old `metadata.yaml`'s that are not used anymore in clusterctl upgrade tests.
    4. Adjust cluster templates in `test/e2e/data/infrastructure-docker`:
       1. Create a new `v1.3` folder. It should be created based on the `main` folder and only contain the templates
          we use in the clusterctl upgrade tests (as of today `cluster-template` and `cluster-template-topology`).
-      2. Remove old folders that are not used anymore (for `v1.4` we don't have to remove any).
+      2. Remove old folders that are not used anymore in clusterctl upgrade tests.
    5. Modify the test specs in `test/e2e/clusterctl_upgrade_test.go` (according to the versions we want to test described above).
       Please note that both `InitWithKubernetesVersion` and `WorkloadKubernetesVersion` should be the highest mgmt cluster version supported by the respective Cluster API version.
 2. Update `create-local-repository.py` and `tools/tilt-prepare/main.go`: `v1.3.99` => `v1.4.99`.
@@ -187,6 +188,9 @@ to a newer Go minor version according to our [backport policy](./../../CONTRIBUT
 1. Ensure CI is stable before cutting the release (e.g. by checking with the CI manager)
    Note: special attention should be given to image scan results, so we can avoid cutting a release with CVE or document known CVEs in release notes.
 2. Create and push the release tags to the GitHub repository:
+
+   **NOTE:** clusterctl will have issues installing providers between the time the release tag is cut and the Github release is published. See [issue 7889](https://github.com/kubernetes-sigs/cluster-api/issues/7889) for more details
+
    ```bash
    # Export the tag of the release to be cut, e.g.:
    export RELEASE_TAG=v1.0.1
@@ -211,16 +215,20 @@ to a newer Go minor version according to our [backport policy](./../../CONTRIBUT
        make promote-images
        ```
        **Notes**:
+        * `make promote-images` target tries to figure out your Github user handle in order to find the forked [k8s.io](https://github.com/kubernetes/k8s.io) repository.
+          If you have not forked the repo, please do it before running the Makefile target.
+        * if `make promote-images` fails with an error like `FATAL while checking fork of kubernetes/k8s.io` you may be able to solve it by manually setting the USER_FORK variable i.e.  `export USER_FORK=<personal GitHub handle>`
         * `kpromo` uses `git@github.com:...` as remote to push the branch for the PR. If you don't have `ssh` set up you can configure
           git to use `https` instead via `git config --global url."https://github.com/".insteadOf git@github.com:`.
         * This will automatically create a PR in [k8s.io](https://github.com/kubernetes/k8s.io) and assign the CAPI maintainers.
     4. Merge the PR (/lgtm + /hold cancel) and verify the images are available in the production registry:
-       ```bash
-       docker pull registry.k8s.io/cluster-api/clusterctl:${RELEASE_TAG}
-       docker pull registry.k8s.io/cluster-api/cluster-api-controller:${RELEASE_TAG}
-       docker pull registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:${RELEASE_TAG}
-       docker pull registry.k8s.io/cluster-api/kubeadm-control-plane-controller:${RELEASE_TAG}
-       ```
+         * Wait for the [promotion prow job](https://prow.k8s.io/?repo=kubernetes%2Fk8s.io&job=post-k8sio-image-promo) to complete successfully. Then test the production images are accessible:
+         ```bash
+         docker pull registry.k8s.io/cluster-api/clusterctl:${RELEASE_TAG} &&
+         docker pull registry.k8s.io/cluster-api/cluster-api-controller:${RELEASE_TAG} &&
+         docker pull registry.k8s.io/cluster-api/kubeadm-bootstrap-controller:${RELEASE_TAG} &&
+         docker pull registry.k8s.io/cluster-api/kubeadm-control-plane-controller:${RELEASE_TAG}
+         ```
 4. Publish the release in GitHub:
     1. Get the final release notes from the docs team and add them to the GitHub release.
     2. Publish the release (ensure to flag the release as pre-release if necessary).
@@ -228,6 +236,8 @@ to a newer Go minor version according to our [backport policy](./../../CONTRIBUT
    <br>**Notes**:
     * This is only done for new latest stable releases, not for beta / RC releases and not for previous release branches.
     * Check if homebrew already has a PR to update the version (homebrew introduced automation that picks it up). Open one if no PR exists.
+      * To open a PR, you need two things: `tag` (i.e v1.4.2 & v1.3.7 releases are being published, where release-1.4 is the latest stable release branch, so tag would be v1.4.2) and `revision` (it is a commit hash of the tag, i.e if the tag is v1.4.2, it can be found by looking for commit id in [v1.4.2 tag page](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.4.2)).
+      * Once the PR is open, no action should be needed. Homebrew bot should push a second commit (see an example [here](https://github.com/Homebrew/homebrew-core/pull/129986/commits/0da6edddf1143aa50033f7e8ae1ebd07ecdd0941)) to the same PR to update the binary hashes automatically.
       * For an example please see: [PR: clusterctl 1.1.5](https://github.com/Homebrew/homebrew-core/pull/105075/files).
       * Homebrew has [conventions for commit messages](https://docs.brew.sh/Formula-Cookbook#commit) usually
         the commit message for us should look like: `clusterctl 1.1.5`.
@@ -372,6 +382,30 @@ Stakeholders are: (TBD)
 * Contributors to core Cluster API
 * Provider implementers
 * ...
+
+#### Communicate beta to providers
+
+The goal of this task is to inform all providers that a new beta.0 version a release is out and that it should be tested. We want to prevent issues where providers don't have enough time to test before a new version of CAPI is released. This stems from a previous issue we are trying to avoid: https://github.com/kubernetes-sigs/cluster-api/issues/8498
+
+We should inform at least the following providers via a new issue on their respective repos that a new version of CAPI is being released (provide the release date) and that the beta.0 version is ready for them to test.
+
+ - Addon provider helm: https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/issues/new
+ - AWS: https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/new
+ - Azure: https://github.com/kubernetes-sigs/cluster-api-provider-azure/issues/new
+ - Cloudstack: https://github.com/kubernetes-sigs/cluster-api-provider-cloudstack/issues/new
+ - Digital Ocean: https://github.com/kubernetes-sigs/cluster-api-provider-digitalocean/issues/new
+ - GCP: https://github.com/kubernetes-sigs/cluster-api-provider-gcp/issues/new
+ - Kubemark: https://github.com/kubernetes-sigs/cluster-api-provider-kubemark/issues/new
+ - Kubevirt: https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/issues/new
+ - IBMCloud: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/issues/new
+ - Nested: https://github.com/kubernetes-sigs/cluster-api-provider-nested/issues/new
+ - OCI: https://github.com/oracle/cluster-api-provider-oci/issues/new
+ - Openstack: https://github.com/kubernetes-sigs/cluster-api-provider-openstack/issues/new
+ - Operator: https://github.com/kubernetes-sigs/cluster-api-operator/issues/new
+ - Packet: https://github.com/kubernetes-sigs/cluster-api-provider-packet/issues/new
+ - vSphere: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/issues/new
+
+TODO: Right now we don't have a template for this message but the Comms Team will provide one later. 
 
 ## CI Signal/Bug Triage/Automation Manager
 

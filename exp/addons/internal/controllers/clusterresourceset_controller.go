@@ -142,19 +142,28 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return r.reconcileDelete(ctx, clusters, clusterResourceSet)
 	}
 
+	res := ctrl.Result{}
+	errs := []error{}
 	for _, cluster := range clusters {
-		if err := r.ApplyClusterResourceSet(ctx, cluster, clusterResourceSet); err != nil {
+		applyResult, err := r.ApplyClusterResourceSet(ctx, cluster, clusterResourceSet)
+		if err != nil {
 			// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
 			// the current cluster because of concurrent access.
 			if errors.Is(err, remote.ErrClusterLocked) {
 				log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
-				return ctrl.Result{Requeue: true}, nil
+				applyResult = ctrl.Result{Requeue: true}
+			} else {
+				// Append the error if the error is not ErrClusterLocked.
+				errs = append(errs, err)
 			}
-			return ctrl.Result{}, err
 		}
+		if len(errs) > 0 {
+			continue
+		}
+		res = util.LowestNonZeroResult(res, applyResult)
 	}
 
-	return ctrl.Result{}, nil
+	return res, kerrors.NewAggregate(errs)
 }
 
 // reconcileDelete removes the deleted ClusterResourceSet from all the ClusterResourceSetBindings it is added to.
@@ -236,33 +245,33 @@ func (r *ClusterResourceSetReconciler) getClustersByClusterResourceSetSelector(c
 // In Reconcile strategy, resources are re-applied to a particular cluster when their definition changes. The hash in ClusterResourceSetBinding is used to check
 // if a resource has changed or not.
 // TODO: If a resource already exists in the cluster but not applied by ClusterResourceSet, the resource will be updated ?
-func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) error {
+func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Context, cluster *clusterv1.Cluster, clusterResourceSet *addonsv1.ClusterResourceSet) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "Cluster", klog.KObj(cluster))
 	ctx = ctrl.LoggerInto(ctx, log)
 
 	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		conditions.MarkFalse(clusterResourceSet, addonsv1.ResourcesAppliedCondition, addonsv1.RemoteClusterClientFailedReason, clusterv1.ConditionSeverityError, err.Error())
-		return err
+		return ctrl.Result{}, err
 	}
 
 	// Ensure that the Kubernetes API Server service has been created in the remote cluster before applying the ClusterResourceSet to avoid service IP conflict.
 	// This action is required when the remote cluster Kubernetes version is lower than v1.25.
 	// TODO: Remove this action once CAPI no longer supports Kubernetes versions below v1.25. See: https://github.com/kubernetes-sigs/cluster-api/issues/7804
 	if err = ensureKubernetesServiceCreated(ctx, remoteClient); err != nil {
-		return errors.Wrapf(err, "failed to retrieve the Service for Kubernetes API Server of the cluster %s/%s", cluster.Namespace, cluster.Name)
+		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve the Service for Kubernetes API Server of the cluster %s/%s", cluster.Namespace, cluster.Name)
 	}
 
 	// Get ClusterResourceSetBinding object for the cluster.
 	clusterResourceSetBinding, err := r.getOrCreateClusterResourceSetBinding(ctx, cluster, clusterResourceSet)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	// Initialize the patch helper.
 	patchHelper, err := patch.NewHelper(clusterResourceSetBinding, r.Client)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
 
 	defer func() {
@@ -283,6 +292,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 	resourceSetBinding := clusterResourceSetBinding.GetOrCreateBinding(clusterResourceSet)
 
 	// Iterate all resources and apply them to the cluster and update the resource status in the ClusterResourceSetBinding object.
+	resourceNotFound := false
 	for _, resource := range clusterResourceSet.Spec.Resources {
 		unstructuredObj, err := r.getResource(ctx, resource, cluster.GetNamespace())
 		if err != nil {
@@ -293,6 +303,7 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 
 				// Continue without adding the error to the aggregate if we can't find the resource.
 				if apierrors.IsNotFound(err) {
+					resourceNotFound = true
 					continue
 				}
 			}
@@ -351,12 +362,16 @@ func (r *ClusterResourceSetReconciler) ApplyClusterResourceSet(ctx context.Conte
 		})
 	}
 	if len(errList) > 0 {
-		return kerrors.NewAggregate(errList)
+		return ctrl.Result{}, kerrors.NewAggregate(errList)
 	}
 
 	conditions.MarkTrue(clusterResourceSet, addonsv1.ResourcesAppliedCondition)
 
-	return nil
+	if resourceNotFound {
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	return ctrl.Result{}, nil
 }
 
 // getResource retrieves the requested resource and convert it to unstructured type.

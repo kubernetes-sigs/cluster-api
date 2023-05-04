@@ -21,7 +21,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"time"
@@ -31,10 +30,8 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
@@ -44,7 +41,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -219,12 +215,6 @@ func main() {
 			CertDir: webhookCertDir,
 			TLSOpts: tlsOptionOverrides,
 		},
-	}
-
-	if feature.Gates.Enabled(feature.LazyRestmapper) {
-		ctrlOptions.MapperProvider = func(c *rest.Config, httpClient *http.Client) (meta.RESTMapper, error) {
-			return apiutil.NewDynamicRESTMapper(c, httpClient, apiutil.WithExperimentalLazyMapper)
-		}
 	}
 
 	mgr, err := ctrl.NewManager(restConfig, ctrlOptions)

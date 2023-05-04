@@ -926,8 +926,8 @@ are also a few optional tunables if you'd like to change the OS or CIDRs used.
 # The project where your cluster will be placed to.
 # You have to get one from the Equinix Metal Console if you don't have one already.
 export PROJECT_ID="2b59569f-10d1-49a6-a000-c2fb95a959a1"
-# The facility where you want your cluster to be provisioned
-export FACILITY="da11"
+# This can help to take advantage of automated, interconnected bare metal across our global metros.
+export METRO="da"
 # What plan to use for your control plane nodes
 export CONTROLPLANE_NODE_TYPE="m3.small.x86"
 # What plan to use for your worker nodes

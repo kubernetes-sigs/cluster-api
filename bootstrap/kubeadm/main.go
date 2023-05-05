@@ -202,11 +202,13 @@ func main() {
 				},
 			},
 		},
-		WebhookServer: &webhook.Server{
-			Port:    webhookPort,
-			CertDir: webhookCertDir,
-			TLSOpts: tlsOptionOverrides,
-		},
+		WebhookServer: webhook.NewServer(
+			webhook.Options{
+				Port:    webhookPort,
+				CertDir: webhookCertDir,
+				TLSOpts: tlsOptionOverrides,
+			},
+		),
 	}
 
 	mgr, err := ctrl.NewManager(restConfig, ctrlOptions)

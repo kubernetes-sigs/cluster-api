@@ -257,11 +257,13 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 				DisableFor: objs,
 			},
 		},
-		WebhookServer: &webhook.Server{
-			Port:    env.WebhookInstallOptions.LocalServingPort,
-			CertDir: env.WebhookInstallOptions.LocalServingCertDir,
-			Host:    host,
-		},
+		WebhookServer: webhook.NewServer(
+			webhook.Options{
+				Port:    env.WebhookInstallOptions.LocalServingPort,
+				CertDir: env.WebhookInstallOptions.LocalServingCertDir,
+				Host:    host,
+			},
+		),
 	}
 
 	mgr, err := ctrl.NewManager(env.Config, options)

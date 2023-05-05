@@ -44,7 +44,7 @@ var DefaultPort = 9443
 // Server is a runtime webhook server.
 type Server struct {
 	catalog  *runtimecatalog.Catalog
-	server   *webhook.Server
+	server   webhook.Server
 	handlers map[string]ExtensionHandler
 }
 
@@ -81,19 +81,21 @@ func New(options Options) (*Server, error) {
 		options.CertDir = filepath.Join(os.TempDir(), "k8s-webhook-server", "serving-certs")
 	}
 
-	webhookServer := &webhook.Server{
-		Port:       options.Port,
-		Host:       options.Host,
-		CertDir:    options.CertDir,
-		CertName:   "tls.crt",
-		KeyName:    "tls.key",
-		WebhookMux: http.NewServeMux(),
-		TLSOpts: []func(*tls.Config){
-			func(cfg *tls.Config) {
-				cfg.MinVersion = tls.VersionTLS13
+	webhookServer := webhook.NewServer(
+		webhook.Options{
+			Port:       options.Port,
+			Host:       options.Host,
+			CertDir:    options.CertDir,
+			CertName:   "tls.crt",
+			KeyName:    "tls.key",
+			WebhookMux: http.NewServeMux(),
+			TLSOpts: []func(*tls.Config){
+				func(cfg *tls.Config) {
+					cfg.MinVersion = tls.VersionTLS13
+				},
 			},
 		},
-	}
+	)
 
 	return &Server{
 		catalog:  options.Catalog,

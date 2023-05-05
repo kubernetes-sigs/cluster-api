@@ -83,7 +83,7 @@ metadata:
   name: my-docker-cluster
 spec:
   topology:
-    class: docker-clusterclass
+    class: docker-clusterclass-v0.1.0
     version: v1.22.4
     controlPlane:
       replicas: 3

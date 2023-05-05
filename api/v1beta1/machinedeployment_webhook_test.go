@@ -105,7 +105,7 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			newMD: &MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						autoscalerMinSize: "3",
+						AutoscalerMinSizeAnnotation: "3",
 					},
 				},
 			},
@@ -116,7 +116,7 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			newMD: &MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						autoscalerMaxSize: "7",
+						AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
@@ -127,8 +127,8 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			newMD: &MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						autoscalerMinSize: "abc",
-						autoscalerMaxSize: "7",
+						AutoscalerMinSizeAnnotation: "abc",
+						AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
@@ -139,8 +139,8 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			newMD: &MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						autoscalerMinSize: "3",
-						autoscalerMaxSize: "abc",
+						AutoscalerMinSizeAnnotation: "3",
+						AutoscalerMaxSizeAnnotation: "abc",
 					},
 				},
 			},
@@ -151,8 +151,8 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			newMD: &MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						autoscalerMinSize: "3",
-						autoscalerMaxSize: "7",
+						AutoscalerMinSizeAnnotation: "3",
+						AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
@@ -163,8 +163,8 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			newMD: &MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						autoscalerMinSize: "3",
-						autoscalerMaxSize: "7",
+						AutoscalerMinSizeAnnotation: "3",
+						AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
@@ -176,8 +176,8 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			newMD: &MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						autoscalerMinSize: "3",
-						autoscalerMaxSize: "7",
+						AutoscalerMinSizeAnnotation: "3",
+						AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
@@ -193,8 +193,8 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			newMD: &MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						autoscalerMinSize: "3",
-						autoscalerMaxSize: "7",
+						AutoscalerMinSizeAnnotation: "3",
+						AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},
@@ -210,8 +210,8 @@ func TestCalculateMachineDeploymentReplicas(t *testing.T) {
 			newMD: &MachineDeployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Annotations: map[string]string{
-						autoscalerMinSize: "3",
-						autoscalerMaxSize: "7",
+						AutoscalerMinSizeAnnotation: "3",
+						AutoscalerMaxSizeAnnotation: "7",
 					},
 				},
 			},

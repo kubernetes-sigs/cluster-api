@@ -525,13 +525,12 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 					}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
 				default:
 					log.Logf("Management Cluster does not appear to support CAPI resources.")
+					Byf("Deleting cluster %s", klog.KRef(testNamespace.Name, managementClusterName))
+					framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
+						Client:    managementClusterProxy.GetClient(),
+						Namespace: testNamespace.Name,
+					}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
 				}
-
-				Byf("Deleting cluster %s", klog.KRef(testNamespace.Name, managementClusterName))
-				framework.DeleteAllClustersAndWait(ctx, framework.DeleteAllClustersAndWaitInput{
-					Client:    managementClusterProxy.GetClient(),
-					Namespace: testNamespace.Name,
-				}, input.E2EConfig.GetIntervals(specName, "wait-delete-cluster")...)
 
 				Byf("Deleting namespace %s used for hosting the %q test", testNamespace.Name, specName)
 				framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{

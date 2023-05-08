@@ -489,11 +489,7 @@ func calculateAPIServerPort(config *bootstrapv1.KubeadmConfig) int32 {
 	return 6443
 }
 
-func generateClientCert(caCertEncoded, caKeyEncoded []byte) (tls.Certificate, error) {
-	privKey, err := certs.NewPrivateKey()
-	if err != nil {
-		return tls.Certificate{}, err
-	}
+func generateClientCert(caCertEncoded, caKeyEncoded []byte, clientKey *rsa.PrivateKey) (tls.Certificate, error) {
 	caCert, err := certs.DecodeCertPEM(caCertEncoded)
 	if err != nil {
 		return tls.Certificate{}, err
@@ -502,11 +498,11 @@ func generateClientCert(caCertEncoded, caKeyEncoded []byte) (tls.Certificate, er
 	if err != nil {
 		return tls.Certificate{}, err
 	}
-	x509Cert, err := newClientCert(caCert, privKey, caKey)
+	x509Cert, err := newClientCert(caCert, clientKey, caKey)
 	if err != nil {
 		return tls.Certificate{}, err
 	}
-	return tls.X509KeyPair(certs.EncodeCertPEM(x509Cert), certs.EncodePrivateKeyPEM(privKey))
+	return tls.X509KeyPair(certs.EncodeCertPEM(x509Cert), certs.EncodePrivateKeyPEM(clientKey))
 }
 
 func newClientCert(caCert *x509.Certificate, key *rsa.PrivateKey, caKey crypto.Signer) (*x509.Certificate, error) {

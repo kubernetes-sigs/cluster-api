@@ -18,6 +18,7 @@ package remote
 
 import (
 	"context"
+	"crypto/rsa"
 	"fmt"
 	"os"
 	"sync"
@@ -48,6 +49,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
@@ -166,12 +168,23 @@ func (t *ClusterCacheTracker) GetRESTConfig(ctc context.Context, cluster client.
 	return accessor.config, nil
 }
 
+// GetEtcdClientCertificateKey returns a cached certificate key to be used for generating certificates for accessing etcd in the given cluster.
+func (t *ClusterCacheTracker) GetEtcdClientCertificateKey(ctx context.Context, cluster client.ObjectKey) (*rsa.PrivateKey, error) {
+	accessor, err := t.getClusterAccessor(ctx, cluster, t.indexes...)
+	if err != nil {
+		return nil, err
+	}
+
+	return accessor.etcdClientCertificateKey, nil
+}
+
 // clusterAccessor represents the combination of a delegating client, cache, and watches for a remote cluster.
 type clusterAccessor struct {
-	cache   *stoppableCache
-	client  client.Client
-	watches sets.Set[string]
-	config  *rest.Config
+	cache                    *stoppableCache
+	client                   client.Client
+	watches                  sets.Set[string]
+	config                   *rest.Config
+	etcdClientCertificateKey *rsa.PrivateKey
 }
 
 // clusterAccessorExists returns true if a clusterAccessor exists for cluster.
@@ -335,11 +348,20 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 		return nil, err
 	}
 
+	// Generating a new private key to be used for generating temporary certificates to connect to
+	// etcd on the target cluster.
+	// NOTE: Generating a private key is an expensive operation, so we store it in the cluster accessor.
+	etcdKey, err := certs.NewPrivateKey()
+	if err != nil {
+		return nil, errors.Wrapf(err, "error creating etcd client key for remote cluster %q", cluster.String())
+	}
+
 	return &clusterAccessor{
-		cache:   cache,
-		config:  config,
-		client:  delegatingClient,
-		watches: sets.Set[string]{},
+		cache:                    cache,
+		config:                   config,
+		client:                   delegatingClient,
+		watches:                  sets.Set[string]{},
+		etcdClientCertificateKey: etcdKey,
 	}, nil
 }
 

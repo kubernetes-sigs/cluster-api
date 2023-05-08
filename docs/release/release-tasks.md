@@ -325,12 +325,14 @@ The goal of this task to make the book for the current release available under e
 3. Finalize the release notes:
     1. Copy & paste the release notes into a hackmd (makes collaboration very easy).
     2. Pay close attention to the `## :question: Sort these by hand` section, as it contains items that need to be manually sorted.
-    3. Ensure consistent formatting of entries (e.g. prefix (see [v1.2.0](https://github.com/kubernetes-sigs/cluster-api/releases/tag/v1.2.0) release notes)).
+    3. Ensure consistent formatting of entries (e.g. prefix).
+       <br>**Note**: Check against the release notes of the [previous release](https://github.com/kubernetes-sigs/cluster-api/releases/latest), depending on the release branch you are currently working on (e.g. v1.3.6 when working on v1.3.7 or v1.4.2 when working on v1.4.3).
     4. Merge dependency bump PR entries for the same dependency into a single entry.
     5. Move minor changes into a single line at the end of each section.
     6. Sort entries within a section alphabetically.
     7. Write highlights section based on the initial release notes doc.
-    8. Add Kubernetes version support section.
+    8. Add the Kubernetes version support section and pay close attention to set the correct versions here.
+       <br>**Note**: Check our [Kubernetes support policy](https://cluster-api.sigs.k8s.io/reference/versions.html#supported-kubernetes-versions) in the CAPI book. In case of doubt, reach out to the current release lead.
     9. Modify `Changes since v1.x.y` to `Changes since v1.x`
        <br>**Note**: The release notes tool includes all merges since the previous release branch was branched of.
 4. Iterate until the GA release by generating incremental release notes and modifying the release notes in hackmd accordingly:

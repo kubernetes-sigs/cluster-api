@@ -29,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -49,6 +50,32 @@ var moveTests = []struct {
 	wantMoveGroups [][]string
 	wantErr        bool
 }{
+	{
+		name: "Cluster with ClusterClass",
+		fields: moveTestsFields{
+			objs: func() []client.Object {
+				objs := test.NewFakeClusterClass("ns1", "class1").Objs()
+				objs = append(objs, test.NewFakeCluster("ns1", "foo").WithTopologyClass("class1").Objs()...)
+				return deduplicateObjects(objs)
+			}(),
+		},
+		wantMoveGroups: [][]string{
+			{ // group 1
+				"cluster.x-k8s.io/v1beta1, Kind=ClusterClass, ns1/class1",
+			},
+			{ // group 2
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureClusterTemplate, ns1/class1",
+				"controlplane.cluster.x-k8s.io/v1beta1, Kind=GenericControlPlaneTemplate, ns1/class1",
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/foo",
+			},
+			{ // group 3
+				"/v1, Kind=Secret, ns1/foo-ca",
+				"/v1, Kind=Secret, ns1/foo-kubeconfig",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/foo",
+			},
+		},
+		wantErr: false,
+	},
 	{
 		name: "Cluster",
 		fields: moveTestsFields{
@@ -1112,7 +1139,7 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 				dryRun:    true,
 			}
 
-			err := mover.move(graph, toProxy)
+			err := mover.move(graph, toProxy, nil)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1183,8 +1210,8 @@ func Test_objectMover_move(t *testing.T) {
 			mover := objectMover{
 				fromProxy: graph.proxy,
 			}
-
 			err := mover.move(graph, toProxy)
+
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1229,6 +1256,127 @@ func Test_objectMover_move(t *testing.T) {
 				if err := csTo.Get(ctx, key, oTo); err != nil {
 					t.Errorf("error = %v when checking for %v created in target cluster", err, key)
 					continue
+				}
+			}
+		})
+	}
+}
+
+func Test_objectMover_move_with_Mutator(t *testing.T) {
+	// NB. we are testing the move and move sequence using the same set of moveTests, but checking the results at different stages of the move process
+	// we use same mutator function for all tests and validate outcome based on input.
+	for _, tt := range moveTests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			toNamespace := "foobar"
+			updateKnownKinds := map[string][][]string{
+				"Cluster": {
+					{"metadata", "namespace"},
+					{"spec", "controlPlaneRef", "namespace"},
+					{"spec", "infrastructureRef", "namespace"},
+					{"unknown", "field", "does", "not", "cause", "errors"},
+				},
+				"KubeadmControlPlane": {
+					{"spec", "machineTemplate", "infrastructureRef", "namespace"},
+				},
+				"Machine": {
+					{"spec", "bootstrap", "configRef", "namespace"},
+					{"spec", "infrastructureRef", "namespace"},
+				},
+			}
+			var namespaceMutator ResourceMutatorFunc = func(u *unstructured.Unstructured) error {
+				if u == nil || u.Object == nil {
+					return nil
+				}
+				if u.GetNamespace() != "" {
+					u.SetNamespace(toNamespace)
+				}
+				if fields, knownKind := updateKnownKinds[u.GetKind()]; knownKind {
+					for _, nsField := range fields {
+						_, exists, err := unstructured.NestedFieldNoCopy(u.Object, nsField...)
+						g.Expect(err).To(BeNil())
+						if exists {
+							g.Expect(unstructured.SetNestedField(u.Object, toNamespace, nsField...)).To(Succeed())
+						}
+					}
+				}
+				return nil
+			}
+
+			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
+			graph := getObjectGraphWithObjs(tt.fields.objs)
+
+			// Get all the types to be considered for discovery
+			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+
+			// trigger discovery the content of the source cluster
+			g.Expect(graph.Discovery("")).To(Succeed())
+
+			// gets a fakeProxy to an empty cluster with all the required CRDs
+			toProxy := getFakeProxyWithCRDs()
+
+			// Run move with mutators
+			mover := objectMover{
+				fromProxy: graph.proxy,
+			}
+
+			err := mover.move(graph, toProxy, namespaceMutator)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+
+			g.Expect(err).NotTo(HaveOccurred())
+
+			// check that the objects are removed from the source cluster and are created in the target cluster
+			csFrom, err := graph.proxy.NewClient()
+			g.Expect(err).NotTo(HaveOccurred())
+
+			csTo, err := toProxy.NewClient()
+			g.Expect(err).NotTo(HaveOccurred())
+
+			for _, node := range graph.uidToNode {
+				key := client.ObjectKey{
+					Namespace: node.identity.Namespace,
+					Name:      node.identity.Name,
+				}
+
+				// objects are deleted from the source cluster
+				oFrom := &unstructured.Unstructured{}
+				oFrom.SetAPIVersion(node.identity.APIVersion)
+				oFrom.SetKind(node.identity.Kind)
+
+				err := csFrom.Get(ctx, key, oFrom)
+				if err == nil {
+					if !node.isGlobal && !node.isGlobalHierarchy {
+						t.Errorf("%v not deleted in source cluster", key)
+						continue
+					}
+				} else if !apierrors.IsNotFound(err) {
+					t.Errorf("error = %v when checking for %v deleted in source cluster", err, key)
+					continue
+				}
+
+				// objects are created in the target cluster
+				oTo := &unstructured.Unstructured{}
+				oTo.SetAPIVersion(node.identity.APIVersion)
+				oTo.SetKind(node.identity.Kind)
+				if !node.isGlobal {
+					key.Namespace = toNamespace
+				}
+
+				if err := csTo.Get(ctx, key, oTo); err != nil {
+					t.Errorf("error = %v when checking for %v created in target cluster", err, key)
+					continue
+				}
+				if fields, knownKind := updateKnownKinds[oTo.GetKind()]; knownKind {
+					for _, nsField := range fields {
+						value, exists, err := unstructured.NestedFieldNoCopy(oTo.Object, nsField...)
+						g.Expect(err).To(BeNil())
+						if exists {
+							g.Expect(value).To(Equal(toNamespace))
+						}
+					}
 				}
 			}
 		})
@@ -1797,6 +1945,11 @@ func Test_createTargetObject(t *testing.T) {
 				},
 			},
 			want: func(g *WithT, toClient client.Client) {
+				ns := &corev1.Namespace{}
+				nsKey := client.ObjectKey{
+					Name: "ns1",
+				}
+				g.Expect(toClient.Get(ctx, nsKey, ns)).To(Succeed())
 				c := &clusterv1.Cluster{}
 				key := client.ObjectKey{
 					Namespace: "ns1",
@@ -1932,7 +2085,7 @@ func Test_createTargetObject(t *testing.T) {
 				fromProxy: tt.args.fromProxy,
 			}
 
-			err := mover.createTargetObject(tt.args.node, tt.args.toProxy)
+			err := mover.createTargetObject(tt.args.node, tt.args.toProxy, nil, sets.New[string]())
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

@@ -141,7 +141,12 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 	// TODO: consider if we can detect if we are using external etcd in a more explicit way (e.g. looking at the config instead of deriving from the existing certificates)
 	var clientCert tls.Certificate
 	if keyData != nil {
-		clientCert, err = generateClientCert(crtData, keyData)
+		clientKey, err := m.Tracker.GetEtcdClientCertificateKey(ctx, clusterKey)
+		if err != nil {
+			return nil, err
+		}
+
+		clientCert, err = generateClientCert(crtData, keyData, clientKey)
 		if err != nil {
 			return nil, err
 		}

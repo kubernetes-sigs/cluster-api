@@ -39,7 +39,7 @@ jobs:
       run: make generate-modules
     - name: Update generated code
       run: make generate
-    - uses: EndBug/add-and-commit@b97a9fe893e2984b63d00feaee5922e16ab1cc1e # tag=v9.1.2
+    - uses: EndBug/add-and-commit@1bad3abcf0d6ec49a5857d124b0bfb52dc7bb081 # tag=v9.1.3
       name: Commit changes
       with:
         author_name: dependabot[bot]

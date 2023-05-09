@@ -157,18 +157,16 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 		// Always attempt to patch the object and status after each reconciliation.
 		// Patch ObservedGeneration only if the reconciliation completed successfully
-		patchOpts := []patch.Option{}
+		patchOpts := []patch.Option{
+			patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
+				clusterv1.ReadyCondition,
+				clusterv1.BootstrapReadyCondition,
+				clusterv1.InfrastructureReadyCondition,
+				expv1.ReplicasReadyCondition,
+			}},
+		}
 		if reterr == nil {
-			patchOpts = append(
-				patchOpts,
-				patch.WithStatusObservedGeneration{},
-				patch.WithOwnedConditions{Conditions: []clusterv1.ConditionType{
-					clusterv1.ReadyCondition,
-					clusterv1.BootstrapReadyCondition,
-					clusterv1.InfrastructureReadyCondition,
-					expv1.ReplicasReadyCondition,
-				}},
-			)
+			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
 		}
 		if err := patchHelper.Patch(ctx, mp, patchOpts...); err != nil {
 			reterr = kerrors.NewAggregate([]error{reterr, err})

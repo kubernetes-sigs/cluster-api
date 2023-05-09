@@ -197,6 +197,7 @@ func (m *MachinePoolStatus) GetTypedPhase() MachinePoolPhase {
 		MachinePoolPhaseRunning,
 		MachinePoolPhaseScalingUp,
 		MachinePoolPhaseScalingDown,
+		MachinePoolPhaseScaling,
 		MachinePoolPhaseDeleting,
 		MachinePoolPhaseFailed:
 		return phase

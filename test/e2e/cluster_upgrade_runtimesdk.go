@@ -171,6 +171,22 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 						clusterRef,
 						input.E2EConfig.GetIntervals(specName, "wait-cluster"))
 				},
+				PostMachinesProvisioned: func() {
+					Eventually(func() error {
+						machineList := &clusterv1.MachineList{}
+						if err := input.BootstrapClusterProxy.GetClient().List(ctx, machineList, client.InNamespace(namespace.Name)); err != nil {
+							return errors.Wrap(err, "list machines")
+						}
+
+						for _, machine := range machineList.Items {
+							if !conditions.IsTrue(&machine, clusterv1.MachineNodeHealthyCondition) {
+								return errors.Errorf("machine %q does not have %q condition set to true", machine.GetName(), clusterv1.MachineNodeHealthyCondition)
+							}
+						}
+
+						return nil
+					}, 5*time.Minute, 15*time.Second).Should(Succeed(), "delete extensionConfig failed")
+				},
 				WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 				WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 				WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),

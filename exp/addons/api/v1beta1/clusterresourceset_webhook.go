@@ -71,7 +71,7 @@ func (m *ClusterResourceSet) ValidateDelete() error {
 
 func (m *ClusterResourceSet) validate(old *ClusterResourceSet) error {
 	// NOTE: ClusterResourceSet is behind ClusterResourceSet feature gate flag; the web hook
-	// must prevent creating new objects new case the feature flag is disabled.
+	// must prevent creating new objects when the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterResourceSet) {
 		return field.Forbidden(
 			field.NewPath("spec"),

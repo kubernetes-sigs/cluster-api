@@ -339,6 +339,24 @@ analyzing them via Grafana.
 
 </aside>
 
+As alternative to loki, JSON logs can be visualized with a human readable timestamp using `jq`:
+
+1. Browse the ProwJob artifacts and download the wanted logfile.
+2. Use `jq` to query the logs:
+
+   ```bash
+   cat manager.log \
+     | grep -v "TLS handshake error" \
+     | jq -r '(.ts / 1000 | todateiso8601) + " " + (. | tostring)'
+   ```
+
+   The `(. | tostring)` part could also be customized to only output parts of the JSON logline.
+   E.g.:
+  
+   * `(.err)` to only output the error message part.
+   * `(.msg)` to only output the message part.
+   * `(.controller + " " + .msg)` to output the controller name and message part.
+
 ### Known Issues
 
 #### Building images on SELinux

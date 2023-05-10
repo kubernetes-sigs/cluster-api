@@ -44,6 +44,26 @@ func (h *HookResponseTracker) Add(hook runtimecatalog.Hook, response runtimehook
 	h.responses[hookName] = response
 }
 
+// IsBlocking returns true if the hook returned a blocking response.
+// If the hook is not called or did not return a blocking response it returns false.
+func (h *HookResponseTracker) IsBlocking(hook runtimecatalog.Hook) bool {
+	hookName := runtimecatalog.HookName(hook)
+	response, ok := h.responses[hookName]
+	if !ok {
+		return false
+	}
+	retryableResponse, ok := response.(runtimehooksv1.RetryResponseObject)
+	if !ok {
+		// Not a retryable response. Cannot be blocking.
+		return false
+	}
+	if retryableResponse.GetRetryAfterSeconds() == 0 {
+		// Not a blocking response.
+		return false
+	}
+	return true
+}
+
 // AggregateRetryAfter calculates the lowest non-zero retryAfterSeconds time from all the tracked responses.
 func (h *HookResponseTracker) AggregateRetryAfter() time.Duration {
 	res := int32(0)

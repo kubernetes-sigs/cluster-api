@@ -17,6 +17,7 @@ limitations under the License.
 package framework
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -106,8 +107,10 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 
 			defer os.Remove(tempfileName)
 
+			var execErr string
 			execConfig := container.ExecContainerInput{
 				OutputBuffer: f,
+				ErrorBuffer:  bytes.NewBufferString(execErr),
 			}
 			err = containerRuntime.ExecContainer(
 				ctx,
@@ -116,7 +119,7 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 				"tar", "--hard-dereference", "--dereference", "--directory", containerDir, "--create", "--file", "-", ".",
 			)
 			if err != nil {
-				return err
+				return errors.Wrapf(err, execErr)
 			}
 
 			err = os.MkdirAll(outputDir, os.ModePerm)

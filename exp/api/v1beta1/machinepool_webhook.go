@@ -95,7 +95,7 @@ func (m *MachinePool) ValidateDelete() error {
 
 func (m *MachinePool) validate(old *MachinePool) error {
 	// NOTE: MachinePool is behind MachinePool feature gate flag; the web hook
-	// must prevent creating new objects new case the feature flag is disabled.
+	// must prevent creating new objects when the feature flag is disabled.
 	specPath := field.NewPath("spec")
 	if !feature.Gates.Enabled(feature.MachinePool) {
 		return field.Forbidden(

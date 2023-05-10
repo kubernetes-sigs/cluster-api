@@ -129,7 +129,7 @@ func (webhook *ClusterClass) ValidateDelete(ctx context.Context, obj runtime.Obj
 
 func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newClusterClass *clusterv1.ClusterClass) error {
 	// NOTE: ClusterClass and managed topologies are behind ClusterTopology feature gate flag; the web hook
-	// must prevent creating new objects new case the feature flag is disabled.
+	// must prevent creating new objects when the feature flag is disabled.
 	if !feature.Gates.Enabled(feature.ClusterTopology) {
 		return field.Forbidden(
 			field.NewPath("spec"),

@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
-	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
@@ -300,8 +299,7 @@ func calculateMachineDeploymentReplicas(ctx context.Context, oldMD *MachineDeplo
 		return *newMD.Spec.Replicas, nil
 	}
 
-	// TODO(sbueringer): drop this with the next CR version that adds the MD key automatically.
-	log := ctrl.LoggerFrom(ctx).WithValues("MachineDeployment", klog.KObj(newMD))
+	log := ctrl.LoggerFrom(ctx)
 
 	// If both autoscaler annotations are set, use them to calculate the default value.
 	minSizeString, hasMinSizeAnnotation := newMD.Annotations[AutoscalerMinSizeAnnotation]

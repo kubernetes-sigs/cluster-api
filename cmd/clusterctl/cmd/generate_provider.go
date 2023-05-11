@@ -31,6 +31,7 @@ type generateProvidersOptions struct {
 	infrastructureProvider   string
 	ipamProvider             string
 	runtimeExtensionProvider string
+	addonProvider            string
 	targetNamespace          string
 	textOutput               bool
 	raw                      bool
@@ -89,6 +90,8 @@ func init() {
 		"IPAM provider and version (e.g. infoblox:v0.0.1)")
 	generateProviderCmd.Flags().StringVar(&gpo.runtimeExtensionProvider, "runtime-extension", "",
 		"Runtime extension provider and version (e.g. test:v0.0.1)")
+	generateProviderCmd.Flags().StringVar(&gpo.addonProvider, "addon", "",
+		"Add-on provider and version (e.g. helm:v0.1.0)")
 	generateProviderCmd.Flags().StringVarP(&gpo.targetNamespace, "target-namespace", "n", "",
 		"The target namespace where the provider should be deployed. If unspecified, the components default namespace is used.")
 	generateProviderCmd.Flags().BoolVar(&gpo.textOutput, "describe", false,
@@ -134,41 +137,48 @@ func parseProvider() (string, clusterctlv1.ProviderType, error) {
 	providerType := clusterctlv1.CoreProviderType
 	if gpo.bootstrapProvider != "" {
 		if providerName != "" {
-			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension should be set")
+			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 		}
 		providerName = gpo.bootstrapProvider
 		providerType = clusterctlv1.BootstrapProviderType
 	}
 	if gpo.controlPlaneProvider != "" {
 		if providerName != "" {
-			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension should be set")
+			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 		}
 		providerName = gpo.controlPlaneProvider
 		providerType = clusterctlv1.ControlPlaneProviderType
 	}
 	if gpo.infrastructureProvider != "" {
 		if providerName != "" {
-			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension should be set")
+			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 		}
 		providerName = gpo.infrastructureProvider
 		providerType = clusterctlv1.InfrastructureProviderType
 	}
 	if gpo.ipamProvider != "" {
 		if providerName != "" {
-			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension should be set")
+			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 		}
 		providerName = gpo.ipamProvider
 		providerType = clusterctlv1.IPAMProviderType
 	}
 	if gpo.runtimeExtensionProvider != "" {
 		if providerName != "" {
-			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension should be set")
+			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 		}
 		providerName = gpo.runtimeExtensionProvider
 		providerType = clusterctlv1.RuntimeExtensionProviderType
 	}
+	if gpo.addonProvider != "" {
+		if providerName != "" {
+			return "", "", errors.New("only one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
+		}
+		providerName = gpo.addonProvider
+		providerType = clusterctlv1.AddonProviderType
+	}
 	if providerName == "" {
-		return "", "", errors.New("at least one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension should be set")
+		return "", "", errors.New("at least one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be set")
 	}
 
 	return providerName, providerType, nil

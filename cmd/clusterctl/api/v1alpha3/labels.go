@@ -54,6 +54,8 @@ func ManifestLabel(name string, providerType ProviderType) string {
 		return fmt.Sprintf("ipam-%s", name)
 	case RuntimeExtensionProviderType:
 		return fmt.Sprintf("runtime-extension-%s", name)
+	case AddonProviderType:
+		return fmt.Sprintf("addon-%s", name)
 	default:
 		return name
 	}

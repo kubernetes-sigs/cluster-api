@@ -936,6 +936,10 @@ func getProviderObj(version *string) func(prefix string, objs []unstructured.Uns
 			providerType = string(clusterctlv1.RuntimeExtensionProviderType)
 			providerName = manifestLabel[len("runtime-extension-"):]
 		}
+		if strings.HasPrefix(manifestLabel, "addon-") {
+			providerType = string(clusterctlv1.AddonProviderType)
+			providerName = manifestLabel[len("addon-"):]
+		}
 
 		provider := &clusterctlv1.Provider{
 			TypeMeta: metav1.TypeMeta{

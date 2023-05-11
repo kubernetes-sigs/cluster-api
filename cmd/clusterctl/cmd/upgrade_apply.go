@@ -35,6 +35,7 @@ type upgradeApplyOptions struct {
 	infrastructureProviders   []string
 	ipamProviders             []string
 	runtimeExtensionProviders []string
+	addonProviders            []string
 	waitProviders             bool
 	waitProviderTimeout       int
 }
@@ -85,6 +86,8 @@ func init() {
 		"IPAM providers and versions (e.g. infoblox:v0.0.1) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().StringSliceVar(&ua.runtimeExtensionProviders, "runtime-extension", nil,
 		"Runtime extension providers and versions (e.g. test:v0.0.1) to upgrade to. This flag can be used as alternative to --contract.")
+	upgradeApplyCmd.Flags().StringSliceVar(&ua.addonProviders, "addon", nil,
+		"Add-on providers and versions (e.g. helm:v0.1.0) to upgrade to. This flag can be used as alternative to --contract.")
 	upgradeApplyCmd.Flags().BoolVar(&ua.waitProviders, "wait-providers", false,
 		"Wait for providers to be upgraded.")
 	upgradeApplyCmd.Flags().IntVar(&ua.waitProviderTimeout, "wait-provider-timeout", 5*60,
@@ -102,13 +105,14 @@ func runUpgradeApply() error {
 		(len(ua.controlPlaneProviders) > 0) ||
 		(len(ua.infrastructureProviders) > 0) ||
 		(len(ua.ipamProviders) > 0) ||
-		(len(ua.runtimeExtensionProviders) > 0)
+		(len(ua.runtimeExtensionProviders) > 0) ||
+		(len(ua.addonProviders) > 0)
 
 	if ua.contract == "" && !hasProviderNames {
-		return errors.New("Either the --contract flag or at least one of the following flags has to be set: --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension")
+		return errors.New("Either the --contract flag or at least one of the following flags has to be set: --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon")
 	}
 	if ua.contract != "" && hasProviderNames {
-		return errors.New("The --contract flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension")
+		return errors.New("The --contract flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon")
 	}
 
 	return c.ApplyUpgrade(client.ApplyUpgradeOptions{
@@ -120,6 +124,7 @@ func runUpgradeApply() error {
 		InfrastructureProviders:   ua.infrastructureProviders,
 		IPAMProviders:             ua.ipamProviders,
 		RuntimeExtensionProviders: ua.runtimeExtensionProviders,
+		AddonProviders:            ua.addonProviders,
 		WaitProviders:             ua.waitProviders,
 		WaitProviderTimeout:       time.Duration(ua.waitProviderTimeout) * time.Second,
 	})

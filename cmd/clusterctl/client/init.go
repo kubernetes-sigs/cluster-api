@@ -59,6 +59,9 @@ type InitOptions struct {
 	// RuntimeExtensionProviders and versions (e.g. test:v0.0.1) to add to the management cluster.
 	RuntimeExtensionProviders []string
 
+	// AddonProviders and versions (e.g. helm:v0.1.0) to add to the management cluster.
+	AddonProviders []string
+
 	// TargetNamespace defines the namespace where the providers should be deployed. If unspecified, each provider
 	// will be installed in a provider's default namespace.
 	TargetNamespace string
@@ -252,6 +255,10 @@ func (c *clusterctlClient) setupInstaller(cluster cluster.Client, options InitOp
 	}
 
 	if err := c.addToInstaller(addOptions, clusterctlv1.RuntimeExtensionProviderType, options.RuntimeExtensionProviders...); err != nil {
+		return nil, err
+	}
+
+	if err := c.addToInstaller(addOptions, clusterctlv1.AddonProviderType, options.AddonProviders...); err != nil {
 		return nil, err
 	}
 

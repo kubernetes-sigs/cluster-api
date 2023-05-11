@@ -89,6 +89,9 @@ type ClusterctlUpgradeSpecInput struct {
 	// InitWithRuntimeExtensionProviders specifies the runtime extension provider versions to add to the secondary management cluster, e.g. `test:v0.0.1`.
 	// If not set, the runtime extension provider version is calculated based on the contract.
 	InitWithRuntimeExtensionProviders []string
+	// InitWithAddonProviders specifies the add-on provider versions to add to the secondary management cluster, e.g. `helm:v0.0.1`.
+	// If not set, the add-on provider version is calculated based on the contract.
+	InitWithAddonProviders []string
 	// UpgradeClusterctlVariables can be used to set additional variables for clusterctl upgrade.
 	UpgradeClusterctlVariables map[string]string
 	SkipCleanup                bool
@@ -112,6 +115,7 @@ type ClusterctlUpgradeSpecInput struct {
 	InfrastructureProviders   []string
 	IPAMProviders             []string
 	RuntimeExtensionProviders []string
+	AddonProviders            []string
 }
 
 // ClusterctlUpgradeSpec implements a test that verifies clusterctl upgrade of a management cluster.
@@ -280,6 +284,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			infrastructureProviders   []string
 			ipamProviders             []string
 			runtimeExtensionProviders []string
+			addonProviders            []string
 		)
 
 		coreProvider = input.E2EConfig.GetProviderLatestVersionsByContract(initContract, config.ClusterAPIProviderName)[0]
@@ -297,6 +302,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.IPAMProviders()...))
 		runtimeExtensionProviders = getValueOrFallback(input.InitWithRuntimeExtensionProviders,
 			input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.RuntimeExtensionProviders()...))
+		addonProviders = getValueOrFallback(input.InitWithAddonProviders,
+			input.E2EConfig.GetProviderLatestVersionsByContract(initContract, input.E2EConfig.AddonProviders()...))
 
 		clusterctl.InitManagementClusterAndWatchControllerLogs(ctx, clusterctl.InitManagementClusterAndWatchControllerLogsInput{
 			ClusterctlBinaryPath:      clusterctlBinaryPath, // use older version of clusterctl to init the management cluster
@@ -308,6 +315,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			InfrastructureProviders:   infrastructureProviders,
 			IPAMProviders:             ipamProviders,
 			RuntimeExtensionProviders: runtimeExtensionProviders,
+			AddonProviders:            addonProviders,
 			LogFolder:                 filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
 		}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
 
@@ -401,7 +409,8 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			len(input.ControlPlaneProviders) > 0 ||
 			len(input.InfrastructureProviders) > 0 ||
 			len(input.IPAMProviders) > 0 ||
-			len(input.RuntimeExtensionProviders) > 0
+			len(input.RuntimeExtensionProviders) > 0 ||
+			len(input.AddonProviders) > 0
 
 		if isCustomUpgrade {
 			By("Upgrading providers to custom versions")
@@ -415,6 +424,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				InfrastructureProviders:   input.InfrastructureProviders,
 				IPAMProviders:             input.IPAMProviders,
 				RuntimeExtensionProviders: input.RuntimeExtensionProviders,
+				AddonProviders:            input.AddonProviders,
 				LogFolder:                 filepath.Join(input.ArtifactFolder, "clusters", cluster.Name),
 			}, input.E2EConfig.GetIntervals(specName, "wait-controllers")...)
 		} else {

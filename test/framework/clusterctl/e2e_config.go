@@ -401,6 +401,7 @@ func (c *E2EConfig) validateProviders() error {
 		clusterctlv1.InfrastructureProviderType:   nil,
 		clusterctlv1.IPAMProviderType:             nil,
 		clusterctlv1.RuntimeExtensionProviderType: nil,
+		clusterctlv1.AddonProviderType:            nil,
 	}
 	for i, providerConfig := range c.Providers {
 		// Providers name should not be empty.
@@ -410,7 +411,7 @@ func (c *E2EConfig) validateProviders() error {
 		// Providers type should be one of the know types.
 		providerType := clusterctlv1.ProviderType(providerConfig.Type)
 		switch providerType {
-		case clusterctlv1.CoreProviderType, clusterctlv1.BootstrapProviderType, clusterctlv1.ControlPlaneProviderType, clusterctlv1.InfrastructureProviderType, clusterctlv1.IPAMProviderType, clusterctlv1.RuntimeExtensionProviderType:
+		case clusterctlv1.CoreProviderType, clusterctlv1.BootstrapProviderType, clusterctlv1.ControlPlaneProviderType, clusterctlv1.InfrastructureProviderType, clusterctlv1.IPAMProviderType, clusterctlv1.RuntimeExtensionProviderType, clusterctlv1.AddonProviderType:
 			providersByType[providerType] = append(providersByType[providerType], providerConfig.Name)
 		default:
 			return errInvalidArg("Providers[%d].Type=%q", i, providerConfig.Type)
@@ -517,6 +518,11 @@ func (c *E2EConfig) IPAMProviders() []string {
 // RuntimeExtensionProviders returns the runtime extension provider selected for running this E2E test.
 func (c *E2EConfig) RuntimeExtensionProviders() []string {
 	return c.getProviders(clusterctlv1.RuntimeExtensionProviderType)
+}
+
+// AddonProviders returns the add-on provider selected for running this E2E test.
+func (c *E2EConfig) AddonProviders() []string {
+	return c.getProviders(clusterctlv1.AddonProviderType)
 }
 
 func (c *E2EConfig) getProviders(t clusterctlv1.ProviderType) []string {

@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	. "github.com/onsi/gomega"
 )
 
@@ -45,11 +46,13 @@ func Test_runGetRepositories(t *testing.T) {
 			out, err := io.ReadAll(buf)
 			g.Expect(err).ToNot(HaveOccurred())
 
+			var diff string
 			if val == RepositoriesOutputText {
-				g.Expect(string(out)).To(Equal(expectedOutputText))
+				diff = cmp.Diff(expectedOutputText, string(out))
 			} else if val == RepositoriesOutputYaml {
-				g.Expect(string(out)).To(Equal(expectedOutputYaml))
+				diff = cmp.Diff(expectedOutputYaml, string(out))
 			}
+			g.Expect(diff).To(BeEmpty()) // Use diff to compare as Gomega output does not actually print the string values on failure
 		}
 	})
 
@@ -137,6 +140,7 @@ vcd                 InfrastructureProvider   https://github.com/vmware/cluster-a
 vcluster            InfrastructureProvider   https://github.com/loft-sh/cluster-api-provider-vcluster/releases/latest/                   infrastructure-components.yaml
 virtink             InfrastructureProvider   https://github.com/smartxworks/cluster-api-provider-virtink/releases/latest/                infrastructure-components.yaml
 vsphere             InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/            infrastructure-components.yaml
+helm                AddonProvider            https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/         addon-components.yaml
 `
 
 var expectedOutputYaml = `- File: core_components.yaml
@@ -287,4 +291,8 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: vsphere
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/
+- File: addon-components.yaml
+  Name: helm
+  ProviderType: AddonProvider
+  URL: https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/
 `

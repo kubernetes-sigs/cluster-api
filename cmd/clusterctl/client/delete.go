@@ -48,6 +48,9 @@ type DeleteOptions struct {
 	// RuntimeExtensionProviders and versions (e.g. test:v0.0.1) to delete from the management cluster.
 	RuntimeExtensionProviders []string
 
+	// AddonProviders and versions (e.g. helm:v0.1.0) to delete from the management cluster.
+	AddonProviders []string
+
 	// DeleteAll set for deletion of all the providers.
 	DeleteAll bool
 
@@ -118,6 +121,11 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 		}
 
 		providers, err = appendProviders(providers, clusterctlv1.RuntimeExtensionProviderType, options.RuntimeExtensionProviders...)
+		if err != nil {
+			return err
+		}
+
+		providers, err = appendProviders(providers, clusterctlv1.AddonProviderType, options.AddonProviders...)
 		if err != nil {
 			return err
 		}

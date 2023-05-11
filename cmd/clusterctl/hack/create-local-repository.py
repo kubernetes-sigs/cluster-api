@@ -209,6 +209,8 @@ def splitNameAndType(provider):
         return provider[len('ipam-'):], 'IPAMProvider'
     if provider.startswith('runtime-extension-'):
         return provider[len('runtime-extension-'):], 'RuntimeExtensionProvider'
+    if provider.startswith('addon-'):
+        return provider[len('addon-'):], 'AddonProvider'
     return None, None
 
 def CoreProviderFlag():
@@ -229,6 +231,9 @@ def IPAMProviderFlag():
 def RuntimeExtensionProviderFlag():
     return '--runtime-extension'
 
+def AddonProviderFlag():
+    return '--addon'
+
 def type_to_flag(type):
     switcher = {
         'CoreProvider': CoreProviderFlag,
@@ -236,7 +241,8 @@ def type_to_flag(type):
         'ControlPlaneProvider': ControlPlaneProviderFlag,
         'InfrastructureProvider': InfrastructureProviderFlag,
         'IPAMProvider': IPAMProviderFlag,
-        'RuntimeExtensionProvider': RuntimeExtensionProviderFlag
+        'RuntimeExtensionProvider': RuntimeExtensionProviderFlag,
+        'AddonProvider': AddonProviderFlag
     }
     func = switcher.get(type, lambda: 'Invalid type')
     return func()

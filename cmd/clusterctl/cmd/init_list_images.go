@@ -61,6 +61,7 @@ func runInitListImages() error {
 		InfrastructureProviders:   initOpts.infrastructureProviders,
 		IPAMProviders:             initOpts.ipamProviders,
 		RuntimeExtensionProviders: initOpts.runtimeExtensionProviders,
+		AddonProviders:            initOpts.addonProviders,
 		LogUsageInstructions:      false,
 	}
 

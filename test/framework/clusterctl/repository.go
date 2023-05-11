@@ -121,7 +121,7 @@ func CreateRepository(ctx context.Context, input CreateRepositoryInput) string {
 			Type: provider.Type,
 		}
 		providers = append(providers, p)
-		if !(clusterctlv1.ProviderType(provider.Type) == clusterctlv1.IPAMProviderType || clusterctlv1.ProviderType(provider.Type) == clusterctlv1.RuntimeExtensionProviderType) {
+		if !(clusterctlv1.ProviderType(provider.Type) == clusterctlv1.IPAMProviderType || clusterctlv1.ProviderType(provider.Type) == clusterctlv1.RuntimeExtensionProviderType || clusterctlv1.ProviderType(provider.Type) == clusterctlv1.AddonProviderType) {
 			providersV1_2 = append(providersV1_2, p)
 		}
 	}

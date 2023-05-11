@@ -43,6 +43,7 @@ type InitManagementClusterAndWatchControllerLogsInput struct {
 	InfrastructureProviders   []string
 	IPAMProviders             []string
 	RuntimeExtensionProviders []string
+	AddonProviders            []string
 	LogFolder                 string
 	DisableMetricsCollection  bool
 	ClusterctlBinaryPath      string
@@ -85,6 +86,7 @@ func InitManagementClusterAndWatchControllerLogs(ctx context.Context, input Init
 			InfrastructureProviders:   input.InfrastructureProviders,
 			IPAMProviders:             input.IPAMProviders,
 			RuntimeExtensionProviders: input.RuntimeExtensionProviders,
+			AddonProviders:            input.AddonProviders,
 			// setup clusterctl logs folder
 			LogFolder: input.LogFolder,
 		}
@@ -139,6 +141,7 @@ type UpgradeManagementClusterAndWaitInput struct {
 	InfrastructureProviders   []string
 	IPAMProviders             []string
 	RuntimeExtensionProviders []string
+	AddonProviders            []string
 	LogFolder                 string
 }
 
@@ -153,10 +156,11 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 		len(input.ControlPlaneProviders) > 0 ||
 		len(input.InfrastructureProviders) > 0 ||
 		len(input.IPAMProviders) > 0 ||
-		len(input.RuntimeExtensionProviders) > 0
+		len(input.RuntimeExtensionProviders) > 0 ||
+		len(input.AddonProviders) > 0
 
 	Expect((input.Contract != "" && !isCustomUpgrade) || (input.Contract == "" && isCustomUpgrade)).To(BeTrue(), `Invalid argument. Either the input.Contract parameter or at least one of the following providers has to be set:
-		input.CoreProvider, input.BootstrapProviders, input.ControlPlaneProviders, input.InfrastructureProviders, input.IPAMProviders, input.RuntimeExtensionProviders`)
+		input.CoreProvider, input.BootstrapProviders, input.ControlPlaneProviders, input.InfrastructureProviders, input.IPAMProviders, input.RuntimeExtensionProviders, input.AddonProviders`)
 
 	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created for UpgradeManagementClusterAndWait")
 
@@ -172,6 +176,7 @@ func UpgradeManagementClusterAndWait(ctx context.Context, input UpgradeManagemen
 		InfrastructureProviders:   input.InfrastructureProviders,
 		IPAMProviders:             input.IPAMProviders,
 		RuntimeExtensionProviders: input.RuntimeExtensionProviders,
+		AddonProviders:            input.AddonProviders,
 		LogFolder:                 input.LogFolder,
 	})
 

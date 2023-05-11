@@ -19,11 +19,11 @@ images:
   loadBehavior: tryLoad
 - name: gcr.io/k8s-staging-cluster-api/test-extension-{ARCH}:dev
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-cainjector:v1.11.1
+- name: quay.io/jetstack/cert-manager-cainjector:v1.11.2
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-webhook:v1.11.1
+- name: quay.io/jetstack/cert-manager-webhook:v1.11.2
   loadBehavior: tryLoad
-- name: quay.io/jetstack/cert-manager-controller:v1.11.1
+- name: quay.io/jetstack/cert-manager-controller:v1.11.2
   loadBehavior: tryLoad
 
 providers:

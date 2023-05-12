@@ -19,9 +19,7 @@ package docker
 import (
 	"context"
 	"fmt"
-	"net"
 
-	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/kind/pkg/apis/config/v1alpha4"
 	"sigs.k8s.io/kind/pkg/cluster/constants"
@@ -55,16 +53,9 @@ type nodeCreateOpts struct {
 }
 
 // CreateControlPlaneNode will create a new control plane container.
+// NOTE: If port is 0 picking a host port for the control plane is delegated to the container runtime and is not stable across container restarts.
+// This means that connection to a control plane node may take some time to recover if the underlying container is restarted.
 func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily) (*types.Node, error) {
-	// gets a random host port for the API server
-	if port == 0 {
-		p, err := getPort()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get port for API server")
-		}
-		port = p
-	}
-
 	// add api server port mapping
 	portMappingsWithAPIServer := append(portMappings, v1alpha4.PortMapping{
 		ListenAddress: listenAddress,
@@ -106,17 +97,9 @@ func (m *Manager) CreateWorkerNode(ctx context.Context, name, image, clusterName
 }
 
 // CreateExternalLoadBalancerNode will create a new container to act as the load balancer for external access.
+// NOTE: If port is 0 picking a host port for the load balancer is delegated to the container runtime and is not stable across container restarts.
+// This can break the Kubeconfig in kind, i.e. the file resulting from `kind get kubeconfig -n $CLUSTER_NAME' if the load balancer container is restarted.
 func (m *Manager) CreateExternalLoadBalancerNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, _ clusterv1.ClusterIPFamily) (*types.Node, error) {
-	// gets a random host port for control-plane load balancer
-	// gets a random host port for the API server
-	if port == 0 {
-		p, err := getPort()
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to get port for API server")
-		}
-		port = p
-	}
-
 	// load balancer port mapping
 	portMappings := []v1alpha4.PortMapping{{
 		ListenAddress: listenAddress,
@@ -183,19 +166,6 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 	}
 
 	return types.NewNode(opts.Name, opts.Image, opts.Role), nil
-}
-
-// helper used to get a free TCP port for the API server.
-func getPort() (int32, error) {
-	listener, err := net.Listen("tcp", ":0") //nolint:gosec
-	if err != nil {
-		return 0, err
-	}
-	port := listener.Addr().(*net.TCPAddr).Port
-	if err := listener.Close(); err != nil {
-		return 0, err
-	}
-	return int32(port), nil
 }
 
 func generateMountInfo(mounts []v1alpha4.Mount) []container.Mount {

@@ -48,7 +48,7 @@ export AWS_B64ENCODED_CREDENTIALS=$(clusterawsadm bootstrap credentials encode-a
 
 # Enable the feature gates controlling Ignition bootstrap.
 export EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION=true # Used by the kubeadm bootstrap provider
-export BOOTSTRAP_FORMAT_IGNITION=true # Used by the AWS provider
+export EXP_BOOTSTRAP_FORMAT_IGNITION=true # Used by the AWS provider
 
 # Initialize the management cluster.
 clusterctl init --infrastructure aws

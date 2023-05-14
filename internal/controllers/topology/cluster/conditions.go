@@ -137,11 +137,6 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 			fmt.Fprintf(msgBuilder, " MachineDeployment(s) %s are upgrading",
 				computeMachineDeploymentNameList(s.UpgradeTracker.MachineDeployments.UpgradingNames()),
 			)
-
-		case s.Current.MachineDeployments.IsAnyRollingOut():
-			fmt.Fprintf(msgBuilder, " MachineDeployment(s) %s are rolling out",
-				computeMachineDeploymentNameList(s.UpgradeTracker.MachineDeployments.RolloutNames()),
-			)
 		}
 
 		conditions.Set(

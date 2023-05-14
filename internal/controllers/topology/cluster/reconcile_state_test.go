@@ -685,7 +685,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 			wantError:          false,
 		},
 		{
-			name: "hook should not be called if the control plane is stable at desired version but MDs are rolling out - hook is marked",
+			name: "hook should not be called if the control plane is stable at desired version but MDs are upgrading - hook is marked",
 			s: &scope.Scope{
 				Blueprint: &scope.ClusterBlueprint{
 					Topology: &clusterv1.Topology{
@@ -713,7 +713,7 @@ func TestReconcile_callAfterClusterUpgrade(t *testing.T) {
 				UpgradeTracker: func() *scope.UpgradeTracker {
 					ut := scope.NewUpgradeTracker()
 					ut.ControlPlane.PendingUpgrade = false
-					ut.MachineDeployments.MarkRollingOut("md1")
+					ut.MachineDeployments.MarkUpgrading("md1")
 					return ut
 				}(),
 			},

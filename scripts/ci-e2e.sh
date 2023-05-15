@@ -87,6 +87,8 @@ cleanup() {
   ctr -n moby images list > "${ARTIFACTS_LOCAL}/containerd-images.txt" || true
   ctr -n moby version > "${ARTIFACTS_LOCAL}/containerd-version.txt" || true
 
+  ps -ef > "${ARTIFACTS_LOCAL}/processes-ps-ef.txt" || true
+
   # Verify that no containers are running at this time
   # Note: This verifies that all our tests clean up clusters correctly.
   if [[ ! "$(docker ps -q | wc -l)" -eq "0" ]]

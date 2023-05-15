@@ -176,9 +176,6 @@ type MachinePoolSpec struct
     - Type: `MachineTemplateSpec`
     - Description: Machine Template that describes the configuration of each machine instance in a
       machine pool.
-  - **Strategy [optional]**
-    - Type: `*MachineDeploymentStrategy`
-    - Description: Strategy to employ in replacing existing machine instances in a machine pool.
   - **MinReadySeconds [optional]**
     - Type: `*int32`
     - Description: Minimum number of seconds for which a newly created machine should be ready.
@@ -246,13 +243,13 @@ MachinePoolPhasePending = MachinePoolPhase("pending")
 
 ###### Expectations
 
-- When MachinePool.Spec.Template.Spec.Bootstrap.Data is:
-  - <nil>, expect the field to be set by an external controller.
+- When MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName is:
+  - \<nil\>, expect the field to be set by an external controller.
   - “” (empty string), expect the bootstrap step to be ignored.
   - “...” (populated by user or from the bootstrap provider), expect the contents to be used by a
     bootstrap or infra provider.
 - When MachinePool.Spec.Template.Spec.InfrastructureRef is:
-  - <nil> or not found, expect InfrastructureRef will be set/found during subsequent requeue.
+  - \<nil\> or not found, expect InfrastructureRef will be set/found during subsequent requeue.
   - “...” (populated by user) and found, expect the infrastructure provider is waiting for bootstrap
     data to be ready.
   - Found, expect InfrastructureRef to reference an object such as GoogleManagedInstanceGroup,
@@ -269,7 +266,7 @@ MachinePoolPhaseProvisioning = MachinePoolPhase("provisioning")
 ###### Transition Conditions
 
 - MachinePool.Spec.Template.Spec.Bootstrap.ConfigRef -> Status.Ready is true
-- MachinePool.Spec.Template.Spec.Bootstrap.Data is not <nil>
+- MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName is not \<nil\>
 
 ###### Expectations
 
@@ -302,7 +299,7 @@ MachinePoolPhaseRunning = MachinePoolPhase("running")
 
 ###### Transition Conditions
 
-- Number of Kubernetes Nodes in a Ready state matching MachinePool.Spec.Selector equal MachinePool.Status.Replicas.
+- Number of Kubernetes Nodes matching MachinePool.Spec.ProviderIDList in a Ready state equal to MachinePool.Spec.Replicas.
 
 ###### Expectations
 
@@ -319,7 +316,7 @@ MachinePoolPhaseDeleting = MachinePoolPhase("deleting")
 
 ###### Transition Conditions
 
-- MachinePool.ObjectMeta.DeletionTimestamp is not <nil>
+- MachinePool.ObjectMeta.DeletionTimestamp is not \<nil\>
 
 ###### Expectations
 

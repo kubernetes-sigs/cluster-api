@@ -74,6 +74,14 @@ func WithIPv6Family() KindClusterOption {
 	})
 }
 
+// WithDualStackFamily implements a New Option that instruct the kindClusterProvider to set the IPFamily to dual in
+// the new kind cluster.
+func WithDualStackFamily() KindClusterOption {
+	return kindClusterOptionAdapter(func(k *KindClusterProvider) {
+		k.ipFamily = clusterv1.DualStackIPFamily
+	})
+}
+
 // LogFolder implements a New Option that instruct the kindClusterProvider to dump bootstrap logs in a folder in case of errors.
 func LogFolder(path string) KindClusterOption {
 	return kindClusterOptionAdapter(func(k *KindClusterProvider) {

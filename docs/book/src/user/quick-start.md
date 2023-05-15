@@ -83,6 +83,8 @@ a target [management cluster] on the selected [infrastructure provider].
    cat > kind-cluster-with-extramounts.yaml <<EOF
    kind: Cluster
    apiVersion: kind.x-k8s.io/v1alpha4
+   networking:
+     ipFamily: dual
    nodes:
    - role: control-plane
      extraMounts:

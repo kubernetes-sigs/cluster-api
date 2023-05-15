@@ -51,6 +51,8 @@ fi
 cat <<EOF | kind create cluster --name="$KIND_CLUSTER_NAME"  --config=-
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  ipFamily: dual
 nodes:
 - role: control-plane
   extraMounts:

@@ -17,14 +17,15 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
-
-	utildefaulting "sigs.k8s.io/cluster-api/util/defaulting"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
 func TestMachineDefault(t *testing.T) {
@@ -39,7 +40,10 @@ func TestMachineDefault(t *testing.T) {
 			Version:   pointer.String("1.17.5"),
 		},
 	}
-	t.Run("for Machine", utildefaulting.DefaultValidateTest(m))
+	scheme, err := SchemeBuilder.Build()
+	g.Expect(err).ToNot(HaveOccurred())
+	validator := MachineValidator(scheme)
+	t.Run("for Machine", defaultDefaulterTestCustomValidator(m, validator))
 	m.Default()
 
 	g.Expect(m.Labels[ClusterNameLabel]).To(Equal(m.Spec.ClusterName))
@@ -75,20 +79,36 @@ func TestMachineBootstrapValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			scheme, err := SchemeBuilder.Build()
+			g.Expect(err).ToNot(HaveOccurred())
+			validator := MachineValidator(scheme)
+
+			ctx := admission.NewContextWithRequest(context.Background(), admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					Operation: admissionv1.Create,
+				},
+			})
+
 			m := &Machine{
 				Spec: MachineSpec{Bootstrap: tt.bootstrap},
 			}
 			if tt.expectErr {
-				_, err := m.ValidateCreate()
+				_, err := validator.ValidateCreate(ctx, m)
 				g.Expect(err).To(HaveOccurred())
-				_, err = m.ValidateUpdate(m)
+				_, err = validator.ValidateUpdate(ctx, m, m)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := m.ValidateCreate()
+				_, err := validator.ValidateCreate(ctx, m)
 				g.Expect(err).ToNot(HaveOccurred())
-				_, err = m.ValidateUpdate(m)
+				_, err = validator.ValidateUpdate(ctx, m, m)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
+			// 	g.Expect(validator.ValidateCreate(ctx, m)).NotTo(Succeed())
+			// 	g.Expect(validator.ValidateUpdate(ctx, m, m)).NotTo(Succeed())
+			// } else {
+			// 	g.Expect(validator.ValidateCreate(ctx, m)).To(Succeed())
+			// 	g.Expect(validator.ValidateUpdate(ctx, m, m)).To(Succeed())
+			// }
 		})
 	}
 }
@@ -134,6 +154,15 @@ func TestMachineNamespaceValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			scheme, err := SchemeBuilder.Build()
+			g.Expect(err).ToNot(HaveOccurred())
+			validator := MachineValidator(scheme)
+
+			ctx := admission.NewContextWithRequest(context.Background(), admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					Operation: admissionv1.Create,
+				},
+			})
 
 			m := &Machine{
 				ObjectMeta: metav1.ObjectMeta{Namespace: tt.namespace},
@@ -141,14 +170,14 @@ func TestMachineNamespaceValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				_, err := m.ValidateCreate()
+				_, err := validator.ValidateCreate(ctx, m)
 				g.Expect(err).To(HaveOccurred())
-				_, err = m.ValidateUpdate(m)
+				_, err = validator.ValidateUpdate(ctx, m, m)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := m.ValidateCreate()
+				_, err := validator.ValidateCreate(ctx, m)
 				g.Expect(err).ToNot(HaveOccurred())
-				_, err = m.ValidateUpdate(m)
+				_, err = validator.ValidateUpdate(ctx, m, m)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
@@ -179,6 +208,15 @@ func TestMachineClusterNameImmutable(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			scheme, err := SchemeBuilder.Build()
+			g.Expect(err).ToNot(HaveOccurred())
+			validator := MachineValidator(scheme)
+
+			ctx := admission.NewContextWithRequest(context.Background(), admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					Operation: admissionv1.Create,
+				},
+			})
 
 			newMachine := &Machine{
 				Spec: MachineSpec{
@@ -193,7 +231,7 @@ func TestMachineClusterNameImmutable(t *testing.T) {
 				},
 			}
 
-			_, err := newMachine.ValidateUpdate(oldMachine)
+			_, err = validator.ValidateUpdate(ctx, oldMachine, newMachine)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -239,6 +277,15 @@ func TestMachineVersionValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+			scheme, err := SchemeBuilder.Build()
+			g.Expect(err).ToNot(HaveOccurred())
+			validator := MachineValidator(scheme)
+
+			ctx := admission.NewContextWithRequest(context.Background(), admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					Operation: admissionv1.Create,
+				},
+			})
 
 			m := &Machine{
 				Spec: MachineSpec{
@@ -248,16 +295,54 @@ func TestMachineVersionValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				_, err := m.ValidateCreate()
+				_, err := validator.ValidateCreate(ctx, m)
 				g.Expect(err).To(HaveOccurred())
-				_, err = m.ValidateUpdate(m)
+				_, err = validator.ValidateUpdate(ctx, m, m)
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				_, err := m.ValidateCreate()
+				_, err := validator.ValidateCreate(ctx, m)
 				g.Expect(err).ToNot(HaveOccurred())
-				_, err = m.ValidateUpdate(m)
+				_, err = validator.ValidateUpdate(ctx, m, m)
 				g.Expect(err).ToNot(HaveOccurred())
 			}
+		})
+	}
+}
+
+// defaultDefaulterTestCustomVAlidator returns a new testing function to be used in tests to
+// make sure defaulting webhooks also pass validation tests on create, update and delete.
+// Note: The difference to util/defaulting.DefaultValidateTest is that this function takes an additional
+// CustomValidator as the validation is not implemented on the object directly.
+func defaultDefaulterTestCustomValidator(object admission.Defaulter, customValidator admission.CustomValidator) func(*testing.T) {
+	return func(t *testing.T) {
+		t.Helper()
+
+		createCopy := object.DeepCopyObject().(admission.Defaulter)
+		updateCopy := object.DeepCopyObject().(admission.Defaulter)
+		deleteCopy := object.DeepCopyObject().(admission.Defaulter)
+		defaultingUpdateCopy := updateCopy.DeepCopyObject().(admission.Defaulter)
+
+		ctx := admission.NewContextWithRequest(context.Background(), admission.Request{
+			AdmissionRequest: admissionv1.AdmissionRequest{
+				Operation: admissionv1.Create,
+			},
+		})
+
+		t.Run("validate-on-create", func(t *testing.T) {
+			g := NewWithT(t)
+			createCopy.Default()
+			g.Expect(customValidator.ValidateCreate(ctx, createCopy)).To(Succeed())
+		})
+		t.Run("validate-on-update", func(t *testing.T) {
+			g := NewWithT(t)
+			defaultingUpdateCopy.Default()
+			updateCopy.Default()
+			g.Expect(customValidator.ValidateUpdate(ctx, defaultingUpdateCopy, updateCopy)).To(Succeed())
+		})
+		t.Run("validate-on-delete", func(t *testing.T) {
+			g := NewWithT(t)
+			deleteCopy.Default()
+			g.Expect(customValidator.ValidateDelete(ctx, deleteCopy)).To(Succeed())
 		})
 	}
 }

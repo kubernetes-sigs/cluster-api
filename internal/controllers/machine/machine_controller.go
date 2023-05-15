@@ -268,6 +268,8 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 }
 
 func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	// If the machine is a stand-alone one, meaning not originated from a MachineDeployment, then set it as directly
 	// owned by the Cluster (if not already present).
 	if r.shouldAdopt(m) {
@@ -277,6 +279,14 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 			Name:       cluster.Name,
 			UID:        cluster.UID,
 		}))
+	}
+
+	// We create fallback machines for InfraMachinePools that don't support MachinePool Machines. These machines don't point to any
+	// resources and exist to provide a consistent user experience for MachinePools, so we don't want to reconcile them.
+	if _, isFallbackMachine := m.Labels[clusterv1.FallbackMachineLabel]; isFallbackMachine {
+		log.Info("Skipping reconciliation for fallback machine")
+		// Do not reconcile if the machine is a fallback machine.
+		return ctrl.Result{}, nil
 	}
 
 	phases := []func(context.Context, *clusterv1.Cluster, *clusterv1.Machine) (ctrl.Result, error){
@@ -305,6 +315,13 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) { //nolint:gocyclo
 	log := ctrl.LoggerFrom(ctx)
+
+	if _, isFallbackMachine := m.Labels[clusterv1.FallbackMachineLabel]; isFallbackMachine {
+		log.Info("Skipping infra and bootstrap deletion for fallback machinepool machine")
+
+		controllerutil.RemoveFinalizer(m, clusterv1.MachineFinalizer)
+		return ctrl.Result{}, nil
+	}
 
 	err := r.isDeleteNodeAllowed(ctx, cluster, m)
 	isDeleteNodeAllowed := err == nil

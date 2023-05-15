@@ -61,6 +61,11 @@ const (
 	// update that disallows a pre-existing Cluster to be populated with Topology information and Class.
 	ClusterTopologyUnsafeUpdateClassNameAnnotation = "unsafe.topology.cluster.x-k8s.io/disable-update-class-name-check"
 
+	// FallbackMachineLabel indicates that a Machine belongs to a MachinePool that does not support MachinePool Machines.
+	// As such, these Machines exist to create a consistent user experience and will not have an infrastructure reference. The user will
+	// also be prevented from deleting these Machines.
+	FallbackMachineLabel = "machinepool.cluster.x-k8s.io/fallback-machine"
+
 	// ProviderNameLabel is the label set on components in the provider manifest.
 	// This label allows to easily identify all the components belonging to a provider; the clusterctl
 	// tool uses this label for implementing provider's lifecycle operations.

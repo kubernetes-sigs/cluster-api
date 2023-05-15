@@ -33,12 +33,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controllers/external"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/test/builder"
+	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
 const (
+	timeout        = time.Second * 30
 	clusterName    = "test-cluster"
 	wrongNamespace = "wrong-namespace"
 )
@@ -1049,6 +1052,486 @@ func TestReconcileMachinePoolInfrastructure(t *testing.T) {
 
 			if tc.expected != nil {
 				tc.expected(g, tc.machinepool)
+			}
+		})
+	}
+}
+
+func TestReconcileMachinePoolMachines(t *testing.T) {
+	defaultCluster := clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName,
+			Namespace: metav1.NamespaceDefault,
+		},
+	}
+
+	defaultMachinePool := expv1.MachinePool{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machinepool-test",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: defaultCluster.Name,
+			},
+		},
+		Spec: expv1.MachinePoolSpec{
+			ClusterName: defaultCluster.Name,
+			Replicas:    pointer.Int32(2),
+			Template: clusterv1.MachineTemplateSpec{
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						ConfigRef: &corev1.ObjectReference{
+							APIVersion: "bootstrap.cluster.x-k8s.io/v1beta1",
+							Kind:       "BootstrapConfig",
+							Name:       "bootstrap-config1",
+						},
+					},
+					InfrastructureRef: corev1.ObjectReference{
+						APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+						Kind:       "InfrastructureConfig",
+						Name:       "infra-config1",
+					},
+				},
+			},
+		},
+	}
+
+	infraMachine1 := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "InfrastructureMachine",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-machine1",
+				"namespace": metav1.NamespaceDefault,
+				"labels": map[string]interface{}{
+					clusterv1.ClusterNameLabel:     defaultCluster.Name,
+					clusterv1.MachinePoolNameLabel: defaultMachinePool.Name,
+				},
+			},
+		},
+	}
+
+	infraMachine2 := unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "InfrastructureMachine",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-machine2",
+				"namespace": metav1.NamespaceDefault,
+				"labels": map[string]interface{}{
+					clusterv1.ClusterNameLabel:     defaultCluster.Name,
+					clusterv1.MachinePoolNameLabel: defaultMachinePool.Name,
+				},
+			},
+		},
+	}
+
+	machine1 := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine1",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:     defaultCluster.Name,
+				clusterv1.MachinePoolNameLabel: "machinepool-test",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: clusterName,
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "InfrastructureMachine",
+				Name:       "infra-machine1",
+				Namespace:  metav1.NamespaceDefault,
+			},
+		},
+	}
+
+	machine2 := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine2",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:     defaultCluster.Name,
+				clusterv1.MachinePoolNameLabel: "machinepool-test",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: clusterName,
+			InfrastructureRef: corev1.ObjectReference{
+				APIVersion: "infrastructure.cluster.x-k8s.io/v1beta1",
+				Kind:       "InfrastructureMachine",
+				Name:       "infra-machine2",
+				Namespace:  metav1.NamespaceDefault,
+			},
+		},
+	}
+
+	machine3 := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine3",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:     defaultCluster.Name,
+				clusterv1.MachinePoolNameLabel: "machinepool-test",
+				clusterv1.FallbackMachineLabel: "true",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: clusterName,
+		},
+	}
+
+	machine4 := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine4",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:     defaultCluster.Name,
+				clusterv1.MachinePoolNameLabel: "machinepool-test",
+				clusterv1.FallbackMachineLabel: "true",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: clusterName,
+		},
+	}
+
+	machine5 := clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "machine5",
+			Namespace: metav1.NamespaceDefault,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel:     defaultCluster.Name,
+				clusterv1.MachinePoolNameLabel: "machinepool-test",
+				clusterv1.FallbackMachineLabel: "true",
+			},
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName: clusterName,
+		},
+	}
+
+	testCases := []struct {
+		name            string
+		bootstrapConfig map[string]interface{}
+		infraConfig     map[string]interface{}
+		machines        []clusterv1.Machine
+		infraMachines   []unstructured.Unstructured
+		machinepool     *expv1.MachinePool
+		expectError     bool
+		expectFallback  bool
+	}{
+		{
+			name: "two infra machines, should create two machinepool machines",
+			infraConfig: map[string]interface{}{
+				"kind":       "InfrastructureConfig",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+					"infrastructureMachineKind": "InfrastructureMachine",
+					"infrastructureMachineSelector": map[string]interface{}{
+						"matchLabels": map[string]interface{}{
+							clusterv1.ClusterNameLabel:     defaultCluster.Name,
+							clusterv1.MachinePoolNameLabel: defaultMachinePool.Name,
+						},
+					},
+				},
+			},
+			infraMachines: []unstructured.Unstructured{
+				infraMachine1,
+				infraMachine2,
+			},
+			expectError: false,
+		},
+		{
+			name: "two infra machines and two machinepool machines, nothing to do",
+			infraConfig: map[string]interface{}{
+				"kind":       "InfrastructureConfig",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+					"infrastructureMachineKind": "InfrastructureMachine",
+					"infrastructureMachineSelector": map[string]interface{}{
+						"matchLabels": map[string]interface{}{
+							clusterv1.ClusterNameLabel:     defaultCluster.Name,
+							clusterv1.MachinePoolNameLabel: defaultMachinePool.Name,
+						},
+					},
+				},
+			},
+			machines: []clusterv1.Machine{
+				machine1,
+				machine2,
+			},
+			infraMachines: []unstructured.Unstructured{
+				infraMachine1,
+				infraMachine2,
+			},
+			expectError: false,
+		},
+		{
+			name: "one extra machine, should delete",
+			infraConfig: map[string]interface{}{
+				"kind":       "InfrastructureConfig",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+					"infrastructureMachineKind": "InfrastructureMachine",
+					"infrastructureMachineSelector": map[string]interface{}{
+						"matchLabels": map[string]interface{}{
+							clusterv1.ClusterNameLabel:     defaultCluster.Name,
+							clusterv1.MachinePoolNameLabel: defaultMachinePool.Name,
+						},
+					},
+				},
+			},
+			machines: []clusterv1.Machine{
+				machine1,
+				machine2,
+			},
+			infraMachines: []unstructured.Unstructured{
+				infraMachine1,
+			},
+			expectError: false,
+		},
+		{
+			name: "fallback machinepool, nothing to do",
+			infraConfig: map[string]interface{}{
+				"kind":       "InfrastructureConfig",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+				},
+			},
+			machines: []clusterv1.Machine{
+				machine3,
+				machine4,
+			},
+			expectError:    false,
+			expectFallback: true,
+		},
+		{
+			name: "fallback machinepool, create one more machine",
+			infraConfig: map[string]interface{}{
+				"kind":       "InfrastructureConfig",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+				},
+			},
+			machines: []clusterv1.Machine{
+				machine3,
+			},
+			expectError:    false,
+			expectFallback: true,
+		},
+		{
+			name: "fallback machinepool, delete extra machine",
+			infraConfig: map[string]interface{}{
+				"kind":       "InfrastructureConfig",
+				"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+				"metadata": map[string]interface{}{
+					"name":      "infra-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{
+					"providerIDList": []interface{}{
+						"test://id-1",
+					},
+				},
+				"status": map[string]interface{}{
+					"ready": true,
+					"addresses": []interface{}{
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.1",
+						},
+						map[string]interface{}{
+							"type":    "InternalIP",
+							"address": "10.0.0.2",
+						},
+					},
+				},
+			},
+			machines: []clusterv1.Machine{
+				machine3,
+				machine4,
+				machine5,
+			},
+			expectError:    false,
+			expectFallback: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			if tc.machinepool == nil {
+				tc.machinepool = defaultMachinePool.DeepCopy()
+			}
+
+			objs := []client.Object{defaultCluster.DeepCopy()}
+
+			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
+
+			objs = append(objs, tc.machinepool, infraConfig.DeepCopy())
+
+			for _, infraMachine := range tc.infraMachines {
+				objs = append(objs, infraMachine.DeepCopy())
+			}
+
+			for _, machine := range tc.machines {
+				objs = append(objs, machine.DeepCopy())
+			}
+
+			r := &MachinePoolReconciler{
+				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+			}
+
+			err := r.reconcileMachinePoolMachines(ctx, tc.machinepool, infraConfig)
+
+			r.reconcilePhase(tc.machinepool)
+			if tc.expectError {
+				g.Expect(err).ToNot(BeNil())
+			} else {
+				g.Expect(err).To(BeNil())
+
+				g.Eventually(func() bool {
+					machineList := &clusterv1.MachineList{}
+					labels := map[string]string{
+						clusterv1.ClusterNameLabel:     defaultCluster.Name,
+						clusterv1.MachinePoolNameLabel: tc.machinepool.Name,
+					}
+					if err := r.Client.List(ctx, machineList, client.InNamespace(tc.machinepool.Namespace), client.MatchingLabels(labels)); err != nil {
+						t.Log("Failed to list machines with error:", err)
+						return false
+					}
+
+					if tc.expectFallback {
+						if len(machineList.Items) != int(*tc.machinepool.Spec.Replicas) {
+							t.Logf("Machine list length %d != replicas %d", len(machineList.Items), *tc.machinepool.Spec.Replicas)
+
+							return false
+						}
+					} else {
+						if len(machineList.Items) != len(tc.infraMachines) {
+							t.Logf("Machine list length %d != infraMachine list length %d", len(machineList.Items), len(tc.infraMachines))
+
+							return false
+						}
+
+						for i := range machineList.Items {
+							machine := &machineList.Items[i]
+							infraMachine, err := external.Get(ctx, r.Client, &machine.Spec.InfrastructureRef, machine.Namespace)
+							if err != nil {
+								t.Log("Failed to get infraMachine with error:", err)
+								return false
+							}
+
+							if util.IsControlledBy(infraMachine, machine) {
+								t.Log("InfraMachine is not controlled by machine")
+								return false
+							}
+						}
+					}
+
+					return true
+				}, timeout).Should(BeTrue())
 			}
 		})
 	}

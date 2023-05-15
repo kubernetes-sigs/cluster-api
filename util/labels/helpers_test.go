@@ -84,3 +84,48 @@ func TestHasWatchLabel(t *testing.T) {
 		})
 	}
 }
+
+func TestSetObjectLabel(t *testing.T) {
+	g := NewWithT(t)
+
+	var testcases = []struct {
+		name string
+		obj  metav1.Object
+	}{
+		{
+			name: "labels are nil map, set label",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{},
+			},
+		},
+		{
+			name: "labels are not nil, set label",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{},
+				},
+			},
+		},
+		{
+			name: "label exists in map, overwrite label",
+			obj: &corev1.Node{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{
+						clusterv1.ClusterTopologyOwnedLabel: "random-value",
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.name, func(t *testing.T) {
+			SetObjectLabel(tc.obj, clusterv1.ClusterTopologyOwnedLabel)
+			labels := tc.obj.GetLabels()
+
+			val, ok := labels[clusterv1.ClusterTopologyOwnedLabel]
+			g.Expect(ok).To(BeTrue())
+			g.Expect(val).To(Equal("true"))
+		})
+	}
+}

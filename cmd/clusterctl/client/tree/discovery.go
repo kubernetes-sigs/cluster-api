@@ -111,12 +111,16 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 		machineMap[m.Name] = true
 
 		if visible {
-			if machineInfra, err := external.Get(ctx, c, &m.Spec.InfrastructureRef, cluster.Namespace); err == nil {
-				tree.Add(m, machineInfra, ObjectMetaName("MachineInfrastructure"), NoEcho(true))
+			if (m.Spec.InfrastructureRef != corev1.ObjectReference{}) {
+				if machineInfra, err := external.Get(ctx, c, &m.Spec.InfrastructureRef, cluster.Namespace); err == nil {
+					tree.Add(m, machineInfra, ObjectMetaName("MachineInfrastructure"), NoEcho(true))
+				}
 			}
 
-			if machineBootstrap, err := external.Get(ctx, c, m.Spec.Bootstrap.ConfigRef, cluster.Namespace); err == nil {
-				tree.Add(m, machineBootstrap, ObjectMetaName("BootstrapConfig"), NoEcho(true))
+			if m.Spec.Bootstrap.ConfigRef != nil {
+				if machineBootstrap, err := external.Get(ctx, c, m.Spec.Bootstrap.ConfigRef, cluster.Namespace); err == nil {
+					tree.Add(m, machineBootstrap, ObjectMetaName("BootstrapConfig"), NoEcho(true))
+				}
 			}
 		}
 	}
@@ -146,25 +150,25 @@ func Discovery(ctx context.Context, c client.Client, namespace, name string, opt
 		if err != nil {
 			return nil, err
 		}
-
-		// Handles orphan machines.
-		if len(machineMap) < len(machinesList.Items) {
-			other := VirtualObject(cluster.Namespace, "OtherGroup", "Other")
-			tree.Add(workers, other)
-
-			for i := range machinesList.Items {
-				m := &machinesList.Items[i]
-				if _, ok := machineMap[m.Name]; ok {
-					continue
-				}
-				addMachineFunc(other, m)
-			}
-		}
 	}
 
 	if len(machinePoolList.Items) > 0 { // Add MachinePool objects
 		tree.Add(cluster, workers)
-		addMachinePoolsToObjectTree(ctx, c, cluster.Namespace, workers, machinePoolList, tree)
+		addMachinePoolsToObjectTree(ctx, c, cluster.Namespace, workers, machinePoolList, machinesList, tree, addMachineFunc)
+	}
+
+	// Handles orphan machines.
+	if len(machineMap) < len(machinesList.Items) {
+		other := VirtualObject(cluster.Namespace, "OtherGroup", "Other")
+		tree.Add(workers, other)
+
+		for i := range machinesList.Items {
+			m := &machinesList.Items[i]
+			if _, ok := machineMap[m.Name]; ok {
+				continue
+			}
+			addMachineFunc(other, m)
+		}
 	}
 
 	return tree, nil
@@ -268,10 +272,10 @@ func addMachineDeploymentToObjectTree(ctx context.Context, c client.Client, clus
 	return nil
 }
 
-func addMachinePoolsToObjectTree(ctx context.Context, c client.Client, namespace string, workers *unstructured.Unstructured, machinePoolList *expv1.MachinePoolList, tree *ObjectTree) {
+func addMachinePoolsToObjectTree(ctx context.Context, c client.Client, namespace string, workers *unstructured.Unstructured, machinePoolList *expv1.MachinePoolList, machinesList *clusterv1.MachineList, tree *ObjectTree, addMachineFunc func(parent client.Object, m *clusterv1.Machine)) {
 	for i := range machinePoolList.Items {
 		mp := &machinePoolList.Items[i]
-		_, visible := tree.Add(workers, mp)
+		_, visible := tree.Add(workers, mp, GroupingObject(true))
 
 		if visible {
 			if machinePoolBootstrap, err := external.Get(ctx, c, mp.Spec.Template.Spec.Bootstrap.ConfigRef, namespace); err == nil {
@@ -279,8 +283,14 @@ func addMachinePoolsToObjectTree(ctx context.Context, c client.Client, namespace
 			}
 
 			if machinePoolInfra, err := external.Get(ctx, c, &mp.Spec.Template.Spec.InfrastructureRef, namespace); err == nil {
-				tree.Add(mp, machinePoolInfra, ObjectMetaName("MachineInfrastructure"), NoEcho(true))
+				tree.Add(mp, machinePoolInfra, ObjectMetaName("MachinePoolInfrastructure"), NoEcho(true))
 			}
+		}
+
+		machines := selectMachinesControlledBy(machinesList, mp)
+
+		for _, m := range machines {
+			addMachineFunc(mp, m)
 		}
 	}
 }

@@ -26,6 +26,9 @@ import (
 const (
 	// MachinePoolFinalizer allows ReconcileDockerMachinePool to clean up resources.
 	MachinePoolFinalizer = "dockermachinepool.infrastructure.cluster.x-k8s.io"
+
+	// DockerMachinePoolNameLabel is the label indicating the name of the DockerMachinePool a DockerMachine is controleld by.
+	DockerMachinePoolNameLabel = "dockermachinepool.infrastructure.cluster.x-k8s.io/pool-name"
 )
 
 // DockerMachinePoolMachineTemplate defines the desired state of DockerMachine.
@@ -82,6 +85,15 @@ type DockerMachinePoolStatus struct {
 	// Conditions defines current service state of the DockerMachinePool.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
+
+	// InfrastructureMachineSelector is a label query over the infrastructure resources behind MachinePool Machines.
+	// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#label-selectors
+	// +optional
+	InfrastructureMachineSelector metav1.LabelSelector `json:"infrastructureMachineSelector,omitempty"`
+
+	// InfrastructureMachineKind is the kind of the infrastructure resources behind MachinePool Machines.
+	// +optional
+	InfrastructureMachineKind string `json:"infrastructureMachineKind,omitempty"`
 }
 
 // DockerMachinePoolInstanceStatus contains status information about a DockerMachinePool.
@@ -130,13 +142,13 @@ type DockerMachinePool struct {
 }
 
 // GetConditions returns the set of conditions for this object.
-func (c *DockerMachinePool) GetConditions() clusterv1.Conditions {
-	return c.Status.Conditions
+func (d *DockerMachinePool) GetConditions() clusterv1.Conditions {
+	return d.Status.Conditions
 }
 
 // SetConditions sets the conditions on this object.
-func (c *DockerMachinePool) SetConditions(conditions clusterv1.Conditions) {
-	c.Status.Conditions = conditions
+func (d *DockerMachinePool) SetConditions(conditions clusterv1.Conditions) {
+	d.Status.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

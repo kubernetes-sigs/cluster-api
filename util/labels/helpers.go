@@ -37,3 +37,14 @@ func HasWatchLabel(o metav1.Object, labelValue string) bool {
 	}
 	return val == labelValue
 }
+
+// SetObjectLabel sets the given key to "true" on the object's labels.
+func SetObjectLabel(o metav1.Object, key string) {
+	labels := o.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels[key] = "true"
+
+	o.SetLabels(labels)
+}

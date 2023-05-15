@@ -30,6 +30,13 @@ const (
 
 // DockerMachineSpec defines the desired state of DockerMachine.
 type DockerMachineSpec struct {
+	// InstanceName indicates the name of the Docker container associated with this DockerMachine.
+	// Since the provider ID is not set until after the container is online, this field is used to
+	// maintain the association. If it is not populated, the name of the container will be the same
+	// as the name of the owner Machine.
+	// +optional
+	InstanceName string `json:"instanceName,omitempty"`
+
 	// ProviderID will be the container name in ProviderID format (docker:////<containername>)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`

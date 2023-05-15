@@ -93,6 +93,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"sigs.k8s.io/cluster-api/api/v1beta1.WorkersClass":                             schema_sigsk8sio_cluster_api_api_v1beta1_WorkersClass(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.WorkersTopology":                          schema_sigsk8sio_cluster_api_api_v1beta1_WorkersTopology(ref),
 		"sigs.k8s.io/cluster-api/api/v1beta1.machineDeploymentDefaulter":               schema_sigsk8sio_cluster_api_api_v1beta1_machineDeploymentDefaulter(ref),
+		"sigs.k8s.io/cluster-api/api/v1beta1.machineValidator":                         schema_sigsk8sio_cluster_api_api_v1beta1_machineValidator(ref),
 	}
 }
 
@@ -3322,5 +3323,16 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_machineDeploymentDefaulter(ref com
 		},
 		Dependencies: []string{
 			"sigs.k8s.io/controller-runtime/pkg/webhook/admission.Decoder"},
+	}
+}
+
+func schema_sigsk8sio_cluster_api_api_v1beta1_machineValidator(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "machineValidator implements a defaulting webhook for Machine.",
+				Type:        []string{"object"},
+			},
+		},
 	}
 }

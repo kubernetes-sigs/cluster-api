@@ -245,13 +245,19 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 		return ctrl.Result{}, err
 	}
 	if infraReconcileResult.RequeueAfter > 0 {
-		// Infra object went missing after the machine was up and running
+		_, isMachinePoolOwned := m.Labels[clusterv1.MachinePoolNameLabel]
+
+		// Infra object went missing after the machine was up and running. Ignore if the machine is owned by a machine pool because the infraRef will be deleted by the infra machine pool controller.
 		if m.Status.InfrastructureReady {
-			log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
-			m.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.InvalidConfigurationMachineError)
-			m.Status.FailureMessage = pointer.String(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
-				m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
-			return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q, requeuing", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
+			if isMachinePoolOwned {
+				m.Status.InfrastructureReady = false
+			} else {
+				log.Error(err, "Machine infrastructure reference has been deleted after being ready, setting failure state")
+				m.Status.FailureReason = capierrors.MachineStatusErrorPtr(capierrors.InvalidConfigurationMachineError)
+				m.Status.FailureMessage = pointer.String(fmt.Sprintf("Machine infrastructure resource %v with name %q has been deleted after being ready",
+					m.Spec.InfrastructureRef.GroupVersionKind(), m.Spec.InfrastructureRef.Name))
+				return ctrl.Result{}, errors.Errorf("could not find %v %q for Machine %q in namespace %q, requeuing", m.Spec.InfrastructureRef.GroupVersionKind().String(), m.Spec.InfrastructureRef.Name, m.Name, m.Namespace)
+			}
 		}
 		return ctrl.Result{RequeueAfter: infraReconcileResult.RequeueAfter}, nil
 	}

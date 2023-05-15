@@ -227,6 +227,7 @@ webhooks:
     operations:
     - CREATE
     - UPDATE
+    - DELETE
     resources:
     - machines
   sideEffects: None

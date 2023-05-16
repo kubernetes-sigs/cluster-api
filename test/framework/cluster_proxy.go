@@ -93,7 +93,7 @@ type ClusterProxy interface {
 	// GetWorkloadCluster returns a proxy to a workload cluster defined in the Kubernetes cluster.
 	GetWorkloadCluster(ctx context.Context, namespace, name string) ClusterProxy
 
-	// CollectWorkloadClusterLogs collects machines logs from the workload cluster.
+	// CollectWorkloadClusterLogs collects machines and infrastructure logs from the workload cluster.
 	CollectWorkloadClusterLogs(ctx context.Context, namespace, name, outputPath string)
 
 	// Dispose proxy's internal resources (the operation does not affects the Kubernetes cluster).
@@ -107,6 +107,8 @@ type ClusterLogCollector interface {
 	// TODO: describe output folder struct
 	CollectMachineLog(ctx context.Context, managementClusterClient client.Client, m *clusterv1.Machine, outputPath string) error
 	CollectMachinePoolLog(ctx context.Context, managementClusterClient client.Client, m *expv1.MachinePool, outputPath string) error
+	// CollectInfrastructureLogs collects log from the infrastructure.
+	CollectInfrastructureLogs(ctx context.Context, managementClusterClient client.Client, c *clusterv1.Cluster, outputPath string) error
 }
 
 // Option is a configuration option supplied to NewClusterProxy.
@@ -280,7 +282,7 @@ func (p *clusterProxy) GetWorkloadCluster(ctx context.Context, namespace, name s
 	return newFromAPIConfig(name, config, p.scheme)
 }
 
-// CollectWorkloadClusterLogs collects machines logs from the workload cluster.
+// CollectWorkloadClusterLogs collects machines and infrastructure logs and from the workload cluster.
 func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace, name, outputPath string) {
 	if p.logCollector == nil {
 		return
@@ -315,6 +317,23 @@ func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace
 		if err != nil {
 			// NB. we are treating failures in collecting logs as a non blocking operation (best effort)
 			fmt.Printf("Failed to get logs for MachinePool %s, Cluster %s: %v\n", mp.GetName(), klog.KRef(namespace, name), err)
+		}
+	}
+
+	cluster := &clusterv1.Cluster{}
+	Eventually(func() error {
+		key := client.ObjectKey{
+			Namespace: namespace,
+			Name:      name,
+		}
+		return client.IgnoreNotFound(p.GetClient().Get(ctx, key, cluster))
+	}, retryableOperationTimeout, retryableOperationInterval).Should(Succeed(), "Failed to get Cluster %s", klog.KRef(namespace, name))
+
+	if cluster != nil {
+		err := p.logCollector.CollectInfrastructureLogs(ctx, p.GetClient(), cluster, path.Join(outputPath, "infrastructure"))
+		if err != nil {
+			// NB. we are treating failures in collecting logs as a non blocking operation (best effort)
+			fmt.Printf("Failed to get infrastructure logs for Cluster %s: %v\n", klog.KRef(namespace, name), err)
 		}
 	}
 }

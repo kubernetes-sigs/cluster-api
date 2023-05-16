@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -331,8 +332,13 @@ func (d *dockerRuntime) ContainerDebugInfo(ctx context.Context, containerName st
 		return errors.Wrapf(err, "failed to inspect container %q", containerName)
 	}
 
+	rawJSON, err := json.Marshal(containerInfo)
+	if err != nil {
+		return errors.Wrapf(err, "failed to marshal container info to json")
+	}
+
 	fmt.Fprintln(w, "Inspected the container:")
-	fmt.Fprintf(w, "%+v\n", containerInfo)
+	fmt.Fprintf(w, "%s\n", rawJSON)
 
 	options := types.ContainerLogsOptions{
 		ShowStdout: true,

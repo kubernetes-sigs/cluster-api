@@ -76,6 +76,25 @@ func (k DockerLogCollector) CollectMachinePoolLog(ctx context.Context, _ client.
 	return kerrors.NewAggregate(errs)
 }
 
+func (k DockerLogCollector) CollectInfrastructureLogs(ctx context.Context, _ client.Client, c *clusterv1.Cluster, outputPath string) error {
+	containerRuntime, err := container.NewDockerClient()
+	if err != nil {
+		return err
+	}
+	ctx = container.RuntimeInto(ctx, containerRuntime)
+
+	lbContainerName := fmt.Sprintf("%s-lb", c.GetName())
+
+	f, err := fileOnHost(filepath.Join(outputPath, fmt.Sprintf("%s.log", lbContainerName)))
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+
+	return containerRuntime.ContainerDebugInfo(ctx, lbContainerName, f)
+}
+
 func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath string, containerName string) error {
 	containerRuntime, err := container.RuntimeFrom(ctx)
 	if err != nil {

@@ -76,8 +76,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
+            # We're using the dualstack CIDRs here. The order doesn't matter for kindnet as the loops are run concurrently.
+            # REF: https://github.com/kubernetes-sigs/kind/blob/3dbeb894e3092a336ab4278d3823e73a1d66aff7/images/kindnetd/cmd/kindnetd/main.go#L149-L175
             - name: POD_SUBNET
-              value: '${DOCKER_POD_CIDRS}'
+              value: '${DOCKER_POD_CIDRS},${DOCKER_POD_IPV6_CIDRS}'
           volumeMounts:
             - name: cni-cfg
               mountPath: /etc/cni/net.d

@@ -71,6 +71,9 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 	if input.IPFamily == "IPv6" {
 		options = append(options, WithIPv6Family())
 	}
+	if input.IPFamily == "dual" {
+		options = append(options, WithDualStackFamily())
+	}
 	if input.LogFolder != "" {
 		options = append(options, LogFolder(input.LogFolder))
 	}

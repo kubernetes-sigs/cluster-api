@@ -6,3 +6,4 @@ ginkgo.slowSpecThreshold: 120.0
 ginkgo.flakeAttempts: 3
 ginkgo.trace: true
 ginkgo.v: true
+ginkgo.no-color: true

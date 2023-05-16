@@ -314,7 +314,7 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 	if machineStatus.Addresses == nil {
 		log.Info("Fetching instance addresses", "instance", machine.Name())
 		// set address in machine status
-		machineAddress, err := externalMachine.Address(ctx)
+		machineAddresses, err := externalMachine.Address(ctx)
 		if err != nil {
 			// Requeue if there is an error, as this is likely momentary load balancer
 			// state changes during control plane provisioning.
@@ -326,14 +326,17 @@ func (np *NodePool) reconcileMachine(ctx context.Context, machine *docker.Machin
 				Type:    clusterv1.MachineHostName,
 				Address: externalMachine.ContainerName(),
 			},
-			{
-				Type:    clusterv1.MachineInternalIP,
-				Address: machineAddress,
-			},
-			{
-				Type:    clusterv1.MachineExternalIP,
-				Address: machineAddress,
-			},
+		}
+		for _, addr := range machineAddresses {
+			machineStatus.Addresses = append(machineStatus.Addresses,
+				clusterv1.MachineAddress{
+					Type:    clusterv1.MachineInternalIP,
+					Address: addr,
+				},
+				clusterv1.MachineAddress{
+					Type:    clusterv1.MachineExternalIP,
+					Address: addr,
+				})
 		}
 	}
 

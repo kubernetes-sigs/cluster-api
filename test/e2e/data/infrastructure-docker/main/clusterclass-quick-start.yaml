@@ -100,6 +100,18 @@ spec:
       openAPIV3Schema:
         type: boolean
         default: true
+  - name: externalCloudProvider
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: boolean
+        default: false
+  - name: ipv6Primary
+    required: false
+    schema:
+      openAPIV3Schema:
+        type: boolean
+        default: false
   patches:
   - name: lbImageRepository
     definitions:
@@ -256,6 +268,54 @@ spec:
       - op: add
         path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/taints"
         value: []
+  - name: controlPlaneExternalCloudProvider
+    enabledIf: "{{ .externalCloudProvider }}"
+    description: "Configures kubelet to run with an external cloud provider for control plane nodes."
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs"
+            value:
+              cloud-provider: "external"
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs"
+            value:
+              cloud-provider: "external"
+  - name: machineDeploymentExternalCloudProvider
+    enabledIf: "{{ .externalCloudProvider }}"
+    description: "Configures kubelet to run with an external cloud provider for machineDeployment nodes."
+    definitions:
+      - selector:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfigTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - '*-worker'
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs"
+            value:
+              cloud-provider: "external"
+  - name: localEndpointIPv6
+    enabledIf: "{{ .ipv6Primary }}"
+    description: "Configures KCP to use IPv6 for its localAPIEndpoint."
+    definitions:
+      - selector:
+          apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+          kind: KubeadmControlPlaneTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/localAPIEndpoint"
+            value:
+              advertiseAddress: '::'
   - name: podSecurityStandard
     description: "Adds an admission configuration for PodSecurity to the kube-apiserver."
     definitions:
@@ -368,7 +428,7 @@ spec:
             extraArgs: { enable-hostpath-provisioner: 'true' }
           apiServer:
             # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
-            certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
+            certSANs: [localhost, host.docker.internal, "::", "::1", "127.0.0.1", "0.0.0.0"]
         initConfiguration:
           nodeRegistration:
             # We have to set the criSocket to containerd as kubeadm defaults to docker runtime if both containerd and docker sockets are found

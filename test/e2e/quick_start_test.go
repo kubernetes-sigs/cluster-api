@@ -21,9 +21,11 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api/test/framework"
+	"sigs.k8s.io/cluster-api/test/framework/kubetest"
 )
 
 var _ = Describe("When following the Cluster API quick-start [PR-Blocking]", func() {
@@ -96,6 +98,56 @@ var _ = Describe("When following the Cluster API quick-start with Ignition", fun
 			ArtifactFolder:        artifactFolder,
 			SkipCleanup:           skipCleanup,
 			Flavor:                pointer.String("ignition"),
+		}
+	})
+})
+
+var _ = Describe("When following the Cluster API quick-start with dualstack and ipv4 primary [IPv6]", func() {
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			Flavor:                pointer.String("topology-dualstack-ipv4-primary"),
+			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				By("Running kubetest dualstack tests")
+				// Start running the dualstack test suite from kubetest.
+				Expect(kubetest.Run(
+					ctx,
+					kubetest.RunInput{
+						ClusterProxy:       proxy.GetWorkloadCluster(ctx, namespace, clusterName),
+						ArtifactsDirectory: artifactFolder,
+						ConfigFilePath:     "./data/kubetest/dualstack.yaml",
+					},
+				)).To(Succeed())
+			},
+		}
+	})
+})
+
+var _ = Describe("When following the Cluster API quick-start with dualstack and ipv6 primary [IPv6]", func() {
+	QuickStartSpec(ctx, func() QuickStartSpecInput {
+		return QuickStartSpecInput{
+			E2EConfig:             e2eConfig,
+			ClusterctlConfigPath:  clusterctlConfigPath,
+			BootstrapClusterProxy: bootstrapClusterProxy,
+			ArtifactFolder:        artifactFolder,
+			SkipCleanup:           skipCleanup,
+			Flavor:                pointer.String("topology-dualstack-ipv6-primary"),
+			PostMachinesProvisioned: func(proxy framework.ClusterProxy, namespace, clusterName string) {
+				By("Running kubetest dualstack tests")
+				// Start running the dualstack test suite from kubetest.
+				Expect(kubetest.Run(
+					ctx,
+					kubetest.RunInput{
+						ClusterProxy:       proxy.GetWorkloadCluster(ctx, namespace, clusterName),
+						ArtifactsDirectory: artifactFolder,
+						ConfigFilePath:     "./data/kubetest/dualstack.yaml",
+					},
+				)).To(Succeed())
+			},
 		}
 	})
 })

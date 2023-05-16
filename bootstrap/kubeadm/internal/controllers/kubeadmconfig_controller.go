@@ -50,6 +50,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
+	"sigs.k8s.io/cluster-api/internal/util/taints"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -555,7 +556,7 @@ func (r *KubeadmConfigReconciler) joinWorker(ctx context.Context, scope *Scope) 
 	// Do not modify the KubeadmConfig in etcd as this is a temporary taint that will be dropped after the node
 	// is initialized by ClusterAPI.
 	joinConfiguration := scope.Config.Spec.JoinConfiguration.DeepCopy()
-	if !hasTaint(joinConfiguration.NodeRegistration.Taints, clusterv1.NodeUninitializedTaint) {
+	if !taints.HasTaint(joinConfiguration.NodeRegistration.Taints, clusterv1.NodeUninitializedTaint) {
 		joinConfiguration.NodeRegistration.Taints = append(joinConfiguration.NodeRegistration.Taints, clusterv1.NodeUninitializedTaint)
 	}
 
@@ -1073,13 +1074,4 @@ func (r *KubeadmConfigReconciler) ensureBootstrapSecretOwnersRef(ctx context.Con
 		return errors.Wrapf(err, "could not add KubeadmConfig %s as ownerReference to bootstrap Secret %s", scope.ConfigOwner.GetName(), secret.GetName())
 	}
 	return nil
-}
-
-func hasTaint(taints []corev1.Taint, targetTaint corev1.Taint) bool {
-	for _, taint := range taints {
-		if taint.MatchTaint(&targetTaint) {
-			return true
-		}
-	}
-	return false
 }

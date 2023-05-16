@@ -400,7 +400,7 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 	}
 	networkConfig := network.NetworkingConfig{}
 
-	if runConfig.IPFamily == clusterv1.IPv6IPFamily {
+	if runConfig.IPFamily == clusterv1.IPv6IPFamily || runConfig.IPFamily == clusterv1.DualStackIPFamily {
 		hostConfig.Sysctls = map[string]string{
 			"net.ipv6.conf.all.disable_ipv6": "0",
 			"net.ipv6.conf.all.forwarding":   "1",

@@ -537,7 +537,7 @@ type waitForMachinesInput struct {
 	CheckMachineListStableIntervals []interface{}
 }
 
-// waitForMachines waits for machines to reach a well known state defined by number of replicas, a list of machines to exists,
+// waitForMachines waits for machines to reach a well known state defined by number of replicas, a list of machines to exist,
 // a list of machines to not exist anymore. The func also check that the state is stable for some time before
 // returning the list of new machines.
 func waitForMachines(ctx context.Context, input waitForMachinesInput) (allMachineNames, newMachineNames []string) {

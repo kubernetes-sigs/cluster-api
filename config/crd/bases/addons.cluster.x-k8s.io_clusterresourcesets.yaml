@@ -16,7 +16,8 @@ spec:
     singular: clusterresourceset
   scope: Namespaced
   versions:
-  - name: v1alpha3
+  - deprecated: true
+    name: v1alpha3
     schema:
       openAPIV3Schema:
         description: "ClusterResourceSet is the Schema for the clusterresourcesets
@@ -178,6 +179,7 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1alpha4
     schema:
       openAPIV3Schema:

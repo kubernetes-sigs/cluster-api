@@ -36,6 +36,7 @@ spec:
       name: NodeName
       priority: 1
       type: string
+    deprecated: true
     name: v1alpha3
     schema:
       openAPIV3Schema:
@@ -383,6 +384,7 @@ spec:
       name: NodeName
       priority: 1
       type: string
+    deprecated: true
     name: v1alpha4
     schema:
       openAPIV3Schema:

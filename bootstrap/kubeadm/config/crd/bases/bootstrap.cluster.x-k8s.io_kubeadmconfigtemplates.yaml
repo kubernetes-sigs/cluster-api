@@ -16,7 +16,8 @@ spec:
     singular: kubeadmconfigtemplate
   scope: Namespaced
   versions:
-  - name: v1alpha3
+  - deprecated: true
+    name: v1alpha3
     schema:
       openAPIV3Schema:
         description: "KubeadmConfigTemplate is the Schema for the kubeadmconfigtemplates
@@ -998,6 +999,7 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1alpha4
     schema:
       openAPIV3Schema:

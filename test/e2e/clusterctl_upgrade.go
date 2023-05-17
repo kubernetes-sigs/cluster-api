@@ -376,7 +376,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			input.PreWaitForCluster(managementClusterProxy, testNamespace.Name, workLoadClusterName)
 		}
 
-		By("Waiting for the machines to exists")
+		By("Waiting for the machines to exist")
 		Eventually(func() (int64, error) {
 			var n int64
 			machineList := &clusterv1alpha3.MachineList{}

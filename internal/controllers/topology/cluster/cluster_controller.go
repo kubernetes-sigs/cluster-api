@@ -164,12 +164,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	// In case the object is deleted, the managed topology stops to reconcile;
-	// (the other controllers will take care of deletion).
-	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, cluster)
-	}
-
 	patchHelper, err := patch.NewHelper(cluster, r.Client)
 	if err != nil {
 		return ctrl.Result{}, err
@@ -195,6 +189,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			return
 		}
 	}()
+
+	// In case the object is deleted, the managed topology stops to reconcile;
+	// (the other controllers will take care of deletion).
+	if !cluster.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.reconcileDelete(ctx, cluster)
+	}
 
 	// Handle normal reconciliation loop.
 	return r.reconcile(ctx, s)

@@ -81,6 +81,11 @@ const (
 	KubeKeyK3sControlPlaneProviderName = "kubekey-k3s"
 )
 
+// Add-on providers.
+const (
+	HelmAddonProviderName = "helm"
+)
+
 // Other.
 const (
 	// ProvidersConfigKey is a constant for finding provider configurations with the ProvidersClient.
@@ -276,6 +281,7 @@ func (p *providersClient) defaults() []Provider {
 			url:          "https://github.com/canonical/cluster-api-bootstrap-provider-microk8s/releases/latest/bootstrap-components.yaml",
 			providerType: clusterctlv1.BootstrapProviderType,
 		},
+
 		// ControlPlane providers
 		&provider{
 			name:         KubeadmControlPlaneProviderName,
@@ -301,6 +307,13 @@ func (p *providersClient) defaults() []Provider {
 			name:         NestedControlPlaneProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/control-plane-components.yaml",
 			providerType: clusterctlv1.ControlPlaneProviderType,
+		},
+
+		// Add-on providers
+		&provider{
+			name:         HelmAddonProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/addon-components.yaml",
+			providerType: clusterctlv1.AddonProviderType,
 		},
 	}
 
@@ -401,16 +414,18 @@ func validateProvider(r Provider) error {
 		clusterctlv1.InfrastructureProviderType,
 		clusterctlv1.ControlPlaneProviderType,
 		clusterctlv1.IPAMProviderType,
-		clusterctlv1.RuntimeExtensionProviderType:
+		clusterctlv1.RuntimeExtensionProviderType,
+		clusterctlv1.AddonProviderType:
 		break
 	default:
-		return errors.Errorf("invalid provider type. Allowed values are [%s, %s, %s, %s, %s, %s]",
+		return errors.Errorf("invalid provider type. Allowed values are [%s, %s, %s, %s, %s, %s, %s]",
 			clusterctlv1.CoreProviderType,
 			clusterctlv1.BootstrapProviderType,
 			clusterctlv1.InfrastructureProviderType,
 			clusterctlv1.ControlPlaneProviderType,
 			clusterctlv1.IPAMProviderType,
-			clusterctlv1.RuntimeExtensionProviderType)
+			clusterctlv1.RuntimeExtensionProviderType,
+			clusterctlv1.AddonProviderType)
 	}
 	return nil
 }

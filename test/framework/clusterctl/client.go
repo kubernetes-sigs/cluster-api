@@ -57,6 +57,7 @@ type InitInput struct {
 	InfrastructureProviders   []string
 	IPAMProviders             []string
 	RuntimeExtensionProviders []string
+	AddonProviders            []string
 }
 
 // Init calls clusterctl init with the list of providers defined in the local repository.
@@ -75,6 +76,7 @@ func Init(_ context.Context, input InitInput) {
 		InfrastructureProviders:   input.InfrastructureProviders,
 		IPAMProviders:             input.IPAMProviders,
 		RuntimeExtensionProviders: input.RuntimeExtensionProviders,
+		AddonProviders:            input.AddonProviders,
 		LogUsageInstructions:      true,
 		WaitProviders:             true,
 	}
@@ -124,6 +126,9 @@ func calculateClusterCtlInitArgs(input InitInput) []string {
 	if len(input.RuntimeExtensionProviders) > 0 {
 		args = append(args, "--runtime-extension", strings.Join(input.RuntimeExtensionProviders, ","))
 	}
+	if len(input.AddonProviders) > 0 {
+		args = append(args, "--addon", strings.Join(input.AddonProviders, ","))
+	}
 	return args
 }
 
@@ -141,6 +146,7 @@ type UpgradeInput struct {
 	InfrastructureProviders   []string
 	IPAMProviders             []string
 	RuntimeExtensionProviders []string
+	AddonProviders            []string
 }
 
 // Upgrade calls clusterctl upgrade apply with the list of providers defined in the local repository.
@@ -161,19 +167,21 @@ func Upgrade(ctx context.Context, input UpgradeInput) {
 		len(input.ControlPlaneProviders) > 0 ||
 		len(input.InfrastructureProviders) > 0 ||
 		len(input.IPAMProviders) > 0 ||
-		len(input.RuntimeExtensionProviders) > 0
+		len(input.RuntimeExtensionProviders) > 0 ||
+		len(input.AddonProviders) > 0
 
 	Expect((input.Contract != "" && !isCustomUpgrade) || (input.Contract == "" && isCustomUpgrade)).To(BeTrue(), `Invalid arguments. Either the input.Contract parameter or at least one of the following providers has to be set:
-		input.CoreProvider, input.BootstrapProviders, input.ControlPlaneProviders, input.InfrastructureProviders, input.IPAMProviders, input.RuntimeExtensionProviders`)
+		input.CoreProvider, input.BootstrapProviders, input.ControlPlaneProviders, input.InfrastructureProviders, input.IPAMProviders, input.RuntimeExtensionProviders, input.AddonProviders`)
 
 	if isCustomUpgrade {
-		log.Logf("clusterctl upgrade apply --core %s --bootstrap %s --control-plane %s --infrastructure %s --ipam %s --runtime-extension %s --config %s --kubeconfig %s",
+		log.Logf("clusterctl upgrade apply --core %s --bootstrap %s --control-plane %s --infrastructure %s --ipam %s --runtime-extension %s --addon %s --config %s --kubeconfig %s",
 			input.CoreProvider,
 			strings.Join(input.BootstrapProviders, ","),
 			strings.Join(input.ControlPlaneProviders, ","),
 			strings.Join(input.InfrastructureProviders, ","),
 			strings.Join(input.IPAMProviders, ","),
 			strings.Join(input.RuntimeExtensionProviders, ","),
+			strings.Join(input.AddonProviders, ","),
 			input.ClusterctlConfigPath,
 			input.KubeconfigPath,
 		)
@@ -197,6 +205,7 @@ func Upgrade(ctx context.Context, input UpgradeInput) {
 		InfrastructureProviders:   input.InfrastructureProviders,
 		IPAMProviders:             input.IPAMProviders,
 		RuntimeExtensionProviders: input.RuntimeExtensionProviders,
+		AddonProviders:            input.AddonProviders,
 		WaitProviders:             true,
 	}
 

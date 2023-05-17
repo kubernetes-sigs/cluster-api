@@ -170,6 +170,7 @@ It is strongly recommended that:
 * Control plane providers release a file called `control-plane-components.yaml`
 * IPAM providers release a file called `ipam-components.yaml`
 * Runtime extensions providers release a file called `runtime-extension-components.yaml`
+* Add-on providers release a file called `addon-components.yaml`
 
 #### Target namespace
 

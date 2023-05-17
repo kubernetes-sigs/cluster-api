@@ -95,7 +95,8 @@ func (p *Provider) GetProviderType() ProviderType {
 		InfrastructureProviderType,
 		ControlPlaneProviderType,
 		IPAMProviderType,
-		RuntimeExtensionProviderType:
+		RuntimeExtensionProviderType,
+		AddonProviderType:
 		return t
 	default:
 		return ProviderTypeUnknown
@@ -129,6 +130,10 @@ const (
 	// runtime extensions.
 	RuntimeExtensionProviderType = ProviderType("RuntimeExtensionProvider")
 
+	// AddonProviderType is the type associated with codebases that provide
+	// add-on capabilities.
+	AddonProviderType = ProviderType("AddonProvider")
+
 	// ProviderTypeUnknown is used when the type is unknown.
 	ProviderTypeUnknown = ProviderType("")
 )
@@ -148,6 +153,8 @@ func (p ProviderType) Order() int {
 		return 4
 	case RuntimeExtensionProviderType:
 		return 5
+	case AddonProviderType:
+		return 6
 	default:
 		return 99
 	}

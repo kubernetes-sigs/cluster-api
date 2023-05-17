@@ -32,6 +32,7 @@ type deleteOptions struct {
 	infrastructureProviders   []string
 	ipamProviders             []string
 	runtimeExtensionProviders []string
+	addonProviders            []string
 	includeNamespace          bool
 	includeCRDs               bool
 	deleteAll                 bool
@@ -109,6 +110,8 @@ func init() {
 		"IPAM providers and versions (e.g. infoblox:v0.0.1) to delete from the management cluster")
 	deleteCmd.Flags().StringSliceVar(&dd.runtimeExtensionProviders, "runtime-extension", nil,
 		"Runtime extension providers and versions (e.g. test:v0.0.1) to delete from the management cluster")
+	deleteCmd.Flags().StringSliceVar(&dd.addonProviders, "addon", nil,
+		"Add-on providers and versions (e.g. helm:v0.1.0) to delete from the management cluster")
 
 	deleteCmd.Flags().BoolVar(&dd.deleteAll, "all", false,
 		"Force deletion of all the providers")
@@ -127,14 +130,15 @@ func runDelete() error {
 		(len(dd.controlPlaneProviders) > 0) ||
 		(len(dd.infrastructureProviders) > 0) ||
 		(len(dd.ipamProviders) > 0) ||
-		(len(dd.runtimeExtensionProviders) > 0)
+		(len(dd.runtimeExtensionProviders) > 0) ||
+		(len(dd.addonProviders) > 0)
 
 	if dd.deleteAll && hasProviderNames {
-		return errors.New("The --all flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension")
+		return errors.New("The --all flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon")
 	}
 
 	if !dd.deleteAll && !hasProviderNames {
-		return errors.New("At least one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension should be specified or the --all flag should be set")
+		return errors.New("At least one of --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon should be specified or the --all flag should be set")
 	}
 
 	return c.Delete(client.DeleteOptions{
@@ -147,6 +151,7 @@ func runDelete() error {
 		ControlPlaneProviders:     dd.controlPlaneProviders,
 		IPAMProviders:             dd.ipamProviders,
 		RuntimeExtensionProviders: dd.runtimeExtensionProviders,
+		AddonProviders:            dd.addonProviders,
 		DeleteAll:                 dd.deleteAll,
 	})
 }

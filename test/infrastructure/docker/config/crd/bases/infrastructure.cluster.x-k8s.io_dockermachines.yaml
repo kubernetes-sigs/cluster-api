@@ -16,7 +16,8 @@ spec:
     singular: dockermachine
   scope: Namespaced
   versions:
-  - name: v1alpha3
+  - deprecated: true
+    name: v1alpha3
     schema:
       openAPIV3Schema:
         description: "DockerMachine is the Schema for the dockermachines API. \n Deprecated:
@@ -163,6 +164,7 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1alpha4
     schema:
       openAPIV3Schema:

@@ -16,7 +16,8 @@ spec:
     singular: clusterresourcesetbinding
   scope: Namespaced
   versions:
-  - name: v1alpha3
+  - deprecated: true
+    name: v1alpha3
     schema:
       openAPIV3Schema:
         description: "ClusterResourceSetBinding lists all matching ClusterResourceSets
@@ -105,6 +106,7 @@ spec:
       jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
+    deprecated: true
     name: v1alpha4
     schema:
       openAPIV3Schema:

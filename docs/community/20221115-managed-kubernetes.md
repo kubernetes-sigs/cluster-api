@@ -11,11 +11,17 @@ reviewers:
     - "@killianmuldoon"
 creation-date: 2022-11-15
 last-updated: 2022-12-06
-status: proposed
+status: retired
 see-also:
   - https://github.com/kubernetes-sigs/cluster-api/issues/7494
   - https://github.com/kubernetes-sigs/cluster-api/issues/6988
 ---
+# This Feature Group is Retired!
+
+The Managed Kuberentes Feature Group produced this CAEP, which defines practical design and implementation work for evolving Managed Kubernetes stories in the Cluster API project, and negates the need for a dedicated feature group going forward:
+
+- https://github.com/kubernetes-sigs/cluster-api/pull/8500
+
 # Managed Kubernetes in Cluster API Feature Group
 
 This document briefly outlines the scope, communication media, and stakeholders for a formal Feature Group dedicated to defining a Cluster API-approved solution to manage clusters with Managed Kubernetes services.

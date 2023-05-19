@@ -51,7 +51,7 @@ import (
 
 const (
 	defaultImageName = "kindest/node"
-	defaultImageTag  = "v1.27.0"
+	defaultImageTag  = "v1.27.1"
 )
 
 var (

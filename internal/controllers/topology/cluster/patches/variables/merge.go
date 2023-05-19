@@ -32,7 +32,7 @@ func MergeVariableMaps(variableMaps ...map[string]apiextensionsv1.JSON) (map[str
 
 	for _, variableMap := range variableMaps {
 		for variableName, variableValue := range variableMap {
-			// If the variable already exits and is the builtin variable, merge it.
+			// If the variable already exists and is the builtin variable, merge it.
 			if _, ok := res[variableName]; ok && variableName == BuiltinsName {
 				mergedV, err := mergeBuiltinVariables(res[variableName], variableValue)
 				if err != nil {

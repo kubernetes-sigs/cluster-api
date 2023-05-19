@@ -52,6 +52,7 @@ var (
 	logFileRegex            = flag.String("log-file-regex", "manager\\.log", "Regex used to find log files")
 	logJSONAdditionalLabels = flag.String("log-json-additional-labels", "controller,cluster,machine", "Comma-separated list of additional labels to parse from JSON logs")
 	lokiURL                 = flag.String("loki-url", "http://localhost:3100/loki/api/v1/push", "Loki URL to push the logs to")
+	lokiOrgID               = flag.String("loki-org-id", "1", "Loki Org ID used when pushing logs")
 )
 
 func main() {
@@ -67,7 +68,7 @@ func main() {
 	}
 	logJSONAdditionalLabelsArray := strings.Split(*logJSONAdditionalLabels, ",")
 
-	if err := importLogs(*logPath, logFileRegexp, logJSONAdditionalLabelsArray, *lokiURL); err != nil {
+	if err := importLogs(*logPath, logFileRegexp, logJSONAdditionalLabelsArray, *lokiURL, *lokiOrgID); err != nil {
 		fmt.Printf("Failed to import logs: %v\n", err)
 		os.Exit(1)
 	}
@@ -75,7 +76,7 @@ func main() {
 	klog.Infof("Finished syncing logs from %s", *logPath)
 }
 
-func importLogs(logPath string, logFileRegex *regexp.Regexp, logJSONAdditionalLabels []string, lokiURL string) error {
+func importLogs(logPath string, logFileRegex *regexp.Regexp, logJSONAdditionalLabels []string, lokiURL, lokiOrgID string) error {
 	ctx := context.Background()
 
 	// Get Logs.
@@ -92,7 +93,7 @@ func importLogs(logPath string, logFileRegex *regexp.Regexp, logJSONAdditionalLa
 		}
 
 		// Push logs to Loki.
-		if err := pushLogsToLoki(ctx, lokiURL, logFile, streams); err != nil {
+		if err := pushLogsToLoki(ctx, lokiURL, lokiOrgID, logFile, streams); err != nil {
 			return errors.Wrapf(err, "failed to push logs to Loki")
 		}
 	}
@@ -378,7 +379,7 @@ func prepareLogsForLoki(ld LogData, logJSONAdditionalLabels []string) ([]LokiStr
 }
 
 // pushLogsToLoki uploads data to Loki.
-func pushLogsToLoki(ctx context.Context, lokiURL, file string, lokiLogStreamsArray []LokiStreams) error {
+func pushLogsToLoki(ctx context.Context, lokiURL, lokiOrgID, file string, lokiLogStreamsArray []LokiStreams) error {
 	klog.Infof("Pushing logs to Loki from: %s", file)
 
 	for _, streams := range lokiLogStreamsArray {
@@ -388,7 +389,7 @@ func pushLogsToLoki(ctx context.Context, lokiURL, file string, lokiLogStreamsArr
 			return errors.Wrapf(err, "failed to marshal Loki stream")
 		}
 
-		if err := pushStreamToLoki(ctx, lokiURL, body); err != nil {
+		if err := pushStreamToLoki(ctx, lokiURL, lokiOrgID, body); err != nil {
 			return errors.Wrapf(err, "failed to push Loki stream")
 		}
 	}
@@ -396,7 +397,7 @@ func pushLogsToLoki(ctx context.Context, lokiURL, file string, lokiLogStreamsArr
 	return nil
 }
 
-func pushStreamToLoki(ctx context.Context, lokiURL string, body []byte) error {
+func pushStreamToLoki(ctx context.Context, lokiURL, lokiOrgID string, body []byte) error {
 	// gzip JSON into buf.
 	var buf bytes.Buffer
 	gz := gzip.NewWriter(&buf)
@@ -414,6 +415,7 @@ func pushStreamToLoki(ctx context.Context, lokiURL string, body []byte) error {
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Content-Encoding", "gzip")
+	req.Header.Set("X-Scope-OrgID", lokiOrgID)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

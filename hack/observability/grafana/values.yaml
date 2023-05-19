@@ -22,6 +22,12 @@ datasources:
     - name: Loki
       type: loki
       url: http://loki:3100
+      # This header has to be set as we had to set an OrgID
+      # in promtail to be able to push the logs to Loki.
+      jsonData:
+        httpHeaderName1: 'X-Scope-OrgID'
+      secureJsonData:
+        httpHeaderValue1: '1'
     - name: Prometheus
       type: prometheus
       url: http://prometheus-server

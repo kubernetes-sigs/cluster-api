@@ -1501,6 +1501,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 					Name:              "test-cluster",
 					Namespace:         metav1.NamespaceDefault,
 					DeletionTimestamp: &deletionts,
+					Finalizers:        []string{clusterv1.ClusterFinalizer},
 				},
 			},
 			machine:       &clusterv1.Machine{},
@@ -1642,6 +1643,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 	mcpBeingDeleted.SetName("test-cluster-2")
 	mcpBeingDeleted.SetNamespace("test-cluster")
 	mcpBeingDeleted.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
+	mcpBeingDeleted.SetFinalizers([]string{"block-deletion"})
 
 	empBeingDeleted := &unstructured.Unstructured{
 		Object: map[string]interface{}{
@@ -1655,6 +1657,7 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 	empBeingDeleted.SetName("test-cluster-3")
 	empBeingDeleted.SetNamespace("test-cluster")
 	empBeingDeleted.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
+	empBeingDeleted.SetFinalizers([]string{"block-deletion"})
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

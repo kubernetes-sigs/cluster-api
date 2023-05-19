@@ -46,18 +46,14 @@ func TestMachineDeploymentTopologyFinalizer(t *testing.T) {
 	md := mdBuilder.Build()
 	mdWithFinalizer := mdBuilder.Build()
 	mdWithFinalizer.Finalizers = []string{clusterv1.MachineDeploymentTopologyFinalizer}
-	mdWithDeletionTimestamp := mdBuilder.Build()
-	deletionTimestamp := metav1.Now()
-	mdWithDeletionTimestamp.DeletionTimestamp = &deletionTimestamp
-
-	mdWithDeletionTimestampAndFinalizer := mdWithDeletionTimestamp.DeepCopy()
-	mdWithDeletionTimestampAndFinalizer.Finalizers = []string{clusterv1.MachineDeploymentTopologyFinalizer}
 
 	testCases := []struct {
 		name            string
 		md              *clusterv1.MachineDeployment
 		expectFinalizer bool
 	}{
+		// Note: We are not testing the case of a MD with deletionTimestamp and no finalizer.
+		// This case is impossible to reproduce in fake client without deleting the object.
 		{
 			name:            "should add ClusterTopology finalizer to a MachineDeployment with no finalizer",
 			md:              md,
@@ -67,11 +63,6 @@ func TestMachineDeploymentTopologyFinalizer(t *testing.T) {
 			name:            "should retain ClusterTopology finalizer on MachineDeployment with finalizer",
 			md:              mdWithFinalizer,
 			expectFinalizer: true,
-		},
-		{
-			name:            "should not add ClusterTopology finalizer on MachineDeployment with Deletion Timestamp and no finalizer ",
-			md:              mdWithDeletionTimestamp,
-			expectFinalizer: false,
 		},
 	}
 
@@ -117,9 +108,13 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 		Build()
 	mhc := builder.MachineHealthCheck(metav1.NamespaceDefault, "md").Build()
 	md.SetDeletionTimestamp(&deletionTimeStamp)
+	md.SetFinalizers([]string{clusterv1.MachineDeploymentTopologyFinalizer})
 
 	t.Run("Should delete templates of a MachineDeployment", func(t *testing.T) {
 		g := NewWithT(t)
+
+		// Copying the MD so changes made by reconcileDelete do not affect other tests.
+		md := md.DeepCopy()
 
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(fakeScheme).
@@ -133,10 +128,7 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 		_, err := r.reconcileDelete(ctx, md)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		afterMD := &clusterv1.MachineDeployment{}
-		g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(md), afterMD)).To(Succeed())
-
-		g.Expect(controllerutil.ContainsFinalizer(afterMD, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
+		g.Expect(controllerutil.ContainsFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
 		g.Expect(templateExists(fakeClient, mdBT)).To(BeFalse())
 		g.Expect(templateExists(fakeClient, mdIMT)).To(BeFalse())
 	})
@@ -149,6 +141,7 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 			WithInfrastructureTemplate(mdWithoutBootstrapTemplateIMT).
 			Build()
 		mdWithoutBootstrapTemplate.SetDeletionTimestamp(&deletionTimeStamp)
+		mdWithoutBootstrapTemplate.SetFinalizers([]string{clusterv1.MachineDeploymentTopologyFinalizer})
 
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(fakeScheme).
@@ -162,15 +155,15 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 		_, err := r.reconcileDelete(ctx, mdWithoutBootstrapTemplate)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		afterMD := &clusterv1.MachineDeployment{}
-		g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(mdWithoutBootstrapTemplate), afterMD)).To(Succeed())
-
-		g.Expect(controllerutil.ContainsFinalizer(afterMD, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
+		g.Expect(controllerutil.ContainsFinalizer(mdWithoutBootstrapTemplate, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
 		g.Expect(templateExists(fakeClient, mdWithoutBootstrapTemplateIMT)).To(BeFalse())
 	})
 
 	t.Run("Should not delete templates of a MachineDeployment when they are still in use in a MachineSet", func(t *testing.T) {
 		g := NewWithT(t)
+
+		// Copying the MD so changes made by reconcileDelete do not affect other tests.
+		md := md.DeepCopy()
 
 		ms := builder.MachineSet(md.Namespace, "md").
 			WithBootstrapTemplate(mdBT).
@@ -192,15 +185,15 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 		_, err := r.reconcileDelete(ctx, md)
 		g.Expect(err).ToNot(HaveOccurred())
 
-		afterMD := &clusterv1.MachineDeployment{}
-		g.Expect(fakeClient.Get(ctx, client.ObjectKeyFromObject(md), afterMD)).To(Succeed())
-
-		g.Expect(controllerutil.ContainsFinalizer(afterMD, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
+		g.Expect(controllerutil.ContainsFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
 		g.Expect(templateExists(fakeClient, mdBT)).To(BeTrue())
 		g.Expect(templateExists(fakeClient, mdIMT)).To(BeTrue())
 	})
 	t.Run("Should delete a MachineHealthCheck when its linked MachineDeployment is deleted", func(t *testing.T) {
 		g := NewWithT(t)
+
+		// Copying the MD so changes made by reconcileDelete do not affect other tests.
+		md := md.DeepCopy()
 
 		fakeClient := fake.NewClientBuilder().
 			WithScheme(fakeScheme).
@@ -213,6 +206,8 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 		}
 		_, err := r.reconcileDelete(ctx, md)
 		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(controllerutil.ContainsFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
 
 		gotMHC := clusterv1.MachineHealthCheck{}
 		err = fakeClient.Get(ctx, client.ObjectKeyFromObject(mhc), &gotMHC)

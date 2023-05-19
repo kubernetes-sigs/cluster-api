@@ -637,7 +637,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 	})
 
 	t.Run("Deleted KubeadmControlPlanes don't adopt machines", func(t *testing.T) {
-		// Usually we won't get into the inner reconcile with a deleted control plane, but it's possible when deleting with "oprhanDependents":
+		// Usually we won't get into the inner reconcile with a deleted control plane, but it's possible when deleting with "orphanDependents":
 		// 1. The deletion timestamp is set in the API server, but our cache has not yet updated
 		// 2. The garbage collector removes our ownership reference from a Machine, triggering a re-reconcile (or we get unlucky with the periodic reconciliation)
 		// 3. We get into the inner reconcile function and re-adopt the Machine
@@ -652,6 +652,9 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		now := metav1.Now()
 		kcp.DeletionTimestamp = &now
+		// We also have to set a finalizer as fake client doesn't accept objects
+		// with a deletionTimestamp without a finalizer.
+		kcp.Finalizers = []string{"block-deletion"}
 
 		fmc := &fakeManagementCluster{
 			Machines: collections.Machines{},

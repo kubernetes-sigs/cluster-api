@@ -505,6 +505,7 @@ func TestMachineSetReconcile(t *testing.T) {
 				Name:              "machineset1",
 				Namespace:         metav1.NamespaceDefault,
 				DeletionTimestamp: &dt,
+				Finalizers:        []string{"block-deletion"},
 			},
 			Spec: clusterv1.MachineSetSpec{
 				ClusterName: testClusterName,

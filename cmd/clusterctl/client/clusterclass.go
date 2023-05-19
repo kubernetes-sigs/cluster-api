@@ -114,7 +114,7 @@ func fetchMissingClusterClassTemplates(clusterClassClient repository.ClusterClas
 	}
 
 	// Get the templates for all ClusterClasses and associated objects if the target
-	// ClusterClass does not exits in the cluster.
+	// ClusterClass does not exist in the cluster.
 	templates := []repository.Template{}
 	for _, class := range classes {
 		if clusterInitialized {

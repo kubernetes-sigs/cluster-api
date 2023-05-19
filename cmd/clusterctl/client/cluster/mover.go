@@ -1031,7 +1031,7 @@ func (o *objectMover) restoreTargetObject(nodeToCreate *node, toProxy Proxy) err
 	if err := cTo.Get(ctx, objKey, existingTargetObj); err == nil {
 		log.V(5).Info("Object already exists, skipping moving from directory", nodeToCreate.identity.Kind, nodeToCreate.identity.Name, "Namespace", nodeToCreate.identity.Namespace)
 
-		// Update the nodes UID since it already exits. Any nodes owned by this existing node will be updated when the owner chain is rebuilt
+		// Update the nodes UID since it already exists. Any nodes owned by this existing node will be updated when the owner chain is rebuilt
 		nodeToCreate.newUID = existingTargetObj.GetUID()
 
 		// Return early since the object already exists

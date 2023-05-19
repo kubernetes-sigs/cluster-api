@@ -67,16 +67,10 @@ spec:
       nodeRegistration:
         criSocket: unix:///var/run/containerd/containerd.sock
         kubeletExtraArgs:
-          # We have to pin the cgroupDriver to cgroupfs for Kubernetes < v1.24 because kind does not support systemd for those versions, but kubeadm >= 1.21 defaults to systemd.
-          # This cluster is used in tests where the Kubernetes version is < 1.24
-          cgroup-driver: cgroupfs
           eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
     joinConfiguration:
       nodeRegistration:
         criSocket: unix:///var/run/containerd/containerd.sock
         kubeletExtraArgs:
-          # We have to pin the cgroupDriver to cgroupfs for Kubernetes < v1.24 because kind does not support systemd for those versions, but kubeadm >= 1.21 defaults to systemd.
-          # This cluster is used in tests where the Kubernetes version is < 1.24
-          cgroup-driver: cgroupfs
           eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
   version: "${KUBERNETES_VERSION}"

@@ -42,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework/clusterctl"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
+	"sigs.k8s.io/cluster-api/util/patch"
 )
 
 // The Cluster API test extension uses a ConfigMap named cluster-name + suffix to determine answers to the lifecycle hook calls;
@@ -221,6 +222,10 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 					input.E2EConfig.GetIntervals(specName, "wait-machine-upgrade"))
 			},
 			PreWaitForMachineDeploymentToBeUpgraded: func() {
+				machineSetPreflightChecksTestHandler(ctx,
+					input.BootstrapClusterProxy.GetClient(),
+					clusterRef)
+
 				afterControlPlaneUpgradeTestHandler(ctx,
 					input.BootstrapClusterProxy.GetClient(),
 					clusterRef,
@@ -279,6 +284,104 @@ func clusterUpgradeWithRuntimeSDKSpec(ctx context.Context, inputGetter func() cl
 		// Dumps all the resources in the spec Namespace, then cleanups the cluster object and the spec Namespace itself.
 		dumpSpecResourcesAndCleanup(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder, namespace, cancelWatches, clusterResources.Cluster, input.E2EConfig.GetIntervals, input.SkipCleanup)
 	})
+}
+
+// machineSetPreflightChecksTestHandler verifies the MachineSet preflight checks.
+// At this point in the test the ControlPlane is upgraded to the new version and the upgrade to the MachineDeployments
+// should be blocked by the AfterControlPlaneUpgrade hook.
+// Test the MachineSet preflight checks by scaling up the MachineDeployment. The creation on the new Machine
+// should be blocked because the preflight checks should not pass (kubeadm version skew preflight check should fail).
+func machineSetPreflightChecksTestHandler(ctx context.Context, c client.Client, clusterRef types.NamespacedName) {
+	// Verify that the hook is called and the topology reconciliation is blocked.
+	hookName := "AfterControlPlaneUpgrade"
+	Eventually(func() error {
+		if err := checkLifecycleHooksCalledAtLeastOnce(ctx, c, clusterRef, []string{hookName}); err != nil {
+			return err
+		}
+
+		cluster := framework.GetClusterByName(ctx, framework.GetClusterByNameInput{
+			Name: clusterRef.Name, Namespace: clusterRef.Namespace, Getter: c})
+
+		if !clusterConditionShowsHookBlocking(cluster, hookName) {
+			return errors.Errorf("Blocking condition for %s not found on Cluster object", hookName)
+		}
+
+		return nil
+	}, 30*time.Second).Should(Succeed(), "%s has not been called", hookName)
+
+	// Scale up the MachineDeployment
+	machineDeployments := framework.GetMachineDeploymentsByCluster(ctx, framework.GetMachineDeploymentsByClusterInput{
+		Lister:      c,
+		ClusterName: clusterRef.Name,
+		Namespace:   clusterRef.Namespace,
+	})
+	md := machineDeployments[0]
+
+	// Note: It is fair to assume that the Cluster is ClusterClass based since RuntimeSDK
+	// is only supported for ClusterClass based Clusters.
+	patchHelper, err := patch.NewHelper(md, c)
+	Expect(err).To(BeNil())
+
+	// Scale up the MachineDeployment.
+	// IMPORTANT: Since the MachineDeployment is pending an upgrade at this point the topology controller will not push any changes
+	// to the MachineDeployment. Therefore, the changes made to the MachineDeployment here will not be replaced
+	// until the AfterControlPlaneUpgrade hook unblocks the upgrade.
+	*md.Spec.Replicas++
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, md)
+	}).Should(Succeed(), "Failed to scale up the MachineDeployment %s", klog.KObj(md))
+	// Verify the MachineDeployment updated replicas are not overridden by the topology controller.
+	// Note: This verifies that the topology controller in fact holds any reconciliation of this MachineDeployment.
+	Consistently(func(g Gomega) {
+		// Get the updated MachineDeployment.
+		targetMD := &clusterv1.MachineDeployment{}
+		// Wrap in an Eventually block for additional safety. Since all of this is in a Consistently block it
+		// will fail if we hit a transient error like a network flake.
+		g.Eventually(func() error {
+			return c.Get(ctx, client.ObjectKeyFromObject(md), targetMD)
+		}).Should(Succeed(), "Failed to get MachineDeployment %s", klog.KObj(md))
+		// Verify replicas are not overridden.
+		g.Expect(targetMD.Spec.Replicas).To(Equal(md.Spec.Replicas))
+	}, 10*time.Second, 1*time.Second)
+
+	// Since the MachineDeployment is scaled up (overriding the topology controller) at this point the MachineSet would
+	// also scale up. However, a new Machine creation would be blocked by one of the MachineSet preflight checks (KubeadmVersionSkew).
+	// Verify the MachineSet is blocking new Machine creation.
+	Eventually(func(g Gomega) {
+		machineSets := framework.GetMachineSetsByDeployment(ctx, framework.GetMachineSetsByDeploymentInput{
+			Lister:    c,
+			MDName:    md.Name,
+			Namespace: md.Namespace,
+		})
+		g.Expect(conditions.IsFalse(machineSets[0], clusterv1.MachinesCreatedCondition)).To(BeTrue())
+		machinesCreatedCondition := conditions.Get(machineSets[0], clusterv1.MachinesCreatedCondition)
+		g.Expect(machinesCreatedCondition).NotTo(BeNil())
+		g.Expect(machinesCreatedCondition.Reason).To(Equal(clusterv1.PreflightCheckFailedReason))
+		g.Expect(machineSets[0].Spec.Replicas).To(Equal(md.Spec.Replicas))
+	}).Should(Succeed(), "New Machine creation not blocked by MachineSet preflight checks")
+
+	// Verify that the MachineSet is not creating the new Machine.
+	// No new machines should be created for this MachineDeployment even though it is scaled up.
+	// Creation of new Machines will be blocked by MachineSet preflight checks (KubeadmVersionSkew).
+	Consistently(func(g Gomega) {
+		originalReplicas := int(*md.Spec.Replicas - 1)
+		machines := framework.GetMachinesByMachineDeployments(ctx, framework.GetMachinesByMachineDeploymentsInput{
+			Lister:            c,
+			ClusterName:       clusterRef.Name,
+			Namespace:         clusterRef.Namespace,
+			MachineDeployment: *md,
+		})
+		g.Expect(machines).To(HaveLen(originalReplicas), "New Machines should not be created")
+	}, 10*time.Second, time.Second)
+
+	// Scale down the MachineDeployment to the original replicas to restore to the state of the MachineDeployment
+	// it existed in before this test block.
+	patchHelper, err = patch.NewHelper(md, c)
+	Expect(err).To(BeNil())
+	*md.Spec.Replicas--
+	Eventually(func() error {
+		return patchHelper.Patch(ctx, md)
+	}).Should(Succeed(), "Failed to scale down the MachineDeployment %s", klog.KObj(md))
 }
 
 // extensionConfig generates an ExtensionConfig.

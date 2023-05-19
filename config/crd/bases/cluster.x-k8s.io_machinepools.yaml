@@ -32,6 +32,7 @@ spec:
       jsonPath: .spec.template.spec.version
       name: Version
       type: string
+    deprecated: true
     name: v1alpha3
     schema:
       openAPIV3Schema:
@@ -583,6 +584,7 @@ spec:
       jsonPath: .spec.template.spec.version
       name: Version
       type: string
+    deprecated: true
     name: v1alpha4
     schema:
       openAPIV3Schema:

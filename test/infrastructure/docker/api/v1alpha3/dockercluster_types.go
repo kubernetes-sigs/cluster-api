@@ -71,6 +71,7 @@ type APIEndpoint struct {
 // +kubebuilder:resource:path=dockerclusters,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status
 // +kubebuilder:object:root=true
+// +kubebuilder:deprecatedversion
 
 // DockerCluster is the Schema for the dockerclusters API.
 //

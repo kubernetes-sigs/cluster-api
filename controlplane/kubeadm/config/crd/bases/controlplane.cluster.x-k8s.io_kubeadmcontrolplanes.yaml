@@ -50,6 +50,7 @@ spec:
       jsonPath: .status.unavailableReplicas
       name: Unavailable
       type: integer
+    deprecated: true
     name: v1alpha3
     schema:
       openAPIV3Schema:
@@ -1227,6 +1228,7 @@ spec:
       jsonPath: .status.unavailableReplicas
       name: Unavailable
       type: integer
+    deprecated: true
     name: v1alpha4
     schema:
       openAPIV3Schema:

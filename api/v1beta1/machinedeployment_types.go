@@ -136,6 +136,8 @@ type MachineDeploymentSpec struct {
 
 	// Indicates that the deployment is paused.
 	// +optional
+	//
+	// Deprecated: This field will be dropped in the next API version.
 	Paused bool `json:"paused,omitempty"`
 
 	// The maximum time in seconds for a deployment to make progress before it

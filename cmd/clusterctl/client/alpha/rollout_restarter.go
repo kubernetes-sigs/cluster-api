@@ -34,7 +34,7 @@ func (r *rollout) ObjectRestarter(proxy cluster.Proxy, ref corev1.ObjectReferenc
 		if err != nil || deployment == nil {
 			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
-		if deployment.Spec.Paused {
+		if deployment.Spec.Paused || annotations.HasPaused(deployment) {
 			return errors.Errorf("can't restart paused MachineDeployment (run rollout resume first): %v/%v", ref.Kind, ref.Name)
 		}
 		if deployment.Spec.RolloutAfter != nil && deployment.Spec.RolloutAfter.After(time.Now()) {

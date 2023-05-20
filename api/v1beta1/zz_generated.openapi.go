@@ -1745,7 +1745,7 @@ func schema_sigsk8sio_cluster_api_api_v1beta1_MachineDeploymentSpec(ref common.R
 					},
 					"paused": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Indicates that the deployment is paused.",
+							Description: "Indicates that the deployment is paused.\n\nDeprecated: This field will be dropped in the next API version.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},

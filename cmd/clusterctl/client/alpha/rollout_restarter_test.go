@@ -67,7 +67,7 @@ func Test_ObjectRestarter(t *testing.T) {
 			wantRollout: true,
 		},
 		{
-			name: "paused machinedeployment should not have rolloutAfter",
+			name: "paused (.spec.paused) machinedeployment should not have rolloutAfter",
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.MachineDeployment{
@@ -81,6 +81,33 @@ func Test_ObjectRestarter(t *testing.T) {
 						},
 						Spec: clusterv1.MachineDeploymentSpec{
 							Paused: true,
+						},
+					},
+				},
+				ref: corev1.ObjectReference{
+					Kind:      MachineDeployment,
+					Name:      "md-1",
+					Namespace: "default",
+				},
+			},
+			wantErr:     true,
+			wantRollout: false,
+		},
+		{
+			name: "paused (paused annotation) machinedeployment should not have rolloutAfter",
+			fields: fields{
+				objs: []client.Object{
+					&clusterv1.MachineDeployment{
+						TypeMeta: metav1.TypeMeta{
+							Kind:       "MachineDeployment",
+							APIVersion: "cluster.x-k8s.io/v1beta1",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "default",
+							Name:      "md-1",
+							Annotations: map[string]string{
+								clusterv1.PausedAnnotation: "true",
+							},
 						},
 					},
 				},

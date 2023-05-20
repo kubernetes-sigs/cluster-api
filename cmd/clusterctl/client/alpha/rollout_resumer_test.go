@@ -43,7 +43,7 @@ func Test_ObjectResumer(t *testing.T) {
 		wantPaused bool
 	}{
 		{
-			name: "paused machinedeployment should be unpaused",
+			name: "paused (.spec.paused) machinedeployment should be unpaused",
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.MachineDeployment{
@@ -57,6 +57,31 @@ func Test_ObjectResumer(t *testing.T) {
 						Spec: clusterv1.MachineDeploymentSpec{
 							Paused: true,
 						},
+					},
+				},
+				ref: corev1.ObjectReference{
+					Kind:      MachineDeployment,
+					Name:      "md-1",
+					Namespace: "default",
+				},
+			},
+			wantErr:    false,
+			wantPaused: false,
+		},
+		{
+			name: "paused (paused annotation) machinedeployment should be unpaused",
+			fields: fields{
+				objs: []client.Object{
+					&clusterv1.MachineDeployment{
+						TypeMeta: metav1.TypeMeta{
+							Kind: "MachineDeployment",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "default",
+							Name:      "md-1",
+							Annotations: map[string]string{
+								clusterv1.PausedAnnotation: "true",
+							}},
 					},
 				},
 				ref: corev1.ObjectReference{
@@ -165,6 +190,7 @@ func Test_ObjectResumer(t *testing.T) {
 					err = cl.Get(context.TODO(), key, md)
 					g.Expect(err).ToNot(HaveOccurred())
 					g.Expect(md.Spec.Paused).To(Equal(tt.wantPaused))
+					g.Expect(annotations.HasPaused(md)).To(Equal(tt.wantPaused))
 				case *controlplanev1.KubeadmControlPlane:
 					kcp := &controlplanev1.KubeadmControlPlane{}
 					err = cl.Get(context.TODO(), key, kcp)

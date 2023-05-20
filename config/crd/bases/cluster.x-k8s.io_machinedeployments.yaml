@@ -1045,7 +1045,8 @@ spec:
                 format: int32
                 type: integer
               paused:
-                description: Indicates that the deployment is paused.
+                description: "Indicates that the deployment is paused. \n Deprecated:
+                  This field will be dropped in the next API version."
                 type: boolean
               progressDeadlineSeconds:
                 description: The maximum time in seconds for a deployment to make

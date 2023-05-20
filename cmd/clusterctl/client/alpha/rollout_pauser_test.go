@@ -66,7 +66,7 @@ func Test_ObjectPauser(t *testing.T) {
 			wantPaused: true,
 		},
 		{
-			name: "re-pausing an already paused machinedeployment should return error",
+			name: "re-pausing an already paused (.spec.paused) machinedeployment should return error",
 			fields: fields{
 				objs: []client.Object{
 					&clusterv1.MachineDeployment{
@@ -79,6 +79,32 @@ func Test_ObjectPauser(t *testing.T) {
 						},
 						Spec: clusterv1.MachineDeploymentSpec{
 							Paused: true,
+						},
+					},
+				},
+				ref: corev1.ObjectReference{
+					Kind:      MachineDeployment,
+					Name:      "md-1",
+					Namespace: "default",
+				},
+			},
+			wantErr:    true,
+			wantPaused: false,
+		},
+		{
+			name: "re-pausing an already paused (annotation) machinedeployment should return error",
+			fields: fields{
+				objs: []client.Object{
+					&clusterv1.MachineDeployment{
+						TypeMeta: metav1.TypeMeta{
+							Kind: "MachineDeployment",
+						},
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: "default",
+							Name:      "md-1",
+							Annotations: map[string]string{
+								clusterv1.PausedAnnotation: "true",
+							},
 						},
 					},
 				},
@@ -161,7 +187,7 @@ func Test_ObjectPauser(t *testing.T) {
 					md := &clusterv1.MachineDeployment{}
 					err = cl.Get(context.TODO(), key, md)
 					g.Expect(err).ToNot(HaveOccurred())
-					g.Expect(md.Spec.Paused).To(Equal(tt.wantPaused))
+					g.Expect(annotations.HasPaused(md)).To(Equal(tt.wantPaused))
 				case *controlplanev1.KubeadmControlPlane:
 					kcp := &controlplanev1.KubeadmControlPlane{}
 					err = cl.Get(context.TODO(), key, kcp)

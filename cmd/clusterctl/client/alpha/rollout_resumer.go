@@ -38,10 +38,10 @@ func (r *rollout) ObjectResumer(proxy cluster.Proxy, ref corev1.ObjectReference)
 		if err != nil || deployment == nil {
 			return errors.Wrapf(err, "failed to fetch %v/%v", ref.Kind, ref.Name)
 		}
-		if !deployment.Spec.Paused {
+		if !deployment.Spec.Paused && !annotations.HasPaused(deployment) {
 			return errors.Errorf("MachineDeployment is not currently paused: %v/%v\n", ref.Kind, ref.Name) //nolint:revive // MachineDeployment is intentionally capitalized.
 		}
-		if err := resumeMachineDeployment(proxy, ref.Name, ref.Namespace); err != nil {
+		if err := resumeMachineDeployment(proxy, ref.Name, ref.Namespace, annotations.HasPaused(deployment)); err != nil {
 			return err
 		}
 	case KubeadmControlPlane:
@@ -62,8 +62,15 @@ func (r *rollout) ObjectResumer(proxy cluster.Proxy, ref corev1.ObjectReference)
 }
 
 // resumeMachineDeployment sets Paused to true in the MachineDeployment's spec.
-func resumeMachineDeployment(proxy cluster.Proxy, name, namespace string) error {
-	patch := client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", false)))
+func resumeMachineDeployment(proxy cluster.Proxy, name, namespace string, dropAnnotation bool) error {
+	var patch client.Patch
+	if dropAnnotation {
+		// In the paused annotation we must replace slashes to ~1, see https://datatracker.ietf.org/doc/html/rfc6901#section-3.
+		pausedAnnotation := strings.Replace(clusterv1.PausedAnnotation, "/", "~1", -1)
+		patch = client.RawPatch(types.JSONPatchType, []byte(fmt.Sprintf("[{\"op\": \"remove\", \"path\": \"/metadata/annotations/%s\"}]", pausedAnnotation)))
+	} else {
+		patch = client.RawPatch(types.MergePatchType, []byte(fmt.Sprintf("{\"spec\":{\"paused\":%t}}", false)))
+	}
 
 	return patchMachineDeployment(proxy, name, namespace, patch)
 }

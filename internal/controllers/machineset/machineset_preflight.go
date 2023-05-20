@@ -45,28 +45,28 @@ type preflightCheckErrorMessage *string
 // the preflight checks fail.
 const preflightFailedRequeueAfter = 15 * time.Second
 
-func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, action string) (ctrl.Result, error) {
+func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, action string) (_ ctrl.Result, message string, retErr error) {
 	log := ctrl.LoggerFrom(ctx)
 	// If the MachineSetPreflightChecks feature gate is disabled return early.
 	if !feature.Gates.Enabled(feature.MachineSetPreflightChecks) {
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, "", nil
 	}
 
 	skipped := skippedPreflightChecks(ms)
 	// If all the preflight checks are skipped then return early.
 	if skipped.Has(clusterv1.MachineSetPreflightCheckAll) {
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, "", nil
 	}
 
 	// If the cluster does not have a control plane reference then there is nothing to do. Return early.
 	if cluster.Spec.ControlPlaneRef == nil {
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, "", nil
 	}
 
 	// Get the control plane object.
 	controlPlane, err := external.Get(ctx, r.Client, cluster.Spec.ControlPlaneRef, cluster.Namespace)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to get ControlPlane %s", action, klog.KRef(cluster.Spec.ControlPlaneRef.Namespace, cluster.Spec.ControlPlaneRef.Name))
+		return ctrl.Result{}, "", errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to get ControlPlane %s", action, klog.KRef(cluster.Spec.ControlPlaneRef.Namespace, cluster.Spec.ControlPlaneRef.Name))
 	}
 	cpKlogRef := klog.KRef(controlPlane.GetNamespace(), controlPlane.GetName())
 
@@ -76,13 +76,13 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 	cpVersion, err := contract.ControlPlane().Version().Get(controlPlane)
 	if err != nil {
 		if errors.Is(err, contract.ErrFieldNotFound) {
-			return ctrl.Result{}, nil
+			return ctrl.Result{}, "", nil
 		}
-		return ctrl.Result{}, errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to get the version of ControlPlane %s", action, cpKlogRef)
+		return ctrl.Result{}, "", errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to get the version of ControlPlane %s", action, cpKlogRef)
 	}
 	cpSemver, err := semver.ParseTolerant(*cpVersion)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to parse version %q of ControlPlane %s", action, *cpVersion, cpKlogRef)
+		return ctrl.Result{}, "", errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to parse version %q of ControlPlane %s", action, *cpVersion, cpKlogRef)
 	}
 
 	errList := []error{}
@@ -103,7 +103,7 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 		msVersion := *ms.Spec.Template.Spec.Version
 		msSemver, err := semver.ParseTolerant(msVersion)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to parse version %q of MachineSet %s", action, msVersion, klog.KObj(ms))
+			return ctrl.Result{}, "", errors.Wrapf(err, "failed to perform %q: failed to perform preflight checks: failed to parse version %q of MachineSet %s", action, msVersion, klog.KObj(ms))
 		}
 
 		// Run the kubernetes-version skew preflight check.
@@ -127,17 +127,18 @@ func (r *Reconciler) runPreflightChecks(ctx context.Context, cluster *clusterv1.
 	}
 
 	if len(errList) > 0 {
-		return ctrl.Result{}, errors.Wrapf(kerrors.NewAggregate(errList), "failed to perform %q: failed to perform preflight checks", action)
+		return ctrl.Result{}, "", errors.Wrapf(kerrors.NewAggregate(errList), "failed to perform %q: failed to perform preflight checks", action)
 	}
 	if len(preflightCheckErrs) > 0 {
 		preflightCheckErrStrings := []string{}
 		for _, v := range preflightCheckErrs {
 			preflightCheckErrStrings = append(preflightCheckErrStrings, *v)
 		}
-		log.Info(fmt.Sprintf("Performing %q on hold because %s. The operation will continue after the preflight check(s) pass", action, strings.Join(preflightCheckErrStrings, "; ")))
-		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, nil
+		msg := fmt.Sprintf("Performing %q on hold because %s. The operation will continue after the preflight check(s) pass", action, strings.Join(preflightCheckErrStrings, "; "))
+		log.Info(msg)
+		return ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}, msg, nil
 	}
-	return ctrl.Result{}, nil
+	return ctrl.Result{}, "", nil
 }
 
 func (r *Reconciler) controlPlaneStablePreflightCheck(controlPlane *unstructured.Unstructured) (preflightCheckErrorMessage, error) {

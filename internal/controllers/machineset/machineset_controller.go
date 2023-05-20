@@ -296,51 +296,13 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		filteredMachines = append(filteredMachines, machine)
 	}
 
-	// Remediate failed Machines by deleting them.
-	var errs []error
-	machinesToRemediate := make([]*clusterv1.Machine, 0, len(filteredMachines))
-	for _, machine := range filteredMachines {
-		// filteredMachines contains machines in deleting status to calculate correct status.
-		// skip remediation for those in deleting status.
-		if !machine.DeletionTimestamp.IsZero() {
-			continue
-		}
-		if conditions.IsFalse(machine, clusterv1.MachineOwnerRemediatedCondition) {
-			machinesToRemediate = append(machinesToRemediate, machine)
-		}
-	}
-
 	result := ctrl.Result{}
-	if len(machinesToRemediate) > 0 {
-		preflightChecksResult, err := r.runPreflightChecks(ctx, cluster, machineSet, "Machine Remediation")
-		if err != nil {
-			return ctrl.Result{}, err
-		}
-		// Delete the machines only if the preflight checks have passed. Do not delete machines if we cannot
-		// guarantee creating new machines.
-		if preflightChecksResult.IsZero() {
-			for _, machine := range machinesToRemediate {
-				log.Info("Deleting machine because marked as unhealthy by the MachineHealthCheck controller")
-				patch := client.MergeFrom(machine.DeepCopy())
-				if err := r.Client.Delete(ctx, machine); err != nil {
-					errs = append(errs, errors.Wrap(err, "failed to delete"))
-					continue
-				}
-				conditions.MarkTrue(machine, clusterv1.MachineOwnerRemediatedCondition)
-				if err := r.Client.Status().Patch(ctx, machine, patch); err != nil && !apierrors.IsNotFound(err) {
-					errs = append(errs, errors.Wrap(err, "failed to update status"))
-				}
-			}
-		} else {
-			result = util.LowestNonZeroResult(result, preflightChecksResult)
-		}
-	}
 
-	err = kerrors.NewAggregate(errs)
+	reconcileUnhealthyMachinesResult, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, filteredMachines)
 	if err != nil {
-		log.Info("Failed while deleting unhealthy machines", "err", err)
-		return ctrl.Result{}, errors.Wrap(err, "failed to remediate machines")
+		return ctrl.Result{}, errors.Wrap(err, "failed to reconcile unhealthy machines")
 	}
+	result = util.LowestNonZeroResult(result, reconcileUnhealthyMachinesResult)
 
 	if err := r.syncMachines(ctx, machineSet, filteredMachines); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to update Machines")
@@ -482,8 +444,13 @@ func (r *Reconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluste
 			}
 		}
 
-		result, err := r.runPreflightChecks(ctx, cluster, ms, "Scale up")
+		result, preflightCheckErrMessage, err := r.runPreflightChecks(ctx, cluster, ms, "Scale up")
 		if err != nil || !result.IsZero() {
+			if err != nil {
+				// If the error is not nil use that as the message for the condition.
+				preflightCheckErrMessage = err.Error()
+			}
+			conditions.MarkFalse(ms, clusterv1.MachinesCreatedCondition, clusterv1.PreflightCheckFailedReason, clusterv1.ConditionSeverityError, preflightCheckErrMessage)
 			return result, err
 		}
 
@@ -989,6 +956,78 @@ func (r *Reconciler) getMachineNode(ctx context.Context, cluster *clusterv1.Clus
 		return nil, errors.Wrapf(err, "error retrieving node %s for machine %s/%s", machine.Status.NodeRef.Name, machine.Namespace, machine.Name)
 	}
 	return node, nil
+}
+
+func (r *Reconciler) reconcileUnhealthyMachines(ctx context.Context, cluster *clusterv1.Cluster, ms *clusterv1.MachineSet, filteredMachines []*clusterv1.Machine) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	// List all unhealthy machines.
+	machinesToRemediate := make([]*clusterv1.Machine, 0, len(filteredMachines))
+	for _, m := range filteredMachines {
+		// filteredMachines contains machines in deleting status to calculate correct status.
+		// skip remediation for those in deleting status.
+		if !m.DeletionTimestamp.IsZero() {
+			continue
+		}
+		if conditions.IsFalse(m, clusterv1.MachineOwnerRemediatedCondition) {
+			machinesToRemediate = append(machinesToRemediate, m)
+		}
+	}
+
+	// If there are no machines to remediate return early.
+	if len(machinesToRemediate) == 0 {
+		return ctrl.Result{}, nil
+	}
+
+	preflightChecksResult, preflightCheckErrMessage, err := r.runPreflightChecks(ctx, cluster, ms, "Machine Remediation")
+	if err != nil {
+		// If err is not nil use that as the preflightCheckErrMessage
+		preflightCheckErrMessage = err.Error()
+	}
+
+	preflightChecksFailed := err != nil || !preflightChecksResult.IsZero()
+	if preflightChecksFailed {
+		// PreflightChecks did not pass. Update the MachineOwnerRemediated condition on the unhealthy Machines with
+		// WaitingForRemediationReason reason.
+		var errs []error
+		for _, m := range machinesToRemediate {
+			patchHelper, err := patch.NewHelper(m, r.Client)
+			if err != nil {
+				errs = append(errs, errors.Wrapf(err, "failed to create patch helper for Machine %s", klog.KObj(m)))
+				continue
+			}
+			conditions.MarkFalse(m, clusterv1.MachineOwnerRemediatedCondition, clusterv1.WaitingForRemediationReason, clusterv1.ConditionSeverityWarning, preflightCheckErrMessage)
+			if err := patchHelper.Patch(ctx, m); err != nil {
+				errs = append(errs, errors.Wrapf(err, "failed to patch Machine %s", klog.KObj(m)))
+			}
+		}
+
+		if len(errs) > 0 {
+			return ctrl.Result{}, errors.Wrapf(kerrors.NewAggregate(errs), "failed to patch unhealthy Machines")
+		}
+		return preflightChecksResult, nil
+	}
+
+	// PreflightChecks passed, so it is safe to remediate unhealthy machines.
+	// Remediate unhealthy machines by deleting them.
+	var errs []error
+	for _, m := range machinesToRemediate {
+		log.Info(fmt.Sprintf("Deleting Machine %s because it was marked as unhealthy by the MachineHealthCheck controller", klog.KObj(m)))
+		patch := client.MergeFrom(m.DeepCopy())
+		if err := r.Client.Delete(ctx, m); err != nil {
+			errs = append(errs, errors.Wrapf(err, "failed to delete Machine %s", klog.KObj(m)))
+			continue
+		}
+		conditions.MarkTrue(m, clusterv1.MachineOwnerRemediatedCondition)
+		if err := r.Client.Status().Patch(ctx, m, patch); err != nil && !apierrors.IsNotFound(err) {
+			errs = append(errs, errors.Wrapf(err, "failed to update status of Machine %s", klog.KObj(m)))
+		}
+	}
+
+	if len(errs) > 0 {
+		return ctrl.Result{}, errors.Wrapf(kerrors.NewAggregate(errs), "failed to delete unhealthy Machines")
+	}
+
+	return ctrl.Result{}, nil
 }
 
 func reconcileExternalTemplateReference(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {

@@ -53,8 +53,7 @@ The latest API version of Cluster API and the version of your provider do not ne
 ### Add Status subresource
 
 The [status subresource][status] lets Spec and Status requests for custom resources be addressed separately so requests don't conflict with each other.
-It also lets you split RBAC rules between Spec and Status.
-It's stable in Kubernetes as of [v1.16][rbac], but you will have to [manually enable it in Kubebuilder][kbstatus].
+It also lets you split RBAC rules between Spec and Status. You will have to [manually enable it in Kubebuilder][kbstatus].
 
 Add the `subresource:status` annotation to your `<provider>cluster_types.go` `<provider>machine_types.go`
 
@@ -80,7 +79,6 @@ make manifests
 ```
 
 [status]:  https://kubernetes.io/docs/tasks/access-kubernetes-api/custom-resources/custom-resource-definitions/#status-subresource
-[rbac]: https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.22/#customresourcesubresources-v1beta1-apiextensions-k8s-io
 [kbstatus]: https://book.kubebuilder.io/reference/generating-crd.html?highlight=status#status
 
 ### Apply further customizations

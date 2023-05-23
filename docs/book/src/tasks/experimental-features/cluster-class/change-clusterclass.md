@@ -136,14 +136,10 @@ expect when planning your ClusterClass changes:
   is applied to the KCP template in ClusterClass.
 
 - User should expect the Cluster topology to change consistently irrespective of how the change has been
-  implemented inside the ClusterClass; in other words, if you change a template field "in place", if you
-  rotate the template referenced in the ClusterClass by pointing to a new template with the same field
-  changed, or if you change the same field via a patch, the effects on the Cluster are the same.
-
-- Users should expect the Cluster topology to change consistently irrespective of how the change has been
-  applied to the ClusterClass. In other words, if you change a template field "in place",  or if you
-  rotate the template referenced in the ClusterClass by pointing to a new template with the same field
-  changed, or if you change the same field via a patch, the effects on the Cluster are the same.
+  implemented inside the ClusterClass or applied to the ClusterClass. In other words,
+  if you change a template field "in place", or if you  rotate the template referenced in the
+  ClusterClass by pointing to a new template with the same field changed, or if you change the
+  same field via a patch, the effects on the Cluster are the same.
 
 See [reference](#reference) for more details.
 

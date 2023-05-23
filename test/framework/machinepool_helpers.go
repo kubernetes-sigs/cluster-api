@@ -261,7 +261,7 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 		}
 
 		if matches != len(versions) {
-			return 0, errors.New("old version instances remain")
+			return 0, errors.Errorf("old version instances remain. Expected %d instances at version %v. Got version list: %v", len(versions), input.KubernetesUpgradeVersion, versions)
 		}
 
 		return matches, nil
@@ -294,7 +294,8 @@ func getMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolIn
 			return true, nil
 		})
 		if err != nil {
-			versions[i] = "unknown"
+			// Dump the instance name and error here so that we can log it as part of the version array later on.
+			versions[i] = fmt.Sprintf("%s error: %s", instance.Name, err)
 		} else {
 			versions[i] = node.Status.NodeInfo.KubeletVersion
 		}

@@ -94,7 +94,7 @@ This folder contains resources which are not meant to be used directly by users 
 
 [~/controllers](https://github.com/kubernetes-sigs/cluster-api/tree/main/controllers)
 
-This folder contains reconciler types which provide access to CAPI controllers present in [~/internal/controllers](https://github.com/kubernetes-sigs/cluster-api/tree/main/internal/controllers) directory to our users. These types can be used users by users to run any of the Cluster API controllers in an external program.
+This folder contains reconciler types which provide access to CAPI controllers present in [~/internal/controllers](https://github.com/kubernetes-sigs/cluster-api/tree/main/internal/controllers) directory to our users. These types can be used by users to run any of the Cluster API controllers in an external program.
 
 ### Documentation
 

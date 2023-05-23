@@ -241,6 +241,7 @@ func (md *MachineDeploymentStatus) GetTypedPhase() MachineDeploymentPhase {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 // +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=machinedeployments,shortName=md,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status

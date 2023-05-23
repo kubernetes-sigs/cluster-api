@@ -71,15 +71,19 @@ func (m *crdMigrator) Run(ctx context.Context, objs []unstructured.Unstructured)
 }
 
 // run migrates CRs of a new CRD.
-// This is necessary when the new CRD drops a version which
-// was previously used as a storage version.
+// This is necessary when the new CRD drops or stops serving
+// a version which was previously used as a storage version.
 func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomResourceDefinition) (bool, error) {
 	log := logf.Log
 
 	// Gets the list of version supported by the new CRD
 	newVersions := sets.Set[string]{}
+	servedVersions := sets.Set[string]{}
 	for _, version := range newCRD.Spec.Versions {
 		newVersions.Insert(version.Name)
+		if version.Served {
+			servedVersions.Insert(version.Name)
+		}
 	}
 
 	// Get the current CRD.
@@ -106,10 +110,9 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 	}
 
 	currentStatusStoredVersions := sets.Set[string]{}.Insert(currentCRD.Status.StoredVersions...)
-
 	// If the new CRD still contains all current stored versions, nothing to do
 	// as no previous storage version will be dropped.
-	if newVersions.HasAll(currentStatusStoredVersions.UnsortedList()...) {
+	if servedVersions.HasAll(currentStatusStoredVersions.UnsortedList()...) {
 		log.V(2).Info("CRD migration check passed", "name", newCRD.Name)
 		return false, nil
 	}
@@ -121,8 +124,8 @@ func (m *crdMigrator) run(ctx context.Context, newCRD *apiextensionsv1.CustomRes
 	// This way we can make sure that all CR objects are now stored in the current storage version.
 	// Alternatively, we would have to figure out which objects are stored in which version but this information is not
 	// exposed by the apiserver.
-	storedVersionsToDelete := currentStatusStoredVersions.Difference(newVersions)
-	storedVersionsToPreserve := currentStatusStoredVersions.Intersection(newVersions)
+	storedVersionsToDelete := currentStatusStoredVersions.Difference(servedVersions)
+	storedVersionsToPreserve := currentStatusStoredVersions.Intersection(servedVersions)
 	log.Info("CR migration required", "kind", newCRD.Spec.Names.Kind, "storedVersionsToDelete", strings.Join(sets.List(storedVersionsToDelete), ","), "storedVersionsToPreserve", strings.Join(sets.List(storedVersionsToPreserve), ","))
 
 	if err := m.migrateResourcesForCRD(ctx, currentCRD, currentStorageVersion); err != nil {

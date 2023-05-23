@@ -111,6 +111,7 @@ func (m *ClusterResourceSet) SetConditions(conditions clusterv1alpha3.Conditions
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:unservedversion
 // +kubebuilder:deprecatedversion
 // +kubebuilder:resource:path=clusterresourcesets,scope=Namespaced,categories=cluster-api
 // +kubebuilder:subresource:status

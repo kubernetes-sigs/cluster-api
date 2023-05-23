@@ -25,40 +25,6 @@ import (
 	"sigs.k8s.io/cluster-api/test/framework"
 )
 
-var _ = Describe("When testing clusterctl upgrades (v0.3=>current)", func() {
-	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
-		return ClusterctlUpgradeSpecInput{
-			E2EConfig:                 e2eConfig,
-			ClusterctlConfigPath:      clusterctlConfigPath,
-			BootstrapClusterProxy:     bootstrapClusterProxy,
-			ArtifactFolder:            artifactFolder,
-			SkipCleanup:               skipCleanup,
-			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.3.25/clusterctl-{OS}-{ARCH}",
-			InitWithProvidersContract: "v1alpha3",
-			// CAPI v0.3.x does not work on Kubernetes >= v1.22.
-			InitWithKubernetesVersion: "v1.21.14",
-			WorkloadKubernetesVersion: "v1.22.17",
-			// CAPI does not work with Kubernetes < v1.22 if ClusterClass is enabled, so we have to disable it.
-			UpgradeClusterctlVariables: map[string]string{
-				"CLUSTER_TOPOLOGY": "false",
-			},
-			MgmtFlavor:     "topology",
-			WorkloadFlavor: "",
-			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
-			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
-				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
-					framework.CoreOwnerReferenceAssertion,
-					framework.ExpOwnerReferenceAssertions,
-					framework.DockerInfraOwnerReferenceAssertions,
-					framework.KubeadmBootstrapOwnerReferenceAssertions,
-					framework.KubeadmControlPlaneOwnerReferenceAssertions,
-					framework.KubernetesReferenceAssertions,
-				)
-			},
-		}
-	})
-})
-
 var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{

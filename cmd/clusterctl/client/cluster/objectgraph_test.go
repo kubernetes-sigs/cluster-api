@@ -252,7 +252,7 @@ func assertGraph(t *testing.T, got *objectGraph, want wantGraph) {
 
 	g := NewWithT(t)
 
-	g.Expect(got.uidToNode).To(HaveLen(len(want.nodes)), "the number of nodes in the objectGraph doesn't match the number of expected nodes")
+	g.Expect(got.uidToNode).To(HaveLen(len(want.nodes)), "the number of nodes in the objectGraph doesn't match the number of expected nodes - got: %d expected: %d", len(got.uidToNode), len(want.nodes))
 
 	for uid, wantNode := range want.nodes {
 		gotNode, ok := got.uidToNode[types.UID(uid)]
@@ -776,6 +776,83 @@ var objectGraphsTests = []struct {
 					},
 				},
 				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+					},
+				},
+
+				"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/ms1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
+					},
+				},
+
+				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/ms1",
+					},
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/m1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+					},
+				},
+				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+					},
+				},
+				"/v1, Kind=Secret, ns1/m1": {
+					owners: []string{
+						"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfig, ns1/m1",
+					},
+				},
+			},
+		},
+	},
+	{
+		name: "Cluster with MachineDeployment without a BootstrapConfigRef",
+		args: objectGraphTestArgs{
+			objs: test.NewFakeCluster("ns1", "cluster1").
+				WithMachineDeployments(
+					test.NewFakeMachineDeployment("md1").
+						WithStaticBootstrapConfig().
+						WithMachineSets(
+							test.NewFakeMachineSet("ms1").
+								WithMachines(
+									test.NewFakeMachine("m1"),
+								),
+						),
+				).Objs(),
+		},
+		want: wantGraph{
+			nodes: map[string]wantGraphItem{
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1": {
+					forceMove:          true,
+					forceMoveHierarchy: true,
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-ca": {
+					softOwners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1", // NB. this secret is not linked to the cluster through owner ref
+					},
+				},
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+					},
+				},
+
+				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
+					owners: []string{
+						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+					},
+				},
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1": {
 					owners: []string{
 						"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
 					},

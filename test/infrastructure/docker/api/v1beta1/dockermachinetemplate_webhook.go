@@ -49,24 +49,24 @@ type DockerMachineTemplateWebhook struct{}
 var _ webhook.CustomValidator = &DockerMachineTemplateWebhook{}
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (*DockerMachineTemplateWebhook) ValidateCreate(_ context.Context, _ runtime.Object) error {
-	return nil
+func (*DockerMachineTemplateWebhook) ValidateCreate(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (*DockerMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw runtime.Object, newRaw runtime.Object) error {
+func (*DockerMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw runtime.Object, newRaw runtime.Object) (admission.Warnings, error) {
 	newObj, ok := newRaw.(*DockerMachineTemplate)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a DockerMachineTemplate but got a %T", newRaw))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerMachineTemplate but got a %T", newRaw))
 	}
 	oldObj, ok := oldRaw.(*DockerMachineTemplate)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a DockerMachineTemplate but got a %T", oldRaw))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a DockerMachineTemplate but got a %T", oldRaw))
 	}
 
 	req, err := admission.RequestFromContext(ctx)
 	if err != nil {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a admission.Request inside context: %v", err))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a admission.Request inside context: %v", err))
 	}
 
 	var allErrs field.ErrorList
@@ -75,12 +75,12 @@ func (*DockerMachineTemplateWebhook) ValidateUpdate(ctx context.Context, oldRaw 
 		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "template", "spec"), newObj, dockerMachineTemplateImmutableMsg))
 	}
 	if len(allErrs) == 0 {
-		return nil
+		return nil, nil
 	}
-	return apierrors.NewInvalid(GroupVersion.WithKind("DockerMachineTemplate").GroupKind(), newObj.Name, allErrs)
+	return nil, apierrors.NewInvalid(GroupVersion.WithKind("DockerMachineTemplate").GroupKind(), newObj.Name, allErrs)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (*DockerMachineTemplateWebhook) ValidateDelete(_ context.Context, _ runtime.Object) error {
-	return nil
+func (*DockerMachineTemplateWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
 }

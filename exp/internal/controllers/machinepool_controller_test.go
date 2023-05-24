@@ -223,7 +223,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 				machinePoolInvalidCluster,
 				machinePoolValidCluster,
 				machinePoolValidMachinePool,
-			).Build()
+			).WithStatusSubresource(&expv1.MachinePool{}).Build()
 			mr := &MachinePoolReconciler{
 				Client:    fakeClient,
 				APIReader: fakeClient,
@@ -420,7 +420,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 				bootstrapConfig,
 				builder.TestBootstrapConfigCRD,
 				builder.TestInfrastructureMachineTemplateCRD,
-			).Build()
+			).WithStatusSubresource(&expv1.MachinePool{}).Build()
 
 			r := &MachinePoolReconciler{
 				Client:    clientFake,
@@ -591,7 +591,7 @@ func TestRemoveMachinePoolFinalizerAfterDeleteReconcile(t *testing.T) {
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
 	mr := &MachinePoolReconciler{
-		Client: fake.NewClientBuilder().WithObjects(testCluster, m).Build(),
+		Client: fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&expv1.MachinePool{}).Build(),
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -858,7 +858,7 @@ func TestMachinePoolConditions(t *testing.T) {
 				&nodes.Items[1],
 				builder.TestBootstrapConfigCRD,
 				builder.TestInfrastructureMachineTemplateCRD,
-			).Build()
+			).WithStatusSubresource(&expv1.MachinePool{}).Build()
 
 			r := &MachinePoolReconciler{
 				Client:    clientFake,

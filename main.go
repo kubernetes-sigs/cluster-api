@@ -21,8 +21,6 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"net/http"
-	_ "net/http/pprof"
 	"os"
 	"time"
 
@@ -30,10 +28,8 @@ import (
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
@@ -41,9 +37,10 @@ import (
 	_ "k8s.io/component-base/logs/json/register"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -228,16 +225,6 @@ func main() {
 	// klog.Background will automatically use the right logger.
 	ctrl.SetLogger(klog.Background())
 
-	if profilerAddress != "" {
-		setupLog.Info(fmt.Sprintf("Profiler listening for requests at %s", profilerAddress))
-		go func() {
-			srv := http.Server{Addr: profilerAddress, ReadHeaderTimeout: 2 * time.Second}
-			if err := srv.ListenAndServe(); err != nil {
-				setupLog.Error(err, "problem running profiler server")
-			}
-		}()
-	}
-
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
@@ -259,6 +246,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	var watchNamespaces []string
+	if watchNamespace != "" {
+		watchNamespaces = []string{watchNamespace}
+	}
+
 	ctrlOptions := ctrl.Options{
 		Scheme:                     scheme,
 		MetricsBindAddress:         metricsBindAddr,
@@ -268,22 +260,27 @@ func main() {
 		RenewDeadline:              &leaderElectionRenewDeadline,
 		RetryPeriod:                &leaderElectionRetryPeriod,
 		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
-		Namespace:                  watchNamespace,
-		SyncPeriod:                 &syncPeriod,
-		ClientDisableCacheFor: []client.Object{
-			&corev1.ConfigMap{},
-			&corev1.Secret{},
+		HealthProbeBindAddress:     healthAddr,
+		PprofBindAddress:           profilerAddress,
+		Cache: cache.Options{
+			Namespaces: watchNamespaces,
+			SyncPeriod: &syncPeriod,
 		},
-		Port:                   webhookPort,
-		CertDir:                webhookCertDir,
-		HealthProbeBindAddress: healthAddr,
-		TLSOpts:                tlsOptionOverrides,
-	}
-
-	if feature.Gates.Enabled(feature.LazyRestmapper) {
-		ctrlOptions.MapperProvider = func(c *rest.Config) (meta.RESTMapper, error) {
-			return apiutil.NewDynamicRESTMapper(c, apiutil.WithExperimentalLazyMapper)
-		}
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: []client.Object{
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+				},
+			},
+		},
+		WebhookServer: webhook.NewServer(
+			webhook.Options{
+				Port:    webhookPort,
+				CertDir: webhookCertDir,
+				TLSOpts: tlsOptionOverrides,
+			},
+		),
 	}
 
 	mgr, err := ctrl.NewManager(restConfig, ctrlOptions)
@@ -362,16 +359,13 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if feature.Gates.Enabled(feature.ClusterTopology) {
-		unstructuredCachingClient, err := client.NewDelegatingClient(
-			client.NewDelegatingClientInput{
-				// Use the default client for write operations.
-				Client: mgr.GetClient(),
-				// For read operations, use the same cache used by all the controllers but ensure
-				// unstructured objects will be also cached (this does not happen with the default client).
-				CacheReader:       mgr.GetCache(),
-				CacheUnstructured: true,
+		unstructuredCachingClient, err := client.New(mgr.GetConfig(), client.Options{
+			HTTPClient: mgr.GetHTTPClient(),
+			Cache: &client.CacheOptions{
+				Reader:       mgr.GetCache(),
+				Unstructured: true,
 			},
-		)
+		})
 		if err != nil {
 			setupLog.Error(err, "unable to create unstructured caching client", "controller", "ClusterTopology")
 			os.Exit(1)

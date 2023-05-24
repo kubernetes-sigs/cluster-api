@@ -460,6 +460,7 @@ func TestReconcileMachinePoolPhases(t *testing.T) {
 
 		// Set Deletion Timestamp.
 		machinepool.SetDeletionTimestamp(&deletionTimestamp)
+		machinepool.Finalizers = []string{expv1.MachinePoolFinalizer}
 
 		r := &MachinePoolReconciler{
 			Client: fake.NewClientBuilder().WithObjects(defaultCluster, defaultKubeconfigSecret, machinepool, bootstrapConfig, infraConfig, builder.TestBootstrapConfigCRD, builder.TestInfrastructureMachineTemplateCRD).Build(),

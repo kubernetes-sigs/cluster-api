@@ -194,7 +194,7 @@ func (p *clusterProxy) GetClient() client.Client {
 
 	var c client.Client
 	var newClientErr error
-	err := wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
+	err := wait.PollUntilContextTimeout(context.TODO(), retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
 		c, newClientErr = client.New(config, client.Options{Scheme: p.scheme})
 		if newClientErr != nil {
 			return false, nil //nolint:nilerr

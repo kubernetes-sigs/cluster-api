@@ -34,7 +34,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -84,13 +83,13 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		For(&clusterv1.MachineDeployment{}).
 		Owns(&clusterv1.MachineSet{}).
 		Watches(
-			&source.Kind{Type: &clusterv1.MachineSet{}},
+			&clusterv1.MachineSet{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineSetToDeployments),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
-			&source.Kind{Type: &clusterv1.Cluster{}},
+			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineDeployments),
 			builder.WithPredicates(
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
@@ -381,7 +380,7 @@ func (r *Reconciler) getMachineDeploymentsForMachineSet(ctx context.Context, ms 
 
 // MachineSetToDeployments is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for MachineDeployments that might adopt an orphaned MachineSet.
-func (r *Reconciler) MachineSetToDeployments(o client.Object) []ctrl.Request {
+func (r *Reconciler) MachineSetToDeployments(ctx context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	ms, ok := o.(*clusterv1.MachineSet)
@@ -397,7 +396,7 @@ func (r *Reconciler) MachineSetToDeployments(o client.Object) []ctrl.Request {
 		}
 	}
 
-	mds := r.getMachineDeploymentsForMachineSet(context.TODO(), ms)
+	mds := r.getMachineDeploymentsForMachineSet(ctx, ms)
 	if len(mds) == 0 {
 		return nil
 	}

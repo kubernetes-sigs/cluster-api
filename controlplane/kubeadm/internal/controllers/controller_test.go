@@ -91,7 +91,7 @@ func TestClusterToKubeadmControlPlane(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	got := r.ClusterToKubeadmControlPlane(cluster)
+	got := r.ClusterToKubeadmControlPlane(ctx, cluster)
 	g.Expect(got).To(Equal(expectedResult))
 }
 
@@ -106,7 +106,7 @@ func TestClusterToKubeadmControlPlaneNoControlPlane(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	got := r.ClusterToKubeadmControlPlane(cluster)
+	got := r.ClusterToKubeadmControlPlane(ctx, cluster)
 	g.Expect(got).To(BeNil())
 }
 
@@ -129,7 +129,7 @@ func TestClusterToKubeadmControlPlaneOtherControlPlane(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	got := r.ClusterToKubeadmControlPlane(cluster)
+	got := r.ClusterToKubeadmControlPlane(ctx, cluster)
 	g.Expect(got).To(BeNil())
 }
 
@@ -246,7 +246,8 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 		},
 	}
 	kcp.Default()
-	g.Expect(kcp.ValidateCreate()).To(Succeed())
+	_, err := kcp.ValidateCreate()
+	g.Expect(err).NotTo(HaveOccurred())
 
 	fakeClient := newFakeClient(kcp.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
@@ -322,7 +323,8 @@ func TestReconcileNoCluster(t *testing.T) {
 		},
 	}
 	kcp.Default()
-	g.Expect(kcp.ValidateCreate()).To(Succeed())
+	_, err := kcp.ValidateCreate()
+	g.Expect(err).NotTo(HaveOccurred())
 
 	fakeClient := newFakeClient(kcp.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
@@ -330,7 +332,7 @@ func TestReconcileNoCluster(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+	_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).To(HaveOccurred())
 
 	machineList := &clusterv1.MachineList{}
@@ -371,14 +373,15 @@ func TestReconcilePaused(t *testing.T) {
 		},
 	}
 	kcp.Default()
-	g.Expect(kcp.ValidateCreate()).To(Succeed())
+	_, err := kcp.ValidateCreate()
+	g.Expect(err).NotTo(HaveOccurred())
 	fakeClient := newFakeClient(kcp.DeepCopy(), cluster.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
 		Client:   fakeClient,
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
+	_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 	g.Expect(err).NotTo(HaveOccurred())
 
 	machineList := &clusterv1.MachineList{}
@@ -424,7 +427,8 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 		},
 	}
 	kcp.Default()
-	g.Expect(kcp.ValidateCreate()).To(Succeed())
+	_, err := kcp.ValidateCreate()
+	g.Expect(err).NotTo(HaveOccurred())
 
 	fakeClient := newFakeClient(kcp.DeepCopy(), cluster.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
@@ -633,7 +637,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 	})
 
 	t.Run("Deleted KubeadmControlPlanes don't adopt machines", func(t *testing.T) {
-		// Usually we won't get into the inner reconcile with a deleted control plane, but it's possible when deleting with "oprhanDependents":
+		// Usually we won't get into the inner reconcile with a deleted control plane, but it's possible when deleting with "orphanDependents":
 		// 1. The deletion timestamp is set in the API server, but our cache has not yet updated
 		// 2. The garbage collector removes our ownership reference from a Machine, triggering a re-reconcile (or we get unlucky with the periodic reconciliation)
 		// 3. We get into the inner reconcile function and re-adopt the Machine
@@ -648,6 +652,9 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 
 		now := metav1.Now()
 		kcp.DeletionTimestamp = &now
+		// We also have to set a finalizer as fake client doesn't accept objects
+		// with a deletionTimestamp without a finalizer.
+		kcp.Finalizers = []string{"block-deletion"}
 
 		fmc := &fakeManagementCluster{
 			Machines: collections.Machines{},
@@ -2165,7 +2172,7 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 func newFakeClient(initObjs ...client.Object) client.Client {
 	return &fakeClient{
 		startTime: time.Now(),
-		Client:    fake.NewClientBuilder().WithObjects(initObjs...).Build(),
+		Client:    fake.NewClientBuilder().WithObjects(initObjs...).WithStatusSubresource(&controlplanev1.KubeadmControlPlane{}).Build(),
 	}
 }
 

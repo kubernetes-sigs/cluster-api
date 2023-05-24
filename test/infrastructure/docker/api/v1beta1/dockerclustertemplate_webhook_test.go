@@ -42,7 +42,8 @@ func TestDockerClusterTemplateValidationFeatureGateEnabled(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(dct.ValidateCreate()).To(Succeed())
+		_, err := dct.ValidateCreate()
+		g.Expect(err).NotTo(HaveOccurred())
 	})
 }
 
@@ -61,6 +62,7 @@ func TestDockerClusterTemplateValidationFeatureGateDisabled(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(dct.ValidateCreate()).NotTo(Succeed())
+		_, err := dct.ValidateCreate()
+		g.Expect(err).To(HaveOccurred())
 	})
 }

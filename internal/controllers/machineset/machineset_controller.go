@@ -29,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -37,7 +38,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -100,13 +100,13 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		For(&clusterv1.MachineSet{}).
 		Owns(&clusterv1.Machine{}).
 		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.MachineToMachineSets),
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
-			&source.Kind{Type: &clusterv1.Cluster{}},
+			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachineSets),
 			builder.WithPredicates(
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
@@ -728,7 +728,7 @@ func (r *Reconciler) waitForMachineCreation(ctx context.Context, machineList []*
 
 	for i := 0; i < len(machineList); i++ {
 		machine := machineList[i]
-		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
+		pollErr := wait.PollUntilContextTimeout(ctx, stateConfirmationInterval, stateConfirmationTimeout, true, func(ctx context.Context) (bool, error) {
 			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
 			if err := r.Client.Get(ctx, key, &clusterv1.Machine{}); err != nil {
 				if apierrors.IsNotFound(err) {
@@ -754,7 +754,7 @@ func (r *Reconciler) waitForMachineDeletion(ctx context.Context, machineList []*
 
 	for i := 0; i < len(machineList); i++ {
 		machine := machineList[i]
-		pollErr := util.PollImmediate(stateConfirmationInterval, stateConfirmationTimeout, func() (bool, error) {
+		pollErr := wait.PollUntilContextTimeout(ctx, stateConfirmationInterval, stateConfirmationTimeout, true, func(ctx context.Context) (bool, error) {
 			m := &clusterv1.Machine{}
 			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
 			err := r.Client.Get(ctx, key, m)
@@ -774,7 +774,7 @@ func (r *Reconciler) waitForMachineDeletion(ctx context.Context, machineList []*
 
 // MachineToMachineSets is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for MachineSets that might adopt an orphaned Machine.
-func (r *Reconciler) MachineToMachineSets(o client.Object) []ctrl.Request {
+func (r *Reconciler) MachineToMachineSets(ctx context.Context, o client.Object) []ctrl.Request {
 	result := []ctrl.Request{}
 
 	m, ok := o.(*clusterv1.Machine)
@@ -782,8 +782,6 @@ func (r *Reconciler) MachineToMachineSets(o client.Object) []ctrl.Request {
 		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
 	}
 
-	// This won't log unless the global logger is set
-	ctx := context.Background()
 	log := ctrl.LoggerFrom(ctx, "Machine", klog.KObj(m))
 
 	// Check if the controller reference is already set and

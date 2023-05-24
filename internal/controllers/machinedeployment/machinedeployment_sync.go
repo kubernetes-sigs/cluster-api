@@ -189,7 +189,7 @@ func (r *Reconciler) createMachineSetAndWait(ctx context.Context, deployment *cl
 	// the MachineDeployment to reconcile with an outdated list of MachineSets which could lead to unwanted creation of
 	// a duplicate MachineSet.
 	var pollErrors []error
-	if err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+	if err := wait.PollUntilContextTimeout(ctx, 100*time.Millisecond, 10*time.Second, true, func(ctx context.Context) (bool, error) {
 		ms := &clusterv1.MachineSet{}
 		if err := r.Client.Get(ctx, client.ObjectKeyFromObject(newMS), ms); err != nil {
 			// Do not return error here. Continue to poll even if we hit an error

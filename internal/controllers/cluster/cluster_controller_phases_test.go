@@ -346,6 +346,7 @@ func TestClusterReconciler_reconcilePhase(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{
 					Name:              "test-cluster",
 					DeletionTimestamp: &metav1.Time{Time: time.Now().UTC()},
+					Finalizers:        []string{clusterv1.ClusterFinalizer},
 				},
 				Status: clusterv1.ClusterStatus{
 					InfrastructureReady: true,

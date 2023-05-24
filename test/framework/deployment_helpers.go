@@ -224,7 +224,7 @@ func newWatchPodLogsEventHandler(ctx context.Context, input watchPodLogsInput, s
 	}
 }
 
-func (eh *watchPodLogsEventHandler) OnAdd(obj interface{}) {
+func (eh *watchPodLogsEventHandler) OnAdd(obj interface{}, _ bool) {
 	pod := obj.(*corev1.Pod)
 	eh.streamPodLogs(pod)
 }
@@ -287,7 +287,7 @@ func (eh *watchPodLogsEventHandler) streamPodLogs(pod *corev1.Pod) {
 			}
 
 			// Retry streaming the logs of the pods unless ctx.Done() or if the pod does not exist anymore.
-			err = wait.PollInfiniteWithContext(eh.ctx, 2*time.Second, func(ctx context.Context) (done bool, err error) {
+			err = wait.PollUntilContextCancel(eh.ctx, 2*time.Second, false, func(ctx context.Context) (done bool, err error) {
 				// Wait for pod to be in running state
 				actual, err := eh.input.ClientSet.CoreV1().Pods(pod.Namespace).Get(ctx, pod.Name, metav1.GetOptions{})
 				if err != nil {

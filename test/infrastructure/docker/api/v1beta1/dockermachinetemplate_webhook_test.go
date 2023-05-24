@@ -91,7 +91,7 @@ func TestDockerMachineTemplateInvalid(t *testing.T) {
 			if tt.req != nil {
 				ctx = admission.NewContextWithRequest(ctx, *tt.req)
 			}
-			err := wh.ValidateUpdate(ctx, tt.oldTemplate, tt.newTemplate)
+			_, err := wh.ValidateUpdate(ctx, tt.oldTemplate, tt.newTemplate)
 			if (err != nil) != tt.wantError {
 				t.Errorf("unexpected result - wanted %+v, got %+v", tt.wantError, err)
 			}

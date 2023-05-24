@@ -35,7 +35,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -46,9 +45,9 @@ import (
 	"k8s.io/klog/v2/klogr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
@@ -251,15 +250,20 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 	}
 
 	options := manager.Options{
-		Scheme:                scheme.Scheme,
-		MetricsBindAddress:    "0",
-		CertDir:               env.WebhookInstallOptions.LocalServingCertDir,
-		Port:                  env.WebhookInstallOptions.LocalServingPort,
-		ClientDisableCacheFor: objs,
-		Host:                  host,
-		MapperProvider: func(c *rest.Config) (meta.RESTMapper, error) {
-			return apiutil.NewDynamicRESTMapper(c, apiutil.WithExperimentalLazyMapper)
+		Scheme:             scheme.Scheme,
+		MetricsBindAddress: "0",
+		Client: client.Options{
+			Cache: &client.CacheOptions{
+				DisableFor: objs,
+			},
 		},
+		WebhookServer: webhook.NewServer(
+			webhook.Options{
+				Port:    env.WebhookInstallOptions.LocalServingPort,
+				CertDir: env.WebhookInstallOptions.LocalServingCertDir,
+				Host:    host,
+			},
+		),
 	}
 
 	mgr, err := ctrl.NewManager(env.Config, options)

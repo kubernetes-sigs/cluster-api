@@ -30,15 +30,16 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
 	"sigs.k8s.io/cluster-api/internal/topology/variables"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/version"
 )
@@ -110,33 +111,33 @@ func (webhook *Cluster) Default(ctx context.Context, obj runtime.Object) error {
 }
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Cluster) ValidateCreate(ctx context.Context, obj runtime.Object) error {
+func (webhook *Cluster) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	cluster, ok := obj.(*clusterv1.Cluster)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", obj))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", obj))
 	}
 	return webhook.validate(ctx, nil, cluster)
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Cluster) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) error {
+func (webhook *Cluster) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	newCluster, ok := newObj.(*clusterv1.Cluster)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", newObj))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", newObj))
 	}
 	oldCluster, ok := oldObj.(*clusterv1.Cluster)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", oldObj))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a Cluster but got a %T", oldObj))
 	}
 	return webhook.validate(ctx, oldCluster, newCluster)
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type.
-func (webhook *Cluster) ValidateDelete(_ context.Context, _ runtime.Object) error {
-	return nil
+func (webhook *Cluster) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
 }
 
-func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster) error {
+func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster) (admission.Warnings, error) {
 	var allErrs field.ErrorList
 	// The Cluster name is used as a label value. This check ensures that names which are not valid label values are rejected.
 	if errs := validation.IsValidLabelValue(newCluster.Name); len(errs) != 0 {
@@ -205,9 +206,9 @@ func (webhook *Cluster) validate(ctx context.Context, oldCluster, newCluster *cl
 	}
 
 	if len(allErrs) > 0 {
-		return apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), newCluster.Name, allErrs)
+		return nil, apierrors.NewInvalid(clusterv1.GroupVersion.WithKind("Cluster").GroupKind(), newCluster.Name, allErrs)
 	}
-	return nil
+	return nil, nil
 }
 
 func (webhook *Cluster) validateTopology(ctx context.Context, oldCluster, newCluster *clusterv1.Cluster, fldPath *field.Path) field.ErrorList {
@@ -555,7 +556,7 @@ func (webhook *Cluster) pollClusterClassForCluster(ctx context.Context, cluster 
 	clusterClass := &clusterv1.ClusterClass{}
 	var clusterClassPollErr error
 	// TODO: Add a webhook warning if the ClusterClass is not up to date or not found.
-	_ = util.PollImmediate(200*time.Millisecond, 2*time.Second, func() (bool, error) {
+	_ = wait.PollUntilContextTimeout(ctx, 200*time.Millisecond, 2*time.Second, true, func(ctx context.Context) (bool, error) {
 		if clusterClassPollErr = webhook.Client.Get(ctx, client.ObjectKey{Namespace: cluster.Namespace, Name: cluster.Spec.Topology.Class}, clusterClass); clusterClassPollErr != nil {
 			return false, nil //nolint:nilerr
 		}

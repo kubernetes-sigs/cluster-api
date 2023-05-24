@@ -49,12 +49,18 @@ func Retry(fn wait.ConditionFunc, initialBackoffSec int) error {
 
 // Poll tries a condition func until it returns true, an error, or the timeout
 // is reached.
+//
+// Deprecated: This function has been deprecated and will be removed in a future release.
+// Please use utils from "k8s.io/apimachinery/pkg/util/wait" instead.
 func Poll(interval, timeout time.Duration, condition wait.ConditionFunc) error {
 	return wait.Poll(interval, timeout, condition)
 }
 
 // PollImmediate tries a condition func until it returns true, an error, or the timeout
 // is reached.
+//
+// Deprecated: This function has been deprecated and will be removed in a future release.
+// Please use utils from "k8s.io/apimachinery/pkg/util/wait" instead.
 func PollImmediate(interval, timeout time.Duration, condition wait.ConditionFunc) error {
 	return wait.PollImmediate(interval, timeout, condition)
 }

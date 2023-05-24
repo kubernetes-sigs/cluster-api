@@ -65,10 +65,11 @@ func TestIPAddressClaimValidateCreate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			wh := IPAddressClaim{}
+			_, err := wh.ValidateCreate(context.Background(), &tt.claim)
 			if tt.expectErr {
-				g.Expect(wh.ValidateCreate(context.Background(), &tt.claim)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(wh.ValidateCreate(context.Background(), &tt.claim)).To(Succeed())
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
@@ -113,10 +114,11 @@ func TestIPAddressClaimValidateUpdate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			wh := IPAddressClaim{}
+			_, err := wh.ValidateUpdate(context.Background(), &tt.oldClaim, &tt.newClaim)
 			if tt.expectErr {
-				g.Expect(wh.ValidateUpdate(context.Background(), &tt.oldClaim, &tt.newClaim)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(wh.ValidateUpdate(context.Background(), &tt.oldClaim, &tt.newClaim)).To(Succeed())
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}

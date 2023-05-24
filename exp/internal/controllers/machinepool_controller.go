@@ -31,12 +31,12 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
@@ -73,6 +73,7 @@ type MachinePoolReconciler struct {
 	controller       controller.Controller
 	recorder         record.EventRecorder
 	externalWatchers sync.Map
+	cache            cache.Cache
 }
 
 func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -86,7 +87,7 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
-			&source.Kind{Type: &clusterv1.Cluster{}},
+			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachinePools),
 			// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
 			builder.WithPredicates(
@@ -103,6 +104,7 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinepool-controller")
+	r.cache = mgr.GetCache()
 	return nil
 }
 
@@ -314,7 +316,7 @@ func (r *MachinePoolReconciler) watchClusterNodes(ctx context.Context, cluster *
 	})
 }
 
-func (r *MachinePoolReconciler) nodeToMachinePool(o client.Object) []reconcile.Request {
+func (r *MachinePoolReconciler) nodeToMachinePool(ctx context.Context, o client.Object) []reconcile.Request {
 	node, ok := o.(*corev1.Node)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Node but got a %T", o))
@@ -336,7 +338,7 @@ func (r *MachinePoolReconciler) nodeToMachinePool(o client.Object) []reconcile.R
 	// Match by nodeName and status.nodeRef.name.
 	machinePoolList := &expv1.MachinePoolList{}
 	if err := r.Client.List(
-		context.TODO(),
+		ctx,
 		machinePoolList,
 		append(filters, client.MatchingFields{index.MachinePoolNodeNameField: node.Name})...); err != nil {
 		return nil
@@ -354,7 +356,7 @@ func (r *MachinePoolReconciler) nodeToMachinePool(o client.Object) []reconcile.R
 	}
 	machinePoolList = &expv1.MachinePoolList{}
 	if err := r.Client.List(
-		context.TODO(),
+		ctx,
 		machinePoolList,
 		append(filters, client.MatchingFields{index.MachinePoolProviderIDField: node.Spec.ProviderID})...); err != nil {
 		return nil

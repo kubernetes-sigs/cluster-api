@@ -34,7 +34,6 @@ variables:
   EXP_MACHINE_POOL: "true"
   CLUSTER_TOPOLOGY: "true"
   EXP_RUNTIME_SDK: "true"
-  EXP_LAZY_RESTMAPPER: "true"
 ```
 
 Another way is to set them as environmental variables before running e2e tests.
@@ -49,7 +48,6 @@ kustomize_substitutions:
   EXP_MACHINE_POOL: 'true'
   CLUSTER_TOPOLOGY: 'true'
   EXP_RUNTIME_SDK: 'true'
-  EXP_LAZY_RESTMAPPER: 'true'
 ```
 
 For more details on setting up a development environment with `tilt`, see [Developing Cluster API with Tilt](../../developer/tilt.md)
@@ -65,7 +63,7 @@ kubectl edit -n capi-system deployment.apps/capi-controller-manager
 // Enable/disable available features by modifying Args below.
     Args:
       --leader-elect
-      --feature-gates=MachinePool=true,ClusterResourceSet=true,LazyRestmapper=true
+      --feature-gates=MachinePool=true,ClusterResourceSet=true
 ```
 
 Similarly, to **validate** if a particular feature is enabled, see cluster-api-provider deployment arguments by:

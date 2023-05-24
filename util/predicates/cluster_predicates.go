@@ -157,10 +157,8 @@ func ClusterUpdateUnpaused(logger logr.Logger) predicate.Funcs {
 // Example use:
 //
 //	err := controller.Watch(
-//	    &source.Kind{Type: &clusterv1.Cluster{}},
-//	    &handler.EnqueueRequestsFromMapFunc{
-//	        ToRequests: clusterToMachines,
-//	    },
+//	    source.Kind(cache, &clusterv1.Cluster{}),
+//	    handler.EnqueueRequestsFromMapFunc(clusterToMachines)
 //	    predicates.ClusterUnpaused(r.Log),
 //	)
 func ClusterUnpaused(logger logr.Logger) predicate.Funcs {
@@ -175,10 +173,8 @@ func ClusterUnpaused(logger logr.Logger) predicate.Funcs {
 // Example use:
 //
 //	err := controller.Watch(
-//	    &source.Kind{Type: &clusterv1.Cluster{}},
-//	    &handler.EnqueueRequestsFromMapFunc{
-//	        ToRequests: clusterToMachines,
-//	    },
+//	    source.Kind(cache, &clusterv1.Cluster{}),
+//	    handler.EnqueueRequestsFromMapFunc(clusterToMachines)
 //	    predicates.ClusterControlPlaneInitialized(r.Log),
 //	)
 func ClusterControlPlaneInitialized(logger logr.Logger) predicate.Funcs {
@@ -218,10 +214,8 @@ func ClusterControlPlaneInitialized(logger logr.Logger) predicate.Funcs {
 // Example use:
 //
 //	err := controller.Watch(
-//	    &source.Kind{Type: &clusterv1.Cluster{}},
-//	    &handler.EnqueueRequestsFromMapFunc{
-//	        ToRequests: clusterToMachines,
-//	    },
+//	    source.Kind(cache, &clusterv1.Cluster{}),
+//	    handler.EnqueueRequestsFromMapFunc(clusterToMachines)
 //	    predicates.ClusterUnpausedAndInfrastructureReady(r.Log),
 //	)
 func ClusterUnpausedAndInfrastructureReady(logger logr.Logger) predicate.Funcs {

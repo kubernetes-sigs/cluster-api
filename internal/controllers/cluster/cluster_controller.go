@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -80,7 +79,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}).
 		Watches(
-			&source.Kind{Type: &clusterv1.Machine{}},
+			&clusterv1.Machine{},
 			handler.EnqueueRequestsFromMapFunc(r.controlPlaneMachineToCluster),
 		).
 		WithOptions(options).
@@ -94,6 +93,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	r.recorder = mgr.GetEventRecorderFor("cluster-controller")
 	r.externalTracker = external.ObjectTracker{
 		Controller: c,
+		Cache:      mgr.GetCache(),
 	}
 	return nil
 }
@@ -509,7 +509,7 @@ func (r *Reconciler) reconcileControlPlaneInitialized(ctx context.Context, clust
 
 // controlPlaneMachineToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
 // for Cluster to update its status.controlPlaneInitialized field.
-func (r *Reconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.Request {
+func (r *Reconciler) controlPlaneMachineToCluster(ctx context.Context, o client.Object) []ctrl.Request {
 	m, ok := o.(*clusterv1.Machine)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Machine but got a %T", o))
@@ -521,7 +521,7 @@ func (r *Reconciler) controlPlaneMachineToCluster(o client.Object) []ctrl.Reques
 		return nil
 	}
 
-	cluster, err := util.GetClusterByName(context.TODO(), r.Client, m.Namespace, m.Spec.ClusterName)
+	cluster, err := util.GetClusterByName(ctx, r.Client, m.Namespace, m.Spec.ClusterName)
 	if err != nil {
 		return nil
 	}

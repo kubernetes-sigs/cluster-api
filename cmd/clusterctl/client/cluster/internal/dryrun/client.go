@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/internal/scheme"
 )
 
@@ -114,7 +115,7 @@ type ChangeSummary struct {
 // when the objects are not found in the internal object tracker. Typically the apiReader passed would be a reader client
 // to a real Kubernetes Cluster.
 func NewClient(apiReader client.Reader, objs []client.Object) *Client {
-	fakeClient := fake.NewClientBuilder().WithObjects(objs...).WithScheme(localScheme).Build()
+	fakeClient := fake.NewClientBuilder().WithObjects(objs...).WithStatusSubresource(&clusterv1.ClusterClass{}, &clusterv1.Cluster{}).WithScheme(localScheme).Build()
 	return &Client{
 		fakeClient: fakeClient,
 		apiReader:  apiReader,
@@ -306,6 +307,16 @@ func (c *Client) RESTMapper() meta.RESTMapper {
 // SubResource returns the sub resource this client is using.
 func (c *Client) SubResource(subResource string) client.SubResourceClient {
 	return c.fakeClient.SubResource(subResource)
+}
+
+// GroupVersionKindFor returns the GroupVersionKind for the given object.
+func (c *Client) GroupVersionKindFor(obj runtime.Object) (schema.GroupVersionKind, error) {
+	return c.fakeClient.GroupVersionKindFor(obj)
+}
+
+// IsObjectNamespaced returns true if the GroupVersionKind of the object is namespaced.
+func (c *Client) IsObjectNamespaced(obj runtime.Object) (bool, error) {
+	return c.fakeClient.IsObjectNamespaced(obj)
 }
 
 // Changes generates a summary of all the changes observed from the creation of the dry run client

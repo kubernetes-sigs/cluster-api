@@ -38,7 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
-func mapper(i client.Object) []reconcile.Request {
+func mapper(_ context.Context, i client.Object) []reconcile.Request {
 	return []reconcile.Request{
 		{
 			NamespacedName: types.NamespacedName{

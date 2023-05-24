@@ -79,11 +79,15 @@ func TestMachineBootstrapValidation(t *testing.T) {
 				Spec: MachineSpec{Bootstrap: tt.bootstrap},
 			}
 			if tt.expectErr {
-				g.Expect(m.ValidateCreate()).NotTo(Succeed())
-				g.Expect(m.ValidateUpdate(m)).NotTo(Succeed())
+				_, err := m.ValidateCreate()
+				g.Expect(err).To(HaveOccurred())
+				_, err = m.ValidateUpdate(m)
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(m.ValidateCreate()).To(Succeed())
-				g.Expect(m.ValidateUpdate(m)).To(Succeed())
+				_, err := m.ValidateCreate()
+				g.Expect(err).ToNot(HaveOccurred())
+				_, err = m.ValidateUpdate(m)
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -137,11 +141,15 @@ func TestMachineNamespaceValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				g.Expect(m.ValidateCreate()).NotTo(Succeed())
-				g.Expect(m.ValidateUpdate(m)).NotTo(Succeed())
+				_, err := m.ValidateCreate()
+				g.Expect(err).To(HaveOccurred())
+				_, err = m.ValidateUpdate(m)
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(m.ValidateCreate()).To(Succeed())
-				g.Expect(m.ValidateUpdate(m)).To(Succeed())
+				_, err := m.ValidateCreate()
+				g.Expect(err).ToNot(HaveOccurred())
+				_, err = m.ValidateUpdate(m)
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -185,10 +193,11 @@ func TestMachineClusterNameImmutable(t *testing.T) {
 				},
 			}
 
+			_, err := newMachine.ValidateUpdate(oldMachine)
 			if tt.expectErr {
-				g.Expect(newMachine.ValidateUpdate(oldMachine)).NotTo(Succeed())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(newMachine.ValidateUpdate(oldMachine)).To(Succeed())
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
@@ -239,11 +248,15 @@ func TestMachineVersionValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				g.Expect(m.ValidateCreate()).NotTo(Succeed())
-				g.Expect(m.ValidateUpdate(m)).NotTo(Succeed())
+				_, err := m.ValidateCreate()
+				g.Expect(err).To(HaveOccurred())
+				_, err = m.ValidateUpdate(m)
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(m.ValidateCreate()).To(Succeed())
-				g.Expect(m.ValidateUpdate(m)).To(Succeed())
+				_, err := m.ValidateCreate()
+				g.Expect(err).ToNot(HaveOccurred())
+				_, err = m.ValidateUpdate(m)
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}

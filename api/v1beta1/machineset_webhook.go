@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	capilabels "sigs.k8s.io/cluster-api/internal/labels"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -77,22 +78,22 @@ func (m *MachineSet) Default() {
 }
 
 // ValidateCreate implements webhook.Validator so a webhook will be registered for the type.
-func (m *MachineSet) ValidateCreate() error {
-	return m.validate(nil)
+func (m *MachineSet) ValidateCreate() (admission.Warnings, error) {
+	return nil, m.validate(nil)
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type.
-func (m *MachineSet) ValidateUpdate(old runtime.Object) error {
+func (m *MachineSet) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
 	oldMS, ok := old.(*MachineSet)
 	if !ok {
-		return apierrors.NewBadRequest(fmt.Sprintf("expected a MachineSet but got a %T", old))
+		return nil, apierrors.NewBadRequest(fmt.Sprintf("expected a MachineSet but got a %T", old))
 	}
-	return m.validate(oldMS)
+	return nil, m.validate(oldMS)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type.
-func (m *MachineSet) ValidateDelete() error {
-	return nil
+func (m *MachineSet) ValidateDelete() (admission.Warnings, error) {
+	return nil, nil
 }
 
 func (m *MachineSet) validate(old *MachineSet) error {

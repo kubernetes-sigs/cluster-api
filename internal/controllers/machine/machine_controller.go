@@ -40,7 +40,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
@@ -111,7 +110,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
 		Watches(
-			&source.Kind{Type: &clusterv1.Cluster{}},
+			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachines),
 			builder.WithPredicates(
 				// TODO: should this wait for Cluster.Status.InfrastructureReady similar to Infra Machine resources?
@@ -133,6 +132,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 	r.recorder = mgr.GetEventRecorderFor("machine-controller")
 	r.externalTracker = external.ObjectTracker{
 		Controller: c,
+		Cache:      mgr.GetCache(),
 	}
 	r.ssaCache = ssa.NewCache()
 	return nil
@@ -429,7 +429,7 @@ func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Clu
 		log.Info("Deleting node", "Node", klog.KRef("", m.Status.NodeRef.Name))
 
 		var deleteNodeErr error
-		waitErr := wait.PollImmediate(2*time.Second, r.nodeDeletionRetryTimeout, func() (bool, error) {
+		waitErr := wait.PollUntilContextTimeout(ctx, 2*time.Second, r.nodeDeletionRetryTimeout, true, func(ctx context.Context) (bool, error) {
 			if deleteNodeErr = r.deleteNode(ctx, cluster, m.Status.NodeRef.Name); deleteNodeErr != nil && !apierrors.IsNotFound(errors.Cause(deleteNodeErr)) {
 				return false, nil
 			}
@@ -802,7 +802,7 @@ func (r *Reconciler) watchClusterNodes(ctx context.Context, cluster *clusterv1.C
 	})
 }
 
-func (r *Reconciler) nodeToMachine(o client.Object) []reconcile.Request {
+func (r *Reconciler) nodeToMachine(ctx context.Context, o client.Object) []reconcile.Request {
 	node, ok := o.(*corev1.Node)
 	if !ok {
 		panic(fmt.Sprintf("Expected a Node but got a %T", o))
@@ -824,7 +824,7 @@ func (r *Reconciler) nodeToMachine(o client.Object) []reconcile.Request {
 	// Match by nodeName and status.nodeRef.name.
 	machineList := &clusterv1.MachineList{}
 	if err := r.Client.List(
-		context.TODO(),
+		ctx,
 		machineList,
 		append(filters, client.MatchingFields{index.MachineNodeNameField: node.Name})...); err != nil {
 		return nil
@@ -842,7 +842,7 @@ func (r *Reconciler) nodeToMachine(o client.Object) []reconcile.Request {
 	}
 	machineList = &clusterv1.MachineList{}
 	if err := r.Client.List(
-		context.TODO(),
+		ctx,
 		machineList,
 		append(filters, client.MatchingFields{index.MachineProviderIDField: node.Spec.ProviderID})...); err != nil {
 		return nil

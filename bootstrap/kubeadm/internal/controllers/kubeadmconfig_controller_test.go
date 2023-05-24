@@ -80,7 +80,7 @@ func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 	}
 	for i := 0; i < 3; i++ {
 		o := machineObjs[i]
-		configs := reconciler.MachineToBootstrapMapFunc(o)
+		configs := reconciler.MachineToBootstrapMapFunc(ctx, o)
 		if i == 1 {
 			g.Expect(configs[0].Name).To(Equal(expectedConfigName))
 		} else {
@@ -158,7 +158,7 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 		secret,
 		cluster,
 	}
-	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 	k := &KubeadmConfigReconciler{
 		Client: myclient,
@@ -272,7 +272,7 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 		machine,
 		config,
 	}
-	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 	k := &KubeadmConfigReconciler{
 		Client: myclient,
@@ -315,7 +315,7 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 		machine,
 		config,
 	}
-	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 	k := &KubeadmConfigReconciler{
 		Client: myclient,
@@ -450,7 +450,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			myclient := fake.NewClientBuilder().WithObjects(tc.objects...).Build()
+			myclient := fake.NewClientBuilder().WithObjects(tc.objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 			k := &KubeadmConfigReconciler{
 				Client:          myclient,
@@ -492,7 +492,7 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	}
 	objects = append(objects, createSecrets(t, cluster, controlPlaneInitConfig)...)
 
-	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 	k := &KubeadmConfigReconciler{
 		Client:             myclient,
@@ -553,7 +553,7 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 		controlPlaneJoinConfig,
 	}
 	objects = append(objects, createSecrets(t, cluster, controlPlaneInitConfig)...)
-	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 	k := &KubeadmConfigReconciler{
 		Client:             myclient,
@@ -597,7 +597,7 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	}
 	objects = append(objects, createSecrets(t, cluster, controlPlaneInitConfig)...)
 
-	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 	k := &KubeadmConfigReconciler{
 		Client:          myclient,
@@ -675,7 +675,7 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 				config,
 			}
 			objects = append(objects, createSecrets(t, cluster, config)...)
-			myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+			myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 			k := &KubeadmConfigReconciler{
 				Client:             myclient,
 				KubeadmInitLock:    &myInitLocker{},
@@ -752,7 +752,7 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 				config,
 			}
 			objects = append(objects, createSecrets(t, cluster, config)...)
-			myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+			myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 			k := &KubeadmConfigReconciler{
 				Client:             myclient,
 				KubeadmInitLock:    &myInitLocker{},
@@ -851,7 +851,7 @@ func TestBootstrapDataFormat(t *testing.T) {
 			}
 			objects = append(objects, createSecrets(t, cluster, config)...)
 
-			myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+			myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 			k := &KubeadmConfigReconciler{
 				Client:             myclient,
@@ -932,7 +932,7 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 	}
 
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
-	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 	k := &KubeadmConfigReconciler{
 		Client:             myclient,
 		KubeadmInitLock:    &myInitLocker{},
@@ -1009,7 +1009,7 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	}
 
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
-	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}, &clusterv1.Machine{}).Build()
 	k := &KubeadmConfigReconciler{
 		Client:             myclient,
 		KubeadmInitLock:    &myInitLocker{},
@@ -1210,7 +1210,7 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	}
 
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
-	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}, &expv1.MachinePool{}).Build()
 	k := &KubeadmConfigReconciler{
 		Client:             myclient,
 		KubeadmInitLock:    &myInitLocker{},
@@ -1766,7 +1766,7 @@ func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
 	reconciler := &KubeadmConfigReconciler{
 		Client: fakeClient,
 	}
-	configs := reconciler.ClusterToKubeadmConfigs(cluster)
+	configs := reconciler.ClusterToKubeadmConfigs(ctx, cluster)
 	names := make([]string, 6)
 	for i := range configs {
 		names[i] = configs[i].Name
@@ -1835,7 +1835,7 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 		controlPlaneInitMachineSecond,
 		controlPlaneInitConfigSecond,
 	}
-	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
+	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 	k := &KubeadmConfigReconciler{
 		Client:          myclient,
 		KubeadmInitLock: &myInitLocker{},

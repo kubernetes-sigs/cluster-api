@@ -7,4 +7,4 @@ helmCharts:
     releaseName: prometheus
     namespace: observability
     valuesFile: values.yaml
-    version: 15.12.0
+    version: 22.6.2

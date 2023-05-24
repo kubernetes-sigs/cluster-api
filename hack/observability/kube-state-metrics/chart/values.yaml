@@ -18,6 +18,7 @@ rbac:
     resources:
     - clusters
     - machinedeployments
+    - machinepools
     - machinesets
     - machines
     - machinehealthchecks

@@ -799,8 +799,8 @@ func writeIfChanged(prefix string, path string, yaml []byte) error {
 // This has the affect that the appended ones will take precedence, as those are read last.
 // Finally, we modify the deployment to enable prometheus metrics scraping.
 func prepareWorkload(name, prefix, binaryName, containerName string, objs []unstructured.Unstructured, ts *tiltSettings) error {
-	return updateDeployment(prefix, objs, func(d *appsv1.Deployment) {
-		for j, container := range d.Spec.Template.Spec.Containers {
+	return updateDeployment(prefix, objs, func(deployment *appsv1.Deployment) {
+		for j, container := range deployment.Spec.Template.Spec.Containers {
 			if container.Name != containerName {
 				continue
 			}
@@ -811,7 +811,7 @@ func prepareWorkload(name, prefix, binaryName, containerName string, objs []unst
 			container.SecurityContext = nil
 			// ensure it's also removed from the pod template matching this container
 			// setting this outside the loop would means altering every deployments
-			d.Spec.Template.Spec.SecurityContext = nil
+			deployment.Spec.Template.Spec.SecurityContext = nil
 
 			// alter deployment for working nicely with delve debugger;
 			// most specifically, configuring delve, starting the manager with profiling enabled, dropping liveness and
@@ -841,6 +841,14 @@ func prepareWorkload(name, prefix, binaryName, containerName string, objs []unst
 				}
 				args = debugArgs
 
+				// Set annotation to point parca to the profiler port.
+				if d.ProfilerPort != nil && *d.ProfilerPort > 0 {
+					if deployment.Spec.Template.Annotations == nil {
+						deployment.Spec.Template.Annotations = map[string]string{}
+					}
+					deployment.Spec.Template.Annotations["parca.dev/port"] = "6060"
+				}
+
 				container.LivenessProbe = nil
 				container.ReadinessProbe = nil
 			}
@@ -864,7 +872,7 @@ func prepareWorkload(name, prefix, binaryName, containerName string, objs []unst
 
 			container.Command = cmd
 			container.Args = finalArgs
-			d.Spec.Template.Spec.Containers[j] = container
+			deployment.Spec.Template.Spec.Containers[j] = container
 		}
 	})
 }

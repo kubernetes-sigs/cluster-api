@@ -90,6 +90,14 @@ cleanup() {
 
   ps -ef > "${ARTIFACTS_LOCAL}/processes-ps-ef.txt" || true
 
+  for PID in $(ps -eo pid=); do
+    echo "> PID=$PID"
+    echo ">> /proc/${PID}/status" 
+    cat "/proc/${PID}/status" || true
+    echo ">> /proc/${PID}/stack" 
+    cat "/proc/${PID}/stack" || true
+  done >> "${ARTIFACTS_LOCAL}/processes-proc-information.txt"
+
   # Verify that no containers are running at this time
   # Note: This verifies that all our tests clean up clusters correctly.
   if [[ ! "$(docker ps -q | wc -l)" -eq "0" ]]

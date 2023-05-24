@@ -366,11 +366,6 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 		return result, err
 	}
 
-	// Reconcile certificate expiry for machines that don't have the expiry annotation on KubeadmConfig yet.
-	if result, err := r.reconcileCertificateExpiries(ctx, controlPlane); err != nil || !result.IsZero() {
-		return result, err
-	}
-
 	// Control plane machines rollout due to configuration changes (e.g. upgrades) takes precedence over other operations.
 	needRollout := controlPlane.MachinesNeedingRollout()
 	switch {
@@ -438,6 +433,14 @@ func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, cluster *
 	// Update CoreDNS deployment.
 	if err := workloadCluster.UpdateCoreDNS(ctx, kcp, parsedVersion); err != nil {
 		return ctrl.Result{}, errors.Wrap(err, "failed to update CoreDNS deployment")
+	}
+
+	// Reconcile certificate expiry for Machines that don't have the expiry annotation on KubeadmConfig yet.
+	// Note: This requires that all control plane machines are working. We moved this to the end of the reconcile
+	// as nothing in the same reconcile depends on it and to ensure it doesn't block anything else,
+	// especially MHC remediation and rollout of changes to recover the control plane.
+	if result, err := r.reconcileCertificateExpiries(ctx, controlPlane); err != nil || !result.IsZero() {
+		return result, err
 	}
 
 	return ctrl.Result{}, nil

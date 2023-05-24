@@ -106,7 +106,7 @@ By extension, the Cluster API contract includes all the util methods that Cluste
 making the development of providers simpler and consistent (e.g. everything under `/util` or in  `/test/framework`);
 documentation of the utility is available [here](https://pkg.go.dev/sigs.k8s.io/cluster-api?tab=subdirectories).
 
-The Cluster API contract is linked to the version of the API (e.g. v1alpha3 Contract), and it is expected to
+The Cluster API contract is linked to the version of the API (e.g. v1beta1 Contract), and it is expected to
 provide the same set of guarantees in terms of support window, stability, and upgradability. 
 
 This makes any change that can impact the Cluster API contract critical and usually:

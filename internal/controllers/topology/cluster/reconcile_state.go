@@ -264,7 +264,7 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 		}
 
 		if !cpUpgrading && !cpScaling && !s.UpgradeTracker.ControlPlane.PendingUpgrade && // Control Plane checks
-			len(s.UpgradeTracker.MachineDeployments.RolloutNames()) == 0 && // Machine deployments are not rollout out or not about to roll out
+			len(s.UpgradeTracker.MachineDeployments.UpgradingNames()) == 0 && // Machine deployments are not upgrading or not about to upgrade
 			!s.UpgradeTracker.MachineDeployments.PendingUpgrade() && // No MachineDeployments have an upgrade pending
 			!s.UpgradeTracker.MachineDeployments.DeferredUpgrade() { // No MachineDeployments have an upgrade deferred
 			// Everything is stable and the cluster can be considered fully upgraded.

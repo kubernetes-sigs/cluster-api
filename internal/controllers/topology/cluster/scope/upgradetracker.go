@@ -47,7 +47,6 @@ type MachineDeploymentUpgradeTracker struct {
 	pendingNames                           sets.Set[string]
 	deferredNames                          sets.Set[string]
 	upgradingNames                         sets.Set[string]
-	rollingOutNames                        sets.Set[string]
 	holdUpgrades                           bool
 	maxMachineDeploymentUpgradeConcurrency int
 }
@@ -85,39 +84,17 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 		MachineDeployments: MachineDeploymentUpgradeTracker{
 			pendingNames:                           sets.Set[string]{},
 			deferredNames:                          sets.Set[string]{},
-			rollingOutNames:                        sets.Set[string]{},
 			upgradingNames:                         sets.Set[string]{},
 			maxMachineDeploymentUpgradeConcurrency: options.maxMDUpgradeConcurrency,
 		},
 	}
 }
 
-// MarkRollingOut marks a MachineDeployment as currently rolling out or
-// is about to rollout.
-// NOTE: We are using Rollout because this includes upgrades and also other changes
-// that could imply Machines being created/deleted; in both cases we should wait for
-// the operation to complete before moving to the next step of the Cluster upgrade.
-func (m *MachineDeploymentUpgradeTracker) MarkRollingOut(names ...string) {
-	for _, name := range names {
-		m.rollingOutNames.Insert(name)
-	}
-}
-
-// MarkUpgradingAndRollingOut marks a MachineDeployment as currently upgrading or about to upgrade.
-// NOTE: Marking a MachineDeployment as upgrading also marks it as RollingOut.
-func (m *MachineDeploymentUpgradeTracker) MarkUpgradingAndRollingOut(names ...string) {
+// MarkUpgrading marks a MachineDeployment as currently upgrading or about to upgrade.
+func (m *MachineDeploymentUpgradeTracker) MarkUpgrading(names ...string) {
 	for _, name := range names {
 		m.upgradingNames.Insert(name)
-		m.rollingOutNames.Insert(name)
 	}
-}
-
-// RolloutNames returns the list of machine deployments that are rolling out or
-// are about to rollout.
-// Note: This also includes the names of MachineDeployments that are upgrading
-// MachineDeployments are also considered rolling out.
-func (m *MachineDeploymentUpgradeTracker) RolloutNames() []string {
-	return sets.List(m.rollingOutNames)
 }
 
 // UpgradingNames returns the list of machine deployments that are upgrading or

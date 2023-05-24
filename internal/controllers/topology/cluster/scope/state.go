@@ -26,7 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
-	"sigs.k8s.io/cluster-api/internal/controllers/machinedeployment/mdutil"
 )
 
 // ClusterState holds all the objects representing the state of a managed Cluster topology.
@@ -62,24 +61,6 @@ type ControlPlaneState struct {
 // MachineDeploymentsStateMap holds a collection of MachineDeployment states.
 type MachineDeploymentsStateMap map[string]*MachineDeploymentState
 
-// RollingOut returns the list of the machine deployments
-// that are rolling out.
-func (mds MachineDeploymentsStateMap) RollingOut() []string {
-	names := []string{}
-	for _, md := range mds {
-		if md.IsRollingOut() {
-			names = append(names, md.Object.Name)
-		}
-	}
-	return names
-}
-
-// IsAnyRollingOut returns true if at least one of the
-// machine deployments is rolling out. False, otherwise.
-func (mds MachineDeploymentsStateMap) IsAnyRollingOut() bool {
-	return len(mds.RollingOut()) != 0
-}
-
 // Upgrading returns the list of the machine deployments
 // that are upgrading.
 func (mds MachineDeploymentsStateMap) Upgrading(ctx context.Context, c client.Client) ([]string, error) {
@@ -110,15 +91,6 @@ type MachineDeploymentState struct {
 	// MachineHealthCheck holds a MachineHealthCheck linked to the MachineDeployment object.
 	// +optional
 	MachineHealthCheck *clusterv1.MachineHealthCheck
-}
-
-// IsRollingOut determines if the machine deployment is rolling out.
-// A machine deployment is considered upgrading if:
-// - if any of the replicas of the machine deployment is not ready.
-func (md *MachineDeploymentState) IsRollingOut() bool {
-	return !mdutil.DeploymentComplete(md.Object, &md.Object.Status) ||
-		*md.Object.Spec.Replicas != md.Object.Status.ReadyReplicas ||
-		md.Object.Status.UnavailableReplicas > 0
 }
 
 // IsUpgrading determines if the MachineDeployment is upgrading.

@@ -196,7 +196,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 			wantConditionMessage: "Control plane upgrade to v1.22.0 on hold. Control plane is reconciling desired replicas",
 		},
 		{
-			name:         "should set the condition to false if new version is not picked up because at least one of the machine deployment is rolling out",
+			name:         "should set the condition to false if new version is not picked up because at least one of the machine deployment is upgrading",
 			reconcileErr: nil,
 			cluster:      &clusterv1.Cluster{},
 			s: &scope.Scope{
@@ -231,14 +231,14 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				UpgradeTracker: func() *scope.UpgradeTracker {
 					ut := scope.NewUpgradeTracker()
 					ut.ControlPlane.PendingUpgrade = true
-					ut.MachineDeployments.MarkRollingOut("md0-abc123")
+					ut.MachineDeployments.MarkUpgrading("md0-abc123")
 					return ut
 				}(),
 				HookResponseTracker: scope.NewHookResponseTracker(),
 			},
 			wantConditionStatus:  corev1.ConditionFalse,
 			wantConditionReason:  clusterv1.TopologyReconciledControlPlaneUpgradePendingReason,
-			wantConditionMessage: "Control plane upgrade to v1.22.0 on hold. MachineDeployment(s) md0-abc123 are rolling out",
+			wantConditionMessage: "Control plane upgrade to v1.22.0 on hold. MachineDeployment(s) md0-abc123 are upgrading",
 		},
 		{
 			name:         "should set the condition to false if control plane picked the new version but machine deployments did not because control plane is upgrading",
@@ -451,7 +451,7 @@ func TestReconcileTopologyReconciledCondition(t *testing.T) {
 				UpgradeTracker: func() *scope.UpgradeTracker {
 					ut := scope.NewUpgradeTracker()
 					ut.ControlPlane.PendingUpgrade = false
-					ut.MachineDeployments.MarkUpgradingAndRollingOut("md0-abc123")
+					ut.MachineDeployments.MarkUpgrading("md0-abc123")
 					ut.MachineDeployments.MarkPendingUpgrade("md1-abc123")
 					return ut
 				}(),

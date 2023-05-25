@@ -200,7 +200,10 @@ func LocalObjectTemplateIsValid(template *clusterv1.LocalObjectTemplate, namespa
 func ClusterClassesAreCompatible(current, desired *clusterv1.ClusterClass) field.ErrorList {
 	var allErrs field.ErrorList
 	if current == nil {
-		return nil
+		return append(allErrs, field.Invalid(field.NewPath(""), "", "could not compare ClusterClass compatibility: current ClusterClass must not be nil"))
+	}
+	if desired == nil {
+		return append(allErrs, field.Invalid(field.NewPath(""), "", "could not compare ClusterClass compatibility: desired ClusterClass must not be nil"))
 	}
 
 	// Validate InfrastructureClusterTemplate changes desired a compatible way.

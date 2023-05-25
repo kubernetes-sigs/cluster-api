@@ -59,8 +59,9 @@ import (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme         = runtime.NewScheme()
+	setupLog       = ctrl.Log.WithName("setup")
+	controllerName = "cluster-api-kubeadm-control-plane-manager"
 )
 
 func init() {
@@ -174,7 +175,7 @@ func main() {
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
-	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-kubeadm-control-plane-manager")
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 
 	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
 	if err != nil {
@@ -257,8 +258,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	// requiring a connection to a remote cluster
 	log := ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")
 	tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{
-		Log:     &log,
-		Indexes: remote.DefaultIndexes,
+		ControllerName: controllerName,
+		Log:            &log,
+		Indexes:        remote.DefaultIndexes,
 		ClientUncachedObjects: []client.Object{
 			&corev1.ConfigMap{},
 			&corev1.Secret{},

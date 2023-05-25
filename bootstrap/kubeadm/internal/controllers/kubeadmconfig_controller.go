@@ -60,11 +60,6 @@ import (
 )
 
 const (
-	// KubeadmConfigControllerName defines the controller used when creating clients.
-	KubeadmConfigControllerName = "kubeadmconfig-controller"
-)
-
-const (
 	// DefaultTokenTTL is the default TTL used for tokens.
 	DefaultTokenTTL = 15 * time.Minute
 )
@@ -82,6 +77,7 @@ type InitLocker interface {
 // KubeadmConfigReconciler reconciles a KubeadmConfig object.
 type KubeadmConfigReconciler struct {
 	Client          client.Client
+	Tracker         *remote.ClusterCacheTracker
 	KubeadmInitLock InitLocker
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
@@ -89,8 +85,6 @@ type KubeadmConfigReconciler struct {
 
 	// TokenTTL is the amount of time a bootstrap token (and therefore a KubeadmConfig) will be valid.
 	TokenTTL time.Duration
-
-	remoteClientGetter remote.ClusterClientGetter
 }
 
 // Scope is a scoped struct used during reconciliation.
@@ -105,9 +99,6 @@ type Scope struct {
 func (r *KubeadmConfigReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	if r.KubeadmInitLock == nil {
 		r.KubeadmInitLock = locking.NewControlPlaneInitMutex(mgr.GetClient())
-	}
-	if r.remoteClientGetter == nil {
-		r.remoteClientGetter = remote.NewClusterClient
 	}
 	if r.TokenTTL == 0 {
 		r.TokenTTL = DefaultTokenTTL
@@ -239,6 +230,25 @@ func (r *KubeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			}
 		}
 	}()
+
+	// Ignore deleted KubeadmConfigs.
+	if !config.DeletionTimestamp.IsZero() {
+		return ctrl.Result{}, nil
+	}
+
+	res, err := r.reconcile(ctx, scope, cluster, config, configOwner)
+	if err != nil && errors.Is(err, remote.ErrClusterLocked) {
+		// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
+		// the current cluster because of concurrent access.
+		log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+		return ctrl.Result{Requeue: true}, nil
+	}
+	return res, err
+}
+
+func (r *KubeadmConfigReconciler) reconcile(ctx context.Context, scope *Scope, cluster *clusterv1.Cluster, config *bootstrapv1.KubeadmConfig, configOwner *bsutil.ConfigOwner) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	// Ensure the bootstrap secret associated with this KubeadmConfig has the correct ownerReference.
 	if err := r.ensureBootstrapSecretOwnersRef(ctx, scope); err != nil {
 		return ctrl.Result{}, err
@@ -305,9 +315,8 @@ func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, con
 	log := ctrl.LoggerFrom(ctx)
 	token := config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token
 
-	remoteClient, err := r.remoteClientGetter(ctx, KubeadmConfigControllerName, r.Client, util.ObjectKey(cluster))
+	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
-		log.Error(err, "Error creating remote cluster client")
 		return ctrl.Result{}, err
 	}
 
@@ -323,7 +332,7 @@ func (r *KubeadmConfigReconciler) refreshBootstrapToken(ctx context.Context, con
 func (r *KubeadmConfigReconciler) rotateMachinePoolBootstrapToken(ctx context.Context, config *bootstrapv1.KubeadmConfig, cluster *clusterv1.Cluster, scope *Scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(2).Info("Config is owned by a MachinePool, checking if token should be rotated")
-	remoteClient, err := r.remoteClientGetter(ctx, KubeadmConfigControllerName, r.Client, util.ObjectKey(cluster))
+	remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -928,7 +937,7 @@ func (r *KubeadmConfigReconciler) reconcileDiscovery(ctx context.Context, cluste
 
 	// if BootstrapToken already contains a token, respect it; otherwise create a new bootstrap token for the node to join
 	if config.Spec.JoinConfiguration.Discovery.BootstrapToken.Token == "" {
-		remoteClient, err := r.remoteClientGetter(ctx, KubeadmConfigControllerName, r.Client, util.ObjectKey(cluster))
+		remoteClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 		if err != nil {
 			return ctrl.Result{}, err
 		}

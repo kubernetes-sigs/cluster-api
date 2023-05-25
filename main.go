@@ -72,9 +72,10 @@ import (
 )
 
 var (
-	catalog  = runtimecatalog.New()
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	catalog        = runtimecatalog.New()
+	scheme         = runtime.NewScheme()
+	setupLog       = ctrl.Log.WithName("setup")
+	controllerName = "cluster-api-controller-manager"
 
 	// flags.
 	metricsBindAddr               string
@@ -228,7 +229,7 @@ func main() {
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
-	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-controller-manager")
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 
 	minVer := version.MinimumKubernetesVersion
 	if feature.Gates.Enabled(feature.ClusterTopology) {
@@ -331,8 +332,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	tracker, err := remote.NewClusterCacheTracker(
 		mgr,
 		remote.ClusterCacheTrackerOptions{
-			Log:     &log,
-			Indexes: remote.DefaultIndexes,
+			ControllerName: controllerName,
+			Log:            &log,
+			Indexes:        remote.DefaultIndexes,
 		},
 	)
 	if err != nil {

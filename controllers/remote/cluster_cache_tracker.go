@@ -81,6 +81,10 @@ type ClusterCacheTracker struct {
 
 	indexes []Index
 
+	// controllerName is the name of the controller.
+	// This is used to calculate the user agent string.
+	controllerName string
+
 	// controllerPodMetadata is the Pod metadata of the controller using this ClusterCacheTracker.
 	// This is only set when the POD_NAMESPACE, POD_NAME and POD_UID environment variables are set.
 	// This information will be used to detected if the controller is running on a workload cluster, so
@@ -100,6 +104,11 @@ type ClusterCacheTrackerOptions struct {
 	// Defaults to never caching ConfigMap and Secret if not set.
 	ClientUncachedObjects []client.Object
 	Indexes               []Index
+
+	// ControllerName is the name of the controller.
+	// This is used to calculate the user agent string.
+	// If not set, it defaults to "cluster-cache-tracker".
+	ControllerName string
 }
 
 func setDefaultOptions(opts *ClusterCacheTrackerOptions) {
@@ -120,6 +129,11 @@ func setDefaultOptions(opts *ClusterCacheTrackerOptions) {
 func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOptions) (*ClusterCacheTracker, error) {
 	setDefaultOptions(&options)
 
+	controllerName := options.ControllerName
+	if controllerName == "" {
+		controllerName = clusterCacheControllerName
+	}
+
 	var controllerPodMetadata *metav1.ObjectMeta
 	podNamespace := os.Getenv("POD_NAMESPACE")
 	podName := os.Getenv("POD_NAME")
@@ -136,6 +150,7 @@ func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOpt
 	}
 
 	return &ClusterCacheTracker{
+		controllerName:        controllerName,
 		controllerPodMetadata: controllerPodMetadata,
 		log:                   *options.Log,
 		clientUncachedObjects: options.ClientUncachedObjects,
@@ -257,7 +272,7 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 	log := ctrl.LoggerFrom(ctx)
 
 	// Get a rest config for the remote cluster
-	config, err := RESTConfig(ctx, clusterCacheControllerName, t.client, cluster)
+	config, err := RESTConfig(ctx, t.controllerName, t.client, cluster)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error fetching REST client config for remote cluster %q", cluster.String())
 	}

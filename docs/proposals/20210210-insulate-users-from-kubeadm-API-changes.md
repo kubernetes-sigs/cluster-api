@@ -77,7 +77,7 @@ because types are already different (see background info in the implementation d
   specs for v1alpha4.
 - Define how to use the right version of the kubeadm types generating our kubeadm yaml
   file and when interacting with the kubeadm-config ConfigMap.
-- Ensure a clean and smooth v1alpha3 to v1aplha4 upgrade experience.
+- Ensure a clean and smooth v1alpha3 to v1alpha4 upgrade experience.
 
 ### Non-Goals
 

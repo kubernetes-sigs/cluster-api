@@ -179,13 +179,19 @@ Cluster API maintains the most recent release/releases for all supported API and
 
 We are going to remove the apiVersions in upcoming releases:
 * v1.5:
-  * Kubernetes API server will stop serving the v1alpha3 apiVersion
+  * Kubernetes API server stops serving the v1alpha3 apiVersion
 * v1.6:
-  * v1alpha3 apiVersion will be removed from the CRDs
-  * Kubernetes API server will stop serving the v1alpha4 apiVersion
+  * v1alpha3 apiVersion is removed from the CRDs
+  * Kubernetes API server stops serving the v1alpha4 apiVersion
 * v1.7
-  * v1alpha4 apiVersion will be removed from the CRDs
+  * v1alpha4 apiVersion is removed from the CRDs
 For more details and latest information please see the following issue: [Removing v1alpha3 & v1alpha4 apiVersions](https://github.com/kubernetes-sigs/cluster-api/issues/8038).
+
+Note: Removal of a deprecated APIVersion in Kubernetes [can cause issues with garbage collection by the kube-controller-manager](https://github.com/kubernetes/kubernetes/issues/102641)
+This means that some objects which rely on garbage collection for cleanup - e.g. MachineSets and their descendent objects, like Machines and InfrastructureMachines, may not be cleaned up properly if those
+objects were created with an APIVersion which is no longer served.
+To avoid these issues it's advised to ensure a restart to the kube-controller-manager is done after upgrading to a version of Cluster API which drops support for an APIVersion - e.g. v1.5 and v1.6.
+This can be accomplished with any Kubernetes control-plane rollout, including a Kubernetes version upgrade, or by manually stopping and restarting the kube-controller-manager.
 
 ## Contributing a Patch
 

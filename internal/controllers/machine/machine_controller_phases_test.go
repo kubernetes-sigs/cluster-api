@@ -715,7 +715,7 @@ func TestReconcileBootstrap(t *testing.T) {
 				"spec":   map[string]interface{}{},
 				"status": map[string]interface{}{},
 			},
-			expectResult: ctrl.Result{RequeueAfter: externalReadyWait},
+			expectResult: ctrl.Result{},
 			expectError:  false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.Status.BootstrapReady).To(BeFalse())
@@ -836,7 +836,7 @@ func TestReconcileBootstrap(t *testing.T) {
 					BootstrapReady: true,
 				},
 			},
-			expectResult: ctrl.Result{RequeueAfter: externalReadyWait},
+			expectResult: ctrl.Result{},
 			expectError:  false,
 			expected: func(g *WithT, m *clusterv1.Machine) {
 				g.Expect(m.GetOwnerReferences()).NotTo(ContainRefOfGroupKind("cluster.x-k8s.io", "MachineSet"))

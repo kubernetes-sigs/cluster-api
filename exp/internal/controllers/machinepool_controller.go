@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"sync"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -31,7 +30,6 @@ import (
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
-	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -70,10 +68,9 @@ type MachinePoolReconciler struct {
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
-	controller       controller.Controller
-	recorder         record.EventRecorder
-	externalWatchers sync.Map
-	cache            cache.Cache
+	controller      controller.Controller
+	recorder        record.EventRecorder
+	externalTracker external.ObjectTracker
 }
 
 func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
@@ -104,7 +101,10 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 
 	r.controller = c
 	r.recorder = mgr.GetEventRecorderFor("machinepool-controller")
-	r.cache = mgr.GetCache()
+	r.externalTracker = external.ObjectTracker{
+		Controller: c,
+		Cache:      mgr.GetCache(),
+	}
 	return nil
 }
 

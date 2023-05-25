@@ -142,6 +142,10 @@ const (
 	// will receive the resulting object.
 	TopologyDryRunAnnotation = "topology.cluster.x-k8s.io/dry-run"
 
+	// SkipDefaultingWebhook is an annotation that indicates we don't want to mutate objects during admission
+	// Ref: https://cluster-api.sigs.k8s.io/developer/providers/webhooks.html#defaulting-webhooks
+	SkipDefaultingWebhook = "cluster.x-k8s.io/skip-defaulting-webhook"
+
 	// ReplicasManagedByAnnotation is an annotation that indicates external (non-Cluster API) management of infra scaling.
 	// The practical effect of this is that the capi "replica" count should be passively derived from the number of observed infra machines,
 	// instead of being a source of truth for eventual consistency.

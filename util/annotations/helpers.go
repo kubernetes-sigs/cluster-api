@@ -104,3 +104,16 @@ func hasTruthyAnnotationValue(o metav1.Object, annotation string) bool {
 	}
 	return false
 }
+
+// ShouldSkipDefaultingWebhook returns true if the object has the TopologySkipDefaultingWebhook annotation set, else false
+func ShouldSkipDefaultingWebhook(o metav1.Object) bool {
+	// Check for the TopologySkipDefaultingWebhook
+	annotations := o.GetAnnotations()
+	if annotations == nil {
+		return false
+	}
+	if _, ok := annotations[clusterv1.SkipDefaultingWebhook]; ok {
+		return true
+	}
+	return false
+}

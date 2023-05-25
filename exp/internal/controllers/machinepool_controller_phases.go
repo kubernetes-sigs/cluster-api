@@ -197,48 +197,52 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster 
 			return ctrl.Result{}, nil
 		}
 		bootstrapConfig = bootstrapReconcileResult.Result
+
+		// If the bootstrap config is being deleted, return early.
+		if !bootstrapConfig.GetDeletionTimestamp().IsZero() {
+			return ctrl.Result{}, nil
+		}
+
+		// Determine if the bootstrap provider is ready.
+		ready, err := external.IsReady(bootstrapConfig)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// Report a summary of current status of the bootstrap object defined for this machine pool.
+		conditions.SetMirror(m, clusterv1.BootstrapReadyCondition,
+			conditions.UnstructuredGetter(bootstrapConfig),
+			conditions.WithFallbackValue(ready, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
+		)
+
+		if !ready {
+			log.V(2).Info("Bootstrap provider is not ready, requeuing")
+			m.Status.BootstrapReady = ready
+			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
+		}
+
+		// Get and set the name of the secret containing the bootstrap data.
+		secretName, _, err := unstructured.NestedString(bootstrapConfig.Object, "status", "dataSecretName")
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
+		} else if secretName == "" {
+			return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
+		}
+
+		m.Spec.Template.Spec.Bootstrap.DataSecretName = pointer.String(secretName)
+		m.Status.BootstrapReady = true
+		return ctrl.Result{}, nil
 	}
 
-	// If the bootstrap data secret is populated, set ready and return.
+	// If dataSecretName is set without a ConfigRef, this means the user brought their own bootstrap data.
 	if m.Spec.Template.Spec.Bootstrap.DataSecretName != nil {
 		m.Status.BootstrapReady = true
 		conditions.MarkTrue(m, clusterv1.BootstrapReadyCondition)
 		return ctrl.Result{}, nil
 	}
 
-	// If the bootstrap config is being deleted, return early.
-	if !bootstrapConfig.GetDeletionTimestamp().IsZero() {
-		return ctrl.Result{}, nil
-	}
-
-	// Determine if the bootstrap provider is ready.
-	ready, err := external.IsReady(bootstrapConfig)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-
-	// Report a summary of current status of the bootstrap object defined for this machine pool.
-	conditions.SetMirror(m, clusterv1.BootstrapReadyCondition,
-		conditions.UnstructuredGetter(bootstrapConfig),
-		conditions.WithFallbackValue(ready, clusterv1.WaitingForDataSecretFallbackReason, clusterv1.ConditionSeverityInfo, ""),
-	)
-
-	if !ready {
-		log.V(2).Info("Bootstrap provider is not ready, requeuing")
-		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
-	}
-
-	// Get and set the name of the secret containing the bootstrap data.
-	secretName, _, err := unstructured.NestedString(bootstrapConfig.Object, "status", "dataSecretName")
-	if err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to retrieve dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
-	} else if secretName == "" {
-		return ctrl.Result{}, errors.Errorf("retrieved empty dataSecretName from bootstrap provider for MachinePool %q in namespace %q", m.Name, m.Namespace)
-	}
-
-	m.Spec.Template.Spec.Bootstrap.DataSecretName = pointer.String(secretName)
-	m.Status.BootstrapReady = true
-	return ctrl.Result{}, nil
+	// This should never happen because the MachinePool webhook would not allow neither ConfigRef nor DataSecretName to be set.
+	return ctrl.Result{}, errors.Errorf("neither .spec.bootstrap.configRef nor .spec.bootstrap.dataSecretName are set for MachinePool %q in namespace %q", m.Name, m.Namespace)
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a MachinePool.

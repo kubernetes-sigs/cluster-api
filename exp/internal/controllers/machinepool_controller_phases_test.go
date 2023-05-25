@@ -606,7 +606,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			expectError: true,
 		},
 		{
-			name: "existing machinepool, bootstrap data should not change",
+			name: "existing machinepool with config ref, update data secret name",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
@@ -646,11 +646,50 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 			expectError: false,
 			expected: func(g *WithT, m *expv1.MachinePool) {
 				g.Expect(m.Status.BootstrapReady).To(BeTrue())
+				g.Expect(*m.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("secret-data"))
+			},
+		},
+		{
+			name: "existing machinepool without config ref, do not update data secret name",
+			bootstrapConfig: map[string]interface{}{
+				"kind":       builder.TestBootstrapConfigKind,
+				"apiVersion": builder.BootstrapGroupVersion.String(),
+				"metadata": map[string]interface{}{
+					"name":      "bootstrap-config1",
+					"namespace": metav1.NamespaceDefault,
+				},
+				"spec": map[string]interface{}{},
+				"status": map[string]interface{}{
+					"ready":          true,
+					"dataSecretName": "secret-data",
+				},
+			},
+			machinepool: &expv1.MachinePool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bootstrap-test-existing",
+					Namespace: metav1.NamespaceDefault,
+				},
+				Spec: expv1.MachinePoolSpec{
+					Template: clusterv1.MachineTemplateSpec{
+						Spec: clusterv1.MachineSpec{
+							Bootstrap: clusterv1.Bootstrap{
+								DataSecretName: pointer.String("data"),
+							},
+						},
+					},
+				},
+				Status: expv1.MachinePoolStatus{
+					BootstrapReady: true,
+				},
+			},
+			expectError: false,
+			expected: func(g *WithT, m *expv1.MachinePool) {
+				g.Expect(m.Status.BootstrapReady).To(BeTrue())
 				g.Expect(*m.Spec.Template.Spec.Bootstrap.DataSecretName).To(Equal("data"))
 			},
 		},
 		{
-			name: "existing machinepool, bootstrap provider is to not ready",
+			name: "existing machinepool, bootstrap provider is not ready",
 			bootstrapConfig: map[string]interface{}{
 				"kind":       builder.TestBootstrapConfigKind,
 				"apiVersion": builder.BootstrapGroupVersion.String(),
@@ -684,12 +723,13 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 					},
 				},
 				Status: expv1.MachinePoolStatus{
-					BootstrapReady: true,
+					BootstrapReady: false,
 				},
 			},
-			expectError: false,
+			expectError:  false,
+			expectResult: ctrl.Result{RequeueAfter: externalReadyWait},
 			expected: func(g *WithT, m *expv1.MachinePool) {
-				g.Expect(m.Status.BootstrapReady).To(BeTrue())
+				g.Expect(m.Status.BootstrapReady).To(BeFalse())
 			},
 		},
 	}

@@ -71,9 +71,8 @@ export AWS_S3_BUCKET_NAME=my-bucket
 export AWS_CONTROL_PLANE_MACHINE_TYPE=t3a.small
 export AWS_NODE_MACHINE_TYPE=t3a.small
 
-# TODO: Update --from URL once https://github.com/kubernetes-sigs/cluster-api-provider-aws/pull/2271 is merged.
 clusterctl generate cluster ignition-cluster \
-    --from https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/e7c89c9add92a4b233b26a1712518d9616d99e7a/templates/cluster-template-flatcar.yaml \
+    --from https://github.com/kubernetes-sigs/cluster-api-provider-aws/blob/main/templates/cluster-template-flatcar.yaml \
     --kubernetes-version v1.22.2 \
     --worker-machine-count 2 \
     > ignition-cluster.yaml

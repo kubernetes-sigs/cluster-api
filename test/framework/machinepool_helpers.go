@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/blang/semver"
 	. "github.com/onsi/ginkgo/v2"
@@ -240,11 +241,11 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 
 	log.Logf("Ensuring all MachinePool Instances have upgraded kubernetes version %s", input.KubernetesUpgradeVersion)
 	Eventually(func() (int, error) {
-		nn := client.ObjectKey{
+		mpKey := client.ObjectKey{
 			Namespace: input.MachinePool.Namespace,
 			Name:      input.MachinePool.Name,
 		}
-		if err := input.Getter.Get(ctx, nn, input.MachinePool); err != nil {
+		if err := input.Getter.Get(ctx, mpKey, input.MachinePool); err != nil {
 			return 0, err
 		}
 		versions := getMachinePoolInstanceVersions(ctx, GetMachinesPoolInstancesInput{
@@ -261,7 +262,7 @@ func WaitForMachinePoolInstancesToBeUpgraded(ctx context.Context, input WaitForM
 		}
 
 		if matches != len(versions) {
-			return 0, errors.New("old version instances remain")
+			return 0, errors.Errorf("old version instances remain. Expected %d instances at version %v. Got version list: %v", len(versions), input.KubernetesUpgradeVersion, versions)
 		}
 
 		return matches, nil
@@ -286,15 +287,20 @@ func getMachinePoolInstanceVersions(ctx context.Context, input GetMachinesPoolIn
 	versions := make([]string, len(instances))
 	for i, instance := range instances {
 		node := &corev1.Node{}
-		err := wait.PollImmediate(retryableOperationInterval, retryableOperationTimeout, func() (bool, error) {
-			err := input.WorkloadClusterGetter.Get(ctx, client.ObjectKey{Name: instance.Name}, node)
-			if err != nil {
+		var nodeGetError error
+		err := wait.PollImmediate(100*time.Millisecond, 10*time.Second, func() (bool, error) {
+			nodeGetError = input.WorkloadClusterGetter.Get(ctx, client.ObjectKey{Name: instance.Name}, node)
+			if nodeGetError != nil {
 				return false, nil //nolint:nilerr
 			}
 			return true, nil
 		})
 		if err != nil {
 			versions[i] = "unknown"
+			if nodeGetError != nil {
+				// Dump the instance name and error here so that we can log it as part of the version array later on.
+				versions[i] = fmt.Sprintf("%s error: %s", instance.Name, errors.Wrap(err, nodeGetError.Error()))
+			}
 		} else {
 			versions[i] = node.Status.NodeInfo.KubeletVersion
 		}

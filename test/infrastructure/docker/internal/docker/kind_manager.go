@@ -38,6 +38,9 @@ const ControlPlanePort = 6443
 // DefaultNetwork is the default network name to use in kind.
 const DefaultNetwork = "kind"
 
+// haproxyEntrypoint is the entrypoint used to start the haproxy load balancer container.
+var haproxyEntrypoint = []string{"haproxy", "-W", "-db", "-f", "/usr/local/etc/haproxy/haproxy.cfg"}
+
 // Manager is the kind manager type.
 type Manager struct{}
 
@@ -46,6 +49,7 @@ type nodeCreateOpts struct {
 	Image        string
 	ClusterName  string
 	Role         string
+	EntryPoint   []string
 	Mounts       []v1alpha4.Mount
 	PortMappings []v1alpha4.PortMapping
 	Labels       map[string]string
@@ -113,6 +117,7 @@ func (m *Manager) CreateExternalLoadBalancerNode(ctx context.Context, name, imag
 		ClusterName:  clusterName,
 		Role:         constants.ExternalLoadBalancerNodeRoleValue,
 		PortMappings: portMappings,
+		EntryPoint:   haproxyEntrypoint,
 	}
 	node, err := createNode(ctx, createOpts)
 	if err != nil {
@@ -143,6 +148,7 @@ func createNode(ctx context.Context, opts *nodeCreateOpts) (*types.Node, error) 
 		// filesystem, which is not only better for performance, but allows
 		// running kind in kind for "party tricks"
 		// (please don't depend on doing this though!)
+		Entrypoint:   opts.EntryPoint,
 		Volumes:      map[string]string{"/var": ""},
 		Mounts:       generateMountInfo(opts.Mounts),
 		PortMappings: generatePortMappings(opts.PortMappings),

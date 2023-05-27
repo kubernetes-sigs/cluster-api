@@ -268,7 +268,7 @@ func assertClusterObjects(ctx context.Context, clusterProxy framework.ClusterPro
 		assertMachineSetsMachines(g, clusterObjects, cluster)
 
 		By("All cluster objects have the right labels, annotations and selectors")
-	}, 30*time.Second, 1*time.Second).Should(Succeed())
+	}, 10*time.Second, 1*time.Second).Should(Succeed())
 }
 
 func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects clusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {
@@ -443,7 +443,7 @@ func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster
 		g.Expect(
 			union(
 				bootstrapConfig.GetAnnotations(),
-			).without(clusterv1.MachineCertificatesExpiryDateAnnotation),
+			).ignore(clusterv1.MachineCertificatesExpiryDateAnnotation),
 		).To(BeEquivalentTo(
 			controlPlaneMachineTemplateMetadata.Annotations,
 		))
@@ -815,6 +815,16 @@ func (m unionMap) without(keys ...string) unionMap {
 			Fail(fmt.Sprintf("key %q does not exist in map %s", key, m))
 		}
 
+		delete(m, key)
+	}
+	return m
+}
+
+// ignore removes keys from a unionMap only if they exist.
+// Note: This allows ignoring specific keys while comparing maps and is a more tolerant version of `without()`.
+func (m unionMap) ignore(keys ...string) unionMap {
+	for _, key := range keys {
+		// Only remove the item from the map if it exists.
 		delete(m, key)
 	}
 	return m

@@ -291,6 +291,34 @@ controllers processing those resource that might impact system stability.
 
 </aside>
 
+### ExtensionConfig
+
+To register your runtime extension apply the ExtensionConfig resource in the management cluster, including your CA 
+certs, ClusterIP service associated with the app and namespace, and the target namespace for the given extension. Once 
+created, the extension will detect the associated service and discover the associated Hooks. For clarification, you can 
+check the status of the ExtensionConfig. Below is an example of `ExtensionConfig` -
+
+```yaml
+apiVersion: runtime.cluster.x-k8s.io/v1alpha1
+kind: ExtensionConfig
+metadata:
+  annotations:
+    runtime.cluster.x-k8s.io/inject-ca-from-secret: default/test-runtime-sdk-svc-cert
+  name: test-runtime-sdk-extensionconfig
+spec:
+  clientConfig:
+    service:
+      name: test-runtime-sdk-svc
+      namespace: default # Note: this assumes the test extension get deployed in the default namespace
+      port: 443
+  namespaceSelector:
+    matchExpressions:
+      - key: kubernetes.io/metadata.name
+        operator: In
+        values:
+          - default # Note: this assumes the test extension is used by Cluster in the default namespace only
+```
+
 ### Settings
 
 Settings can be added to the ExtensionConfig object in the form of a map with string keys and values. These settings are

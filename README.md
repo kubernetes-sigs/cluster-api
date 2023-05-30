@@ -10,6 +10,8 @@
 
 # Cluster API
 
+Foo
+
 ### 👋 Welcome to our project! Our [Book](https://cluster-api.sigs.k8s.io) can help you get started and provides lots of in-depth information.
 
 #### Useful links

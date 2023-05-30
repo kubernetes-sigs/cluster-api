@@ -28,6 +28,7 @@ spec:
             # This cluster is used in tests where the Kubernetes version is < 1.24
             cgroup-driver: cgroupfs
             eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+            fail-swap-on: "false"
 ---
 # MachineDeployment object
 apiVersion: cluster.x-k8s.io/v1alpha4

@@ -11,3 +11,4 @@ spec:
         # kind will implement systemd support in: https://github.com/kubernetes-sigs/kind/issues/1726
         cgroup-driver: cgroupfs
         eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+        fail-swap-on: "false"

@@ -26,7 +26,7 @@ Prow Presubmits:
   * [pull-cluster-api-test-mink8s-main] `./scripts/ci-test.sh`
     * KUBEBUILDER_ENVTEST_KUBERNETES_VERSION: `1.24.2`
   * [pull-cluster-api-e2e-mink8s-main] `./scripts/ci-e2e.sh`
-    * GINKGO_SKIP: `[Conformance] [K8s-Upgrade] [IPv6]`
+    * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]|[IPv6]`
     * KUBERNETES_VERSION_MANAGEMENT: `stable-1.24`
   * [pull-cluster-api-e2e-full-dualstack-ipv6-main] `./scripts/ci-e2e.sh`
     * DOCKER_IN_DOCKER_IPV6_ENABLED: `true`
@@ -36,7 +36,7 @@ Prow Presubmits:
     * GINKGO_FOCUS: `[IPv6] [PR-Informing]`
     * IP_FAMILY: `IPv6`
   * [pull-cluster-api-e2e-full-main] `./scripts/ci-e2e.sh`
-    * GINKGO_SKIP: `[PR-Blocking] [Conformance] [K8s-Upgrade] [IPv6]` (i.e. "no tags")
+    * GINKGO_SKIP: `[PR-Blocking] [Conformance] [K8s-Upgrade]|[IPv6]`
   * [pull-cluster-api-e2e-workload-upgrade-1-27-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.27` TO: `ci/latest-1.28`
     * GINKGO_FOCUS: `[K8s-Upgrade]`
   * [pull-cluster-api-e2e-scale-main-experimental] `./scripts/ci-e2e-scale.sh`

@@ -101,7 +101,7 @@ func (m *MachineAddresses) Get(obj *unstructured.Unstructured) (*[]clusterv1.Mac
 		return nil, errors.Wrapf(err, "failed to get %s from object", "."+strings.Join(m.path, "."))
 	}
 	if !ok {
-		return nil, errors.Wrapf(errNotFound, "path %s", "."+strings.Join(m.path, "."))
+		return nil, errors.Wrapf(ErrFieldNotFound, "path %s", "."+strings.Join(m.path, "."))
 	}
 
 	addresses := make([]clusterv1.MachineAddress, len(slice))

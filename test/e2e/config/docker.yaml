@@ -281,6 +281,7 @@ variables:
   EXP_MACHINE_POOL: "true"
   CLUSTER_TOPOLOGY: "true"
   EXP_RUNTIME_SDK: "true"
+  EXP_MACHINE_SET_PREFLIGHT_CHECKS: "true"
 
 intervals:
   default/wait-controllers: ["3m", "10s"]

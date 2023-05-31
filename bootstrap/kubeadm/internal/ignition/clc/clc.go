@@ -96,6 +96,7 @@ systemd:
         Description=kubeadm
         # Run only once. After successful run, this file is moved to /tmp/.
         ConditionPathExists=/etc/kubeadm.yml
+        After=network.target
         [Service]
         # To not restart the unit when it exits, as it is expected.
         Type=oneshot

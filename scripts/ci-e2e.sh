@@ -17,6 +17,8 @@
 set -o errexit
 set -o pipefail
 
+export KUBERNETES_VERSION_UPGRADE_FROM="v1.26.4"
+
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "${REPO_ROOT}" || exit 1
@@ -59,7 +61,7 @@ export E2E_CONF_FILE="${REPO_ROOT}/test/e2e/config/docker.yaml"
 export ARTIFACTS="${ARTIFACTS:-${REPO_ROOT}/_artifacts}"
 export SKIP_RESOURCE_CLEANUP=false
 export USE_EXISTING_CLUSTER=false
-
+export ALWAYS_BUILD_NODE=true
 # Setup local output directory
 ARTIFACTS_LOCAL="${ARTIFACTS}/localhost"
 mkdir -p "${ARTIFACTS_LOCAL}"
@@ -67,7 +69,6 @@ echo "This folder contains logs from the local host where the tests ran." > "${A
 
 # Configure the containerd socket, otherwise 'ctr' would not work
 export CONTAINERD_ADDRESS=/var/run/docker/containerd/containerd.sock
-
 # ensure we retrieve additional info for debugging when we leave the script
 cleanup() {
   # shellcheck disable=SC2046

@@ -81,7 +81,6 @@ func (m *Manager) CreateControlPlaneNode(ctx context.Context, name, image, clust
 	if err != nil {
 		return nil, err
 	}
-
 	return node, nil
 }
 

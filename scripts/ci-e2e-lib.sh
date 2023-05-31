@@ -104,6 +104,8 @@ kind::prepareKindestImage() {
   # Try to pre-pull the image
   kind::prepullImage "kindest/node:$version"
 
+  ALWAYS_BUILD_NODE=true
+
   # if pre-pull failed, falling back to local build
   if [[ "$retVal" != 0 ]]; then
     echo "+ image for Kuberentes $version is not available in docker hub, trying local build"

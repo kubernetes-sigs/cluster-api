@@ -436,6 +436,8 @@ spec:
             kubeletExtraArgs:
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
               fail-swap-on: "false"
+              cgroup-root: /kubelet
+              runtime-cgroups: /system.slice/containerd.service
         joinConfiguration:
           nodeRegistration:
             # We have to set the criSocket to containerd as kubeadm defaults to docker runtime if both containerd and docker sockets are found
@@ -443,6 +445,8 @@ spec:
             kubeletExtraArgs:
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
               fail-swap-on: "false"
+              cgroup-root: /kubelet
+              runtime-cgroups: /system.slice/containerd.service
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
@@ -507,4 +511,6 @@ spec:
           kubeletExtraArgs:
             eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
             fail-swap-on: "false"
+            cgroup-root: /kubelet
+            runtime-cgroups: /system.slice/containerd.service
 

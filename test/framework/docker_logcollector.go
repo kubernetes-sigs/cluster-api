@@ -101,6 +101,16 @@ func (k DockerLogCollector) collectLogsFromNode(ctx context.Context, outputPath 
 		return errors.Wrap(err, "Failed to collect logs from node")
 	}
 
+	// Get docker logs for node container.
+	f, err := fileOnHost(filepath.Join(outputPath, fmt.Sprintf("%s.log", containerName)))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if err = containerRuntime.ContainerDebugInfo(ctx, containerName, f); err != nil {
+		return err
+	}
+
 	execToPathFn := func(outputFileName, command string, args ...string) func() error {
 		return func() error {
 			f, err := fileOnHost(filepath.Join(outputPath, outputFileName))

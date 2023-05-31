@@ -406,6 +406,10 @@ func (d *dockerRuntime) RunContainer(ctx context.Context, runConfig *RunContaine
 	}
 	networkConfig := network.NetworkingConfig{}
 
+	if strings.Contains(runConfig.Image, "v1.27.2") {
+		hostConfig.CgroupnsMode = "private"
+
+	}
 	if runConfig.IPFamily == clusterv1.IPv6IPFamily || runConfig.IPFamily == clusterv1.DualStackIPFamily {
 		hostConfig.Sysctls = map[string]string{
 			"net.ipv6.conf.all.disable_ipv6": "0",

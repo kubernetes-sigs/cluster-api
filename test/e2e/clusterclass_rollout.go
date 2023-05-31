@@ -363,7 +363,7 @@ func assertControlPlane(g Gomega, clusterClassObjects clusterClassObjects, clust
 				clusterv1.TemplateClonedFromNameAnnotation:      clusterClass.Spec.ControlPlane.MachineInfrastructure.Ref.Name,
 			},
 			clusterClassObjects.ControlPlaneInfrastructureMachineTemplate.GetAnnotations(),
-		).without(corev1.LastAppliedConfigAnnotation),
+		).without(g, corev1.LastAppliedConfigAnnotation),
 	))
 
 	// ControlPlane InfrastructureMachineTemplate.spec.template.metadata
@@ -395,7 +395,7 @@ func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster
 		g.Expect(
 			union(
 				machine.Annotations,
-			).without(controlplanev1.KubeadmClusterConfigurationAnnotation),
+			).without(g, controlplanev1.KubeadmClusterConfigurationAnnotation),
 		).To(BeEquivalentTo(
 			controlPlaneMachineTemplateMetadata.Annotations,
 		))
@@ -443,7 +443,7 @@ func assertControlPlaneMachines(g Gomega, clusterObjects clusterObjects, cluster
 		g.Expect(
 			union(
 				bootstrapConfig.GetAnnotations(),
-			).ignore(clusterv1.MachineCertificatesExpiryDateAnnotation),
+			).without(g, clusterv1.MachineCertificatesExpiryDateAnnotation),
 		).To(BeEquivalentTo(
 			controlPlaneMachineTemplateMetadata.Annotations,
 		))
@@ -476,7 +476,7 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 		g.Expect(
 			union(
 				machineDeployment.Annotations,
-			).without(clusterv1.RevisionAnnotation),
+			).without(g, clusterv1.RevisionAnnotation),
 		).To(BeEquivalentTo(
 			union(
 				mdTopology.Metadata.Annotations,
@@ -535,7 +535,7 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 					clusterv1.TemplateClonedFromNameAnnotation:      mdClass.Template.Infrastructure.Ref.Name,
 				},
 				ccInfrastructureMachineTemplate.GetAnnotations(),
-			).without(corev1.LastAppliedConfigAnnotation),
+			).without(g, corev1.LastAppliedConfigAnnotation),
 		))
 		// MachineDeployment InfrastructureMachineTemplate.spec.template.metadata
 		g.Expect(infrastructureMachineTemplateTemplateMetadata.Labels).To(BeEquivalentTo(
@@ -567,7 +567,7 @@ func assertMachineDeployments(g Gomega, clusterClassObjects clusterClassObjects,
 					clusterv1.TemplateClonedFromNameAnnotation:      mdClass.Template.Bootstrap.Ref.Name,
 				},
 				ccBootstrapConfigTemplate.GetAnnotations(),
-			).without(corev1.LastAppliedConfigAnnotation),
+			).without(g, corev1.LastAppliedConfigAnnotation),
 		))
 		// MachineDeployment BootstrapConfigTemplate.spec.template.metadata
 		g.Expect(bootstrapConfigTemplateTemplateMetadata.Labels).To(BeEquivalentTo(
@@ -602,11 +602,11 @@ func assertMachineSets(g Gomega, clusterObjects clusterObjects, cluster *cluster
 			g.Expect(
 				union(
 					machineSet.Annotations,
-				).without(clusterv1.DesiredReplicasAnnotation, clusterv1.MaxReplicasAnnotation, clusterv1.RevisionAnnotation),
+				).without(g, clusterv1.DesiredReplicasAnnotation, clusterv1.MaxReplicasAnnotation, clusterv1.RevisionAnnotation),
 			).To(BeEquivalentTo(
 				union(
 					machineDeployment.Annotations,
-				).without(clusterv1.RevisionAnnotation),
+				).without(g, clusterv1.RevisionAnnotation),
 			))
 			// MachineDeployment MachineSet.spec.selector
 			g.Expect(machineSet.Spec.Selector.MatchLabels).To(BeEquivalentTo(
@@ -807,24 +807,11 @@ func union(maps ...map[string]string) unionMap {
 
 // without removes keys from a unionMap.
 // Note: This allows ignoring specific keys while comparing maps.
-func (m unionMap) without(keys ...string) unionMap {
+func (m unionMap) without(g Gomega, keys ...string) unionMap {
 	for _, key := range keys {
-		// Fail if the key does not exist in the map.
-		// Note: Failing here ensures we only use without for keys that actually exist.
-		if _, ok := m[key]; !ok {
-			Fail(fmt.Sprintf("key %q does not exist in map %s", key, m))
-		}
-
-		delete(m, key)
-	}
-	return m
-}
-
-// ignore removes keys from a unionMap only if they exist.
-// Note: This allows ignoring specific keys while comparing maps and is a more tolerant version of `without()`.
-func (m unionMap) ignore(keys ...string) unionMap {
-	for _, key := range keys {
-		// Only remove the item from the map if it exists.
+		// Expect key to exist in the map to ensure without is only used for keys that actually exist.
+		_, ok := m[key]
+		g.Expect(ok).To(BeTrue(), fmt.Sprintf("key %q does not exist in map %s", key, m))
 		delete(m, key)
 	}
 	return m

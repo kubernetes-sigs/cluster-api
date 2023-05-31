@@ -433,6 +433,10 @@ def deploy_observability():
         k8s_yaml(read_file("./.tiltbuild/yaml/kube-state-metrics.observability.yaml"), allow_duplicates = True)
         k8s_resource(workload = "kube-state-metrics", new_name = "kube-state-metrics", extra_pod_selectors = [{"app": "kube-state-metrics"}], labels = ["observability"], objects = ["kube-state-metrics:serviceaccount"])
 
+    if "parca" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/parca.observability.yaml"), allow_duplicates = True)
+        k8s_resource(workload = "parca", new_name = "parca", port_forwards = "7070", extra_pod_selectors = [{"app": "parca"}], labels = ["observability"], objects = ["parca:serviceaccount"])
+
     if "visualizer" in settings.get("deploy_observability", []):
         k8s_yaml(read_file("./.tiltbuild/yaml/visualizer.observability.yaml"), allow_duplicates = True)
         k8s_resource(
@@ -461,7 +465,7 @@ def cluster_templates():
     substitutions["NAMESPACE"] = substitutions.get("NAMESPACE", "default")
     substitutions["KUBERNETES_VERSION"] = substitutions.get("KUBERNETES_VERSION", kubernetes_version)
     substitutions["CONTROL_PLANE_MACHINE_COUNT"] = substitutions.get("CONTROL_PLANE_MACHINE_COUNT", "1")
-    substitutions["WORKER_MACHINE_COUNT"] = substitutions.get("WORKER_MACHINE_COUNT", "3")
+    substitutions["WORKER_MACHINE_COUNT"] = substitutions.get("WORKER_MACHINE_COUNT", "1")
 
     template_dirs = settings.get("template_dirs", {
         "docker": ["./test/infrastructure/docker/templates"],

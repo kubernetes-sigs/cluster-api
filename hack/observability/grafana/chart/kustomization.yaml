@@ -1,10 +1,7 @@
-resources:
-  - ../namespace.yaml
-
 helmCharts:
-  - name: loki
+  - name: grafana
     repo: https://grafana.github.io/helm-charts
-    releaseName: loki
+    releaseName: grafana
     namespace: observability
     valuesFile: values.yaml
-    version: 5.5.4
+    version: 6.56.5

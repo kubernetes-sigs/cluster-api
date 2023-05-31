@@ -1,0 +1,11 @@
+resources:
+  - ../namespace.yaml
+
+helmCharts:
+  - name: parca
+    repo: https://parca-dev.github.io/helm-charts/
+    releaseName: parca
+    # Setting namespace via this field currently does not work with this Helm chart.
+    namespace: default
+    valuesFile: values.yaml
+    version: 4.10.0

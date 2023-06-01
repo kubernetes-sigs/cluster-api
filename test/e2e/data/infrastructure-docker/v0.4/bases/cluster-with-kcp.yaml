@@ -72,6 +72,7 @@ spec:
           # This cluster is used in tests where the Kubernetes version is < 1.24
           cgroup-driver: cgroupfs
           eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          fail-swap-on: "false"
     joinConfiguration:
       nodeRegistration:
         criSocket: unix:///var/run/containerd/containerd.sock
@@ -80,4 +81,5 @@ spec:
           # This cluster is used in tests where the Kubernetes version is < 1.24
           cgroup-driver: cgroupfs
           eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          fail-swap-on: "false"
   version: "${KUBERNETES_VERSION}"

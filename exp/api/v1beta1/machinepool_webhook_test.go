@@ -101,15 +101,19 @@ func TestMachinePoolBootstrapValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				_, err := m.ValidateCreate()
+				warnings, err := m.ValidateCreate()
 				g.Expect(err).To(HaveOccurred())
-				_, err = m.ValidateUpdate(m)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = m.ValidateUpdate(m)
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			} else {
-				_, err := m.ValidateCreate()
+				warnings, err := m.ValidateCreate()
 				g.Expect(err).NotTo(HaveOccurred())
-				_, err = m.ValidateUpdate(m)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = m.ValidateUpdate(m)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}
@@ -173,15 +177,19 @@ func TestMachinePoolNamespaceValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				_, err := m.ValidateCreate()
+				warnings, err := m.ValidateCreate()
 				g.Expect(err).To(HaveOccurred())
-				_, err = m.ValidateUpdate(m)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = m.ValidateUpdate(m)
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			} else {
-				_, err := m.ValidateCreate()
+				warnings, err := m.ValidateCreate()
 				g.Expect(err).NotTo(HaveOccurred())
-				_, err = m.ValidateUpdate(m)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = m.ValidateUpdate(m)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}
@@ -237,12 +245,13 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 				},
 			}
 
-			_, err := newMP.ValidateUpdate(oldMP)
+			warnings, err := newMP.ValidateUpdate(oldMP)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -294,15 +303,19 @@ func TestMachinePoolVersionValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				_, err := m.ValidateCreate()
+				warnings, err := m.ValidateCreate()
 				g.Expect(err).To(HaveOccurred())
-				_, err = m.ValidateUpdate(m)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = m.ValidateUpdate(m)
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			} else {
-				_, err := m.ValidateCreate()
+				warnings, err := m.ValidateCreate()
 				g.Expect(err).NotTo(HaveOccurred())
-				_, err = m.ValidateUpdate(m)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = m.ValidateUpdate(m)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}

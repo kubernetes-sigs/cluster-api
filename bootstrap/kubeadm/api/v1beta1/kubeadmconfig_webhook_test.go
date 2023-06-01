@@ -464,15 +464,19 @@ func TestKubeadmConfigValidate(t *testing.T) {
 			g := NewWithT(t)
 
 			if tt.expectErr {
-				_, err := tt.in.ValidateCreate()
+				warnings, err := tt.in.ValidateCreate()
 				g.Expect(err).To(HaveOccurred())
-				_, err = tt.in.ValidateUpdate(nil)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = tt.in.ValidateUpdate(nil)
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			} else {
-				_, err := tt.in.ValidateCreate()
+				warnings, err := tt.in.ValidateCreate()
 				g.Expect(err).NotTo(HaveOccurred())
-				_, err = tt.in.ValidateUpdate(nil)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = tt.in.ValidateUpdate(nil)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}

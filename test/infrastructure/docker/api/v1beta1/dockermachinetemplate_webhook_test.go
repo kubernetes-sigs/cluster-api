@@ -20,6 +20,7 @@ import (
 	"context"
 	"testing"
 
+	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
@@ -86,15 +87,19 @@ func TestDockerMachineTemplateInvalid(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
 			wh := &DockerMachineTemplateWebhook{}
 			ctx := context.Background()
 			if tt.req != nil {
 				ctx = admission.NewContextWithRequest(ctx, *tt.req)
 			}
-			_, err := wh.ValidateUpdate(ctx, tt.oldTemplate, tt.newTemplate)
-			if (err != nil) != tt.wantError {
-				t.Errorf("unexpected result - wanted %+v, got %+v", tt.wantError, err)
+			warnings, err := wh.ValidateUpdate(ctx, tt.oldTemplate, tt.newTemplate)
+			if tt.wantError {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }

@@ -77,14 +77,17 @@ func TestClusterResourceSetBindingClusterNameImmutable(t *testing.T) {
 				},
 			}
 
-			_, err := newClusterResourceSetBinding.ValidateCreate()
+			warnings, err := newClusterResourceSetBinding.ValidateCreate()
 			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(warnings).To(BeEmpty())
 			if tt.expectErr {
-				_, err = newClusterResourceSetBinding.ValidateUpdate(oldClusterResourceSetBinding)
+				warnings, err = newClusterResourceSetBinding.ValidateUpdate(oldClusterResourceSetBinding)
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			} else {
-				_, err = newClusterResourceSetBinding.ValidateUpdate(oldClusterResourceSetBinding)
+				warnings, err = newClusterResourceSetBinding.ValidateUpdate(oldClusterResourceSetBinding)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}

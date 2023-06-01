@@ -92,15 +92,19 @@ func TestMachineHealthCheckLabelSelectorAsSelectorValidation(t *testing.T) {
 				},
 			}
 			if tt.expectErr {
-				_, err := mhc.ValidateCreate()
+				warnings, err := mhc.ValidateCreate()
 				g.Expect(err).To(HaveOccurred())
-				_, err = mhc.ValidateUpdate(mhc)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = mhc.ValidateUpdate(mhc)
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			} else {
-				_, err := mhc.ValidateCreate()
+				warnings, err := mhc.ValidateCreate()
 				g.Expect(err).NotTo(HaveOccurred())
-				_, err = mhc.ValidateUpdate(mhc)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = mhc.ValidateUpdate(mhc)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}
@@ -164,12 +168,13 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 				},
 			}
 
-			_, err := newMHC.ValidateUpdate(oldMHC)
+			warnings, err := newMHC.ValidateUpdate(oldMHC)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -216,15 +221,19 @@ func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
 				},
 			}
 			if tt.expectErr {
-				_, err := mhc.ValidateCreate()
+				warnings, err := mhc.ValidateCreate()
 				g.Expect(err).To(HaveOccurred())
-				_, err = mhc.ValidateUpdate(mhc)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = mhc.ValidateUpdate(mhc)
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			} else {
-				_, err := mhc.ValidateCreate()
+				warnings, err := mhc.ValidateCreate()
 				g.Expect(err).NotTo(HaveOccurred())
-				_, err = mhc.ValidateUpdate(mhc)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = mhc.ValidateUpdate(mhc)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}
@@ -295,15 +304,19 @@ func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
 		}
 
 		if tt.expectErr {
-			_, err := mhc.ValidateCreate()
+			warnings, err := mhc.ValidateCreate()
 			g.Expect(err).To(HaveOccurred())
-			_, err = mhc.ValidateUpdate(mhc)
+			g.Expect(warnings).To(BeEmpty())
+			warnings, err = mhc.ValidateUpdate(mhc)
 			g.Expect(err).To(HaveOccurred())
+			g.Expect(warnings).To(BeEmpty())
 		} else {
-			_, err := mhc.ValidateCreate()
+			warnings, err := mhc.ValidateCreate()
 			g.Expect(err).NotTo(HaveOccurred())
-			_, err = mhc.ValidateUpdate(mhc)
+			g.Expect(warnings).To(BeEmpty())
+			warnings, err = mhc.ValidateUpdate(mhc)
 			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(warnings).To(BeEmpty())
 		}
 	}
 }
@@ -358,15 +371,19 @@ func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
 		}
 
 		if tt.expectErr {
-			_, err := mhc.ValidateCreate()
+			warnings, err := mhc.ValidateCreate()
 			g.Expect(err).To(HaveOccurred())
-			_, err = mhc.ValidateUpdate(mhc)
+			g.Expect(warnings).To(BeEmpty())
+			warnings, err = mhc.ValidateUpdate(mhc)
 			g.Expect(err).To(HaveOccurred())
+			g.Expect(warnings).To(BeEmpty())
 		} else {
-			_, err := mhc.ValidateCreate()
+			warnings, err := mhc.ValidateCreate()
 			g.Expect(err).NotTo(HaveOccurred())
-			_, err = mhc.ValidateUpdate(mhc)
+			g.Expect(warnings).To(BeEmpty())
+			warnings, err = mhc.ValidateUpdate(mhc)
 			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(warnings).To(BeEmpty())
 		}
 	}
 }

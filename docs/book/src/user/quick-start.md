@@ -1229,7 +1229,7 @@ clusterctl generate cluster capi-quickstart --flavor development \
 ```bash
 export CLUSTER_NAME=kind
 export CLUSTER_NAMESPACE=vcluster
-export KUBERNETES_VERSION=1.27.0
+export KUBERNETES_VERSION=1.27.1
 export HELM_VALUES="service:\n  type: NodePort"
 
 kubectl create namespace ${CLUSTER_NAMESPACE}

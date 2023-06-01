@@ -28,6 +28,7 @@ spec:
             # This cluster is used in tests where the Kubernetes version is < 1.24
             cgroup-driver: cgroupfs
             eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+            fail-swap-on: "false"
 ---
 # MachineDeployment object with
 # - the label nodepool=pool1 that applies to all the machines, so those machine can be targeted by the MachineHealthCheck object

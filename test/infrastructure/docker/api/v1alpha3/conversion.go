@@ -45,6 +45,10 @@ func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 		dst.Spec.LoadBalancer.ImageTag = restored.Spec.LoadBalancer.ImageTag
 	}
 
+	if restored.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef != nil {
+		dst.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef = restored.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef
+	}
+
 	return nil
 }
 

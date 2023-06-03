@@ -27,13 +27,35 @@ import (
 func (src *DockerCluster) ConvertTo(dstRaw conversion.Hub) error {
 	dst := dstRaw.(*infrav1.DockerCluster)
 
-	return Convert_v1alpha4_DockerCluster_To_v1beta1_DockerCluster(src, dst, nil)
+	if err := Convert_v1alpha4_DockerCluster_To_v1beta1_DockerCluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	// Manually restore data.
+	restored := &infrav1.DockerCluster{}
+	if ok, err := utilconversion.UnmarshalData(src, restored); err != nil || !ok {
+		return err
+	}
+
+	if restored.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef != nil {
+		dst.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef = restored.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef
+	}
+
+	return nil
 }
 
 func (dst *DockerCluster) ConvertFrom(srcRaw conversion.Hub) error {
 	src := srcRaw.(*infrav1.DockerCluster)
 
-	return Convert_v1beta1_DockerCluster_To_v1alpha4_DockerCluster(src, dst, nil)
+	if err := Convert_v1beta1_DockerCluster_To_v1alpha4_DockerCluster(src, dst, nil); err != nil {
+		return err
+	}
+
+	if err := utilconversion.MarshalData(src, dst); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (src *DockerClusterList) ConvertTo(dstRaw conversion.Hub) error {
@@ -62,6 +84,10 @@ func (src *DockerClusterTemplate) ConvertTo(dstRaw conversion.Hub) error {
 	}
 
 	dst.Spec.Template.ObjectMeta = restored.Spec.Template.ObjectMeta
+
+	if restored.Spec.Template.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef != nil {
+		dst.Spec.Template.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef = restored.Spec.Template.Spec.LoadBalancer.CustomHAProxyConfigTemplateRef
+	}
 
 	return nil
 }
@@ -170,4 +196,8 @@ func Convert_v1beta1_DockerClusterTemplateResource_To_v1alpha4_DockerClusterTemp
 func Convert_v1beta1_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(in *infrav1.DockerMachineTemplateResource, out *DockerMachineTemplateResource, s apiconversion.Scope) error {
 	// NOTE: custom conversion func is required because spec.template.metadata has been added in v1beta1.
 	return autoConvert_v1beta1_DockerMachineTemplateResource_To_v1alpha4_DockerMachineTemplateResource(in, out, s)
+}
+
+func Convert_v1beta1_DockerLoadBalancer_To_v1alpha4_DockerLoadBalancer(in *infrav1.DockerLoadBalancer, out *DockerLoadBalancer, s apiconversion.Scope) error {
+	return autoConvert_v1beta1_DockerLoadBalancer_To_v1alpha4_DockerLoadBalancer(in, out, s)
 }

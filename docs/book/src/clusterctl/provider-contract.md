@@ -469,7 +469,9 @@ If moving some of excluded object is required, the provider authors should creat
 exact move sequence to be executed by the user.
 
 Additionally, provider authors should be aware that `clusterctl move` assumes all the provider's Controllers respect the
-`Cluster.Spec.Paused` field introduced in the v1alpha3 Cluster API specification.
+`Cluster.Spec.Paused` field introduced in the v1alpha3 Cluster API specification. If a provider needs to perform extra work in response to a
+cluster being paused, `clusterctl move` can be blocked from creating any resources on the destination
+management cluster by annotating any resource to be moved with `clusterctl.cluster.x-k8s.io/block-move`.
 
 <aside class="note warning">
 

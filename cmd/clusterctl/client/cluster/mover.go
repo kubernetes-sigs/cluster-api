@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -32,6 +33,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -333,6 +335,19 @@ func (o *objectMover) move(graph *objectGraph, toProxy Proxy, mutators ...Resour
 		return errors.Wrap(err, "error pausing ClusterClasses")
 	}
 
+	log.Info("Waiting for all resources to be ready to move")
+	// exponential backoff configuration which returns durations for a total time of ~2m.
+	// Example: 0, 5s, 8s, 11s, 17s, 26s, 38s, 57s, 86s, 128s
+	waitForMoveUnblockedBackoff := wait.Backoff{
+		Duration: 5 * time.Second,
+		Factor:   1.5,
+		Steps:    10,
+		Jitter:   0.1,
+	}
+	if err := waitReadyForMove(o.fromProxy, graph.getMoveNodes(), o.dryRun, waitForMoveUnblockedBackoff); err != nil {
+		return errors.Wrap(err, "error waiting for resources to be ready to move")
+	}
+
 	// Nb. DO NOT call ensureNamespaces at this point because:
 	// - namespace will be ensured to exist before creating the resource.
 	// - If it's done here, we might create a namespace that can end up unused on target cluster (due to mutators).
@@ -592,6 +607,55 @@ func setClusterClassPause(proxy Proxy, clusterclasses []*node, pause bool, dryRu
 			return errors.Wrapf(err, "error updating ClusterClass %s/%s", clusterclass.identity.Namespace, clusterclass.identity.Name)
 		}
 	}
+	return nil
+}
+
+func waitReadyForMove(proxy Proxy, nodes []*node, dryRun bool, backoff wait.Backoff) error {
+	if dryRun {
+		return nil
+	}
+
+	log := logf.Log
+
+	c, err := proxy.NewClient()
+	if err != nil {
+		return errors.Wrap(err, "error creating client")
+	}
+
+	for _, n := range nodes {
+		obj := &metav1.PartialObjectMetadata{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      n.identity.Name,
+				Namespace: n.identity.Namespace,
+			},
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: n.identity.APIVersion,
+				Kind:       n.identity.Kind,
+			},
+		}
+		key := client.ObjectKeyFromObject(obj)
+		log := log.WithValues("apiVersion", obj.GroupVersionKind(), "resource", klog.KObj(obj))
+
+		blockLogged := false
+		if err := retryWithExponentialBackoff(backoff, func() error {
+			if err := c.Get(ctx, key, obj); err != nil {
+				return errors.Wrapf(err, "error getting %s/%s", obj.GroupVersionKind(), key)
+			}
+
+			if _, exists := obj.GetAnnotations()[clusterctlv1.BlockMoveAnnotation]; exists {
+				if !blockLogged {
+					log.Info(fmt.Sprintf("Move blocked by %s annotation, waiting for it to be removed", clusterctlv1.BlockMoveAnnotation))
+					blockLogged = true
+				}
+				return errors.Errorf("resource is not ready to move: %s/%s", obj.GroupVersionKind(), key)
+			}
+			log.V(5).Info("Resource is ready to move")
+			return nil
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

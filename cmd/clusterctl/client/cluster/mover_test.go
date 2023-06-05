@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,7 +30,9 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -2285,6 +2288,72 @@ func Test_deleteSourceObject(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			tt.want(g, fromClient)
+		})
+	}
+}
+
+func TestWaitReadyForMove(t *testing.T) {
+	tests := []struct {
+		name        string
+		moveBlocked bool
+		wantErr     bool
+	}{
+		{
+			name:        "moving blocked cluster should fail",
+			moveBlocked: true,
+			wantErr:     true,
+		},
+		{
+			name:        "moving unblocked cluster should succeed",
+			moveBlocked: false,
+			wantErr:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			clusterName := "foo"
+			clusterNamespace := "ns1"
+			objs := test.NewFakeCluster(clusterNamespace, clusterName).Objs()
+
+			// Create an objectGraph bound a source cluster with all the CRDs for the types involved in the test.
+			graph := getObjectGraphWithObjs(objs)
+
+			if tt.moveBlocked {
+				c, err := graph.proxy.NewClient()
+				g.Expect(err).NotTo(HaveOccurred())
+
+				ctx := context.Background()
+				cluster := &clusterv1.Cluster{}
+				err = c.Get(ctx, types.NamespacedName{Namespace: clusterNamespace, Name: clusterName}, cluster)
+				g.Expect(err).NotTo(HaveOccurred())
+				anns := cluster.GetAnnotations()
+				if anns == nil {
+					anns = make(map[string]string)
+				}
+				anns[clusterctlv1.BlockMoveAnnotation] = "anything"
+				cluster.SetAnnotations(anns)
+
+				g.Expect(c.Update(ctx, cluster)).To(Succeed())
+			}
+
+			// Get all the types to be considered for discovery
+			g.Expect(getFakeDiscoveryTypes(graph)).To(Succeed())
+
+			// trigger discovery the content of the source cluster
+			g.Expect(graph.Discovery("")).To(Succeed())
+
+			backoff := wait.Backoff{
+				Steps: 1,
+			}
+			err := waitReadyForMove(graph.proxy, graph.getMoveNodes(), false, backoff)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+			} else {
+				g.Expect(err).NotTo(HaveOccurred())
+			}
 		})
 	}
 }

@@ -32,6 +32,8 @@ The discovery mechanism for determining the objects to be moved is in the [provi
 
 Before moving a `Cluster`, clusterctl sets the `Cluster.Spec.Paused` field to `true` stopping
 the controllers from reconciling the workload cluster _in the source management cluster_.
+clusterctl will wait until the `clusterctl.cluster.x-k8s.io/block-move` annotation is not
+present on any resource targeted by the move operation.
 
 The `Cluster` object created in the target management cluster instead will be actively reconciled as soon as the move
 process completes.

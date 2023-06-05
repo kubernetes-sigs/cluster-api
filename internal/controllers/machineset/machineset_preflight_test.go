@@ -499,7 +499,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 				}
 				fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 				r := &Reconciler{Client: fakeClient}
-				result, err := r.runPreflightChecks(ctx, tt.cluster, tt.machineSet, "")
+				result, _, err := r.runPreflightChecks(ctx, tt.cluster, tt.machineSet, "")
 				if tt.wantErr {
 					g.Expect(err).To(HaveOccurred())
 				} else {
@@ -541,7 +541,7 @@ func TestMachineSetReconciler_runPreflightChecks(t *testing.T) {
 		}
 		fakeClient := fake.NewClientBuilder().WithObjects(controlPlane).Build()
 		r := &Reconciler{Client: fakeClient}
-		result, err := r.runPreflightChecks(ctx, cluster, machineSet, "")
+		result, _, err := r.runPreflightChecks(ctx, cluster, machineSet, "")
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(result.IsZero()).To(BeTrue())
 	})

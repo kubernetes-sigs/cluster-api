@@ -243,6 +243,10 @@ const (
 	// MachinesReadyCondition reports an aggregate of current status of the machines controlled by the MachineSet.
 	MachinesReadyCondition ConditionType = "MachinesReady"
 
+	// PreflightCheckFailedReason (Severity=Error) documents a MachineSet failing preflight checks
+	// to create machine(s).
+	PreflightCheckFailedReason = "PreflightCheckFailed"
+
 	// BootstrapTemplateCloningFailedReason (Severity=Error) documents a MachineSet failing to
 	// clone the bootstrap template.
 	BootstrapTemplateCloningFailedReason = "BootstrapTemplateCloningFailed"

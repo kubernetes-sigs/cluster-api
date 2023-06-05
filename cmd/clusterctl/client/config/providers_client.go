@@ -47,6 +47,7 @@ const (
 	HetznerProviderName        = "hetzner"
 	OutscaleProviderName       = "outscale"
 	IBMCloudProviderName       = "ibmcloud"
+	InMemoryProviderName       = "in-memory"
 	Metal3ProviderName         = "metal3"
 	NestedProviderName         = "nested"
 	NutanixProviderName        = "nutanix"
@@ -232,6 +233,11 @@ func (p *providersClient) defaults() []Provider {
 		&provider{
 			name:         IBMCloudProviderName,
 			url:          "https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/infrastructure-components.yaml",
+			providerType: clusterctlv1.InfrastructureProviderType,
+		},
+		&provider{
+			name:         InMemoryProviderName,
+			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/infrastructure-components-inmemory-development.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

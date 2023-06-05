@@ -105,6 +105,13 @@ aliases:
   - elmiko
 
   # -----------------------------------------------------------
+  # OWNER_ALIASES for test/infrastructure/inmemory
+  # -----------------------------------------------------------
+
+  cluster-api-provider-inmemory-maintainers:
+  cluster-api-provider-inmemory-reviewers:
+
+  # -----------------------------------------------------------
   # OWNER_ALIASES for docs
   # -----------------------------------------------------------
 

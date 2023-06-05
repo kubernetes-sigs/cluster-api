@@ -124,6 +124,7 @@ docker              InfrastructureProvider   https://github.com/kubernetes-sigs/
 gcp                 InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-gcp/releases/latest/                infrastructure-components.yaml
 hetzner             InfrastructureProvider   https://github.com/syself/cluster-api-provider-hetzner/releases/latest/                     infrastructure-components.yaml
 ibmcloud            InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/           infrastructure-components.yaml
+in-memory           InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api/releases/latest/                             infrastructure-components-inmemory-development.yaml
 kubekey             InfrastructureProvider   https://github.com/kubesphere/kubekey/releases/latest/                                      infrastructure-components.yaml
 kubevirt            InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/           infrastructure-components.yaml
 maas                InfrastructureProvider   https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/                  infrastructure-components.yaml
@@ -227,6 +228,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: ibmcloud
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-ibmcloud/releases/latest/
+- File: infrastructure-components-inmemory-development.yaml
+  Name: in-memory
+  ProviderType: InfrastructureProvider
+  URL: https://github.com/kubernetes-sigs/cluster-api/releases/latest/
 - File: infrastructure-components.yaml
   Name: kubekey
   ProviderType: InfrastructureProvider

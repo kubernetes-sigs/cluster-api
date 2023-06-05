@@ -468,7 +468,7 @@ The goal of this task is to keep our tests running in CI stable.
     3. Mark the issue as `release-blocking` if applicable.
 5. Triage periodic GitHub actions failures, with special attention to image scan results;
    Eventually open issues as described above.
-6. Monitor IPv6 testing PR informing jobs (look for `capi-pr-e2e-informing-ipv6-<branch_name>` tab on main and supported releases testgrid dashboards), since they are not part of any periodic jobs.
+6. Run periodic deep-dive sessions with the CI team to investigate failing and flaking tests. Example session recording: https://www.youtube.com/watch?v=YApWftmiDTg
 
 #### [Continuously] Reduce the amount of flaky tests
 

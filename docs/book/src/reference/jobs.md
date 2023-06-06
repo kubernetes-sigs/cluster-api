@@ -21,20 +21,15 @@ Prow Presubmits:
   * [pull-cluster-api-apidiff-main] `./scripts/ci-apidiff.sh`
   * [pull-cluster-api-e2e-informing-main] `./scripts/ci-e2e.sh`
     * GINKGO_FOCUS: `[PR-Informing]`
-    * GINKGO_SKIP: `[IPv6]`
 * optional for merge, run if manually triggered:
   * [pull-cluster-api-test-mink8s-main] `./scripts/ci-test.sh`
     * KUBEBUILDER_ENVTEST_KUBERNETES_VERSION: `1.24.2`
   * [pull-cluster-api-e2e-mink8s-main] `./scripts/ci-e2e.sh`
     * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]|[IPv6]`
     * KUBERNETES_VERSION_MANAGEMENT: `stable-1.24`
-  * [pull-cluster-api-e2e-full-dualstack-ipv6-main] `./scripts/ci-e2e.sh`
+  * [pull-cluster-api-e2e-full-dualstack-and-ipv6-main] `./scripts/ci-e2e.sh`
     * DOCKER_IN_DOCKER_IPV6_ENABLED: `true`
     * GINKGO_SKIP: `[PR-Blocking] [Conformance] [K8s-Upgrade]`
-  * [pull-cluster-api-e2e-ipv6-main] `./scripts/ci-e2e.sh`
-    * DOCKER_IN_DOCKER_IPV6_ENABLED: `true`
-    * GINKGO_FOCUS: `[IPv6] [PR-Informing]`
-    * IP_FAMILY: `IPv6`
   * [pull-cluster-api-e2e-full-main] `./scripts/ci-e2e.sh`
     * GINKGO_SKIP: `[PR-Blocking] [Conformance] [K8s-Upgrade]|[IPv6]`
   * [pull-cluster-api-e2e-workload-upgrade-1-27-latest-main] `./scripts/ci-e2e.sh` FROM: `stable-1.27` TO: `ci/latest-1.28`
@@ -76,14 +71,9 @@ Prow Periodics:
 * [periodic-cluster-api-e2e-mink8s-main] `./scripts/ci-e2e.sh`
   * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]|[IPv6]`
   * KUBERNETES_VERSION_MANAGEMENT: `stable-1.24`
-* [periodic-cluster-api-e2e-dualstack-ipv6-main] `./scripts/ci-e2e.sh`
+* [periodic-cluster-api-e2e-dualstack-and-ipv6-main] `./scripts/ci-e2e.sh`
   * DOCKER_IN_DOCKER_IPV6_ENABLED: `true`
   * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]`
-* [periodic-cluster-api-e2e-ipv6-main] `./scripts/ci-e2e.sh`
-  * DOCKER_IN_DOCKER_IPV6_ENABLED: `true`
-  * GINKGO_SKIP: `[Conformance] [K8s-Upgrade]`
-  * GINKGO_FOCUS: `[IPv6] [PR-Informing]`
-  * IP_FAMILY: `IPv6`
 * [periodic-cluster-api-e2e-workload-upgrade-1-22-1-23-main] `./scripts/ci-e2e.sh` FROM: `stable-1.22` TO: `stable-1.23`
   * GINKGO_FOCUS: `[K8s-Upgrade]`
 * [periodic-cluster-api-e2e-workload-upgrade-1-23-1-24-main] `./scripts/ci-e2e.sh` FROM: `stable-1.23` TO: `stable-1.24`
@@ -129,8 +119,7 @@ Prow Periodics:
 [pull-cluster-api-e2e-mink8s-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-mink8s-main
 [pull-cluster-api-e2e-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main
 [pull-cluster-api-e2e-informing-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-informing-main
-[pull-cluster-api-e2e-full-dualstack-ipv6-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-full-dualstack-ipv6-main
-[pull-cluster-api-e2e-ipv6-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-ipv6-main
+[pull-cluster-api-e2e-full-dualstack-and-ipv6-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-full-dualstack-and-ipv6-main
 [pull-cluster-api-e2e-full-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-full-main
 [pull-cluster-api-e2e-workload-upgrade-1-27-latest-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-main-1-27-latest
 [pull-cluster-api-e2e-scale-main-experimental]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-pr-e2e-scale-main-experimental
@@ -138,8 +127,7 @@ Prow Periodics:
 [periodic-cluster-api-test-mink8s-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-test-mink8s-main
 [periodic-cluster-api-e2e-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main
 [periodic-cluster-api-e2e-mink8s-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-mink8s-main
-[periodic-cluster-api-e2e-dualstack-ipv6-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-dualstack-ipv6-main
-[periodic-cluster-api-e2e-ipv6-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-ipv6-main
+[periodic-cluster-api-e2e-dualstack-and-ipv6-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-dualstack-and-ipv6-main
 [periodic-cluster-api-e2e-workload-upgrade-1-22-1-23-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-22-1-23
 [periodic-cluster-api-e2e-workload-upgrade-1-23-1-24-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-23-1-24
 [periodic-cluster-api-e2e-workload-upgrade-1-24-1-25-main]: https://testgrid.k8s.io/sig-cluster-lifecycle-cluster-api#capi-e2e-main-1-24-1-25

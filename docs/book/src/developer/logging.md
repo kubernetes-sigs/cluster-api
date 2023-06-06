@@ -176,28 +176,28 @@ In the Log browser the following queries can be used to browse logs by controlle
 Will return logs from the `capi-controller-manager` which are parsed in json. Passing the query through the json parser allows filtering by key-value pairs that are part of nested json objects. For example `.cluster.name` becomes `cluster_name`.
 
 ```
-{app="capi-controller-manager"} | json | cluster_name="my-cluster"
+{app="capi-controller-manager"} | json | Cluster_name="my-cluster"
 ```
 Will return logs from the `capi-controller-manager` that are associated with the Cluster `my-cluster`.
 
 ```
-{app="capi-controller-manager"} | json | cluster_name="my-cluster" | v <= 2
+{app="capi-controller-manager"} | json | Cluster_name="my-cluster" | v <= 2
 ```
 Will return logs from the `capi-controller-manager` that are associated with the Cluster `my-cluster` with log level <= 2.
 
 ```
-{app="capi-controller-manager"} | json | cluster_name="my-cluster" reconcileID="6f6ad971-bdb6-4fa3-b803-xxxxxxxxxxxx"
+{app="capi-controller-manager"} | json | Cluster_name="my-cluster" reconcileID="6f6ad971-bdb6-4fa3-b803-xxxxxxxxxxxx"
 ```
 
 Will return logs from the `capi-controller-manager`, associated with the Cluster `my-cluster` and the Reconcile ID `6f6ad971-bdb6-4fa3-b803-xxxxxxxxxxxx`. Each reconcile loop will have a unique Reconcile ID.
 
 ```
-{app="capi-controller-manager"} | json | cluster_name="my-cluster" reconcileID="6f6ad971-bdb6-4fa3-b803-ef81c5c8f9d0" controller="cluster" | line_format "{{ .msg }}"
+{app="capi-controller-manager"} | json | Cluster_name="my-cluster" reconcileID="6f6ad971-bdb6-4fa3-b803-ef81c5c8f9d0" controller="cluster" | line_format "{{ .msg }}"
 ```
 Will return logs from the `capi-controller-manager`, associated with the Cluster `my-cluster` and the Reconcile ID `6f6ad971-bdb6-4fa3-b803-xxxxxxxxxxxx` it further selects only those logs which come from the Cluster controller. It will then format the logs so only the message is displayed.
 
 ```
-{app=~"capd-controller-manager|capi-kubeadm-bootstrap-controller-manager|capi-kubeadm-control-plane-controller-manager"} | json | cluster_name="my-cluster" machine_name="my-cluster-linux-worker-1" | line_format "{{.controller}} {{.msg}}"
+{app=~"capd-controller-manager|capi-kubeadm-bootstrap-controller-manager|capi-kubeadm-control-plane-controller-manager"} | json | Cluster_name="my-cluster" Machine_name="my-cluster-linux-worker-1" | line_format "{{.controller}} {{.msg}}"
 ```
 
 Will return the logs from four CAPI providers - the Core provider, Kubeadm Control Plane provider, Kubeadm Bootstrap provider and the Docker infrastructure provider. It filters by the cluster name and the machine name and then formats the log lines to show just the source controller and the message. This allows us to correlate logs and see actions taken by each of these four providers related to the machine `my-cluster-linux-worker-1`.

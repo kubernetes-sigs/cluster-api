@@ -26,6 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
@@ -49,7 +50,7 @@ type GetCAPIResourcesInput struct {
 // This list includes all the types belonging to CAPI providers.
 func GetCAPIResources(ctx context.Context, input GetCAPIResourcesInput) []*unstructured.Unstructured {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for GetCAPIResources")
-	Expect(input.Lister).NotTo(BeNil(), "input.Deleter is required for GetCAPIResources")
+	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for GetCAPIResources")
 	Expect(input.Namespace).NotTo(BeEmpty(), "input.Namespace is required for GetCAPIResources")
 
 	types := getClusterAPITypes(ctx, input.Lister)
@@ -71,6 +72,34 @@ func GetCAPIResources(ctx context.Context, input GetCAPIResourcesInput) []*unstr
 			obj := typeList.Items[i]
 			objList = append(objList, &obj)
 		}
+	}
+
+	return objList
+}
+
+// GetKubeSystemPodsInput is the input for GetKubeSystemPods.
+type GetKubeSystemPodsInput struct {
+	Lister Lister
+}
+
+// GetKubeSystemPods reads all pods in the kube-system namespace.
+// Note: This function intentionally retrieves Pods as Unstructured, because we need the Pods
+// as Unstructured eventually.
+func GetKubeSystemPods(ctx context.Context, input GetKubeSystemPodsInput) []*unstructured.Unstructured {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for GetKubeSystemPods")
+	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for GetKubeSystemPods")
+
+	podList := new(unstructured.UnstructuredList)
+	podList.SetAPIVersion(corev1.SchemeGroupVersion.String())
+	podList.SetKind("Pod")
+	if err := input.Lister.List(ctx, podList, client.InNamespace(metav1.NamespaceSystem)); err != nil {
+		Fail(fmt.Sprintf("failed to list Pods in kube-system: %v", err))
+	}
+
+	objList := []*unstructured.Unstructured{}
+	for i := range podList.Items {
+		obj := podList.Items[i]
+		objList = append(objList, &obj)
 	}
 
 	return objList
@@ -115,12 +144,33 @@ type DumpAllResourcesInput struct {
 // This dump includes all the types belonging to CAPI providers.
 func DumpAllResources(ctx context.Context, input DumpAllResourcesInput) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DumpAllResources")
-	Expect(input.Lister).NotTo(BeNil(), "input.Deleter is required for DumpAllResources")
+	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for DumpAllResources")
 	Expect(input.Namespace).NotTo(BeEmpty(), "input.Namespace is required for DumpAllResources")
 
 	resources := GetCAPIResources(ctx, GetCAPIResourcesInput{
 		Lister:    input.Lister,
 		Namespace: input.Namespace,
+	})
+
+	for i := range resources {
+		r := resources[i]
+		dumpObject(r, input.LogPath)
+	}
+}
+
+// DumpKubeSystemPodsInput is the input for DumpKubeSystemPods.
+type DumpKubeSystemPodsInput struct {
+	Lister  Lister
+	LogPath string
+}
+
+// DumpKubeSystemPods dumps kube-system Pods to YAML.
+func DumpKubeSystemPods(ctx context.Context, input DumpKubeSystemPodsInput) {
+	Expect(ctx).NotTo(BeNil(), "ctx is required for DumpAllResources")
+	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for DumpAllResources")
+
+	resources := GetKubeSystemPods(ctx, GetKubeSystemPodsInput{
+		Lister: input.Lister,
 	})
 
 	for i := range resources {

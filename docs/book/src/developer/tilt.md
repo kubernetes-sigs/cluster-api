@@ -205,6 +205,7 @@ Supported values are:
   * `loki`: To receive and store logs.
   * `prometheus`*: For collecting metrics from Kubernetes.
   * `promtail`: For providing pod logs to `loki`.
+  * `parca`*: For visualizing profiling data.
   * `visualizer`*: Visualize Cluster API resources for each cluster, provide quick access to the specs and status of any resource.
 
 \*: Note: the UI will be accessible via a link in the tilt console
@@ -365,6 +366,7 @@ The following providers are currently defined in the Tiltfile:
 * **kubeadm-bootstrap**: kubeadm bootstrap provider
 * **kubeadm-control-plane**: kubeadm control-plane provider
 * **docker**: Docker infrastructure provider
+* **in-memory**: In-memory infrastructure provider
 * **test-extension**: Runtime extension used by CAPI E2E tests
 
 Additional providers can be added by following the procedure described in following paragraphs:

@@ -89,6 +89,9 @@ var (
 		"docker": {
 			Context: pointer.String("test/infrastructure/docker"),
 		},
+		"in-memory": {
+			Context: pointer.String("test/infrastructure/inmemory"),
+		},
 		"test-extension": {
 			Context: pointer.String("test/extension"),
 		},

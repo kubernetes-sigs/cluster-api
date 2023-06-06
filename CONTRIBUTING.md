@@ -534,6 +534,7 @@ As of today there are following OWNERS files/Owner groups defining sub areas:
 - [kubeadm Control Plane Provider (KCP)](https://github.com/kubernetes-sigs/cluster-api/tree/main/controlplane/kubeadm)
 - [Cluster Managed topologies, ClusterClass](https://github.com/kubernetes-sigs/cluster-api/tree/main/internal/controllers/topology)
 - [Infrastructure Provider Docker (CAPD)](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/docker)
+- [Infrastructure Provider in-memory](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/infrastructure/inmemory)
 - [Test](https://github.com/kubernetes-sigs/cluster-api/tree/main/test)
 - [Test Framework](https://github.com/kubernetes-sigs/cluster-api/tree/main/test/framework)
 - [Docs](https://github.com/kubernetes-sigs/cluster-api/tree/main/docs)

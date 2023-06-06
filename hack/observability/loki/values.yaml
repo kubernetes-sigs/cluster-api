@@ -16,8 +16,12 @@ loki:
   limits_config:
     ingestion_rate_mb: 1024
     ingestion_burst_size_mb: 1024
+
 singleBinary:
   replicas: 1
+
+gateway:
+  enabled: false
 
 # We are disabling basically everything because we just want
 # Loki and no additional monitoring.

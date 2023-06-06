@@ -1043,14 +1043,14 @@ func computeMachinePool(_ context.Context, s *scope.Scope, desiredControlPlaneSt
 	}
 
 	// Apply annotations
-	machinePoolAnnotations := mergeMap(machinePoolTopology.Metadata.Annotations, machinePoolBlueprint.Metadata.Annotations)
+	machinePoolAnnotations := util.MergeMap(machinePoolTopology.Metadata.Annotations, machinePoolBlueprint.Metadata.Annotations)
 	desiredMachinePoolObj.SetAnnotations(machinePoolAnnotations)
 	desiredMachinePoolObj.Spec.Template.Annotations = machinePoolAnnotations
 
 	// Apply Labels
 	// NOTE: On top of all the labels applied to managed objects we are applying the ClusterTopologyMachinePoolLabel
 	// keeping track of the MachinePool name from the Topology; this will be used to identify the object in next reconcile loops.
-	machinePoolLabels := mergeMap(machinePoolTopology.Metadata.Labels, machinePoolBlueprint.Metadata.Labels)
+	machinePoolLabels := util.MergeMap(machinePoolTopology.Metadata.Labels, machinePoolBlueprint.Metadata.Labels)
 	if machinePoolLabels == nil {
 		machinePoolLabels = map[string]string{}
 	}

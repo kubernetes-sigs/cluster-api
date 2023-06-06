@@ -103,6 +103,7 @@ type MachineDeploymentUpgradeTracker struct {
 // UpgradeTrackerOptions contains the options for NewUpgradeTracker.
 type UpgradeTrackerOptions struct {
 	maxMDUpgradeConcurrency int
+	maxMPUpgradeConcurrency int
 }
 
 // UpgradeTrackerOption returns an option for the NewUpgradeTracker function.
@@ -138,8 +139,9 @@ func NewUpgradeTracker(opts ...UpgradeTrackerOption) *UpgradeTracker {
 			maxMachineDeploymentUpgradeConcurrency: options.maxMDUpgradeConcurrency,
 		},
 		MachinePools: MachinePoolUpgradeTracker{
-			pendingNames:    sets.Set[string]{},
-			rollingOutNames: sets.Set[string]{},
+			pendingNames:                     sets.Set[string]{},
+			rollingOutNames:                  sets.Set[string]{},
+			maxMachinePoolUpgradeConcurrency: options.maxMPUpgradeConcurrency,
 		},
 	}
 }
@@ -226,14 +228,17 @@ func (m *MachineDeploymentUpgradeTracker) DeferredUpgradeNames() []string {
 // MachineDeployments. Returns false, otherwise.
 func (m *MachineDeploymentUpgradeTracker) DeferredUpgrade() bool {
 	return len(m.deferredNames) != 0
+}
+
 // TODO(richardcase) - this could probably be refactored to be more generic
 
 // MachinePoolUpgradeTracker holds the current upgrade status and makes upgrade
 // decisions for MachinePools.
 type MachinePoolUpgradeTracker struct {
-	pendingNames    sets.Set[string]
-	rollingOutNames sets.Set[string]
-	holdUpgrades    bool
+	pendingNames                     sets.Set[string]
+	rollingOutNames                  sets.Set[string]
+	holdUpgrades                     bool
+	maxMachinePoolUpgradeConcurrency int
 }
 
 // MarkRollingOut marks a MachinePool as currently rolling out or
@@ -269,7 +274,7 @@ func (m *MachinePoolUpgradeTracker) AllowUpgrade() bool {
 	if m.holdUpgrades {
 		return false
 	}
-	return m.rollingOutNames.Len() < maxMachineDeploymentUpgradeConcurrency
+	return m.rollingOutNames.Len() < m.maxMachinePoolUpgradeConcurrency
 }
 
 // MarkPendingUpgrade marks a machine pool as in need of an upgrade.

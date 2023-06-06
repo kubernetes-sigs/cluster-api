@@ -345,13 +345,21 @@ func (t *ClusterCacheTracker) createClient(ctx context.Context, config *rest.Con
 	// Create a http client for the cluster.
 	httpClient, err := rest.HTTPClientFor(config)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error creating http client for remote cluster %q", cluster.String())
+		return nil, nil, errors.Wrapf(err, "error creating client for remote cluster %q: error creating http client", cluster.String())
 	}
 
 	// Create a mapper for it
 	mapper, err := apiutil.NewDynamicRESTMapper(config, httpClient)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error creating dynamic rest mapper for remote cluster %q", cluster.String())
+		return nil, nil, errors.Wrapf(err, "error creating client for remote cluster %q: error creating dynamic rest mapper", cluster.String())
+	}
+
+	// Verify if we can get a rest mapping from the workload cluster apiserver.
+	// Note: This also checks if the apiserver is up in general. We do this already here
+	// to avoid further effort creating a cache and a client and to produce a clearer error message.
+	_, err = mapper.RESTMapping(corev1.SchemeGroupVersion.WithKind("Node").GroupKind(), corev1.SchemeGroupVersion.Version)
+	if err != nil {
+		return nil, nil, errors.Wrapf(err, "error creating client for remote cluster %q: error getting rest mapping", cluster.String())
 	}
 
 	// Create the cache for the remote cluster
@@ -362,7 +370,7 @@ func (t *ClusterCacheTracker) createClient(ctx context.Context, config *rest.Con
 	}
 	remoteCache, err := cache.New(config, cacheOptions)
 	if err != nil {
-		return nil, nil, errors.Wrapf(err, "error creating cache for remote cluster %q", cluster.String())
+		return nil, nil, errors.Wrapf(err, "error creating client for remote cluster %q: error creating cache", cluster.String())
 	}
 
 	cacheCtx, cacheCtxCancel := context.WithCancel(ctx)

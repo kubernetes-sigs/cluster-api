@@ -29,6 +29,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
@@ -37,6 +38,7 @@ import (
 
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 	clusterctlconfig "sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
+	"sigs.k8s.io/cluster-api/internal/goproxy"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -49,7 +51,7 @@ type LoadE2EConfigInput struct {
 }
 
 // LoadE2EConfig loads the configuration for the e2e test environment.
-func LoadE2EConfig(_ context.Context, input LoadE2EConfigInput) *E2EConfig {
+func LoadE2EConfig(ctx context.Context, input LoadE2EConfigInput) *E2EConfig {
 	configData, err := os.ReadFile(input.ConfigPath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to read the e2e test config file")
 	Expect(configData).ToNot(BeEmpty(), "The e2e test config file should not be empty")
@@ -57,6 +59,7 @@ func LoadE2EConfig(_ context.Context, input LoadE2EConfigInput) *E2EConfig {
 	config := &E2EConfig{}
 	Expect(yaml.Unmarshal(configData, config)).To(Succeed(), "Failed to convert the e2e test config file to yaml")
 
+	Expect(config.ResolveReleases(ctx)).To(Succeed(), "Failed to resolve release markers in e2e test config file")
 	config.Defaults()
 	config.AbsPaths(filepath.Dir(input.ConfigPath))
 
@@ -243,6 +246,94 @@ type Files struct {
 	// TargetName name of the file copied into the local repository. if empty, the source name
 	// Will be preserved
 	TargetName string `json:"targetName,omitempty"`
+}
+
+// ResolveReleases converts release markers to release version.
+func (c *E2EConfig) ResolveReleases(ctx context.Context) error {
+	for i := range c.Providers {
+		provider := &c.Providers[i]
+		for j := range provider.Versions {
+			version := &provider.Versions[j]
+			if version.Type != URLSource {
+				continue
+			}
+			// Skipping versions that are not a resolvable marker. Resolvable markers are surrounded by `{}`
+			if !strings.HasPrefix(version.Name, "{") || !strings.HasSuffix(version.Name, "}") {
+				continue
+			}
+			releaseMarker := strings.TrimLeft(strings.TrimRight(version.Name, "}"), "{")
+			ver, err := ResolveRelease(ctx, releaseMarker)
+			if err != nil {
+				return errors.Wrapf(err, "failed resolving release url %q", version.Name)
+			}
+			ver = "v" + ver
+			version.Value = strings.Replace(version.Value, version.Name, ver, 1)
+			version.Name = ver
+		}
+	}
+	return nil
+}
+
+func ResolveRelease(ctx context.Context, releaseMarker string) (string, error) {
+	scheme, host, err := goproxy.GetSchemeAndHost(os.Getenv("GOPROXY"))
+	if err != nil {
+		return "", err
+	}
+	if scheme == "" || host == "" {
+		return "", errors.Errorf("releasemarker does not support disabling the go proxy: GOPROXY=%q", os.Getenv("GOPROXY"))
+	}
+	goproxyClient := goproxy.NewClient(scheme, host)
+	return resolveReleaseMarker(ctx, releaseMarker, goproxyClient)
+}
+
+// resolveReleaseMarker resolves releaseMarker string to verion string e.g.
+// - Resolves "go://sigs.k8s.io/cluster-api@v1.0" to the latest stable patch release of v1.0.
+// - Resolves "go://sigs.k8s.io/cluster-api@latest-v1.0" to the latest patch release of v.1.0 including rc and pre releases.
+func resolveReleaseMarker(ctx context.Context, releaseMarker string, goproxyClient *goproxy.Client) (string, error) {
+	if !strings.HasPrefix(releaseMarker, "go://") {
+		return "", errors.Errorf("unknown release marker scheme")
+	}
+
+	releaseMarker = strings.TrimPrefix(releaseMarker, "go://")
+	if releaseMarker == "" {
+		return "", errors.New("empty release url")
+	}
+
+	gomoduleParts := strings.Split(releaseMarker, "@")
+	if len(gomoduleParts) < 2 {
+		return "", errors.Errorf("go module or version missing")
+	}
+	gomodule := gomoduleParts[0]
+
+	includePrereleases := false
+	if strings.HasPrefix(gomoduleParts[1], "latest-") {
+		includePrereleases = true
+	}
+	version := strings.TrimPrefix(gomoduleParts[1], "latest-") + ".0"
+	version = strings.TrimPrefix(version, "v")
+	semVersion, err := semver.Parse(version)
+	if err != nil {
+		return "", errors.Wrapf(err, "parsing semver for %s", version)
+	}
+
+	parsedTags, err := goproxyClient.GetVersions(ctx, gomodule)
+	if err != nil {
+		return "", err
+	}
+
+	var picked semver.Version
+	for i, tag := range parsedTags {
+		if !includePrereleases && len(tag.Pre) > 0 {
+			continue
+		}
+		if tag.Major == semVersion.Major && tag.Minor == semVersion.Minor {
+			picked = parsedTags[i]
+		}
+	}
+	if picked.Major == 0 && picked.Minor == 0 && picked.Patch == 0 {
+		return "", errors.Errorf("no suitable release available for release marker %s", releaseMarker)
+	}
+	return picked.String(), nil
 }
 
 // Defaults assigns default values to the object. More specifically:

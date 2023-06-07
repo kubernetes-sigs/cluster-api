@@ -187,6 +187,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 
 		clusterctlBinaryURLTemplate := input.InitWithBinary
 		if clusterctlBinaryURLTemplate == "" {
+			Expect(input.E2EConfig.ResolveReleases(ctx)).To(Succeed(), "Failed to resolve release markers in e2e test config file")
 			Expect(input.E2EConfig.Variables).To(HaveKey(initWithBinaryVariableName), "Invalid argument. %s variable must be defined when calling %s spec", initWithBinaryVariableName, specName)
 			Expect(input.E2EConfig.Variables[initWithBinaryVariableName]).ToNot(BeEmpty(), "Invalid argument. %s variable can't be empty when calling %s spec", initWithBinaryVariableName, specName)
 			clusterctlBinaryURLTemplate = input.E2EConfig.GetVariable(initWithBinaryVariableName)

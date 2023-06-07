@@ -155,7 +155,7 @@ func (r *InMemoryMachineReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Handle deleted machines
 	if !inMemoryMachine.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, inMemoryMachine)
+		return r.reconcileDelete(ctx, cluster, machine, inMemoryMachine)
 	}
 
 	// Handle non-deleted machines
@@ -324,7 +324,7 @@ func (r *InMemoryMachineReconciler) reconcileNormal(ctx context.Context, cluster
 	}
 	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(etcdPod), etcdPod); err != nil {
 		if !apierrors.IsNotFound(err) {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to get etcdPod Pod")
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get etcd Pod")
 		}
 
 		etcdPod.Labels = map[string]string{
@@ -468,11 +468,88 @@ func (r *InMemoryMachineReconciler) reconcileNormal(ctx context.Context, cluster
 	return ctrl.Result{}, nil
 }
 
-//nolint:unparam // once we implemented this func we will also return errors
-func (r *InMemoryMachineReconciler) reconcileDelete(_ context.Context, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
-	// TODO: implement
-	controllerutil.RemoveFinalizer(inMemoryMachine, infrav1.MachineFinalizer)
+func (r *InMemoryMachineReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
+	// Compute the resource group unique name.
+	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
+	resourceGroup := klog.KObj(cluster).String()
+	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
 
+	// Delete VM
+	cloudMachine := &cloudv1.CloudMachine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: inMemoryMachine.Name,
+		},
+	}
+	if err := cloudClient.Delete(ctx, cloudMachine); err != nil && !apierrors.IsNotFound(err) {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to delete CloudMachine")
+	}
+
+	// Delete Node
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: inMemoryMachine.Name,
+		},
+	}
+	if err := cloudClient.Delete(ctx, node); err != nil && !apierrors.IsNotFound(err) {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to delete Node")
+	}
+
+	if util.IsControlPlaneMachine(machine) {
+		controllerManagerPod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: metav1.NamespaceSystem,
+				Name:      fmt.Sprintf("kube-controller-manager-%s", inMemoryMachine.Name),
+			},
+		}
+		if err := cloudClient.Delete(ctx, controllerManagerPod); err != nil && !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to controller manager Pod")
+		}
+
+		schedulerPod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: metav1.NamespaceSystem,
+				Name:      fmt.Sprintf("kube-scheduler-%s", inMemoryMachine.Name),
+			},
+		}
+		if err := cloudClient.Delete(ctx, schedulerPod); err != nil && !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to scheduler Pod")
+		}
+
+		apiServer := fmt.Sprintf("kube-apiserver-%s", inMemoryMachine.Name)
+		apiServerPod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: metav1.NamespaceSystem,
+				Name:      apiServer,
+			},
+		}
+		if err := cloudClient.Delete(ctx, apiServerPod); err != nil && !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to apiServer Pod")
+		}
+		if err := r.APIServerMux.DeleteAPIServer(resourceGroup, apiServer); err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// TODO: if all the API server are gone, cleanup all the k8s objects from the resource group.
+		// note: it is not possible to delete the resource group, because cloud resources should be preserved.
+		// given that, in order to implement this it is required to find a way to identify all the k8s resources (might be via gvk);
+		// also, deletion must happen suddently, without respecting finalizers or owner references links.
+
+		etcdMember := fmt.Sprintf("etcd-%s", inMemoryMachine.Name)
+		etcdPod := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: metav1.NamespaceSystem,
+				Name:      etcdMember,
+			},
+		}
+		if err := cloudClient.Delete(ctx, etcdPod); err != nil && !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to etcd Pod")
+		}
+		if err := r.APIServerMux.DeleteEtcdMember(resourceGroup, etcdMember); err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+
+	controllerutil.RemoveFinalizer(inMemoryMachine, infrav1.MachineFinalizer)
 	return ctrl.Result{}, nil
 }
 

@@ -350,6 +350,28 @@ func (m *WorkloadClustersMux) AddAPIServer(wclName, podName string, caCert *x509
 	return nil
 }
 
+// DeleteAPIServer removes an API server instance from the WorkloadClusterListener.
+func (m *WorkloadClustersMux) DeleteAPIServer(wclName, podName string) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	wcl, ok := m.workloadClusterListeners[wclName]
+	if !ok {
+		return errors.Errorf("workloadClusterListener with name %s must be initialized before removing an APIserver", wclName)
+	}
+	wcl.apiServers.Delete(podName)
+	m.log.Info("APIServer instance removed from the workloadClusterListener", "listenerName", wclName, "address", wcl.Address(), "podName", podName)
+
+	if wcl.apiServers.Len() < 1 && wcl.listener != nil {
+		if err := wcl.listener.Close(); err != nil {
+			return errors.Wrapf(err, "failed to stop WorkloadClusterListener %s, %s", wclName, wcl.HostPort())
+		}
+		wcl.listener = nil
+		m.log.Info("WorkloadClusterListener stopped because there are no APIServer left", "listenerName", wclName, "address", wcl.Address())
+	}
+	return nil
+}
+
 // HasAPIServer returns true if the workload cluster already has an apiserver with podName.
 func (m *WorkloadClustersMux) HasAPIServer(wclName, podName string) bool {
 	m.lock.RLock()
@@ -371,7 +393,7 @@ func (m *WorkloadClustersMux) AddEtcdMember(wclName, podName string, caCert *x50
 
 	wcl, ok := m.workloadClusterListeners[wclName]
 	if !ok {
-		return errors.Errorf("workloadClusterListener with name %s must be initialized before adding an APIserver", wclName)
+		return errors.Errorf("workloadClusterListener with name %s must be initialized before adding an etcd member", wclName)
 	}
 	wcl.etcdMembers.Insert(podName)
 	m.log.Info("Etcd member added to WorkloadClusterListener", "listenerName", wclName, "address", wcl.Address(), "podName", podName)
@@ -406,6 +428,22 @@ func (m *WorkloadClustersMux) HasEtcdMember(wclName, podName string) bool {
 	return wcl.etcdMembers.Has(podName)
 }
 
+// DeleteEtcdMember removes an etcd Member from the WorkloadClusterListener.
+func (m *WorkloadClustersMux) DeleteEtcdMember(wclName, podName string) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	wcl, ok := m.workloadClusterListeners[wclName]
+	if !ok {
+		return errors.Errorf("workloadClusterListener with name %s must be initialized before removing an etcd member", wclName)
+	}
+	wcl.etcdMembers.Delete(podName)
+	delete(wcl.etcdServingCertificates, podName)
+	m.log.Info("Etcd member removed from WorkloadClusterListener", "listenerName", wclName, "address", wcl.Address(), "podName", podName)
+
+	return nil
+}
+
 // ListListeners implements api.DebugInfoProvider.
 func (m *WorkloadClustersMux) ListListeners() map[string]string {
 	m.lock.RLock()
@@ -416,6 +454,29 @@ func (m *WorkloadClustersMux) ListListeners() map[string]string {
 		ret[k] = l.Address()
 	}
 	return ret
+}
+
+// DeleteWorkloadClusterListener deletes a WorkloadClusterListener.
+func (m *WorkloadClustersMux) DeleteWorkloadClusterListener(wclName string) error {
+	m.lock.Lock()
+	defer m.lock.Unlock()
+
+	wcl, ok := m.workloadClusterListeners[wclName]
+	if !ok {
+		return nil
+	}
+
+	if wcl.listener != nil {
+		if err := wcl.listener.Close(); err != nil {
+			return errors.Wrapf(err, "failed to stop WorkloadClusterListener %s, %s", wclName, wcl.HostPort())
+		}
+	}
+
+	delete(m.workloadClusterListeners, wclName)
+	delete(m.workloadClusterNameByHost, wcl.HostPort())
+
+	m.log.Info("Workload cluster listener deleted", "listenerName", wclName, "address", wcl.Address())
+	return nil
 }
 
 // Shutdown shuts down the workload cluster mux.

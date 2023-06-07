@@ -33,6 +33,28 @@ webhooks:
     service:
       name: webhook-service
       namespace: system
+      path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha1-inmemoryclustertemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: default.inmemoryclustertemplate.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - inmemoryclustertemplates
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
       path: /mutate-infrastructure-cluster-x-k8s-io-v1alpha1-inmemorymachine
   failurePolicy: Fail
   matchPolicy: Equivalent
@@ -97,6 +119,28 @@ webhooks:
     - UPDATE
     resources:
     - inmemoryclusters
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  - v1beta1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-infrastructure-cluster-x-k8s-io-v1alpha1-inmemoryclustertemplate
+  failurePolicy: Fail
+  matchPolicy: Equivalent
+  name: validation.inmemoryclustertemplate.infrastructure.cluster.x-k8s.io
+  rules:
+  - apiGroups:
+    - infrastructure.cluster.x-k8s.io
+    apiVersions:
+    - v1alpha1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - inmemoryclustertemplates
   sideEffects: None
 - admissionReviewVersions:
   - v1

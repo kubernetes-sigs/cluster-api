@@ -150,6 +150,7 @@ vcd                    InfrastructureProvider   https://github.com/vmware/cluste
 vcluster               InfrastructureProvider   https://github.com/loft-sh/cluster-api-provider-vcluster/releases/latest/                   infrastructure-components.yaml
 virtink                InfrastructureProvider   https://github.com/smartxworks/cluster-api-provider-virtink/releases/latest/                infrastructure-components.yaml
 vsphere                InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/            infrastructure-components.yaml
+in-cluster             IPAMProvider             https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/    ipam-components.yaml
 helm                   AddonProvider            https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/releases/latest/         addon-components.yaml
 `
 
@@ -341,6 +342,10 @@ var expectedOutputYaml = `- File: core_components.yaml
   Name: vsphere
   ProviderType: InfrastructureProvider
   URL: https://github.com/kubernetes-sigs/cluster-api-provider-vsphere/releases/latest/
+- File: ipam-components.yaml
+  Name: in-cluster
+  ProviderType: IPAMProvider
+  URL: https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster/releases/latest/
 - File: addon-components.yaml
   Name: helm
   ProviderType: AddonProvider

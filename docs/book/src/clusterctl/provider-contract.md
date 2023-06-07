@@ -336,6 +336,7 @@ providers.
 | CAPZ          | cluster.x-k8s.io/provider=infrastructure-azure        |
 | CAPOSC        | cluster.x-k8s.io/provider=infrastructure-outscale     |
 | CAPK0S        | cluster.x-k8s.io/provider=infrastructure-k0smotron    |
+| CAIPAMIC      | cluster.x-k8s.io/provider=ipam-in-cluster             |
 
 ### Workload cluster templates
 

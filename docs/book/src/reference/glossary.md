@@ -108,6 +108,9 @@ Cluster API Provider VMware Cloud Director
 ### CAPZ
 Cluster API Provider Azure
 
+### CAIPAMIC
+Cluster API IPAM Provider In Cluster
+
 ### Cloud provider
 
 Or __Cloud service provider__

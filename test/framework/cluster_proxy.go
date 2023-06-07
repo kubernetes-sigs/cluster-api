@@ -315,7 +315,7 @@ func (p *clusterProxy) CollectWorkloadClusterLogs(ctx context.Context, namespace
 		mp := &machinePools.Items[i]
 		err := p.logCollector.CollectMachinePoolLog(ctx, p.GetClient(), mp, path.Join(outputPath, "machine-pools", mp.GetName()))
 		if err != nil {
-			// NB. we are treating failures in collecting logs as a non blocking operation (best effort)
+			// NB. we are treating failures in collecting logs as a non-blocking operation (best effort)
 			fmt.Printf("Failed to get logs for MachinePool %s, Cluster %s: %v\n", mp.GetName(), klog.KRef(namespace, name), err)
 		}
 	}

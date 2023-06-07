@@ -79,10 +79,12 @@ func dumpSpecResourcesAndCleanup(ctx context.Context, specName string, clusterPr
 		LogPath:   filepath.Join(artifactFolder, "clusters", clusterProxy.GetName(), "resources"),
 	})
 
-	// If the cluster still exists, dump kube-system pods in the workload cluster before deleting the cluster.
+	// If the cluster still exists, dump kube-system pods of the workload cluster before deleting the cluster.
 	if err := clusterProxy.GetClient().Get(ctx, client.ObjectKeyFromObject(cluster), &clusterv1.Cluster{}); err == nil {
-		framework.DumpKubeSystemPods(ctx, framework.DumpKubeSystemPodsInput{
+		Byf("Dumping kube-system Pods of Cluster %s", klog.KObj(cluster))
+		framework.DumpKubeSystemPodsForCluster(ctx, framework.DumpKubeSystemPodsForClusterInput{
 			Lister:  clusterProxy.GetWorkloadCluster(ctx, cluster.Namespace, cluster.Name).GetClient(),
+			Cluster: cluster,
 			LogPath: filepath.Join(artifactFolder, "clusters", cluster.Name, "resources"),
 		})
 	}

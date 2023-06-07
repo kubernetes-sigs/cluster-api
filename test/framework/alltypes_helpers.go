@@ -33,6 +33,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
@@ -72,34 +74,6 @@ func GetCAPIResources(ctx context.Context, input GetCAPIResourcesInput) []*unstr
 			obj := typeList.Items[i]
 			objList = append(objList, &obj)
 		}
-	}
-
-	return objList
-}
-
-// GetKubeSystemPodsInput is the input for GetKubeSystemPods.
-type GetKubeSystemPodsInput struct {
-	Lister Lister
-}
-
-// GetKubeSystemPods reads all pods in the kube-system namespace.
-// Note: This function intentionally retrieves Pods as Unstructured, because we need the Pods
-// as Unstructured eventually.
-func GetKubeSystemPods(ctx context.Context, input GetKubeSystemPodsInput) []*unstructured.Unstructured {
-	Expect(ctx).NotTo(BeNil(), "ctx is required for GetKubeSystemPods")
-	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for GetKubeSystemPods")
-
-	podList := new(unstructured.UnstructuredList)
-	podList.SetAPIVersion(corev1.SchemeGroupVersion.String())
-	podList.SetKind("Pod")
-	if err := input.Lister.List(ctx, podList, client.InNamespace(metav1.NamespaceSystem)); err != nil {
-		Fail(fmt.Sprintf("failed to list Pods in kube-system: %v", err))
-	}
-
-	objList := []*unstructured.Unstructured{}
-	for i := range podList.Items {
-		obj := podList.Items[i]
-		objList = append(objList, &obj)
 	}
 
 	return objList
@@ -158,24 +132,38 @@ func DumpAllResources(ctx context.Context, input DumpAllResourcesInput) {
 	}
 }
 
-// DumpKubeSystemPodsInput is the input for DumpKubeSystemPods.
-type DumpKubeSystemPodsInput struct {
+// DumpKubeSystemPodsForClusterInput is the input for DumpKubeSystemPodsForCluster.
+type DumpKubeSystemPodsForClusterInput struct {
 	Lister  Lister
 	LogPath string
+	Cluster *clusterv1.Cluster
 }
 
-// DumpKubeSystemPods dumps kube-system Pods to YAML.
-func DumpKubeSystemPods(ctx context.Context, input DumpKubeSystemPodsInput) {
+// DumpKubeSystemPodsForCluster dumps kube-system Pods to YAML.
+func DumpKubeSystemPodsForCluster(ctx context.Context, input DumpKubeSystemPodsForClusterInput) {
 	Expect(ctx).NotTo(BeNil(), "ctx is required for DumpAllResources")
 	Expect(input.Lister).NotTo(BeNil(), "input.Lister is required for DumpAllResources")
+	Expect(input.Cluster).NotTo(BeNil(), "input.Cluster is required for DumpAllResources")
 
-	resources := GetKubeSystemPods(ctx, GetKubeSystemPodsInput{
-		Lister: input.Lister,
+	// Note: We intentionally retrieve Pods as Unstructured because we need the Pods as Unstructured for dumpObject.
+	podList := new(unstructured.UnstructuredList)
+	podList.SetAPIVersion(corev1.SchemeGroupVersion.String())
+	podList.SetKind("Pod")
+	var listErr error
+	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
+		if listErr = input.Lister.List(ctx, podList, client.InNamespace(metav1.NamespaceSystem)); listErr != nil {
+			return false, nil //nolint:nilerr
+		}
+		return true, nil
 	})
+	if listErr != nil {
+		// NB. we are treating failures in collecting kube-system pods as a non-blocking operation (best effort)
+		fmt.Printf("Failed to list Pods in kube-system for Cluster %s: %v\n", klog.KObj(input.Cluster), listErr)
+		return
+	}
 
-	for i := range resources {
-		r := resources[i]
-		dumpObject(r, input.LogPath)
+	for i := range podList.Items {
+		dumpObject(&podList.Items[i], input.LogPath)
 	}
 }
 

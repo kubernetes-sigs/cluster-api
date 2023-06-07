@@ -46,6 +46,12 @@ updated info about which API version they are supporting.
 - [VMware Cloud Director](https://github.com/vmware/cluster-api-provider-cloud-director)  
 - [vSphere](https://github.com/kubernetes-sigs/cluster-api-provider-vsphere)
 
+## IP Address Management (IPAM)
+- [In Cluster](https://github.com/kubernetes-sigs/cluster-api-ipam-provider-in-cluster)
+
+## Addon
+- [Helm](https://github.com/kubernetes-sigs/cluster-api-addon-provider-helm/)
+
 ## API Adopters
 
 Following are the implementations managed by third-parties adopting the standard cluster-api and/or machine-api being developed here.

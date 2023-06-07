@@ -17,6 +17,43 @@
       - uid
     metricNamePrefix: capi_machinedeployment
     metrics:
+    - name: info
+      help: Information about a machinedeployment.
+      each:
+        info:
+          labelsFromPath:
+            version:
+            - spec
+            - template
+            - spec
+            - version
+            bootstrap_reference_kind:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - kind
+            bootstrap_reference_name:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - name
+            infrastructure_reference_kind:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - kind
+            infrastructure_reference_name:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - name
+        type: Info
     - name: spec_paused
       help: Whether the machinedeployment is paused and any of its resources will not be processed by the controllers.
       each:

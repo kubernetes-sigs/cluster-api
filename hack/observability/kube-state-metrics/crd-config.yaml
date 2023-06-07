@@ -4,6 +4,101 @@ spec:
   resources:
   - groupVersionKind:
       group: cluster.x-k8s.io
+      kind: ClusterClass
+      version: v1beta1
+    labelsFromPath:
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_clusterclass
+    metrics:
+    - name: info
+      help: Information about a clusterclass.
+      each:
+        info:
+          # TODO: added metadata.name even it's already defined above as the metric doesn't work with empty labelsFromPath.
+          labelsFromPath:
+            name:
+            - metadata
+            - name
+        type: Info
+    - name: created
+      help: Unix creation timestamp.
+      each:
+        gauge:
+          path:
+          - metadata
+          - creationTimestamp
+        type: Gauge
+    - name: annotation_paused
+      help: Whether the clusterclass is paused and any of its resources will not be processed by the controllers.
+      each:
+        info:
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+          labelsFromPath:
+            paused_value: []
+        type: Info
+    - name: status_condition
+      help: The condition of a clusterclass.
+      each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - 'True'
+          - 'False'
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+    - name: status_condition_last_transition_time
+      help: The condition last transition time of a clusterclass.
+      each:
+        gauge:
+          labelsFromPath:
+            type:
+            - type
+            status:
+            - status
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+    - name: owner
+      help: Owner references.
+      each:
+        info:
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+  - groupVersionKind:
+      group: cluster.x-k8s.io
       kind: Cluster
       version: v1beta1
     labelsFromPath:
@@ -118,6 +213,21 @@ spec:
           valueFrom:
           - status
         type: StateSet
+    - name: status_condition_last_transition_time
+      help: The condition last transition time of a cluster.
+      each:
+        gauge:
+          labelsFromPath:
+            type:
+            - type
+            status:
+            - status
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
   - groupVersionKind:
       group: controlplane.cluster.x-k8s.io
       kind: KubeadmControlPlane
@@ -239,6 +349,120 @@ spec:
           valueFrom:
           - status
         type: StateSet
+    - name: status_condition_last_transition_time
+      help: The condition last transition time of a kubeadmcontrolplane.
+      each:
+        gauge:
+          labelsFromPath:
+            type:
+            - type
+            status:
+            - status
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
+    - name: owner
+      help: Owner references.
+      each:
+        info:
+          labelsFromPath:
+            owner_is_controller:
+            - controller
+            owner_kind:
+            - kind
+            owner_name:
+            - name
+            owner_uid:
+            - uid
+          path:
+          - metadata
+          - ownerReferences
+        type: Info
+  - groupVersionKind:
+      group: bootstrap.cluster.x-k8s.io
+      kind: KubeadmConfig
+      version: v1beta1
+    labelsFromPath:
+      cluster_name:
+      - metadata
+      - labels
+      - cluster.x-k8s.io/cluster-name
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_kubeadmconfig
+    metrics:
+    - name: info
+      help: Information about a kubeadmconfig.
+      each:
+        info:
+          # TODO: added metadata.name even it's already defined above as the metric doesn't work with empty labelsFromPath.
+          labelsFromPath:
+            name:
+            - metadata
+            - name
+        type: Info
+    - name: created
+      help: Unix creation timestamp.
+      each:
+        gauge:
+          path:
+          - metadata
+          - creationTimestamp
+        type: Gauge
+    - name: annotation_paused
+      help: Whether the kubeadmconfig is paused and any of its resources will not be processed by the controllers.
+      each:
+        info:
+          path:
+          - metadata
+          - annotations
+          - cluster.x-k8s.io/paused
+          labelsFromPath:
+            paused_value: []
+        type: Info
+    - name: status_condition
+      help: The condition of a kubeadmconfig.
+      each:
+        stateSet:
+          labelName: status
+          labelsFromPath:
+            type:
+            - type
+          list:
+          - 'True'
+          - 'False'
+          - Unknown
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - status
+        type: StateSet
+    - name: status_condition_last_transition_time
+      help: The condition last transition time of a kubeadmconfig.
+      each:
+        gauge:
+          labelsFromPath:
+            type:
+            - type
+            status:
+            - status
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
     - name: owner
       help: Owner references.
       each:
@@ -309,6 +533,28 @@ spec:
             version:
             - spec
             - version
+            bootstrap_reference_kind:
+            - spec
+            - bootstrap
+            - configRef
+            - kind
+            bootstrap_reference_name:
+            - spec
+            - bootstrap
+            - configRef
+            - name
+            infrastructure_reference_kind:
+            - spec
+            - infrastructureRef
+            - kind
+            infrastructure_reference_name:
+            - spec
+            - infrastructureRef
+            - name
+            control_plane_name:
+            - metadata
+            - labels
+            - cluster.x-k8s.io/control-plane-name
         type: Info
     - name: addresses
       help: Address information about a machine.
@@ -392,6 +638,21 @@ spec:
           valueFrom:
           - status
         type: StateSet
+    - name: status_condition_last_transition_time
+      help: The condition last transition time of a machine.
+      each:
+        gauge:
+          labelsFromPath:
+            type:
+            - type
+            status:
+            - status
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
     - name: owner
       help: Owner references.
       each:
@@ -428,6 +689,43 @@ spec:
       - uid
     metricNamePrefix: capi_machinedeployment
     metrics:
+    - name: info
+      help: Information about a machinedeployment.
+      each:
+        info:
+          labelsFromPath:
+            version:
+            - spec
+            - template
+            - spec
+            - version
+            bootstrap_reference_kind:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - kind
+            bootstrap_reference_name:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - name
+            infrastructure_reference_kind:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - kind
+            infrastructure_reference_name:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - name
+        type: Info
     - name: spec_paused
       help: Whether the machinedeployment is paused and any of its resources will not be processed by the controllers.
       each:
@@ -562,6 +860,21 @@ spec:
           valueFrom:
           - status
         type: StateSet
+    - name: status_condition_last_transition_time
+      help: The condition last transition time of a machinedeployment.
+      each:
+        gauge:
+          labelsFromPath:
+            type:
+            - type
+            status:
+            - status
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
     - name: owner
       help: Owner references.
       each:
@@ -598,6 +911,16 @@ spec:
       - uid
     metricNamePrefix: capi_machinehealthcheck
     metrics:
+    - name: info
+      help: Information about a machinehealthcheck.
+      each:
+        info:
+          # TODO: added metadata.name even it's already defined above as the metric doesn't work with empty labelsFromPath.
+          labelsFromPath:
+            name:
+            - metadata
+            - name
+        type: Info
     - name: status_current_healthy
       help: Current number of healthy machines.
       each:
@@ -659,6 +982,21 @@ spec:
           valueFrom:
           - status
         type: StateSet
+    - name: status_condition_last_transition_time
+      help: The condition last transition time of a machinehealthcheck.
+      each:
+        gauge:
+          labelsFromPath:
+            type:
+            - type
+            status:
+            - status
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
     - name: owner
       help: Owner references.
       each:
@@ -695,6 +1033,43 @@ spec:
       - uid
     metricNamePrefix: capi_machineset
     metrics:
+    - name: info
+      help: Information about a machineset.
+      each:
+        info:
+          labelsFromPath:
+            version:
+            - spec
+            - template
+            - spec
+            - version
+            bootstrap_reference_kind:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - kind
+            bootstrap_reference_name:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - name
+            infrastructure_reference_kind:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - kind
+            infrastructure_reference_name:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - name
+        type: Info
     - name: spec_replicas
       help: The number of desired machines for a machineset.
       each:
@@ -704,7 +1079,7 @@ spec:
           - replicas
           nilIsZero: true
         type: Gauge
-    - name: status_available_replicas
+    - name: status_replicas_available
       help: The number of available replicas per machineset.
       each:
         gauge:
@@ -713,7 +1088,7 @@ spec:
           - availableReplicas
           nilIsZero: true
         type: Gauge
-    - name: status_fully_labeled_replicas
+    - name: status_replicas_fully_labeled
       help: The number of fully labeled replicas per machineset.
       each:
         gauge:
@@ -721,7 +1096,7 @@ spec:
           - status
           - fullyLabeledReplicas
         type: Gauge
-    - name: status_ready_replicas
+    - name: status_replicas_ready
       help: The number of ready replicas per machineset.
       each:
         gauge:
@@ -776,6 +1151,21 @@ spec:
           valueFrom:
           - status
         type: StateSet
+    - name: status_condition_last_transition_time
+      help: The condition last transition time of a machineset.
+      each:
+        gauge:
+          labelsFromPath:
+            type:
+            - type
+            status:
+            - status
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
     - name: owner
       help: Owner references.
       each:
@@ -949,6 +1339,21 @@ spec:
           valueFrom:
           - status
         type: StateSet
+    - name: status_condition_last_transition_time
+      help: The condition last transition time of a machinepool.
+      each:
+        gauge:
+          labelsFromPath:
+            type:
+            - type
+            status:
+            - status
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge
     - name: owner
       help: Owner references.
       each:

@@ -552,7 +552,7 @@ generate-metrics-config: $(ENVSUBST_BIN) ## Generate ./hack/observability/kube-s
 	METRICS_DIR="${OBSERVABILITY_DIR}/kube-state-metrics/metrics"; \
 	echo "# This file was auto-generated via: make generate-metrics-config" > "$${OUTPUT_FILE}"; \
 	cat "$${METRICS_DIR}/header.yaml" >> "$${OUTPUT_FILE}"; \
-	for resource in cluster kubeadmcontrolplane machine machinedeployment machinehealthcheck machineset machinepool; do \
+	for resource in clusterclass cluster kubeadmcontrolplane kubeadmconfig machine machinedeployment machinehealthcheck machineset machinepool; do \
 		cat "$${METRICS_DIR}/$${resource}.yaml"; \
 		RESOURCE="$${resource}" ${ENVSUBST_BIN} < "$${METRICS_DIR}/common_metrics.yaml"; \
 		if [[ "$${resource}" != "cluster" ]]; then \

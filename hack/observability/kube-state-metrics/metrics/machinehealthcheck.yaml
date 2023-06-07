@@ -17,6 +17,16 @@
       - uid
     metricNamePrefix: capi_machinehealthcheck
     metrics:
+    - name: info
+      help: Information about a machinehealthcheck.
+      each:
+        info:
+          # TODO: added metadata.name even it's already defined above as the metric doesn't work with empty labelsFromPath.
+          labelsFromPath:
+            name:
+            - metadata
+            - name
+        type: Info
     - name: status_current_healthy
       help: Current number of healthy machines.
       each:

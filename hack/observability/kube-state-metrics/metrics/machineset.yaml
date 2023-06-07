@@ -17,6 +17,43 @@
       - uid
     metricNamePrefix: capi_machineset
     metrics:
+    - name: info
+      help: Information about a machineset.
+      each:
+        info:
+          labelsFromPath:
+            version:
+            - spec
+            - template
+            - spec
+            - version
+            bootstrap_reference_kind:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - kind
+            bootstrap_reference_name:
+            - spec
+            - template
+            - spec
+            - bootstrap
+            - configRef
+            - name
+            infrastructure_reference_kind:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - kind
+            infrastructure_reference_name:
+            - spec
+            - template
+            - spec
+            - infrastructureRef
+            - name
+        type: Info
     - name: spec_replicas
       help: The number of desired machines for a machineset.
       each:
@@ -26,7 +63,7 @@
           - replicas
           nilIsZero: true
         type: Gauge
-    - name: status_available_replicas
+    - name: status_replicas_available
       help: The number of available replicas per machineset.
       each:
         gauge:
@@ -35,7 +72,7 @@
           - availableReplicas
           nilIsZero: true
         type: Gauge
-    - name: status_fully_labeled_replicas
+    - name: status_replicas_fully_labeled
       help: The number of fully labeled replicas per machineset.
       each:
         gauge:
@@ -43,7 +80,7 @@
           - status
           - fullyLabeledReplicas
         type: Gauge
-    - name: status_ready_replicas
+    - name: status_replicas_ready
       help: The number of ready replicas per machineset.
       each:
         gauge:

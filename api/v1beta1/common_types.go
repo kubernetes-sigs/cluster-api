@@ -57,6 +57,10 @@ const (
 	// a classy Cluster to define the maximum concurrency while upgrading MachineDeployments.
 	ClusterTopologyUpgradeConcurrencyAnnotation = "topology.cluster.x-k8s.io/upgrade-concurrency"
 
+	// ClusterTopologyMachinePoolNameLabel is the label set on the generated  MachinePool objects
+	// to track the name of the MachinePool topology it represents.
+	ClusterTopologyMachinePoolNameLabel = "topology.cluster.x-k8s.io/pool-name"
+
 	// ClusterTopologyUnsafeUpdateClassNameAnnotation can be used to disable the webhook check on
 	// update that disallows a pre-existing Cluster to be populated with Topology information and Class.
 	ClusterTopologyUnsafeUpdateClassNameAnnotation = "unsafe.topology.cluster.x-k8s.io/disable-update-class-name-check"

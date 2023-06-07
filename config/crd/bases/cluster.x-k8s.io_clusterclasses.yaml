@@ -807,6 +807,18 @@ spec:
                                           type: string
                                         type: array
                                     type: object
+                                  machinePoolClass:
+                                    description: MachinePoolClass selects templates
+                                      referenced in specific MachinePoolClasses in
+                                      .spec.workers.machinePools.
+                                    properties:
+                                      names:
+                                        description: Names selects templates by class
+                                          names.
+                                        items:
+                                          type: string
+                                        type: array
+                                    type: object
                                 type: object
                             required:
                             - apiVersion
@@ -1367,6 +1379,208 @@ spec:
                                 MachineDeployment and the machines of the MachineDeployment.
                                 At runtime this metadata is merged with the corresponding
                                 metadata from the topology.
+                              properties:
+                                annotations:
+                                  additionalProperties:
+                                    type: string
+                                  description: 'Annotations is an unstructured key
+                                    value map stored with a resource that may be set
+                                    by external tools to store and retrieve arbitrary
+                                    metadata. They are not queryable and should be
+                                    preserved when modifying objects. More info: http://kubernetes.io/docs/user-guide/annotations'
+                                  type: object
+                                labels:
+                                  additionalProperties:
+                                    type: string
+                                  description: 'Map of string keys and values that
+                                    can be used to organize and categorize (scope
+                                    and select) objects. May match selectors of replication
+                                    controllers and services. More info: http://kubernetes.io/docs/user-guide/labels'
+                                  type: object
+                              type: object
+                          required:
+                          - bootstrap
+                          - infrastructure
+                          type: object
+                      required:
+                      - class
+                      - template
+                      type: object
+                    type: array
+                  machinePools:
+                    description: MachinePools is a list of machine pool classes that
+                      can be used to create a set of worker nodes.
+                    items:
+                      description: MachinePoolClass serves as a template to define
+                        a pool of worker nodes of the cluster provisioned using `ClusterClass`.
+                      properties:
+                        class:
+                          description: Class denotes a type of machine pool present
+                            in the cluster, this name MUST be unique within a ClusterClass
+                            and can be referenced in the Cluster to create a managed
+                            MachinePool.
+                          type: string
+                        failureDomains:
+                          description: 'FailureDomains is the list of failure domains
+                            the MachinePool should be attached to. Must match a key
+                            in the FailureDomains map stored on the cluster object.
+                            NOTE: This value can be overridden while defining a Cluster.Topology
+                            using this MachinePoolClass.'
+                          items:
+                            type: string
+                          type: array
+                        minReadySeconds:
+                          description: 'Minimum number of seconds for which a newly
+                            created machine pool should be ready. Defaults to 0 (machine
+                            will be considered available as soon as it is ready) NOTE:
+                            This value can be overridden while defining a Cluster.Topology
+                            using this MachinePoolClass.'
+                          format: int32
+                          type: integer
+                        nodeDeletionTimeout:
+                          description: 'NodeDeletionTimeout defines how long the controller
+                            will attempt to delete the Node that the Machine hosts
+                            after the Machine Pool is marked for deletion. A duration
+                            of 0 will retry deletion indefinitely. Defaults to 10
+                            seconds. NOTE: This value can be overridden while defining
+                            a Cluster.Topology using this MachinePoolClass.'
+                          type: string
+                        nodeDrainTimeout:
+                          description: 'NodeDrainTimeout is the total amount of time
+                            that the controller will spend on draining a node. The
+                            default value is 0, meaning that the node can be drained
+                            without any time limitations. NOTE: NodeDrainTimeout is
+                            different from `kubectl drain --timeout` NOTE: This value
+                            can be overridden while defining a Cluster.Topology using
+                            this MachinePoolClass.'
+                          type: string
+                        nodeVolumeDetachTimeout:
+                          description: 'NodeVolumeDetachTimeout is the total amount
+                            of time that the controller will spend on waiting for
+                            all volumes to be detached. The default value is 0, meaning
+                            that the volumes can be detached without any time limitations.
+                            NOTE: This value can be overridden while defining a Cluster.Topology
+                            using this MachinePoolClass.'
+                          type: string
+                        template:
+                          description: Template is a local struct containing a collection
+                            of templates for creation of MachinePools objects representing
+                            a pool of worker nodes.
+                          properties:
+                            bootstrap:
+                              description: Bootstrap contains the bootstrap template
+                                reference to be used for the creation of the Machines
+                                in the MachinePool.
+                              properties:
+                                ref:
+                                  description: Ref is a required reference to a custom
+                                    resource offered by a provider.
+                                  properties:
+                                    apiVersion:
+                                      description: API version of the referent.
+                                      type: string
+                                    fieldPath:
+                                      description: 'If referring to a piece of an
+                                        object instead of an entire object, this string
+                                        should contain a valid JSON/Go field access
+                                        statement, such as desiredState.manifest.containers[2].
+                                        For example, if the object reference is to
+                                        a container within a pod, this would take
+                                        on a value like: "spec.containers{name}" (where
+                                        "name" refers to the name of the container
+                                        that triggered the event) or if no container
+                                        name is specified "spec.containers[2]" (container
+                                        with index 2 in this pod). This syntax is
+                                        chosen only to have some well-defined way
+                                        of referencing a part of an object. TODO:
+                                        this design is not final and this field is
+                                        subject to change in the future.'
+                                      type: string
+                                    kind:
+                                      description: 'Kind of the referent. More info:
+                                        https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                      type: string
+                                    name:
+                                      description: 'Name of the referent. More info:
+                                        https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                      type: string
+                                    namespace:
+                                      description: 'Namespace of the referent. More
+                                        info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                      type: string
+                                    resourceVersion:
+                                      description: 'Specific resourceVersion to which
+                                        this reference is made, if any. More info:
+                                        https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                      type: string
+                                    uid:
+                                      description: 'UID of the referent. More info:
+                                        https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                      type: string
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                              required:
+                              - ref
+                              type: object
+                            infrastructure:
+                              description: Infrastructure contains the infrastructure
+                                template reference to be used for the creation of
+                                the MachinePool.
+                              properties:
+                                ref:
+                                  description: Ref is a required reference to a custom
+                                    resource offered by a provider.
+                                  properties:
+                                    apiVersion:
+                                      description: API version of the referent.
+                                      type: string
+                                    fieldPath:
+                                      description: 'If referring to a piece of an
+                                        object instead of an entire object, this string
+                                        should contain a valid JSON/Go field access
+                                        statement, such as desiredState.manifest.containers[2].
+                                        For example, if the object reference is to
+                                        a container within a pod, this would take
+                                        on a value like: "spec.containers{name}" (where
+                                        "name" refers to the name of the container
+                                        that triggered the event) or if no container
+                                        name is specified "spec.containers[2]" (container
+                                        with index 2 in this pod). This syntax is
+                                        chosen only to have some well-defined way
+                                        of referencing a part of an object. TODO:
+                                        this design is not final and this field is
+                                        subject to change in the future.'
+                                      type: string
+                                    kind:
+                                      description: 'Kind of the referent. More info:
+                                        https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                                      type: string
+                                    name:
+                                      description: 'Name of the referent. More info:
+                                        https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                                      type: string
+                                    namespace:
+                                      description: 'Namespace of the referent. More
+                                        info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                                      type: string
+                                    resourceVersion:
+                                      description: 'Specific resourceVersion to which
+                                        this reference is made, if any. More info:
+                                        https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                                      type: string
+                                    uid:
+                                      description: 'UID of the referent. More info:
+                                        https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                                      type: string
+                                  type: object
+                                  x-kubernetes-map-type: atomic
+                              required:
+                              - ref
+                              type: object
+                            metadata:
+                              description: Metadata is the metadata applied to the
+                                MachinePool. At runtime this metadata is merged with
+                                the corresponding metadata from the topology.
                               properties:
                                 annotations:
                                   additionalProperties:

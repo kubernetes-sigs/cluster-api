@@ -56,9 +56,6 @@ const (
 	// ClusterTopologyUpgradeConcurrencyAnnotation can be set as top-level annotation on the Cluster object of
 	// a classy Cluster to define the maximum concurrency while upgrading MachineDeployments.
 	ClusterTopologyUpgradeConcurrencyAnnotation = "topology.cluster.x-k8s.io/upgrade-concurrency"
-	// ClusterTopologyMachinePoolNameLabel is the label set on the generated  MachinePool objects
-	// to track the name of the MachinePool topology it represents.
-	ClusterTopologyMachinePoolNameLabel = "topology.cluster.x-k8s.io/pool-name"
 
 	// ClusterTopologyMachinePoolNameLabel is the label set on the generated  MachinePool objects
 	// to track the name of the MachinePool topology it represents.

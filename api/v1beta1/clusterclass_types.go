@@ -133,6 +133,11 @@ type WorkersClass struct {
 	// a set of worker nodes.
 	// +optional
 	MachineDeployments []MachineDeploymentClass `json:"machineDeployments,omitempty"`
+
+	// MachinePools is a list of machine pool classes that can be used to create
+	// a set of worker nodes.
+	// +optional
+	MachinePools []MachinePoolClass `json:"machinePools,omitempty"`
 }
 
 // MachineDeploymentClass serves as a template to define a set of worker nodes of the cluster
@@ -242,6 +247,40 @@ type MachineHealthCheckClass struct {
 	// a controller that lives outside of Cluster API.
 	// +optional
 	RemediationTemplate *corev1.ObjectReference `json:"remediationTemplate,omitempty"`
+}
+
+// MachinePoolClass serves as a template to define a pool of worker nodes of the cluster
+// provisioned using `ClusterClass`.
+type MachinePoolClass struct {
+	// Class denotes a type of machine pool present in the cluster,
+	// this name MUST be unique within a ClusterClass and can be referenced
+	// in the Cluster to create a managed MachinePool.
+	Class string `json:"class"`
+
+	// Template is a local struct containing a collection of templates for creation of
+	// MachinePools objects representing a pool of worker nodes.
+	Template MachinePoolClassTemplate `json:"template"`
+
+	// FailureDomains is the list of failure domains the MachinePool should be attached to.
+	// Must match a key in the FailureDomains map stored on the cluster object.
+	// NOTE: This value can be overridden while defining a Cluster.Topology using this MachineDeploymentClass.
+	// +optional
+	FailureDomains []string `json:"failureDomains,omitempty"`
+}
+
+type MachinePoolClassTemplate struct {
+	// Metadata is the metadata applied to the MachinePool.
+	// At runtime this metadata is merged with the corresponding metadata from the topology.
+	// +optional
+	Metadata ObjectMeta `json:"metadata,omitempty"`
+
+	// Bootstrap contains the bootstrap template reference to be used
+	// for the creation of the Machines in the MachinePool.
+	Bootstrap LocalObjectTemplate `json:"bootstrap"`
+
+	// Infrastructure contains the infrastructure template reference to be used
+	// for the creation of the MachinePool.
+	Infrastructure LocalObjectTemplate `json:"infrastructure"`
 }
 
 // IsZero returns true if none of the values of MachineHealthCheckClass are defined.
@@ -472,11 +511,24 @@ type PatchSelectorMatch struct {
 	// .spec.workers.machineDeployments.
 	// +optional
 	MachineDeploymentClass *PatchSelectorMatchMachineDeploymentClass `json:"machineDeploymentClass,omitempty"`
+
+	// MachinePoolClass selects templates referenced in specific MachinePoolClasses in
+	// .spec.workers.machinePools.
+	// +optional
+	MachinePoolClass *PatchSelectorMatchMachinePoolClass `json:"machinePoolClass,omitempty"`
 }
 
 // PatchSelectorMatchMachineDeploymentClass selects templates referenced
 // in specific MachineDeploymentClasses in .spec.workers.machineDeployments.
 type PatchSelectorMatchMachineDeploymentClass struct {
+	// Names selects templates by class names.
+	// +optional
+	Names []string `json:"names,omitempty"`
+}
+
+// PatchSelectorMatchMachinePoolClass selects templates referenced
+// in specific MachinePoolClasses in .spec.workers.machinePools.
+type PatchSelectorMatchMachinePoolClass struct {
 	// Names selects templates by class names.
 	// +optional
 	Names []string `json:"names,omitempty"`

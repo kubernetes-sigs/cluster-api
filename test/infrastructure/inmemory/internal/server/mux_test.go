@@ -59,6 +59,61 @@ func init() {
 	ctrl.SetLogger(klog.Background())
 }
 
+func TestMux(t *testing.T) {
+	g := NewWithT(t)
+
+	manager := cmanager.New(scheme)
+
+	wcl := "workload-cluster"
+	host := "127.0.0.1" //nolint:goconst
+	wcmux := NewWorkloadClustersMux(manager, host)
+
+	listener, err := wcmux.InitWorkloadClusterListener(wcl)
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(listener.Host()).To(Equal(host))
+	g.Expect(listener.Port()).ToNot(BeZero())
+
+	caCert, caKey, err := newCertificateAuthority()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	etcdCert, etcdKey, err := newCertificateAuthority()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	apiServerPod1 := "apiserver1"
+	err = wcmux.AddAPIServer(wcl, apiServerPod1, caCert, caKey)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	etcdPodMember1 := "etcd1"
+	err = wcmux.AddEtcdMember(wcl, etcdPodMember1, etcdCert, etcdKey)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	apiServerPod2 := "apiserver2"
+	err = wcmux.AddAPIServer(wcl, apiServerPod2, caCert, caKey)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	etcdPodMember2 := "etcd2"
+	err = wcmux.AddEtcdMember(wcl, etcdPodMember2, etcdCert, etcdKey)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	err = wcmux.DeleteAPIServer(wcl, apiServerPod2)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	err = wcmux.DeleteEtcdMember(wcl, etcdPodMember2)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	err = wcmux.DeleteAPIServer(wcl, apiServerPod1)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	err = wcmux.DeleteEtcdMember(wcl, etcdPodMember1)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	err = wcmux.DeleteWorkloadClusterListener(wcl)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	err = wcmux.Shutdown(ctx)
+	g.Expect(err).ToNot(HaveOccurred())
+}
+
 func TestAPI_corev1_CRUD(t *testing.T) {
 	g := NewWithT(t)
 

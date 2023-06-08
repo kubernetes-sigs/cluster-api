@@ -114,7 +114,7 @@ func (r *InMemoryClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Handle deleted clusters
 	if !inMemoryCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, inMemoryCluster)
+		return r.reconcileDelete(ctx, cluster, inMemoryCluster)
 	}
 
 	// Handle non-deleted clusters
@@ -187,11 +187,19 @@ func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *
 	return ctrl.Result{}, nil
 }
 
-//nolint:unparam // once we implemented this func we will also return errors
-func (r *InMemoryClusterReconciler) reconcileDelete(_ context.Context, inMemoryCluster *infrav1.InMemoryCluster) (ctrl.Result, error) {
-	// TODO: implement
-	controllerutil.RemoveFinalizer(inMemoryCluster, infrav1.ClusterFinalizer)
+func (r *InMemoryClusterReconciler) reconcileDelete(_ context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.InMemoryCluster) (ctrl.Result, error) {
+	// Compute the resource group unique name.
+	resourceGroup := klog.KObj(cluster).String()
 
+	// Delete the resource group hosting all the cloud resources belonging the workload cluster;
+	r.CloudManager.DeleteResourceGroup(resourceGroup)
+
+	// Delete the listener for the workload cluster;
+	if err := r.APIServerMux.DeleteWorkloadClusterListener(resourceGroup); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	controllerutil.RemoveFinalizer(inMemoryCluster, infrav1.ClusterFinalizer)
 	return ctrl.Result{}, nil
 }
 

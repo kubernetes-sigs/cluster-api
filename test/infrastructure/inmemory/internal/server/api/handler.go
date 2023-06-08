@@ -77,14 +77,14 @@ func NewAPIServerHandler(manager cmanager.Manager, log logr.Logger, resolver Res
 	ws.Route(ws.GET("/api/v1/{resource}/{name}").To(apiServer.apiV1Get))
 	ws.Route(ws.PUT("/api/v1/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Update))
 	ws.Route(ws.PATCH("/api/v1/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
-	ws.Route(ws.DELETE("/api/v1/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Delete))
+	ws.Route(ws.DELETE("/api/v1/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Delete))
 
 	ws.Route(ws.POST("/apis/{group}/{version}/{resource}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Create))
 	ws.Route(ws.GET("/apis/{group}/{version}/{resource}").To(apiServer.apiV1List))
 	ws.Route(ws.GET("/apis/{group}/{version}/{resource}/{name}").To(apiServer.apiV1Get))
 	ws.Route(ws.PUT("/apis/{group}/{version}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Update))
 	ws.Route(ws.PATCH("/apis/{group}/{version}/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
-	ws.Route(ws.DELETE("/apis/{group}/{version}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Delete))
+	ws.Route(ws.DELETE("/apis/{group}/{version}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Delete))
 
 	// CRUD endpoints (namespaced objects)
 	ws.Route(ws.POST("/api/v1/namespaces/{namespace}/{resource}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Create))
@@ -92,14 +92,14 @@ func NewAPIServerHandler(manager cmanager.Manager, log logr.Logger, resolver Res
 	ws.Route(ws.GET("/api/v1/namespaces/{namespace}/{resource}/{name}").To(apiServer.apiV1Get))
 	ws.Route(ws.PUT("/api/v1/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Update))
 	ws.Route(ws.PATCH("/api/v1/namespaces/{namespace}/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
-	ws.Route(ws.DELETE("/api/v1/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Delete))
+	ws.Route(ws.DELETE("/api/v1/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Delete))
 
 	ws.Route(ws.POST("/apis/{group}/{version}/namespaces/{namespace}/{resource}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Create))
 	ws.Route(ws.GET("/apis/{group}/{version}/namespaces/{namespace}/{resource}").To(apiServer.apiV1List))
 	ws.Route(ws.GET("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").To(apiServer.apiV1Get))
 	ws.Route(ws.PUT("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Update))
 	ws.Route(ws.PATCH("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
-	ws.Route(ws.DELETE("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Delete))
+	ws.Route(ws.DELETE("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Delete))
 
 	// Port forward endpoints
 	ws.Route(ws.GET("/api/v1/namespaces/{namespace}/pods/{name}/portforward").To(apiServer.apiV1PortForward))

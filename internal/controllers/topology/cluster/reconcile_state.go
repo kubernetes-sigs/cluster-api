@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
@@ -89,7 +90,16 @@ func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 	}
 
 	// Reconcile desired state of the MachineDeployment objects.
-	return r.reconcileMachineDeployments(ctx, s)
+	if err := r.reconcileMachineDeployments(ctx, s); err != nil {
+		return err
+	}
+
+	// Reconcile desired state of the MachinePool objects.
+	if err := r.reconcileMachinePools(ctx, s); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Reconcile the Cluster shim, a temporary object used a mean to collect objects/templates
@@ -703,14 +713,151 @@ func (r *Reconciler) deleteMachineDeployment(ctx context.Context, cluster *clust
 	return nil
 }
 
-type machineDeploymentDiff struct {
+// reconcileMachinePools reconciles the desired state of the MachinePool objects.
+func (r *Reconciler) reconcileMachinePools(ctx context.Context, s *scope.Scope) error {
+	diff := calculateMachinePoolDiff(s.Current.MachinePools, s.Desired.MachinePools)
+
+	// Create MachinePools.
+	for _, mpTopologyName := range diff.toCreate {
+		mp := s.Desired.MachinePools[mpTopologyName]
+		if err := r.createMachinePool(ctx, s.Current.Cluster, mp); err != nil {
+			return err
+		}
+	}
+
+	// Update MachinePools.
+	for _, mpTopologyName := range diff.toUpdate {
+		currentMP := s.Current.MachinePools[mpTopologyName]
+		desiredMP := s.Desired.MachinePools[mpTopologyName]
+		if err := r.updateMachinePool(ctx, s.Current.Cluster, mpTopologyName, currentMP, desiredMP); err != nil {
+			return err
+		}
+	}
+
+	// Delete MachinePools.
+	for _, mpTopologyName := range diff.toDelete {
+		mp := s.Current.MachinePools[mpTopologyName]
+		if err := r.deleteMachinePool(ctx, s.Current.Cluster, mp); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// createMachinePool creates a MachinePool and the corresponding templates.
+func (r *Reconciler) createMachinePool(ctx context.Context, cluster *clusterv1.Cluster, mp *scope.MachinePoolState) error {
+	log := tlog.LoggerFrom(ctx).WithMachinePool(mp.Object)
+
+	infraCtx, _ := log.WithObject(mp.InfrastructureMachineTemplate).Into(ctx)
+	if err := r.reconcileReferencedTemplate(infraCtx, reconcileReferencedTemplateInput{
+		cluster: cluster,
+		desired: mp.InfrastructureMachineTemplate,
+	}); err != nil {
+		return errors.Wrapf(err, "failed to create %s", mp.Object.Kind)
+	}
+
+	bootstrapCtx, _ := log.WithObject(mp.BootstrapTemplate).Into(ctx)
+	if err := r.reconcileReferencedTemplate(bootstrapCtx, reconcileReferencedTemplateInput{
+		cluster: cluster,
+		desired: mp.BootstrapTemplate,
+	}); err != nil {
+		return errors.Wrapf(err, "failed to create %s", mp.Object.Kind)
+	}
+
+	log = log.WithObject(mp.Object)
+	log.Infof(fmt.Sprintf("Creating %s", tlog.KObj{Obj: mp.Object}))
+	helper, err := r.patchHelperFactory(ctx, nil, mp.Object)
+	if err != nil {
+		return createErrorWithoutObjectName(ctx, err, mp.Object)
+	}
+	if err := helper.Patch(ctx); err != nil {
+		return createErrorWithoutObjectName(ctx, err, mp.Object)
+	}
+	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: mp.Object})
+
+	return nil
+}
+
+// updateMachinePool updates a MachinePool. Also rotates the corresponding Templates if necessary.
+func (r *Reconciler) updateMachinePool(ctx context.Context, cluster *clusterv1.Cluster, mpTopologyName string, currentMP, desiredMP *scope.MachinePoolState) error {
+	log := tlog.LoggerFrom(ctx).WithMachinePool(desiredMP.Object)
+
+	infraCtx, _ := log.WithObject(desiredMP.InfrastructureMachineTemplate).Into(ctx)
+	if err := r.reconcileReferencedTemplate(infraCtx, reconcileReferencedTemplateInput{
+		cluster:              cluster,
+		ref:                  &desiredMP.Object.Spec.Template.Spec.InfrastructureRef,
+		current:              currentMP.InfrastructureMachineTemplate,
+		desired:              desiredMP.InfrastructureMachineTemplate,
+		templateNamePrefix:   infrastructureMachineTemplateNamePrefix(cluster.Name, mpTopologyName),
+		compatibilityChecker: check.ObjectsAreCompatible,
+	}); err != nil {
+		return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: currentMP.Object})
+	}
+
+	bootstrapCtx, _ := log.WithObject(desiredMP.BootstrapTemplate).Into(ctx)
+	if err := r.reconcileReferencedTemplate(bootstrapCtx, reconcileReferencedTemplateInput{
+		cluster:              cluster,
+		ref:                  desiredMP.Object.Spec.Template.Spec.Bootstrap.ConfigRef,
+		current:              currentMP.BootstrapTemplate,
+		desired:              desiredMP.BootstrapTemplate,
+		templateNamePrefix:   bootstrapTemplateNamePrefix(cluster.Name, mpTopologyName),
+		compatibilityChecker: check.ObjectsAreInTheSameNamespace,
+	}); err != nil {
+		return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: currentMP.Object})
+	}
+
+	// Check differences between current and desired MachineDeployment, and eventually patch the current object.
+	log = log.WithObject(desiredMP.Object)
+	patchHelper, err := r.patchHelperFactory(ctx, currentMP.Object, desiredMP.Object)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create patch helper for %s", tlog.KObj{Obj: currentMP.Object})
+	}
+	if !patchHelper.HasChanges() {
+		log.V(3).Infof("No changes for %s", tlog.KObj{Obj: currentMP.Object})
+		return nil
+	}
+
+	log.Infof("Patching %s", tlog.KObj{Obj: currentMP.Object})
+	if err := patchHelper.Patch(ctx); err != nil {
+		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: currentMP.Object})
+	}
+	r.recorder.Eventf(cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q%s", tlog.KObj{Obj: currentMP.Object}, logMachinePoolVersionChange(currentMP.Object, desiredMP.Object))
+
+	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.
+	return nil
+}
+
+func logMachinePoolVersionChange(current, desired *expv1.MachinePool) string {
+	if current.Spec.Template.Spec.Version == nil || desired.Spec.Template.Spec.Version == nil {
+		return ""
+	}
+
+	if *current.Spec.Template.Spec.Version != *desired.Spec.Template.Spec.Version {
+		return fmt.Sprintf(" with version change from %s to %s", *current.Spec.Template.Spec.Version, *desired.Spec.Template.Spec.Version)
+	}
+	return ""
+}
+
+// deleteMachinePool deletes a MachinePool.
+func (r *Reconciler) deleteMachinePool(ctx context.Context, cluster *clusterv1.Cluster, mp *scope.MachinePoolState) error {
+	log := tlog.LoggerFrom(ctx).WithMachinePool(mp.Object).WithObject(mp.Object)
+	log.Infof("Deleting %s", tlog.KObj{Obj: mp.Object})
+	if err := r.Client.Delete(ctx, mp.Object); err != nil && !apierrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to delete %s", tlog.KObj{Obj: mp.Object})
+	}
+	r.recorder.Eventf(cluster, corev1.EventTypeNormal, deleteEventReason, "Deleted %q", tlog.KObj{Obj: mp.Object})
+	return nil
+}
+
+type machineDiff struct {
 	toCreate, toUpdate, toDelete []string
 }
 
 // calculateMachineDeploymentDiff compares two maps of MachineDeploymentState and calculates which
 // MachineDeployments should be created, updated or deleted.
-func calculateMachineDeploymentDiff(current, desired map[string]*scope.MachineDeploymentState) machineDeploymentDiff {
-	var diff machineDeploymentDiff
+func calculateMachineDeploymentDiff(current, desired map[string]*scope.MachineDeploymentState) machineDiff {
+	var diff machineDiff
 
 	for md := range desired {
 		if _, ok := current[md]; ok {
@@ -723,6 +870,28 @@ func calculateMachineDeploymentDiff(current, desired map[string]*scope.MachineDe
 	for md := range current {
 		if _, ok := desired[md]; !ok {
 			diff.toDelete = append(diff.toDelete, md)
+		}
+	}
+
+	return diff
+}
+
+// calculateMachinePoolDiff compares two maps of MachinePoolState and calculates which
+// MachinePools should be created, updated or deleted.
+func calculateMachinePoolDiff(current, desired map[string]*scope.MachinePoolState) machineDiff {
+	var diff machineDiff
+
+	for mp := range desired {
+		if _, ok := current[mp]; ok {
+			diff.toUpdate = append(diff.toUpdate, mp)
+		} else {
+			diff.toCreate = append(diff.toCreate, mp)
+		}
+	}
+
+	for mp := range current {
+		if _, ok := desired[mp]; !ok {
+			diff.toDelete = append(diff.toDelete, mp)
 		}
 	}
 

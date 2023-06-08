@@ -143,6 +143,19 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				s.Blueprint.Topology.Version,
 			)
 			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredReason
+		case s.UpgradeTracker.MachinePools.PendingUpgrade():
+			fmt.Fprintf(msgBuilder, "MachinePool(s) %s upgrade to version %s on hold.",
+				computeTopologyNameList(s.UpgradeTracker.MachinePools.PendingUpgradeNames()),
+				s.Blueprint.Topology.Version,
+			)
+			reason = clusterv1.TopologyReconciledMachinePoolsUpgradePendingReason
+		case s.UpgradeTracker.MachinePools.RollingOutUpgrade():
+			fmt.Fprintf(msgBuilder, "MachinePool(s) %s upgrade to version %s in progress.",
+				computeTopologyNameList(s.UpgradeTracker.MachinePools.RolloutNames()),
+				s.Blueprint.Topology.Version,
+			)
+			reason = clusterv1.TopologyReconciledMachinePoolsRollingOutReason
+
 		}
 
 		switch {

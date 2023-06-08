@@ -258,6 +258,12 @@ func (m *MachinePoolUpgradeTracker) RolloutNames() []string {
 	return sets.List(m.rollingOutNames)
 }
 
+// RollingOutUpgrade returns true if any of the machine pools are rolling out
+// an upgrade. Returns false, otherwise.
+func (m *MachinePoolUpgradeTracker) RollingOutUpgrade() bool {
+	return len(m.rollingOutNames) != 0
+}
+
 // HoldUpgrades is used to set if any subsequent upgrade operations should be paused,
 // e.g. because a AfterControlPlaneUpgrade hook response asked to do so.
 // If HoldUpgrades is called with `true` then AllowUpgrade would return false.

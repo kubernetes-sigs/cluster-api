@@ -36,6 +36,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/controllers/external"
+	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	runtimecatalog "sigs.k8s.io/cluster-api/exp/runtime/catalog"
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/feature"
@@ -101,6 +102,12 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 			&clusterv1.MachineDeployment{},
 			handler.EnqueueRequestsFromMapFunc(r.machineDeploymentToCluster),
 			// Only trigger Cluster reconciliation if the MachineDeployment is topology owned.
+			builder.WithPredicates(predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))),
+		).
+		Watches(
+			&expv1.MachinePool{},
+			handler.EnqueueRequestsFromMapFunc(r.machinePoolToCluster),
+			// Only trigger Cluster reconciliation if the MachinePool is topology owned.
 			builder.WithPredicates(predicates.ResourceIsTopologyOwned(ctrl.LoggerFrom(ctx))),
 		).
 		WithOptions(options).
@@ -360,6 +367,25 @@ func (r *Reconciler) machineDeploymentToCluster(_ context.Context, o client.Obje
 		NamespacedName: types.NamespacedName{
 			Namespace: md.Namespace,
 			Name:      md.Spec.ClusterName,
+		},
+	}}
+}
+
+// machinePoolToCluster is a handler.ToRequestsFunc to be used to enqueue requests for reconciliation
+// for Cluster to update when one of its own MachinePools gets updated.
+func (r *Reconciler) machinePoolToCluster(_ context.Context, o client.Object) []ctrl.Request {
+	mp, ok := o.(*expv1.MachinePool)
+	if !ok {
+		panic(fmt.Sprintf("Expected a MachinePool but got a %T", o))
+	}
+	if mp.Spec.ClusterName == "" {
+		return nil
+	}
+
+	return []ctrl.Request{{
+		NamespacedName: types.NamespacedName{
+			Namespace: mp.Namespace,
+			Name:      mp.Spec.ClusterName,
 		},
 	}}
 }

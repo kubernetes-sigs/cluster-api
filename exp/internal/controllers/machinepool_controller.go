@@ -372,7 +372,7 @@ func (r *MachinePoolReconciler) nodeToMachinePool(ctx context.Context, o client.
 
 // infraMachineToMachinePoolMapper is a mapper function that maps an InfraMachine to the MachinePool that owns it.
 // This is used to trigger an update of the MachinePool when a InfraMachine is changed.
-func infraMachineToMachinePoolMapper(o client.Object) []ctrl.Request {
+func infraMachineToMachinePoolMapper(_ context.Context, o client.Object) []ctrl.Request {
 	labels := o.GetLabels()
 
 	if poolName, ok := labels[clusterv1.MachinePoolNameLabel]; ok {

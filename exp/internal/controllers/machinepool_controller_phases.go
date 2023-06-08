@@ -383,9 +383,9 @@ func (r *MachinePoolReconciler) reconcileMachinePoolMachines(ctx context.Context
 		_, loaded := r.externalWatchers.LoadOrStore(infraMachine.GroupVersionKind().String(), struct{}{})
 		if !loaded && r.controller != nil {
 			log.Info("Adding watcher on external object", "groupVersionKind", infraMachine.GroupVersionKind())
+			kind := source.Kind(r.cache, infraMachine)
 			err := r.controller.Watch(
-				&source.Kind{Type: infraMachine},
-				// &handler.EnqueueRequestForOwner{OwnerType: &expv1.MachinePool{}},
+				kind,
 				handler.EnqueueRequestsFromMapFunc(infraMachineToMachinePoolMapper),
 			)
 			if err != nil {

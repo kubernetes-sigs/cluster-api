@@ -230,6 +230,16 @@ func (h *apiServerHandler) apiV1List(req *restful.Request, resp *restful.Respons
 		return
 	}
 
+	// If the request is a Watch handle it using watchForResource.
+	if isWatch(req) {
+		err = h.watchForResource(req, resp, resourceGroup, *gvk)
+		if err != nil {
+			_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+			return
+		}
+		return
+	}
+
 	// Reads and returns the requested data.
 	list := &unstructured.UnstructuredList{}
 	list.SetAPIVersion(gvk.GroupVersion().String())

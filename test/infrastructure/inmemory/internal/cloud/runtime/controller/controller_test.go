@@ -148,6 +148,11 @@ func (i *fakeInformer) AddEventHandler(handler ccache.InformEventHandler) error 
 	return nil
 }
 
+func (i *fakeInformer) RemoveEventHandler(_ ccache.InformEventHandler) error {
+	i.handler = nil
+	return nil
+}
+
 func (i *fakeInformer) InformCreate(resourceGroup string, obj client.Object) {
 	i.handler.OnCreate(resourceGroup, obj)
 }

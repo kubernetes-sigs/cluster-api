@@ -318,7 +318,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 			// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
 			MinPort:   server.DefaultMinPort + 1000,
 			MaxPort:   server.DefaultMinPort + 1099,
-			DebugPort: server.DefaultDebugPort,
+			DebugPort: server.DefaultDebugPort + 10,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
 		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
@@ -445,8 +445,8 @@ func TestReconcileNormalApiServer(t *testing.T) {
 		wcmux, err := server.NewWorkloadClustersMux(manager, host, server.CustomPorts{
 			// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
 			MinPort:   server.DefaultMinPort + 1100,
-			MaxPort:   server.DefaultMinPort + 1299,
-			DebugPort: server.DefaultDebugPort,
+			MaxPort:   server.DefaultMinPort + 1199,
+			DebugPort: server.DefaultDebugPort + 11,
 		})
 		g.Expect(err).ToNot(HaveOccurred())
 		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())

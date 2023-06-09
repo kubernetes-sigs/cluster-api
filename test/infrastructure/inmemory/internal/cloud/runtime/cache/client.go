@@ -409,11 +409,8 @@ func (c *cache) doTryDeleteLocked(resourceGroup string, tracker *resourceGroupTr
 		delete(tracker.ownedObjects, ownReference{gvk: objGVK, key: objKey})
 	}
 
-	// If the object still has finalizers, only set the deletion timestamp if not already set.
-	if len(obj.GetFinalizers()) > 0 {
-		if !obj.GetDeletionTimestamp().IsZero() {
-			return false, nil
-		}
+	// Set the deletion timestamp if not already set.
+	if obj.GetDeletionTimestamp().IsZero() {
 		if err := c.beforeDelete(resourceGroup, obj); err != nil {
 			return false, apierrors.NewBadRequest(err.Error())
 		}
@@ -424,13 +421,18 @@ func (c *cache) doTryDeleteLocked(resourceGroup string, tracker *resourceGroupTr
 		if err := c.beforeUpdate(resourceGroup, oldObj, obj); err != nil {
 			return false, apierrors.NewBadRequest(err.Error())
 		}
+
+		// TODO: (killianmuldoon) Understand if setting this twice is necessary.
 		// Required to override default beforeUpdate behaviour
 		// that prevent changes to automatically managed fields.
 		obj.SetDeletionTimestamp(&now)
 
 		objects[objKey] = obj
 		c.afterUpdate(resourceGroup, oldObj, obj)
+	}
 
+	// If the object still has finalizers return early.
+	if len(obj.GetFinalizers()) > 0 {
 		return false, nil
 	}
 

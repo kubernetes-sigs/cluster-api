@@ -56,6 +56,7 @@ type Cache interface {
 // Informer forwards events to event handlers.
 type Informer interface {
 	AddEventHandler(handler InformEventHandler) error
+	RemoveEventHandler(handler InformEventHandler) error
 }
 
 // InformEventHandler handle events originated by a source.

@@ -67,15 +67,19 @@ func TestClusterResourceSetLabelSelectorAsSelectorValidation(t *testing.T) {
 				},
 			}
 			if tt.expectErr {
-				_, err := clusterResourceSet.ValidateCreate()
+				warnings, err := clusterResourceSet.ValidateCreate()
 				g.Expect(err).To(HaveOccurred())
-				_, err = clusterResourceSet.ValidateUpdate(clusterResourceSet)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = clusterResourceSet.ValidateUpdate(clusterResourceSet)
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			} else {
-				_, err := clusterResourceSet.ValidateCreate()
+				warnings, err := clusterResourceSet.ValidateCreate()
 				g.Expect(err).NotTo(HaveOccurred())
-				_, err = clusterResourceSet.ValidateUpdate(clusterResourceSet)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = clusterResourceSet.ValidateUpdate(clusterResourceSet)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}
@@ -128,12 +132,14 @@ func TestClusterResourceSetStrategyImmutable(t *testing.T) {
 				},
 			}
 
-			_, err := newClusterResourceSet.ValidateUpdate(oldClusterResourceSet)
+			warnings, err := newClusterResourceSet.ValidateUpdate(oldClusterResourceSet)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 				return
 			}
 			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -179,12 +185,14 @@ func TestClusterResourceSetClusterSelectorImmutable(t *testing.T) {
 				},
 			}
 
-			_, err := newClusterResourceSet.ValidateUpdate(oldClusterResourceSet)
+			warnings, err := newClusterResourceSet.ValidateUpdate(oldClusterResourceSet)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 				return
 			}
 			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }

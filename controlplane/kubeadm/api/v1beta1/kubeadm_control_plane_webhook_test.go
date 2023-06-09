@@ -248,12 +248,13 @@ func TestKubeadmControlPlaneValidateCreate(t *testing.T) {
 
 			g := NewWithT(t)
 
-			_, err := tt.kcp.ValidateCreate()
+			warnings, err := tt.kcp.ValidateCreate()
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -1027,12 +1028,13 @@ func TestKubeadmControlPlaneValidateUpdate(t *testing.T) {
 
 			g := NewWithT(t)
 
-			_, err := tt.kcp.ValidateUpdate(tt.before.DeepCopy())
+			warnings, err := tt.kcp.ValidateUpdate(tt.before.DeepCopy())
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).To(Succeed())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -1232,7 +1234,7 @@ func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
-			_, err := tt.kcp.ValidateUpdate(tt.before.DeepCopy())
+			warnings, err := tt.kcp.ValidateUpdate(tt.before.DeepCopy())
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -1243,6 +1245,7 @@ func TestKubeadmControlPlaneValidateUpdateAfterDefaulting(t *testing.T) {
 				g.Expect(tt.kcp.Spec.RolloutStrategy.RollingUpdate.MaxSurge.IntVal).To(Equal(int32(1)))
 				g.Expect(tt.kcp.Spec.Replicas).To(Equal(pointer.Int32(1)))
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }

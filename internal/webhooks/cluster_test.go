@@ -1268,12 +1268,14 @@ func TestClusterTopologyValidation(t *testing.T) {
 			// Create the webhook and add the fakeClient as its client. This is required because the test uses a Managed Topology.
 			webhook := &Cluster{Client: fakeClient}
 
-			_, err := webhook.validate(ctx, tt.old, tt.in)
+			warnings, err := webhook.validate(ctx, tt.old, tt.in)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 				return
 			}
 			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -1549,12 +1551,13 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			c := &Cluster{Client: fakeClient}
 
 			// Checks the return error.
-			_, err := c.ValidateCreate(ctx, tt.cluster)
+			warnings, err := c.ValidateCreate(ctx, tt.cluster)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -1971,12 +1974,13 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 			secondCluster.Spec.Topology.Class = tt.secondClass.Name
 
 			// Checks the return error.
-			_, err := c.ValidateUpdate(ctx, cluster, secondCluster)
+			warnings, err := c.ValidateUpdate(ctx, cluster, secondCluster)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -2093,12 +2097,13 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 			updatedCluster.Spec.Topology = tt.updatedTopology
 
 			// Checks the return error.
-			_, err := c.ValidateUpdate(ctx, tt.cluster, updatedCluster)
+			warnings, err := c.ValidateUpdate(ctx, tt.cluster, updatedCluster)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -2217,12 +2222,13 @@ func TestClusterClassPollingErrors(t *testing.T) {
 				Build()}
 
 			// Checks the return error.
-			_, err := c.validate(ctx, tt.oldCluster, tt.cluster)
+			warnings, err := c.validate(ctx, tt.oldCluster, tt.cluster)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }

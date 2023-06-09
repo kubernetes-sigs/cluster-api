@@ -106,15 +106,19 @@ func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				_, err := ms.ValidateCreate()
+				warnings, err := ms.ValidateCreate()
 				g.Expect(err).To(HaveOccurred())
-				_, err = ms.ValidateUpdate(ms)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = ms.ValidateUpdate(ms)
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			} else {
-				_, err := ms.ValidateCreate()
+				warnings, err := ms.ValidateCreate()
 				g.Expect(err).NotTo(HaveOccurred())
-				_, err = ms.ValidateUpdate(ms)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = ms.ValidateUpdate(ms)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}
@@ -157,12 +161,13 @@ func TestMachineSetClusterNameImmutable(t *testing.T) {
 				},
 			}
 
-			_, err := newMS.ValidateUpdate(oldMS)
+			warnings, err := newMS.ValidateUpdate(oldMS)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
+			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -215,15 +220,19 @@ func TestMachineSetVersionValidation(t *testing.T) {
 			}
 
 			if tt.expectErr {
-				_, err := md.ValidateCreate()
+				warnings, err := md.ValidateCreate()
 				g.Expect(err).To(HaveOccurred())
-				_, err = md.ValidateUpdate(md)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = md.ValidateUpdate(md)
 				g.Expect(err).To(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			} else {
-				_, err := md.ValidateCreate()
+				warnings, err := md.ValidateCreate()
 				g.Expect(err).NotTo(HaveOccurred())
-				_, err = md.ValidateUpdate(md)
+				g.Expect(warnings).To(BeEmpty())
+				warnings, err = md.ValidateUpdate(md)
 				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(warnings).To(BeEmpty())
 			}
 		})
 	}

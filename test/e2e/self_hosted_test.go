@@ -27,11 +27,12 @@ import (
 var _ = Describe("When testing Cluster API working on self-hosted clusters", func() {
 	SelfHostedSpec(ctx, func() SelfHostedSpecInput {
 		return SelfHostedSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: pointer.String("docker"),
 		}
 	})
 })
@@ -45,6 +46,7 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters using
 			ArtifactFolder:           artifactFolder,
 			SkipCleanup:              skipCleanup,
 			Flavor:                   "topology",
+			InfrastructureProvider:   pointer.String("docker"),
 			ControlPlaneMachineCount: pointer.Int64(1),
 			WorkerMachineCount:       pointer.Int64(1),
 		}
@@ -60,6 +62,7 @@ var _ = Describe("When testing Cluster API working on self-hosted clusters using
 			ArtifactFolder:           artifactFolder,
 			SkipCleanup:              skipCleanup,
 			Flavor:                   "topology",
+			InfrastructureProvider:   pointer.String("docker"),
 			ControlPlaneMachineCount: pointer.Int64(3),
 			WorkerMachineCount:       pointer.Int64(1),
 		}
@@ -75,6 +78,7 @@ var _ = Describe("When testing Cluster API working on single-node self-hosted cl
 			ArtifactFolder:           artifactFolder,
 			SkipCleanup:              skipCleanup,
 			Flavor:                   "topology-single-node-cluster",
+			InfrastructureProvider:   pointer.String("docker"),
 			ControlPlaneMachineCount: pointer.Int64(1),
 			WorkerMachineCount:       pointer.Int64(0),
 		}

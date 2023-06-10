@@ -505,6 +505,7 @@ generate-modules: ## Run go mod tidy to ensure modules are up to date
 generate-e2e-templates: $(KUSTOMIZE) $(addprefix generate-e2e-templates-, v0.4 v1.0 v1.3 v1.4 main) ## Generate cluster templates for all versions
 
 DOCKER_TEMPLATES := test/e2e/data/infrastructure-docker
+INMEMORY_TEMPLATES := test/e2e/data/infrastructure-inmemory
 
 .PHONY: generate-e2e-templates-v0.4
 generate-e2e-templates-v0.4: $(KUSTOMIZE)
@@ -545,6 +546,8 @@ generate-e2e-templates-main: $(KUSTOMIZE)
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-topology-autoscaler --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-topology-autoscaler.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-topology --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-topology.yaml
 	$(KUSTOMIZE) build $(DOCKER_TEMPLATES)/main/cluster-template-ignition --load-restrictor LoadRestrictionsNone > $(DOCKER_TEMPLATES)/main/cluster-template-ignition.yaml
+
+	$(KUSTOMIZE) build $(INMEMORY_TEMPLATES)/main/cluster-template --load-restrictor LoadRestrictionsNone > $(INMEMORY_TEMPLATES)/main/cluster-template.yaml
 
 .PHONY: generate-metrics-config
 generate-metrics-config: $(ENVSUBST_BIN) ## Generate ./hack/observability/kube-state-metrics/crd-config.yaml

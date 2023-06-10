@@ -52,12 +52,13 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass and testi
 		}
 
 		return ClusterUpgradeConformanceSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			Flavor:                flavor,
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			Flavor:                 flavor,
+			InfrastructureProvider: pointer.String("docker"),
 		}
 	})
 })
@@ -65,12 +66,13 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass and testi
 var _ = Describe("When upgrading a workload cluster using ClusterClass [ClusterClass]", func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			Flavor:                pointer.String("topology"),
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: pointer.String("docker"),
+			Flavor:                 pointer.String("topology"),
 			// This test is run in CI in parallel with other tests. To keep the test duration reasonable
 			// the conformance tests are skipped.
 			ControlPlaneMachineCount: pointer.Int64(1),
@@ -83,11 +85,12 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass [ClusterC
 var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane [ClusterClass]", func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: pointer.String("docker"),
 			// This test is run in CI in parallel with other tests. To keep the test duration reasonable
 			// the conformance tests are skipped.
 			SkipConformanceTests:     true,
@@ -101,11 +104,12 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA
 var _ = Describe("When upgrading a workload cluster using ClusterClass with a HA control plane using scale-in rollout [ClusterClass]", func() {
 	ClusterUpgradeConformanceSpec(ctx, func() ClusterUpgradeConformanceSpecInput {
 		return ClusterUpgradeConformanceSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: pointer.String("docker"),
 			// This test is run in CI in parallel with other tests. To keep the test duration reasonable
 			// the conformance tests are skipped.
 			SkipConformanceTests:     true,

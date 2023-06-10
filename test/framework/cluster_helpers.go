@@ -153,7 +153,7 @@ type DeleteClusterInput struct {
 
 // DeleteCluster deletes the cluster.
 func DeleteCluster(ctx context.Context, input DeleteClusterInput) {
-	Byf("Deleting cluster %s", input.Cluster.GetName())
+	Byf("Deleting cluster %s", klog.KObj(input.Cluster))
 	Expect(input.Deleter.Delete(ctx, input.Cluster)).To(Succeed())
 }
 
@@ -165,7 +165,7 @@ type WaitForClusterDeletedInput struct {
 
 // WaitForClusterDeleted waits until the cluster object has been deleted.
 func WaitForClusterDeleted(ctx context.Context, input WaitForClusterDeletedInput, intervals ...interface{}) {
-	Byf("Waiting for cluster %s to be deleted", input.Cluster.GetName())
+	Byf("Waiting for cluster %s to be deleted", klog.KObj(input.Cluster))
 	Eventually(func() bool {
 		cluster := &clusterv1.Cluster{}
 		key := client.ObjectKey{

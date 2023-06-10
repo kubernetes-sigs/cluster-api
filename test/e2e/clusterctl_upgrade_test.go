@@ -21,6 +21,7 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	"k8s.io/utils/pointer"
 
 	"sigs.k8s.io/cluster-api/test/framework"
 )
@@ -33,6 +34,7 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {
 			BootstrapClusterProxy:     bootstrapClusterProxy,
 			ArtifactFolder:            artifactFolder,
 			SkipCleanup:               skipCleanup,
+			InfrastructureProvider:    pointer.String("docker"),
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1alpha4",
 			InitWithKubernetesVersion: "v1.23.17",
@@ -57,12 +59,13 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {
 var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.5/clusterctl-{OS}-{ARCH}",
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: pointer.String("docker"),
+			InitWithBinary:         "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.0.5/clusterctl-{OS}-{ARCH}",
 			// We have to pin the providers because with `InitWithProvidersContract` the test would
 			// use the latest version for the contract (which is v1.3.X for v1beta1).
 			InitWithCoreProvider:            "cluster-api:v1.0.5",
@@ -95,12 +98,13 @@ var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.6/clusterctl-{OS}-{ARCH}",
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: pointer.String("docker"),
+			InitWithBinary:         "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.6/clusterctl-{OS}-{ARCH}",
 			// We have to pin the providers because with `InitWithProvidersContract` the test would
 			// use the latest version for the contract (which is v1.4.X for v1beta1).
 			InitWithCoreProvider:            "cluster-api:v1.3.6",
@@ -134,12 +138,13 @@ var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
 var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>current) [ClusterClass]", func() {
 	ClusterctlUpgradeSpec(ctx, func() ClusterctlUpgradeSpecInput {
 		return ClusterctlUpgradeSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			InitWithBinary:        "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.6/clusterctl-{OS}-{ARCH}",
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: pointer.String("docker"),
+			InitWithBinary:         "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.3.6/clusterctl-{OS}-{ARCH}",
 			// We have to pin the providers because with `InitWithProvidersContract` the test would
 			// use the latest version for the contract (which is v1.4.X for v1beta1).
 			InitWithCoreProvider:            "cluster-api:v1.3.6",
@@ -178,6 +183,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.4=>current)", func() {
 			BootstrapClusterProxy:     bootstrapClusterProxy,
 			ArtifactFolder:            artifactFolder,
 			SkipCleanup:               skipCleanup,
+			InfrastructureProvider:    pointer.String("docker"),
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			InitWithKubernetesVersion: "v1.27.1",
@@ -207,6 +213,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.4=>cur
 			BootstrapClusterProxy:     bootstrapClusterProxy,
 			ArtifactFolder:            artifactFolder,
 			SkipCleanup:               skipCleanup,
+			InfrastructureProvider:    pointer.String("docker"),
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
 			InitWithKubernetesVersion: "v1.27.1",

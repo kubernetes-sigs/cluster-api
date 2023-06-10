@@ -24,6 +24,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
@@ -219,7 +220,7 @@ type ApplyClusterTemplateAndWaitInput struct {
 }
 
 // Waiter is a function that runs and waits for a long-running operation to finish and updates the result.
-type Waiter func(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult)
+type Waiter func(ctx context.Context, input ApplyCustomClusterTemplateAndWaitInput, result *ApplyCustomClusterTemplateAndWaitResult)
 
 // ControlPlaneWaiters are Waiter functions for the control plane.
 type ControlPlaneWaiters struct {
@@ -270,7 +271,6 @@ func (r *ApplyClusterTemplateAndWaitResult) ExpectedTotalNodes() int32 {
 // ApplyClusterTemplateAndWait gets a cluster template using clusterctl, and waits for the cluster to be ready.
 // Important! this method assumes the cluster uses a KubeadmControlPlane and MachineDeployments.
 func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult) {
-	setDefaults(&input)
 	Expect(ctx).NotTo(BeNil(), "ctx is required for ApplyClusterTemplateAndWait")
 	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ApplyClusterTemplateAndWait")
 	Expect(result).ToNot(BeNil(), "Invalid argument. result can't be nil when calling ApplyClusterTemplateAndWait")
@@ -309,39 +309,100 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	})
 	Expect(workloadClusterTemplate).ToNot(BeNil(), "Failed to get the cluster template")
 
-	log.Logf("Applying the cluster template yaml to the cluster")
+	ApplyCustomClusterTemplateAndWait(ctx, ApplyCustomClusterTemplateAndWaitInput{
+		ClusterProxy:                 input.ClusterProxy,
+		CustomTemplateYAML:           workloadClusterTemplate,
+		ClusterName:                  input.ConfigCluster.ClusterName,
+		Namespace:                    input.ConfigCluster.Namespace,
+		CNIManifestPath:              input.CNIManifestPath,
+		WaitForClusterIntervals:      input.WaitForClusterIntervals,
+		WaitForControlPlaneIntervals: input.WaitForControlPlaneIntervals,
+		WaitForMachineDeployments:    input.WaitForMachineDeployments,
+		WaitForMachinePools:          input.WaitForMachinePools,
+		Args:                         input.Args,
+		PreWaitForCluster:            input.PreWaitForCluster,
+		PostMachinesProvisioned:      input.PostMachinesProvisioned,
+		ControlPlaneWaiters:          input.ControlPlaneWaiters,
+	}, (*ApplyCustomClusterTemplateAndWaitResult)(result))
+}
+
+// ApplyCustomClusterTemplateAndWaitInput is the input type for ApplyCustomClusterTemplateAndWait.
+type ApplyCustomClusterTemplateAndWaitInput struct {
+	ClusterProxy                 framework.ClusterProxy
+	CustomTemplateYAML           []byte
+	ClusterName                  string
+	Namespace                    string
+	CNIManifestPath              string
+	WaitForClusterIntervals      []interface{}
+	WaitForControlPlaneIntervals []interface{}
+	WaitForMachineDeployments    []interface{}
+	WaitForMachinePools          []interface{}
+	Args                         []string // extra args to be used during `kubectl apply`
+	PreWaitForCluster            func()
+	PostMachinesProvisioned      func()
+	ControlPlaneWaiters
+}
+
+type ApplyCustomClusterTemplateAndWaitResult struct {
+	ClusterClass       *clusterv1.ClusterClass
+	Cluster            *clusterv1.Cluster
+	ControlPlane       *controlplanev1.KubeadmControlPlane
+	MachineDeployments []*clusterv1.MachineDeployment
+	MachinePools       []*expv1.MachinePool
+}
+
+func ApplyCustomClusterTemplateAndWait(ctx context.Context, input ApplyCustomClusterTemplateAndWaitInput, result *ApplyCustomClusterTemplateAndWaitResult) {
+	setDefaults(&input)
+	Expect(ctx).NotTo(BeNil(), "ctx is required for ApplyCustomClusterTemplateAndWait")
+	Expect(input.ClusterProxy).ToNot(BeNil(), "Invalid argument. input.ClusterProxy can't be nil when calling ApplyCustomClusterTemplateAndWait")
+	Expect(input.CustomTemplateYAML).NotTo(BeEmpty(), "Invalid argument. input.CustomTemplateYAML can't be empty when calling ApplyCustomClusterTemplateAndWait")
+	Expect(input.ClusterName).NotTo(BeEmpty(), "Invalid argument. input.ClusterName can't be empty when calling ApplyCustomClusterTemplateAndWait")
+	Expect(input.Namespace).NotTo(BeEmpty(), "Invalid argument. input.Namespace can't be empty when calling ApplyCustomClusterTemplateAndWait")
+	Expect(result).ToNot(BeNil(), "Invalid argument. result can't be nil when calling ApplyClusterTemplateAndWait")
+
+	log.Logf("Creating the workload cluster with name %q form the provided yaml", input.ClusterName)
+
+	// Ensure we have a Cluster for dump and cleanup steps in AfterEach even if ApplyClusterTemplateAndWait fails.
+	result.Cluster = &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      input.ClusterName,
+			Namespace: input.Namespace,
+		},
+	}
+
+	log.Logf("Applying the cluster template yaml of cluster %s", klog.KRef(input.Namespace, input.ClusterName))
 	Eventually(func() error {
-		return input.ClusterProxy.Apply(ctx, workloadClusterTemplate, input.Args...)
+		return input.ClusterProxy.Apply(ctx, input.CustomTemplateYAML, input.Args...)
 	}, 10*time.Second).Should(Succeed(), "Failed to apply the cluster template")
 
 	// Once we applied the cluster template we can run PreWaitForCluster.
 	// Note: This can e.g. be used to verify the BeforeClusterCreate lifecycle hook is executed
 	// and blocking correctly.
 	if input.PreWaitForCluster != nil {
-		log.Logf("Calling PreWaitForCluster")
+		log.Logf("Calling PreWaitForCluster for cluster %s", klog.KRef(input.Namespace, input.ClusterName))
 		input.PreWaitForCluster()
 	}
 
-	log.Logf("Waiting for the cluster infrastructure to be provisioned")
+	log.Logf("Waiting for the cluster infrastructure of cluster %s to be provisioned", klog.KRef(input.Namespace, input.ClusterName))
 	result.Cluster = framework.DiscoveryAndWaitForCluster(ctx, framework.DiscoveryAndWaitForClusterInput{
 		Getter:    input.ClusterProxy.GetClient(),
-		Namespace: input.ConfigCluster.Namespace,
-		Name:      input.ConfigCluster.ClusterName,
+		Namespace: input.Namespace,
+		Name:      input.ClusterName,
 	}, input.WaitForClusterIntervals...)
 
 	if result.Cluster.Spec.Topology != nil {
 		result.ClusterClass = framework.GetClusterClassByName(ctx, framework.GetClusterClassByNameInput{
 			Getter:    input.ClusterProxy.GetClient(),
-			Namespace: input.ConfigCluster.Namespace,
+			Namespace: input.Namespace,
 			Name:      result.Cluster.Spec.Topology.Class,
 		})
 	}
 
-	log.Logf("Waiting for control plane to be initialized")
+	log.Logf("Waiting for control plane of cluster %s to be initialized", klog.KRef(input.Namespace, input.ClusterName))
 	input.WaitForControlPlaneInitialized(ctx, input, result)
 
 	if input.CNIManifestPath != "" {
-		log.Logf("Installing a CNI plugin to the workload cluster")
+		log.Logf("Installing a CNI plugin to the workload cluster %s", klog.KRef(input.Namespace, input.ClusterName))
 		workloadCluster := input.ClusterProxy.GetWorkloadCluster(ctx, result.Cluster.Namespace, result.Cluster.Name)
 
 		cniYaml, err := os.ReadFile(input.CNIManifestPath)
@@ -350,16 +411,16 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 		Expect(workloadCluster.Apply(ctx, cniYaml)).ShouldNot(HaveOccurred())
 	}
 
-	log.Logf("Waiting for control plane to be ready")
+	log.Logf("Waiting for control plane of cluster %s to be ready", klog.KRef(input.Namespace, input.ClusterName))
 	input.WaitForControlPlaneMachinesReady(ctx, input, result)
 
-	log.Logf("Waiting for the machine deployments to be provisioned")
+	log.Logf("Waiting for the machine deployments of cluster %s to be provisioned", klog.KRef(input.Namespace, input.ClusterName))
 	result.MachineDeployments = framework.DiscoveryAndWaitForMachineDeployments(ctx, framework.DiscoveryAndWaitForMachineDeploymentsInput{
 		Lister:  input.ClusterProxy.GetClient(),
 		Cluster: result.Cluster,
 	}, input.WaitForMachineDeployments...)
 
-	log.Logf("Waiting for the machine pools to be provisioned")
+	log.Logf("Waiting for the machine pools of cluster %s to be provisioned", klog.KRef(input.Namespace, input.ClusterName))
 	result.MachinePools = framework.DiscoveryAndWaitForMachinePools(ctx, framework.DiscoveryAndWaitForMachinePoolsInput{
 		Getter:  input.ClusterProxy.GetClient(),
 		Lister:  input.ClusterProxy.GetClient(),
@@ -367,16 +428,16 @@ func ApplyClusterTemplateAndWait(ctx context.Context, input ApplyClusterTemplate
 	}, input.WaitForMachinePools...)
 
 	if input.PostMachinesProvisioned != nil {
-		log.Logf("Calling PostMachinesProvisioned")
+		log.Logf("Calling PostMachinesProvisioned for cluster %s", klog.KRef(input.Namespace, input.ClusterName))
 		input.PostMachinesProvisioned()
 	}
 }
 
-// setDefaults sets the default values for ApplyClusterTemplateAndWaitInput if not set.
+// setDefaults sets the default values for ApplyCustomClusterTemplateAndWaitInput if not set.
 // Currently, we set the default ControlPlaneWaiters here, which are implemented for KubeadmControlPlane.
-func setDefaults(input *ApplyClusterTemplateAndWaitInput) {
+func setDefaults(input *ApplyCustomClusterTemplateAndWaitInput) {
 	if input.WaitForControlPlaneInitialized == nil {
-		input.WaitForControlPlaneInitialized = func(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult) {
+		input.WaitForControlPlaneInitialized = func(ctx context.Context, input ApplyCustomClusterTemplateAndWaitInput, result *ApplyCustomClusterTemplateAndWaitResult) {
 			result.ControlPlane = framework.DiscoveryAndWaitForControlPlaneInitialized(ctx, framework.DiscoveryAndWaitForControlPlaneInitializedInput{
 				Lister:  input.ClusterProxy.GetClient(),
 				Cluster: result.Cluster,
@@ -385,7 +446,7 @@ func setDefaults(input *ApplyClusterTemplateAndWaitInput) {
 	}
 
 	if input.WaitForControlPlaneMachinesReady == nil {
-		input.WaitForControlPlaneMachinesReady = func(ctx context.Context, input ApplyClusterTemplateAndWaitInput, result *ApplyClusterTemplateAndWaitResult) {
+		input.WaitForControlPlaneMachinesReady = func(ctx context.Context, input ApplyCustomClusterTemplateAndWaitInput, result *ApplyCustomClusterTemplateAndWaitResult) {
 			framework.WaitForControlPlaneAndMachinesReady(ctx, framework.WaitForControlPlaneAndMachinesReadyInput{
 				GetLister:    input.ClusterProxy.GetClient(),
 				Cluster:      result.Cluster,

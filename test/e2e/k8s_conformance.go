@@ -40,8 +40,16 @@ type K8SConformanceSpecInput struct {
 	BootstrapClusterProxy framework.ClusterProxy
 	ArtifactFolder        string
 	SkipCleanup           bool
-	Flavor                string
-	ControlPlaneWaiters   clusterctl.ControlPlaneWaiters
+
+	// InfrastructureProviders specifies the infrastructure to use for clusterctl
+	// operations (Example: get cluster templates).
+	// Note: In most cases this need not be specified. It only needs to be specified when
+	// multiple infrastructure providers (ex: CAPD + in-memory) are installed on the cluster as clusterctl will not be
+	// able to identify the default.
+	InfrastructureProvider *string
+
+	Flavor              string
+	ControlPlaneWaiters clusterctl.ControlPlaneWaiters
 }
 
 // K8SConformanceSpec implements a spec that creates a cluster and runs Kubernetes conformance suite.
@@ -79,6 +87,11 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 	It("Should create a workload cluster and run kubetest", func() {
 		By("Creating a workload cluster")
 
+		infrastructureProvider := clusterctl.DefaultInfrastructureProvider
+		if input.InfrastructureProvider != nil {
+			infrastructureProvider = *input.InfrastructureProvider
+		}
+
 		// NOTE: The number of CP nodes does not have relevance for conformance; instead, the number of workers allows
 		// better parallelism of tests and thus a lower execution time.
 		var workerMachineCount int64 = 5
@@ -89,7 +102,7 @@ func K8SConformanceSpec(ctx context.Context, inputGetter func() K8SConformanceSp
 				LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 				ClusterctlConfigPath:     input.ClusterctlConfigPath,
 				KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
-				InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+				InfrastructureProvider:   infrastructureProvider,
 				Flavor:                   input.Flavor,
 				Namespace:                namespace.Name,
 				ClusterName:              fmt.Sprintf("%s-%s", specName, util.RandomString(6)),

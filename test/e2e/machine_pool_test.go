@@ -21,16 +21,18 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("When testing MachinePools", func() {
 	MachinePoolSpec(ctx, func() MachinePoolInput {
 		return MachinePoolInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: pointer.String("docker"),
 		}
 	})
 })

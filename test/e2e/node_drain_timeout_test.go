@@ -21,16 +21,18 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("When testing node drain timeout", func() {
 	NodeDrainTimeoutSpec(ctx, func() NodeDrainTimeoutSpecInput {
 		return NodeDrainTimeoutSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: pointer.String("docker"),
 		}
 	})
 })

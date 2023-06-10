@@ -1,0 +1,107 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: ClusterClass
+metadata:
+  name: in-memory
+spec:
+  controlPlane:
+    metadata:
+      annotations:
+        # The in-memory provider currently does not support looking up coredns
+        # and kube-proxy information and leads to reconcile errors in KCP.
+        # With these annotations KCP will skip processing those steps.
+        controlplane.cluster.x-k8s.io/skip-coredns: ""
+        controlplane.cluster.x-k8s.io/skip-kube-proxy: ""
+    machineInfrastructure:
+      ref:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+        kind: InMemoryMachineTemplate
+        name: in-memory-control-plane
+    ref:
+      apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+      kind: KubeadmControlPlaneTemplate
+      name: in-memory-control-plane
+  infrastructure:
+    ref:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+      kind: InMemoryClusterTemplate
+      name: in-memory-cluster
+  workers:
+    machineDeployments:
+      - class: default-worker
+        template:
+          bootstrap:
+            ref:
+              apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+              kind: KubeadmConfigTemplate
+              name: in-memory-default-worker-bootstraptemplate
+          infrastructure:
+            ref:
+              apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+              kind: InMemoryMachineTemplate
+              name: in-memory-default-worker-machinetemplate
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: InMemoryClusterTemplate
+metadata:
+  name: in-memory-cluster
+spec:
+  template:
+    spec: {}
+---
+apiVersion: controlplane.cluster.x-k8s.io/v1beta1
+kind: KubeadmControlPlaneTemplate
+metadata:
+  name: in-memory-control-plane
+spec:
+  template:
+    spec:
+      kubeadmConfigSpec:
+        clusterConfiguration:
+          apiServer:
+            certSANs:
+              - localhost
+              - 127.0.0.1
+              - 0.0.0.0
+              - host.docker.internal
+          controllerManager:
+            extraArgs:
+              enable-hostpath-provisioner: "true"
+        initConfiguration:
+          nodeRegistration:
+            criSocket: unix:///var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+        joinConfiguration:
+          nodeRegistration:
+            criSocket: unix:///var/run/containerd/containerd.sock
+            kubeletExtraArgs:
+              eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: InMemoryMachineTemplate
+metadata:
+  name: in-memory-control-plane
+spec:
+  template:
+    spec: {}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: InMemoryMachineTemplate
+metadata:
+  name: in-memory-default-worker-machinetemplate
+spec:
+  template:
+    spec: {}
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfigTemplate
+metadata:
+  name: in-memory-default-worker-bootstraptemplate
+spec:
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          criSocket: unix:///var/run/containerd/containerd.sock
+          kubeletExtraArgs:
+            eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%

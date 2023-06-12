@@ -92,6 +92,11 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 		return external.ReconcileOutput{}, err
 	}
 
+	// Ensure we add a watcher to the external object.
+	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Cluster{})); err != nil {
+		return external.ReconcileOutput{}, err
+	}
+
 	// if external ref is paused, return error.
 	if annotations.IsPaused(cluster, obj) {
 		log.V(3).Info("External object referenced is paused")
@@ -119,11 +124,6 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 
 	// Always attempt to Patch the external object.
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return external.ReconcileOutput{}, err
-	}
-
-	// Ensure we add a watcher to the external object.
-	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Cluster{})); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 

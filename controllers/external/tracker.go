@@ -17,6 +17,7 @@ limitations under the License.
 package external
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -56,7 +57,7 @@ func (o *ObjectTracker) Watch(log logr.Logger, obj runtime.Object, handler handl
 	u := &unstructured.Unstructured{}
 	u.SetGroupVersionKind(gvk)
 
-	log.Info("Adding watcher on external object", "groupVersionKind", gvk.String())
+	log.Info(fmt.Sprintf("Adding watch on external object %q", gvk.String()))
 	err := o.Controller.Watch(
 		source.Kind(o.Cache, u),
 		handler,
@@ -64,7 +65,7 @@ func (o *ObjectTracker) Watch(log logr.Logger, obj runtime.Object, handler handl
 	)
 	if err != nil {
 		o.m.Delete(key)
-		return errors.Wrapf(err, "failed to add watcher on external object %q", gvk.String())
+		return errors.Wrapf(err, "failed to add watch on external object %q", gvk.String())
 	}
 	return nil
 }

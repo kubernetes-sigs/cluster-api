@@ -43,10 +43,6 @@ const (
 	wrongNamespace = "wrong-namespace"
 )
 
-func init() {
-	externalReadyWait = 1 * time.Second
-}
-
 func TestReconcileMachinePoolPhases(t *testing.T) {
 	deletionTimestamp := metav1.Now()
 
@@ -569,7 +565,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				"status": map[string]interface{}{},
 			},
 			expectError:  false,
-			expectResult: ctrl.Result{RequeueAfter: externalReadyWait},
+			expectResult: ctrl.Result{},
 			expected: func(g *WithT, m *expv1.MachinePool) {
 				g.Expect(m.Status.BootstrapReady).To(BeFalse())
 			},
@@ -727,7 +723,7 @@ func TestReconcileMachinePoolBootstrap(t *testing.T) {
 				},
 			},
 			expectError:  false,
-			expectResult: ctrl.Result{RequeueAfter: externalReadyWait},
+			expectResult: ctrl.Result{},
 			expected: func(g *WithT, m *expv1.MachinePool) {
 				g.Expect(m.Status.BootstrapReady).To(BeFalse())
 			},

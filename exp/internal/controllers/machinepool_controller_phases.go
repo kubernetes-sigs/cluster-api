@@ -20,17 +20,16 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
@@ -41,10 +40,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/conditions"
 	utilconversion "sigs.k8s.io/cluster-api/util/conversion"
 	"sigs.k8s.io/cluster-api/util/patch"
-)
-
-var (
-	externalReadyWait = 30 * time.Second
 )
 
 func (r *MachinePoolReconciler) reconcilePhase(mp *expv1.MachinePool) {
@@ -118,6 +113,11 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 		return external.ReconcileOutput{}, err
 	}
 
+	// Ensure we add a watch to the external object, if there isn't one already.
+	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &expv1.MachinePool{})); err != nil {
+		return external.ReconcileOutput{}, err
+	}
+
 	// if external ref is paused, return error.
 	if annotations.IsPaused(cluster, obj) {
 		log.V(3).Info("External object referenced is paused")
@@ -146,20 +146,6 @@ func (r *MachinePoolReconciler) reconcileExternal(ctx context.Context, cluster *
 	// Always attempt to Patch the external object.
 	if err := patchHelper.Patch(ctx, obj); err != nil {
 		return external.ReconcileOutput{}, err
-	}
-
-	// Add watcher for external object, if there isn't one already.
-	_, loaded := r.externalWatchers.LoadOrStore(obj.GroupVersionKind().String(), struct{}{})
-	if !loaded && r.controller != nil {
-		log.Info("Adding watcher on external object", "groupVersionKind", obj.GroupVersionKind())
-		err := r.controller.Watch(
-			source.Kind(r.cache, obj),
-			handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &expv1.MachinePool{}),
-		)
-		if err != nil {
-			r.externalWatchers.Delete(obj.GroupVersionKind().String())
-			return external.ReconcileOutput{}, errors.Wrapf(err, "failed to add watcher on external object %q", obj.GroupVersionKind())
-		}
 	}
 
 	// Set failure reason and message, if any.
@@ -216,9 +202,9 @@ func (r *MachinePoolReconciler) reconcileBootstrap(ctx context.Context, cluster 
 		)
 
 		if !ready {
-			log.V(2).Info("Bootstrap provider is not ready, requeuing")
+			log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig))
 			m.Status.BootstrapReady = ready
-			return ctrl.Result{RequeueAfter: externalReadyWait}, nil
+			return ctrl.Result{}, nil
 		}
 
 		// Get and set the name of the secret containing the bootstrap data.
@@ -289,8 +275,8 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 	)
 
 	if !mp.Status.InfrastructureReady {
-		log.Info("Infrastructure provider is not ready, requeuing")
-		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
+		log.Info("Infrastructure provider is not yet ready", infraConfig.GetKind(), klog.KObj(infraConfig))
+		return ctrl.Result{}, nil
 	}
 
 	var providerIDList []string
@@ -308,8 +294,8 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 	}
 
 	if len(providerIDList) == 0 && mp.Status.Replicas != 0 {
-		log.Info("Retrieved empty Spec.ProviderIDList from infrastructure provider but Status.Replicas is not zero.", "replicas", mp.Status.Replicas)
-		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
+		log.Info("Retrieved empty spec.providerIDList from infrastructure provider but status.replicas is not zero.", "replicas", mp.Status.Replicas)
+		return ctrl.Result{}, nil
 	}
 
 	if !reflect.DeepEqual(mp.Spec.ProviderIDList, providerIDList) {

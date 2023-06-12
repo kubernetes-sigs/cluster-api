@@ -98,9 +98,14 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
-			log.Info("could not find external ref, requeuing", ref.Kind, klog.KRef(m.Namespace, ref.Name))
+			log.Info("could not find external ref, requeuing", ref.Kind, klog.KRef(ref.Namespace, ref.Name))
 			return external.ReconcileOutput{RequeueAfter: externalReadyWait}, nil
 		}
+		return external.ReconcileOutput{}, err
+	}
+
+	// Ensure we add a watch to the external object, if there isn't one already.
+	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Machine{})); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 
@@ -138,11 +143,6 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 
 	// Always attempt to Patch the external object.
 	if err := patchHelper.Patch(ctx, obj); err != nil {
-		return external.ReconcileOutput{}, err
-	}
-
-	// Ensure we add a watcher to the external object.
-	if err := r.externalTracker.Watch(log, obj, handler.EnqueueRequestForOwner(r.Client.Scheme(), r.Client.RESTMapper(), &clusterv1.Machine{})); err != nil {
 		return external.ReconcileOutput{}, err
 	}
 
@@ -217,7 +217,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.
 	// If the bootstrap provider is not ready, requeue.
 	if !ready {
 		log.Info("Waiting for bootstrap provider to generate data secret and report status.ready", bootstrapConfig.GetKind(), klog.KObj(bootstrapConfig))
-		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// Get and set the name of the secret containing the bootstrap data.
@@ -284,7 +284,7 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 	// If the infrastructure provider is not ready, return early.
 	if !ready {
 		log.Info("Waiting for infrastructure provider to create machine infrastructure and report status.ready", infraConfig.GetKind(), klog.KObj(infraConfig))
-		return ctrl.Result{RequeueAfter: externalReadyWait}, nil
+		return ctrl.Result{}, nil
 	}
 
 	// Get Spec.ProviderID from the infrastructure provider.

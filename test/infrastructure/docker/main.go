@@ -60,8 +60,9 @@ import (
 )
 
 var (
-	scheme   = runtime.NewScheme()
-	setupLog = ctrl.Log.WithName("setup")
+	scheme         = runtime.NewScheme()
+	setupLog       = ctrl.Log.WithName("setup")
+	controllerName = "cluster-api-docker-controller-manager"
 
 	// flags.
 	metricsBindAddr             string
@@ -172,7 +173,7 @@ func main() {
 	restConfig := ctrl.GetConfigOrDie()
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
-	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent("cluster-api-docker-controller-manager")
+	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
 
 	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
 	if err != nil {
@@ -262,8 +263,9 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	tracker, err := remote.NewClusterCacheTracker(
 		mgr,
 		remote.ClusterCacheTrackerOptions{
-			Log:     &log,
-			Indexes: remote.DefaultIndexes,
+			ControllerName: controllerName,
+			Log:            &log,
+			Indexes:        remote.DefaultIndexes,
 		},
 	)
 	if err != nil {

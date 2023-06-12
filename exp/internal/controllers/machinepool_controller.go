@@ -189,11 +189,25 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Handle deletion reconciliation loop.
 	if !mp.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, cluster, mp)
+		res, err := r.reconcileDelete(ctx, cluster, mp)
+		// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
+		// the current cluster because of concurrent access.
+		if errors.Is(err, remote.ErrClusterLocked) {
+			log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+			return ctrl.Result{Requeue: true}, nil
+		}
+		return res, err
 	}
 
 	// Handle normal reconciliation loop.
-	return r.reconcile(ctx, cluster, mp)
+	res, err := r.reconcile(ctx, cluster, mp)
+	// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
+	// the current cluster because of concurrent access.
+	if errors.Is(err, remote.ErrClusterLocked) {
+		log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
+		return ctrl.Result{Requeue: true}, nil
+	}
+	return res, err
 }
 
 func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
@@ -249,7 +263,7 @@ func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluste
 		return nil
 	}
 
-	clusterClient, err := remote.NewClusterClient(ctx, MachinePoolControllerName, r.Client, util.ObjectKey(cluster))
+	clusterClient, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return err
 	}

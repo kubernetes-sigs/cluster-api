@@ -28,11 +28,113 @@ const (
 	MachineFinalizer = "inmemorymachine.infrastructure.cluster.x-k8s.io"
 )
 
+const (
+	// VMProvisionedCondition documents the status of the provisioning VM implementing the InMemoryMachine.
+	VMProvisionedCondition clusterv1.ConditionType = "VMProvisioned"
+
+	// WaitingForClusterInfrastructureReason (Severity=Info) documents an InMemoryMachine VM waiting for the cluster
+	// infrastructure to be ready.
+	WaitingForClusterInfrastructureReason = "WaitingForClusterInfrastructure"
+
+	// WaitingControlPlaneInitializedReason (Severity=Info) documents an InMemoryMachine VM waiting
+	// for the control plane to be initialized.
+	WaitingControlPlaneInitializedReason = "WaitingControlPlaneInitialized"
+
+	// WaitingForBootstrapDataReason (Severity=Info) documents an InMemoryMachine VM waiting for the bootstrap
+	// data to be ready before starting to create the CloudMachine/VM.
+	WaitingForBootstrapDataReason = "WaitingForBootstrapData"
+
+	// VMWaitingForStartupTimeoutReason (Severity=Info) documents a InMemoryMachine VM provisioning.
+	VMWaitingForStartupTimeoutReason = "WaitingForStartupTimeout"
+)
+
+const (
+	// NodeProvisionedCondition documents the status of the provisioning of the node hosted on the InMemoryMachine.
+	NodeProvisionedCondition clusterv1.ConditionType = "NodeProvisioned"
+
+	// NodeWaitingForStartupTimeoutReason (Severity=Info) documents a InMemoryMachine Node provisioning.
+	NodeWaitingForStartupTimeoutReason = "WaitingForStartupTimeout"
+)
+
+const (
+	// EtcdProvisionedCondition documents the status of the provisioning of the etcd member hosted on the InMemoryMachine.
+	EtcdProvisionedCondition clusterv1.ConditionType = "EtcdProvisioned"
+
+	// EtcdWaitingForStartupTimeoutReason (Severity=Info) documents a InMemoryMachine etcd pod provisioning.
+	EtcdWaitingForStartupTimeoutReason = "WaitingForStartupTimeout"
+)
+
+const (
+	// APIServerProvisionedCondition documents the status of the provisioning of the APIServer instance hosted on the InMemoryMachine.
+	APIServerProvisionedCondition clusterv1.ConditionType = "APIServerProvisioned"
+
+	// APIServerWaitingForStartupTimeoutReason (Severity=Info) documents a InMemoryMachine API server pod provisioning.
+	APIServerWaitingForStartupTimeoutReason = "WaitingForStartupTimeout"
+)
+
 // InMemoryMachineSpec defines the desired state of InMemoryMachine.
 type InMemoryMachineSpec struct {
 	// ProviderID will be the container name in ProviderID format (in-memory:////<name>)
 	// +optional
 	ProviderID *string `json:"providerID,omitempty"`
+
+	// Behaviour of the InMemoryMachine; this will allow to make a simulation more alike to real use cases
+	// e.g. by defining the duration of the provisioning phase mimicking the performances of the target infrastructure.
+	Behaviour *InMemoryMachineBehaviour `json:"behaviour,omitempty"`
+}
+
+// InMemoryMachineBehaviour defines the behaviour of the InMemoryMachine.
+type InMemoryMachineBehaviour struct {
+	// VM defines the behaviour of the VM implementing the InMemoryMachine.
+	VM *InMemoryVMBehaviour `json:"vm,omitempty"`
+
+	// Node defines the behaviour of the Node (the kubelet) hosted on the InMemoryMachine.
+	Node *InMemoryNodeBehaviour `json:"node,omitempty"`
+
+	// APIServer defines the behaviour of the APIServer hosted on the InMemoryMachine.
+	APIServer *InMemoryAPIServerBehaviour `json:"apiServer,omitempty"`
+
+	// Etcd defines the behaviour of the etcd member hosted on the InMemoryMachine.
+	Etcd *InMemoryEtcdBehaviour `json:"etcd,omitempty"`
+}
+
+// InMemoryVMBehaviour defines the behaviour of the VM implementing the InMemoryMachine.
+type InMemoryVMBehaviour struct {
+	// Provisioning defines variables influencing how the VM implementing the InMemoryMachine is going to be provisioned.
+	// NOTE: VM provisioning includes all the steps from creation to power-on.
+	Provisioning CommonProvisioningSettings `json:"provisioning,omitempty"`
+}
+
+// InMemoryNodeBehaviour defines the behaviour of the Node (the kubelet) hosted on the InMemoryMachine.
+type InMemoryNodeBehaviour struct {
+	// Provisioning defines variables influencing how the Node (the kubelet) hosted on the InMemoryMachine is going to be provisioned.
+	// NOTE: Node provisioning includes all the steps from starting kubelet to the node become ready, get a provider ID, and being registered in K8s.
+	Provisioning CommonProvisioningSettings `json:"provisioning,omitempty"`
+}
+
+// InMemoryAPIServerBehaviour defines the behaviour of the APIServer hosted on the InMemoryMachine.
+type InMemoryAPIServerBehaviour struct {
+	// Provisioning defines variables influencing how the APIServer hosted on the InMemoryMachine is going to be provisioned.
+	// NOTE: APIServer provisioning includes all the steps from starting the static Pod to the Pod become ready and being registered in K8s.
+	Provisioning CommonProvisioningSettings `json:"provisioning,omitempty"`
+}
+
+// InMemoryEtcdBehaviour defines the behaviour of the etcd member hosted on the InMemoryMachine.
+type InMemoryEtcdBehaviour struct {
+	// Provisioning defines variables influencing how the etcd member hosted on the InMemoryMachine is going to be provisioned.
+	// NOTE: Etcd provisioning includes all the steps from starting the static Pod to the Pod become ready and being registered in K8s.
+	Provisioning CommonProvisioningSettings `json:"provisioning,omitempty"`
+}
+
+// CommonProvisioningSettings holds parameters that applies to provisioning of most of the objects.
+type CommonProvisioningSettings struct {
+	// StartupDuration defines the duration of the object provisioning phase.
+	StartupDuration metav1.Duration `json:"startupDuration"`
+
+	// StartupJitter adds some randomness on StartupDuration; the actual duration will be StartupDuration plus an additional
+	// amount chosen uniformly at random from the interval between zero and `StartupJitter*StartupDuration`.
+	// NOTE: this is modeled as string because the usage of float is highly discouraged, as support for them varies across languages.
+	StartupJitter string `json:"startupJitter,omitempty"`
 }
 
 // InMemoryMachineStatus defines the observed state of InMemoryMachine.

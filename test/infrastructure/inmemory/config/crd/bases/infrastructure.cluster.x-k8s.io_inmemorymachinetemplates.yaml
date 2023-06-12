@@ -72,6 +72,131 @@ spec:
                     description: Spec is the specification of the desired behavior
                       of the machine.
                     properties:
+                      behaviour:
+                        description: Behaviour of the InMemoryMachine; this will allow
+                          to make a simulation more alike to real use cases e.g. by
+                          defining the duration of the provisioning phase mimicking
+                          the performances of the target infrastructure.
+                        properties:
+                          apiServer:
+                            description: APIServer defines the behaviour of the APIServer
+                              hosted on the InMemoryMachine.
+                            properties:
+                              provisioning:
+                                description: 'Provisioning defines variables influencing
+                                  how the APIServer hosted on the InMemoryMachine
+                                  is going to be provisioned. NOTE: APIServer provisioning
+                                  includes all the steps from starting the static
+                                  Pod to the Pod become ready and being registered
+                                  in K8s.'
+                                properties:
+                                  startupDuration:
+                                    description: StartupDuration defines the duration
+                                      of the object provisioning phase.
+                                    type: string
+                                  startupJitter:
+                                    description: 'StartupJitter adds some randomness
+                                      on StartupDuration; the actual duration will
+                                      be StartupDuration plus an additional amount
+                                      chosen uniformly at random from the interval
+                                      between zero and `StartupJitter*StartupDuration`.
+                                      NOTE: this is modeled as string because the
+                                      usage of float is highly discouraged, as support
+                                      for them varies across languages.'
+                                    type: string
+                                required:
+                                - startupDuration
+                                type: object
+                            type: object
+                          etcd:
+                            description: Etcd defines the behaviour of the etcd member
+                              hosted on the InMemoryMachine.
+                            properties:
+                              provisioning:
+                                description: 'Provisioning defines variables influencing
+                                  how the etcd member hosted on the InMemoryMachine
+                                  is going to be provisioned. NOTE: Etcd provisioning
+                                  includes all the steps from starting the static
+                                  Pod to the Pod become ready and being registered
+                                  in K8s.'
+                                properties:
+                                  startupDuration:
+                                    description: StartupDuration defines the duration
+                                      of the object provisioning phase.
+                                    type: string
+                                  startupJitter:
+                                    description: 'StartupJitter adds some randomness
+                                      on StartupDuration; the actual duration will
+                                      be StartupDuration plus an additional amount
+                                      chosen uniformly at random from the interval
+                                      between zero and `StartupJitter*StartupDuration`.
+                                      NOTE: this is modeled as string because the
+                                      usage of float is highly discouraged, as support
+                                      for them varies across languages.'
+                                    type: string
+                                required:
+                                - startupDuration
+                                type: object
+                            type: object
+                          node:
+                            description: Node defines the behaviour of the Node (the
+                              kubelet) hosted on the InMemoryMachine.
+                            properties:
+                              provisioning:
+                                description: 'Provisioning defines variables influencing
+                                  how the Node (the kubelet) hosted on the InMemoryMachine
+                                  is going to be provisioned. NOTE: Node provisioning
+                                  includes all the steps from starting kubelet to
+                                  the node become ready, get a provider ID, and being
+                                  registered in K8s.'
+                                properties:
+                                  startupDuration:
+                                    description: StartupDuration defines the duration
+                                      of the object provisioning phase.
+                                    type: string
+                                  startupJitter:
+                                    description: 'StartupJitter adds some randomness
+                                      on StartupDuration; the actual duration will
+                                      be StartupDuration plus an additional amount
+                                      chosen uniformly at random from the interval
+                                      between zero and `StartupJitter*StartupDuration`.
+                                      NOTE: this is modeled as string because the
+                                      usage of float is highly discouraged, as support
+                                      for them varies across languages.'
+                                    type: string
+                                required:
+                                - startupDuration
+                                type: object
+                            type: object
+                          vm:
+                            description: VM defines the behaviour of the VM implementing
+                              the InMemoryMachine.
+                            properties:
+                              provisioning:
+                                description: 'Provisioning defines variables influencing
+                                  how the VM implementing the InMemoryMachine is going
+                                  to be provisioned. NOTE: VM provisioning includes
+                                  all the steps from creation to power-on.'
+                                properties:
+                                  startupDuration:
+                                    description: StartupDuration defines the duration
+                                      of the object provisioning phase.
+                                    type: string
+                                  startupJitter:
+                                    description: 'StartupJitter adds some randomness
+                                      on StartupDuration; the actual duration will
+                                      be StartupDuration plus an additional amount
+                                      chosen uniformly at random from the interval
+                                      between zero and `StartupJitter*StartupDuration`.
+                                      NOTE: this is modeled as string because the
+                                      usage of float is highly discouraged, as support
+                                      for them varies across languages.'
+                                    type: string
+                                required:
+                                - startupDuration
+                                type: object
+                            type: object
+                        type: object
                       providerID:
                         description: ProviderID will be the container name in ProviderID
                           format (in-memory:////<name>)

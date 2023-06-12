@@ -35,3 +35,18 @@
           valueFrom:
           - status
         type: StateSet
+    - name: status_condition_last_transition_time
+      help: The condition last transition time of a ${RESOURCE}.
+      each:
+        gauge:
+          labelsFromPath:
+            type:
+            - type
+            status:
+            - status
+          path:
+          - status
+          - conditions
+          valueFrom:
+          - lastTransitionTime
+        type: Gauge

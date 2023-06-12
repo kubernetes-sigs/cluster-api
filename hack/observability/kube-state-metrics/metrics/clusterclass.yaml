@@ -1,0 +1,26 @@
+  - groupVersionKind:
+      group: cluster.x-k8s.io
+      kind: ClusterClass
+      version: v1beta1
+    labelsFromPath:
+      name:
+      - metadata
+      - name
+      namespace:
+      - metadata
+      - namespace
+      uid:
+      - metadata
+      - uid
+    metricNamePrefix: capi_clusterclass
+    metrics:
+    - name: info
+      help: Information about a clusterclass.
+      each:
+        info:
+          # TODO: added metadata.name even it's already defined above as the metric doesn't work with empty labelsFromPath.
+          labelsFromPath:
+            name:
+            - metadata
+            - name
+        type: Info

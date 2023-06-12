@@ -16,6 +16,7 @@ rbac:
   - apiGroups:
     - cluster.x-k8s.io
     resources:
+    - clusterclasses
     - clusters
     - machinedeployments
     - machinepools
@@ -34,15 +35,25 @@ rbac:
     - get
     - list
     - watch
+  - apiGroups:
+    - bootstrap.cluster.x-k8s.io
+    resources:
+    - kubeadmconfigs
+    verbs:
+    - get
+    - list
+    - watch
 
 collectors:
   # CAPI CRs
+  - clusterclasses
   - clusters
   - machinedeployments
   - machinesets
   - machines
   - machinehealthchecks
   - kubeadmcontrolplanes
+  - kubeadmconfigs
   # We need to define all default collectors too, otherwise the helm chart does not include this resources in rbac
   - certificatesigningrequests
   - configmaps

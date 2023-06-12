@@ -19,6 +19,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
+  "id": 1,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -337,8 +338,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -445,8 +445,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -539,8 +538,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -647,8 +645,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -741,8 +738,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -835,8 +831,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -929,8 +924,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1037,8 +1031,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1129,8 +1122,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -1236,7 +1228,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1252,7 +1245,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 42
+            "y": 10
           },
           "id": 19,
           "options": {
@@ -1328,7 +1321,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1344,7 +1338,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 42
+            "y": 10
           },
           "id": 20,
           "options": {
@@ -1420,7 +1414,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1436,7 +1431,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 50
+            "y": 18
           },
           "id": 21,
           "options": {
@@ -1512,7 +1507,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1528,7 +1524,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 50
+            "y": 18
           },
           "id": 22,
           "options": {
@@ -1604,7 +1600,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1620,7 +1617,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 58
+            "y": 26
           },
           "id": 23,
           "options": {
@@ -1696,7 +1693,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1712,7 +1710,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 58
+            "y": 26
           },
           "id": 24,
           "options": {
@@ -1802,7 +1800,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1818,7 +1817,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 51
+            "y": 11
           },
           "id": 27,
           "options": {
@@ -1894,7 +1893,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1910,9 +1910,102 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 51
+            "y": 11
           },
           "id": 28,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "sum(rate(controller_runtime_reconcile_time_seconds_sum{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller) / sum(rate(controller_runtime_reconcile_time_seconds_count{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller)",
+              "legendFormat": "{{pod}}: {{controller}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Reconcile Duration by Controller",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 19
+          },
+          "id": 62,
           "options": {
             "legend": {
               "calcs": [],
@@ -1965,7 +2058,7 @@
             "h": 13,
             "w": 24,
             "x": 0,
-            "y": 59
+            "y": 27
           },
           "id": 26,
           "options": {
@@ -2097,7 +2190,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 28
+            "y": 12
           },
           "id": 31,
           "options": {
@@ -2190,7 +2283,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 28
+            "y": 12
           },
           "id": 32,
           "options": {
@@ -2284,7 +2377,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 36
+            "y": 20
           },
           "id": 33,
           "options": {
@@ -2378,7 +2471,7 @@
             "h": 8,
             "w": 12,
             "x": 12,
-            "y": 36
+            "y": 20
           },
           "id": 34,
           "options": {
@@ -2472,7 +2565,7 @@
             "h": 8,
             "w": 12,
             "x": 0,
-            "y": 44
+            "y": 28
           },
           "id": 35,
           "options": {
@@ -2511,6 +2604,125 @@
           "description": "How long in seconds an item stays in workqueue before being requested",
           "fieldConfig": {
             "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 24,
+            "x": 0,
+            "y": 36
+          },
+          "id": 63,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.50, sum(rate(workqueue_queue_duration_seconds_bucket{pod=~\"$Pod\",name=~\"$Controller\"}[5m])) by (pod, name, le))",
+              "hide": false,
+              "legendFormat": "P50 {{pod}} {{name}} ",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.90, sum(rate(workqueue_queue_duration_seconds_bucket{pod=~\"$Pod\",name=~\"$Controller\"}[5m])) by (pod, name, le))",
+              "hide": false,
+              "legendFormat": "P90 {{pod}} {{name}} ",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{pod=~\"$Pod\",name=~\"$Controller\"}[5m])) by (pod, name, le))",
+              "hide": false,
+              "legendFormat": "P99 {{pod}} {{name}} ",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Workqueue Queue Duration Quantils",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "description": "How long in seconds an item stays in workqueue before being requested",
+          "fieldConfig": {
+            "defaults": {
               "custom": {
                 "hideFrom": {
                   "legend": false,
@@ -2528,7 +2740,7 @@
             "h": 13,
             "w": 24,
             "x": 0,
-            "y": 52
+            "y": 45
           },
           "id": 36,
           "options": {
@@ -2592,6 +2804,125 @@
           "description": "How long in seconds processing an item from workqueue takes",
           "fieldConfig": {
             "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 24,
+            "x": 0,
+            "y": 58
+          },
+          "id": 64,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.50, sum(rate(workqueue_work_duration_seconds_bucket{pod=~\"$Pod\",name=~\"$Controller\"}[5m])) by (pod, name, le))",
+              "hide": false,
+              "legendFormat": "P50 {{pod}} {{name}} ",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.90, sum(rate(workqueue_work_duration_seconds_bucket{pod=~\"$Pod\",name=~\"$Controller\"}[5m])) by (pod, name, le))",
+              "hide": false,
+              "legendFormat": "P90 {{pod}} {{name}} ",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.99, sum(rate(workqueue_work_duration_seconds_bucket{pod=~\"$Pod\",name=~\"$Controller\"}[5m])) by (pod, name, le))",
+              "hide": false,
+              "legendFormat": "P99 {{pod}} {{name}} ",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Workqueue Work Duration Quantils",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "description": "How long in seconds processing an item from workqueue takes",
+          "fieldConfig": {
+            "defaults": {
               "custom": {
                 "hideFrom": {
                   "legend": false,
@@ -2609,7 +2940,7 @@
             "h": 13,
             "w": 24,
             "x": 0,
-            "y": 65
+            "y": 67
           },
           "id": 37,
           "options": {
@@ -2724,8 +3055,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -2841,8 +3171,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -3238,8 +3567,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -3331,8 +3659,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -3439,8 +3766,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -3547,8 +3873,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -3641,8 +3966,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -3747,8 +4071,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -3889,8 +4212,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -4067,8 +4389,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -4161,8 +4482,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -4255,8 +4575,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -4349,8 +4668,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -4443,8 +4761,7 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
-                    "value": null
+                    "color": "green"
                   },
                   {
                     "color": "red",
@@ -4496,7 +4813,7 @@
       "type": "row"
     }
   ],
-  "refresh": false,
+  "refresh": "",
   "schemaVersion": 38,
   "style": "dark",
   "tags": [],
@@ -4507,10 +4824,10 @@
         "current": {
           "selected": true,
           "text": [
-            "capi-test-control-plane"
+            "All"
           ],
           "value": [
-            "capi-test-control-plane"
+            "$__all"
           ]
         },
         "datasource": {
@@ -4537,13 +4854,9 @@
       {
         "allValue": ".*",
         "current": {
-          "selected": true,
-          "text": [
-            "capi-controller-manager-fbd4fc888-jvfl9"
-          ],
-          "value": [
-            "capi-controller-manager-fbd4fc888-jvfl9"
-          ]
+          "selected": false,
+          "text": "kindnet-whq29",
+          "value": "kindnet-whq29"
         },
         "datasource": {
           "type": "prometheus",
@@ -4645,7 +4958,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Cluster API - Scale",
+  "title": "Controller Runtime",
   "uid": "abe29aa7-e44a-4eef-9474-970f95f08ee6",
   "version": 1,
   "weekStart": ""

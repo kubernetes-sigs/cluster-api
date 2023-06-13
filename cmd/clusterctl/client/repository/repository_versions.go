@@ -53,7 +53,7 @@ func latestContractRelease(repo Repository, contract string) (string, error) {
 	latestMetadata := &clusterctlv1.Metadata{}
 	codecFactory := serializer.NewCodecFactory(scheme.Scheme)
 	if err := runtime.DecodeInto(codecFactory.UniversalDecoder(), file, latestMetadata); err != nil {
-		return latest, nil //nolint:nilerr
+		return latest, nil
 	}
 
 	releaseSeries := latestMetadata.GetReleaseSeriesForContract(contract)

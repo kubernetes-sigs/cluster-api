@@ -6,7 +6,7 @@ In this tutorial we'll cover the basics of how to use Cluster API to create one 
 
 <h1>Warning</h1>
 
-If using a [provider] that does not support v1beta1 or v1alpha4 yet, please follow the [release 0.3](https://release-0-3.cluster-api.sigs.k8s.io/user/quick-start.html) or [release 0.4](https://release-0-4.cluster-api.sigs.k8s.io/user/quick-start.html) quickstart instructions instead.
+If using a [provider] that does not support v1beta1 or v1alpha4 yet, please follow the [release 0.3](https://release-0-3.cluster-api.sigs.k8s.io/user/quick-.html) or [release 0.4](https://release-0-4.cluster-api.sigs.k8s.io/user/quick-start.html) quickstart instructions instead.
 
 </aside>
 

@@ -7,6 +7,7 @@ updates:
   commit-message:
       prefix: ":seedling:"
   labels:
+    - "area/ci"
     - "ok-to-test"
 - package-ecosystem: "gomod"
   directory: "/"

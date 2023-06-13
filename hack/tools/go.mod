@@ -13,7 +13,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.5
 	github.com/valyala/fastjson v1.6.4
-	golang.org/x/tools v0.9.1
+	golang.org/x/tools v0.9.3
 	google.golang.org/api v0.122.0
 	helm.sh/helm/v3 v3.11.1
 	k8s.io/api v0.27.2

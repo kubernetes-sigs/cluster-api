@@ -719,7 +719,7 @@ clusterctl init --infrastructure virtink
 # The username used to access the remote vSphere endpoint
 export VSPHERE_USERNAME="vi-admin@vsphere.local"
 # The password used to access the remote vSphere endpoint
-# You may want to set this in ~/.cluster-api/clusterctl.yaml so your password is not in
+# You may want to set this in `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml` so your password is not in
 # bash history
 export VSPHERE_PASSWORD="admin!23"
 
@@ -756,7 +756,7 @@ You can now create your first workload cluster by running the following:
 <h1>Alternatives to environment variables</h1>
 
 Throughout this quickstart guide we've given instructions on setting parameters using environment variables. For most
-environment variables in the rest of the guide, you can also set them in ~/.cluster-api/clusterctl.yaml
+environment variables in the rest of the guide, you can also set them in `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`
 
 See [`clusterctl init`](../clusterctl/commands/init.md) for more details.
 

@@ -80,7 +80,7 @@ clusterctl init \
    --control-plane kubeadm:v0.3.8 \
    --infrastructure aws:v0.5.0 \
    --infrastructure docker:v0.3.8 \
-   --config ~/.cluster-api/dev-repository/config.yaml
+   --config $XDG_CONFIG_HOME/cluster-api/dev-repository/config.yaml
 ```
 
 As you might notice, the command is using the `$XDG_CONFIG_HOME/cluster-api/dev-repository/config.yaml` config file,
@@ -90,7 +90,7 @@ containing all the required setting to make clusterctl use the local repository.
 
 <h1>Warnings</h1>
 
-You must pass `--config ~/.cluster-api/dev-repository/config.yaml` to all the clusterctl commands you are running
+You must pass `--config $XDG_CONFIG_HOME/cluster-api/dev-repository/config.yaml` to all the clusterctl commands you are running
 during your dev session.
 
 The above config file changes the location of the [overrides layer] folder thus ensuring

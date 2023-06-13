@@ -289,7 +289,7 @@ def print_instructions(repos):
     cmd = "clusterctl init \\\n"
     for name, type, next_version, components_path in repos:
         cmd += "   {} {}:{} \\\n".format(type_to_flag(type), name, next_version)
-    cmd += "   --config ~/.cluster-api/dev-repository/config.yaml"
+    cmd += "   --config $XDG_CONFIG_HOME/cluster-api/dev-repository/config.yaml"
     print(cmd)
     print
     if 'infrastructure-docker' in providerList:

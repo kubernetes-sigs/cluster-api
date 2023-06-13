@@ -134,7 +134,7 @@ type GetClusterTemplateOptions struct {
 	ClusterName string
 
 	// KubernetesVersion to use for the workload cluster. If unspecified, the value from os env variables
-	// or the .cluster-api/clusterctl.yaml config file will be used.
+	// or the $XDG_CONFIG_HOME/cluster-api/clusterctl.yaml or .cluster-api/clusterctl.yaml config file will be used.
 	KubernetesVersion string
 
 	// ControlPlaneMachineCount defines the number of control plane machines to be added to the workload cluster.

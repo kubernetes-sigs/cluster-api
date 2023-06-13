@@ -13,7 +13,7 @@ export EXP_CLUSTER_RESOURCE_SET=true
 clusterctl init --infrastructure vsphere
 ```
 
-As an alternative to environment variables, it is also possible to set variables in the clusterctl config file located at `$HOME/.cluster-api/clusterctl.yaml`, e.g.:
+As an alternative to environment variables, it is also possible to set variables in the clusterctl config file located at `$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml`, e.g.:
 ```yaml
 # Values for environment variable substitution
 EXP_CLUSTER_RESOURCE_SET: "true"

@@ -23,9 +23,9 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/adrg/xdg"
 	"github.com/drone/envsubst/v2"
 	"github.com/pkg/errors"
-	"k8s.io/client-go/util/homedir"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 )
@@ -68,7 +68,11 @@ func newOverride(o *newOverrideInput) Overrider {
 // Path returns the fully formed path to the file within the specified
 // overrides config.
 func (o *overrides) Path() (string, error) {
-	basepath := filepath.Join(homedir.HomeDir(), config.ConfigFolder, overrideFolder)
+	configDirectory, err := xdg.ConfigFile(config.ConfigFolderXDG)
+	if err != nil {
+		return "", err
+	}
+	basepath := filepath.Join(configDirectory, overrideFolder)
 	f, err := o.configVariablesClient.Get(overrideFolderKey)
 	if err == nil && strings.TrimSpace(f) != "" {
 		basepath = f

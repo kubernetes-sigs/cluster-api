@@ -108,7 +108,7 @@ func Test_viperReader_Init(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gg := NewWithT(t)
-			v := newViperReader(injectConfigPaths(tt.configDirs))
+			v, _ := newViperReader(injectConfigPaths(tt.configDirs))
 			if tt.expectErr {
 				gg.Expect(v.Init(tt.configPath)).ToNot(Succeed())
 				return
@@ -168,7 +168,7 @@ func Test_viperReader_Get(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gs := NewWithT(t)
 
-			v := newViperReader(injectConfigPaths([]string{dir}))
+			v, _ := newViperReader(injectConfigPaths([]string{dir}))
 
 			gs.Expect(v.Init(configFile)).To(Succeed())
 
@@ -192,7 +192,8 @@ func Test_viperReader_GetWithoutDefaultConfig(t *testing.T) {
 
 	_ = os.Setenv("FOO_FOO", "bar")
 
-	v := newViperReader(injectConfigPaths([]string{dir}))
+	v, err := newViperReader(injectConfigPaths([]string{dir}))
+	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(v.Init("")).To(Succeed())
 
 	got, err := v.Get("FOO_FOO")

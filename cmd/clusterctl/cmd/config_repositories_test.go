@@ -86,7 +86,7 @@ var template = `---
 providers:
   # add a custom provider
   - name: "my-infra-provider"
-    url: "/home/.cluster-api/overrides/infrastructure-docker/latest/infrastructure-components.yaml"
+    url: "/home/.config/cluster-api/overrides/infrastructure-docker/latest/infrastructure-components.yaml"
     type: "InfrastructureProvider"
   # add a custom provider
   - name: "another-provider"
@@ -129,7 +129,7 @@ kubekey             InfrastructureProvider   https://github.com/kubesphere/kubek
 kubevirt            InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-kubevirt/releases/latest/           infrastructure-components.yaml
 maas                InfrastructureProvider   https://github.com/spectrocloud/cluster-api-provider-maas/releases/latest/                  infrastructure-components.yaml
 metal3              InfrastructureProvider   https://github.com/metal3-io/cluster-api-provider-metal3/releases/latest/                   infrastructure-components.yaml
-my-infra-provider   InfrastructureProvider   /home/.cluster-api/overrides/infrastructure-docker/latest/                                  infrastructure-components.yaml
+my-infra-provider   InfrastructureProvider   /home/.config/cluster-api/overrides/infrastructure-docker/latest/                           infrastructure-components.yaml
 nested              InfrastructureProvider   https://github.com/kubernetes-sigs/cluster-api-provider-nested/releases/latest/             infrastructure-components.yaml
 nutanix             InfrastructureProvider   https://github.com/nutanix-cloud-native/cluster-api-provider-nutanix/releases/latest/       infrastructure-components.yaml
 oci                 InfrastructureProvider   https://github.com/oracle/cluster-api-provider-oci/releases/latest/                         infrastructure-components.yaml
@@ -251,7 +251,7 @@ var expectedOutputYaml = `- File: core_components.yaml
 - File: infrastructure-components.yaml
   Name: my-infra-provider
   ProviderType: InfrastructureProvider
-  URL: /home/.cluster-api/overrides/infrastructure-docker/latest/
+  URL: /home/.config/cluster-api/overrides/infrastructure-docker/latest/
 - File: infrastructure-components.yaml
   Name: nested
   ProviderType: InfrastructureProvider

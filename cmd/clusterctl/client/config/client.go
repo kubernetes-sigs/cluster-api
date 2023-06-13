@@ -86,9 +86,12 @@ func newConfigClient(path string, options ...Option) (*configClient, error) {
 	}
 
 	// if there is an injected reader, use it, otherwise use a default one
+	var err error
 	if client.reader == nil {
-		client.reader = newViperReader()
-		if err := client.reader.Init(path); err != nil {
+		if client.reader, err = newViperReader(); err != nil {
+			return nil, errors.Wrap(err, "failed to create the configuration reader")
+		}
+		if err = client.reader.Init(path); err != nil {
 			return nil, errors.Wrap(err, "failed to initialize the configuration reader")
 		}
 	}

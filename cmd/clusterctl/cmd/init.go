@@ -56,7 +56,7 @@ var initCmd = &cobra.Command{
 		to have enough privileges to install the desired components.
 
 		Use 'clusterctl config repositories' to get a list of available providers; if necessary, edit
-		$HOME/.cluster-api/clusterctl.yaml file to add new provider or to customize existing ones.
+		$XDG_CONFIG_HOME/cluster-api/clusterctl.yaml file to add new provider or to customize existing ones.
 
 		Some providers require environment variables to be set before running clusterctl init.
 		Refer to the provider documentation, or use 'clusterctl config provider [name]' to get a list of required variables.

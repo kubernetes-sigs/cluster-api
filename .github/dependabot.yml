@@ -10,6 +10,7 @@ updates:
   commit-message:
       prefix: ":seedling:"
   labels:
+    - "area/ci"
     - "ok-to-test"
 # Go
 - package-ecosystem: "gomod"

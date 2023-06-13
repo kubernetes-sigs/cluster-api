@@ -287,6 +287,11 @@ func setupWebhooks(mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 
+	if err := (&infrav1.InMemoryClusterTemplate{}).SetupWebhookWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create webhook", "webhook", "InMemoryClusterTemplate")
+		os.Exit(1)
+	}
+
 	if err := (&infrav1.InMemoryMachine{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "InMemoryMachine")
 		os.Exit(1)

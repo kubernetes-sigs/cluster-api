@@ -61,7 +61,9 @@ func RESTConfig(ctx context.Context, sourceName string, c client.Reader, cluster
 	}
 
 	restConfig.UserAgent = DefaultClusterAPIUserAgent(sourceName)
-	restConfig.Timeout = defaultClientTimeout
+	restConfig.Timeout = restConfigTimeout
+	restConfig.QPS = restConfigQPS
+	restConfig.Burst = restConfigBurst
 
 	return restConfig, nil
 }

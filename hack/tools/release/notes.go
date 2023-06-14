@@ -70,6 +70,18 @@ var (
 	numWorkers = flag.Int("workers", 10, "Number of concurrent routines to process PR entries. If running into GitHub rate limiting, use 1.")
 
 	tagRegex = regexp.MustCompile(`^\[release-[\w-\.]*\]`)
+
+	userFriendlyAreas = map[string]string{
+		"e2e-testing":                    "e2e",
+		"provider/control-plane-kubeadm": "KCP",
+		"provider/infrastructure-docker": "CAPD",
+		"dependency":                     "Dependency",
+		"devtools":                       "Devtools",
+		"machine":                        "Machine",
+		"api":                            "API",
+	}
+
+	releaseBackportMarker = regexp.MustCompile(`(?m)^\[release-\d\.\d\]\s*`)
 )
 
 func main() {
@@ -113,6 +125,7 @@ const (
 	missingAreaLabelPrefix   = "MISSING_AREA"
 	areaLabelPrefix          = "area/"
 	multipleAreaLabelsPrefix = "MULTIPLE_AREAS["
+	documentationAreaLabel   = "documentation"
 )
 
 type githubPullRequest struct {
@@ -150,7 +163,11 @@ func getAreaLabel(merge string) (string, error) {
 	case 0:
 		return missingAreaLabelPrefix, nil
 	case 1:
-		return areaLabels[0], nil
+		area := areaLabels[0]
+		if userFriendlyArea, ok := userFriendlyAreas[area]; ok {
+			area = userFriendlyArea
+		}
+		return area, nil
 	default:
 		return multipleAreaLabelsPrefix + strings.Join(areaLabels, "|") + "]", nil
 	}
@@ -274,10 +291,18 @@ func run() int {
 	fmt.Printf("Changes since %v\n---\n", commitRange)
 
 	fmt.Printf("## :chart_with_upwards_trend: Overview\n")
-	fmt.Printf("- %d new commits merged\n", len(commits))
-	fmt.Printf("- %d breaking changes :warning:\n", len(merges[warning]))
-	fmt.Printf("- %d feature additions ✨\n", len(merges[features]))
-	fmt.Printf("- %d bugs fixed 🐛\n", len(merges[bugs]))
+	if count := len(commits); count > 0 {
+		fmt.Printf("- %d new commits merged\n", count)
+	}
+	if count := len(merges[warning]); count > 0 {
+		fmt.Printf("- %d breaking changes :warning:\n", count)
+	}
+	if count := len(merges[features]); count > 0 {
+		fmt.Printf("- %d feature additions ✨\n", count)
+	}
+	if count := len(merges[bugs]); count > 0 {
+		fmt.Printf("- %d bugs fixed 🐛\n", count)
+	}
 	fmt.Println()
 
 	for _, key := range outputOrder {
@@ -364,7 +389,7 @@ func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 	entry := &releaseNoteEntry{}
 	entry.title = trimTitle(c.body)
 	var fork string
-	prefix, err := getAreaLabel(c.merge)
+	area, err := getAreaLabel(c.merge)
 	if err != nil {
 		return nil, err
 	}
@@ -397,13 +422,29 @@ func generateReleaseNoteEntry(c *commit) (*releaseNoteEntry, error) {
 		entry.section = unknown
 	}
 
+	// If the area label indicates documentation, use documentation as the section
+	// no matter what was the emoji used. This takes into account that the area label
+	// tends to be more accurate than the emoji (data point observed by the release team).
+	// We handle this after the switch statement to make sure we remove all emoji prefixes.
+	if area == documentationAreaLabel {
+		entry.section = documentation
+	}
+
 	entry.title = strings.TrimSpace(entry.title)
+	entry.title = trimReleaseBackportMarker(entry.title)
+
 	if entry.title == "" {
 		return entry, nil
 	}
-	entry.title = fmt.Sprintf("- %s: %s", prefix, entry.title)
+	entry.title = fmt.Sprintf("- %s: %s", area, entry.title)
 	_, _ = fmt.Sscanf(c.merge, "Merge pull request %s from %s", &entry.prNumber, &fork)
 	entry.title = formatMerge(entry.title, entry.prNumber)
 
 	return entry, nil
+}
+
+// trimReleaseBackportMarker removes the `[release-x.x]` prefix from a PR title if present.
+// These are mostly used for back-ported PRs in release branches.
+func trimReleaseBackportMarker(title string) string {
+	return releaseBackportMarker.ReplaceAllString(title, "${1}")
 }

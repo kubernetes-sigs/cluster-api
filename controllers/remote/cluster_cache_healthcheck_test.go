@@ -76,7 +76,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 			log := klogr.New()
 			cct, err = NewClusterCacheTracker(mgr, ClusterCacheTrackerOptions{
 				Log:     &log,
-				Indexes: DefaultIndexes,
+				Indexes: []Index{NodeProviderIDIndex},
 			})
 			g.Expect(err).NotTo(HaveOccurred())
 

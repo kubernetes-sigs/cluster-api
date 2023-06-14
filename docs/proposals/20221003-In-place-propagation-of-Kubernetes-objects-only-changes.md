@@ -1,5 +1,4 @@
 ---
-
 title: In place propagation of changes affecting Kubernetes objects only
 authors:
 - "@fabriziopandini"
@@ -12,7 +11,6 @@ last-updated: 2022-02-26
 status: implementable
 replaces:
 superseded-by:
-
 ---
 
 # In place propagation of changes affecting Kubernetes objects only

@@ -237,7 +237,7 @@ func (p *providersClient) defaults() []Provider {
 		},
 		&provider{
 			name:         InMemoryProviderName,
-			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/infrastructure-components-inmemory-development.yaml",
+			url:          "https://github.com/kubernetes-sigs/cluster-api/releases/latest/infrastructure-components-in-memory-development.yaml",
 			providerType: clusterctlv1.InfrastructureProviderType,
 		},
 		&provider{

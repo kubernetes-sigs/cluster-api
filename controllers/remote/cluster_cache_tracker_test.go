@@ -90,7 +90,7 @@ func TestClusterCacheTracker(t *testing.T) {
 
 			t.Log("Setting up a ClusterCacheTracker")
 			cct, err = NewClusterCacheTracker(mgr, ClusterCacheTrackerOptions{
-				Indexes: DefaultIndexes,
+				Indexes: []Index{NodeProviderIDIndex},
 			})
 			g.Expect(err).NotTo(HaveOccurred())
 

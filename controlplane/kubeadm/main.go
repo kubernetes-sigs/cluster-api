@@ -260,7 +260,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{
 		ControllerName: controllerName,
 		Log:            &log,
-		Indexes:        remote.DefaultIndexes,
 		ClientUncachedObjects: []client.Object{
 			&corev1.ConfigMap{},
 			&corev1.Secret{},

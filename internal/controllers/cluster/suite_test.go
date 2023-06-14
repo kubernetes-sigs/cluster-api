@@ -69,7 +69,7 @@ func TestMain(m *testing.M) {
 			mgr,
 			remote.ClusterCacheTrackerOptions{
 				Log:     &log,
-				Indexes: remote.DefaultIndexes,
+				Indexes: []remote.Index{remote.NodeProviderIDIndex},
 			},
 		)
 		if err != nil {

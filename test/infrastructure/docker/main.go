@@ -265,7 +265,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		remote.ClusterCacheTrackerOptions{
 			ControllerName: controllerName,
 			Log:            &log,
-			Indexes:        remote.DefaultIndexes,
 		},
 	)
 	if err != nil {

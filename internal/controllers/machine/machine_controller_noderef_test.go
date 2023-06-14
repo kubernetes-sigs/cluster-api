@@ -125,7 +125,7 @@ func TestGetNode(t *testing.T) {
 
 	tracker, err := remote.NewClusterCacheTracker(
 		env.Manager, remote.ClusterCacheTrackerOptions{
-			Indexes: remote.DefaultIndexes,
+			Indexes: []remote.Index{remote.NodeProviderIDIndex},
 		},
 	)
 	g.Expect(err).ToNot(HaveOccurred())

@@ -25,6 +25,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -173,6 +174,17 @@ func TestNodeLabelSync(t *testing.T) {
 		},
 	}
 
+	defaultInfraMachine := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"kind":       "GenericInfrastructureMachine",
+			"apiVersion": "infrastructure.cluster.x-k8s.io/v1beta1",
+			"metadata": map[string]interface{}{
+				"name":      "infra-config1",
+				"namespace": metav1.NamespaceDefault,
+			},
+		},
+	}
+
 	defaultMachine := clusterv1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "machine-test",
@@ -211,6 +223,18 @@ func TestNodeLabelSync(t *testing.T) {
 
 		cluster := defaultCluster.DeepCopy()
 		cluster.Namespace = ns.Name
+
+		infraMachine := defaultInfraMachine.DeepCopy()
+		infraMachine.SetNamespace(ns.Name)
+
+		interruptibleTrueInfraMachineStatus := map[string]interface{}{
+			"interruptible": true,
+			"ready":         true,
+		}
+		interruptibleFalseInfraMachineStatus := map[string]interface{}{
+			"interruptible": false,
+			"ready":         true,
+		}
 
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
@@ -305,6 +329,13 @@ func TestNodeLabelSync(t *testing.T) {
 		g.Expect(env.Create(ctx, cluster)).To(Succeed())
 		defaultKubeconfigSecret := kubeconfig.GenerateSecret(cluster, kubeconfig.FromEnvTestConfig(env.Config, cluster))
 		g.Expect(env.Create(ctx, defaultKubeconfigSecret)).To(Succeed())
+
+		g.Expect(env.Create(ctx, infraMachine)).To(Succeed())
+		// Set InfrastructureMachine .status.interruptible and .status.ready to true.
+		interruptibleTrueInfraMachine := infraMachine.DeepCopy()
+		g.Expect(unstructured.SetNestedMap(interruptibleTrueInfraMachine.Object, interruptibleTrueInfraMachineStatus, "status")).Should(Succeed())
+		g.Expect(env.Status().Patch(ctx, interruptibleTrueInfraMachine, client.MergeFrom(infraMachine))).Should(Succeed())
+
 		g.Expect(env.Create(ctx, machine)).To(Succeed())
 
 		// Validate that the right labels where synced to the Node.
@@ -317,6 +348,10 @@ func TestNodeLabelSync(t *testing.T) {
 			for k, v := range managedMachineLabels {
 				g.Expect(node.Labels).To(HaveKeyWithValue(k, v))
 			}
+
+			// Interruptible label should be set on the node.
+			g.Expect(node.Labels).To(HaveKey(clusterv1.InterruptibleLabel))
+
 			// Unmanaged Machine labels should not have been synced to the Node.
 			for k, v := range unmanagedMachineLabels {
 				g.Expect(node.Labels).ToNot(HaveKeyWithValue(k, v))
@@ -333,6 +368,11 @@ func TestNodeLabelSync(t *testing.T) {
 
 			return true
 		}, 10*time.Second).Should(BeTrue())
+
+		// Set InfrastructureMachine .status.interruptible to false.
+		interruptibleFalseInfraMachine := interruptibleTrueInfraMachine.DeepCopy()
+		g.Expect(unstructured.SetNestedMap(interruptibleFalseInfraMachine.Object, interruptibleFalseInfraMachineStatus, "status")).Should(Succeed())
+		g.Expect(env.Status().Patch(ctx, interruptibleFalseInfraMachine, client.MergeFrom(interruptibleTrueInfraMachine))).Should(Succeed())
 
 		// Remove managed labels from Machine.
 		modifiedMachine := machine.DeepCopy()
@@ -351,6 +391,10 @@ func TestNodeLabelSync(t *testing.T) {
 			for k, v := range managedMachineLabels {
 				g.Expect(node.Labels).ToNot(HaveKeyWithValue(k, v))
 			}
+
+			// Interruptible label should not be on node.
+			g.Expect(node.Labels).NotTo(HaveKey(clusterv1.InterruptibleLabel))
+
 			// Unmanaged Machine labels should not have been synced at all to the Node.
 			for k, v := range unmanagedMachineLabels {
 				g.Expect(node.Labels).ToNot(HaveKeyWithValue(k, v))

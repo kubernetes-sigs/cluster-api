@@ -166,8 +166,10 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 }
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
-func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
+	cluster := s.cluster
+	m := s.machine
 
 	// If the Bootstrap ref is nil (and so the machine should use user generated data secret), return.
 	if m.Spec.Bootstrap.ConfigRef == nil {
@@ -179,6 +181,7 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	s.bootstrapConfig = externalResult.Result
 
 	// If the external object is paused return.
 	if externalResult.Paused {
@@ -236,14 +239,17 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, cluster *clusterv1.
 }
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Machine.
-func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
+	cluster := s.cluster
+	m := s.machine
 
 	// Call generic external reconciler.
 	infraReconcileResult, err := r.reconcileExternal(ctx, cluster, m, &m.Spec.InfrastructureRef)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+	s.infraMachine = infraReconcileResult.Result
 	if infraReconcileResult.RequeueAfter > 0 {
 		// Infra object went missing after the machine was up and running
 		if m.Status.InfrastructureReady {
@@ -316,7 +322,8 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, cluster *clust
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) reconcileCertificateExpiry(ctx context.Context, _ *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+func (r *Reconciler) reconcileCertificateExpiry(_ context.Context, s *scope) (ctrl.Result, error) {
+	m := s.machine
 	var annotations map[string]string
 
 	if !util.IsControlPlaneMachine(m) {
@@ -337,21 +344,15 @@ func (r *Reconciler) reconcileCertificateExpiry(ctx context.Context, _ *clusterv
 		}
 		expTime := metav1.NewTime(expiryTime)
 		m.Status.CertificatesExpiryDate = &expTime
-	} else if m.Spec.Bootstrap.ConfigRef != nil {
+	} else if s.bootstrapConfig != nil {
 		// If the expiry information is not available on the machine annotation
 		// look for it on the bootstrap config.
-		bootstrapConfig, err := external.Get(ctx, r.Client, m.Spec.Bootstrap.ConfigRef, m.Namespace)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrap(err, "failed to reconcile certificates expiry")
-		}
-
-		// Check for certificate expiry information in the bootstrap config.
-		annotations = bootstrapConfig.GetAnnotations()
+		annotations = s.bootstrapConfig.GetAnnotations()
 		if expiry, ok := annotations[clusterv1.MachineCertificatesExpiryDateAnnotation]; ok {
 			expiryInfoFound = true
 			expiryTime, err := time.Parse(time.RFC3339, expiry)
 			if err != nil {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile certificates expiry: failed to parse expiry date from annotation on %s", klog.KObj(bootstrapConfig))
+				return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile certificates expiry: failed to parse expiry date from annotation on %s", klog.KObj(s.bootstrapConfig))
 			}
 			expTime := metav1.NewTime(expiryTime)
 			m.Status.CertificatesExpiryDate = &expTime

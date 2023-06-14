@@ -1,5 +1,4 @@
 ---
-
 title: Label Sync Between Machines and underlying Kubernetes Nodes
 authors:
 - "@arvinderpal" (original proposal author)
@@ -14,7 +13,6 @@ last-updated: 2022-02-26
 status: implementable
 replaces:
 superseded-by:
-
 ---
 
 # Label Sync Between Machines and underlying Kubernetes Nodes

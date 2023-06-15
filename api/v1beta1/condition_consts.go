@@ -303,9 +303,13 @@ const (
 	// not yet completed because at least one of the MachinePools is not yet updated to match the desired topology spec.
 	TopologyReconciledMachinePoolsUpgradePendingReason = "MachinePoolsUpgradePending"
 
-	// TopologyReconciledMachinePoolsRollingOutReason (Severity=Info) documents reconciliation of a Cluster topology
-	// not yet completed because at least one of the MachinePools is rolling out.
-	TopologyReconciledMachinePoolsRollingOutReason = "MachinePoolsRolloutInProgress"
+	// TopologyReconciledMachinePoolsCreatePendingReason (Severity=Info) documents reconciliation of a Cluster topology
+	// not yet completed because at least one of the MachinePools is yet to be created.
+	TopologyReconciledMachinePoolsCreatePendingReason = "MachinePoolsCreatePending"
+
+	// TopologyReconciledMachinePoolsUpgradeDeferredReason (Severity=Info) documents reconciliation of a Cluster topology
+	// not yet completed because the upgrade for at least one of the MachinePools has been deferred.
+	TopologyReconciledMachinePoolsUpgradeDeferredReason = "MachinePoolsUpgradeDeferred"
 
 	// TopologyReconciledHookBlockingReason (Severity=Info) documents reconciliation of a Cluster topology
 	// not yet completed because at least one of the lifecycle hooks is blocking.

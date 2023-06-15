@@ -973,10 +973,7 @@ func computeMachinePool(_ context.Context, s *scope.Scope, desiredControlPlaneSt
 	// Add ClusterTopologyMachinePoolLabel to the generated InfrastructureMachine template
 	infraMachineTemplateLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
 	desiredMachinePool.InfrastructureMachineTemplate.SetLabels(infraMachineTemplateLabels)
-	version, err := computeMachinePoolVersion(s, desiredControlPlaneState, currentMachinePool)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to compute version for %s", machinePoolTopology.Name)
-	}
+	version := computeMachinePoolVersion(s, desiredControlPlaneState, machinePoolTopology, currentMachinePool)
 
 	// Compute values that can be set both in the MachinePoolClass and in the MachinePoolTopology
 	// failureDomains := machinePoolClass.FailureDomains
@@ -1086,13 +1083,16 @@ func computeMachinePool(_ context.Context, s *scope.Scope, desiredControlPlaneSt
 // Nb: No MachinePool upgrades will be triggered while any MachinePool is in the middle
 // of an upgrade. Even if the number of MachinePools that are being upgraded is less
 // than the number of allowed concurrent upgrades.
-func computeMachinePoolVersion(s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState, currentMPState *scope.MachinePoolState) (string, error) {
+func computeMachinePoolVersion(s *scope.Scope, desiredControlPlaneState *scope.ControlPlaneState, machinePoolTopology clusterv1.MachinePoolTopology, currentMPState *scope.MachinePoolState) string {
 	desiredVersion := s.Blueprint.Topology.Version
 	// If creating a new machine pool, we can pick up the desired version
 	// Note: We are not blocking the creation of new machine pools when
 	// the control plane or any of the machine pools are upgrading/scaling.
 	if currentMPState == nil || currentMPState.Object == nil {
-		return desiredVersion, nil
+		if !isControlPlaneStable(s) || s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
+			s.UpgradeTracker.MachinePools.MarkPendingCreate(machinePoolTopology.Name)
+		}
+		return desiredVersion
 	}
 
 	// Get the current version of the machine pool.
@@ -1101,50 +1101,27 @@ func computeMachinePoolVersion(s *scope.Scope, desiredControlPlaneState *scope.C
 	// Return early if the currentVersion is already equal to the desiredVersion
 	// no further checks required.
 	if currentVersion == desiredVersion {
-		return currentVersion, nil
+		return currentVersion
 	}
 
-	// Return early if we are not allowed to upgrade the machine pool.
-	if !s.UpgradeTracker.MachinePools.AllowUpgrade() {
+	// Return early if the AfterControlPlaneUpgrade hook returns a blocking response.
+	if s.HookResponseTracker.IsBlocking(runtimehooksv1.AfterControlPlaneUpgrade) {
 		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
-		return currentVersion, nil
+		return currentVersion
 	}
 
-	// If the control plane is being created (current control plane is nil), do not perform
-	// any machine pool upgrade in this case.
-	// Return the current version of the machine pool.
-	// NOTE: this case should never happen (upgrading a MachinePool) before creating a CP,
-	// but we are implementing this check for extra safety.
-	if s.Current.ControlPlane == nil || s.Current.ControlPlane.Object == nil {
+	// Return early if the upgrade concurrency is reached.
+	if s.UpgradeTracker.MachinePools.UpgradeConcurrencyReached() {
 		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
-		return currentVersion, nil
+		return currentVersion
 	}
 
-	// If the current control plane is upgrading, then do not pick up the desiredVersion yet.
-	// Return the current version of the machine pool. We will pick up the new version after the control
+	// Return early if the Control Plane is not stable. Do not pick up the desiredVersion yet.
+	// Return the current version of the machine deployment. We will pick up the new version after the control
 	// plane is stable.
-	cpUpgrading, err := contract.ControlPlane().IsUpgrading(s.Current.ControlPlane.Object)
-	if err != nil {
-		return "", errors.Wrap(err, "failed to check if control plane is upgrading")
-	}
-	if cpUpgrading {
+	if !isControlPlaneStable(s) {
 		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
-		return currentVersion, nil
-	}
-
-	// If control plane supports replicas, check if the control plane is in the middle of a scale operation.
-	// If the current control plane is scaling, then do not pick up the desiredVersion yet.
-	// Return the current version of the machine pool. We will pick up the new version after the control
-	// plane is stable.
-	if s.Blueprint.Topology.ControlPlane.Replicas != nil {
-		cpScaling, err := contract.ControlPlane().IsScaling(s.Current.ControlPlane.Object)
-		if err != nil {
-			return "", errors.Wrap(err, "failed to check if the control plane is scaling")
-		}
-		if cpScaling {
-			s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
-			return currentVersion, nil
-		}
+		return currentVersion
 	}
 
 	// Check if we are about to upgrade the control plane. In that case, do not upgrade the machine pool yet.
@@ -1152,23 +1129,23 @@ func computeMachinePoolVersion(s *scope.Scope, desiredControlPlaneState *scope.C
 	// machine pool.
 	currentCPVersion, err := contract.ControlPlane().Version().Get(s.Current.ControlPlane.Object)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get version of current control plane")
+		return currentVersion
 	}
 	desiredCPVersion, err := contract.ControlPlane().Version().Get(desiredControlPlaneState.Object)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to get version of desired control plane")
+		return currentVersion
 	}
 	if *currentCPVersion != *desiredCPVersion {
 		// The versions of the current and desired control planes do no match,
 		// implies we are about to upgrade the control plane.
 		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
-		return currentVersion, nil
+		return currentVersion
 	}
 
 	// If the ControlPlane is pending picking up an upgrade then do not pick up the new version yet.
-	if s.UpgradeTracker.ControlPlane.PendingUpgrade {
+	if s.UpgradeTracker.ControlPlane.IsPendingUpgrade {
 		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
-		return currentVersion, nil
+		return currentVersion
 	}
 
 	// At this point the control plane is stable (not scaling, not upgrading, not being upgraded).
@@ -1176,13 +1153,13 @@ func computeMachinePoolVersion(s *scope.Scope, desiredControlPlaneState *scope.C
 	// If any of the MachinePools is rolling out, do not upgrade the machine pool yet.
 	if s.Current.MachinePools.IsAnyRollingOut() {
 		s.UpgradeTracker.MachinePools.MarkPendingUpgrade(currentMPState.Object.Name)
-		return currentVersion, nil
+		return currentVersion
 	}
 
 	// Control plane and machine pools are stable.
 	// Ready to pick up the topology version.
 	s.UpgradeTracker.MachinePools.MarkRollingOut(currentMPState.Object.Name)
-	return desiredVersion, nil
+	return desiredVersion
 }
 
 type templateToInput struct {

@@ -143,18 +143,23 @@ func (r *Reconciler) reconcileTopologyReconciledCondition(s *scope.Scope, cluste
 				s.Blueprint.Topology.Version,
 			)
 			reason = clusterv1.TopologyReconciledMachineDeploymentsUpgradeDeferredReason
-		case s.UpgradeTracker.MachinePools.PendingUpgrade():
-			fmt.Fprintf(msgBuilder, "MachinePool(s) %s upgrade to version %s on hold.",
-				computeTopologyNameList(s.UpgradeTracker.MachinePools.PendingUpgradeNames()),
+		case s.UpgradeTracker.MachinePools.IsAnyPendingUpgrade():
+			fmt.Fprintf(msgBuilder, "MachinePool(s) %s rollout and upgrade to version %s on hold.",
+				computeNameList(s.UpgradeTracker.MachinePools.PendingUpgradeNames()),
 				s.Blueprint.Topology.Version,
 			)
 			reason = clusterv1.TopologyReconciledMachinePoolsUpgradePendingReason
-		case s.UpgradeTracker.MachinePools.RollingOutUpgrade():
-			fmt.Fprintf(msgBuilder, "MachinePool(s) %s upgrade to version %s in progress.",
-				computeTopologyNameList(s.UpgradeTracker.MachinePools.RolloutNames()),
+		case s.UpgradeTracker.MachinePools.IsAnyPendingCreate():
+			fmt.Fprintf(msgBuilder, "MachinePool(s) for Topologies %s creation on hold.",
+				computeNameList(s.UpgradeTracker.MachinePools.PendingCreateTopologyNames()),
+			)
+			reason = clusterv1.TopologyReconciledMachinePoolsCreatePendingReason
+		case s.UpgradeTracker.MachinePools.DeferredUpgrade():
+			fmt.Fprintf(msgBuilder, "MachinePool(s) %s rollout and upgrade to version %s deferred.",
+				computeNameList(s.UpgradeTracker.MachinePools.DeferredUpgradeNames()),
 				s.Blueprint.Topology.Version,
 			)
-			reason = clusterv1.TopologyReconciledMachinePoolsRollingOutReason
+			reason = clusterv1.TopologyReconciledMachinePoolsUpgradeDeferredReason
 
 		}
 

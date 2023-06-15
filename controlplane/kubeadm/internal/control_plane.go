@@ -261,5 +261,10 @@ func (c *ControlPlane) PatchMachines(ctx context.Context) error {
 
 // SetPatchHelpers updates the patch helpers.
 func (c *ControlPlane) SetPatchHelpers(patchHelpers map[string]*patch.Helper) {
-	c.machinesPatchHelpers = patchHelpers
+	if c.machinesPatchHelpers == nil {
+		c.machinesPatchHelpers = map[string]*patch.Helper{}
+	}
+	for machineName, patchHelper := range patchHelpers {
+		c.machinesPatchHelpers[machineName] = patchHelper
+	}
 }

@@ -19,7 +19,7 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
+  "id": 2,
   "links": [],
   "liveNow": false,
   "panels": [
@@ -1815,7 +1815,7 @@
           },
           "gridPos": {
             "h": 8,
-            "w": 12,
+            "w": 24,
             "x": 0,
             "y": 11
           },
@@ -1839,7 +1839,7 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "editorMode": "code",
-              "expr": "sum(rate(controller_runtime_reconcile_time_seconds_sum{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod) / sum(rate(controller_runtime_reconcile_time_seconds_count{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod)",
+              "expr": "sum(rate(controller_runtime_reconcile_time_seconds_sum{pod=~\"$Pod\"}[5m])) by (pod) / sum(rate(controller_runtime_reconcile_time_seconds_count{pod=~\"$Pod\"}[5m])) by (pod)",
               "legendFormat": "{{pod}}",
               "range": true,
               "refId": "A"
@@ -1853,6 +1853,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
+          "description": "",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -1907,12 +1908,12 @@
             "overrides": []
           },
           "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 11
+            "h": 9,
+            "w": 24,
+            "x": 0,
+            "y": 19
           },
-          "id": 28,
+          "id": 65,
           "options": {
             "legend": {
               "calcs": [],
@@ -1932,13 +1933,38 @@
                 "uid": "PBFA97CFB590B2093"
               },
               "editorMode": "code",
-              "expr": "sum(rate(controller_runtime_reconcile_time_seconds_sum{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller) / sum(rate(controller_runtime_reconcile_time_seconds_count{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod,controller)",
-              "legendFormat": "{{pod}}: {{controller}}",
+              "expr": "histogram_quantile(0.50, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\"}[5m])) by (pod, le))",
+              "hide": false,
+              "legendFormat": "P50 {{pod}}",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.90, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\"}[5m])) by (pod, le))",
+              "hide": false,
+              "legendFormat": "P90 {{pod}}",
               "range": true,
               "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.99, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\"}[5m])) by (pod, le))",
+              "hide": false,
+              "legendFormat": "P99 {{pod}}",
+              "range": true,
+              "refId": "C"
             }
           ],
-          "title": "Reconcile Duration by Controller",
+          "title": "Reconcile Duration Quantils",
           "type": "timeseries"
         },
         {
@@ -2003,7 +2029,7 @@
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 19
+            "y": 28
           },
           "id": 62,
           "options": {
@@ -2039,6 +2065,125 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 24,
+            "x": 0,
+            "y": 36
+          },
+          "id": 66,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.50, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod, controller, le))",
+              "hide": false,
+              "legendFormat": "P50 {{pod}} {{controller}} ",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.90, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod, controller, le))",
+              "hide": false,
+              "legendFormat": "P90 {{pod}} {{controller}} ",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.99, sum(rate(controller_runtime_reconcile_time_seconds_bucket{pod=~\"$Pod\",controller=~\"$Controller\"}[5m])) by (pod, controller, le))",
+              "hide": false,
+              "legendFormat": "P99 {{pod}} {{controller}} ",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Reconcile Duration Quantils by Controller",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
           "fieldConfig": {
             "defaults": {
               "custom": {
@@ -2058,7 +2203,7 @@
             "h": 13,
             "w": 24,
             "x": 0,
-            "y": 27
+            "y": 45
           },
           "id": 26,
           "options": {
@@ -2319,7 +2464,7 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "description": "Total number of retries handled by workqueue",
+          "description": "Total number of retries handled by workqueue. In controller-runtime the retry metric is observed when an item is added to the queue because of RequeueAfter.",
           "fieldConfig": {
             "defaults": {
               "color": {
@@ -2601,206 +2746,6 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
-          "description": "How long in seconds an item stays in workqueue before being requested",
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 5,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 9,
-            "w": 24,
-            "x": 0,
-            "y": 36
-          },
-          "id": 63,
-          "options": {
-            "legend": {
-              "calcs": [],
-              "displayMode": "list",
-              "placement": "bottom",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "desc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
-              },
-              "editorMode": "code",
-              "expr": "histogram_quantile(0.50, sum(rate(workqueue_queue_duration_seconds_bucket{pod=~\"$Pod\",name=~\"$Controller\"}[5m])) by (pod, name, le))",
-              "hide": false,
-              "legendFormat": "P50 {{pod}} {{name}} ",
-              "range": true,
-              "refId": "B"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
-              },
-              "editorMode": "code",
-              "expr": "histogram_quantile(0.90, sum(rate(workqueue_queue_duration_seconds_bucket{pod=~\"$Pod\",name=~\"$Controller\"}[5m])) by (pod, name, le))",
-              "hide": false,
-              "legendFormat": "P90 {{pod}} {{name}} ",
-              "range": true,
-              "refId": "A"
-            },
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
-              },
-              "editorMode": "code",
-              "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{pod=~\"$Pod\",name=~\"$Controller\"}[5m])) by (pod, name, le))",
-              "hide": false,
-              "legendFormat": "P99 {{pod}} {{name}} ",
-              "range": true,
-              "refId": "C"
-            }
-          ],
-          "title": "Workqueue Queue Duration Quantils",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
-          "description": "How long in seconds an item stays in workqueue before being requested",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "scaleDistribution": {
-                  "type": "linear"
-                }
-              }
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 13,
-            "w": 24,
-            "x": 0,
-            "y": 45
-          },
-          "id": 36,
-          "options": {
-            "calculate": false,
-            "cellGap": 2,
-            "color": {
-              "exponent": 0.5,
-              "fill": "dark-orange",
-              "mode": "scheme",
-              "reverse": true,
-              "scale": "exponential",
-              "scheme": "Oranges",
-              "steps": 128
-            },
-            "exemplars": {
-              "color": "rgba(255,0,255,0.7)"
-            },
-            "filterValues": {
-              "le": 1e-9
-            },
-            "legend": {
-              "show": true
-            },
-            "rowsFrame": {
-              "layout": "auto"
-            },
-            "tooltip": {
-              "show": true,
-              "yHistogram": false
-            },
-            "yAxis": {
-              "axisPlacement": "left",
-              "reverse": false,
-              "unit": "short"
-            }
-          },
-          "pluginVersion": "9.5.2",
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
-              },
-              "editorMode": "code",
-              "exemplar": true,
-              "expr": "rate(workqueue_queue_duration_seconds_bucket{pod=~\"$Pod\", name=~\"$Controller\"}[$__rate_interval])",
-              "format": "heatmap",
-              "legendFormat": "{{le}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Workqueue Queue Duration",
-          "type": "heatmap"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
-          },
           "description": "How long in seconds processing an item from workqueue takes",
           "fieldConfig": {
             "defaults": {
@@ -2859,7 +2804,7 @@
             "h": 9,
             "w": 24,
             "x": 0,
-            "y": 58
+            "y": 36
           },
           "id": 64,
           "options": {
@@ -2920,6 +2865,125 @@
             "type": "prometheus",
             "uid": "PBFA97CFB590B2093"
           },
+          "description": "How long in seconds an item stays in workqueue before being requested",
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "axisCenteredZero": false,
+                "axisColorMode": "text",
+                "axisLabel": "",
+                "axisPlacement": "auto",
+                "barAlignment": 0,
+                "drawStyle": "line",
+                "fillOpacity": 0,
+                "gradientMode": "none",
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "lineInterpolation": "linear",
+                "lineWidth": 1,
+                "pointSize": 5,
+                "scaleDistribution": {
+                  "type": "linear"
+                },
+                "showPoints": "auto",
+                "spanNulls": false,
+                "stacking": {
+                  "group": "A",
+                  "mode": "none"
+                },
+                "thresholdsStyle": {
+                  "mode": "off"
+                }
+              },
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              },
+              "unit": "s"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 9,
+            "w": 24,
+            "x": 0,
+            "y": 45
+          },
+          "id": 63,
+          "options": {
+            "legend": {
+              "calcs": [],
+              "displayMode": "list",
+              "placement": "bottom",
+              "showLegend": true
+            },
+            "tooltip": {
+              "mode": "multi",
+              "sort": "desc"
+            }
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.50, sum(rate(workqueue_queue_duration_seconds_bucket{pod=~\"$Pod\",name=~\"$Controller\"}[5m])) by (pod, name, le))",
+              "hide": false,
+              "legendFormat": "P50 {{pod}} {{name}} ",
+              "range": true,
+              "refId": "B"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.90, sum(rate(workqueue_queue_duration_seconds_bucket{pod=~\"$Pod\",name=~\"$Controller\"}[5m])) by (pod, name, le))",
+              "hide": false,
+              "legendFormat": "P90 {{pod}} {{name}} ",
+              "range": true,
+              "refId": "A"
+            },
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "expr": "histogram_quantile(0.99, sum(rate(workqueue_queue_duration_seconds_bucket{pod=~\"$Pod\",name=~\"$Controller\"}[5m])) by (pod, name, le))",
+              "hide": false,
+              "legendFormat": "P99 {{pod}} {{name}} ",
+              "range": true,
+              "refId": "C"
+            }
+          ],
+          "title": "Workqueue Queue Duration Quantils",
+          "type": "timeseries"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
           "description": "How long in seconds processing an item from workqueue takes",
           "fieldConfig": {
             "defaults": {
@@ -2940,7 +3004,7 @@
             "h": 13,
             "w": 24,
             "x": 0,
-            "y": 67
+            "y": 54
           },
           "id": 37,
           "options": {
@@ -2994,6 +3058,87 @@
             }
           ],
           "title": "Workqueue Work Duration",
+          "type": "heatmap"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "PBFA97CFB590B2093"
+          },
+          "description": "How long in seconds an item stays in workqueue before being requested",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "hideFrom": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": false
+                },
+                "scaleDistribution": {
+                  "type": "linear"
+                }
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 13,
+            "w": 24,
+            "x": 0,
+            "y": 67
+          },
+          "id": 36,
+          "options": {
+            "calculate": false,
+            "cellGap": 2,
+            "color": {
+              "exponent": 0.5,
+              "fill": "dark-orange",
+              "mode": "scheme",
+              "reverse": true,
+              "scale": "exponential",
+              "scheme": "Oranges",
+              "steps": 128
+            },
+            "exemplars": {
+              "color": "rgba(255,0,255,0.7)"
+            },
+            "filterValues": {
+              "le": 1e-9
+            },
+            "legend": {
+              "show": true
+            },
+            "rowsFrame": {
+              "layout": "auto"
+            },
+            "tooltip": {
+              "show": true,
+              "yHistogram": false
+            },
+            "yAxis": {
+              "axisPlacement": "left",
+              "reverse": false,
+              "unit": "short"
+            }
+          },
+          "pluginVersion": "9.5.2",
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "PBFA97CFB590B2093"
+              },
+              "editorMode": "code",
+              "exemplar": true,
+              "expr": "rate(workqueue_queue_duration_seconds_bucket{pod=~\"$Pod\", name=~\"$Controller\"}[$__rate_interval])",
+              "format": "heatmap",
+              "legendFormat": "{{le}}",
+              "range": true,
+              "refId": "A"
+            }
+          ],
+          "title": "Workqueue Queue Duration",
           "type": "heatmap"
         }
       ],

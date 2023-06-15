@@ -121,6 +121,10 @@ func (w *Workload) updateManagedEtcdConditions(ctx context.Context, controlPlane
 		// Retrieve the member and check for alarms.
 		// NB. The member for this node always exists given forFirstAvailableNode(node) used above
 		member := etcdutil.MemberForName(currentMembers, node.Name)
+		if member == nil {
+			conditions.MarkFalse(machine, controlplanev1.MachineEtcdMemberHealthyCondition, controlplanev1.EtcdMemberUnhealthyReason, clusterv1.ConditionSeverityError, "etcd member reports the cluster is composed by members %s, but the member itself (%s) is not included", etcdutil.MemberNames(currentMembers), node.Name)
+			continue
+		}
 		if len(member.Alarms) > 0 {
 			alarmList := []string{}
 			for _, alarm := range member.Alarms {

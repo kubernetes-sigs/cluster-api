@@ -8,6 +8,8 @@ metadata:
 spec:
   template:
     spec:
+      # NOTE: If the Kubernetes version is changed in `clusterctl_upgrade_test.go` the image and SHA must be updated here.
+      customImage: "kindest/node:v1.27.1@sha256:b7d12ed662b873bd8510879c1846e87c7e676a79fefc93e17b2a52989d3ff42b"
       extraMounts:
         - containerPath: "/var/run/docker.sock"
           hostPath: "/var/run/docker.sock"

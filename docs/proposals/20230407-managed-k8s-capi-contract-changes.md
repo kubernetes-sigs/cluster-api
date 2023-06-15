@@ -1,3 +1,38 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Contract Changes to Support Managed Kubernetes](#contract-changes-to-support-managed-kubernetes)
+  - [Table of Contents](#table-of-contents)
+  - [Glossary](#glossary)
+  - [Summary](#summary)
+  - [Motivation](#motivation)
+    - [Goals](#goals)
+    - [Non-Goals](#non-goals)
+    - [Future Work](#future-work)
+  - [Proposal](#proposal)
+    - [User Stories](#user-stories)
+      - [Story 1](#story-1)
+      - [Story 2](#story-2)
+      - [Story 3](#story-3)
+      - [Story 4](#story-4)
+      - [Story 5](#story-5)
+      - [Story 6](#story-6)
+      - [Story 7](#story-7)
+    - [Current State of Managed Kubernetes in CAPI](#current-state-of-managed-kubernetes-in-capi)
+      - [EKS in CAPA](#eks-in-capa)
+      - [AKS in CAPZ](#aks-in-capz)
+      - [GKE in CAPG](#gke-in-capg)
+      - [Learnings from original Proposal: Two kinds with a Managed Control Plane & Managed Infra Cluster adhering to the current CAPI contracts](#learnings-from-original-proposal-two-kinds-with-a-managed-control-plane--managed-infra-cluster-adhering-to-the-current-capi-contracts)
+    - [Two New Flows](#two-new-flows)
+      - [Flow 1: `<Infra>Cluster` and `<Infra>ControlPlane`, with `ControlPlaneEndpoint` reported via `<Infra>ControlPlane`](#flow-1-infracluster-and-infracontrolplane-with-controlplaneendpoint-reported-via-infracontrolplane)
+      - [Flow 2: Change CAPI to make `<Infra>Cluster` optional](#flow-2-change-capi-to-make-infracluster-optional)
+      - [Alternative Option: Introduce a new Managed Kubernetes provider type (with contract)](#alternative-option-introduce-a-new-managed-kubernetes-provider-type-with-contract)
+  - [Recommendations](#recommendations)
+  - [Implementation History](#implementation-history)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ---
 title: Contract Changes to Support Managed Kubernetes
 authors:

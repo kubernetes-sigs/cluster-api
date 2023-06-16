@@ -188,6 +188,34 @@ spec:
         valueFrom:
           template: |
             kindest/node:{{ .builtin.controlPlane.version | replace "+" "_" }}
+  - name: replaceImage-v1.23.17-machineDeployment
+    description: "Sets the container image for MD DockerMachineTemplates using Kubernetes v1.23.17."
+    enabledIf: '{{ semverCompare "v1.23.17" .builtin.machineDeployment.version }}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/customImage"
+            value: "kindest/node:v1.23.17@sha256:f77f8cf0b30430ca4128cc7cfafece0c274a118cd0cdb251049664ace0dee4ff"
+  - name: replaceImage-v1.23.17-controlPlane
+    description: "Sets the container image for CP DockerMachineTemplates using Kubernetes v1.23.17."
+    enabledIf: '{{ semverCompare "v1.23.17" .builtin.controlPlane.version }}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachineTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/customImage"
+            value: "kindest/node:v1.23.17@sha256:f77f8cf0b30430ca4128cc7cfafece0c274a118cd0cdb251049664ace0dee4ff"
   - name: podSecurityStandard
     description: "Adds an admission configuration for PodSecurity to the kube-apiserver."
     definitions:

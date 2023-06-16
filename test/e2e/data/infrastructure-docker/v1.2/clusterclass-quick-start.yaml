@@ -166,22 +166,6 @@ spec:
         valueFrom:
           template: |
             imageTag: {{ .coreDNSImageTag }}
-  - name: customImage
-    description: "Sets the container image that is used for running dockerMachines for the controlPlane and default-worker machineDeployments."
-    definitions:
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: DockerMachineTemplate
-        matchResources:
-          machineDeploymentClass:
-            names:
-            - default-worker
-      jsonPatches:
-      - op: add
-        path: "/spec/template/spec/customImage"
-        valueFrom:
-          template: |
-            kindest/node:{{ .builtin.machineDeployment.version | replace "+" "_" }}
     - selector:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: DockerMachineTemplate
@@ -274,6 +258,8 @@ metadata:
 spec:
   template:
     spec:
+      # NOTE: If the Kubernetes version is changed in `clusterctl_upgrade_test.go` the image and SHA must be updated here.
+      customImage: "kindest/node:v1.26.4@sha256:f4c0d87be03d6bea69f5e5dc0adb678bb498a190ee5c38422bf751541cebe92e"
       extraMounts:
       - containerPath: "/var/run/docker.sock"
         hostPath: "/var/run/docker.sock"
@@ -285,6 +271,8 @@ metadata:
 spec:
   template:
     spec:
+      # NOTE: If the Kubernetes version is changed in `clusterctl_upgrade_test.go` the image and SHA must be updated here.
+      customImage: "kindest/node:v1.26.4@sha256:f4c0d87be03d6bea69f5e5dc0adb678bb498a190ee5c38422bf751541cebe92e"
       extraMounts:
       - containerPath: "/var/run/docker.sock"
         hostPath: "/var/run/docker.sock"

@@ -211,7 +211,7 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 
 		switch role {
 		case constants.ControlPlaneNodeRoleValue:
-			log.Info("Creating control plane machine container")
+			log.Info(fmt.Sprintf("Creating control plane machine container with image %s", machineImage))
 			m.container, err = m.nodeCreator.CreateControlPlaneNode(
 				ctx,
 				m.ContainerName(),
@@ -228,7 +228,7 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 				return errors.WithStack(err)
 			}
 		case constants.WorkerNodeRoleValue:
-			log.Info("Creating worker machine container")
+			log.Info(fmt.Sprintf("Creating worker machine container with image %s", machineImage))
 			m.container, err = m.nodeCreator.CreateWorkerNode(
 				ctx,
 				m.ContainerName(),

@@ -174,30 +174,58 @@ spec:
   - name: customImage
     description: "Sets the container image that is used for running dockerMachines for the controlPlane and default-worker machineDeployments."
     definitions:
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: DockerMachineTemplate
-        matchResources:
-          machineDeploymentClass:
-            names:
-            - default-worker
-      jsonPatches:
-      - op: add
-        path: "/spec/template/spec/customImage"
-        valueFrom:
-          template: |
-            kindest/node:{{ .builtin.machineDeployment.version | replace "+" "_" }}
-    - selector:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: DockerMachineTemplate
-        matchResources:
-          controlPlane: true
-      jsonPatches:
-      - op: add
-        path: "/spec/template/spec/customImage"
-        valueFrom:
-          template: |
-            kindest/node:{{ .builtin.controlPlane.version | replace "+" "_" }}
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/customImage"
+            valueFrom:
+              template: |
+                kindest/node:{{ .builtin.machineDeployment.version | replace "+" "_" }}
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachineTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/customImage"
+            valueFrom:
+              template: |
+                kindest/node:{{ .builtin.controlPlane.version | replace "+" "_" }}
+  - name: replaceImage-v1.23.13-machineDeployment
+    description: "Sets the container image for MD DockerMachineTemplates using Kubernetes v1.23.13."
+    enabledIf: '{{ semverCompare "v1.23.13" .builtin.machineDeployment.version }}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachineTemplate
+          matchResources:
+            machineDeploymentClass:
+              names:
+                - default-worker
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/customImage"
+            value: "kindest/node:v1.23.13@sha256:ef453bb7c79f0e3caba88d2067d4196f427794086a7d0df8df4f019d5e336b61"
+  - name: replaceImage-v1.23.13-controlPlane
+    description: "Sets the container image for CP DockerMachineTemplates using Kubernetes v1.23.13."
+    enabledIf: '{{ semverCompare "v1.23.13" .builtin.controlPlane.version }}'
+    definitions:
+      - selector:
+          apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+          kind: DockerMachineTemplate
+          matchResources:
+            controlPlane: true
+        jsonPatches:
+          - op: add
+            path: "/spec/template/spec/customImage"
+            value: "kindest/node:v1.23.13@sha256:ef453bb7c79f0e3caba88d2067d4196f427794086a7d0df8df4f019d5e336b61"
   - name: preloadImages
     description: |
       Sets the container images to preload to the node that is used for running dockerMachines.

@@ -35,6 +35,7 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v0.4.8/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1alpha4",
+			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v0.4/bases.
 			InitWithKubernetesVersion: "v1.23.17",
 			WorkloadKubernetesVersion: "v1.23.17",
 			MgmtFlavor:                "topology",
@@ -73,10 +74,11 @@ var _ = Describe("When testing clusterctl upgrades (v1.0=>current)", func() {
 			// runtime extension providers. If we don't do this the test will automatically
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
-			InitWithKubernetesVersion:         "v1.23.17",
-			WorkloadKubernetesVersion:         "v1.23.17",
-			MgmtFlavor:                        "topology",
-			WorkloadFlavor:                    "",
+			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v1.0/bases.
+			InitWithKubernetesVersion: "v1.23.17",
+			WorkloadKubernetesVersion: "v1.23.17",
+			MgmtFlavor:                "topology",
+			WorkloadFlavor:            "",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
 			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
@@ -112,10 +114,11 @@ var _ = Describe("When testing clusterctl upgrades (v1.3=>current)", func() {
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
 			InitWithProvidersContract:         "v1beta1",
-			InitWithKubernetesVersion:         "v1.26.4",
-			WorkloadKubernetesVersion:         "v1.26.4",
-			MgmtFlavor:                        "topology",
-			WorkloadFlavor:                    "",
+			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v1.3/bases.
+			InitWithKubernetesVersion: "v1.26.4",
+			WorkloadKubernetesVersion: "v1.26.4",
+			MgmtFlavor:                "topology",
+			WorkloadFlavor:            "",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
 			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
@@ -151,10 +154,11 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.3=>cur
 			// try to deploy the latest version of our test-extension from docker.yaml.
 			InitWithRuntimeExtensionProviders: []string{},
 			InitWithProvidersContract:         "v1beta1",
-			InitWithKubernetesVersion:         "v1.26.4",
-			WorkloadKubernetesVersion:         "v1.26.4",
-			MgmtFlavor:                        "topology",
-			WorkloadFlavor:                    "topology",
+			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v1.3/bases.
+			InitWithKubernetesVersion: "v1.26.4",
+			WorkloadKubernetesVersion: "v1.26.4",
+			MgmtFlavor:                "topology",
+			WorkloadFlavor:            "topology",
 			// This check ensures that ownerReference apiVersions are updated for all types after the upgrade.
 			PostUpgrade: func(proxy framework.ClusterProxy, namespace, clusterName string) {
 				framework.ValidateOwnerReferencesOnUpdate(proxy, namespace,
@@ -180,6 +184,7 @@ var _ = Describe("When testing clusterctl upgrades (v1.4=>current)", func() {
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
+			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v1.4/bases.
 			InitWithKubernetesVersion: "v1.27.1",
 			WorkloadKubernetesVersion: "v1.27.1",
 			MgmtFlavor:                "topology",
@@ -209,6 +214,7 @@ var _ = Describe("When testing clusterctl upgrades using ClusterClass (v1.4=>cur
 			SkipCleanup:               skipCleanup,
 			InitWithBinary:            "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.4.0/clusterctl-{OS}-{ARCH}",
 			InitWithProvidersContract: "v1beta1",
+			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v1.4/bases.
 			InitWithKubernetesVersion: "v1.27.1",
 			WorkloadKubernetesVersion: "v1.27.1",
 			MgmtFlavor:                "topology",

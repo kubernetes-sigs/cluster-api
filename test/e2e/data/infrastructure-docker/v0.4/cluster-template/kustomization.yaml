@@ -2,5 +2,3 @@ bases:
 - ../bases/cluster-with-kcp.yaml
 - ../bases/md.yaml
 - ../bases/crs.yaml
-- ../bases/mp.yaml
-- ../bases/mhc.yaml

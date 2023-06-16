@@ -35,11 +35,12 @@ var _ = Describe("When upgrading a workload cluster using ClusterClass with Runt
 		}
 
 		return clusterUpgradeWithRuntimeSDKSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			InfrastructureProvider: pointer.String("docker"),
 			// "upgrades" is the same as the "topology" flavor but with an additional MachinePool.
 			Flavor: pointer.String("upgrades-runtimesdk"),
 		}

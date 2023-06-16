@@ -21,17 +21,19 @@ package e2e
 
 import (
 	. "github.com/onsi/ginkgo/v2"
+	"k8s.io/utils/pointer"
 )
 
 var _ = Describe("When testing ClusterClass rollouts [ClusterClass]", func() {
 	ClusterClassRolloutSpec(ctx, func() ClusterClassRolloutSpecInput {
 		return ClusterClassRolloutSpecInput{
-			E2EConfig:             e2eConfig,
-			ClusterctlConfigPath:  clusterctlConfigPath,
-			BootstrapClusterProxy: bootstrapClusterProxy,
-			ArtifactFolder:        artifactFolder,
-			SkipCleanup:           skipCleanup,
-			Flavor:                "topology",
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			SkipCleanup:            skipCleanup,
+			Flavor:                 "topology",
+			InfrastructureProvider: pointer.String("docker"),
 		}
 	})
 })

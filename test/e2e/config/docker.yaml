@@ -19,6 +19,8 @@ images:
   loadBehavior: tryLoad
 - name: gcr.io/k8s-staging-cluster-api/capd-manager-{ARCH}:dev
   loadBehavior: tryLoad
+- name: gcr.io/k8s-staging-cluster-api/capim-manager-{ARCH}:dev
+  loadBehavior: tryLoad
 - name: gcr.io/k8s-staging-cluster-api/test-extension-{ARCH}:dev
   loadBehavior: tryLoad
 - name: quay.io/jetstack/cert-manager-cainjector:v1.12.1
@@ -245,6 +247,20 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start.yaml"
     - sourcePath: "../data/infrastructure-docker/main/clusterclass-quick-start-runtimesdk.yaml"
     - sourcePath: "../data/shared/main/metadata.yaml"
+
+- name: in-memory
+  type: InfrastructureProvider
+  versions:
+    - name: v1.5.99 # next; use manifest from source files
+      value: ../../../test/infrastructure/inmemory/config/default
+      replacements:
+        - old: --metrics-bind-addr=localhost:8080
+          new: "--metrics-bind-addr=:8080\n        - --logging-format=json"
+      files:
+        # Add cluster templates
+        - sourcePath: "../data/infrastructure-inmemory/main/clusterclass-in-memory.yaml"
+        - sourcePath: "../data/infrastructure-inmemory/main/cluster-template.yaml"
+        - sourcePath: "../data/shared/main/metadata.yaml"
 
 - name: test-extension
   type: RuntimeExtensionProvider

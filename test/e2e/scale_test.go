@@ -24,14 +24,19 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-var _ = Describe("When testing KCP adoption", func() {
-	KCPAdoptionSpec(ctx, func() KCPAdoptionSpecInput {
-		return KCPAdoptionSpecInput{
-			E2EConfig:              e2eConfig,
-			ClusterctlConfigPath:   clusterctlConfigPath,
-			BootstrapClusterProxy:  bootstrapClusterProxy,
-			ArtifactFolder:         artifactFolder,
-			SkipCleanup:            skipCleanup,
-			InfrastructureProvider: pointer.String("docker")}
+var _ = Describe("When scale testing using in-memory provider [Scale]", func() {
+	scaleSpec(ctx, func() scaleSpecInput {
+		return scaleSpecInput{
+			E2EConfig:                e2eConfig,
+			ClusterctlConfigPath:     clusterctlConfigPath,
+			InfrastructureProvider:   pointer.String("in-memory"),
+			BootstrapClusterProxy:    bootstrapClusterProxy,
+			ArtifactFolder:           artifactFolder,
+			ClusterCount:             pointer.Int64(10),
+			Concurrency:              pointer.Int64(5),
+			Flavor:                   pointer.String(""),
+			ControlPlaneMachineCount: pointer.Int64(3),
+			WorkerMachineCount:       pointer.Int64(3),
+		}
 	})
 })

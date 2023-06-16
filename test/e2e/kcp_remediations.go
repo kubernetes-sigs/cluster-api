@@ -61,6 +61,13 @@ type KCPRemediationSpecInput struct {
 	ArtifactFolder        string
 	SkipCleanup           bool
 
+	// InfrastructureProviders specifies the infrastructure to use for clusterctl
+	// operations (Example: get cluster templates).
+	// Note: In most cases this need not be specified. It only needs to be specified when
+	// multiple infrastructure providers (ex: CAPD + in-memory) are installed on the cluster as clusterctl will not be
+	// able to identify the default.
+	InfrastructureProvider *string
+
 	// Flavor, if specified, must refer to a template that has a MachineHealthCheck
 	// - 3 node CP, no workers
 	// - Control plane machines having a pre-kubeadm command that queries for a well-known ConfigMap on the management cluster,
@@ -109,12 +116,13 @@ func KCPRemediationSpec(ctx context.Context, inputGetter func() KCPRemediationSp
 
 		// Creates the workload cluster.
 		clusterResources = createWorkloadClusterAndWait(ctx, createWorkloadClusterAndWaitInput{
-			E2EConfig:            input.E2EConfig,
-			ClusterctlConfigPath: input.ClusterctlConfigPath,
-			Proxy:                input.BootstrapClusterProxy,
-			ArtifactFolder:       input.ArtifactFolder,
-			SpecName:             specName,
-			Flavor:               pointer.StringDeref(input.Flavor, "kcp-remediation"),
+			E2EConfig:              input.E2EConfig,
+			ClusterctlConfigPath:   input.ClusterctlConfigPath,
+			Proxy:                  input.BootstrapClusterProxy,
+			ArtifactFolder:         input.ArtifactFolder,
+			SpecName:               specName,
+			Flavor:                 pointer.StringDeref(input.Flavor, "kcp-remediation"),
+			InfrastructureProvider: input.InfrastructureProvider,
 
 			// values to be injected in the template
 
@@ -424,15 +432,16 @@ func createConfigMapForMachinesBootstrapSignal(ctx context.Context, writer clien
 }
 
 type createWorkloadClusterAndWaitInput struct {
-	E2EConfig            *clusterctl.E2EConfig
-	ClusterctlConfigPath string
-	Proxy                framework.ClusterProxy
-	ArtifactFolder       string
-	SpecName             string
-	Flavor               string
-	Namespace            string
-	AuthenticationToken  string
-	ServerAddr           string
+	E2EConfig              *clusterctl.E2EConfig
+	ClusterctlConfigPath   string
+	Proxy                  framework.ClusterProxy
+	ArtifactFolder         string
+	SpecName               string
+	Flavor                 string
+	Namespace              string
+	AuthenticationToken    string
+	ServerAddr             string
+	InfrastructureProvider *string
 }
 
 // createWorkloadClusterAndWait creates a workload cluster and return as soon as the cluster infrastructure is ready.
@@ -444,6 +453,10 @@ func createWorkloadClusterAndWait(ctx context.Context, input createWorkloadClust
 
 	// gets the cluster template
 	log.Logf("Getting the cluster template yaml")
+	infrastructureProvider := clusterctl.DefaultInfrastructureProvider
+	if input.InfrastructureProvider != nil {
+		infrastructureProvider = *input.InfrastructureProvider
+	}
 	clusterName := fmt.Sprintf("%s-%s", input.SpecName, util.RandomString(6))
 	workloadClusterTemplate := clusterctl.ConfigCluster(ctx, clusterctl.ConfigClusterInput{
 		// pass the clusterctl config file that points to the local provider repository created for this test,
@@ -459,7 +472,7 @@ func createWorkloadClusterAndWait(ctx context.Context, input createWorkloadClust
 		KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 		ControlPlaneMachineCount: pointer.Int64(3),
 		WorkerMachineCount:       pointer.Int64(0),
-		InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
+		InfrastructureProvider:   infrastructureProvider,
 		// setup clusterctl logs folder
 		LogFolder: filepath.Join(input.ArtifactFolder, "clusters", input.Proxy.GetName()),
 		// Adds authenticationToken, server address and namespace variables to be injected in the cluster template.

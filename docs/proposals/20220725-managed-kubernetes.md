@@ -234,7 +234,7 @@ So that I can eliminate the responsibility of owning and SREing the Control Plan
 - CRDs
   - GCPManagedControlPlane, GCPManagedCluster - provision GKE cluster
   - GCPManagedMachinePool - corresponds to managed node pool
-- Support falvor
+- Support flavor
   - GCPManagedControlPlane + GCPManagedCluster with GCPManagedMachinePool
 
 ### Managed Kubernetes API Design Approaches
@@ -342,7 +342,7 @@ type GCPManagedControlPlaneSpec struct {
 
 **Cons**
 
-- If the configuration/functionality related to the base infrastructure are included then we have mixed concerns of the APPI type.
+- If the configuration/functionality related to the base infrastructure are included then we have mixed concerns of the API type.
 
 #### Option 3: Two kinds with a Managed Control Plane and Managed Infra Cluster with Better Separation of Responsibilities
 

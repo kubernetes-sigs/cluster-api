@@ -111,7 +111,15 @@ The following terms will be used in this document.
 
 ## Summary
 
-We propose to make provider `<Infra>Cluster` resources optional in order to better represent Managed Kubernetes scenarios where all _Kubernetes Cluster Infrastructure_ is managed by the service provider, and not by Cluster API. In order to support that, we propose that the API Server endpoint reference can also originate from the `<Infra>ControlPlane` resource, and not the `<Infra>Cluster` resource. These changes will introduce two new possible implementation options for providers implementing Managed Kubernetes in Cluster API:
+We propose to relax the `<Infra>Cluster` resource Cluster API contract so that the `<Infra>ControlPlane` resource may authoritatively express the control plane endpoint in order to better represent real workflows and reduce the complexity for provider implementers.
+
+By relaxing the `<Infra>Cluster` contract with respect to the control plane endpoint we can also now provide the opportunity to make the `<Infra>Cluster` resource fully optional. This additional flexibility will allow Cluster API providers to better represent various Managed Kubernetes service offerings:
+
+- Cluster Infra is entirely abstracted away from the Managed Kubernetes user
+- Cluster Infra is exposed to the Managed Kubernetes user, but managed by the Managed Kubernetes service
+- Cluster Infra is provided by the user (BYO) to support the Managed Kubernetes service
+
+In order to support the above, we propose that the API Server endpoint reference can also originate from the `<Infra>ControlPlane` resource, and not the `<Infra>Cluster` resource. These changes will introduce two new possible implementation options for providers implementing Managed Kubernetes in Cluster API:
 
 1. A Managed Kubernetes cluster solution whose configuration surface area is expressed exclusively in a `<Infra>ControlPlane` resource (no `<Infra>Cluster` resource).
 2. A Managed Kubernetes cluster solution whose configuration surface area comprises both a `<Infra>Cluster` and a `<Infra>ControlPlane` resource, with `<Infra>ControlPlane` being solely responsible for configuring the API Server endpoint (instead of the API Server endpoint being configured via the `<Infra>Cluster`).

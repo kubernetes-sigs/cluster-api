@@ -116,6 +116,9 @@ k8s::resolveVersion() {
 kind::prepareKindestImage() {
   local version=$1
 
+  # ALWAYS_BUILD_KIND_IMAGES will default to false if unset.
+  ALWAYS_BUILD_KIND_IMAGES="${ALWAYS_BUILD_KIND_IMAGES:-"false"}"
+
   # Try to pre-pull the image
   kind::prepullImage "kindest/node:$version"
 

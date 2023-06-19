@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	defaultClientTimeout = 10 * time.Second
+	defaultClientTimeout = 0 * time.Second
 )
 
 // ClusterClientGetter returns a new remote client.

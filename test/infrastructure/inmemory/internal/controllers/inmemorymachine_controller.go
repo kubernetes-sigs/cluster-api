@@ -32,6 +32,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -263,12 +264,14 @@ func (r *InMemoryMachineReconciler) reconcileNormalCloudMachine(ctx context.Cont
 		x := inMemoryMachine.Spec.Behaviour.VM.Provisioning
 
 		provisioningDuration = x.StartupDuration.Duration
-		jitter, err := strconv.ParseFloat(x.StartupJitter, 64)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to parse VM's StartupJitter")
-		}
-		if jitter > 0.0 {
-			provisioningDuration += time.Duration(rand.Float64() * jitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+		if x.StartupJitter != "" {
+			jitter, err := strconv.ParseFloat(x.StartupJitter, 64)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to parse VM's StartupJitter")
+			}
+			if jitter > 0.0 {
+				provisioningDuration += time.Duration(rand.Float64() * jitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+			}
 		}
 	}
 
@@ -281,6 +284,8 @@ func (r *InMemoryMachineReconciler) reconcileNormalCloudMachine(ctx context.Cont
 
 	// TODO: consider if to surface VM provisioned also on the cloud machine (currently it surfaces only on the inMemoryMachine)
 
+	inMemoryMachine.Spec.ProviderID = pointer.String(calculateProviderID(inMemoryMachine))
+	inMemoryMachine.Status.Ready = true
 	conditions.MarkTrue(inMemoryMachine, infrav1.VMProvisionedCondition)
 	return ctrl.Result{}, nil
 }
@@ -297,12 +302,14 @@ func (r *InMemoryMachineReconciler) reconcileNormalNode(ctx context.Context, clu
 		x := inMemoryMachine.Spec.Behaviour.Node.Provisioning
 
 		provisioningDuration = x.StartupDuration.Duration
-		jitter, err := strconv.ParseFloat(x.StartupJitter, 64)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to parse node's StartupJitter")
-		}
-		if jitter > 0.0 {
-			provisioningDuration += time.Duration(rand.Float64() * jitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+		if x.StartupJitter != "" {
+			jitter, err := strconv.ParseFloat(x.StartupJitter, 64)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to parse node's StartupJitter")
+			}
+			if jitter > 0.0 {
+				provisioningDuration += time.Duration(rand.Float64() * jitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+			}
 		}
 	}
 
@@ -325,7 +332,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalNode(ctx context.Context, clu
 			Name: inMemoryMachine.Name,
 		},
 		Spec: corev1.NodeSpec{
-			ProviderID: fmt.Sprintf("in-memory://%s", inMemoryMachine.Name),
+			ProviderID: calculateProviderID(inMemoryMachine),
 		},
 		Status: corev1.NodeStatus{
 			Conditions: []corev1.NodeCondition{
@@ -355,11 +362,12 @@ func (r *InMemoryMachineReconciler) reconcileNormalNode(ctx context.Context, clu
 		}
 	}
 
-	inMemoryMachine.Spec.ProviderID = &node.Spec.ProviderID
-	inMemoryMachine.Status.Ready = true
-
 	conditions.MarkTrue(inMemoryMachine, infrav1.NodeProvisionedCondition)
 	return ctrl.Result{}, nil
+}
+
+func calculateProviderID(inMemoryMachine *infrav1.InMemoryMachine) string {
+	return fmt.Sprintf("in-memory://%s", inMemoryMachine.Name)
 }
 
 func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {
@@ -379,12 +387,14 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 		x := inMemoryMachine.Spec.Behaviour.Etcd.Provisioning
 
 		provisioningDuration = x.StartupDuration.Duration
-		jitter, err := strconv.ParseFloat(x.StartupJitter, 64)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to parse etcd's StartupJitter")
-		}
-		if jitter > 0.0 {
-			provisioningDuration += time.Duration(rand.Float64() * jitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+		if x.StartupJitter != "" {
+			jitter, err := strconv.ParseFloat(x.StartupJitter, 64)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to parse etcd's StartupJitter")
+			}
+			if jitter > 0.0 {
+				provisioningDuration += time.Duration(rand.Float64() * jitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+			}
 		}
 	}
 
@@ -494,12 +504,14 @@ func (r *InMemoryMachineReconciler) reconcileNormalAPIServer(ctx context.Context
 		x := inMemoryMachine.Spec.Behaviour.APIServer.Provisioning
 
 		provisioningDuration = x.StartupDuration.Duration
-		jitter, err := strconv.ParseFloat(x.StartupJitter, 64)
-		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to parse API server's StartupJitter")
-		}
-		if jitter > 0.0 {
-			provisioningDuration += time.Duration(rand.Float64() * jitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+		if x.StartupJitter != "" {
+			jitter, err := strconv.ParseFloat(x.StartupJitter, 64)
+			if err != nil {
+				return ctrl.Result{}, errors.Wrapf(err, "failed to parse API server's StartupJitter")
+			}
+			if jitter > 0.0 {
+				provisioningDuration += time.Duration(rand.Float64() * jitter * float64(provisioningDuration)) //nolint:gosec // Intentionally using a weak random number generator here.
+			}
 		}
 	}
 

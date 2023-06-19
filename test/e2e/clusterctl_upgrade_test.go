@@ -37,6 +37,7 @@ var _ = Describe("When testing clusterctl upgrades (v0.3=>current)", func() {
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v0.3/bases.
 			InitWithKubernetesVersion: "v1.21.12",
 			// CAPI does not work with Kubernetes < v1.22 if ClusterClass is enabled, so we have to disable it.
+			WorkloadKubernetesVersion: "v1.21.12",
 			UpgradeClusterctlVariables: map[string]string{
 				"CLUSTER_TOPOLOGY": "false",
 			},
@@ -58,6 +59,7 @@ var _ = Describe("When testing clusterctl upgrades (v0.4=>current)", func() {
 			InitWithProvidersContract: "v1alpha4",
 			// NOTE: If this version is changed here the image and SHA must also be updated in all DockerMachineTemplates in `test/data/infrastructure-docker/v0.4/bases.
 			InitWithKubernetesVersion: "v1.23.13",
+			WorkloadKubernetesVersion: "v1.23.13",
 			MgmtFlavor:                "topology",
 			WorkloadFlavor:            "",
 		}

@@ -105,6 +105,8 @@ type ClusterctlUpgradeSpecInput struct {
 	MgmtFlavor                  string
 	CNIManifestPath             string
 	WorkloadFlavor              string
+	// WorkloadKubernetesVersion is Kubernetes version used to create the workload cluster, e.g. `v1.25.0`
+	WorkloadKubernetesVersion string
 	// Custom providers can be specified to upgrade to a pre-release or a custom version instead of upgrading to the latest using contact
 	CoreProvider              string
 	BootstrapProviders        []string
@@ -328,7 +330,10 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 		// so we are getting a template using the downloaded version of clusterctl, applying it, and wait for machines to be provisioned.
 
 		workLoadClusterName = fmt.Sprintf("%s-%s", specName, util.RandomString(6))
-		kubernetesVersion := input.E2EConfig.GetVariable(KubernetesVersion)
+		kubernetesVersion := input.WorkloadKubernetesVersion
+		if kubernetesVersion == "" {
+			kubernetesVersion = input.E2EConfig.GetVariable(KubernetesVersion)
+		}
 		controlPlaneMachineCount := pointer.Int64(1)
 		workerMachineCount := pointer.Int64(1)
 

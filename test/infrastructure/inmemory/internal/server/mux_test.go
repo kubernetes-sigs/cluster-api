@@ -60,13 +60,20 @@ func init() {
 }
 
 func TestMux(t *testing.T) {
+	t.Parallel()
 	g := NewWithT(t)
 
 	manager := cmanager.New(scheme)
 
 	wcl := "workload-cluster"
 	host := "127.0.0.1" //nolint:goconst
-	wcmux := NewWorkloadClustersMux(manager, host)
+	wcmux, err := NewWorkloadClustersMux(manager, host, CustomPorts{
+		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
+		MinPort:   DefaultMinPort,
+		MaxPort:   DefaultMinPort + 99,
+		DebugPort: DefaultDebugPort,
+	})
+	g.Expect(err).ToNot(HaveOccurred())
 
 	listener, err := wcmux.InitWorkloadClusterListener(wcl)
 	g.Expect(err).ToNot(HaveOccurred())
@@ -115,9 +122,15 @@ func TestMux(t *testing.T) {
 }
 
 func TestAPI_corev1_CRUD(t *testing.T) {
+	t.Parallel()
 	g := NewWithT(t)
 
-	wcmux, c := setupWorkloadClusterListener(g)
+	wcmux, c := setupWorkloadClusterListener(g, CustomPorts{
+		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
+		MinPort:   DefaultMinPort + 100,
+		MaxPort:   DefaultMinPort + 199,
+		DebugPort: DefaultDebugPort + 1,
+	})
 
 	// create
 
@@ -171,9 +184,15 @@ func TestAPI_corev1_CRUD(t *testing.T) {
 }
 
 func TestAPI_rbacv1_CRUD(t *testing.T) {
+	t.Parallel()
 	g := NewWithT(t)
 
-	wcmux, c := setupWorkloadClusterListener(g)
+	wcmux, c := setupWorkloadClusterListener(g, CustomPorts{
+		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
+		MinPort:   DefaultMinPort + 200,
+		MaxPort:   DefaultMinPort + 299,
+		DebugPort: DefaultDebugPort + 2,
+	})
 
 	// create
 
@@ -214,12 +233,19 @@ func TestAPI_rbacv1_CRUD(t *testing.T) {
 }
 
 func TestAPI_PortForward(t *testing.T) {
+	t.Parallel()
 	g := NewWithT(t)
 	manager := cmanager.New(scheme)
 
 	// TODO: deduplicate this setup code with the test above
 	host := "127.0.0.1"
-	wcmux := NewWorkloadClustersMux(manager, host)
+	wcmux, err := NewWorkloadClustersMux(manager, host, CustomPorts{
+		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
+		MinPort:   DefaultMinPort + 300,
+		MaxPort:   DefaultMinPort + 399,
+		DebugPort: DefaultDebugPort + 3,
+	})
+	g.Expect(err).ToNot(HaveOccurred())
 
 	// InfraCluster controller >> when "creating the load balancer"
 	wcl1 := "workload-cluster1"
@@ -341,11 +367,12 @@ func TestAPI_PortForward(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 }
 
-func setupWorkloadClusterListener(g Gomega) (*WorkloadClustersMux, client.Client) {
+func setupWorkloadClusterListener(g Gomega, ports CustomPorts) (*WorkloadClustersMux, client.Client) {
 	manager := cmanager.New(scheme)
 
 	host := "127.0.0.1"
-	wcmux := NewWorkloadClustersMux(manager, host)
+	wcmux, err := NewWorkloadClustersMux(manager, host, ports)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	// InfraCluster controller >> when "creating the load balancer"
 	wcl1 := "workload-cluster1"

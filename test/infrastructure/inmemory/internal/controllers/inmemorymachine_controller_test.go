@@ -314,8 +314,14 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		manager := cmanager.New(scheme)
 
 		host := "127.0.0.1"
-		wcmux := server.NewWorkloadClustersMux(manager, host)
-		_, err := wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
+		wcmux, err := server.NewWorkloadClustersMux(manager, host, server.CustomPorts{
+			// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
+			MinPort:   server.DefaultMinPort + 1000,
+			MaxPort:   server.DefaultMinPort + 1099,
+			DebugPort: server.DefaultDebugPort,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
+		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
 		g.Expect(err).ToNot(HaveOccurred())
 
 		r := InMemoryMachineReconciler{
@@ -436,8 +442,14 @@ func TestReconcileNormalApiServer(t *testing.T) {
 		manager := cmanager.New(scheme)
 
 		host := "127.0.0.1"
-		wcmux := server.NewWorkloadClustersMux(manager, host)
-		_, err := wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
+		wcmux, err := server.NewWorkloadClustersMux(manager, host, server.CustomPorts{
+			// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
+			MinPort:   server.DefaultMinPort + 1100,
+			MaxPort:   server.DefaultMinPort + 1299,
+			DebugPort: server.DefaultDebugPort,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
+		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
 		g.Expect(err).ToNot(HaveOccurred())
 
 		r := InMemoryMachineReconciler{

@@ -257,7 +257,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	// Start an http server
 	podIP := os.Getenv("POD_IP")
-	apiServerMux := server.NewWorkloadClustersMux(cloudMgr, podIP)
+	apiServerMux, err := server.NewWorkloadClustersMux(cloudMgr, podIP)
+	if err != nil {
+		setupLog.Error(err, "unable to create workload clusters mux")
+		os.Exit(1)
+	}
 
 	// Setup reconcilers
 	if err := (&controllers.InMemoryClusterReconciler{

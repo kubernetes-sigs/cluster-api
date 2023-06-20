@@ -44,14 +44,51 @@ import (
 )
 
 const (
-	debugPort = 19000
+	// DefaultDebugPort default debug port of the workload clusters mux.
+	DefaultDebugPort = 19000
 
 	// This range allows for 4k clusters, which is 4 times the goal we have in mind for
 	// the first iteration of stress tests.
 
-	minPort = 20000
-	maxPort = 24000
+	// DefaultMinPort default min port of the workload clusters mux.
+	DefaultMinPort = 20000
+	// DefaultMaxPort default max port of the workload clusters mux.
+	DefaultMaxPort = 24000
 )
+
+// WorkloadClustersMuxOption define an option for the WorkloadClustersMux creation.
+type WorkloadClustersMuxOption interface {
+	Apply(*WorkloadClustersMuxOptions)
+}
+
+// WorkloadClustersMuxOptions are options for the workload clusters mux.
+type WorkloadClustersMuxOptions struct {
+	MinPort   int
+	MaxPort   int
+	DebugPort int
+}
+
+// ApplyOptions applies WorkloadClustersMuxOption to the current WorkloadClustersMuxOptions.
+func (o *WorkloadClustersMuxOptions) ApplyOptions(opts []WorkloadClustersMuxOption) *WorkloadClustersMuxOptions {
+	for _, opt := range opts {
+		opt.Apply(o)
+	}
+	return o
+}
+
+// CustomPorts allows to customize the ports used by the workload clusters mux.
+type CustomPorts struct {
+	MinPort   int
+	MaxPort   int
+	DebugPort int
+}
+
+// Apply applies this configuration to the given WorkloadClustersMuxOptions.
+func (c CustomPorts) Apply(options *WorkloadClustersMuxOptions) {
+	options.MinPort = c.MinPort
+	options.MaxPort = c.MaxPort
+	options.DebugPort = c.DebugPort
+}
 
 // WorkloadClustersMux implements a server that handles requests for multiple workload clusters.
 // Each workload clusters will get its own listener, serving on a dedicated port, eg.
@@ -77,12 +114,19 @@ type WorkloadClustersMux struct {
 }
 
 // NewWorkloadClustersMux returns a WorkloadClustersMux that handles requests for multiple workload clusters.
-func NewWorkloadClustersMux(manager cmanager.Manager, host string) *WorkloadClustersMux {
+func NewWorkloadClustersMux(manager cmanager.Manager, host string, opts ...WorkloadClustersMuxOption) (*WorkloadClustersMux, error) {
+	options := WorkloadClustersMuxOptions{
+		MinPort:   DefaultMinPort,
+		MaxPort:   DefaultMaxPort,
+		DebugPort: DefaultDebugPort,
+	}
+	options.ApplyOptions(opts)
+
 	m := &WorkloadClustersMux{
 		host:                      host,
-		minPort:                   minPort,
-		maxPort:                   maxPort,
-		portIndex:                 minPort,
+		minPort:                   options.MinPort,
+		maxPort:                   options.MaxPort,
+		portIndex:                 options.MinPort,
 		manager:                   manager,
 		workloadClusterListeners:  map[string]*WorkloadClusterListener{},
 		workloadClusterNameByHost: map[string]string{},
@@ -107,10 +151,13 @@ func NewWorkloadClustersMux(manager cmanager.Manager, host string) *WorkloadClus
 	m.debugServer = http.Server{
 		Handler: api.NewDebugHandler(manager, m.log, m),
 	}
-	l, _ := net.Listen("tcp", net.JoinHostPort(host, fmt.Sprintf("%d", debugPort)))
+	l, err := net.Listen("tcp", net.JoinHostPort(host, fmt.Sprintf("%d", options.DebugPort)))
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to create listener for workload cluster mux")
+	}
 	go func() { _ = m.debugServer.Serve(l) }()
 
-	return m
+	return m, nil
 }
 
 // mixedHandler returns an handler that can serve either API server calls or etcd calls.

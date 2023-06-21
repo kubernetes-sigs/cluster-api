@@ -56,11 +56,6 @@ import (
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
-const (
-	// controllerName defines the controller used when creating clients.
-	controllerName = "machine-controller"
-)
-
 var (
 	errNilNodeRef                 = errors.New("noderef is nil")
 	errLastControlPlaneNode       = errors.New("last control plane member")
@@ -579,7 +574,7 @@ func (r *Reconciler) isDeleteNodeAllowed(ctx context.Context, cluster *clusterv1
 func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, nodeName string) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "Node", klog.KRef("", nodeName))
 
-	restConfig, err := remote.RESTConfig(ctx, controllerName, r.Client, util.ObjectKey(cluster))
+	restConfig, err := r.Tracker.GetRESTConfig(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		log.Error(err, "Error creating a remote client while deleting Machine, won't retry")
 		return ctrl.Result{}, nil

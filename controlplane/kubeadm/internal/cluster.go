@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -102,10 +103,11 @@ func (m *Management) GetMachinePoolsForCluster(ctx context.Context, cluster *clu
 func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error) {
 	// TODO(chuckha): Inject this dependency.
 	// TODO(chuckha): memoize this function. The workload client only exists as long as a reconciliation loop.
-	restConfig, err := remote.RESTConfig(ctx, KubeadmControlPlaneControllerName, m.Client, clusterKey)
+	restConfig, err := m.Tracker.GetRESTConfig(ctx, clusterKey)
 	if err != nil {
 		return nil, err
 	}
+	restConfig = rest.CopyConfig(restConfig)
 	restConfig.Timeout = 30 * time.Second
 
 	if m.Tracker == nil {

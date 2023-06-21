@@ -86,11 +86,6 @@ func (m *WatchEventDispatcher) OnGeneric(resourceGroup string, o client.Object) 
 	}
 }
 
-// isWatch is true if the request contains `watch="true"` as a query parameter.
-func isWatch(req *restful.Request) bool {
-	return req.QueryParameter("watch") == "true"
-}
-
 func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.Response, resourceGroup string, gvk schema.GroupVersionKind) (reterr error) {
 	ctx := req.Request.Context()
 	queryTimeout := req.QueryParameter("timeoutSeconds")
@@ -126,10 +121,7 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 		}
 	}()
 
-	if err = watcher.Run(ctx, queryTimeout, resp); err != nil {
-		return err
-	}
-	return reterr
+	return watcher.Run(ctx, queryTimeout, resp)
 }
 
 // Run serves a series of encoded events via HTTP with Transfer-Encoding: chunked.

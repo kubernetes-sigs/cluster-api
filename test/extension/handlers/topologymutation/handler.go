@@ -24,7 +24,6 @@ package topologymutation
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
@@ -40,6 +39,7 @@ import (
 	runtimehooksv1 "sigs.k8s.io/cluster-api/exp/runtime/hooks/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/exp/runtime/topologymutation"
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/api/v1beta1"
+	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 	"sigs.k8s.io/cluster-api/util/version"
 )
 
@@ -257,7 +257,9 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 
 // patchDockerMachineTemplate patches the DockerMachineTemplate.
 // It sets the CustomImage to an image for the version in use by the controlPlane or by the MachineDeployment
-// the DockerMachineTemplate belongs to. This patch is required to pick up the kind image with the required Kubernetes version.
+// the DockerMachineTemplate belongs to.
+// NOTE: this patch is not required anymore after the introduction of the kind mapper in kind, however we keep it
+// as example of version aware patches.
 func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infrav1.DockerMachineTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -270,13 +272,14 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 		return errors.Wrap(err, "could not set customImage to control plane dockerMachineTemplate")
 	}
 	if found {
-		_, err := version.ParseMajorMinorPatchTolerant(cpVersion)
+		semVer, err := version.ParseMajorMinorPatchTolerant(cpVersion)
 		if err != nil {
 			return errors.Wrap(err, "could not parse control plane version")
 		}
-		customImage := fmt.Sprintf("kindest/node:%s", strings.ReplaceAll(cpVersion, "+", "_"))
-		log.Info(fmt.Sprintf("Setting MachineDeployment custom image to %q", customImage))
-		dockerMachineTemplate.Spec.Template.Spec.CustomImage = customImage
+		kindMapping := kind.GetMapping(semVer, "")
+
+		log.Info(fmt.Sprintf("Setting MachineDeployment custom image to %q", kindMapping.Image))
+		dockerMachineTemplate.Spec.Template.Spec.CustomImage = kindMapping.Image
 		// return early if we have successfully patched a control plane dockerMachineTemplate
 		return nil
 	}
@@ -290,13 +293,14 @@ func patchDockerMachineTemplate(ctx context.Context, dockerMachineTemplate *infr
 		return errors.Wrap(err, "could not set customImage to MachineDeployment DockerMachineTemplate")
 	}
 	if found {
-		_, err := version.ParseMajorMinorPatchTolerant(mdVersion)
+		semVer, err := version.ParseMajorMinorPatchTolerant(mdVersion)
 		if err != nil {
 			return errors.Wrap(err, "could not parse MachineDeployment version")
 		}
-		customImage := fmt.Sprintf("kindest/node:%s", strings.ReplaceAll(mdVersion, "+", "_"))
-		log.Info(fmt.Sprintf("Setting MachineDeployment customImage to %q", customImage))
-		dockerMachineTemplate.Spec.Template.Spec.CustomImage = customImage
+		kindMapping := kind.GetMapping(semVer, "")
+
+		log.Info(fmt.Sprintf("Setting MachineDeployment customImage to %q", kindMapping.Image))
+		dockerMachineTemplate.Spec.Template.Spec.CustomImage = kindMapping.Image
 		return nil
 	}
 

@@ -6,11 +6,6 @@ spec:
   controlPlane:
     metadata:
       annotations:
-        # The in-memory provider currently does not support looking up coredns
-        # and kube-proxy information and leads to reconcile errors in KCP.
-        # With these annotations KCP will skip processing those steps.
-        controlplane.cluster.x-k8s.io/skip-coredns: ""
-        controlplane.cluster.x-k8s.io/skip-kube-proxy: ""
     machineInfrastructure:
       ref:
         apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1

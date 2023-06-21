@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -88,6 +89,7 @@ func init() {
 	// scheme used for operating on the cloud resource.
 	_ = cloudv1.AddToScheme(cloudScheme)
 	_ = corev1.AddToScheme(cloudScheme)
+	_ = appsv1.AddToScheme(cloudScheme)
 	_ = rbacv1.AddToScheme(cloudScheme)
 }
 

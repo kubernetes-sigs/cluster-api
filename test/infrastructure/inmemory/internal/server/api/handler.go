@@ -153,6 +153,14 @@ func (h *apiServerHandler) apisDiscovery(req *restful.Request, resp *restful.Res
 			}
 			return
 		}
+		if req.PathParameter("group") == "apps" && req.PathParameter("version") == "v1" {
+			if err := resp.WriteEntity(appsV1ResourceList); err != nil {
+				_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+				return
+			}
+			return
+		}
+
 		_ = resp.WriteErrorString(http.StatusInternalServerError, fmt.Sprintf("discovery info not defined for %s/%s", req.PathParameter("group"), req.PathParameter("version")))
 		return
 	}
@@ -551,6 +559,9 @@ func getAPIResourceList(req *restful.Request) *metav1.APIResourceList {
 	if req.PathParameter("group") != "" {
 		if req.PathParameter("group") == "rbac.authorization.k8s.io" && req.PathParameter("version") == "v1" {
 			return rbacv1APIResourceList
+		}
+		if req.PathParameter("group") == "apps" && req.PathParameter("version") == "v1" {
+			return appsV1ResourceList
 		}
 		return nil
 	}

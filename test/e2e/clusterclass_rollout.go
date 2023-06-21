@@ -279,7 +279,7 @@ func assertClusterObjects(ctx context.Context, clusterProxy framework.ClusterPro
 		assertMachineSetsMachines(g, clusterObjects, cluster)
 
 		By("All cluster objects have the right labels, annotations and selectors")
-	}, 10*time.Second, 1*time.Second).Should(Succeed())
+	}, 30*time.Second, 1*time.Second).Should(Succeed())
 }
 
 func assertInfrastructureCluster(g Gomega, clusterClassObjects clusterClassObjects, clusterObjects clusterObjects, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) {

@@ -38,6 +38,17 @@ func (i *informer) AddEventHandler(handler InformEventHandler) error {
 	return nil
 }
 
+func (i *informer) RemoveEventHandler(handler InformEventHandler) error {
+	i.lock.Lock()
+	defer i.lock.Unlock()
+	for j, h := range i.handlers {
+		if h == handler {
+			i.handlers = append(i.handlers[:j], i.handlers[j+1:]...)
+		}
+	}
+	return nil
+}
+
 func (c *cache) GetInformer(ctx context.Context, obj client.Object) (Informer, error) {
 	gvk, err := apiutil.GVKForObject(obj, c.scheme)
 	if err != nil {

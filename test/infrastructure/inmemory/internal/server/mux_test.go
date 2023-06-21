@@ -367,7 +367,105 @@ func TestAPI_PortForward(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 }
 
-func setupWorkloadClusterListener(g Gomega, ports CustomPorts) (*WorkloadClustersMux, client.Client) {
+func TestAPI_corev1_Watch(t *testing.T) {
+	g := NewWithT(t)
+
+	_, c := setupWorkloadClusterListener(g, CustomPorts{
+		// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
+		MinPort:   DefaultMinPort + 400,
+		MaxPort:   DefaultMinPort + 499,
+		DebugPort: DefaultDebugPort + 4,
+	})
+
+	ctx := context.Background()
+
+	nodeWatcher, err := c.Watch(ctx, &corev1.NodeList{})
+	g.Expect(err).ToNot(HaveOccurred())
+
+	podWatcher, err := c.Watch(ctx, &corev1.PodList{})
+	g.Expect(err).ToNot(HaveOccurred())
+
+	expectedEvents := []string{"ADDED/foo", "MODIFIED/foo", "DELETED/foo", "ADDED/bar", "MODIFIED/bar", "DELETED/bar"}
+	receivedEvents := []string{}
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event := <-nodeWatcher.ResultChan():
+				o, ok := event.Object.(client.Object)
+				if !ok {
+					return
+				}
+				receivedEvents = append(receivedEvents, fmt.Sprintf("%s/%s", event.Type, o.GetName()))
+			case event := <-podWatcher.ResultChan():
+				o, ok := event.Object.(client.Object)
+				if !ok {
+					return
+				}
+				receivedEvents = append(receivedEvents, fmt.Sprintf("%s/%s", event.Type, o.GetName()))
+			case <-done:
+				nodeWatcher.Stop()
+			}
+		}
+	}()
+
+	// Test watcher on Node resources.
+
+	node1 := &corev1.Node{}
+	node1.SetName("foo")
+
+	// create node
+	err = c.Create(ctx, node1)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// get node
+	n := &corev1.Node{}
+	err = c.Get(ctx, client.ObjectKey{Name: "foo"}, n)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// patch node
+	nodeWithAnnotations := n.DeepCopy()
+	nodeWithAnnotations.SetAnnotations(map[string]string{"foo": "bar"})
+	err = c.Patch(ctx, nodeWithAnnotations, client.MergeFrom(n))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// delete node
+	err = c.Delete(ctx, n)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Test watcher on Pod resources.
+	pod1 := &corev1.Pod{}
+	pod1.SetName("bar")
+	pod1.SetNamespace("one")
+
+	// create pod
+	err = c.Create(ctx, pod1)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// patch pod
+	p := &corev1.Pod{}
+	err = c.Get(ctx, client.ObjectKey{Name: "bar", Namespace: "one"}, p)
+	g.Expect(err).ToNot(HaveOccurred())
+	podWithAnnotations := p.DeepCopy()
+	podWithAnnotations.SetAnnotations(map[string]string{"foo": "bar"})
+	err = c.Patch(ctx, podWithAnnotations, client.MergeFrom(p))
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// delete pod
+	err = c.Delete(ctx, p)
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Wait a second to ensure all events have been flushed.
+	time.Sleep(time.Second)
+
+	// Send a done signal to close the test goroutine.
+	done <- true
+
+	// Each event should be the same and in the same order.
+	g.Expect(receivedEvents).To(Equal(expectedEvents))
+}
+
+func setupWorkloadClusterListener(g Gomega, ports CustomPorts) (*WorkloadClustersMux, client.WithWatch) {
 	manager := cmanager.New(scheme)
 
 	host := "127.0.0.1"

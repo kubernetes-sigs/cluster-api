@@ -114,7 +114,7 @@ func (s *WorkloadClusterListener) RESTConfig() (*rest.Config, error) {
 }
 
 // GetClient returns a client for a WorkloadClusterListener.
-func (s *WorkloadClusterListener) GetClient() (client.Client, error) {
+func (s *WorkloadClusterListener) GetClient() (client.WithWatch, error) {
 	restConfig, err := s.RESTConfig()
 	if err != nil {
 		return nil, err
@@ -130,7 +130,7 @@ func (s *WorkloadClusterListener) GetClient() (client.Client, error) {
 		return nil, err
 	}
 
-	c, err := client.New(restConfig, client.Options{Scheme: s.scheme, Mapper: mapper})
+	c, err := client.NewWithWatch(restConfig, client.Options{Scheme: s.scheme, Mapper: mapper})
 	if err != nil {
 		return nil, err
 	}

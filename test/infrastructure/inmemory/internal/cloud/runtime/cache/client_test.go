@@ -629,7 +629,7 @@ func Test_cache_client(t *testing.T) {
 			g.Expect(c.resourceGroups["foo"].objects).To(HaveKey(cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)), "gvk must exist in object tracker for foo")
 			g.Expect(c.resourceGroups["foo"].objects[cloudv1.GroupVersion.WithKind(cloudv1.CloudMachineKind)]).ToNot(HaveKey(types.NamespacedName{Name: "bar"}), "Object bar must not exist in object tracker for foo")
 
-			g.Expect(h.Events()).ToNot(ContainElement("foo, CloudMachine=bar, Deleted"))
+			g.Expect(h.Events()).To(ContainElement("foo, CloudMachine=bar, Deleted"))
 		})
 
 		t.Run("delete with finalizers", func(t *testing.T) {
@@ -757,6 +757,11 @@ type fakeInformer struct {
 
 func (i *fakeInformer) AddEventHandler(handler InformEventHandler) error {
 	i.handler = handler
+	return nil
+}
+
+func (i *fakeInformer) RemoveEventHandler(_ InformEventHandler) error {
+	i.handler = nil
 	return nil
 }
 

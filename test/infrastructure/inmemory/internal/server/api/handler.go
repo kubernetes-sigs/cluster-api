@@ -73,14 +73,16 @@ func NewAPIServerHandler(manager cmanager.Manager, log logr.Logger, resolver Res
 
 	// CRUD endpoints (global objects)
 	ws.Route(ws.POST("/api/v1/{resource}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Create))
-	ws.Route(ws.GET("/api/v1/{resource}").To(apiServer.apiV1List))
+	ws.Route(ws.GET("/api/v1/{resource}").If(isList).To(apiServer.apiV1List))
+	ws.Route(ws.GET("/api/v1/{resource}").If(isWatch).To(apiServer.apiV1Watch))
 	ws.Route(ws.GET("/api/v1/{resource}/{name}").To(apiServer.apiV1Get))
 	ws.Route(ws.PUT("/api/v1/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Update))
 	ws.Route(ws.PATCH("/api/v1/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
 	ws.Route(ws.DELETE("/api/v1/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Delete))
 
 	ws.Route(ws.POST("/apis/{group}/{version}/{resource}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Create))
-	ws.Route(ws.GET("/apis/{group}/{version}/{resource}").To(apiServer.apiV1List))
+	ws.Route(ws.GET("/apis/{group}/{version}/{resource}").If(isList).To(apiServer.apiV1List))
+	ws.Route(ws.GET("/apis/{group}/{version}/{resource}").If(isWatch).To(apiServer.apiV1Watch))
 	ws.Route(ws.GET("/apis/{group}/{version}/{resource}/{name}").To(apiServer.apiV1Get))
 	ws.Route(ws.PUT("/apis/{group}/{version}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Update))
 	ws.Route(ws.PATCH("/apis/{group}/{version}/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
@@ -88,14 +90,16 @@ func NewAPIServerHandler(manager cmanager.Manager, log logr.Logger, resolver Res
 
 	// CRUD endpoints (namespaced objects)
 	ws.Route(ws.POST("/api/v1/namespaces/{namespace}/{resource}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Create))
-	ws.Route(ws.GET("/api/v1/namespaces/{namespace}/{resource}").To(apiServer.apiV1List))
+	ws.Route(ws.GET("/api/v1/namespaces/{namespace}/{resource}").If(isList).To(apiServer.apiV1List))
+	ws.Route(ws.GET("/api/v1/namespaces/{namespace}/{resource}").If(isWatch).To(apiServer.apiV1Watch))
 	ws.Route(ws.GET("/api/v1/namespaces/{namespace}/{resource}/{name}").To(apiServer.apiV1Get))
 	ws.Route(ws.PUT("/api/v1/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Update))
 	ws.Route(ws.PATCH("/api/v1/namespaces/{namespace}/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
 	ws.Route(ws.DELETE("/api/v1/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf, runtime.ContentTypeJSON).To(apiServer.apiV1Delete))
 
 	ws.Route(ws.POST("/apis/{group}/{version}/namespaces/{namespace}/{resource}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Create))
-	ws.Route(ws.GET("/apis/{group}/{version}/namespaces/{namespace}/{resource}").To(apiServer.apiV1List))
+	ws.Route(ws.GET("/apis/{group}/{version}/namespaces/{namespace}/{resource}").If(isList).To(apiServer.apiV1List))
+	ws.Route(ws.GET("/apis/{group}/{version}/namespaces/{namespace}/{resource}").If(isWatch).To(apiServer.apiV1Watch))
 	ws.Route(ws.GET("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").To(apiServer.apiV1Get))
 	ws.Route(ws.PUT("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").Consumes(runtime.ContentTypeProtobuf).To(apiServer.apiV1Update))
 	ws.Route(ws.PATCH("/apis/{group}/{version}/namespaces/{namespace}/{resource}/{name}").Consumes(string(types.MergePatchType), string(types.StrategicMergePatchType)).To(apiServer.apiV1Patch))
@@ -230,16 +234,6 @@ func (h *apiServerHandler) apiV1List(req *restful.Request, resp *restful.Respons
 		return
 	}
 
-	// If the request is a Watch handle it using watchForResource.
-	if isWatch(req) {
-		err = h.watchForResource(req, resp, resourceGroup, *gvk)
-		if err != nil {
-			_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
-			return
-		}
-		return
-	}
-
 	// Reads and returns the requested data.
 	list := &unstructured.UnstructuredList{}
 	list.SetAPIVersion(gvk.GroupVersion().String())
@@ -255,6 +249,29 @@ func (h *apiServerHandler) apiV1List(req *restful.Request, resp *restful.Respons
 		return
 	}
 	if err := resp.WriteEntity(list); err != nil {
+		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		return
+	}
+}
+
+func (h *apiServerHandler) apiV1Watch(req *restful.Request, resp *restful.Response) {
+	// Gets the resource group the request targets (the resolver is aware of the mapping host<->resourceGroup)
+	resourceGroup, err := h.resourceGroupResolver(req.Request.Host)
+	if err != nil {
+		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Maps the requested resource to a gvk.
+	gvk, err := requestToGVK(req)
+	if err != nil {
+		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// If the request is a Watch handle it using watchForResource.
+	err = h.watchForResource(req, resp, resourceGroup, *gvk)
+	if err != nil {
 		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -538,4 +555,14 @@ func getAPIResourceList(req *restful.Request) *metav1.APIResourceList {
 		return nil
 	}
 	return corev1APIResourceList
+}
+
+// isWatch is true if the request contains `watch="true"` as a query parameter.
+func isWatch(req *http.Request) bool {
+	return req.URL.Query().Get("watch") == "true"
+}
+
+// isList is true if the request does not have `watch="true` as a query parameter.
+func isList(req *http.Request) bool {
+	return !isWatch(req)
 }

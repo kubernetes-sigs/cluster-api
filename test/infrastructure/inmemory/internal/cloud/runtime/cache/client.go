@@ -422,11 +422,6 @@ func (c *cache) doTryDeleteLocked(resourceGroup string, tracker *resourceGroupTr
 			return false, apierrors.NewBadRequest(err.Error())
 		}
 
-		// TODO: (killianmuldoon) Understand if setting this twice is necessary.
-		// Required to override default beforeUpdate behaviour
-		// that prevent changes to automatically managed fields.
-		obj.SetDeletionTimestamp(&now)
-
 		objects[objKey] = obj
 		c.afterUpdate(resourceGroup, oldObj, obj)
 	}

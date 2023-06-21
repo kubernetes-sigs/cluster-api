@@ -34,6 +34,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -77,7 +78,12 @@ func TestReconcileKubeconfigEmptyAPIEndpoints(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	result, err := r.reconcileKubeconfig(ctx, cluster, kcp)
+	controlPlane := &internal.ControlPlane{
+		KCP:     kcp,
+		Cluster: cluster,
+	}
+
+	result, err := r.reconcileKubeconfig(ctx, controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result).To(BeZero())
 
@@ -126,7 +132,12 @@ func TestReconcileKubeconfigMissingCACertificate(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	result, err := r.reconcileKubeconfig(ctx, cluster, kcp)
+	controlPlane := &internal.ControlPlane{
+		KCP:     kcp,
+		Cluster: cluster,
+	}
+
+	result, err := r.reconcileKubeconfig(ctx, controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: dependentCertRequeueAfter}))
 
@@ -192,7 +203,12 @@ func TestReconcileKubeconfigSecretDoesNotAdoptsUserSecrets(t *testing.T) {
 		recorder: record.NewFakeRecorder(32),
 	}
 
-	result, err := r.reconcileKubeconfig(ctx, cluster, kcp)
+	controlPlane := &internal.ControlPlane{
+		KCP:     kcp,
+		Cluster: cluster,
+	}
+
+	result, err := r.reconcileKubeconfig(ctx, controlPlane)
 	g.Expect(err).To(Succeed())
 	g.Expect(result).To(BeZero())
 
@@ -251,7 +267,13 @@ func TestKubeadmControlPlaneReconciler_reconcileKubeconfig(t *testing.T) {
 		Client:   fakeClient,
 		recorder: record.NewFakeRecorder(32),
 	}
-	result, err := r.reconcileKubeconfig(ctx, cluster, kcp)
+
+	controlPlane := &internal.ControlPlane{
+		KCP:     kcp,
+		Cluster: cluster,
+	}
+
+	result, err := r.reconcileKubeconfig(ctx, controlPlane)
 	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result).To(Equal(ctrl.Result{}))
 

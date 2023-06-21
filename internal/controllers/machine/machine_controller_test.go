@@ -389,12 +389,14 @@ func TestMachineFinalizer(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			c := fake.NewClientBuilder().WithObjects(
+				clusterCorrectMeta,
+				machineValidCluster,
+				machineWithFinalizer,
+			).Build()
 			mr := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(
-					clusterCorrectMeta,
-					machineValidCluster,
-					machineWithFinalizer,
-				).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 
 			_, _ = mr.Reconcile(ctx, tc.request)
@@ -556,8 +558,9 @@ func TestMachineOwnerReference(t *testing.T) {
 				machineValidControlled,
 			).WithStatusSubresource(&clusterv1.Machine{}).Build()
 			mr := &Reconciler{
-				Client:    c,
-				APIReader: c,
+				Client:                    c,
+				UnstructuredCachingClient: c,
+				APIReader:                 c,
 			}
 
 			key := client.ObjectKey{Namespace: tc.m.Namespace, Name: tc.m.Name}
@@ -727,9 +730,10 @@ func TestReconcileRequest(t *testing.T) {
 			).WithStatusSubresource(&clusterv1.Machine{}).WithIndex(&corev1.Node{}, index.NodeProviderIDField, index.NodeByProviderID).Build()
 
 			r := &Reconciler{
-				Client:   clientFake,
-				Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
-				ssaCache: ssa.NewCache(),
+				Client:                    clientFake,
+				UnstructuredCachingClient: clientFake,
+				Tracker:                   remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				ssaCache:                  ssa.NewCache(),
 			}
 
 			result, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&tc.machine)})
@@ -975,9 +979,10 @@ func TestMachineConditions(t *testing.T) {
 				Build()
 
 			r := &Reconciler{
-				Client:   clientFake,
-				Tracker:  remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
-				ssaCache: ssa.NewCache(),
+				Client:                    clientFake,
+				UnstructuredCachingClient: clientFake,
+				Tracker:                   remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), clientFake, scheme.Scheme, client.ObjectKey{Name: testCluster.Name, Namespace: testCluster.Namespace}),
+				ssaCache:                  ssa.NewCache(),
 			}
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(&machine)})
@@ -1064,8 +1069,10 @@ func TestReconcileDeleteExternal(t *testing.T) {
 				objs = append(objs, bootstrapConfig)
 			}
 
+			c := fake.NewClientBuilder().WithObjects(objs...).Build()
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 
 			obj, err := r.reconcileDeleteExternal(ctx, machine, machine.Spec.Bootstrap.ConfigRef)
@@ -1106,8 +1113,10 @@ func TestRemoveMachineFinalizerAfterDeleteReconcile(t *testing.T) {
 		},
 	}
 	key := client.ObjectKey{Namespace: m.Namespace, Name: m.Name}
+	c := fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&clusterv1.Machine{}).Build()
 	mr := &Reconciler{
-		Client: fake.NewClientBuilder().WithObjects(testCluster, m).WithStatusSubresource(&clusterv1.Machine{}).Build(),
+		Client:                    c,
+		UnstructuredCachingClient: c,
 	}
 	_, err := mr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
 	g.Expect(err).ToNot(HaveOccurred())
@@ -1232,8 +1241,10 @@ func TestIsNodeDrainedAllowed(t *testing.T) {
 			var objs []client.Object
 			objs = append(objs, testCluster, tt.machine)
 
+			c := fake.NewClientBuilder().WithObjects(objs...).Build()
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 
 			got := r.isNodeDrainAllowed(tt.machine)
@@ -1357,8 +1368,10 @@ func TestIsNodeVolumeDetachingAllowed(t *testing.T) {
 			var objs []client.Object
 			objs = append(objs, testCluster, tt.machine)
 
+			c := fake.NewClientBuilder().WithObjects(objs...).Build()
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(objs...).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 
 			got := r.isNodeVolumeDetachingAllowed(tt.machine)
@@ -1709,16 +1722,18 @@ func TestIsDeleteNodeAllowed(t *testing.T) {
 				m2.Labels[clusterv1.MachineControlPlaneLabel] = ""
 			}
 
+			c := fake.NewClientBuilder().WithObjects(
+				tc.cluster,
+				tc.machine,
+				m1,
+				m2,
+				emp,
+				mcpBeingDeleted,
+				empBeingDeleted,
+			).Build()
 			mr := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(
-					tc.cluster,
-					tc.machine,
-					m1,
-					m2,
-					emp,
-					mcpBeingDeleted,
-					empBeingDeleted,
-				).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 
 			err := mr.isDeleteNodeAllowed(ctx, tc.cluster, tc.machine)
@@ -1981,7 +1996,8 @@ func TestNodeToMachine(t *testing.T) {
 	}
 
 	r := &Reconciler{
-		Client: env,
+		Client:                    env,
+		UnstructuredCachingClient: env,
 	}
 	for _, node := range fakeNodes {
 		request := r.nodeToMachine(ctx, node)
@@ -2159,10 +2175,11 @@ func TestNodeDeletion(t *testing.T) {
 			tracker := remote.NewTestClusterCacheTracker(ctrl.Log, fakeClient, fakeScheme, client.ObjectKeyFromObject(&testCluster))
 
 			r := &Reconciler{
-				Client:                   fakeClient,
-				Tracker:                  tracker,
-				recorder:                 record.NewFakeRecorder(10),
-				nodeDeletionRetryTimeout: 10 * time.Millisecond,
+				Client:                    fakeClient,
+				UnstructuredCachingClient: fakeClient,
+				Tracker:                   tracker,
+				recorder:                  record.NewFakeRecorder(10),
+				nodeDeletionRetryTimeout:  10 * time.Millisecond,
 			}
 
 			cluster := testCluster.DeepCopy()

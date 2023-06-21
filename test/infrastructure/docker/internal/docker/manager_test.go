@@ -26,6 +26,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/container"
+	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
 func TestCreateNode(t *testing.T) {
@@ -44,12 +45,15 @@ func TestCreateNode(t *testing.T) {
 	}
 	createOpts := &nodeCreateOpts{
 		Name:         "TestName",
-		Image:        "TestImage",
 		ClusterName:  "TestClusterName",
 		Role:         constants.ControlPlaneNodeRoleValue,
 		PortMappings: portMappingsWithAPIServer,
 		Mounts:       []v1alpha4.Mount{},
 		IPFamily:     clusterv1.IPv4IPFamily,
+		KindMapping: kind.Mapping{
+			Image: "TestImage",
+			Mode:  kind.ModeNone, // no impact on the fake runtime.
+		},
 	}
 	_, err := createNode(ctx, createOpts)
 
@@ -76,7 +80,7 @@ func TestCreateControlPlaneNode(t *testing.T) {
 
 	containerRuntime.ResetRunContainerCallLogs()
 	m := Manager{}
-	node, err := m.CreateControlPlaneNode(ctx, "TestName", "TestImage", "TestCluster", "100.100.100.100", 80, []v1alpha4.Mount{}, []v1alpha4.PortMapping{}, make(map[string]string), clusterv1.IPv4IPFamily)
+	node, err := m.CreateControlPlaneNode(ctx, "TestName", "TestCluster", "100.100.100.100", 80, []v1alpha4.Mount{}, []v1alpha4.PortMapping{}, make(map[string]string), clusterv1.IPv4IPFamily, kind.Mapping{Image: "TestImage"})
 
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(node.Role()).Should(Equal(constants.ControlPlaneNodeRoleValue))
@@ -99,7 +103,7 @@ func TestCreateWorkerNode(t *testing.T) {
 
 	containerRuntime.ResetRunContainerCallLogs()
 	m := Manager{}
-	node, err := m.CreateWorkerNode(ctx, "TestName", "TestImage", "TestCluster", []v1alpha4.Mount{}, []v1alpha4.PortMapping{}, make(map[string]string), clusterv1.IPv4IPFamily)
+	node, err := m.CreateWorkerNode(ctx, "TestName", "TestCluster", []v1alpha4.Mount{}, []v1alpha4.PortMapping{}, make(map[string]string), clusterv1.IPv4IPFamily, kind.Mapping{Image: "TestImage"})
 
 	g.Expect(err).ShouldNot(HaveOccurred())
 	g.Expect(node.Role()).Should(Equal(constants.WorkerNodeRoleValue))

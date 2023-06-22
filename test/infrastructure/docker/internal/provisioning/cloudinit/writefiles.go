@@ -28,11 +28,15 @@ import (
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
 
+	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	kubeadmtypes "sigs.k8s.io/cluster-api/bootstrap/kubeadm/types"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
+	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
 const (
 	kubeadmInitPath          = "/run/kubeadm/kubeadm.yaml"
+	kubeadmJoinPath          = "/run/kubeadm/kubeadm-join-config.yaml"
 	kubeproxyComponentConfig = `
 ---
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
@@ -62,11 +66,79 @@ func newWriteFilesAction() action {
 	return &writeFilesAction{}
 }
 
-func (a *writeFilesAction) Unmarshal(userData []byte) error {
+func (a *writeFilesAction) Unmarshal(userData []byte, kindMapping kind.Mapping) error {
 	if err := yaml.Unmarshal(userData, a); err != nil {
 		return errors.Wrapf(err, "error parsing write_files action: %s", userData)
 	}
+	for i, f := range a.Files {
+		if f.Path == kubeadmInitPath {
+			// NOTE: in case of join the kubeadmConfigFile contains both the ClusterConfiguration and the InitConfiguration
+			contentSplit := strings.Split(f.Content, "---\n")
+
+			if len(contentSplit) != 3 {
+				return errors.Errorf("invalid kubeadm config file, unable to parse it")
+			}
+			initConfiguration, err := kubeadmtypes.UnmarshalInitConfiguration(contentSplit[2])
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse init configuration")
+			}
+
+			fixNodeRegistration(&initConfiguration.NodeRegistration, kindMapping.Mode)
+
+			contentSplit[2], err = kubeadmtypes.MarshalInitConfigurationForVersion(initConfiguration, kindMapping.KubernetesVersion)
+			if err != nil {
+				return errors.Wrapf(err, "failed to marshal init configuration")
+			}
+			a.Files[i].Content = strings.Join(contentSplit, "---\n")
+		}
+		if f.Path == kubeadmJoinPath {
+			// NOTE: in case of join the kubeadmConfigFile contains only the join Configuration
+			joinConfiguration, err := kubeadmtypes.UnmarshalJoinConfiguration(f.Content)
+			if err != nil {
+				return errors.Wrapf(err, "failed to parse join configuration")
+			}
+
+			fixNodeRegistration(&joinConfiguration.NodeRegistration, kindMapping.Mode)
+
+			a.Files[i].Content, err = kubeadmtypes.MarshalJoinConfigurationForVersion(joinConfiguration, kindMapping.KubernetesVersion)
+			if err != nil {
+				return errors.Wrapf(err, "failed to marshal join configuration")
+			}
+		}
+	}
 	return nil
+}
+
+// fixNodeRegistration sets node registration for running Kubernetes/kubelet in docker.
+// NOTE: we add those values if they do not exists; user can set those flags to different values to disable automatic fixing.
+// NOTE: if there will be use case for it, we might investigate better ways to disable automatic fixing.
+func fixNodeRegistration(nodeRegistration *bootstrapv1.NodeRegistrationOptions, kindMode kind.Mode) {
+	if nodeRegistration.CRISocket == "" {
+		// NOTE: self-hosted cluster have to mount the Docker socket.
+		// On those nodes we have the Docker and the containerd socket and then kubeadm
+		// wouldn't know which one to use unless we are explicit about it.
+		nodeRegistration.CRISocket = "unix:///var/run/containerd/containerd.sock"
+	}
+
+	if nodeRegistration.KubeletExtraArgs == nil {
+		nodeRegistration.KubeletExtraArgs = map[string]string{}
+	}
+
+	if _, ok := nodeRegistration.KubeletExtraArgs["eviction-hard"]; !ok {
+		nodeRegistration.KubeletExtraArgs["eviction-hard"] = "nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%"
+	}
+	if _, ok := nodeRegistration.KubeletExtraArgs["fail-swap-on"]; !ok {
+		nodeRegistration.KubeletExtraArgs["fail-swap-on"] = "false"
+	}
+
+	if kindMode != kind.Mode0_19 {
+		if _, ok := nodeRegistration.KubeletExtraArgs["cgroup-root"]; !ok {
+			nodeRegistration.KubeletExtraArgs["cgroup-root"] = "/kubelet"
+		}
+		if _, ok := nodeRegistration.KubeletExtraArgs["runtime-cgroups"]; !ok {
+			nodeRegistration.KubeletExtraArgs["runtime-cgroups"] = "/system.slice/containerd.service"
+		}
+	}
 }
 
 // Commands return a list of commands to run on the node.

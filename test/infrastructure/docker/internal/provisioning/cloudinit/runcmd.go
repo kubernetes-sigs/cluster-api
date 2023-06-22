@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
+	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
 // runCmd defines parameters of a shell command that is equivalent to an action found in the cloud init rundcmd module.
@@ -36,7 +37,7 @@ func newRunCmdAction() action {
 }
 
 // Unmarshal the runCmd.
-func (a *runCmd) Unmarshal(userData []byte) error {
+func (a *runCmd) Unmarshal(userData []byte, _ kind.Mapping) error {
 	if err := yaml.Unmarshal(userData, a); err != nil {
 		return errors.Wrapf(err, "error parsing run_cmd action: %s", userData)
 	}

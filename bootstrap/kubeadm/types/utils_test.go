@@ -555,3 +555,121 @@ func TestUnmarshalClusterStatus(t *testing.T) {
 		})
 	}
 }
+
+func TestUnmarshalInitConfiguration(t *testing.T) {
+	type args struct {
+		yaml string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *bootstrapv1.InitConfiguration
+		wantErr bool
+	}{
+		{
+			name: "Parses a v1beta1 kubeadm configuration",
+			args: args{
+				yaml: "apiVersion: kubeadm.k8s.io/v1beta1\n" + "" +
+					"kind: InitConfiguration\n" +
+					"localAPIEndpoint: {}\n" +
+					"nodeRegistration: {}\n",
+			},
+			want:    &bootstrapv1.InitConfiguration{},
+			wantErr: false,
+		},
+		{
+			name: "Parses a v1beta2 kubeadm configuration",
+			args: args{
+				yaml: "apiVersion: kubeadm.k8s.io/v1beta2\n" + "" +
+					"kind: InitConfiguration\n" +
+					"localAPIEndpoint: {}\n" +
+					"nodeRegistration: {}\n",
+			},
+			want:    &bootstrapv1.InitConfiguration{},
+			wantErr: false,
+		},
+		{
+			name: "Parses a v1beta3 kubeadm configuration",
+			args: args{
+				yaml: "apiVersion: kubeadm.k8s.io/v1beta3\n" + "" +
+					"kind: InitConfiguration\n" +
+					"localAPIEndpoint: {}\n" +
+					"nodeRegistration: {}\n",
+			},
+			want:    &bootstrapv1.InitConfiguration{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			got, err := UnmarshalInitConfiguration(tt.args.yaml)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want), cmp.Diff(tt.want, got))
+		})
+	}
+}
+
+func TestUnmarshalJoinConfiguration(t *testing.T) {
+	type args struct {
+		yaml string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *bootstrapv1.JoinConfiguration
+		wantErr bool
+	}{
+		{
+			name: "Parses a v1beta1 kubeadm configuration",
+			args: args{
+				yaml: "apiVersion: kubeadm.k8s.io/v1beta1\n" + "" +
+					"caCertPath: \"\"\n" +
+					"discovery: {}\n" +
+					"kind: JoinConfiguration\n",
+			},
+			want:    &bootstrapv1.JoinConfiguration{},
+			wantErr: false,
+		},
+		{
+			name: "Parses a v1beta2 kubeadm configuration",
+			args: args{
+				yaml: "apiVersion: kubeadm.k8s.io/v1beta2\n" + "" +
+					"caCertPath: \"\"\n" +
+					"discovery: {}\n" +
+					"kind: JoinConfiguration\n",
+			},
+			want:    &bootstrapv1.JoinConfiguration{},
+			wantErr: false,
+		},
+		{
+			name: "Parses a v1beta3 kubeadm configuration",
+			args: args{
+				yaml: "apiVersion: kubeadm.k8s.io/v1beta3\n" + "" +
+					"caCertPath: \"\"\n" +
+					"discovery: {}\n" +
+					"kind: JoinConfiguration\n",
+			},
+			want:    &bootstrapv1.JoinConfiguration{},
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			got, err := UnmarshalJoinConfiguration(tt.args.yaml)
+			if tt.wantErr {
+				g.Expect(err).To(HaveOccurred())
+				return
+			}
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(got).To(Equal(tt.want), cmp.Diff(tt.want, got))
+		})
+	}
+}

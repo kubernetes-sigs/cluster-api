@@ -42,9 +42,7 @@ metadata:
   name: my-control-plane1-config
 spec:
   initConfiguration:
-    nodeRegistration:
-      kubeletExtraArgs:
-        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+    nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
   clusterConfiguration:
     controllerManager:
       extraArgs:
@@ -119,8 +117,7 @@ metadata:
 spec:
   initConfiguration:
     nodeRegistration:
-      kubeletExtraArgs:
-        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
   clusterConfiguration:
     controllerManager:
       extraArgs:
@@ -136,8 +133,7 @@ metadata:
 spec:
   joinConfiguration:
     nodeRegistration:
-      kubeletExtraArgs:
-        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
     controlPlane: {}
 ```
 
@@ -150,8 +146,7 @@ metadata:
 spec:
   joinConfiguration:
     nodeRegistration:
-      kubeletExtraArgs:
-        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+      nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ```
 
 ### Bootstrap Orchestration

@@ -19,9 +19,11 @@ package cloudinit
 import (
 	"testing"
 
+	"github.com/blang/semver"
 	. "github.com/onsi/gomega"
 
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
+	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
 func TestRealUseCase(t *testing.T) {
@@ -141,7 +143,7 @@ write_files:
 		{Cmd: "chmod", Args: []string{"0640", "/run/kubeadm/kubeadm.yaml"}},
 	}
 
-	commands, err := RawCloudInitToProvisioningCommands(cloudData)
+	commands, err := RawCloudInitToProvisioningCommands(cloudData, kind.Mapping{KubernetesVersion: semver.MustParse("1.13.6")})
 
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(commands).To(HaveLen(len(expectedCmds)))

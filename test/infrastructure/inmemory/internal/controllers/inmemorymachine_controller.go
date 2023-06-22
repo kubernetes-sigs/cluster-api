@@ -31,6 +31,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -44,6 +45,7 @@ import (
 	infrav1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/api/v1alpha1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud"
 	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
+	cclient "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/client"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -421,13 +423,6 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 				"component": "etcd",
 				"tier":      "control-plane",
 			},
-			Annotations: map[string]string{
-				// TODO: read this from existing etcd pods, if any, otherwise all the member will get a different ClusterID.
-				"etcd.inmemory.infrastructure.cluster.x-k8s.io/cluster-id": fmt.Sprintf("%d", rand.Uint32()), //nolint:gosec // weak random number generator is good enough here
-				"etcd.inmemory.infrastructure.cluster.x-k8s.io/member-id":  fmt.Sprintf("%d", rand.Uint32()), //nolint:gosec // weak random number generator is good enough here
-				// TODO: set this only if there are no other leaders.
-				"etcd.inmemory.infrastructure.cluster.x-k8s.io/leader-from": time.Now().Format(time.RFC3339),
-			},
 		},
 		Status: corev1.PodStatus{
 			Phase: corev1.PodRunning,
@@ -442,6 +437,42 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(etcdPod), etcdPod); err != nil {
 		if !apierrors.IsNotFound(err) {
 			return ctrl.Result{}, errors.Wrapf(err, "failed to get etcd Pod")
+		}
+
+		// Gets info about the current etcd cluster, if any.
+		info, err := r.inspectEtcd(ctx, cloudClient)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		// If this is the first etcd member in the cluster, assign a cluster ID
+		if info.clusterID == "" {
+			for {
+				info.clusterID = fmt.Sprintf("%d", rand.Uint32()) //nolint:gosec // weak random number generator is good enough here
+				if info.clusterID != "0" {
+					break
+				}
+			}
+		}
+
+		// Computes a unique memberID.
+		var memberID string
+		for {
+			memberID = fmt.Sprintf("%d", rand.Uint32()) //nolint:gosec // weak random number generator is good enough here
+			if !info.members.Has(memberID) && memberID != "0" {
+				break
+			}
+		}
+
+		// Annotate the pod with the info about the etcd cluster.
+		etcdPod.Annotations = map[string]string{
+			cloudv1.EtcdClusterIDAnnotationName: info.clusterID,
+			cloudv1.EtcdMemberIDAnnotationName:  memberID,
+		}
+
+		// If the etcd cluster is being created it doesn't have a leader yet, so set this member as a leader.
+		if info.leaderID == "" {
+			etcdPod.Annotations[cloudv1.EtcdLeaderFromAnnotationName] = time.Now().Format(time.RFC3339)
 		}
 
 		// NOTE: for the first control plane machine we might create the etcd pod before the API server pod is running
@@ -485,6 +516,58 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 
 	conditions.MarkTrue(inMemoryMachine, infrav1.EtcdProvisionedCondition)
 	return ctrl.Result{}, nil
+}
+
+type etcdInfo struct {
+	clusterID string
+	leaderID  string
+	members   sets.Set[string]
+}
+
+func (r *InMemoryMachineReconciler) inspectEtcd(ctx context.Context, cloudClient cclient.Client) (etcdInfo, error) {
+	etcdPods := &corev1.PodList{}
+	if err := cloudClient.List(ctx, etcdPods,
+		client.InNamespace(metav1.NamespaceSystem),
+		client.MatchingLabels{
+			"component": "etcd",
+			"tier":      "control-plane"},
+	); err != nil {
+		return etcdInfo{}, errors.Wrap(err, "failed to list etcd members")
+	}
+
+	if len(etcdPods.Items) == 0 {
+		return etcdInfo{}, nil
+	}
+
+	info := etcdInfo{
+		members: sets.New[string](),
+	}
+	var leaderFrom time.Time
+	for _, pod := range etcdPods.Items {
+		if info.clusterID == "" {
+			info.clusterID = pod.Annotations[cloudv1.EtcdClusterIDAnnotationName]
+		} else if pod.Annotations[cloudv1.EtcdClusterIDAnnotationName] != info.clusterID {
+			return etcdInfo{}, errors.New("invalid etcd cluster, members have different cluster ID")
+		}
+		memberID := pod.Annotations[cloudv1.EtcdMemberIDAnnotationName]
+		info.members.Insert(memberID)
+
+		if t, err := time.Parse(time.RFC3339, pod.Annotations[cloudv1.EtcdLeaderFromAnnotationName]); err == nil {
+			if t.After(leaderFrom) {
+				info.leaderID = memberID
+				leaderFrom = t
+			}
+		}
+	}
+
+	if info.leaderID == "" {
+		// TODO: consider if and how to automatically recover from this case
+		//  note: this can happen also when reading etcd members in the server, might be it is something we have to take case before deletion...
+		//  for now it should not be an issue because KCP forward etcd leadership before deletion.
+		return etcdInfo{}, errors.New("invalid etcd cluster, no leader found")
+	}
+
+	return info, nil
 }
 
 func (r *InMemoryMachineReconciler) reconcileNormalAPIServer(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, inMemoryMachine *infrav1.InMemoryMachine) (ctrl.Result, error) {

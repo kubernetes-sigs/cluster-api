@@ -25,6 +25,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
@@ -37,8 +38,8 @@ import (
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
 	infraexpv1 "sigs.k8s.io/cluster-api/test/infrastructure/docker/exp/api/v1beta1"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/docker"
+	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 	"sigs.k8s.io/cluster-api/util"
-	"sigs.k8s.io/cluster-api/util/container"
 )
 
 const (
@@ -168,15 +169,18 @@ func (np *NodePool) Delete(ctx context.Context) error {
 }
 
 func (np *NodePool) isMachineMatchingInfrastructureSpec(machine *docker.Machine) bool {
-	return imageVersion(machine) == container.SemverToOCIImageTag(*np.machinePool.Spec.Template.Spec.Version)
-}
+	// NOTE: With the current implementation we are checking if the machine is using a kindest/node image for the expected version,
+	// but not checking if the machine has the expected extra.mounts or pre.loaded images.
 
-// ImageVersion returns the version of the image used or nil if not specified
-// NOTE: Image version might be different from the Kubernetes version, because some characters
-// allowed by semver (e.g. +) can't be used for image tags, so they are replaced with "_".
-func imageVersion(m *docker.Machine) string {
-	containerImage := m.ContainerImage()
-	return containerImage[strings.LastIndex(containerImage, ":")+1:]
+	semVer, err := semver.Parse(strings.TrimPrefix(*np.machinePool.Spec.Template.Spec.Version, "v"))
+	if err != nil {
+		// TODO: consider if to return an error
+		panic(errors.Wrap(err, "failed to parse DockerMachine version").Error())
+	}
+
+	kindMapping := kind.GetMapping(semVer, np.dockerMachinePool.Spec.Template.CustomImage)
+
+	return machine.ContainerImage() == kindMapping.Image
 }
 
 // machinesMatchingInfrastructureSpec returns all of the docker.Machines which match the machine pool / docker machine pool spec.

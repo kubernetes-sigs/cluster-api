@@ -23,11 +23,7 @@ spec:
   template:
     spec:
       joinConfiguration:
-        nodeRegistration:
-          criSocket: unix:///var/run/containerd/containerd.sock
-          kubeletExtraArgs:
-            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-            fail-swap-on: "false"
+        nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ---
 # MachineDeployment object
 apiVersion: cluster.x-k8s.io/v1beta1

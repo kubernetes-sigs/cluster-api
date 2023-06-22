@@ -320,13 +320,28 @@ func (m *Machine) PreloadLoadImages(ctx context.Context, images []string) error 
 }
 
 // ExecBootstrap runs bootstrap on a node, this is generally `kubeadm <init|join>`.
-func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstrapv1.Format) error {
+func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstrapv1.Format, version *string, image string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if m.container == nil {
 		return errors.New("unable to set ExecBootstrap. the container hosting this machine does not exists")
 	}
 
+	// Get the kindMapping for the target K8s version.
+	// NOTE: The kindMapping allows to select the most recent kindest/node image available, if any, as well as
+	// provide info about the mode to be used when starting the kindest/node image itself.
+	if version == nil {
+		return errors.New("cannot create a DockerMachine for a nil version")
+	}
+
+	semVer, err := semver.Parse(strings.TrimPrefix(*version, "v"))
+	if err != nil {
+		return errors.Wrap(err, "failed to parse DockerMachine version")
+	}
+
+	kindMapping := kind.GetMapping(semVer, image)
+
+	// Decode the cloud config
 	cloudConfig, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
 		return errors.Wrap(err, "failed to decode machine's bootstrap data")
@@ -336,7 +351,7 @@ func (m *Machine) ExecBootstrap(ctx context.Context, data string, format bootstr
 
 	switch format {
 	case bootstrapv1.CloudConfig:
-		commands, err = cloudinit.RawCloudInitToProvisioningCommands(cloudConfig)
+		commands, err = cloudinit.RawCloudInitToProvisioningCommands(cloudConfig, kindMapping)
 	case bootstrapv1.Ignition:
 		commands, err = ignition.RawIgnitionToProvisioningCommands(cloudConfig)
 	default:

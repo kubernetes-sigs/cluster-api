@@ -370,19 +370,13 @@ spec:
             # host.docker.internal is required by kubetest when running on MacOS because of the way ports are proxied.
             certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
         initConfiguration:
-          nodeRegistration:
-            # We have to set the criSocket to containerd as kubeadm defaults to docker runtime if both containerd and docker sockets are found
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
+          nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
+            kubeletExtraArgs: # required for the cgroup-driver patch to work
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-              fail-swap-on: "false"
         joinConfiguration:
-          nodeRegistration:
-            # We have to set the criSocket to containerd as kubeadm defaults to docker runtime if both containerd and docker sockets are found
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
+          nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
+            kubeletExtraArgs: # required for the cgroup-driver patch to work
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-              fail-swap-on: "false"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
@@ -441,10 +435,6 @@ spec:
         BootstrapConfigTemplate.machineDeployment.template.annotation: "BootstrapConfigTemplate.machineDeployment.template.annotationValue"
     spec:
       joinConfiguration:
-        nodeRegistration:
-          # We have to set the criSocket to containerd as kubeadm defaults to docker runtime if both containerd and docker sockets are found
-          criSocket: unix:///var/run/containerd/containerd.sock
-          kubeletExtraArgs:
+        nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
+          kubeletExtraArgs: # required for the cgroup-driver patch to work
             eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
-            fail-swap-on: "false"
-

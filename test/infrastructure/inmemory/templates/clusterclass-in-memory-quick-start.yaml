@@ -20,6 +20,14 @@ spec:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta1
       kind: KubeadmControlPlaneTemplate
       name: in-memory-quick-start-control-plane
+    machineHealthCheck:
+      unhealthyConditions:
+        - type: Ready
+          status: Unknown
+          timeout: 300s
+        - type: Ready
+          status: "False"
+          timeout: 300s
   infrastructure:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
@@ -39,6 +47,14 @@ spec:
               apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
               kind: InMemoryMachineTemplate
               name: in-memory-quick-start-default-worker-machinetemplate
+        machineHealthCheck:
+          unhealthyConditions:
+            - type: Ready
+              status: Unknown
+              timeout: 300s
+            - type: Ready
+              status: "False"
+              timeout: 300s
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
 kind: InMemoryClusterTemplate
@@ -83,7 +99,24 @@ metadata:
   name: in-memory-quick-start-control-plane
 spec:
   template:
-    spec: {}
+    spec:
+      behaviour:
+        vm:
+          provisioning:
+            startupDuration: "30s"
+            startupJitter: "0.2"
+        node:
+          provisioning:
+            startupDuration: "10s"
+            startupJitter: "0.2"
+        apiServer:
+          provisioning:
+            startupDuration: "10s"
+            startupJitter: "0.2"
+        etcd:
+          provisioning:
+            startupDuration: "10s"
+            startupJitter: "0.2"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
 kind: InMemoryMachineTemplate
@@ -91,7 +124,24 @@ metadata:
   name: in-memory-quick-start-default-worker-machinetemplate
 spec:
   template:
-    spec: {}
+    spec:
+      behaviour:
+        vm:
+          provisioning:
+            startupDuration: "30s"
+            startupJitter: "0.2"
+        node:
+          provisioning:
+            startupDuration: "10s"
+            startupJitter: "0.2"
+        apiServer:
+          provisioning:
+            startupDuration: "10s"
+            startupJitter: "0.2"
+        etcd:
+          provisioning:
+            startupDuration: "10s"
+            startupJitter: "0.2"
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfigTemplate

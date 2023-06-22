@@ -26,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -45,13 +46,8 @@ import (
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning/cloudinit"
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning/ignition"
-	clusterapicontainer "sigs.k8s.io/cluster-api/util/container"
+	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 	"sigs.k8s.io/cluster-api/util/patch"
-)
-
-const (
-	defaultImageName = "kindest/node"
-	defaultImageTag  = "v1.27.1"
 )
 
 var (
@@ -59,8 +55,8 @@ var (
 )
 
 type nodeCreator interface {
-	CreateControlPlaneNode(ctx context.Context, name, image, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily) (node *types.Node, err error)
-	CreateWorkerNode(ctx context.Context, name, image, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily) (node *types.Node, err error)
+	CreateControlPlaneNode(ctx context.Context, name, clusterName, listenAddress string, port int32, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping) (node *types.Node, err error)
+	CreateWorkerNode(ctx context.Context, name, clusterName string, mounts []v1alpha4.Mount, portMappings []v1alpha4.PortMapping, labels map[string]string, ipFamily clusterv1.ClusterIPFamily, kindMapping kind.Mapping) (node *types.Node, err error)
 }
 
 // Machine implement a service for managing the docker containers hosting a kubernetes nodes.
@@ -212,18 +208,26 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 	if m.container == nil {
 		var err error
 
-		machineImage := m.machineImage(version)
-		if image != "" {
-			machineImage = image
+		// Get the KindMapping for the target K8s version.
+		// NOTE: The KindMapping allows to select the most recent kindest/node image available, if any, as well as
+		// provide info about the mode to be used when starting the kindest/node image itself.
+		if version == nil {
+			return errors.New("cannot create a DockerMachine for a nil version")
 		}
+
+		semVer, err := semver.Parse(strings.TrimPrefix(*version, "v"))
+		if err != nil {
+			return errors.Wrap(err, "failed to parse DockerMachine version")
+		}
+
+		kindMapping := kind.GetMapping(semVer, image)
 
 		switch role {
 		case constants.ControlPlaneNodeRoleValue:
-			log.Info(fmt.Sprintf("Creating control plane machine container with image %s", machineImage))
+			log.Info(fmt.Sprintf("Creating control plane machine container with image %s, mode %s", kindMapping.Image, kindMapping.Mode))
 			m.container, err = m.nodeCreator.CreateControlPlaneNode(
 				ctx,
 				m.ContainerName(),
-				machineImage,
 				m.cluster,
 				"127.0.0.1",
 				0,
@@ -231,21 +235,22 @@ func (m *Machine) Create(ctx context.Context, image string, role string, version
 				nil,
 				labels,
 				m.ipFamily,
+				kindMapping,
 			)
 			if err != nil {
 				return errors.WithStack(err)
 			}
 		case constants.WorkerNodeRoleValue:
-			log.Info(fmt.Sprintf("Creating worker machine container with image %s", machineImage))
+			log.Info(fmt.Sprintf("Creating worker machine container with image %s, mode %s", kindMapping.Image, kindMapping.Mode))
 			m.container, err = m.nodeCreator.CreateWorkerNode(
 				ctx,
 				m.ContainerName(),
-				machineImage,
 				m.cluster,
 				kindMounts(mounts),
 				nil,
 				labels,
 				m.ipFamily,
+				kindMapping,
 			)
 			if err != nil {
 				return errors.WithStack(err)
@@ -525,26 +530,6 @@ func (m *Machine) Delete(ctx context.Context) error {
 		}
 	}
 	return nil
-}
-
-// machineImage is the image of the container node with the machine.
-func (m *Machine) machineImage(version *string) string {
-	if version == nil {
-		defaultImage := fmt.Sprintf("%s:%s", defaultImageName, defaultImageTag)
-		return defaultImage
-	}
-
-	// TODO(fp) make this smarter
-	// - allows usage of custom docker repository & image names
-	// - add v only for semantic versions
-	versionString := *version
-	if !strings.HasPrefix(versionString, "v") {
-		versionString = fmt.Sprintf("v%s", versionString)
-	}
-
-	versionString = clusterapicontainer.SemverToOCIImageTag(versionString)
-
-	return fmt.Sprintf("%s:%s", defaultImageName, versionString)
 }
 
 func logContainerDebugInfo(ctx context.Context, log logr.Logger, name string) {

@@ -24,6 +24,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,8 +42,11 @@ var (
 	ErrNodeNotFound = errors.New("cannot find node with matching ProviderID")
 )
 
-func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine) (ctrl.Result, error) {
+func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
+	cluster := s.cluster
+	machine := s.machine
+	infraMachine := s.infraMachine
 
 	// Create a watch on the nodes in the Cluster.
 	if err := r.watchClusterNodes(ctx, cluster); err != nil {
@@ -112,9 +116,31 @@ func (r *Reconciler) reconcileNode(ctx context.Context, cluster *clusterv1.Clust
 	// NOTE: Once we reconcile node labels for the first time, the NodeUninitializedTaint is removed from the node.
 	nodeLabels := getManagedLabels(machine.Labels)
 
+	// Get interruptible instance status from the infrastructure provider and set the interruptible label on the node.
+	interruptible := false
+	found := false
+	if infraMachine != nil {
+		interruptible, found, err = unstructured.NestedBool(infraMachine.Object, "status", "interruptible")
+		if err != nil {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get status interruptible from infra machine %s", klog.KObj(infraMachine))
+		}
+		// If interruptible is set and is true add the interruptible label to the node labels.
+		if found && interruptible {
+			nodeLabels[clusterv1.InterruptibleLabel] = ""
+		}
+	}
+
+	_, nodeHadInterruptibleLabel := node.Labels[clusterv1.InterruptibleLabel]
+
 	// Reconcile node taints
 	if err := r.patchNode(ctx, remoteClient, node, nodeLabels, nodeAnnotations); err != nil {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile Node %s", klog.KObj(node))
+	}
+	if !nodeHadInterruptibleLabel && interruptible {
+		// If the interruptible label is added to the node then record the event.
+		// Nb. Only record the event if the node previously did not have the label to avoid recording
+		// the event during every reconcile.
+		r.recorder.Event(machine, corev1.EventTypeNormal, "SuccessfulSetInterruptibleNodeLabel", node.Name)
 	}
 
 	// Do the remaining node health checks, then set the node health to true if all checks pass.

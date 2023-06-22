@@ -273,19 +273,22 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		}))
 	}
 
-	phases := []func(context.Context, *clusterv1.Cluster, *clusterv1.Machine) (ctrl.Result, error){
+	phases := []func(context.Context, *scope) (ctrl.Result, error){
 		r.reconcileBootstrap,
 		r.reconcileInfrastructure,
 		r.reconcileNode,
-		r.reconcileInterruptibleNodeLabel,
 		r.reconcileCertificateExpiry,
 	}
 
 	res := ctrl.Result{}
 	errs := []error{}
+	s := &scope{
+		cluster: cluster,
+		machine: m,
+	}
 	for _, phase := range phases {
 		// Call the inner reconciliation methods.
-		phaseResult, err := phase(ctx, cluster, m)
+		phaseResult, err := phase(ctx, s)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -295,6 +298,25 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 		res = util.LowestNonZeroResult(res, phaseResult)
 	}
 	return res, kerrors.NewAggregate(errs)
+}
+
+// scope holds the different objects that are read and used during the reconcile.
+type scope struct {
+	// cluster is the Cluster object the Machine belongs to.
+	// It is set at the beginning of the reconcile function.
+	cluster *clusterv1.Cluster
+
+	// machine is the Machine object. It is set at the beginning
+	// of the reconcile function.
+	machine *clusterv1.Machine
+
+	// infraMachine is the Infrastructure Machine object that is referenced by the
+	// Machine. It is set after reconcileInfrastructure is called.
+	infraMachine *unstructured.Unstructured
+
+	// bootstrapConfig is the BootstrapConfig object that is referenced by the
+	// Machine. It is set after reconcileBootstrap is called.
+	bootstrapConfig *unstructured.Unstructured
 }
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) { //nolint:gocyclo

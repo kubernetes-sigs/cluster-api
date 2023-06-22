@@ -105,13 +105,6 @@ func TestGetWorkloadCluster(t *testing.T) {
 	delete(emptyKeyEtcdSecret.Data, secret.TLSKeyDataName)
 	badCrtEtcdSecret := etcdSecret.DeepCopy()
 	badCrtEtcdSecret.Data[secret.TLSCrtDataName] = []byte("bad cert")
-	tracker, err := remote.NewClusterCacheTracker(
-		env.Manager,
-		remote.ClusterCacheTrackerOptions{
-			Log: &log.Log,
-		},
-	)
-	g.Expect(err).ToNot(HaveOccurred())
 
 	// Create kubeconfig secret
 	// Store the envtest config as the contents of the kubeconfig secret.
@@ -188,9 +181,19 @@ func TestGetWorkloadCluster(t *testing.T) {
 			for _, o := range tt.objs {
 				g.Expect(env.Client.Create(ctx, o)).To(Succeed())
 				defer func(do client.Object) {
-					g.Expect(env.Cleanup(ctx, do)).To(Succeed())
+					g.Expect(env.CleanupAndWait(ctx, do)).To(Succeed())
 				}(o)
 			}
+
+			// We have to create a new ClusterCacheTracker for every test case otherwise
+			// it could still have a rest config from a previous run cached.
+			tracker, err := remote.NewClusterCacheTracker(
+				env.Manager,
+				remote.ClusterCacheTrackerOptions{
+					Log: &log.Log,
+				},
+			)
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// Note: The API reader is intentionally used instead of the regular (cached) client
 			// to avoid test failures when the local cache isn't able to catch up in time.

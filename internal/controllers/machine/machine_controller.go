@@ -30,6 +30,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	kubedrain "k8s.io/kubectl/pkg/drain"
@@ -80,6 +81,9 @@ type Reconciler struct {
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
+
+	// NodeDrainClientTimeout timeout of the client used for draining nodes.
+	NodeDrainClientTimeout time.Duration
 
 	controller      controller.Controller
 	recorder        record.EventRecorder
@@ -602,6 +606,8 @@ func (r *Reconciler) drainNode(ctx context.Context, cluster *clusterv1.Cluster, 
 		log.Error(err, "Error creating a remote client while deleting Machine, won't retry")
 		return ctrl.Result{}, nil
 	}
+	restConfig = rest.CopyConfig(restConfig)
+	restConfig.Timeout = r.NodeDrainClientTimeout
 	kubeClient, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		log.Error(err, "Error creating a remote client while deleting Machine, won't retry")

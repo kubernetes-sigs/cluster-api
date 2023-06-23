@@ -4,7 +4,7 @@ envsubst_cmd = "./hack/tools/bin/envsubst"
 clusterctl_cmd = "./bin/clusterctl"
 kubectl_cmd = "kubectl"
 default_build_engine = "docker"
-kubernetes_version = "v1.27.1"
+kubernetes_version = "v1.27.3"
 
 if str(local("command -v " + kubectl_cmd + " || true", quiet = True)) == "":
     fail("Required command '" + kubectl_cmd + "' not found in PATH")

@@ -26,9 +26,12 @@ fi
 source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 
 GOPATH_BIN="$(go env GOPATH)/bin"
-MINIMUM_KIND_VERSION=v0.19.0
 goarch="$(go env GOARCH)"
 goos="$(go env GOOS)"
+
+# Note: When updating the MINIMUM_KIND_VERSION new shas MUST be added in `preBuiltMappings` at `test/infrastructure/kind/mapper.go`
+MINIMUM_KIND_VERSION=v0.20.0
+
 
 # Ensure the kind tool exists and is a viable version, or installs it
 verify_kind_version() {

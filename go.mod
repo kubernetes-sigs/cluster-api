@@ -154,3 +154,5 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	golang.org/x/tools v0.9.3 // indirect
 )
+
+replace sigs.k8s.io/controller-runtime => github.com/sbueringer/controller-runtime v0.2.0-beta.1.0.20230629121040-af02ca513599

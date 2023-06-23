@@ -33,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
 	cclient "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/client"
 	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/manager"
 )
@@ -192,19 +193,26 @@ func (b *baseServer) inspectEtcd(ctx context.Context, cloudClient cclient.Client
 
 	memberList := &pb.MemberListResponse{}
 	statusResponse := &pb.StatusResponse{}
+	var clusterID int
 	var leaderID int
 	var leaderFrom time.Time
 	for _, pod := range etcdPods.Items {
-		clusterID, err := strconv.Atoi(pod.Annotations["etcd.inmemory.infrastructure.cluster.x-k8s.io/cluster-id"])
-		if err != nil {
-			return nil, nil, errors.Wrapf(err, "failed read cluster ID annotation from etcd member with name %s", pod.Name)
+		if clusterID == 0 {
+			var err error
+			clusterID, err = strconv.Atoi(pod.Annotations[cloudv1.EtcdClusterIDAnnotationName])
+			if err != nil {
+				return nil, nil, errors.Wrapf(err, "failed read cluster ID annotation from etcd member with name %s", pod.Name)
+			}
+		} else if pod.Annotations[cloudv1.EtcdClusterIDAnnotationName] != fmt.Sprintf("%d", clusterID) {
+			return nil, nil, errors.New("invalid etcd cluster, members have different cluster ID")
 		}
-		memberID, err := strconv.Atoi(pod.Annotations["etcd.inmemory.infrastructure.cluster.x-k8s.io/member-id"])
+
+		memberID, err := strconv.Atoi(pod.Annotations[cloudv1.EtcdMemberIDAnnotationName])
 		if err != nil {
 			return nil, nil, errors.Wrapf(err, "failed read member ID annotation from etcd member with name %s", pod.Name)
 		}
 
-		if t, err := time.Parse(time.RFC3339, pod.Annotations["etcd.inmemory.infrastructure.cluster.x-k8s.io/leader-from"]); err == nil {
+		if t, err := time.Parse(time.RFC3339, pod.Annotations[cloudv1.EtcdLeaderFromAnnotationName]); err == nil {
 			if t.After(leaderFrom) {
 				leaderID = memberID
 				leaderFrom = t
@@ -223,6 +231,13 @@ func (b *baseServer) inspectEtcd(ctx context.Context, cloudClient cclient.Client
 			ID:   uint64(memberID),
 			Name: strings.TrimPrefix(pod.Name, "etcd-"),
 		})
+	}
+
+	if leaderID == 0 {
+		// TODO: consider if and how to automatically recover from this case
+		//  note: this can happen also when adding a new etcd members in the handler, might be it is something we have to take case before deletion...
+		//  for now it should not be an issue because KCP forwards etcd leadership before deletion.
+		return nil, nil, errors.New("invalid etcd cluster, no leader found")
 	}
 	statusResponse.Leader = uint64(leaderID)
 

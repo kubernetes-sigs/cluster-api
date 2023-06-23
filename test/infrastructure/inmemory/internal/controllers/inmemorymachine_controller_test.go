@@ -253,13 +253,13 @@ func TestReconcileNormalNode(t *testing.T) {
 func TestReconcileNormalEtcd(t *testing.T) {
 	inMemoryMachineWithNodeNotYetProvisioned := &infrav1.InMemoryMachine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
+			Name: "bar0",
 		},
 	}
 
-	inMemoryMachineWithNodeProvisioned := &infrav1.InMemoryMachine{
+	inMemoryMachineWithNodeProvisioned1 := &infrav1.InMemoryMachine{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "bar",
+			Name: "bar1",
 		},
 		Spec: infrav1.InMemoryMachineSpec{
 			Behaviour: &infrav1.InMemoryMachineBehaviour{
@@ -313,7 +313,7 @@ func TestReconcileNormalEtcd(t *testing.T) {
 
 		manager := cmanager.New(scheme)
 
-		host := "127.0.0.1"
+		host := "127.0.0.1" //nolint:goconst
 		wcmux, err := server.NewWorkloadClustersMux(manager, host, server.CustomPorts{
 			// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
 			MinPort:   server.DefaultMinPort + 1000,
@@ -332,15 +332,15 @@ func TestReconcileNormalEtcd(t *testing.T) {
 		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
 		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
 
-		res, err := r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned)
+		res, err := r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned1)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res.IsZero()).To(BeFalse())
-		g.Expect(conditions.IsFalse(inMemoryMachineWithNodeProvisioned, infrav1.EtcdProvisionedCondition)).To(BeTrue())
+		g.Expect(conditions.IsFalse(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition)).To(BeTrue())
 
 		got := &corev1.Pod{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: metav1.NamespaceSystem,
-				Name:      fmt.Sprintf("etcd-%s", inMemoryMachineWithNodeNotYetProvisioned.Name),
+				Name:      fmt.Sprintf("etcd-%s", inMemoryMachineWithNodeProvisioned1.Name),
 			},
 		}
 		err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
@@ -350,31 +350,110 @@ func TestReconcileNormalEtcd(t *testing.T) {
 			g := NewWithT(t)
 
 			g.Eventually(func() bool {
-				res, err := r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned)
+				res, err := r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned1)
 				g.Expect(err).ToNot(HaveOccurred())
 				if !res.IsZero() {
 					time.Sleep(res.RequeueAfter / 100 * 90)
 				}
 				return res.IsZero()
-			}, inMemoryMachineWithNodeProvisioned.Spec.Behaviour.Etcd.Provisioning.StartupDuration.Duration*2).Should(BeTrue())
+			}, inMemoryMachineWithNodeProvisioned1.Spec.Behaviour.Etcd.Provisioning.StartupDuration.Duration*2).Should(BeTrue())
 
 			err = c.Get(ctx, client.ObjectKeyFromObject(got), got)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			g.Expect(conditions.IsTrue(inMemoryMachineWithNodeProvisioned, infrav1.EtcdProvisionedCondition)).To(BeTrue())
-			g.Expect(conditions.Get(inMemoryMachineWithNodeProvisioned, infrav1.EtcdProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", conditions.Get(inMemoryMachineWithNodeProvisioned, infrav1.NodeProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithNodeProvisioned.Spec.Behaviour.Etcd.Provisioning.StartupDuration.Duration))
+			g.Expect(got.Annotations).To(HaveKey(cloudv1.EtcdClusterIDAnnotationName))
+			g.Expect(got.Annotations).To(HaveKey(cloudv1.EtcdMemberIDAnnotationName))
+			g.Expect(got.Annotations).To(HaveKey(cloudv1.EtcdLeaderFromAnnotationName))
+
+			g.Expect(conditions.IsTrue(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition)).To(BeTrue())
+			g.Expect(conditions.Get(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition).LastTransitionTime.Time).To(BeTemporally(">", conditions.Get(inMemoryMachineWithNodeProvisioned1, infrav1.NodeProvisionedCondition).LastTransitionTime.Time, inMemoryMachineWithNodeProvisioned1.Spec.Behaviour.Etcd.Provisioning.StartupDuration.Duration))
 		})
 
 		t.Run("no-op after it is provisioned", func(t *testing.T) {
 			g := NewWithT(t)
 
-			res, err := r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned)
+			res, err := r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned1)
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(res.IsZero()).To(BeTrue())
 		})
 
 		err = wcmux.Shutdown(ctx)
 		g.Expect(err).ToNot(HaveOccurred())
+	})
+
+	t.Run("takes care of the etcd cluster annotations", func(t *testing.T) {
+		g := NewWithT(t)
+
+		inMemoryMachineWithNodeProvisioned1 := inMemoryMachineWithNodeProvisioned1.DeepCopy()
+		inMemoryMachineWithNodeProvisioned1.Spec = infrav1.InMemoryMachineSpec{}
+
+		inMemoryMachineWithNodeProvisioned2 := inMemoryMachineWithNodeProvisioned1.DeepCopy()
+		inMemoryMachineWithNodeProvisioned2.Name = "bar2"
+
+		manager := cmanager.New(scheme)
+
+		host := "127.0.0.1"
+		wcmux, err := server.NewWorkloadClustersMux(manager, host, server.CustomPorts{
+			// NOTE: make sure to use ports different than other tests, so we can run tests in parallel
+			MinPort:   server.DefaultMinPort + 1200,
+			MaxPort:   server.DefaultMinPort + 1299,
+			DebugPort: server.DefaultDebugPort + 20,
+		})
+		g.Expect(err).ToNot(HaveOccurred())
+		_, err = wcmux.InitWorkloadClusterListener(klog.KObj(cluster).String())
+		g.Expect(err).ToNot(HaveOccurred())
+
+		r := InMemoryMachineReconciler{
+			Client:       fake.NewClientBuilder().WithScheme(scheme).WithObjects(createCASecret(t, cluster, secretutil.EtcdCA)).Build(),
+			CloudManager: manager,
+			APIServerMux: wcmux,
+		}
+		r.CloudManager.AddResourceGroup(klog.KObj(cluster).String())
+		c := r.CloudManager.GetResourceGroup(klog.KObj(cluster).String()).GetClient()
+
+		// first etcd pod gets annotated with clusterID, memberID, and also set as a leader
+
+		res, err := r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned1)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res.IsZero()).To(BeTrue())
+		g.Expect(conditions.IsTrue(inMemoryMachineWithNodeProvisioned1, infrav1.EtcdProvisionedCondition)).To(BeTrue())
+
+		got1 := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: metav1.NamespaceSystem,
+				Name:      fmt.Sprintf("etcd-%s", inMemoryMachineWithNodeProvisioned1.Name),
+			},
+		}
+
+		err = c.Get(ctx, client.ObjectKeyFromObject(got1), got1)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(got1.Annotations).To(HaveKey(cloudv1.EtcdClusterIDAnnotationName))
+		g.Expect(got1.Annotations).To(HaveKey(cloudv1.EtcdMemberIDAnnotationName))
+		g.Expect(got1.Annotations).To(HaveKey(cloudv1.EtcdLeaderFromAnnotationName))
+
+		// second etcd pod gets annotated with the same clusterID, a new memberID (but it is not set as a leader
+
+		res, err = r.reconcileNormalETCD(ctx, cluster, cpMachine, inMemoryMachineWithNodeProvisioned2)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(res.IsZero()).To(BeTrue())
+		g.Expect(conditions.IsTrue(inMemoryMachineWithNodeProvisioned2, infrav1.EtcdProvisionedCondition)).To(BeTrue())
+
+		got2 := &corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: metav1.NamespaceSystem,
+				Name:      fmt.Sprintf("etcd-%s", inMemoryMachineWithNodeProvisioned2.Name),
+			},
+		}
+
+		err = c.Get(ctx, client.ObjectKeyFromObject(got2), got2)
+		g.Expect(err).ToNot(HaveOccurred())
+
+		g.Expect(got2.Annotations).To(HaveKey(cloudv1.EtcdClusterIDAnnotationName))
+		g.Expect(got1.Annotations[cloudv1.EtcdClusterIDAnnotationName]).To(Equal(got2.Annotations[cloudv1.EtcdClusterIDAnnotationName]))
+		g.Expect(got2.Annotations).To(HaveKey(cloudv1.EtcdMemberIDAnnotationName))
+		g.Expect(got1.Annotations[cloudv1.EtcdMemberIDAnnotationName]).ToNot(Equal(got2.Annotations[cloudv1.EtcdMemberIDAnnotationName]))
+		g.Expect(got2.Annotations).ToNot(HaveKey(cloudv1.EtcdLeaderFromAnnotationName))
 	})
 }
 

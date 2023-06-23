@@ -25,7 +25,6 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"math/big"
-	"math/rand"
 	"testing"
 	"time"
 
@@ -41,6 +40,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	cloudv1 "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/api/v1alpha1"
 	cmanager "sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/cloud/runtime/manager"
 	"sigs.k8s.io/cluster-api/test/infrastructure/inmemory/internal/server/proxy"
 	"sigs.k8s.io/cluster-api/util/certs"
@@ -282,11 +282,9 @@ func TestAPI_PortForward(t *testing.T) {
 				"tier":      "control-plane",
 			},
 			Annotations: map[string]string{
-				// TODO: read this from existing etcd pods, if any.
-				"etcd.inmemory.infrastructure.cluster.x-k8s.io/cluster-id": fmt.Sprintf("%d", rand.Uint32()), //nolint:gosec // weak random number generator is good enough here
-				"etcd.inmemory.infrastructure.cluster.x-k8s.io/member-id":  fmt.Sprintf("%d", rand.Uint32()), //nolint:gosec // weak random number generator is good enough here
-				// TODO: set this only if there are no other leaders.
-				"etcd.inmemory.infrastructure.cluster.x-k8s.io/leader-from": time.Now().Format(time.RFC3339),
+				cloudv1.EtcdClusterIDAnnotationName:  "1",
+				cloudv1.EtcdMemberIDAnnotationName:   "2",
+				cloudv1.EtcdLeaderFromAnnotationName: time.Now().Format(time.RFC3339),
 			},
 		},
 	}

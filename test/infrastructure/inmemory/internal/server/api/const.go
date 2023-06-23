@@ -122,6 +122,19 @@ var (
 					Version:      "v1",
 				},
 			},
+			{
+				Name: "apps",
+				Versions: []metav1.GroupVersionForDiscovery{
+					{
+						GroupVersion: "apps/v1",
+						Version:      "v1",
+					},
+				},
+				PreferredVersion: metav1.GroupVersionForDiscovery{
+					GroupVersion: "apps/v1",
+					Version:      "v1",
+				},
+			},
 		},
 	}
 
@@ -195,6 +208,51 @@ var (
 					"patch",
 					"update",
 					"watch",
+				},
+				StorageVersionHash: "",
+			},
+		},
+	}
+	appsV1ResourceList = &metav1.APIResourceList{
+		GroupVersion: "apps/v1",
+		APIResources: []metav1.APIResource{
+			{
+				Name:         "daemonsets",
+				SingularName: "daemonset",
+				Namespaced:   true,
+				Kind:         "DaemonSet",
+				Verbs: []string{
+					"create",
+					"delete",
+					"deletecollection",
+					"get",
+					"list",
+					"patch",
+					"update",
+					"watch",
+				},
+				ShortNames: []string{
+					"ds",
+				},
+				StorageVersionHash: "",
+			},
+			{
+				Name:         "deployments",
+				SingularName: "deployment",
+				Namespaced:   true,
+				Kind:         "Deployment",
+				Verbs: []string{
+					"create",
+					"delete",
+					"deletecollection",
+					"get",
+					"list",
+					"patch",
+					"update",
+					"watch",
+				},
+				ShortNames: []string{
+					"deploy",
 				},
 				StorageVersionHash: "",
 			},

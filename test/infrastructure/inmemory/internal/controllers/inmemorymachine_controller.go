@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -215,6 +216,8 @@ func (r *InMemoryMachineReconciler) reconcileNormal(ctx context.Context, cluster
 		r.reconcileNormalScheduler,
 		r.reconcileNormalControllerManager,
 		r.reconcileNormalKubeadmObjects,
+		r.reconcileNormalKubeProxy,
+		r.reconcileNormalCoredns,
 	}
 
 	res := ctrl.Result{}
@@ -750,6 +753,117 @@ func (r *InMemoryMachineReconciler) reconcileNormalKubeadmObjects(ctx context.Co
 		return ctrl.Result{}, errors.Wrapf(err, "failed to create ubeadm-config ConfigMap")
 	}
 
+	return ctrl.Result{}, nil
+}
+
+func (r *InMemoryMachineReconciler) reconcileNormalKubeProxy(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ *infrav1.InMemoryMachine) (ctrl.Result, error) {
+	// No-op if the machine is not a control plane machine.
+	if !util.IsControlPlaneMachine(machine) {
+		return ctrl.Result{}, nil
+	}
+
+	// TODO: Add provisioning time for KubeProxy.
+
+	// Compute the resource group unique name.
+	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
+	resourceGroup := klog.KObj(cluster).String()
+	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+
+	// Create the kube-proxy-daemonset
+	kubeProxyDaemonSet := &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: metav1.NamespaceSystem,
+			Name:      "kube-proxy",
+			Labels: map[string]string{
+				"component": "kube-proxy",
+			},
+		},
+		Spec: appsv1.DaemonSetSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "kube-proxy",
+							Image: fmt.Sprintf("registry.k8s.io/kube-proxy:%s", *machine.Spec.Version),
+						},
+					},
+				},
+			},
+		},
+	}
+	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(kubeProxyDaemonSet), kubeProxyDaemonSet); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get kube-proxy DaemonSet")
+		}
+
+		if err := cloudClient.Create(ctx, kubeProxyDaemonSet); err != nil && !apierrors.IsAlreadyExists(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to create kube-proxy DaemonSet")
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *InMemoryMachineReconciler) reconcileNormalCoredns(ctx context.Context, cluster *clusterv1.Cluster, machine *clusterv1.Machine, _ *infrav1.InMemoryMachine) (ctrl.Result, error) {
+	// No-op if the machine is not a control plane machine.
+	if !util.IsControlPlaneMachine(machine) {
+		return ctrl.Result{}, nil
+	}
+
+	// TODO: Add provisioning time for CoreDNS.
+
+	// Compute the resource group unique name.
+	// NOTE: We are using reconcilerGroup also as a name for the listener for sake of simplicity.
+	resourceGroup := klog.KObj(cluster).String()
+	cloudClient := r.CloudManager.GetResourceGroup(resourceGroup).GetClient()
+
+	// Create the coredns configMap.
+	corednsConfigMap := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: metav1.NamespaceSystem,
+			Name:      "coredns",
+		},
+		Data: map[string]string{
+			"Corefile": "ANG",
+		},
+	}
+	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(corednsConfigMap), corednsConfigMap); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get coreDNS configMap")
+		}
+
+		if err := cloudClient.Create(ctx, corednsConfigMap); err != nil && !apierrors.IsAlreadyExists(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to create coreDNS configMap")
+		}
+	}
+	// Create the coredns deployment.
+	corednsDeployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: metav1.NamespaceSystem,
+			Name:      "coredns",
+		},
+		Spec: appsv1.DeploymentSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{
+						{
+							Name:  "coredns",
+							Image: "registry.k8s.io/coredns/coredns:v1.10.1",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(corednsDeployment), corednsDeployment); err != nil {
+		if !apierrors.IsNotFound(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to get coreDNS deployment")
+		}
+
+		if err := cloudClient.Create(ctx, corednsDeployment); err != nil && !apierrors.IsAlreadyExists(err) {
+			return ctrl.Result{}, errors.Wrapf(err, "failed to create coreDNS deployment")
+		}
+	}
 	return ctrl.Result{}, nil
 }
 

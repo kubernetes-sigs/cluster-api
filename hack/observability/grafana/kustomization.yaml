@@ -12,5 +12,6 @@ namespace: observability
 configMapGenerator:
 - name: grafana-dashboards
   files:
-  - dashboards/cluster-api.json
+  - dashboards/cluster-api-performance.json
+  - dashboards/cluster-api-state.json
   - dashboards/controller-runtime.json

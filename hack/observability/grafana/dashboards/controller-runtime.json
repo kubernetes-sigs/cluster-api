@@ -197,6 +197,7 @@
               "namespace 3": true,
               "node 2": true,
               "node 3": true,
+              "priority_class": true,
               "service": true,
               "service 1": true,
               "service 2": true,

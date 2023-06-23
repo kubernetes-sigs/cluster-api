@@ -38,7 +38,7 @@ type EtcdClientGenerator struct {
 	createClient clientCreator
 }
 
-type clientCreator func(ctx context.Context, endpoints []string) (*etcd.Client, error)
+type clientCreator func(ctx context.Context, endpoint string) (*etcd.Client, error)
 
 var errEtcdNodeConnection = errors.New("failed to connect to etcd node")
 
@@ -46,7 +46,7 @@ var errEtcdNodeConnection = errors.New("failed to connect to etcd node")
 func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcdDialTimeout, etcdCallTimeout time.Duration) *EtcdClientGenerator {
 	ecg := &EtcdClientGenerator{restConfig: restConfig, tlsConfig: tlsConfig}
 
-	ecg.createClient = func(ctx context.Context, endpoints []string) (*etcd.Client, error) {
+	ecg.createClient = func(ctx context.Context, endpoint string) (*etcd.Client, error) {
 		p := proxy.Proxy{
 			Kind:       "pods",
 			Namespace:  metav1.NamespaceSystem,
@@ -54,7 +54,7 @@ func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcd
 			Port:       2379,
 		}
 		return etcd.NewClient(ctx, etcd.ClientConfiguration{
-			Endpoints:   endpoints,
+			Endpoint:    endpoint,
 			Proxy:       p,
 			TLSConfig:   tlsConfig,
 			DialTimeout: etcdDialTimeout,
@@ -75,8 +75,8 @@ func (c *EtcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNam
 	// Loop through the existing control plane nodes.
 	var errs []error
 	for _, name := range nodeNames {
-		endpoints := []string{staticPodName("etcd", name)}
-		client, err := c.createClient(ctx, endpoints)
+		endpoint := staticPodName("etcd", name)
+		client, err := c.createClient(ctx, endpoint)
 		if err != nil {
 			errs = append(errs, err)
 			continue

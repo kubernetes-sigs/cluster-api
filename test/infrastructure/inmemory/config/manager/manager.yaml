@@ -28,6 +28,8 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: status.podIP
+          - name: GOMAXPROCS
+            value: "16"
         ports:
         - containerPort: 9440
           name: healthz

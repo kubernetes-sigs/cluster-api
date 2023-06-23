@@ -37,6 +37,8 @@ spec:
               fieldPath: metadata.uid
         - name: DOCKER_HOST
           value: ${CAPD_DOCKER_HOST:=""}
+        - name: GOMAXPROCS
+          value: "16"
         ports:
         - containerPort: 9440
           name: healthz

@@ -25,6 +25,9 @@ spec:
             - "--bootstrap-token-ttl=${KUBEADM_BOOTSTRAP_TOKEN_TTL:=15m}"
           image: controller:latest
           name: manager
+          env:
+          - name: GOMAXPROCS
+            value: "16"
           ports:
             - containerPort: 9440
               name: healthz

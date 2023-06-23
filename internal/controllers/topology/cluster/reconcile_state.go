@@ -44,6 +44,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	"sigs.k8s.io/cluster-api/internal/topology/check"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 )
 
 const (
@@ -57,6 +58,9 @@ const (
 // the entire reconcile operation will fail. This might be improved in the future if support for reconciling
 // subset of a topology will be implemented.
 func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.reconcileState")
+	defer span.End()
+
 	log := tlog.LoggerFrom(ctx)
 	log.Infof("Reconciling state for topology owned objects")
 
@@ -95,6 +99,9 @@ func (r *Reconciler) reconcileState(ctx context.Context, s *scope.Scope) error {
 // Reconcile the Cluster shim, a temporary object used a mean to collect objects/templates
 // that might be orphaned in case of errors during the remaining part of the reconcile process.
 func (r *Reconciler) reconcileClusterShim(ctx context.Context, s *scope.Scope) error {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.reconcileClusterShim")
+	defer span.End()
+
 	shim := clusterShim(s.Current.Cluster)
 
 	// If we are going to create the InfrastructureCluster or the ControlPlane object, then
@@ -274,6 +281,9 @@ func (r *Reconciler) callAfterClusterUpgrade(ctx context.Context, s *scope.Scope
 
 // reconcileInfrastructureCluster reconciles the desired state of the InfrastructureCluster object.
 func (r *Reconciler) reconcileInfrastructureCluster(ctx context.Context, s *scope.Scope) error {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.reconcileInfrastructureCluster")
+	defer span.End()
+
 	ctx, _ = tlog.LoggerFrom(ctx).WithObject(s.Desired.InfrastructureCluster).Into(ctx)
 
 	ignorePaths, err := contract.InfrastructureCluster().IgnorePaths(s.Desired.InfrastructureCluster)
@@ -292,6 +302,9 @@ func (r *Reconciler) reconcileInfrastructureCluster(ctx context.Context, s *scop
 // reconcileControlPlane works to bring the current state of a managed topology in line with the desired state. This involves
 // updating the cluster where needed.
 func (r *Reconciler) reconcileControlPlane(ctx context.Context, s *scope.Scope) error {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.reconcileControlPlane")
+	defer span.End()
+
 	// If the ControlPlane has defined a current or desired MachineHealthCheck attempt to reconcile it.
 	// MHC changes are not Kubernetes version dependent, therefore proceed with MHC reconciliation
 	// even if the Control Plane is pending an upgrade.
@@ -424,6 +437,9 @@ func (r *Reconciler) reconcileMachineHealthCheck(ctx context.Context, current, d
 // most specifically, after a Cluster is created it is assumed that the reference to the InfrastructureCluster /
 // ControlPlane objects should never change (only the content of the objects can change).
 func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.reconcileCluster")
+	defer span.End()
+
 	ctx, log := tlog.LoggerFrom(ctx).WithObject(s.Desired.Cluster).Into(ctx)
 
 	// Check differences between current and desired state, and eventually patch the current object.
@@ -448,6 +464,7 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 	// Note: It is good enough to check that the resource version changed. Other controllers might have updated the
 	// Cluster as well, but the combination of the patch call above without a conflict and a changed resource
 	// version here guarantees that we see the changes of our own update.
+	span.AddEvent("WaitCacheStart")
 	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 		key := client.ObjectKey{Namespace: s.Current.Cluster.GetNamespace(), Name: s.Current.Cluster.GetName()}
 		cachedCluster := &clusterv1.Cluster{}
@@ -456,6 +473,7 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 		}
 		return s.Current.Cluster.GetResourceVersion() != cachedCluster.GetResourceVersion(), nil
 	})
+	span.AddEvent("WaitCacheEnd")
 	if err != nil {
 		return errors.Wrapf(err, "failed waiting for Cluster %s to be updated in the cache after patch", tlog.KObj{Obj: s.Current.Cluster})
 	}
@@ -464,6 +482,9 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 
 // reconcileMachineDeployments reconciles the desired state of the MachineDeployment objects.
 func (r *Reconciler) reconcileMachineDeployments(ctx context.Context, s *scope.Scope) error {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.reconcileMachineDeployments")
+	defer span.End()
+
 	diff := calculateMachineDeploymentDiff(s.Current.MachineDeployments, s.Desired.MachineDeployments)
 
 	// Create MachineDeployments.
@@ -513,6 +534,9 @@ func (r *Reconciler) reconcileMachineDeployments(ctx context.Context, s *scope.S
 
 // getCurrentMachineDeployments gets the current list of MachineDeployments via the APIReader.
 func (r *Reconciler) getCurrentMachineDeployments(ctx context.Context, s *scope.Scope) (sets.Set[string], error) {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.getCurrentMachineDeployments")
+	defer span.End()
+
 	// TODO: We should consider using PartialObjectMetadataList here. Currently this doesn't work as our
 	// implementation for topology dryrun doesn't support PartialObjectMetadataList.
 	mdList := &clusterv1.MachineDeploymentList{}
@@ -539,6 +563,9 @@ func (r *Reconciler) getCurrentMachineDeployments(ctx context.Context, s *scope.
 
 // createMachineDeployment creates a MachineDeployment and the corresponding Templates.
 func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope, md *scope.MachineDeploymentState) error {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.createMachineDeployment")
+	defer span.End()
+
 	// Do not create the MachineDeployment if it is marked as pending create.
 	// This will also block MHC creation because creating the MHC without the corresponding
 	// MachineDeployment is unnecessary.
@@ -585,6 +612,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 	// Wait until MachineDeployment is visible in the cache.
 	// Note: We have to do this because otherwise using a cached client in current state could
 	// miss a newly created MachineDeployment (because the cache might be stale).
+	span.AddEvent("WaitCacheStart")
 	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 		key := client.ObjectKey{Namespace: md.Object.Namespace, Name: md.Object.Name}
 		if err := r.Client.Get(ctx, key, &clusterv1.MachineDeployment{}); err != nil {
@@ -595,6 +623,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 		}
 		return true, nil
 	})
+	span.AddEvent("WaitCacheEnd")
 	if err != nil {
 		return errors.Wrapf(err, "failed waiting for MachineDeployment %s to be visible in the cache after create", md.Object.Kind)
 	}
@@ -610,6 +639,9 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 
 // updateMachineDeployment updates a MachineDeployment. Also rotates the corresponding Templates if necessary.
 func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope, mdTopologyName string, currentMD, desiredMD *scope.MachineDeploymentState) error {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.updateMachineDeployment")
+	defer span.End()
+
 	log := tlog.LoggerFrom(ctx).WithMachineDeployment(desiredMD.Object)
 
 	// Patch MachineHealthCheck for the MachineDeployment.
@@ -676,6 +708,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 	// Note: It is good enough to check that the resource version changed. Other controllers might have updated the
 	// MachineDeployment as well, but the combination of the patch call above without a conflict and a changed resource
 	// version here guarantees that we see the changes of our own update.
+	span.AddEvent("WaitCacheStart")
 	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
 		key := client.ObjectKey{Namespace: currentMD.Object.GetNamespace(), Name: currentMD.Object.GetName()}
 		cachedMD := &clusterv1.MachineDeployment{}
@@ -684,6 +717,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 		}
 		return currentMD.Object.GetResourceVersion() != cachedMD.GetResourceVersion(), nil
 	})
+	span.AddEvent("WaitCacheEnd")
 	if err != nil {
 		return errors.Wrapf(err, "failed waiting for MachineDeployment %s to be updated in the cache after patch", tlog.KObj{Obj: currentMD.Object})
 	}
@@ -705,6 +739,9 @@ func logMachineDeploymentVersionChange(current, desired *clusterv1.MachineDeploy
 
 // deleteMachineDeployment deletes a MachineDeployment.
 func (r *Reconciler) deleteMachineDeployment(ctx context.Context, cluster *clusterv1.Cluster, md *scope.MachineDeploymentState) error {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.deleteMachineDeployment")
+	defer span.End()
+
 	log := tlog.LoggerFrom(ctx).WithMachineDeployment(md.Object).WithObject(md.Object)
 
 	// delete MachineHealthCheck for the MachineDeployment.

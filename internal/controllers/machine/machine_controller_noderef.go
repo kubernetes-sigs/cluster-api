@@ -32,6 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/api/v1beta1/index"
 	"sigs.k8s.io/cluster-api/internal/util/taints"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -43,6 +44,9 @@ var (
 )
 
 func (r *Reconciler) reconcileNode(ctx context.Context, s *scope) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "machine.Reconciler.reconcileNode")
+	defer span.End()
+
 	log := ctrl.LoggerFrom(ctx)
 	cluster := s.cluster
 	machine := s.machine

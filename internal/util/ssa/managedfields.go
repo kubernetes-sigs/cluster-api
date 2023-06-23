@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	"sigs.k8s.io/cluster-api/internal/contract"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 )
 
 const classicManager = "manager"
@@ -44,6 +45,9 @@ const classicManager = "manager"
 // as we assume that if other controllers are still writing fields on the object they will just do it again and thus
 // gain ownership again.
 func DropManagedFields(ctx context.Context, c client.Client, obj client.Object, ssaManager string, paths []contract.Path) error {
+	ctx, span := traceutil.Start(ctx, "ssa.DropManagedFields")
+	defer span.End()
+
 	// Return if `ssaManager` already owns any fields.
 	if hasFieldsManagedBy(obj, ssaManager) {
 		return nil
@@ -110,6 +114,9 @@ func DropManagedFields(ctx context.Context, c client.Client, obj client.Object, 
 // Dropping all existing "manager" entries (which could also be from other controllers) is safe, as we assume that if
 // other controllers are still writing fields on the object they will just do it again and thus gain ownership again.
 func CleanUpManagedFieldsForSSAAdoption(ctx context.Context, c client.Client, obj client.Object, ssaManager string) error {
+	ctx, span := traceutil.Start(ctx, "ssa.CleanUpManagedFieldsForSSAAdoption")
+	defer span.End()
+
 	// Return if `ssaManager` already owns any fields.
 	if hasFieldsManagedBy(obj, ssaManager) {
 		return nil

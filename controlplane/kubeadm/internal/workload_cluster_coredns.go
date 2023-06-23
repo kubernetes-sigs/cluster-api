@@ -36,6 +36,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -105,6 +106,9 @@ type coreDNSInfo struct {
 // UpdateCoreDNS updates the kubeadm configmap, coredns corefile and coredns
 // deployment.
 func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.UpdateCoreDNS")
+	defer span.End()
+
 	// Return early if we've been asked to skip CoreDNS upgrades entirely.
 	if _, ok := kcp.Annotations[controlplanev1.SkipCoreDNSAnnotation]; ok {
 		return nil
@@ -160,6 +164,9 @@ func (w *Workload) UpdateCoreDNS(ctx context.Context, kcp *controlplanev1.Kubead
 
 // getCoreDNSInfo returns all necessary coredns based information.
 func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv1.ClusterConfiguration, version semver.Version) (*coreDNSInfo, error) {
+	ctx, span := traceutil.Start(ctx, "Workload.getCoreDNSInfo")
+	defer span.End()
+
 	// Get the coredns configmap and corefile.
 	key := ctrlclient.ObjectKey{Name: coreDNSKey, Namespace: metav1.NamespaceSystem}
 	cm, err := w.getConfigMap(ctx, key)
@@ -254,6 +261,9 @@ func (w *Workload) getCoreDNSInfo(ctx context.Context, clusterConfig *bootstrapv
 // imageRepo:imageTag in the KCP dns. It will also ensure the volume of the
 // deployment uses the Corefile key of the coredns configmap.
 func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInfo, kubernetesVersion semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.updateCoreDNSDeployment")
+	defer span.End()
+
 	helper, err := patch.NewHelper(info.Deployment, w.Client)
 	if err != nil {
 		return err
@@ -271,6 +281,9 @@ func (w *Workload) updateCoreDNSDeployment(ctx context.Context, info *coreDNSInf
 
 // updateCoreDNSImageInfoInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
 func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(ctx context.Context, dns *bootstrapv1.DNS, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.updateCoreDNSImageInfoInKubeadmConfigMap")
+	defer span.End()
+
 	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
 		c.DNS.ImageRepository = dns.ImageRepository
 		c.DNS.ImageTag = dns.ImageTag
@@ -282,6 +295,9 @@ func (w *Workload) updateCoreDNSImageInfoInKubeadmConfigMap(ctx context.Context,
 // To support Kubernetes clusters >= 1.22 (which have been initialized with kubeadm < 1.22) with CoreDNS versions >= 1.8.1
 // we have to update the ClusterRole accordingly.
 func (w *Workload) updateCoreDNSClusterRole(ctx context.Context, kubernetesVersion semver.Version, info *coreDNSInfo) error {
+	ctx, span := traceutil.Start(ctx, "Workload.updateCoreDNSClusterRole")
+	defer span.End()
+
 	// Do nothing for Kubernetes < 1.22.
 	if version.Compare(kubernetesVersion, semver.Version{Major: 1, Minor: 22, Patch: 0}, version.WithoutPreReleases()) < 0 {
 		return nil
@@ -359,6 +375,9 @@ func generateClusterRolePolicies(policyRules []rbacv1.PolicyRule) map[string]map
 // in version number. It also creates a corefile backup and patches the
 // deployment to point to the backup corefile before migrating.
 func (w *Workload) updateCoreDNSCorefile(ctx context.Context, info *coreDNSInfo) error {
+	ctx, span := traceutil.Start(ctx, "Workload.updateCoreDNSCorefile")
+	defer span.End()
+
 	// Run the CoreDNS migration tool first because if it cannot migrate the
 	// corefile, then there's no point in continuing further.
 	updatedCorefile, err := w.CoreDNSMigrator.Migrate(info.CurrentMajorMinorPatch, info.TargetMajorMinorPatch, info.Corefile, false)

@@ -33,6 +33,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -41,6 +42,9 @@ import (
 // reconcileUnhealthyMachines tries to remediate KubeadmControlPlane unhealthy machines
 // based on the process described in https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/proposals/20191017-kubeadm-based-control-plane.md#remediation-using-delete-and-recreate
 func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.Context, controlPlane *internal.ControlPlane) (ret ctrl.Result, retErr error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.reconcileUnhealthyMachines")
+	defer span.End()
+
 	log := ctrl.LoggerFrom(ctx)
 	reconciliationTime := time.Now().UTC()
 
@@ -351,6 +355,9 @@ func max(x, y time.Duration) time.Duration {
 // NOTE: this func assumes the list of members in sync with the list of machines/nodes, it is required to call reconcileEtcdMembers
 // as well as reconcileControlPlaneConditions before this.
 func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Context, controlPlane *internal.ControlPlane, machineToBeRemediated *clusterv1.Machine) (bool, error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.canSafelyRemoveEtcdMember")
+	defer span.End()
+
 	log := ctrl.LoggerFrom(ctx)
 
 	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)

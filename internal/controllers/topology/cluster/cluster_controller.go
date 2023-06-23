@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	oteltrace "go.opentelemetry.io/otel/trace"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
@@ -46,6 +47,7 @@ import (
 	tlog "sigs.k8s.io/cluster-api/internal/log"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/internal/webhooks"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
@@ -70,6 +72,8 @@ type Reconciler struct {
 
 	RuntimeClient runtimeclient.Client
 
+	TraceProvider oteltrace.TracerProvider
+
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
@@ -87,6 +91,10 @@ type Reconciler struct {
 }
 
 func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.TraceProvider == nil {
+		r.TraceProvider = oteltrace.NewNoopTracerProvider()
+	}
+	tr := traceutil.Reconciler(r, r.TraceProvider, "topology/cluster", "Cluster")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Cluster{}, builder.WithPredicates(
 			// Only reconcile Cluster with topology.
@@ -105,7 +113,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
-		Build(r)
+		Build(tr)
 
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
@@ -198,6 +206,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 // reconcile handles cluster reconciliation.
 func (r *Reconciler) reconcile(ctx context.Context, s *scope.Scope) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.reconcile")
+	defer span.End()
 	var err error
 
 	// Get ClusterClass.

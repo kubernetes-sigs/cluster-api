@@ -36,6 +36,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -89,6 +90,9 @@ func (r *Reconciler) reconcilePhase(_ context.Context, m *clusterv1.Machine) {
 
 // reconcileExternal handles generic unstructured objects referenced by a Machine.
 func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine, ref *corev1.ObjectReference) (external.ReconcileOutput, error) {
+	ctx, span := traceutil.Start(ctx, "machine.Reconciler.reconcileExternal")
+	defer span.End()
+
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := utilconversion.UpdateReferenceAPIContract(ctx, r.Client, ref); err != nil {
@@ -167,6 +171,9 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 
 // reconcileBootstrap reconciles the Spec.Bootstrap.ConfigRef object on a Machine.
 func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "machine.Reconciler.reconcileBootstrap")
+	defer span.End()
+
 	log := ctrl.LoggerFrom(ctx)
 	cluster := s.cluster
 	m := s.machine
@@ -240,6 +247,9 @@ func (r *Reconciler) reconcileBootstrap(ctx context.Context, s *scope) (ctrl.Res
 
 // reconcileInfrastructure reconciles the Spec.InfrastructureRef object on a Machine.
 func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "machine.Reconciler.reconcileInfrastructure")
+	defer span.End()
+
 	log := ctrl.LoggerFrom(ctx)
 	cluster := s.cluster
 	m := s.machine
@@ -322,7 +332,10 @@ func (r *Reconciler) reconcileInfrastructure(ctx context.Context, s *scope) (ctr
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) reconcileCertificateExpiry(_ context.Context, s *scope) (ctrl.Result, error) {
+func (r *Reconciler) reconcileCertificateExpiry(ctx context.Context, s *scope) (ctrl.Result, error) {
+	_, span := traceutil.Start(ctx, "machine.Reconciler.reconcileCertificateExpiry")
+	defer span.End()
+
 	m := s.machine
 	var annotations map[string]string
 

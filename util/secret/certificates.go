@@ -39,6 +39,7 @@ import (
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util/certs"
 )
 
@@ -295,6 +296,8 @@ func (c Certificates) SaveGenerated(ctx context.Context, ctrlclient client.Clien
 
 // LookupOrGenerate is a convenience function that wraps cluster bootstrap certificate behavior.
 func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Client, clusterName client.ObjectKey, owner metav1.OwnerReference) error {
+	ctx, span := traceutil.Start(ctx, "Certificates.LookupOrGenerate")
+	defer span.End()
 	return c.LookupOrGenerateCached(ctx, nil, ctrlclient, clusterName, owner)
 }
 
@@ -302,6 +305,8 @@ func (c Certificates) LookupOrGenerate(ctx context.Context, ctrlclient client.Cl
 // During lookup we first try to lookup the certificate secret via the secretCachingClient. If we get a NotFound error
 // we fall back to the regular uncached client.
 func (c Certificates) LookupOrGenerateCached(ctx context.Context, secretCachingClient, ctrlclient client.Client, clusterName client.ObjectKey, owner metav1.OwnerReference) error {
+	ctx, span := traceutil.Start(ctx, "Certificates.LookupOrGenerateCached")
+	defer span.End()
 	// Find the certificates that exist
 	if err := c.LookupCached(ctx, secretCachingClient, ctrlclient, clusterName); err != nil {
 		return err

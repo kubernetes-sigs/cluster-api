@@ -28,10 +28,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 )
 
 // Get uses the client and reference to get an external, unstructured object.
 func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference, namespace string) (*unstructured.Unstructured, error) {
+	ctx, span := traceutil.Start(ctx, "external.Get")
+	defer span.End()
+
 	if ref == nil {
 		return nil, errors.Errorf("cannot get object - object reference not set")
 	}
@@ -48,6 +52,9 @@ func Get(ctx context.Context, c client.Reader, ref *corev1.ObjectReference, name
 
 // Delete uses the client and reference to delete an external, unstructured object.
 func Delete(ctx context.Context, c client.Writer, ref *corev1.ObjectReference) error {
+	ctx, span := traceutil.Start(ctx, "external.Delete")
+	defer span.End()
+
 	obj := new(unstructured.Unstructured)
 	obj.SetAPIVersion(ref.APIVersion)
 	obj.SetKind(ref.Kind)

@@ -32,6 +32,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/secret"
 )
@@ -84,11 +85,17 @@ func (m *Management) List(ctx context.Context, list client.ObjectList, opts ...c
 // GetMachinesForCluster returns a list of machines that can be filtered or not.
 // If no filter is supplied then all machines associated with the target cluster are returned.
 func (m *Management) GetMachinesForCluster(ctx context.Context, cluster *clusterv1.Cluster, filters ...collections.Func) (collections.Machines, error) {
+	ctx, span := traceutil.Start(ctx, "Management.GetMachinesForCluster")
+	defer span.End()
+
 	return collections.GetFilteredMachinesForCluster(ctx, m.Client, cluster, filters...)
 }
 
 // GetMachinePoolsForCluster returns a list of machine pools owned by the cluster.
 func (m *Management) GetMachinePoolsForCluster(ctx context.Context, cluster *clusterv1.Cluster) (*expv1.MachinePoolList, error) {
+	ctx, span := traceutil.Start(ctx, "Management.GetMachinesForCluster")
+	defer span.End()
+
 	selectors := []client.ListOption{
 		client.InNamespace(cluster.GetNamespace()),
 		client.MatchingLabels{
@@ -103,6 +110,9 @@ func (m *Management) GetMachinePoolsForCluster(ctx context.Context, cluster *clu
 // GetWorkloadCluster builds a cluster object.
 // The cluster comes with an etcd client generator to connect to any etcd pod living on a managed machine.
 func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.ObjectKey) (WorkloadCluster, error) {
+	ctx, span := traceutil.Start(ctx, "Management.GetWorkloadCluster")
+	defer span.End()
+
 	// TODO(chuckha): Inject this dependency.
 	// TODO(chuckha): memoize this function. The workload client only exists as long as a reconciliation loop.
 	restConfig, err := m.Tracker.GetRESTConfig(ctx, clusterKey)
@@ -178,6 +188,9 @@ func (m *Management) GetWorkloadCluster(ctx context.Context, clusterKey client.O
 }
 
 func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey client.ObjectKey) ([]byte, []byte, error) {
+	ctx, span := traceutil.Start(ctx, "Management.getEtcdCAKeyPair")
+	defer span.End()
+
 	etcdCASecret := &corev1.Secret{}
 	etcdCAObjectKey := client.ObjectKey{
 		Namespace: clusterKey.Namespace,
@@ -207,6 +220,9 @@ func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey client.Obj
 }
 
 func (m *Management) getAPIServerEtcdClientCert(ctx context.Context, clusterKey client.ObjectKey) (tls.Certificate, error) {
+	ctx, span := traceutil.Start(ctx, "Management.getAPIServerEtcdClientCert")
+	defer span.End()
+
 	apiServerEtcdClientCertificateSecret := &corev1.Secret{}
 	apiServerEtcdClientCertificateObjectKey := client.ObjectKey{
 		Namespace: clusterKey.Namespace,

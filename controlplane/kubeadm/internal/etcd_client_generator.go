@@ -29,6 +29,7 @@ import (
 
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 )
 
 // EtcdClientGenerator generates etcd clients that connect to specific etcd members on particular control plane nodes.
@@ -47,6 +48,9 @@ func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcd
 	ecg := &EtcdClientGenerator{restConfig: restConfig, tlsConfig: tlsConfig}
 
 	ecg.createClient = func(ctx context.Context, endpoint string) (*etcd.Client, error) {
+		ctx, span := traceutil.Start(ctx, "EtcdClientGenerator.createClient")
+		defer span.End()
+
 		p := proxy.Proxy{
 			Kind:       "pods",
 			Namespace:  metav1.NamespaceSystem,
@@ -67,6 +71,9 @@ func NewEtcdClientGenerator(restConfig *rest.Config, tlsConfig *tls.Config, etcd
 
 // forFirstAvailableNode takes a list of nodes and returns a client for the first one that connects.
 func (c *EtcdClientGenerator) forFirstAvailableNode(ctx context.Context, nodeNames []string) (*etcd.Client, error) {
+	ctx, span := traceutil.Start(ctx, "EtcdClientGenerator.forFirstAvailableNode")
+	defer span.End()
+
 	// This is an additional safeguard for avoiding this func to return nil, nil.
 	if len(nodeNames) == 0 {
 		return nil, errors.New("invalid argument: forLeader can't be called with an empty list of nodes")

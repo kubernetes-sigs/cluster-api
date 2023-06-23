@@ -27,6 +27,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	etcdutil "sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd/util"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 )
 
 type etcdClientFor interface {
@@ -37,6 +38,9 @@ type etcdClientFor interface {
 // ReconcileEtcdMembers iterates over all etcd members and finds members that do not have corresponding nodes.
 // If there are any such members, it deletes them from etcd and removes their nodes from the kubeadm configmap so that kubeadm does not run etcd health checks on them.
 func (w *Workload) ReconcileEtcdMembers(ctx context.Context, nodeNames []string, version semver.Version) ([]string, error) {
+	ctx, span := traceutil.Start(ctx, "Workload.ReconcileEtcdMembers")
+	defer span.End()
+
 	allRemovedMembers := []string{}
 	allErrs := []error{}
 	for _, nodeName := range nodeNames {
@@ -49,6 +53,9 @@ func (w *Workload) ReconcileEtcdMembers(ctx context.Context, nodeNames []string,
 }
 
 func (w *Workload) reconcileEtcdMember(ctx context.Context, nodeNames []string, nodeName string, version semver.Version) ([]string, []error) {
+	ctx, span := traceutil.Start(ctx, "Workload.reconcileEtcdMember")
+	defer span.End()
+
 	// Create the etcd Client for the etcd Pod scheduled on the Node
 	etcdClient, err := w.etcdClientGenerator.forFirstAvailableNode(ctx, []string{nodeName})
 	if err != nil {
@@ -94,6 +101,9 @@ loopmembers:
 
 // UpdateEtcdVersionInKubeadmConfigMap sets the imageRepository or the imageTag or both in the kubeadm config map.
 func (w *Workload) UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imageRepository, imageTag string, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.UpdateEtcdVersionInKubeadmConfigMap")
+	defer span.End()
+
 	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
 		if c.Etcd.Local != nil {
 			c.Etcd.Local.ImageRepository = imageRepository
@@ -104,6 +114,9 @@ func (w *Workload) UpdateEtcdVersionInKubeadmConfigMap(ctx context.Context, imag
 
 // UpdateEtcdExtraArgsInKubeadmConfigMap sets extraArgs in the kubeadm config map.
 func (w *Workload) UpdateEtcdExtraArgsInKubeadmConfigMap(ctx context.Context, extraArgs map[string]string, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.UpdateEtcdExtraArgsInKubeadmConfigMap")
+	defer span.End()
+
 	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
 		if c.Etcd.Local != nil {
 			c.Etcd.Local.ExtraArgs = extraArgs
@@ -114,6 +127,9 @@ func (w *Workload) UpdateEtcdExtraArgsInKubeadmConfigMap(ctx context.Context, ex
 // RemoveEtcdMemberForMachine removes the etcd member from the target cluster's etcd cluster.
 // Removing the last remaining member of the cluster is not supported.
 func (w *Workload) RemoveEtcdMemberForMachine(ctx context.Context, machine *clusterv1.Machine) error {
+	ctx, span := traceutil.Start(ctx, "Workload.RemoveEtcdMemberForMachine")
+	defer span.End()
+
 	if machine == nil || machine.Status.NodeRef == nil {
 		// Nothing to do, no node for Machine
 		return nil
@@ -122,6 +138,9 @@ func (w *Workload) RemoveEtcdMemberForMachine(ctx context.Context, machine *clus
 }
 
 func (w *Workload) removeMemberForNode(ctx context.Context, name string) error {
+	ctx, span := traceutil.Start(ctx, "Workload.removeMemberForNode")
+	defer span.End()
+
 	controlPlaneNodes, err := w.getControlPlaneNodes(ctx)
 	if err != nil {
 		return err
@@ -164,6 +183,9 @@ func (w *Workload) removeMemberForNode(ctx context.Context, name string) error {
 
 // ForwardEtcdLeadership forwards etcd leadership to the first follower.
 func (w *Workload) ForwardEtcdLeadership(ctx context.Context, machine *clusterv1.Machine, leaderCandidate *clusterv1.Machine) error {
+	ctx, span := traceutil.Start(ctx, "Workload.ForwardEtcdLeadership")
+	defer span.End()
+
 	if machine == nil || machine.Status.NodeRef == nil {
 		return nil
 	}
@@ -222,6 +244,9 @@ type EtcdMemberStatus struct {
 // but then it relies on etcd as ultimate source of truth for the list of members.
 // This is intended to allow informed decisions on actions impacting etcd quorum.
 func (w *Workload) EtcdMembers(ctx context.Context) ([]string, error) {
+	ctx, span := traceutil.Start(ctx, "Workload.EtcdMembers")
+	defer span.End()
+
 	nodes, err := w.getControlPlaneNodes(ctx)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to list control plane nodes")

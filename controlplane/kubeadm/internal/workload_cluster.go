@@ -48,6 +48,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/proxy"
 	"sigs.k8s.io/cluster-api/internal/util/kubeadm"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	containerutil "sigs.k8s.io/cluster-api/util/container"
@@ -136,6 +137,9 @@ type Workload struct {
 var _ WorkloadCluster = &Workload{}
 
 func (w *Workload) getControlPlaneNodes(ctx context.Context) (*corev1.NodeList, error) {
+	ctx, span := traceutil.Start(ctx, "Workload.getControlPlaneNodes")
+	defer span.End()
+
 	controlPlaneNodes := &corev1.NodeList{}
 	controlPlaneNodeNames := sets.Set[string]{}
 
@@ -173,6 +177,9 @@ func (w *Workload) getConfigMap(ctx context.Context, configMap ctrlclient.Object
 
 // UpdateImageRepositoryInKubeadmConfigMap updates the image repository in the kubeadm config map.
 func (w *Workload) UpdateImageRepositoryInKubeadmConfigMap(ctx context.Context, imageRepository string, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.UpdateImageRepositoryInKubeadmConfigMap")
+	defer span.End()
+
 	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
 		if imageRepository == "" {
 			return
@@ -183,6 +190,9 @@ func (w *Workload) UpdateImageRepositoryInKubeadmConfigMap(ctx context.Context, 
 
 // UpdateKubernetesVersionInKubeadmConfigMap updates the kubernetes version in the kubeadm config map.
 func (w *Workload) UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.UpdateKubernetesVersionInKubeadmConfigMap")
+	defer span.End()
+
 	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
 		c.KubernetesVersion = fmt.Sprintf("v%s", version.String())
 	}, version)
@@ -191,6 +201,9 @@ func (w *Workload) UpdateKubernetesVersionInKubeadmConfigMap(ctx context.Context
 // UpdateKubeletConfigMap will create a new kubelet-config-1.x config map for a new version of the kubelet.
 // This is a necessary process for upgrades.
 func (w *Workload) UpdateKubeletConfigMap(ctx context.Context, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.UpdateKubeletConfigMap")
+	defer span.End()
+
 	// Check if the desired configmap already exists
 	desiredKubeletConfigMapName := generateKubeletConfigName(version)
 	configMapKey := ctrlclient.ObjectKey{Name: desiredKubeletConfigMapName, Namespace: metav1.NamespaceSystem}
@@ -270,6 +283,9 @@ func (w *Workload) UpdateKubeletConfigMap(ctx context.Context, version semver.Ve
 
 // UpdateAPIServerInKubeadmConfigMap updates api server configuration in kubeadm config map.
 func (w *Workload) UpdateAPIServerInKubeadmConfigMap(ctx context.Context, apiServer bootstrapv1.APIServer, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.UpdateAPIServerInKubeadmConfigMap")
+	defer span.End()
+
 	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
 		c.APIServer = apiServer
 	}, version)
@@ -277,6 +293,9 @@ func (w *Workload) UpdateAPIServerInKubeadmConfigMap(ctx context.Context, apiSer
 
 // UpdateControllerManagerInKubeadmConfigMap updates controller manager configuration in kubeadm config map.
 func (w *Workload) UpdateControllerManagerInKubeadmConfigMap(ctx context.Context, controllerManager bootstrapv1.ControlPlaneComponent, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.UpdateControllerManagerInKubeadmConfigMap")
+	defer span.End()
+
 	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
 		c.ControllerManager = controllerManager
 	}, version)
@@ -284,6 +303,9 @@ func (w *Workload) UpdateControllerManagerInKubeadmConfigMap(ctx context.Context
 
 // UpdateSchedulerInKubeadmConfigMap updates scheduler configuration in kubeadm config map.
 func (w *Workload) UpdateSchedulerInKubeadmConfigMap(ctx context.Context, scheduler bootstrapv1.ControlPlaneComponent, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.UpdateSchedulerInKubeadmConfigMap")
+	defer span.End()
+
 	return w.updateClusterConfiguration(ctx, func(c *bootstrapv1.ClusterConfiguration) {
 		c.Scheduler = scheduler
 	}, version)
@@ -301,6 +323,9 @@ func (w *Workload) RemoveMachineFromKubeadmConfigMap(ctx context.Context, machin
 
 // RemoveNodeFromKubeadmConfigMap removes the entry for the node from the kubeadm configmap.
 func (w *Workload) RemoveNodeFromKubeadmConfigMap(ctx context.Context, name string, v semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.RemoveNodeFromKubeadmConfigMap")
+	defer span.End()
+
 	if version.Compare(v, minKubernetesVersionWithoutClusterStatus, version.WithoutPreReleases()) >= 0 {
 		return nil
 	}
@@ -400,6 +425,9 @@ type ClusterStatus struct {
 
 // ClusterStatus returns the status of the cluster.
 func (w *Workload) ClusterStatus(ctx context.Context) (ClusterStatus, error) {
+	ctx, span := traceutil.Start(ctx, "Workload.ClusterStatus")
+	defer span.End()
+
 	status := ClusterStatus{}
 
 	// count the control plane nodes
@@ -430,6 +458,9 @@ func (w *Workload) ClusterStatus(ctx context.Context) (ClusterStatus, error) {
 
 // GetAPIServerCertificateExpiry returns the certificate expiry of the apiserver on the given node.
 func (w *Workload) GetAPIServerCertificateExpiry(ctx context.Context, kubeadmConfig *bootstrapv1.KubeadmConfig, nodeName string) (*time.Time, error) {
+	ctx, span := traceutil.Start(ctx, "Workload.GetAPIServerCertificateExpiry")
+	defer span.End()
+
 	// Create a proxy.
 	p := proxy.Proxy{
 		Kind:       "pods",
@@ -539,6 +570,9 @@ func staticPodName(component, nodeName string) string {
 
 // UpdateKubeProxyImageInfo updates kube-proxy image in the kube-proxy DaemonSet.
 func (w *Workload) UpdateKubeProxyImageInfo(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.UpdateKubeProxyImageInfo")
+	defer span.End()
+
 	// Return early if we've been asked to skip kube-proxy upgrades entirely.
 	if _, ok := kcp.Annotations[controlplanev1.SkipKubeProxyAnnotation]; ok {
 		return nil

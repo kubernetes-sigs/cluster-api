@@ -20,6 +20,7 @@ import (
 	"context"
 	"time"
 
+	oteltrace "go.opentelemetry.io/otel/trace"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -65,6 +66,7 @@ type MachineReconciler struct {
 	UnstructuredCachingClient client.Client
 	APIReader                 client.Reader
 	Tracker                   *remote.ClusterCacheTracker
+	TraceProvider             oteltrace.TracerProvider
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -79,6 +81,7 @@ func (r *MachineReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manag
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
 		APIReader:                 r.APIReader,
 		Tracker:                   r.Tracker,
+		TraceProvider:             r.TraceProvider,
 		WatchFilterValue:          r.WatchFilterValue,
 		NodeDrainClientTimeout:    r.NodeDrainClientTimeout,
 	}).SetupWithManager(ctx, mgr, options)
@@ -150,6 +153,8 @@ type ClusterTopologyReconciler struct {
 
 	RuntimeClient runtimeclient.Client
 
+	TraceProvider oteltrace.TracerProvider
+
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
 
@@ -164,6 +169,7 @@ func (r *ClusterTopologyReconciler) SetupWithManager(ctx context.Context, mgr ct
 		APIReader:                 r.APIReader,
 		RuntimeClient:             r.RuntimeClient,
 		UnstructuredCachingClient: r.UnstructuredCachingClient,
+		TraceProvider:             r.TraceProvider,
 		WatchFilterValue:          r.WatchFilterValue,
 	}).SetupWithManager(ctx, mgr, options)
 }

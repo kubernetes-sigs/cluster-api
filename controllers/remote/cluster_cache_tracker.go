@@ -27,6 +27,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	oteltrace "go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -97,6 +98,8 @@ type ClusterCacheTracker struct {
 	// This information will be used to detected if the controller is running on a workload cluster, so
 	// that we can then access the apiserver directly.
 	controllerPodMetadata *metav1.ObjectMeta
+
+	traceProvider oteltrace.TracerProvider
 }
 
 // ClusterCacheTrackerOptions defines options to configure
@@ -121,6 +124,8 @@ type ClusterCacheTrackerOptions struct {
 	// This is used to calculate the user agent string.
 	// If not set, it defaults to "cluster-cache-tracker".
 	ControllerName string
+
+	TraceProvider oteltrace.TracerProvider
 }
 
 func setDefaultOptions(opts *ClusterCacheTrackerOptions) {
@@ -134,6 +139,10 @@ func setDefaultOptions(opts *ClusterCacheTrackerOptions) {
 			&corev1.ConfigMap{},
 			&corev1.Secret{},
 		}
+	}
+
+	if opts.TraceProvider == nil {
+		opts.TraceProvider = oteltrace.NewNoopTracerProvider()
 	}
 }
 
@@ -166,6 +175,7 @@ func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOpt
 		controllerPodMetadata: controllerPodMetadata,
 		log:                   *options.Log,
 		clientUncachedObjects: options.ClientUncachedObjects,
+		traceProvider:         options.TraceProvider,
 		client:                manager.GetClient(),
 		secretCachingClient:   options.SecretCachingClient,
 		scheme:                manager.GetScheme(),
@@ -294,6 +304,8 @@ func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster cl
 	if err != nil {
 		return nil, errors.Wrapf(err, "error fetching REST client config for remote cluster %q", cluster.String())
 	}
+	// FIXME: this seems to lead to problems with spans (random 10s spans in the trace)
+	// config.Wrap(tracing.WrapperFor(t.traceProvider)) //nolint:gocritic
 
 	// Create a client and a cache for the cluster.
 	c, uncachedClient, cache, err := t.createClient(ctx, config, cluster, indexes)

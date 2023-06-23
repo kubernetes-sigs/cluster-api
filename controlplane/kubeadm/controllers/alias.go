@@ -20,6 +20,7 @@ import (
 	"context"
 	"time"
 
+	"go.opentelemetry.io/otel/trace"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -33,6 +34,7 @@ type KubeadmControlPlaneReconciler struct {
 	Client              client.Client
 	SecretCachingClient client.Client
 	Tracker             *remote.ClusterCacheTracker
+	TraceProvider       trace.TracerProvider
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
@@ -47,6 +49,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 		Client:              r.Client,
 		SecretCachingClient: r.SecretCachingClient,
 		Tracker:             r.Tracker,
+		TraceProvider:       r.TraceProvider,
 		EtcdDialTimeout:     r.EtcdDialTimeout,
 		EtcdCallTimeout:     r.EtcdCallTimeout,
 		WatchFilterValue:    r.WatchFilterValue,

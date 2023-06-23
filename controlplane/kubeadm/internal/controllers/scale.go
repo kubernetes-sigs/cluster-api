@@ -31,11 +31,15 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
 
 func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.initializeControlPlane")
+	defer span.End()
+
 	logger := ctrl.LoggerFrom(ctx)
 
 	bootstrapSpec := controlPlane.InitialControlPlaneConfig()
@@ -51,6 +55,9 @@ func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Conte
 }
 
 func (r *KubeadmControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.scaleUpControlPlane")
+	defer span.End()
+
 	logger := ctrl.LoggerFrom(ctx)
 
 	// Run preflight checks to ensure that the control plane is stable before proceeding with a scale up/scale down operation; if not, wait.
@@ -76,6 +83,9 @@ func (r *KubeadmControlPlaneReconciler) scaleDownControlPlane(
 	controlPlane *internal.ControlPlane,
 	outdatedMachines collections.Machines,
 ) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.scaleDownControlPlane")
+	defer span.End()
+
 	logger := ctrl.LoggerFrom(ctx)
 
 	// Pick the Machine that we should scale down.

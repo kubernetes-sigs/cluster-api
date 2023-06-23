@@ -26,6 +26,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 )
 
 const (
@@ -50,6 +52,9 @@ const (
 
 // EnsureResource creates a resoutce if the target resource doesn't exist. If the resource exists already, this function will ignore the resource instead.
 func (w *Workload) EnsureResource(ctx context.Context, obj client.Object) error {
+	ctx, span := traceutil.Start(ctx, "Workload.EnsureResource")
+	defer span.End()
+
 	testObj := obj.DeepCopyObject().(client.Object)
 	key := client.ObjectKeyFromObject(obj)
 	if err := w.Client.Get(ctx, key, testObj); err != nil && !apierrors.IsNotFound(err) {
@@ -68,6 +73,9 @@ func (w *Workload) EnsureResource(ctx context.Context, obj client.Object) error 
 
 // AllowBootstrapTokensToGetNodes creates RBAC rules to allow Node Bootstrap Tokens to list nodes.
 func (w *Workload) AllowBootstrapTokensToGetNodes(ctx context.Context) error {
+	ctx, span := traceutil.Start(ctx, "Workload.AllowBootstrapTokensToGetNodes")
+	defer span.End()
+
 	if err := w.EnsureResource(ctx, &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      GetNodesClusterRoleName,
@@ -118,6 +126,9 @@ func generateKubeletConfigRoleName(version semver.Version) string {
 // ReconcileKubeletRBACBinding will create a RoleBinding for the new kubelet version during upgrades.
 // If the role binding already exists this function is a no-op.
 func (w *Workload) ReconcileKubeletRBACBinding(ctx context.Context, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.ReconcileKubeletRBACBinding")
+	defer span.End()
+
 	roleName := generateKubeletConfigRoleName(version)
 	return w.EnsureResource(ctx, &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -147,6 +158,9 @@ func (w *Workload) ReconcileKubeletRBACBinding(ctx context.Context, version semv
 // ReconcileKubeletRBACRole will create a Role for the new kubelet version during upgrades.
 // If the role already exists this function is a no-op.
 func (w *Workload) ReconcileKubeletRBACRole(ctx context.Context, version semver.Version) error {
+	ctx, span := traceutil.Start(ctx, "Workload.ReconcileKubeletRBACRole")
+	defer span.End()
+
 	return w.EnsureResource(ctx, &rbacv1.Role{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      generateKubeletConfigRoleName(version),

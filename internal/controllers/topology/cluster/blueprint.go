@@ -24,12 +24,16 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 )
 
 // getBlueprint gets a ClusterBlueprint with the ClusterClass and the referenced templates to be used for a managed Cluster topology.
 // It also converts and patches all ObjectReferences in ClusterClass and ControlPlane to the latest apiVersion of the current contract.
 // NOTE: This function assumes that cluster.Spec.Topology.Class is set.
 func (r *Reconciler) getBlueprint(ctx context.Context, cluster *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) (_ *scope.ClusterBlueprint, reterr error) {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.getBlueprint")
+	defer span.End()
+
 	blueprint := &scope.ClusterBlueprint{
 		Topology:           cluster.Spec.Topology,
 		ClusterClass:       clusterClass,

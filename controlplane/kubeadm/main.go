@@ -28,6 +28,7 @@ import (
 
 	// +kubebuilder:scaffold:imports
 	"github.com/spf13/pflag"
+	oteltrace "go.opentelemetry.io/otel/trace"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -40,7 +41,10 @@ import (
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
+	"k8s.io/component-base/tracing"
+	tracingapi "k8s.io/component-base/tracing/api/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -57,6 +61,7 @@ import (
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal/etcd"
 	kcpwebhooks "sigs.k8s.io/cluster-api/controlplane/kubeadm/webhooks"
 	"sigs.k8s.io/cluster-api/feature"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
 )
@@ -65,6 +70,7 @@ var (
 	scheme         = runtime.NewScheme()
 	setupLog       = ctrl.Log.WithName("setup")
 	controllerName = "cluster-api-kubeadm-control-plane-manager"
+	appName        = "capi-kubeadm-control-plane-controller-manager"
 )
 
 func init() {
@@ -101,6 +107,9 @@ var (
 	etcdCallTimeout                time.Duration
 	tlsOptions                     = flags.TLSOptions{}
 	logOptions                     = logs.NewOptions()
+
+	tracingEndpoint               string
+	tracingSamplingRatePerMillion int32
 )
 
 // InitFlags initializes the flags.
@@ -155,6 +164,13 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
+	// FIXME: re-work flags
+	fs.StringVar(&tracingEndpoint, "tracing-endpoint", "",
+		"endpoint to send traces to")
+
+	fs.Int32Var(&tracingSamplingRatePerMillion, "tracing-sampling-rate", 0,
+		"sample rate per million for tracing")
+
 	fs.DurationVar(&etcdDialTimeout, "etcd-dial-timeout-duration", 10*time.Second,
 		"Duration that the etcd client waits at most to establish a connection with etcd")
 
@@ -183,6 +199,16 @@ func main() {
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
+
+	tp, err := traceutil.NewProvider(&tracingapi.TracingConfiguration{
+		Endpoint:               pointer.String(tracingEndpoint),
+		SamplingRatePerMillion: pointer.Int32(tracingSamplingRatePerMillion),
+	}, controllerName, appName)
+	if err != nil {
+		setupLog.Error(err, "unable to create tracing provider")
+		os.Exit(1)
+	}
+	restConfig.Wrap(tracing.WrapperFor(tp))
 
 	tlsOptionOverrides, err := flags.GetTLSOptionOverrideFuncs(tlsOptions)
 	if err != nil {
@@ -257,7 +283,7 @@ func main() {
 	ctx := ctrl.SetupSignalHandler()
 
 	setupChecks(mgr)
-	setupReconcilers(ctx, mgr)
+	setupReconcilers(ctx, mgr, tp)
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
@@ -280,7 +306,7 @@ func setupChecks(mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager, tp oteltrace.TracerProvider) {
 	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
 		HTTPClient: mgr.GetHTTPClient(),
 		Cache: &client.CacheOptions{
@@ -306,6 +332,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			&appsv1.Deployment{},
 			&appsv1.DaemonSet{},
 		},
+		TraceProvider: tp,
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to create cluster cache tracker")
@@ -324,6 +351,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		Client:              mgr.GetClient(),
 		SecretCachingClient: secretCachingClient,
 		Tracker:             tracker,
+		TraceProvider:       tp,
 		WatchFilterValue:    watchFilterValue,
 		EtcdDialTimeout:     etcdDialTimeout,
 		EtcdCallTimeout:     etcdCallTimeout,

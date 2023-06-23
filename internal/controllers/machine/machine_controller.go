@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	oteltrace "go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,6 +49,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/noderefutil"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -78,6 +80,7 @@ type Reconciler struct {
 	UnstructuredCachingClient client.Client
 	APIReader                 client.Reader
 	Tracker                   *remote.ClusterCacheTracker
+	TraceProvider             oteltrace.TracerProvider
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -105,6 +108,10 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		r.nodeDeletionRetryTimeout = 10 * time.Second
 	}
 
+	if r.TraceProvider == nil {
+		r.TraceProvider = oteltrace.NewNoopTracerProvider()
+	}
+	tr := traceutil.Reconciler(r, r.TraceProvider, "machine", "Machine")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1.Machine{}).
 		WithOptions(options).
@@ -122,7 +129,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 					predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
 				),
 			)).
-		Build(r)
+		Build(tr)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -268,6 +275,9 @@ func patchMachine(ctx context.Context, patchHelper *patch.Helper, machine *clust
 }
 
 func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "machine.Reconciler.reconcile")
+	defer span.End()
+
 	// If the machine is a stand-alone one, meaning not originated from a MachineDeployment, then set it as directly
 	// owned by the Cluster (if not already present).
 	if r.shouldAdopt(m) {
@@ -288,6 +298,10 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 	res := ctrl.Result{}
 	errs := []error{}
+
+	ctx, span = traceutil.Start(ctx, "machine.Reconciler.reconcile.phases")
+	defer span.End()
+
 	s := &scope{
 		cluster: cluster,
 		machine: m,
@@ -326,6 +340,9 @@ type scope struct {
 }
 
 func (r *Reconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, m *clusterv1.Machine) (ctrl.Result, error) { //nolint:gocyclo
+	ctx, span := traceutil.Start(ctx, "machine.Reconciler.reconcileDelete")
+	defer span.End()
+
 	log := ctrl.LoggerFrom(ctx)
 
 	err := r.isDeleteNodeAllowed(ctx, cluster, m)

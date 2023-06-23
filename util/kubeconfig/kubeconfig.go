@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -109,6 +110,9 @@ func CreateSecret(ctx context.Context, c client.Client, cluster *clusterv1.Clust
 
 // CreateSecretWithOwner creates the Kubeconfig secret for the given cluster name, namespace, endpoint, and owner reference.
 func CreateSecretWithOwner(ctx context.Context, c client.Client, clusterName client.ObjectKey, endpoint string, owner metav1.OwnerReference) error {
+	ctx, span := traceutil.Start(ctx, "CreateSecretWithOwner")
+	defer span.End()
+
 	server := fmt.Sprintf("https://%s", endpoint)
 	out, err := generateKubeconfig(ctx, c, clusterName, server)
 	if err != nil {
@@ -178,6 +182,9 @@ func NeedsClientCertRotation(configSecret *corev1.Secret, threshold time.Duratio
 
 // RegenerateSecret creates and stores a new Kubeconfig in the given secret.
 func RegenerateSecret(ctx context.Context, c client.Client, configSecret *corev1.Secret) error {
+	ctx, span := traceutil.Start(ctx, "RegenerateSecret")
+	defer span.End()
+
 	clusterName, _, err := secret.ParseSecretName(configSecret.Name)
 	if err != nil {
 		return errors.Wrap(err, "failed to parse secret name")

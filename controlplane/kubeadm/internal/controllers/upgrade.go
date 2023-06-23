@@ -25,6 +25,7 @@ import (
 
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/version"
@@ -35,6 +36,9 @@ func (r *KubeadmControlPlaneReconciler) upgradeControlPlane(
 	controlPlane *internal.ControlPlane,
 	machinesRequireUpgrade collections.Machines,
 ) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.upgradeControlPlane")
+	defer span.End()
+
 	logger := ctrl.LoggerFrom(ctx)
 
 	if controlPlane.KCP.Spec.RolloutStrategy == nil || controlPlane.KCP.Spec.RolloutStrategy.RollingUpdate == nil {

@@ -30,6 +30,7 @@ import (
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/failuredomains"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -58,6 +59,9 @@ type ControlPlane struct {
 
 // NewControlPlane returns an instantiated ControlPlane.
 func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
+	ctx, span := traceutil.Start(ctx, "NewControlPlane")
+	defer span.End()
+
 	infraObjects, err := getInfraResources(ctx, client, ownedMachines)
 	if err != nil {
 		return nil, err
@@ -243,6 +247,9 @@ func (c *ControlPlane) HasUnhealthyMachine() bool {
 
 // PatchMachines patches all the machines conditions.
 func (c *ControlPlane) PatchMachines(ctx context.Context) error {
+	ctx, span := traceutil.Start(ctx, "ControlPlane.PatchMachines")
+	defer span.End()
+
 	errList := []error{}
 	for i := range c.Machines {
 		machine := c.Machines[i]

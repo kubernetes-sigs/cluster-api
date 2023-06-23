@@ -23,6 +23,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
+	oteltrace "go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,6 +47,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/collections"
@@ -75,6 +77,7 @@ type KubeadmControlPlaneReconciler struct {
 	controller          controller.Controller
 	recorder            record.EventRecorder
 	Tracker             *remote.ClusterCacheTracker
+	TraceProvider       oteltrace.TracerProvider
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
@@ -94,6 +97,10 @@ type KubeadmControlPlaneReconciler struct {
 }
 
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
+	if r.TraceProvider == nil {
+		r.TraceProvider = oteltrace.NewNoopTracerProvider()
+	}
+	tr := traceutil.Reconciler(r, r.TraceProvider, "kubeadmcontrolplane", "KubeadmControlPlane")
 	c, err := ctrl.NewControllerManagedBy(mgr).
 		For(&controlplanev1.KubeadmControlPlane{}).
 		Owns(&clusterv1.Machine{}).
@@ -108,7 +115,7 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 					predicates.ClusterUnpausedAndInfrastructureReady(ctrl.LoggerFrom(ctx)),
 				),
 			),
-		).Build(r)
+		).Build(tr)
 	if err != nil {
 		return errors.Wrap(err, "failed setting up with a controller manager")
 	}
@@ -300,6 +307,9 @@ func (r *KubeadmControlPlaneReconciler) initControlPlaneScope(ctx context.Contex
 }
 
 func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kcp *controlplanev1.KubeadmControlPlane) error {
+	ctx, span := traceutil.Start(ctx, "patchKubeadmControlPlane")
+	defer span.End()
+
 	// Always update the readyCondition by summarizing the state of other conditions.
 	conditions.SetSummary(kcp,
 		conditions.WithConditions(
@@ -331,6 +341,9 @@ func patchKubeadmControlPlane(ctx context.Context, patchHelper *patch.Helper, kc
 
 // reconcile handles KubeadmControlPlane reconciliation.
 func (r *KubeadmControlPlaneReconciler) reconcile(ctx context.Context, controlPlane *internal.ControlPlane) (res ctrl.Result, reterr error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.reconcile")
+	defer span.End()
+
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconcile KubeadmControlPlane")
 
@@ -503,6 +516,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 // The implementation does not take non-control plane workloads into consideration. This may or may not change in the future.
 // Please see https://github.com/kubernetes-sigs/cluster-api/issues/2064.
 func (r *KubeadmControlPlaneReconciler) reconcileDelete(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.reconcileDelete")
+	defer span.End()
+
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconcile KubeadmControlPlane deletion")
 
@@ -590,6 +606,9 @@ func (r *KubeadmControlPlaneReconciler) ClusterToKubeadmControlPlane(_ context.C
 // Otherwise, fields would be co-owned by our "old" "manager" and "capi-kubeadmcontrolplane" and then we would not be
 // able to e.g. drop labels and annotations.
 func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, controlPlane *internal.ControlPlane) error {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.syncMachines")
+	defer span.End()
+
 	patchHelpers := map[string]*patch.Helper{}
 	for machineName := range controlPlane.Machines {
 		m := controlPlane.Machines[machineName]
@@ -673,6 +692,9 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 // reconcileControlPlaneConditions is responsible of reconciling conditions reporting the status of static pods and
 // the status of the etcd cluster.
 func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneConditions(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.reconcileControlPlaneConditions")
+	defer span.End()
+
 	// If the cluster is not yet initialized, there is no way to connect to the workload cluster and fetch information
 	// for updating conditions. Return early.
 	if !controlPlane.KCP.Status.Initialized {
@@ -702,6 +724,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileControlPlaneConditions(ctx cont
 //
 // NOTE: this func uses KCP conditions, it is required to call reconcileControlPlaneConditions before this.
 func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.reconcileEtcdMembers")
+	defer span.End()
+
 	log := ctrl.LoggerFrom(ctx)
 
 	// If etcd is not managed by KCP this is a no-op.
@@ -754,6 +779,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileEtcdMembers(ctx context.Context
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.reconcileCertificateExpiries")
+	defer span.End()
+
 	log := ctrl.LoggerFrom(ctx)
 
 	// Return if there are no KCP-owned control-plane machines.
@@ -824,6 +852,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileCertificateExpiries(ctx context
 }
 
 func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, machines collections.Machines, cluster *clusterv1.Cluster) error {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.adoptMachines")
+	defer span.End()
+
 	// We do an uncached full quorum read against the KCP to avoid re-adopting Machines the garbage collector just intentionally orphaned
 	// See https://github.com/kubernetes/kubernetes/issues/42639
 	uncached := controlplanev1.KubeadmControlPlane{}
@@ -901,6 +932,9 @@ func (r *KubeadmControlPlaneReconciler) adoptMachines(ctx context.Context, kcp *
 }
 
 func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, kcp *controlplanev1.KubeadmControlPlane, currentOwner *bootstrapv1.KubeadmConfig, clusterName string) error {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.adoptOwnedSecrets")
+	defer span.End()
+
 	secrets := corev1.SecretList{}
 	if err := r.Client.List(ctx, &secrets, client.InNamespace(kcp.Namespace), client.MatchingLabels{clusterv1.ClusterNameLabel: clusterName}); err != nil {
 		return errors.Wrap(err, "error finding secrets for adoption")
@@ -937,6 +971,8 @@ func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, k
 
 // ensureCertificatesOwnerRef ensures an ownerReference to the owner is added on the Secrets holding certificates.
 func (r *KubeadmControlPlaneReconciler) ensureCertificatesOwnerRef(ctx context.Context, certificates secret.Certificates, owner metav1.OwnerReference) error {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.ensureCertificatesOwnerRef")
+	defer span.End()
 	for _, c := range certificates {
 		if c.Secret == nil {
 			continue

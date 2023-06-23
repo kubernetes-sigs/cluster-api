@@ -24,6 +24,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -31,6 +32,9 @@ import (
 // updateStatus is called after every reconcilitation loop in a defer statement to always make sure we have the
 // resource status subresourcs up-to-date.
 func (r *KubeadmControlPlaneReconciler) updateStatus(ctx context.Context, controlPlane *internal.ControlPlane) error {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.updateStatus")
+	defer span.End()
+
 	selector := collections.ControlPlaneSelectorForCluster(controlPlane.Cluster.Name)
 	// Copy label selector to its status counterpart in string format.
 	// This is necessary for CRDs including scale subresources.

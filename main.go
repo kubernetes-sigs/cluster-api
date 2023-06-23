@@ -28,6 +28,7 @@ import (
 
 	// +kubebuilder:scaffold:imports
 	"github.com/spf13/pflag"
+	oteltrace "go.opentelemetry.io/otel/trace"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -39,7 +40,10 @@ import (
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	_ "k8s.io/component-base/logs/json/register"
+	"k8s.io/component-base/tracing"
+	tracingapi "k8s.io/component-base/tracing/api/v1"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -69,6 +73,7 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	runtimeclient "sigs.k8s.io/cluster-api/internal/runtime/client"
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 	"sigs.k8s.io/cluster-api/util/flags"
 	"sigs.k8s.io/cluster-api/version"
@@ -80,6 +85,7 @@ var (
 	scheme         = runtime.NewScheme()
 	setupLog       = ctrl.Log.WithName("setup")
 	controllerName = "cluster-api-controller-manager"
+	appName        = "capi-controller-manager"
 
 	// flags.
 	metricsBindAddr               string
@@ -110,6 +116,9 @@ var (
 	healthAddr                    string
 	tlsOptions                    = flags.TLSOptions{}
 	logOptions                    = logs.NewOptions()
+
+	tracingEndpoint               string
+	tracingSamplingRatePerMillion int32
 )
 
 func init() {
@@ -219,6 +228,13 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&healthAddr, "health-addr", ":9440",
 		"The address the health endpoint binds to.")
 
+	// FIXME: re-work flags
+	fs.StringVar(&tracingEndpoint, "tracing-endpoint", "",
+		"endpoint to send traces to")
+
+	fs.Int32Var(&tracingSamplingRatePerMillion, "tracing-sampling-rate", 0,
+		"sample rate per million for tracing")
+
 	flags.AddTLSOptions(fs, &tlsOptions)
 
 	feature.MutableGates.AddFlag(fs)
@@ -247,6 +263,16 @@ func main() {
 		setupLog.Error(errors.New("node drain client timeout must be greater than zero"), "unable to start manager")
 		os.Exit(1)
 	}
+
+	tp, err := traceutil.NewProvider(&tracingapi.TracingConfiguration{
+		Endpoint:               pointer.String(tracingEndpoint),
+		SamplingRatePerMillion: pointer.Int32(tracingSamplingRatePerMillion),
+	}, controllerName, appName)
+	if err != nil {
+		setupLog.Error(err, "unable to create tracing provider")
+		os.Exit(1)
+	}
+	restConfig.Wrap(tracing.WrapperFor(tp))
 
 	minVer := version.MinimumKubernetesVersion
 	if feature.Gates.Enabled(feature.ClusterTopology) {
@@ -327,7 +353,7 @@ func main() {
 
 	setupChecks(mgr)
 	setupIndexes(ctx, mgr)
-	setupReconcilers(ctx, mgr)
+	setupReconcilers(ctx, mgr, tp)
 	setupWebhooks(mgr)
 
 	// +kubebuilder:scaffold:builder
@@ -357,7 +383,7 @@ func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
 	}
 }
 
-func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
+func setupReconcilers(ctx context.Context, mgr ctrl.Manager, tp oteltrace.TracerProvider) {
 	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
 		HTTPClient: mgr.GetHTTPClient(),
 		Cache: &client.CacheOptions{
@@ -379,6 +405,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			ControllerName:      controllerName,
 			Log:                 &log,
 			Indexes:             []remote.Index{remote.NodeProviderIDIndex},
+			TraceProvider:       tp,
 		},
 	)
 	if err != nil {
@@ -433,6 +460,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			APIReader:                 mgr.GetAPIReader(),
 			RuntimeClient:             runtimeClient,
 			UnstructuredCachingClient: unstructuredCachingClient,
+			TraceProvider:             tp,
 			WatchFilterValue:          watchFilterValue,
 		}).SetupWithManager(ctx, mgr, concurrency(clusterTopologyConcurrency)); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterTopology")
@@ -484,6 +512,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		UnstructuredCachingClient: unstructuredCachingClient,
 		APIReader:                 mgr.GetAPIReader(),
 		Tracker:                   tracker,
+		TraceProvider:             tp,
 		WatchFilterValue:          watchFilterValue,
 		NodeDrainClientTimeout:    nodeDrainClientTimeout,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {

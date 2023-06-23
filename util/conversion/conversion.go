@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/conversion"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -60,6 +61,9 @@ var (
 // The object passed as input is modified in place if an updated compatible version is found.
 // NOTE: This version depends on CRDs being named correctly as defined by contract.CalculateCRDName.
 func UpdateReferenceAPIContract(ctx context.Context, c client.Client, ref *corev1.ObjectReference) error {
+	ctx, span := traceutil.Start(ctx, "UpdateReferenceAPIContract")
+	defer span.End()
+
 	gvk := ref.GroupVersionKind()
 
 	metadata, err := util.GetGVKMetadata(ctx, c, gvk)

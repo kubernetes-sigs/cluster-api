@@ -31,12 +31,16 @@ import (
 	"sigs.k8s.io/cluster-api/internal/contract"
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util/labels"
 )
 
 // getCurrentState gets information about the current state of a Cluster by inspecting the state of the InfrastructureCluster,
 // the ControlPlane, and the MachineDeployments associated with the Cluster.
 func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scope.ClusterState, error) {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.getCurrentState")
+	defer span.End()
+
 	// NOTE: current scope has been already initialized with the Cluster.
 	currentState := s.Current
 
@@ -74,7 +78,11 @@ func (r *Reconciler) getCurrentState(ctx context.Context, s *scope.Scope) (*scop
 
 // getCurrentInfrastructureClusterState looks for the state of the InfrastructureCluster. If a reference is set but not
 // found, either from an error or the object not being found, an error is thrown.
-func (r *Reconciler) getCurrentInfrastructureClusterState(ctx context.Context, blueprintInfrastructureClusterTemplate *unstructured.Unstructured, cluster *clusterv1.Cluster) (*unstructured.Unstructured, error) {
+func (r *Reconciler) getCurrentInfrastructureClusterState(ctx context.Context, blueprintInfrastructureClusterTemplate *unstructured.Unstructured,
+	cluster *clusterv1.Cluster) (*unstructured.Unstructured, error) {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.getCurrentInfrastructureClusterState")
+	defer span.End()
+
 	ref, err := alignRefAPIVersion(blueprintInfrastructureClusterTemplate, cluster.Spec.InfrastructureRef)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to read %s", tlog.KRef{Ref: cluster.Spec.InfrastructureRef})
@@ -96,6 +104,9 @@ func (r *Reconciler) getCurrentInfrastructureClusterState(ctx context.Context, b
 // an error is thrown. If the ControlPlane requires MachineInfrastructure according to its ClusterClass an error will be
 // thrown if the ControlPlane has no MachineTemplates.
 func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, blueprintControlPlane *scope.ControlPlaneBlueprint, blueprintHasControlPlaneInfrastructureMachine bool, cluster *clusterv1.Cluster) (*scope.ControlPlaneState, error) {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.getCurrentControlPlaneState")
+	defer span.End()
+
 	var err error
 	res := &scope.ControlPlaneState{}
 
@@ -158,6 +169,9 @@ func (r *Reconciler) getCurrentControlPlaneState(ctx context.Context, blueprintC
 // expected on first reconcile. If MachineDeployments are found for the Cluster their Infrastructure and Bootstrap references
 // are inspected. Where these are not found the function will throw an error.
 func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, blueprintMachineDeployments map[string]*scope.MachineDeploymentBlueprint, cluster *clusterv1.Cluster) (map[string]*scope.MachineDeploymentState, error) {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.getCurrentMachineDeploymentState")
+	defer span.End()
+
 	state := make(scope.MachineDeploymentsStateMap)
 
 	// List all the machine deployments in the current cluster and in a managed topology.

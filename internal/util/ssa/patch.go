@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	"sigs.k8s.io/cluster-api/internal/contract"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 )
 
 // Option is the interface for configuration that modifies Options for a patch request.
@@ -62,6 +63,9 @@ type Options struct {
 // If WithCachingProxy is set and the request didn't change the object
 // we will cache this result, so subsequent calls don't have to run SSA again.
 func Patch(ctx context.Context, c client.Client, fieldManager string, modified client.Object, opts ...Option) error {
+	ctx, span := traceutil.Start(ctx, "ssa.Patch")
+	defer span.End()
+
 	// Calculate the options.
 	options := &Options{}
 	for _, opt := range opts {

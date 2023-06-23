@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api/internal/controllers/topology/cluster/scope"
 	"sigs.k8s.io/cluster-api/internal/hooks"
 	tlog "sigs.k8s.io/cluster-api/internal/log"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util"
 )
 
@@ -46,6 +47,9 @@ import (
 // the entire compute operation will fail. This might be improved in the future if support for reconciling
 // subset of a topology will be implemented.
 func (r *Reconciler) computeDesiredState(ctx context.Context, s *scope.Scope) (*scope.ClusterState, error) {
+	ctx, span := traceutil.Start(ctx, "topology/cluster.Reconciler.computeDesiredState")
+	defer span.End()
+
 	var err error
 	desiredState := &scope.ClusterState{
 		ControlPlane: &scope.ControlPlaneState{},

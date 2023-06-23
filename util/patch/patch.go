@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/conditions"
 )
@@ -82,6 +83,9 @@ func NewHelper(obj client.Object, crClient client.Client) (*Helper, error) {
 
 // Patch will attempt to patch the given object, including its status.
 func (h *Helper) Patch(ctx context.Context, obj client.Object, opts ...Option) error {
+	ctx, span := traceutil.Start(ctx, "Helper.Patch")
+	defer span.End()
+
 	// Return early if the object is nil.
 	if util.IsNil(obj) {
 		return errors.New("Patch could not be completed: object is nil")

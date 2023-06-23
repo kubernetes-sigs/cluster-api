@@ -38,6 +38,7 @@ import (
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
 	"sigs.k8s.io/cluster-api/internal/util/ssa"
+	traceutil "sigs.k8s.io/cluster-api/internal/util/trace"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/certs"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -48,6 +49,9 @@ import (
 )
 
 func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.reconcileKubeconfig")
+	defer span.End()
+
 	log := ctrl.LoggerFrom(ctx)
 
 	endpoint := controlPlane.Cluster.Spec.ControlPlaneEndpoint
@@ -102,6 +106,9 @@ func (r *KubeadmControlPlaneReconciler) reconcileKubeconfig(ctx context.Context,
 
 // Ensure the KubeadmConfigSecret has an owner reference to the control plane if it is not a user-provided secret.
 func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Context, configSecret *corev1.Secret, kcp *controlplanev1.KubeadmControlPlane) (reterr error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.adoptKubeconfigSecret")
+	defer span.End()
+
 	patchHelper, err := patch.NewHelper(configSecret, r.Client)
 	if err != nil {
 		return errors.Wrap(err, "failed to create patch helper for the kubeconfig secret")
@@ -132,6 +139,9 @@ func (r *KubeadmControlPlaneReconciler) adoptKubeconfigSecret(ctx context.Contex
 }
 
 func (r *KubeadmControlPlaneReconciler) reconcileExternalReference(ctx context.Context, cluster *clusterv1.Cluster, ref *corev1.ObjectReference) error {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.reconcileExternalReference")
+	defer span.End()
+
 	if !strings.HasSuffix(ref.Kind, clusterv1.TemplateSuffix) {
 		return nil
 	}
@@ -278,6 +288,9 @@ func (r *KubeadmControlPlaneReconciler) generateKubeadmConfig(ctx context.Contex
 
 // updateExternalObject updates the external object with the labels and annotations from KCP.
 func (r *KubeadmControlPlaneReconciler) updateExternalObject(ctx context.Context, obj client.Object, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) error {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.updateExternalObject")
+	defer span.End()
+
 	updatedObject := &unstructured.Unstructured{}
 	updatedObject.SetGroupVersionKind(obj.GetObjectKind().GroupVersionKind())
 	updatedObject.SetNamespace(obj.GetNamespace())
@@ -312,6 +325,9 @@ func (r *KubeadmControlPlaneReconciler) createMachine(ctx context.Context, kcp *
 }
 
 func (r *KubeadmControlPlaneReconciler) updateMachine(ctx context.Context, machine *clusterv1.Machine, kcp *controlplanev1.KubeadmControlPlane, cluster *clusterv1.Cluster) (*clusterv1.Machine, error) {
+	ctx, span := traceutil.Start(ctx, "kubeadmcontrolplane.Reconciler.updateMachine")
+	defer span.End()
+
 	updatedMachine, err := r.computeDesiredMachine(
 		kcp, cluster,
 		&machine.Spec.InfrastructureRef, machine.Spec.Bootstrap.ConfigRef,

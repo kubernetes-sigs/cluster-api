@@ -20,10 +20,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	"github.com/onsi/ginkgo/v2/types"
@@ -32,7 +34,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -48,6 +52,7 @@ const (
 	scaleConcurrency              = "CAPI_SCALE_CONCURRENCY"
 	scaleControlPlaneMachineCount = "CAPI_SCALE_CONTROL_PLANE_MACHINE_COUNT"
 	scaleWorkerMachineCount       = "CAPI_SCALE_WORKER_MACHINE_COUNT"
+	scaleMachineDeploymentCount   = "CAPI_SCALE_MACHINE_DEPLOYMENT_COUNT"
 )
 
 // scaleSpecInput is the input for scaleSpec.
@@ -66,6 +71,7 @@ type scaleSpecInput struct {
 
 	// Flavor, if specified is the template flavor used to create the cluster for testing.
 	// If not specified, the default flavor for the selected infrastructure provider is used.
+	// The ClusterTopology of this flavor should have exactly one MachineDeployment.
 	Flavor *string
 
 	// ClusterCount is the number of target workload clusters.
@@ -83,10 +89,22 @@ type scaleSpecInput struct {
 	// Can be overridden by variable CAPI_SCALE_CONTROLPLANE_MACHINE_COUNT.
 	ControlPlaneMachineCount *int64
 
-	// WorkerMachineCount defines number of worker machines to be added to each workload cluster.
+	// WorkerMachineCount defines number of worker machines per machine deployment of the workload cluster.
 	// If not specified, 1 will be used.
 	// Can be overridden by variable CAPI_SCALE_WORKER_MACHINE_COUNT.
+	// The resulting number of worker nodes for each of the workload cluster will
+	// be MachineDeploymentCount*WorkerMachineCount (CAPI_SCALE_MACHINE_DEPLOYMENT_COUNT*CAPI_SCALE_WORKER_MACHINE_COUNT).
 	WorkerMachineCount *int64
+
+	// MachineDeploymentCount defines the number of MachineDeployments to be used per workload cluster.
+	// If not specified, 1 will be used.
+	// Can be overridden by variable CAPI_SCALE_MACHINE_DEPLOYMENT_COUNT.
+	// Note: This assumes that the cluster template of the specified flavor has exactly one machine deployment.
+	// It uses this machine deployment to create additional copies.
+	// Names of the MachineDeployments will be overridden to "md-1", "md-2", etc.
+	// The resulting number of worker nodes for each of the workload cluster will
+	// be MachineDeploymentCount*WorkerMachineCount (CAPI_SCALE_MACHINE_DEPLOYMENT_COUNT*CAPI_SCALE_WORKER_MACHINE_COUNT).
+	MachineDeploymentCount *int64
 
 	// FailFast if set to true will return immediately after the first cluster operation fails.
 	// If set to false, the test suite will not exit immediately after the first cluster operation fails.
@@ -96,6 +114,15 @@ type scaleSpecInput struct {
 	// Note: Please note that the test suit will still fail since c6 creation failed. FailFast will determine
 	// if the test suit should fail as soon as c6 fails or if it should fail after all cluster creations are done.
 	FailFast bool
+
+	// SkipCleanup if set to true will skip deleting the workload clusters.
+	SkipCleanup bool
+
+	// SkipWaitForCreation defines if the test should wait for the workload clusters to be fully provisioned
+	// before moving on.
+	// If set to true, the test will create the workload clusters and immediately continue without waiting
+	// for the clusters to be fully provisioned.
+	SkipWaitForCreation bool
 }
 
 // scaleSpec implements a scale test.
@@ -118,7 +145,17 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 		Expect(input.E2EConfig.Variables).To(HaveKey(KubernetesVersion))
 
 		// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
-		namespace, cancelWatches = setupSpecNamespace(ctx, specName, input.BootstrapClusterProxy, input.ArtifactFolder)
+		// We are pinning the namespace for the test to help with debugging and testing.
+		// Example: Queries to look up state of the clusters can be re-used.
+		// Since we don't run multiple instances of this test concurrently on a management cluster it is okay to pin the namespace.
+		Byf("Creating a namespace for hosting the %q test spec", specName)
+		namespace, cancelWatches = framework.CreateNamespaceAndWatchEvents(ctx, framework.CreateNamespaceAndWatchEventsInput{
+			Creator:             input.BootstrapClusterProxy.GetClient(),
+			ClientSet:           input.BootstrapClusterProxy.GetClientSet(),
+			Name:                specName,
+			LogFolder:           filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
+			IgnoreAlreadyExists: true,
+		})
 	})
 
 	It("Should create and delete workload clusters", func() {
@@ -154,6 +191,18 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			workerMachineCountInt, err := strconv.Atoi(workerMachineCountStr)
 			Expect(err).NotTo(HaveOccurred())
 			workerMachineCount = pointer.Int64(int64(workerMachineCountInt))
+		}
+
+		machineDeploymentCount := pointer.Int64(1)
+		if input.MachineDeploymentCount != nil {
+			machineDeploymentCount = input.MachineDeploymentCount
+		}
+		// If variable is defined that will take precedence.
+		if input.E2EConfig.HasVariable(scaleMachineDeploymentCount) {
+			machineDeploymentCountStr := input.E2EConfig.GetVariable(scaleMachineDeploymentCount)
+			machineDeploymentCountInt, err := strconv.Atoi(machineDeploymentCountStr)
+			Expect(err).NotTo(HaveOccurred())
+			machineDeploymentCount = pointer.Int64(int64(machineDeploymentCountInt))
 		}
 
 		clusterCount := int64(10)
@@ -211,19 +260,47 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 		log.Logf("Extract ClusterClass and Cluster from template YAML")
 		clusterClassYAML, baseClusterTemplateYAML := extractClusterClassAndClusterFromTemplate(baseWorkloadClusterTemplate)
 
-		// Apply the ClusterClass.
-		log.Logf("Create ClusterClass")
-		Eventually(func() error {
-			return input.BootstrapClusterProxy.Apply(ctx, clusterClassYAML, "-n", namespace.Name)
-		}).Should(Succeed())
+		// Modify the baseClusterTemplateYAML so that it has the desired number of machine deployments.
+		modifiedBaseTemplateYAML := modifyMachineDeployments(baseClusterTemplateYAML, int(*machineDeploymentCount))
+
+		if len(clusterClassYAML) > 0 {
+			// Apply the ClusterClass.
+			log.Logf("Create ClusterClass")
+			Eventually(func() error {
+				return input.BootstrapClusterProxy.Apply(ctx, clusterClassYAML)
+			}).Should(Succeed())
+		} else {
+			log.Logf("ClusterClass already exists. Skipping creation.")
+		}
 
 		By("Create workload clusters concurrently")
 		// Create multiple clusters concurrently from the same base cluster template.
 
 		clusterNames := make([]string, 0, clusterCount)
+		clusterNameDigits := 1 + int(math.Log10(float64(clusterCount)))
 		for i := int64(1); i <= clusterCount; i++ {
-			name := fmt.Sprintf("%s-%d", specName, i)
+			// This ensures we always have the right number of leading zeros in our cluster names, e.g.
+			// clusterCount=1000 will lead to cluster names like scale-0001, scale-0002, ... .
+			// This makes it possible to have correct ordering of clusters in diagrams in tools like Grafana.
+			name := fmt.Sprintf("%s-%0*d", specName, clusterNameDigits, i)
 			clusterNames = append(clusterNames, name)
+		}
+
+		// Use the correct creator function for creating the workload clusters.
+		// Default to using the "create and wait" creator function. If SkipWaitForCreation=true then
+		// use the "create only" creator function.
+		creator := getClusterCreateAndWaitFn(clusterctl.ApplyCustomClusterTemplateAndWaitInput{
+			ClusterProxy:                 input.BootstrapClusterProxy,
+			Namespace:                    namespace.Name,
+			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
+			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
+			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
+		})
+		if input.SkipWaitForCreation {
+			if !input.SkipCleanup {
+				log.Logf("WARNING! Using SkipWaitForCreation=true while SkipCleanup=false can lead to workload clusters getting deleted before they are fully provisioned.")
+			}
+			creator = getClusterCreateFn(input.BootstrapClusterProxy, namespace.Name)
 		}
 
 		clusterCreateResults, err := workConcurrentlyAndWait(ctx, workConcurrentlyAndWaitInput{
@@ -231,13 +308,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			Concurrency:  concurrency,
 			FailFast:     input.FailFast,
 			WorkerFunc: func(ctx context.Context, inputChan chan string, resultChan chan workResult, wg *sync.WaitGroup) {
-				createClusterAndWaitWorker(ctx, inputChan, resultChan, wg, baseClusterTemplateYAML, baseClusterName, clusterctl.ApplyCustomClusterTemplateAndWaitInput{
-					ClusterProxy:                 input.BootstrapClusterProxy,
-					Namespace:                    namespace.Name,
-					WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
-					WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
-					WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-				})
+				createClusterWorker(ctx, inputChan, resultChan, wg, modifiedBaseTemplateYAML, baseClusterName, creator)
 			},
 		})
 		if err != nil {
@@ -257,6 +328,10 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 		clusterNamesToDelete := []string{}
 		for _, result := range clusterCreateResults {
 			clusterNamesToDelete = append(clusterNamesToDelete, result.clusterName)
+		}
+
+		if input.SkipCleanup {
+			return
 		}
 
 		By("Delete the workload clusters concurrently")
@@ -396,7 +471,42 @@ outer:
 	return results, kerrors.NewAggregate(errs)
 }
 
-func createClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, baseTemplate []byte, baseClusterName string, input clusterctl.ApplyCustomClusterTemplateAndWaitInput) {
+type clusterCreator func(ctx context.Context, clusterName string, clusterTemplateYAML []byte)
+
+func getClusterCreateAndWaitFn(input clusterctl.ApplyCustomClusterTemplateAndWaitInput) clusterCreator {
+	return func(ctx context.Context, clusterName string, clusterTemplateYAML []byte) {
+		clusterResources := &clusterctl.ApplyCustomClusterTemplateAndWaitResult{}
+		// Nb. We cannot directly modify and use `input` in this closure function because this function
+		// will be called multiple times and this closure will keep modifying the same `input` multiple
+		// times. It is safer to pass the values explicitly into `ApplyCustomClusterTemplateAndWait`.
+		clusterctl.ApplyCustomClusterTemplateAndWait(ctx, clusterctl.ApplyCustomClusterTemplateAndWaitInput{
+			ClusterProxy:                 input.ClusterProxy,
+			CustomTemplateYAML:           clusterTemplateYAML,
+			ClusterName:                  clusterName,
+			Namespace:                    input.Namespace,
+			CNIManifestPath:              input.CNIManifestPath,
+			WaitForClusterIntervals:      input.WaitForClusterIntervals,
+			WaitForControlPlaneIntervals: input.WaitForControlPlaneIntervals,
+			WaitForMachineDeployments:    input.WaitForMachineDeployments,
+			WaitForMachinePools:          input.WaitForMachinePools,
+			Args:                         input.Args,
+			PreWaitForCluster:            input.PreWaitForCluster,
+			PostMachinesProvisioned:      input.PostMachinesProvisioned,
+			ControlPlaneWaiters:          input.ControlPlaneWaiters,
+		}, clusterResources)
+	}
+}
+
+func getClusterCreateFn(clusterProxy framework.ClusterProxy, namespace string) clusterCreator {
+	return func(ctx context.Context, clusterName string, clusterTemplateYAML []byte) {
+		log.Logf("Applying the cluster template yaml of cluster %s", klog.KRef(namespace, clusterName))
+		Eventually(func() error {
+			return clusterProxy.Apply(ctx, clusterTemplateYAML)
+		}, 10*time.Second).Should(Succeed(), "Failed to apply the cluster template of cluster %s", klog.KRef(namespace, clusterName))
+	}
+}
+
+func createClusterWorker(ctx context.Context, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, baseTemplate []byte, baseClusterName string, create clusterCreator) {
 	defer wg.Done()
 
 	for {
@@ -425,13 +535,7 @@ func createClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, re
 
 				// Create the cluster template YAML with the target cluster name.
 				clusterTemplateYAML := bytes.Replace(baseTemplate, []byte(baseClusterName), []byte(clusterName), -1)
-				// Nb. Input is passed as a copy therefore we can safely update the value here, and it won't affect other
-				// workers.
-				input.CustomTemplateYAML = clusterTemplateYAML
-				input.ClusterName = clusterName
-
-				clusterResources := &clusterctl.ApplyCustomClusterTemplateAndWaitResult{}
-				clusterctl.ApplyCustomClusterTemplateAndWait(ctx, input, clusterResources)
+				create(ctx, clusterName, clusterTemplateYAML)
 				return false
 			}
 		}()
@@ -494,4 +598,40 @@ func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, re
 type workResult struct {
 	clusterName string
 	err         any
+}
+
+func modifyMachineDeployments(baseClusterTemplateYAML []byte, count int) []byte {
+	Expect(baseClusterTemplateYAML).NotTo(BeEmpty(), "Invalid argument. baseClusterTemplateYAML cannot be empty when calling modifyMachineDeployments")
+	Expect(count).To(BeNumerically(">=", 0), "Invalid argument. count cannot be less than 0 when calling modifyMachineDeployments")
+
+	objs, err := yaml.ToUnstructured(baseClusterTemplateYAML)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(objs).To(HaveLen(1), "Unexpected number of objects found in baseClusterTemplateYAML")
+
+	scheme := runtime.NewScheme()
+	framework.TryAddDefaultSchemes(scheme)
+	cluster := &clusterv1.Cluster{}
+	Expect(scheme.Convert(&objs[0], cluster, nil)).Should(Succeed())
+	// Verify the Cluster Topology.
+	Expect(cluster.Spec.Topology).NotTo(BeNil(), "Should be a ClusterClass based Cluster")
+	Expect(cluster.Spec.Topology.Workers).NotTo(BeNil(), "ClusterTopology should have exactly one MachineDeployment. Cannot be empty")
+	Expect(cluster.Spec.Topology.Workers.MachineDeployments).To(HaveLen(1), "ClusterTopology should have exactly one MachineDeployment")
+
+	baseMD := cluster.Spec.Topology.Workers.MachineDeployments[0]
+	allMDs := make([]clusterv1.MachineDeploymentTopology, count)
+	allMDDigits := 1 + int(math.Log10(float64(count)))
+	for i := 1; i <= count; i++ {
+		md := baseMD.DeepCopy()
+		// This ensures we always have the right number of leading zeros in our machine deployment names, e.g.
+		// count=1000 will lead to machine deployment names like md-0001, md-0002, so on.
+		md.Name = fmt.Sprintf("md-%0*d", allMDDigits, i)
+		allMDs[i-1] = *md
+	}
+	cluster.Spec.Topology.Workers.MachineDeployments = allMDs
+	u := &unstructured.Unstructured{}
+	Expect(scheme.Convert(cluster, u, nil)).To(Succeed())
+	modifiedClusterYAML, err := yaml.FromUnstructured([]unstructured.Unstructured{*u})
+	Expect(err).NotTo(HaveOccurred())
+
+	return modifiedClusterYAML
 }

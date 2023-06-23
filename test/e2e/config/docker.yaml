@@ -317,3 +317,7 @@ intervals:
   kcp-remediation/wait-machines: ["5m", "10s"]
   kcp-remediation/check-machines-stable: ["30s", "5s"]
   kcp-remediation/wait-machine-provisioned: ["5m", "10s"]
+  #  Giving a bit more time during scale tests, we analyze independently if everything works quickly enough.
+  scale/wait-cluster: ["10m", "10s"]
+  scale/wait-control-plane: ["20m", "10s"]
+  scale/wait-worker-nodes: ["20m", "10s"]

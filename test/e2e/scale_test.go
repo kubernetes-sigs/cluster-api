@@ -36,7 +36,9 @@ var _ = Describe("When scale testing using in-memory provider [Scale]", func() {
 			Concurrency:              pointer.Int64(5),
 			Flavor:                   pointer.String(""),
 			ControlPlaneMachineCount: pointer.Int64(1),
+			MachineDeploymentCount:   pointer.Int64(1),
 			WorkerMachineCount:       pointer.Int64(3),
+			SkipCleanup:              skipCleanup,
 		}
 	})
 })

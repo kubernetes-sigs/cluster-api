@@ -29,12 +29,10 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	controlplanev1 "sigs.k8s.io/cluster-api/controlplane/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/controlplane/kubeadm/internal"
-	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -177,7 +175,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileUnhealthyMachines(ctx context.C
 		// - if the machine hosts the etcd leader, forward etcd leadership to another machine.
 		// - delete the etcd member hosted on the machine being deleted.
 		// - remove the etcd member from the kubeadm config map (only for kubernetes version older than v1.22.0)
-		workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, util.ObjectKey(controlPlane.Cluster))
+		workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 		if err != nil {
 			log.Error(err, "Failed to create client to workload cluster")
 			return ctrl.Result{}, errors.Wrapf(err, "failed to create client to workload cluster")
@@ -355,10 +353,7 @@ func max(x, y time.Duration) time.Duration {
 func (r *KubeadmControlPlaneReconciler) canSafelyRemoveEtcdMember(ctx context.Context, controlPlane *internal.ControlPlane, machineToBeRemediated *clusterv1.Machine) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	workloadCluster, err := r.managementCluster.GetWorkloadCluster(ctx, client.ObjectKey{
-		Namespace: controlPlane.Cluster.Namespace,
-		Name:      controlPlane.Cluster.Name,
-	})
+	workloadCluster, err := controlPlane.GetWorkloadCluster(ctx)
 	if err != nil {
 		return false, errors.Wrapf(err, "failed to get client for workload cluster %s", controlPlane.Cluster.Name)
 	}

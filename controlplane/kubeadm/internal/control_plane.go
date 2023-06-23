@@ -51,10 +51,13 @@ type ControlPlane struct {
 	// See discussion on https://github.com/kubernetes-sigs/cluster-api/pull/3405
 	KubeadmConfigs map[string]*bootstrapv1.KubeadmConfig
 	InfraResources map[string]*unstructured.Unstructured
+
+	managementCluster ManagementCluster
+	workloadCluster   WorkloadCluster
 }
 
 // NewControlPlane returns an instantiated ControlPlane.
-func NewControlPlane(ctx context.Context, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
+func NewControlPlane(ctx context.Context, managementCluster ManagementCluster, client client.Client, cluster *clusterv1.Cluster, kcp *controlplanev1.KubeadmControlPlane, ownedMachines collections.Machines) (*ControlPlane, error) {
 	infraObjects, err := getInfraResources(ctx, client, ownedMachines)
 	if err != nil {
 		return nil, err
@@ -80,6 +83,7 @@ func NewControlPlane(ctx context.Context, client client.Client, cluster *cluster
 		KubeadmConfigs:       kubeadmConfigs,
 		InfraResources:       infraObjects,
 		reconciliationTime:   metav1.Now(),
+		managementCluster:    managementCluster,
 	}, nil
 }
 
@@ -267,4 +271,29 @@ func (c *ControlPlane) SetPatchHelpers(patchHelpers map[string]*patch.Helper) {
 	for machineName, patchHelper := range patchHelpers {
 		c.machinesPatchHelpers[machineName] = patchHelper
 	}
+}
+
+// GetWorkloadCluster builds a cluster object.
+// The cluster comes with an etcd client generator to connect to any etcd pod living on a managed machine.
+func (c *ControlPlane) GetWorkloadCluster(ctx context.Context) (WorkloadCluster, error) {
+	if c.workloadCluster != nil {
+		return c.workloadCluster, nil
+	}
+
+	workloadCluster, err := c.managementCluster.GetWorkloadCluster(ctx, client.ObjectKeyFromObject(c.Cluster))
+	if err != nil {
+		return nil, err
+	}
+	c.workloadCluster = workloadCluster
+	return c.workloadCluster, nil
+}
+
+// InjectTestManagementCluster allows to inject a test ManagementCluster during tests.
+// NOTE: This approach allows to keep the managementCluster field private, which will
+// prevent people from using managementCluster.GetWorkloadCluster because it creates a new
+// instance of WorkloadCluster at every call. People instead should use ControlPlane.GetWorkloadCluster
+// that creates only a single instance of WorkloadCluster for each reconcile.
+func (c *ControlPlane) InjectTestManagementCluster(managementCluster ManagementCluster) {
+	c.managementCluster = managementCluster
+	c.workloadCluster = nil
 }

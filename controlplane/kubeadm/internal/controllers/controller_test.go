@@ -520,7 +520,9 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			managementClusterUncached: fmc,
 		}
 
-		g.Expect(r.reconcile(ctx, cluster, kcp)).To(Equal(ctrl.Result{}))
+		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(adoptableMachineFound).To(BeTrue())
 
 		machineList := &clusterv1.MachineList{}
 		g.Expect(fakeClient.List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
@@ -614,7 +616,9 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			managementClusterUncached: fmc,
 		}
 
-		g.Expect(r.reconcile(ctx, cluster, kcp)).To(Equal(ctrl.Result{}))
+		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(adoptableMachineFound).To(BeTrue())
 
 		machineList := &clusterv1.MachineList{}
 		g.Expect(fakeClient.List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
@@ -698,10 +702,9 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			managementClusterUncached: fmc,
 		}
 
-		result, err := r.reconcile(ctx, cluster, kcp)
-		g.Expect(result).To(Equal(ctrl.Result{}))
-		g.Expect(err).To(HaveOccurred())
-		g.Expect(err.Error()).To(ContainSubstring("has just been deleted"))
+		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(adoptableMachineFound).To(BeFalse())
 
 		machineList := &clusterv1.MachineList{}
 		g.Expect(fakeClient.List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
@@ -711,7 +714,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		}
 	})
 
-	t.Run("refuses to adopt Machines that are more than one version old", func(t *testing.T) {
+	t.Run("Do not adopt Machines that are more than one version old", func(t *testing.T) {
 		g := NewWithT(t)
 
 		cluster, kcp, tmpl := createClusterWithControlPlane(metav1.NamespaceDefault)
@@ -753,7 +756,10 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 			managementClusterUncached: fmc,
 		}
 
-		g.Expect(r.reconcile(ctx, cluster, kcp)).To(Equal(ctrl.Result{}))
+		_, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(adoptableMachineFound).To(BeTrue())
+
 		// Message: Warning AdoptionFailed Could not adopt Machine test/test0: its version ("v1.15.0") is outside supported +/- one minor version skew from KCP's ("v1.17.0")
 		g.Expect(recorder.Events).To(Receive(ContainSubstring("minor version")))
 
@@ -818,7 +824,8 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 
 		fakeClient := newFakeClient(objs...)
 
-		err = ensureCertificatesOwnerRef(ctx, fakeClient, client.ObjectKeyFromObject(cluster), certificates, kcpOwner)
+		r := KubeadmControlPlaneReconciler{Client: fakeClient}
+		err = r.ensureCertificatesOwnerRef(ctx, client.ObjectKeyFromObject(cluster), certificates, kcpOwner)
 		g.Expect(err).To(BeNil())
 
 		secrets := &corev1.SecretList{}
@@ -858,7 +865,9 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 		}
 
 		fakeClient := newFakeClient(objs...)
-		err := ensureCertificatesOwnerRef(ctx, fakeClient, client.ObjectKeyFromObject(cluster), certificates, kcpOwner)
+
+		r := KubeadmControlPlaneReconciler{Client: fakeClient}
+		err := r.ensureCertificatesOwnerRef(ctx, client.ObjectKeyFromObject(cluster), certificates, kcpOwner)
 		g.Expect(err).To(BeNil())
 
 		secrets := &corev1.SecretList{}
@@ -901,7 +910,9 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 		}
 
 		fakeClient := newFakeClient(objs...)
-		err := ensureCertificatesOwnerRef(ctx, fakeClient, client.ObjectKeyFromObject(cluster), certificates, kcpOwner)
+
+		r := KubeadmControlPlaneReconciler{Client: fakeClient}
+		err := r.ensureCertificatesOwnerRef(ctx, client.ObjectKeyFromObject(cluster), certificates, kcpOwner)
 		g.Expect(err).To(BeNil())
 
 		secrets := &corev1.SecretList{}
@@ -1088,17 +1099,19 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 		machineWithoutNodeRefKubeadmConfig,
 	)
 
-	controlPlane, err := internal.NewControlPlane(ctx, fakeClient, cluster, kcp, ownedMachines)
-	g.Expect(err).ToNot(HaveOccurred())
-
-	r := &KubeadmControlPlaneReconciler{
-		Client: fakeClient,
-		managementCluster: &fakeManagementCluster{
-			Workload: fakeWorkloadCluster{
-				APIServerCertificateExpiry: &detectedExpiry,
-			},
+	managementCluster := &fakeManagementCluster{
+		Workload: fakeWorkloadCluster{
+			APIServerCertificateExpiry: &detectedExpiry,
 		},
 	}
+
+	r := &KubeadmControlPlaneReconciler{
+		Client:            fakeClient,
+		managementCluster: managementCluster,
+	}
+
+	controlPlane, err := internal.NewControlPlane(ctx, managementCluster, fakeClient, cluster, kcp, ownedMachines)
+	g.Expect(err).ToNot(HaveOccurred())
 
 	_, err = r.reconcileCertificateExpiries(ctx, controlPlane)
 	g.Expect(err).NotTo(HaveOccurred())
@@ -2014,9 +2027,11 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		controllerutil.AddFinalizer(kcp, controlplanev1.KubeadmControlPlaneFinalizer)
 		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy()}
 
+		machines := collections.New()
 		for i := 0; i < 3; i++ {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
 			initObjs = append(initObjs, m)
+			machines.Insert(m)
 		}
 
 		fakeClient := newFakeClient(initObjs...)
@@ -2031,7 +2046,13 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 		}
 
-		result, err := r.reconcileDelete(ctx, cluster, kcp)
+		controlPlane := &internal.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: machines,
+		}
+
+		result, err := r.reconcileDelete(ctx, controlPlane)
 		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
@@ -2040,7 +2061,12 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		g.Expect(fakeClient.List(ctx, &controlPlaneMachines)).To(Succeed())
 		g.Expect(controlPlaneMachines.Items).To(BeEmpty())
 
-		result, err = r.reconcileDelete(ctx, cluster, kcp)
+		controlPlane = &internal.ControlPlane{
+			KCP:     kcp,
+			Cluster: cluster,
+		}
+
+		result, err = r.reconcileDelete(ctx, controlPlane)
 		g.Expect(result).To(Equal(ctrl.Result{}))
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(BeEmpty())
@@ -2064,9 +2090,11 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 
 		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), workerMachine.DeepCopy()}
 
+		machines := collections.New()
 		for i := 0; i < 3; i++ {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
 			initObjs = append(initObjs, m)
+			machines.Insert(m)
 		}
 
 		fakeClient := newFakeClient(initObjs...)
@@ -2080,7 +2108,13 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 		}
 
-		result, err := r.reconcileDelete(ctx, cluster, kcp)
+		controlPlane := &internal.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: machines,
+		}
+
+		result, err := r.reconcileDelete(ctx, controlPlane)
 		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -2113,9 +2147,11 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 
 		initObjs := []client.Object{cluster.DeepCopy(), kcp.DeepCopy(), workerMachinePool.DeepCopy()}
 
+		machines := collections.New()
 		for i := 0; i < 3; i++ {
 			m, _ := createMachineNodePair(fmt.Sprintf("test-%d", i), cluster, kcp, true)
 			initObjs = append(initObjs, m)
+			machines.Insert(m)
 		}
 
 		fakeClient := newFakeClient(initObjs...)
@@ -2129,7 +2165,13 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 		}
 
-		result, err := r.reconcileDelete(ctx, cluster, kcp)
+		controlPlane := &internal.ControlPlane{
+			KCP:      kcp,
+			Cluster:  cluster,
+			Machines: machines,
+		}
+
+		result, err := r.reconcileDelete(ctx, controlPlane)
 		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: deleteRequeueAfter}))
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -2160,7 +2202,12 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 			recorder: record.NewFakeRecorder(32),
 		}
 
-		result, err := r.reconcileDelete(ctx, cluster, kcp)
+		controlPlane := &internal.ControlPlane{
+			KCP:     kcp,
+			Cluster: cluster,
+		}
+
+		result, err := r.reconcileDelete(ctx, controlPlane)
 		g.Expect(result).To(Equal(ctrl.Result{}))
 		g.Expect(err).NotTo(HaveOccurred())
 		g.Expect(kcp.Finalizers).To(BeEmpty())

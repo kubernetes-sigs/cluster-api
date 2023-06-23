@@ -461,6 +461,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -504,6 +505,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -686,6 +688,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -737,6 +740,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -789,6 +793,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -841,6 +846,8 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
+
 		_, err = r.reconcileUnhealthyMachines(ctx, controlPlane)
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -1097,6 +1104,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -1132,6 +1140,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 				EtcdMembersResult: nodes(controlPlane.Machines),
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err = r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -1207,6 +1216,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.reconcileUnhealthyMachines(ctx, controlPlane)
 
@@ -1278,6 +1288,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
 		g.Expect(ret).To(BeFalse())
@@ -1309,6 +1320,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
 		g.Expect(ret).To(BeTrue())
@@ -1346,6 +1358,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
 		g.Expect(ret).To(BeTrue())
@@ -1376,6 +1389,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
 		g.Expect(ret).To(BeFalse())
@@ -1407,6 +1421,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
 		g.Expect(ret).To(BeTrue())
@@ -1445,6 +1460,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
 		g.Expect(ret).To(BeTrue())
@@ -1476,6 +1492,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
 		g.Expect(ret).To(BeFalse())
@@ -1509,6 +1526,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
 		g.Expect(ret).To(BeTrue())
@@ -1542,6 +1560,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
 		g.Expect(ret).To(BeFalse())
@@ -1577,6 +1596,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
 		g.Expect(ret).To(BeTrue())
@@ -1612,6 +1632,7 @@ func TestCanSafelyRemoveEtcdMember(t *testing.T) {
 				},
 			},
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
 		ret, err := r.canSafelyRemoveEtcdMember(ctx, controlPlane, m1)
 		g.Expect(ret).To(BeFalse())

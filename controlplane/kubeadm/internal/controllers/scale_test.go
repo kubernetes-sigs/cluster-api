@@ -78,7 +78,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 		KCP:     kcp,
 	}
 
-	result, err := r.initializeControlPlane(ctx, cluster, kcp, controlPlane)
+	result, err := r.initializeControlPlane(ctx, controlPlane)
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 	g.Expect(err).NotTo(HaveOccurred())
 
@@ -155,7 +155,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			Machines: fmc.Machines,
 		}
 
-		result, err := r.scaleUpControlPlane(ctx, cluster, kcp, controlPlane)
+		result, err := r.scaleUpControlPlane(ctx, controlPlane)
 		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 		g.Expect(err).ToNot(HaveOccurred())
 
@@ -216,7 +216,11 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 			disableInPlacePropagation: true,
 		}
 
-		result, err := r.reconcile(context.Background(), cluster, kcp)
+		controlPlane, adoptableMachineFound, err := r.initControlPlaneScope(ctx, cluster, kcp)
+		g.Expect(err).ToNot(HaveOccurred())
+		g.Expect(adoptableMachineFound).To(BeFalse())
+
+		result, err := r.reconcile(context.Background(), controlPlane)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
 
@@ -267,8 +271,9 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			Cluster:  cluster,
 			Machines: machines,
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-		result, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, controlPlane, controlPlane.Machines)
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 
@@ -307,8 +312,9 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			Cluster:  cluster,
 			Machines: machines,
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-		result, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, controlPlane, controlPlane.Machines)
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 
@@ -343,8 +349,9 @@ func TestKubeadmControlPlaneReconciler_scaleDownControlPlane_NoError(t *testing.
 			Cluster:  cluster,
 			Machines: machines,
 		}
+		controlPlane.InjectTestManagementCluster(r.managementCluster)
 
-		result, err := r.scaleDownControlPlane(context.Background(), cluster, kcp, controlPlane, controlPlane.Machines)
+		result, err := r.scaleDownControlPlane(context.Background(), controlPlane, controlPlane.Machines)
 		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: preflightFailedRequeueAfter}))
 

@@ -94,7 +94,7 @@ var preBuiltMappings = []Mapping{
 	{
 		KubernetesVersion: semver.MustParse("1.25.11"),
 		Mode:              Mode0_20,
-		Image:             " kindest/node:v1.25.11@sha256:227fa11ce74ea76a0474eeefb84cb75d8dad1b08638371ecf0e86259b35be0c8",
+		Image:             "kindest/node:v1.25.11@sha256:227fa11ce74ea76a0474eeefb84cb75d8dad1b08638371ecf0e86259b35be0c8",
 	},
 	{
 		KubernetesVersion: semver.MustParse("1.24.15"),

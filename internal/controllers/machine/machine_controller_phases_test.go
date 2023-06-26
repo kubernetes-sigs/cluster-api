@@ -900,13 +900,15 @@ func TestReconcileBootstrap(t *testing.T) {
 			}
 
 			bootstrapConfig := &unstructured.Unstructured{Object: tc.bootstrapConfig}
+			c := fake.NewClientBuilder().
+				WithObjects(tc.machine,
+					builder.GenericBootstrapConfigCRD.DeepCopy(),
+					builder.GenericInfrastructureMachineCRD.DeepCopy(),
+					bootstrapConfig,
+				).Build()
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().
-					WithObjects(tc.machine,
-						builder.GenericBootstrapConfigCRD.DeepCopy(),
-						builder.GenericInfrastructureMachineCRD.DeepCopy(),
-						bootstrapConfig,
-					).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
@@ -1111,13 +1113,15 @@ func TestReconcileInfrastructure(t *testing.T) {
 			}
 
 			infraConfig := &unstructured.Unstructured{Object: tc.infraConfig}
+			c := fake.NewClientBuilder().
+				WithObjects(tc.machine,
+					builder.GenericBootstrapConfigCRD.DeepCopy(),
+					builder.GenericInfrastructureMachineCRD.DeepCopy(),
+					infraConfig,
+				).Build()
 			r := &Reconciler{
-				Client: fake.NewClientBuilder().
-					WithObjects(tc.machine,
-						builder.GenericBootstrapConfigCRD.DeepCopy(),
-						builder.GenericInfrastructureMachineCRD.DeepCopy(),
-						infraConfig,
-					).Build(),
+				Client:                    c,
+				UnstructuredCachingClient: c,
 			}
 			s := &scope{cluster: defaultCluster, machine: tc.machine}
 			result, err := r.reconcileInfrastructure(ctx, s)

@@ -97,9 +97,10 @@ func TestMain(m *testing.M) {
 			panic(fmt.Sprintf("Failed to start Reconciler : %v", err))
 		}
 		if err := (&machinecontroller.Reconciler{
-			Client:    mgr.GetClient(),
-			APIReader: mgr.GetAPIReader(),
-			Tracker:   tracker,
+			Client:                    mgr.GetClient(),
+			UnstructuredCachingClient: mgr.GetClient(),
+			APIReader:                 mgr.GetAPIReader(),
+			Tracker:                   tracker,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start MachineReconciler: %v", err))
 		}

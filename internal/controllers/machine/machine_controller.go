@@ -73,9 +73,10 @@ var (
 
 // Reconciler reconciles a Machine object.
 type Reconciler struct {
-	Client    client.Client
-	APIReader client.Reader
-	Tracker   *remote.ClusterCacheTracker
+	Client                    client.Client
+	UnstructuredCachingClient client.Client
+	APIReader                 client.Reader
+	Tracker                   *remote.ClusterCacheTracker
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -755,7 +756,7 @@ func (r *Reconciler) reconcileDeleteExternal(ctx context.Context, m *clusterv1.M
 	}
 
 	// get the external object
-	obj, err := external.Get(ctx, r.Client, ref, m.Namespace)
+	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, m.Namespace)
 	if err != nil && !apierrors.IsNotFound(errors.Cause(err)) {
 		return nil, errors.Wrapf(err, "failed to get %s %q for Machine %q in namespace %q",
 			ref.GroupVersionKind(), ref.Name, m.Name, m.Namespace)

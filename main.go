@@ -360,14 +360,15 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		})
 	}
 
+	unstructuredCachingClient, err := client.New(mgr.GetConfig(), client.Options{
+		HTTPClient: mgr.GetHTTPClient(),
+		Cache: &client.CacheOptions{
+			Reader:       mgr.GetCache(),
+			Unstructured: true,
+		},
+	})
+
 	if feature.Gates.Enabled(feature.ClusterTopology) {
-		unstructuredCachingClient, err := client.New(mgr.GetConfig(), client.Options{
-			HTTPClient: mgr.GetHTTPClient(),
-			Cache: &client.CacheOptions{
-				Reader:       mgr.GetCache(),
-				Unstructured: true,
-			},
-		})
 		if err != nil {
 			setupLog.Error(err, "unable to create unstructured caching client", "controller", "ClusterTopology")
 			os.Exit(1)
@@ -435,10 +436,11 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineReconciler{
-		Client:           mgr.GetClient(),
-		APIReader:        mgr.GetAPIReader(),
-		Tracker:          tracker,
-		WatchFilterValue: watchFilterValue,
+		Client:                    mgr.GetClient(),
+		UnstructuredCachingClient: unstructuredCachingClient,
+		APIReader:                 mgr.GetAPIReader(),
+		Tracker:                   tracker,
+		WatchFilterValue:          watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Machine")
 		os.Exit(1)

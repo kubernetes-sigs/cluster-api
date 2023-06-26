@@ -79,9 +79,10 @@ const machineSetManagerName = "capi-machineset"
 
 // Reconciler reconciles a MachineSet object.
 type Reconciler struct {
-	Client    client.Client
-	APIReader client.Reader
-	Tracker   *remote.ClusterCacheTracker
+	Client                    client.Client
+	UnstructuredCachingClient client.Client
+	APIReader                 client.Reader
+	Tracker                   *remote.ClusterCacheTracker
 
 	// WatchFilterValue is the label value used to filter events prior to reconciliation.
 	WatchFilterValue string
@@ -233,12 +234,12 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	}
 
 	// Make sure to reconcile the external infrastructure reference.
-	if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, &machineSet.Spec.Template.Spec.InfrastructureRef); err != nil {
+	if err := reconcileExternalTemplateReference(ctx, r.UnstructuredCachingClient, cluster, &machineSet.Spec.Template.Spec.InfrastructureRef); err != nil {
 		return ctrl.Result{}, err
 	}
 	// Make sure to reconcile the external bootstrap reference, if any.
 	if machineSet.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
-		if err := reconcileExternalTemplateReference(ctx, r.Client, cluster, machineSet.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
+		if err := reconcileExternalTemplateReference(ctx, r.UnstructuredCachingClient, cluster, machineSet.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
 			return ctrl.Result{}, err
 		}
 	}
@@ -382,7 +383,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.Mac
 		}
 		machines[i] = updatedMachine
 
-		infraMachine, err := external.Get(ctx, r.Client, &updatedMachine.Spec.InfrastructureRef, updatedMachine.Namespace)
+		infraMachine, err := external.Get(ctx, r.UnstructuredCachingClient, &updatedMachine.Spec.InfrastructureRef, updatedMachine.Namespace)
 		if err != nil {
 			return errors.Wrapf(err, "failed to get InfrastructureMachine %s",
 				klog.KRef(updatedMachine.Spec.InfrastructureRef.Namespace, updatedMachine.Spec.InfrastructureRef.Name))
@@ -404,7 +405,7 @@ func (r *Reconciler) syncMachines(ctx context.Context, machineSet *clusterv1.Mac
 		}
 
 		if updatedMachine.Spec.Bootstrap.ConfigRef != nil {
-			bootstrapConfig, err := external.Get(ctx, r.Client, updatedMachine.Spec.Bootstrap.ConfigRef, updatedMachine.Namespace)
+			bootstrapConfig, err := external.Get(ctx, r.UnstructuredCachingClient, updatedMachine.Spec.Bootstrap.ConfigRef, updatedMachine.Namespace)
 			if err != nil {
 				return errors.Wrapf(err, "failed to get BootstrapConfig %s",
 					klog.KRef(updatedMachine.Spec.Bootstrap.ConfigRef.Namespace, updatedMachine.Spec.Bootstrap.ConfigRef.Name))
@@ -471,7 +472,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluste
 			// Create the BootstrapConfig if necessary.
 			if ms.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
 				bootstrapRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
-					Client:      r.Client,
+					Client:      r.UnstructuredCachingClient,
 					TemplateRef: ms.Spec.Template.Spec.Bootstrap.ConfigRef,
 					Namespace:   machine.Namespace,
 					ClusterName: machine.Spec.ClusterName,
@@ -496,7 +497,7 @@ func (r *Reconciler) syncReplicas(ctx context.Context, cluster *clusterv1.Cluste
 
 			// Create the InfraMachine.
 			infraRef, err = external.CreateFromTemplate(ctx, &external.CreateFromTemplateInput{
-				Client:      r.Client,
+				Client:      r.UnstructuredCachingClient,
 				TemplateRef: &ms.Spec.Template.Spec.InfrastructureRef,
 				Namespace:   machine.Namespace,
 				ClusterName: machine.Spec.ClusterName,

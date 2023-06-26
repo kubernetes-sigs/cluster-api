@@ -34,6 +34,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
@@ -86,9 +87,21 @@ func TestMain(m *testing.M) {
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {
 			panic(fmt.Sprintf("Failed to start ClusterCacheReconciler: %v", err))
 		}
+
+		unstructuredCachingClient, err := client.New(mgr.GetConfig(), client.Options{
+			HTTPClient: mgr.GetHTTPClient(),
+			Cache: &client.CacheOptions{
+				Reader:       mgr.GetCache(),
+				Unstructured: true,
+			},
+		})
+		if err != nil {
+			panic(fmt.Sprintf("unable to create unstructuredCachineClient: %v", err))
+		}
+
 		if err := (&Reconciler{
 			Client:                    mgr.GetClient(),
-			UnstructuredCachingClient: mgr.GetClient(),
+			UnstructuredCachingClient: unstructuredCachingClient,
 			APIReader:                 mgr.GetAPIReader(),
 			Tracker:                   tracker,
 		}).SetupWithManager(ctx, mgr, controller.Options{MaxConcurrentReconciles: 1}); err != nil {

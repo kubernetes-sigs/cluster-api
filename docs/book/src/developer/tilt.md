@@ -200,12 +200,13 @@ Important! This feature requires the `helm` command to be available in the user'
 
 Supported values are:
 
-  * `grafana`*: To create dashboards and query `loki` as well as `prometheus`.
+  * `grafana`*: To create dashboards and query `loki`, `prometheus` and `tempo`.
   * `kube-state-metrics`: For exposing metrics for Kubernetes and CAPI resources to `prometheus`.
   * `loki`: To receive and store logs.
   * `prometheus`*: For collecting metrics from Kubernetes.
   * `promtail`: For providing pod logs to `loki`.
   * `parca`*: For visualizing profiling data.
+  * `tempo`: To store traces.
   * `visualizer`*: Visualize Cluster API resources for each cluster, provide quick access to the specs and status of any resource.
 
 \*: Note: the UI will be accessible via a link in the tilt console

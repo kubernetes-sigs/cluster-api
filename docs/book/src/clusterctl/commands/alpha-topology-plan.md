@@ -132,17 +132,9 @@ spec:
           apiServer:
             certSANs: [ localhost, 127.0.0.1 ]
         initConfiguration:
-          nodeRegistration:
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
-              cgroup-driver: cgroupfs
-              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
         joinConfiguration:
-          nodeRegistration:
-            criSocket: unix:///var/run/containerd/containerd.sock
-            kubeletExtraArgs:
-              cgroup-driver: cgroupfs
-              eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
@@ -174,10 +166,7 @@ spec:
   template:
     spec:
       joinConfiguration:
-        nodeRegistration:
-          kubeletExtraArgs:
-            cgroup-driver: cgroupfs
-            eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
+        nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ```
 
 </details>
@@ -485,4 +474,3 @@ If only one cluster is affected or if a Cluster is in the input it defaults as t
 Namespace used for objects with missing namespaces in the input.
 
 If not provided, the namespace defined in kubeconfig is used. If a kubeconfig is not available the value `default` is used.
-

@@ -181,6 +181,26 @@ func UnmarshalClusterStatus(yaml string) (*bootstrapv1.ClusterStatus, error) {
 	return obj, nil
 }
 
+// UnmarshalInitConfiguration tries to translate a Kubeadm API yaml back to the InitConfiguration type.
+// NOTE: The yaml could be any of the known formats for the kubeadm InitConfiguration type.
+func UnmarshalInitConfiguration(yaml string) (*bootstrapv1.InitConfiguration, error) {
+	obj := &bootstrapv1.InitConfiguration{}
+	if err := unmarshalFromVersions(yaml, initConfigurationVersionTypeMap, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+
+// UnmarshalJoinConfiguration tries to translate a Kubeadm API yaml back to the JoinConfiguration type.
+// NOTE: The yaml could be any of the known formats for the kubeadm JoinConfiguration type.
+func UnmarshalJoinConfiguration(yaml string) (*bootstrapv1.JoinConfiguration, error) {
+	obj := &bootstrapv1.JoinConfiguration{}
+	if err := unmarshalFromVersions(yaml, joinConfigurationVersionTypeMap, obj); err != nil {
+		return nil, err
+	}
+	return obj, nil
+}
+
 func unmarshalFromVersions(yaml string, kubeadmAPIVersions map[schema.GroupVersion]conversion.Convertible, capiObj conversion.Hub) error {
 	// For each know kubeadm API version
 	for gv, obj := range kubeadmAPIVersions {
@@ -192,7 +212,8 @@ func unmarshalFromVersions(yaml string, kubeadmAPIVersions map[schema.GroupVersi
 			return errors.Wrapf(err, "failed to build scheme for kubeadm types conversions")
 		}
 
-		if _, _, err := codecs.UniversalDeserializer().Decode([]byte(yaml), &gvk, kubeadmObj); err == nil {
+		_, _, err = codecs.UniversalDeserializer().Decode([]byte(yaml), &gvk, kubeadmObj)
+		if err == nil {
 			// If conversion worked, then converts the kubeadmObj (spoke) back to the Cluster API ClusterConfiguration type (hub).
 			if err := kubeadmObj.(conversion.Convertible).ConvertTo(capiObj); err != nil {
 				return errors.Wrapf(err, "failed to convert kubeadm types to Cluster API types")

@@ -10,6 +10,18 @@ This initial implementation uses Ignition **v2** and was tested with **Flatcar C
 
 </aside>
 
+<aside class="note warning">
+
+<h1>Note</h1>
+
+If using ignition with CAPD you should take care of setting `kubeletExtraArgs` for the `kindest/node` image in use,
+because default CAPD templates do not include anymore those settings since when the cloud-init shim for CAPD is automatically taking care of this.
+An example of how to set `kubeletExtraArgs` for the `kindest/node` can be found under `cluster-api/test/e2e/data/infrastructure-docker/main/cluster-template-ignition`.
+
+Hopefully, this will be automated for Ignition too in a future release.
+
+</aside>
+
 This guide explains how to deploy an AWS workload cluster using Ignition.
 
 ## Prerequisites

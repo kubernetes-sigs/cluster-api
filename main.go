@@ -367,13 +367,12 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 			Unstructured: true,
 		},
 	})
+	if err != nil {
+		setupLog.Error(err, "unable to create unstructured caching client")
+		os.Exit(1)
+	}
 
 	if feature.Gates.Enabled(feature.ClusterTopology) {
-		if err != nil {
-			setupLog.Error(err, "unable to create unstructured caching client", "controller", "ClusterTopology")
-			os.Exit(1)
-		}
-
 		if err := (&controllers.ClusterClassReconciler{
 			Client:                    mgr.GetClient(),
 			APIReader:                 mgr.GetAPIReader(),

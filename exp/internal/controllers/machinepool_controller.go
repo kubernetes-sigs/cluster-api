@@ -74,7 +74,7 @@ type MachinePoolReconciler struct {
 }
 
 func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
-	clusterToMachinePools, err := util.ClusterToObjectsMapper(mgr.GetClient(), &expv1.MachinePoolList{}, mgr.GetScheme())
+	clusterToMachinePools, err := util.ClusterToTypedObjectsMapper(mgr.GetClient(), &expv1.MachinePoolList{}, mgr.GetScheme())
 	if err != nil {
 		return err
 	}

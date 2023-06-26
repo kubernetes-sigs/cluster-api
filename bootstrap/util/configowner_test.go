@@ -175,7 +175,7 @@ func TestGetConfigOwner(t *testing.T) {
 		doTests(t, GetConfigOwner)
 	})
 	t.Run("cached", func(t *testing.T) {
-		doTests(t, GetConfigOwnerFromCache)
+		doTests(t, GetTypedConfigOwner)
 	})
 }
 

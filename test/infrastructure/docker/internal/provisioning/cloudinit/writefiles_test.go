@@ -228,6 +228,130 @@ nodeRegistration:
 `,
 			},
 		},
+		{
+			name: "Fix kubelet args for kind 1.19 mode with K8s version <= 1.23",
+			files: []byte(`
+write_files:
+- content: |
+    ---
+    ClusterConfiguration...
+    ---
+    apiVersion: kubeadm.k8s.io/v1beta1
+    kind: InitConfiguration
+    nodeRegistration:
+      criSocket: unix:///var/run/containerd/containerd.sock
+      kubeletExtraArgs:
+        cloud-provider: aws
+  owner: root:root
+  path: /run/kubeadm/kubeadm.yaml
+  permissions: '0640'
+- content: |
+    ---
+    apiVersion: kubeadm.k8s.io/v1beta1
+    kind: JoinConfiguration
+    nodeRegistration:
+      criSocket: unix:///var/run/containerd/containerd.sock
+      kubeletExtraArgs:
+        cloud-provider: aws
+  path: /run/kubeadm/kubeadm-join-config.yaml
+  owner: root:root
+  permissions: '0640'
+`),
+			mapping: kind.Mapping{KubernetesVersion: semver.MustParse("1.23.3"), Mode: kind.Mode0_19},
+			expectedContent: []string{
+				`---
+ClusterConfiguration...
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+localAPIEndpoint: {}
+nodeRegistration:
+  criSocket: unix:///var/run/containerd/containerd.sock
+  kubeletExtraArgs:
+    cgroup-driver: cgroupfs
+    cloud-provider: aws
+    eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+    fail-swap-on: "false"
+  taints: null
+`,
+				`apiVersion: kubeadm.k8s.io/v1beta3
+discovery: {}
+kind: JoinConfiguration
+nodeRegistration:
+  criSocket: unix:///var/run/containerd/containerd.sock
+  kubeletExtraArgs:
+    cgroup-driver: cgroupfs
+    cloud-provider: aws
+    eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+    fail-swap-on: "false"
+  taints: null
+`,
+			},
+		},
+		{
+			name: "Fix kubelet args for kind 1.20 mode with K8s version <= 1.23",
+			files: []byte(`
+write_files:
+- content: |
+    ---
+    ClusterConfiguration...
+    ---
+    apiVersion: kubeadm.k8s.io/v1beta1
+    kind: InitConfiguration
+    nodeRegistration:
+      criSocket: unix:///var/run/containerd/containerd.sock
+      kubeletExtraArgs:
+        cloud-provider: aws
+  owner: root:root
+  path: "/run/kubeadm/kubeadm.yaml"
+  permissions: '0640'
+- content: |
+    ---
+    apiVersion: kubeadm.k8s.io/v1beta1
+    kind: JoinConfiguration
+    nodeRegistration:
+      criSocket: unix:///var/run/containerd/containerd.sock
+      kubeletExtraArgs:
+        cloud-provider: aws
+  path: "/run/kubeadm/kubeadm-join-config.yaml"
+  owner: root:root
+  permissions: '0640'
+`),
+			mapping: kind.Mapping{KubernetesVersion: semver.MustParse("1.23.3"), Mode: kind.Mode0_20},
+			expectedContent: []string{
+				`---
+ClusterConfiguration...
+---
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration
+localAPIEndpoint: {}
+nodeRegistration:
+  criSocket: unix:///var/run/containerd/containerd.sock
+  kubeletExtraArgs:
+    cgroup-driver: cgroupfs
+    cgroup-root: /kubelet
+    cloud-provider: aws
+    eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+    fail-swap-on: "false"
+    runtime-cgroups: /system.slice/containerd.service
+  taints: null
+`,
+				`apiVersion: kubeadm.k8s.io/v1beta3
+discovery: {}
+kind: JoinConfiguration
+nodeRegistration:
+  criSocket: unix:///var/run/containerd/containerd.sock
+  kubeletExtraArgs:
+    cgroup-driver: cgroupfs
+    cgroup-root: /kubelet
+    cloud-provider: aws
+    eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+    fail-swap-on: "false"
+    runtime-cgroups: /system.slice/containerd.service
+  taints: null
+`,
+			},
+		},
 	}
 
 	for _, rt := range useCases {

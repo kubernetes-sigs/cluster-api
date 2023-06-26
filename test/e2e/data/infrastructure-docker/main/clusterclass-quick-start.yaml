@@ -114,44 +114,6 @@ spec:
         valueFrom:
           template: |
             imageRepository: {{ .lbImageRepository }}
-  # We have to pin the cgroupDriver to cgroupfs for Kubernetes < v1.24 because kind does not support systemd for those versions, but kubeadm >= 1.21 defaults to systemd.
-  - name: cgroupDriver-controlPlane
-    description: |
-      Sets the cgroupDriver to cgroupfs if a Kubernetes version < v1.24 is referenced.
-      This is required because kind and the node images do not support the default
-      systemd cgroupDriver for kubernetes < v1.24.
-    enabledIf: '{{ semverCompare "<= v1.23" .builtin.controlPlane.version }}'
-    definitions:
-    - selector:
-        apiVersion: controlplane.cluster.x-k8s.io/v1beta1
-        kind: KubeadmControlPlaneTemplate
-        matchResources:
-          controlPlane: true
-      jsonPatches:
-      - op: add
-        path: "/spec/template/spec/kubeadmConfigSpec/initConfiguration/nodeRegistration/kubeletExtraArgs/cgroup-driver"
-        value: cgroupfs
-      - op: add
-        path: "/spec/template/spec/kubeadmConfigSpec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cgroup-driver"
-        value: cgroupfs
-  - name: cgroupDriver-machineDeployment
-    description: |
-      Sets the cgroupDriver to cgroupfs if a Kubernetes version < v1.24 is referenced.
-      This is required because kind and the node images do not support the default
-      systemd cgroupDriver for kubernetes < v1.24.
-    enabledIf: '{{ semverCompare "<= v1.23" .builtin.machineDeployment.version }}'
-    definitions:
-    - selector:
-        apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-        kind: KubeadmConfigTemplate
-        matchResources:
-          machineDeploymentClass:
-            names:
-            - '*-worker'
-      jsonPatches:
-      - op: add
-        path: "/spec/template/spec/joinConfiguration/nodeRegistration/kubeletExtraArgs/cgroup-driver"
-        value: cgroupfs
   - name: etcdImageTag
     description: "Sets tag to use for the etcd image in the KubeadmControlPlane."
     definitions:
@@ -371,11 +333,11 @@ spec:
             certSANs: [localhost, 127.0.0.1, 0.0.0.0, host.docker.internal]
         initConfiguration:
           nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
-            kubeletExtraArgs: # required for the cgroup-driver patch to work
+            kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider patch to work
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
         joinConfiguration:
           nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
-            kubeletExtraArgs: # required for the cgroup-driver patch to work
+            kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider patch to work
               eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
@@ -436,5 +398,5 @@ spec:
     spec:
       joinConfiguration:
         nodeRegistration: # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
-          kubeletExtraArgs: # required for the cgroup-driver patch to work
+          kubeletExtraArgs: # having a not empty kubeletExtraArgs is required for the externalCloudProvider to work
             eviction-hard: 'nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%'

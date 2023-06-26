@@ -209,6 +209,11 @@ func main() {
 					&corev1.ConfigMap{},
 					&corev1.Secret{},
 				},
+				// This config ensures that the default client caches Unstructured objects.
+				// KCP is only using Unstructured to retrieve InfraMachines and InfraMachineTemplates.
+				// As the cache should be used in those cases, caching is configured globally instead of
+				// creating a separate client that caches Unstructured.
+				Unstructured: true,
 			},
 		},
 		WebhookServer: webhook.NewServer(
@@ -283,7 +288,6 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 
 	if err := (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
 		Client:           mgr.GetClient(),
-		APIReader:        mgr.GetAPIReader(),
 		Tracker:          tracker,
 		WatchFilterValue: watchFilterValue,
 		EtcdDialTimeout:  etcdDialTimeout,

@@ -784,8 +784,7 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeClient := newFakeClient(kcp, tt.configSecret)
 			r := &KubeadmControlPlaneReconciler{
-				APIReader: fakeClient,
-				Client:    fakeClient,
+				Client: fakeClient,
 			}
 			g.Expect(r.adoptKubeconfigSecret(ctx, tt.configSecret, kcp)).To(Succeed())
 			actualSecret := &corev1.Secret{}

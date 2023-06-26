@@ -515,7 +515,6 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fmc.Reader = fakeClient
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
-			APIReader:                 fakeClient,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 		}
@@ -611,7 +610,6 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fmc.Reader = fakeClient
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
-			APIReader:                 fakeClient,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 		}
@@ -697,7 +695,6 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fmc.Reader = fakeClient
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
-			APIReader:                 fakeClient,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 		}
@@ -750,7 +747,6 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		recorder := record.NewFakeRecorder(32)
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
-			APIReader:                 fakeClient,
 			recorder:                  recorder,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
@@ -1281,9 +1277,8 @@ kubernetesVersion: metav1.16.1`,
 
 	expectedLabels := map[string]string{clusterv1.ClusterNameLabel: "foo"}
 	r := &KubeadmControlPlaneReconciler{
-		Client:    env,
-		APIReader: env.GetAPIReader(),
-		recorder:  record.NewFakeRecorder(32),
+		Client:   env,
+		recorder: record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
 			Workload: fakeWorkloadCluster{
@@ -1309,13 +1304,13 @@ kubernetesVersion: metav1.16.1`,
 	g.Expect(err).NotTo(HaveOccurred())
 	// this first requeue is to add finalizer
 	g.Expect(result).To(Equal(ctrl.Result{}))
-	g.Expect(r.APIReader.Get(ctx, util.ObjectKey(kcp), kcp)).To(Succeed())
+	g.Expect(env.GetAPIReader().Get(ctx, util.ObjectKey(kcp), kcp)).To(Succeed())
 	g.Expect(kcp.Finalizers).To(ContainElement(controlplanev1.KubeadmControlPlaneFinalizer))
 
 	g.Eventually(func(g Gomega) {
 		_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
 		g.Expect(err).NotTo(HaveOccurred())
-		g.Expect(r.APIReader.Get(ctx, client.ObjectKey{Name: kcp.Name, Namespace: kcp.Namespace}, kcp)).To(Succeed())
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKey{Name: kcp.Name, Namespace: kcp.Namespace}, kcp)).To(Succeed())
 		// Expect the referenced infrastructure template to have a Cluster Owner Reference.
 		g.Expect(env.GetAPIReader().Get(ctx, util.ObjectKey(genericInfrastructureMachineTemplate), genericInfrastructureMachineTemplate)).To(Succeed())
 		g.Expect(genericInfrastructureMachineTemplate.GetOwnerReferences()).To(ContainElement(metav1.OwnerReference{

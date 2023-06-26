@@ -30,9 +30,8 @@ import (
 
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object.
 type KubeadmControlPlaneReconciler struct {
-	Client    client.Client
-	APIReader client.Reader
-	Tracker   *remote.ClusterCacheTracker
+	Client  client.Client
+	Tracker *remote.ClusterCacheTracker
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
@@ -45,7 +44,6 @@ type KubeadmControlPlaneReconciler struct {
 func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	return (&kubeadmcontrolplanecontrollers.KubeadmControlPlaneReconciler{
 		Client:           r.Client,
-		APIReader:        r.APIReader,
 		Tracker:          r.Tracker,
 		EtcdDialTimeout:  r.EtcdDialTimeout,
 		EtcdCallTimeout:  r.EtcdCallTimeout,

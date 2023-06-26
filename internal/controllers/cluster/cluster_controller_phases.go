@@ -83,7 +83,7 @@ func (r *Reconciler) reconcileExternal(ctx context.Context, cluster *clusterv1.C
 		return external.ReconcileOutput{}, err
 	}
 
-	obj, err := external.Get(ctx, r.Client, ref, cluster.Namespace)
+	obj, err := external.Get(ctx, r.UnstructuredCachingClient, ref, cluster.Namespace)
 	if err != nil {
 		if apierrors.IsNotFound(errors.Cause(err)) {
 			log.Info("Could not find external object for cluster, requeuing", "refGroupVersionKind", ref.GroupVersionKind(), "refName", ref.Name)

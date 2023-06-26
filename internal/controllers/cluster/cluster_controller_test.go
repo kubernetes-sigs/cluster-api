@@ -389,8 +389,9 @@ func TestClusterReconciler_reconcileDelete(t *testing.T) {
 			g := NewWithT(t)
 			fakeClient := fake.NewClientBuilder().WithObjects(fakeInfraCluster, tt.cluster).Build()
 			r := &Reconciler{
-				Client:    fakeClient,
-				APIReader: fakeClient,
+				Client:                    fakeClient,
+				UnstructuredCachingClient: fakeClient,
+				APIReader:                 fakeClient,
 			}
 
 			_, _ = r.reconcileDelete(ctx, tt.cluster)
@@ -524,8 +525,10 @@ func TestClusterReconcilerNodeRef(t *testing.T) {
 			t.Run(tt.name, func(t *testing.T) {
 				g := NewWithT(t)
 
+				c := fake.NewClientBuilder().WithObjects(cluster, controlPlaneWithNoderef, controlPlaneWithoutNoderef, nonControlPlaneWithNoderef, nonControlPlaneWithoutNoderef).Build()
 				r := &Reconciler{
-					Client: fake.NewClientBuilder().WithObjects(cluster, controlPlaneWithNoderef, controlPlaneWithoutNoderef, nonControlPlaneWithNoderef, nonControlPlaneWithoutNoderef).Build(),
+					Client:                    c,
+					UnstructuredCachingClient: c,
 				}
 				requests := r.controlPlaneMachineToCluster(ctx, tt.o)
 				g.Expect(requests).To(Equal(tt.want))

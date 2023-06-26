@@ -233,11 +233,6 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 		panic(err)
 	}
 
-	objs := []client.Object{}
-	if len(uncachedObjs) > 0 {
-		objs = append(objs, uncachedObjs...)
-	}
-
 	// Localhost is used on MacOS to avoid Firewall warning popups.
 	host := "localhost"
 	if strings.EqualFold(os.Getenv("USE_EXISTING_CLUSTER"), "true") {
@@ -254,7 +249,7 @@ func newEnvironment(uncachedObjs ...client.Object) *Environment {
 		MetricsBindAddress: "0",
 		Client: client.Options{
 			Cache: &client.CacheOptions{
-				DisableFor: objs,
+				DisableFor: uncachedObjs,
 			},
 		},
 		WebhookServer: webhook.NewServer(

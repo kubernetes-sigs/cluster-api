@@ -428,9 +428,10 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 	}
 
 	if err := (&controllers.ClusterReconciler{
-		Client:           mgr.GetClient(),
-		APIReader:        mgr.GetAPIReader(),
-		WatchFilterValue: watchFilterValue,
+		Client:                    mgr.GetClient(),
+		UnstructuredCachingClient: unstructuredCachingClient,
+		APIReader:                 mgr.GetAPIReader(),
+		WatchFilterValue:          watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(clusterConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Cluster")
 		os.Exit(1)
@@ -446,18 +447,20 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineSetReconciler{
-		Client:           mgr.GetClient(),
-		APIReader:        mgr.GetAPIReader(),
-		Tracker:          tracker,
-		WatchFilterValue: watchFilterValue,
+		Client:                    mgr.GetClient(),
+		UnstructuredCachingClient: unstructuredCachingClient,
+		APIReader:                 mgr.GetAPIReader(),
+		Tracker:                   tracker,
+		WatchFilterValue:          watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineSetConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineSet")
 		os.Exit(1)
 	}
 	if err := (&controllers.MachineDeploymentReconciler{
-		Client:           mgr.GetClient(),
-		APIReader:        mgr.GetAPIReader(),
-		WatchFilterValue: watchFilterValue,
+		Client:                    mgr.GetClient(),
+		UnstructuredCachingClient: unstructuredCachingClient,
+		APIReader:                 mgr.GetAPIReader(),
+		WatchFilterValue:          watchFilterValue,
 	}).SetupWithManager(ctx, mgr, concurrency(machineDeploymentConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "MachineDeployment")
 		os.Exit(1)

@@ -464,14 +464,16 @@ func TestMachineSetOwnerReference(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			c := fake.NewClientBuilder().WithObjects(
+				testCluster,
+				ms1,
+				ms2,
+				ms3,
+			).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 			msr := &Reconciler{
-				Client: fake.NewClientBuilder().WithObjects(
-					testCluster,
-					ms1,
-					ms2,
-					ms3,
-				).WithStatusSubresource(&clusterv1.MachineSet{}).Build(),
-				recorder: record.NewFakeRecorder(32),
+				Client:                    c,
+				UnstructuredCachingClient: c,
+				recorder:                  record.NewFakeRecorder(32),
 			}
 
 			_, err := msr.Reconcile(ctx, tc.request)
@@ -517,9 +519,11 @@ func TestMachineSetReconcile(t *testing.T) {
 			NamespacedName: util.ObjectKey(ms),
 		}
 
+		c := fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 		msr := &Reconciler{
-			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build(),
-			recorder: record.NewFakeRecorder(32),
+			Client:                    c,
+			UnstructuredCachingClient: c,
+			recorder:                  record.NewFakeRecorder(32),
 		}
 		result, err := msr.Reconcile(ctx, request)
 		g.Expect(err).NotTo(HaveOccurred())
@@ -539,9 +543,11 @@ func TestMachineSetReconcile(t *testing.T) {
 		}
 
 		rec := record.NewFakeRecorder(32)
+		c := fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 		msr := &Reconciler{
-			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build(),
-			recorder: rec,
+			Client:                    c,
+			UnstructuredCachingClient: c,
+			recorder:                  rec,
 		}
 		_, _ = msr.Reconcile(ctx, request)
 		g.Eventually(rec.Events).Should(Receive())
@@ -560,9 +566,11 @@ func TestMachineSetReconcile(t *testing.T) {
 		}
 
 		rec := record.NewFakeRecorder(32)
+		c := fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 		msr := &Reconciler{
-			Client:   fake.NewClientBuilder().WithObjects(testCluster, ms).WithStatusSubresource(&clusterv1.MachineSet{}).Build(),
-			recorder: rec,
+			Client:                    c,
+			UnstructuredCachingClient: c,
+			recorder:                  rec,
 		}
 		_, err := msr.Reconcile(ctx, request)
 		g.Expect(err).NotTo(HaveOccurred())
@@ -646,8 +654,10 @@ func TestMachineSetToMachines(t *testing.T) {
 		},
 	}
 
+	c := fake.NewClientBuilder().WithObjects(append(machineSetList, &m, &m2, &m3)...).Build()
 	r := &Reconciler{
-		Client: fake.NewClientBuilder().WithObjects(append(machineSetList, &m, &m2, &m3)...).Build(),
+		Client:                    c,
+		UnstructuredCachingClient: c,
 	}
 
 	for _, tc := range testsCases {
@@ -789,8 +799,10 @@ func TestAdoptOrphan(t *testing.T) {
 		},
 	}
 
+	c := fake.NewClientBuilder().WithObjects(&m).Build()
 	r := &Reconciler{
-		Client: fake.NewClientBuilder().WithObjects(&m).Build(),
+		Client:                    c,
+		UnstructuredCachingClient: c,
 	}
 	for _, tc := range testCases {
 		g.Expect(r.adoptOrphan(ctx, tc.machineSet.DeepCopy(), tc.machine.DeepCopy())).To(Succeed())
@@ -885,8 +897,9 @@ func TestMachineSetReconcile_MachinesCreatedConditionFalseOnBadInfraRef(t *testi
 	fakeClient := fake.NewClientBuilder().WithObjects(cluster, ms, builder.GenericInfrastructureMachineTemplateCRD.DeepCopy()).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
 
 	msr := &Reconciler{
-		Client:   fakeClient,
-		recorder: record.NewFakeRecorder(32),
+		Client:                    fakeClient,
+		UnstructuredCachingClient: fakeClient,
+		recorder:                  record.NewFakeRecorder(32),
 	}
 	_, err := msr.Reconcile(ctx, request)
 	g.Expect(err).To(HaveOccurred())
@@ -941,9 +954,11 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			g := NewWithT(t)
 
+			c := fake.NewClientBuilder().WithObjects().Build()
 			msr := &Reconciler{
-				Client:   fake.NewClientBuilder().WithObjects().Build(),
-				recorder: record.NewFakeRecorder(32),
+				Client:                    c,
+				UnstructuredCachingClient: c,
+				recorder:                  record.NewFakeRecorder(32),
 			}
 			err := msr.updateStatus(ctx, cluster, tc.machineSet, tc.machines)
 			g.Expect(err).NotTo(HaveOccurred())
@@ -1178,7 +1193,11 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 
 	// Run syncMachines to clean up managed fields and have proper field ownership
 	// for Machines, InfrastructureMachines and BootstrapConfigs.
-	reconciler := &Reconciler{Client: env, ssaCache: ssa.NewCache()}
+	reconciler := &Reconciler{
+		Client:                    env,
+		UnstructuredCachingClient: env,
+		ssaCache:                  ssa.NewCache(),
+	}
 	g.Expect(reconciler.syncMachines(ctx, ms, machines)).To(Succeed())
 
 	// The inPlaceMutatingMachine should have cleaned up managed fields.
@@ -1375,7 +1394,10 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 		machines := []*clusterv1.Machine{unhealthyMachine, healthyMachine}
 
 		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneStable, unhealthyMachine, healthyMachine).Build()
-		r := &Reconciler{Client: fakeClient}
+		r := &Reconciler{
+			Client:                    fakeClient,
+			UnstructuredCachingClient: fakeClient,
+		}
 		_, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, machines)
 		g.Expect(err).To(BeNil())
 		// Verify the unhealthy machine is deleted.
@@ -1433,7 +1455,10 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 
 		machines := []*clusterv1.Machine{unhealthyMachine, healthyMachine}
 		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, unhealthyMachine, healthyMachine).WithStatusSubresource(&clusterv1.Machine{}).Build()
-		r := &Reconciler{Client: fakeClient}
+		r := &Reconciler{
+			Client:                    fakeClient,
+			UnstructuredCachingClient: fakeClient,
+		}
 		_, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, machines)
 		g.Expect(err).To(BeNil())
 
@@ -1490,7 +1515,10 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 		}
 
 		fakeClient := fake.NewClientBuilder().WithObjects(controlPlaneUpgrading, machineSet).WithStatusSubresource(&clusterv1.MachineSet{}).Build()
-		r := &Reconciler{Client: fakeClient}
+		r := &Reconciler{
+			Client:                    fakeClient,
+			UnstructuredCachingClient: fakeClient,
+		}
 		result, err := r.syncReplicas(ctx, cluster, machineSet, nil)
 		g.Expect(err).To(BeNil())
 		g.Expect(result.IsZero()).To(BeFalse(), "syncReplicas should not return a 'zero' result")

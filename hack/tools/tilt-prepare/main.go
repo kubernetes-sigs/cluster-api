@@ -157,6 +157,9 @@ func main() {
 	// This makes it easier to see what clusterctl is doing and to debug it.
 	logf.SetLogger(logf.NewLogger(logf.WithThreshold(pointer.Int(5))))
 
+	// Set controller-runtime logger as well.
+	ctrl.SetLogger(klog.Background())
+
 	klog.Infof("[main] started\n")
 	start := time.Now()
 

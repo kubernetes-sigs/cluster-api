@@ -38,20 +38,6 @@ import (
 func (r *KubeadmControlPlaneReconciler) initializeControlPlane(ctx context.Context, controlPlane *internal.ControlPlane) (ctrl.Result, error) {
 	logger := ctrl.LoggerFrom(ctx)
 
-	// Perform an uncached read of all the owned machines. This check is in place to make sure
-	// that the controller cache is not misbehaving and we end up initializing the cluster more than once.
-	ownedMachines, err := r.managementClusterUncached.GetMachinesForCluster(ctx, controlPlane.Cluster, collections.OwnedMachines(controlPlane.KCP))
-	if err != nil {
-		logger.Error(err, "failed to perform an uncached read of control plane machines for cluster")
-		return ctrl.Result{}, err
-	}
-	if len(ownedMachines) > 0 {
-		return ctrl.Result{}, errors.Errorf(
-			"control plane has already been initialized, found %d owned machine for cluster %s: controller cache or management cluster is misbehaving",
-			len(ownedMachines), klog.KObj(controlPlane.Cluster),
-		)
-	}
-
 	bootstrapSpec := controlPlane.InitialControlPlaneConfig()
 	fd := controlPlane.NextFailureDomainForScaleUp()
 	if err := r.cloneConfigsAndGenerateMachine(ctx, controlPlane.Cluster, controlPlane.KCP, bootstrapSpec, fd); err != nil {

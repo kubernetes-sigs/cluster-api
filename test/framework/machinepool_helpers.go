@@ -19,10 +19,8 @@ package framework
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
-	"github.com/blang/semver"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -150,23 +148,6 @@ func UpgradeMachinePoolAndWait(ctx context.Context, input UpgradeMachinePoolAndW
 
 		// Upgrade to new Version.
 		mp.Spec.Template.Spec.Version = &input.UpgradeVersion
-
-		// Drop "-cgroupfs" suffix from BootstrapConfig ref name, i.e. we switch from a
-		// BootstrapConfig with pinned cgroupfs cgroupDriver to the regular BootstrapConfig.
-		// This is a workaround for CAPD, because kind and CAPD only support:
-		// * cgroupDriver cgroupfs for Kubernetes < v1.24
-		// * cgroupDriver systemd for Kubernetes >= v1.24.
-		// We can remove this as soon as we don't test upgrades from Kubernetes < v1.24 anymore with CAPD
-		// or MachinePools are supported in ClusterClass.
-		if mp.Spec.Template.Spec.InfrastructureRef.Kind == "DockerMachinePool" {
-			version, err := semver.ParseTolerant(input.UpgradeVersion)
-			Expect(err).ToNot(HaveOccurred(), fmt.Sprintf("Failed to parse UpgradeVersion %q", input.UpgradeVersion))
-			if version.GTE(semver.MustParse("1.24.0")) && strings.HasSuffix(mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name, "-cgroupfs") {
-				mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name = strings.TrimSuffix(mp.Spec.Template.Spec.Bootstrap.ConfigRef.Name, "-cgroupfs")
-				// We have to set DataSecretName to nil, so the secret of the new bootstrap ConfigRef gets picked up.
-				mp.Spec.Template.Spec.Bootstrap.DataSecretName = nil
-			}
-		}
 
 		Eventually(func() error {
 			return patchHelper.Patch(ctx, mp)

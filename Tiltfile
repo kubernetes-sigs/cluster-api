@@ -6,14 +6,7 @@ kubectl_cmd = "kubectl"
 default_build_engine = "docker"
 kubernetes_version = "v1.27.3"
 
-if str(local("command -v " + kubectl_cmd + " || true", quiet = True)) == "":
-    fail("Required command '" + kubectl_cmd + "' not found in PATH")
-
 load("ext://uibutton", "cmd_button", "location", "text_input")
-
-# detect if docker images should be built using podman
-if "Podman Engine" in str(local("docker version || podman version", quiet = True)):
-    default_build_engine = "podman"
 
 # set defaults
 version_settings(True, ">=0.30.8")
@@ -35,6 +28,13 @@ settings.update(read_yaml(
 os.putenv("CAPI_KIND_CLUSTER_NAME", settings.get("kind_cluster_name"))
 
 allow_k8s_contexts(settings.get("allowed_contexts"))
+
+if str(local("command -v " + kubectl_cmd + " || true", quiet = True)) == "":
+    fail("Required command '" + kubectl_cmd + "' not found in PATH")
+
+# detect if docker images should be built using podman
+if "Podman Engine" in str(local("docker version || podman version", quiet = True)):
+    default_build_engine = "podman"
 
 os_name = str(local("go env GOOS")).rstrip("\n")
 os_arch = str(local("go env GOARCH")).rstrip("\n")

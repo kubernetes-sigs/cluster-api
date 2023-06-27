@@ -93,6 +93,9 @@ func TestGetWorkloadCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-cluster-etcd",
 			Namespace: ns.Name,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: "my-cluster",
+			},
 		},
 		Data: map[string][]byte{
 			secret.TLSCrtDataName: certs.EncodeCertPEM(cert),
@@ -120,6 +123,9 @@ func TestGetWorkloadCluster(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "my-cluster-kubeconfig",
 			Namespace: ns.Name,
+			Labels: map[string]string{
+				clusterv1.ClusterNameLabel: "my-cluster",
+			},
 		},
 		Data: map[string][]byte{
 			secret.KubeconfigDataName: testEnvKubeconfig,
@@ -179,7 +185,7 @@ func TestGetWorkloadCluster(t *testing.T) {
 			g := NewWithT(t)
 
 			for _, o := range tt.objs {
-				g.Expect(env.Client.Create(ctx, o)).To(Succeed())
+				g.Expect(env.CreateAndWait(ctx, o)).To(Succeed())
 				defer func(do client.Object) {
 					g.Expect(env.CleanupAndWait(ctx, do)).To(Succeed())
 				}(o)
@@ -195,10 +201,8 @@ func TestGetWorkloadCluster(t *testing.T) {
 			)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			// Note: The API reader is intentionally used instead of the regular (cached) client
-			// to avoid test failures when the local cache isn't able to catch up in time.
 			m := Management{
-				Client:  env.GetAPIReader(),
+				Client:  env.GetClient(),
 				Tracker: tracker,
 			}
 

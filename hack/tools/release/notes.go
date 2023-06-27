@@ -72,13 +72,27 @@ var (
 	tagRegex = regexp.MustCompile(`^\[release-[\w-\.]*\]`)
 
 	userFriendlyAreas = map[string]string{
-		"e2e-testing":                    "e2e",
-		"provider/control-plane-kubeadm": "KCP",
-		"provider/infrastructure-docker": "CAPD",
-		"dependency":                     "Dependency",
-		"devtools":                       "Devtools",
-		"machine":                        "Machine",
-		"api":                            "API",
+		"e2e-testing":                       "e2e",
+		"provider/control-plane-kubeadm":    "KCP",
+		"provider/infrastructure-docker":    "CAPD",
+		"dependency":                        "Dependency",
+		"devtools":                          "Devtools",
+		"machine":                           "Machine",
+		"api":                               "API",
+		"machinepool":                       "MachinePool",
+		"clustercachetracker":               "ClusterCacheTracker",
+		"clusterclass":                      "ClusterClass",
+		"testing":                           "Testing",
+		"release":                           "Release",
+		"machineset":                        "MachineSet",
+		"clusterresourceset":                "ClusterResourceSet",
+		"machinedeployment":                 "MachineDeployment",
+		"ipam":                              "IPAM",
+		"provider/bootstrap-kubeadm":        "CAPBK",
+		"provider/infrastructure-in-memory": "CAPIM",
+		"provider/core":                     "Core",
+		"runtime-sdk":                       "Runtime SDK",
+		"ci":                                "CI",
 	}
 
 	releaseBackportMarker = regexp.MustCompile(`(?m)^\[release-\d\.\d\]\s*`)
@@ -288,7 +302,15 @@ func run() int {
 	}
 
 	// TODO Turn this into a link (requires knowing the project name + organization)
-	fmt.Printf("Changes since %v\n---\n", commitRange)
+	fmt.Print(`## 👌 Kubernetes version support
+
+- Management Cluster: v1.**X**.x -> v1.**X**.x
+- Workload Cluster: v1.**X**.x -> v1.**X**.x
+
+[More information about version support can be found here](https://cluster-api.sigs.k8s.io/reference/versions.html)
+
+`)
+	fmt.Printf("## Changes since %v\n---\n", commitRange)
 
 	fmt.Printf("## :chart_with_upwards_trend: Overview\n")
 	if count := len(commits); count > 0 {

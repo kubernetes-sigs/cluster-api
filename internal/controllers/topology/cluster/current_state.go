@@ -161,8 +161,11 @@ func (r *Reconciler) getCurrentMachineDeploymentState(ctx context.Context, bluep
 	state := make(scope.MachineDeploymentsStateMap)
 
 	// List all the machine deployments in the current cluster and in a managed topology.
+	// Note: This is a cached list call. We ensure in reconcile_state that the cache is up-to-date
+	// after we create/update a MachineDeployment and we double-check if an MD already exists before
+	// we create it.
 	md := &clusterv1.MachineDeploymentList{}
-	err := r.APIReader.List(ctx, md,
+	err := r.Client.List(ctx, md,
 		client.MatchingLabels{
 			clusterv1.ClusterNameLabel:          cluster.Name,
 			clusterv1.ClusterTopologyOwnedLabel: "",

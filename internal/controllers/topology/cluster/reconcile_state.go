@@ -20,13 +20,16 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -446,10 +449,28 @@ func (r *Reconciler) reconcileMachineDeployments(ctx context.Context, s *scope.S
 	diff := calculateMachineDeploymentDiff(s.Current.MachineDeployments, s.Desired.MachineDeployments)
 
 	// Create MachineDeployments.
-	for _, mdTopologyName := range diff.toCreate {
-		md := s.Desired.MachineDeployments[mdTopologyName]
-		if err := r.createMachineDeployment(ctx, s, md); err != nil {
+	if len(diff.toCreate) > 0 {
+		// In current state we only got the MD list via a cached call.
+		// As a consequence, in order to prevent the creation of duplicate MD due to stale reads,
+		// we are now using a live client to double-check here that the MachineDeployment
+		// to be created doesn't exist yet.
+		currentMDTopologyNames, err := r.getCurrentMachineDeployments(ctx, s)
+		if err != nil {
 			return err
+		}
+		for _, mdTopologyName := range diff.toCreate {
+			md := s.Desired.MachineDeployments[mdTopologyName]
+
+			// Skip the MD creation if the MD already exists.
+			if currentMDTopologyNames.Has(mdTopologyName) {
+				log := tlog.LoggerFrom(ctx).WithMachineDeployment(md.Object)
+				log.V(3).Infof(fmt.Sprintf("Skipping creation of MachineDeployment %s because MachineDeployment for topology %s already exists (only considered creation because of stale cache)", tlog.KObj{Obj: md.Object}, mdTopologyName))
+				continue
+			}
+
+			if err := r.createMachineDeployment(ctx, s, md); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -470,6 +491,32 @@ func (r *Reconciler) reconcileMachineDeployments(ctx context.Context, s *scope.S
 		}
 	}
 	return nil
+}
+
+// getCurrentMachineDeployments gets the current list of MachineDeployments via the APIReader.
+func (r *Reconciler) getCurrentMachineDeployments(ctx context.Context, s *scope.Scope) (sets.Set[string], error) {
+	// TODO: We should consider using PartialObjectMetadataList here. Currently this doesn't work as our
+	// implementation for topology dryrun doesn't support PartialObjectMetadataList.
+	mdList := &clusterv1.MachineDeploymentList{}
+	err := r.APIReader.List(ctx, mdList,
+		client.MatchingLabels{
+			clusterv1.ClusterNameLabel:          s.Current.Cluster.Name,
+			clusterv1.ClusterTopologyOwnedLabel: "",
+		},
+		client.InNamespace(s.Current.Cluster.Namespace),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read MachineDeployments for managed topology")
+	}
+
+	currentMDs := sets.Set[string]{}
+	for _, md := range mdList.Items {
+		mdTopologyName, ok := md.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]
+		if ok || mdTopologyName != "" {
+			currentMDs.Insert(mdTopologyName)
+		}
+	}
+	return currentMDs, nil
 }
 
 // createMachineDeployment creates a MachineDeployment and the corresponding Templates.
@@ -516,6 +563,23 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 		return createErrorWithoutObjectName(ctx, err, md.Object)
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: md.Object})
+
+	// Wait until MachineDeployment is visible in the cache.
+	// Note: We have to do this because otherwise using a cached client in current state could
+	// miss a newly created MachineDeployment (because the cache might be stale).
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+		key := client.ObjectKey{Namespace: md.Object.Namespace, Name: md.Object.Name}
+		if err := r.Client.Get(ctx, key, &clusterv1.MachineDeployment{}); err != nil {
+			if apierrors.IsNotFound(err) {
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed to create %s: failed waiting for MachineDeployment to be visible in cache", md.Object.Kind)
+	}
 
 	// If the MachineDeployment has defined a MachineHealthCheck reconcile it.
 	if md.MachineHealthCheck != nil {
@@ -587,6 +651,24 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: currentMD.Object})
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q%s", tlog.KObj{Obj: currentMD.Object}, logMachineDeploymentVersionChange(currentMD.Object, desiredMD.Object))
+
+	// Wait until MachineDeployment is updated in the cache.
+	// Note: We have to do this because otherwise using a cached client in current state could
+	// return a stale state of a MachineDeployment we just patched (because the cache might be stale).
+	// Note: It is good enough to check that the resource version changed. Other controllers might have updated the
+	// MachineDeployment as well, but the combination of the patch call above without a conflict and a changed resource
+	// version here guarantees that we see the changes of our own update.
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+		key := client.ObjectKey{Namespace: currentMD.Object.GetNamespace(), Name: currentMD.Object.GetName()}
+		cachedMD := &clusterv1.MachineDeployment{}
+		if err := r.Client.Get(ctx, key, cachedMD); err != nil {
+			return false, err
+		}
+		return currentMD.Object.GetResourceVersion() != cachedMD.GetResourceVersion(), nil
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed to patch %s: failed waiting for MachineDeployment to be updated in cache", tlog.KObj{Obj: currentMD.Object})
+	}
 
 	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.
 	return nil

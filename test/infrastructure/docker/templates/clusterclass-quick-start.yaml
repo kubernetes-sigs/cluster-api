@@ -32,6 +32,19 @@ spec:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
             kind: DockerMachineTemplate
             name: quick-start-default-worker-machinetemplate
+    machinePools:
+    - class: default-mp
+      template:
+        bootstrap:
+          ref:
+            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+            kind: KubeadmConfigTemplate
+            name: quick-start-default-mp-bootstraptemplate
+        infrastructure:
+          ref:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+            kind: DockerMachinePool
+            name: quick-start-default-mp-machinepool
   variables:
   - name: imageRepository
     required: true
@@ -255,3 +268,44 @@ spec:
     spec:
       joinConfiguration:
         nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+kind: DockerMachinePool
+metadata:
+  name: quick-start-default-mp-machinepool
+  namespace: default
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: worker-mp-0
+  namespace: default
+spec:
+  clusterName: my-cluster
+  replicas: 2
+  template:
+    spec:
+      version: v1.27.1
+      clusterName: my-cluster
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfig
+          name: worker-mp-0-config
+          namespace: default
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachinePool
+        name: quick-start-default-mp-machinepool
+        namespace: default
+---
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+kind: KubeadmConfig
+metadata:
+  name: worker-mp-0-config
+  namespace: default
+spec:
+  joinConfiguration:
+    nodeRegistration:
+      kubeletExtraArgs:
+        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%

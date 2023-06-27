@@ -127,15 +127,15 @@ func (co ConfigOwner) KubernetesVersion() string {
 
 // GetConfigOwner returns the Unstructured object owning the current resource
 // using the uncached unstructured client. For performance-sensitive uses,
-// consider GetConfigOwnerCached.
+// consider GetTypedConfigOwner.
 func GetConfigOwner(ctx context.Context, c client.Client, obj metav1.Object) (*ConfigOwner, error) {
 	return getConfigOwner(ctx, c, obj, GetOwnerByRef)
 }
 
-// GetConfigOwnerFromCache returns the Unstructured object owning the current
+// GetTypedConfigOwner returns the Unstructured object owning the current
 // resource. The implementation ensures a typed client is used, so the objects are read from the cache.
-func GetConfigOwnerFromCache(ctx context.Context, c client.Client, obj metav1.Object) (*ConfigOwner, error) {
-	return getConfigOwner(ctx, c, obj, GetOwnerByRefFromCache)
+func GetTypedConfigOwner(ctx context.Context, c client.Client, obj metav1.Object) (*ConfigOwner, error) {
+	return getConfigOwner(ctx, c, obj, GetTypedOwnerByRef)
 }
 
 func getConfigOwner(ctx context.Context, c client.Client, obj metav1.Object, getFn func(context.Context, client.Client, *corev1.ObjectReference) (*ConfigOwner, error)) (*ConfigOwner, error) {
@@ -183,9 +183,9 @@ func GetOwnerByRef(ctx context.Context, c client.Client, ref *corev1.ObjectRefer
 	return &ConfigOwner{obj}, nil
 }
 
-// GetOwnerByRefFromCache finds and returns the owner by looking at the object
+// GetTypedOwnerByRef finds and returns the owner by looking at the object
 // reference. The implementation ensures a typed client is used, so the objects are read from the cache.
-func GetOwnerByRefFromCache(ctx context.Context, c client.Client, ref *corev1.ObjectReference) (*ConfigOwner, error) {
+func GetTypedOwnerByRef(ctx context.Context, c client.Client, ref *corev1.ObjectReference) (*ConfigOwner, error) {
 	obj, err := c.Scheme().New(ref.GroupVersionKind())
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to construct object of type %s", ref.GroupVersionKind())

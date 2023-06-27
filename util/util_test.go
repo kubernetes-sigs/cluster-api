@@ -739,7 +739,7 @@ func TestClusterToObjectsMapper(t *testing.T) {
 		restMapper.Add(gvk, meta.RESTScopeNamespace)
 
 		client := fake.NewClientBuilder().WithObjects(tc.objects...).WithRESTMapper(restMapper).Build()
-		f, err := ClusterToObjectsMapper(client, tc.input, scheme)
+		f, err := ClusterToTypedObjectsMapper(client, tc.input, scheme)
 		g.Expect(err != nil, err).To(Equal(tc.expectError))
 		g.Expect(f(ctx, cluster)).To(ConsistOf(tc.output))
 	}

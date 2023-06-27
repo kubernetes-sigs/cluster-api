@@ -83,8 +83,10 @@ type Topology struct {
 
 	// RolloutAfter performs a rollout of the entire cluster one component at a time,
 	// control plane first and then machine deployments.
-	// +optional
+	//
 	// Deprecated: This field has no function and is going to be removed in the next apiVersion.
+	//
+	// +optional
 	RolloutAfter *metav1.Time `json:"rolloutAfter,omitempty"`
 
 	// ControlPlane describes the cluster control plane.

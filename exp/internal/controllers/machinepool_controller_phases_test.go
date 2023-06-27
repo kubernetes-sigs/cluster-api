@@ -1215,7 +1215,7 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 				},
 			},
 		}
-		g.Expect(env.Create(ctx, node)).To(BeNil())
+		g.Expect(env.CreateAndWait(ctx, node)).To(BeNil())
 		defer func(do ...client.Object) {
 			g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
 		}(node)
@@ -1249,7 +1249,6 @@ func TestReconcileMachinePoolScaleToFromZero(t *testing.T) {
 		g.Expect(res.Requeue).To(BeFalse())
 
 		r.reconcilePhase(machinepool)
-
 		g.Expect(machinepool.Status.GetTypedPhase()).To(Equal(expv1.MachinePoolPhaseRunning))
 
 		delNode := &corev1.Node{}

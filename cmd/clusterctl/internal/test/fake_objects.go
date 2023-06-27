@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -409,7 +410,8 @@ func (f *FakeControlPlane) Objs(cluster *clusterv1.Cluster) []client.Object {
 }
 
 type FakeMachinePool struct {
-	name string
+	name            string
+	bootstrapConfig *clusterv1.Bootstrap
 }
 
 // NewFakeMachinePool return a FakeMachinePool that can generate a MachinePool object, all its own ancillary objects:
@@ -419,6 +421,11 @@ func NewFakeMachinePool(name string) *FakeMachinePool {
 	return &FakeMachinePool{
 		name: name,
 	}
+}
+
+func (f *FakeMachinePool) WithStaticBootstrapConfig() *FakeMachinePool {
+	f.bootstrapConfig = NewStaticBootstrapConfig(f.name)
+	return f
 }
 
 func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []client.Object {
@@ -462,6 +469,11 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []client.Object {
 		},
 	}
 
+	bootstrapConfig := f.bootstrapConfig
+	if bootstrapConfig == nil {
+		bootstrapConfig = NewBootstrapConfigTemplate(machinePoolBootstrap)
+	}
+
 	machinePool := &expv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachinePool",
@@ -491,14 +503,7 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []client.Object {
 						Name:       machinePoolInfrastructure.Name,
 						Namespace:  machinePoolInfrastructure.Namespace,
 					},
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: machinePoolBootstrap.APIVersion,
-							Kind:       machinePoolBootstrap.Kind,
-							Name:       machinePoolBootstrap.Name,
-							Namespace:  machinePoolBootstrap.Namespace,
-						},
-					},
+					Bootstrap: *bootstrapConfig,
 				},
 			},
 			ClusterName: cluster.Name,
@@ -511,7 +516,11 @@ func (f *FakeMachinePool) Objs(cluster *clusterv1.Cluster) []client.Object {
 	objs := []client.Object{
 		machinePool,
 		machinePoolInfrastructure,
-		machinePoolBootstrap,
+	}
+
+	// if the bootstrapConfig doesn't use a static secret, add the GenericBootstrapConfigTemplate to the object list
+	if bootstrapConfig.ConfigRef != nil {
+		objs = append(objs, machinePoolBootstrap)
 	}
 
 	return objs
@@ -531,10 +540,42 @@ func NewFakeInfrastructureTemplate(name string) *fakeinfrastructure.GenericInfra
 	}
 }
 
+// NewStaticBootstrapConfig return a clusterv1.Bootstrap where
+// - the ConfigRef is nil
+// - the DataSecretName contains the name of the static data secret.
+func NewStaticBootstrapConfig(name string) *clusterv1.Bootstrap {
+	return &clusterv1.Bootstrap{
+		DataSecretName: pointer.String(name + "-bootstrap-secret"),
+	}
+}
+
+func NewBootstrapConfigTemplate(machineBootstrapTemplate *fakebootstrap.GenericBootstrapConfigTemplate) *clusterv1.Bootstrap {
+	return &clusterv1.Bootstrap{
+		ConfigRef: &corev1.ObjectReference{
+			APIVersion: machineBootstrapTemplate.APIVersion,
+			Kind:       machineBootstrapTemplate.Kind,
+			Name:       machineBootstrapTemplate.Name,
+			Namespace:  machineBootstrapTemplate.Namespace,
+		},
+	}
+}
+
+func NewBootstrapConfig(machineBootstrap *fakebootstrap.GenericBootstrapConfig) *clusterv1.Bootstrap {
+	return &clusterv1.Bootstrap{
+		ConfigRef: &corev1.ObjectReference{
+			APIVersion: machineBootstrap.APIVersion,
+			Kind:       machineBootstrap.Kind,
+			Name:       machineBootstrap.Name,
+			Namespace:  machineBootstrap.Namespace,
+		},
+	}
+}
+
 type FakeMachineDeployment struct {
 	name                         string
 	machineSets                  []*FakeMachineSet
 	sharedInfrastructureTemplate *fakeinfrastructure.GenericInfrastructureMachineTemplate
+	bootstrapConfig              *clusterv1.Bootstrap
 }
 
 // NewFakeMachineDeployment return a FakeMachineDeployment that can generate a MachineDeployment object, all its own ancillary objects:
@@ -549,6 +590,11 @@ func NewFakeMachineDeployment(name string) *FakeMachineDeployment {
 
 func (f *FakeMachineDeployment) WithMachineSets(fakeMachineSet ...*FakeMachineSet) *FakeMachineDeployment {
 	f.machineSets = append(f.machineSets, fakeMachineSet...)
+	return f
+}
+
+func (f *FakeMachineDeployment) WithStaticBootstrapConfig() *FakeMachineDeployment {
+	f.bootstrapConfig = NewStaticBootstrapConfig(f.name)
 	return f
 }
 
@@ -594,6 +640,11 @@ func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []client.Object
 		},
 	}
 
+	bootstrapConfig := f.bootstrapConfig
+	if bootstrapConfig == nil {
+		bootstrapConfig = NewBootstrapConfigTemplate(machineDeploymentBootstrap)
+	}
+
 	machineDeployment := &clusterv1.MachineDeployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "MachineDeployment",
@@ -623,14 +674,7 @@ func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []client.Object
 						Name:       machineDeploymentInfrastructure.Name,
 						Namespace:  machineDeploymentInfrastructure.Namespace,
 					},
-					Bootstrap: clusterv1.Bootstrap{
-						ConfigRef: &corev1.ObjectReference{
-							APIVersion: machineDeploymentBootstrap.APIVersion,
-							Kind:       machineDeploymentBootstrap.Kind,
-							Name:       machineDeploymentBootstrap.Name,
-							Namespace:  machineDeploymentBootstrap.Namespace,
-						},
-					},
+					Bootstrap: *bootstrapConfig,
 				},
 			},
 			ClusterName: cluster.Name,
@@ -642,8 +686,13 @@ func (f *FakeMachineDeployment) Objs(cluster *clusterv1.Cluster) []client.Object
 
 	objs := []client.Object{
 		machineDeployment,
-		machineDeploymentBootstrap,
 	}
+
+	// if the bootstrapConfig doesn't use a static secret, add the GenericBootstrapConfigTemplate to the object list
+	if bootstrapConfig.ConfigRef != nil {
+		objs = append(objs, machineDeploymentBootstrap)
+	}
+
 	// if the infra template is specific to the machine deployment, add it to the object list
 	if f.sharedInfrastructureTemplate == nil {
 		objs = append(objs, machineDeploymentInfrastructure)
@@ -661,6 +710,7 @@ type FakeMachineSet struct {
 	name                         string
 	machines                     []*FakeMachine
 	sharedInfrastructureTemplate *fakeinfrastructure.GenericInfrastructureMachineTemplate
+	bootstrapConfig              *clusterv1.Bootstrap
 }
 
 // NewFakeMachineSet return a FakeMachineSet that can generate a MachineSet object, all its own ancillary objects:
@@ -675,6 +725,11 @@ func NewFakeMachineSet(name string) *FakeMachineSet {
 
 func (f *FakeMachineSet) WithMachines(fakeMachine ...*FakeMachine) *FakeMachineSet {
 	f.machines = append(f.machines, fakeMachine...)
+	return f
+}
+
+func (f *FakeMachineSet) WithStaticBootstrapConfig() *FakeMachineSet {
+	f.bootstrapConfig = NewStaticBootstrapConfig(f.name)
 	return f
 }
 
@@ -750,6 +805,8 @@ func (f *FakeMachineSet) Objs(cluster *clusterv1.Cluster, machineDeployment *clu
 			Namespace:  machineSetInfrastructure.Namespace,
 		}
 
+		objs = append(objs, machineSet)
+
 		machineSetBootstrap := &fakebootstrap.GenericBootstrapConfigTemplate{
 			TypeMeta: metav1.TypeMeta{
 				APIVersion: fakebootstrap.GroupVersion.String(),
@@ -770,16 +827,18 @@ func (f *FakeMachineSet) Objs(cluster *clusterv1.Cluster, machineDeployment *clu
 			},
 		}
 
-		machineSet.Spec.Template.Spec.Bootstrap = clusterv1.Bootstrap{
-			ConfigRef: &corev1.ObjectReference{
-				APIVersion: machineSetBootstrap.APIVersion,
-				Kind:       machineSetBootstrap.Kind,
-				Name:       machineSetBootstrap.Name,
-				Namespace:  machineSetBootstrap.Namespace,
-			},
+		bootstrapConfig := f.bootstrapConfig
+		if bootstrapConfig == nil {
+			bootstrapConfig = NewBootstrapConfigTemplate(machineSetBootstrap)
 		}
 
-		objs = append(objs, machineSet, machineSetBootstrap)
+		machineSet.Spec.Template.Spec.Bootstrap = *bootstrapConfig
+
+		// if the bootstrapConfig doesn't use a static secret, add the GenericBootstrapConfigTemplate to the object list
+		if bootstrapConfig.ConfigRef != nil {
+			objs = append(objs, machineSetBootstrap)
+		}
+
 		// if the infra template is specific to the machine set, add it to the object list
 		if f.sharedInfrastructureTemplate == nil {
 			objs = append(objs, machineSetInfrastructure)
@@ -795,7 +854,8 @@ func (f *FakeMachineSet) Objs(cluster *clusterv1.Cluster, machineDeployment *clu
 }
 
 type FakeMachine struct {
-	name string
+	name            string
+	bootstrapConfig *clusterv1.Bootstrap
 }
 
 // NewFakeMachine return a FakeMachine that can generate a Machine object, all its own ancillary objects:
@@ -806,6 +866,11 @@ func NewFakeMachine(name string) *FakeMachine {
 	return &FakeMachine{
 		name: name,
 	}
+}
+
+func (f *FakeMachine) WithStaticBootstrapConfig() *FakeMachine {
+	f.bootstrapConfig = NewStaticBootstrapConfig(f.name)
+	return f
 }
 
 func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machineSet *clusterv1.MachineSet, controlPlane *fakecontrolplane.GenericControlPlane) []client.Object {
@@ -838,6 +903,12 @@ func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machi
 		Status: fakebootstrap.GenericBootstrapConfigStatus{
 			DataSecretName: &bootstrapDataSecretName,
 		},
+	}
+
+	bootstrapConfig := f.bootstrapConfig
+	if bootstrapConfig == nil {
+		bootstrapConfig = NewBootstrapConfig(machineBootstrap)
+		bootstrapConfig.DataSecretName = &bootstrapDataSecretName
 	}
 
 	// Ensure the machineBootstrap gets a UID to be used by dependant objects for creating OwnerReferences.
@@ -880,18 +951,11 @@ func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machi
 				Name:       machineInfrastructure.Name,
 				Namespace:  cluster.Namespace,
 			},
-			Bootstrap: clusterv1.Bootstrap{
-				ConfigRef: &corev1.ObjectReference{
-					APIVersion: machineBootstrap.APIVersion,
-					Kind:       machineBootstrap.Kind,
-					Name:       machineBootstrap.Name,
-					Namespace:  cluster.Namespace,
-				},
-				DataSecretName: &bootstrapDataSecretName,
-			},
 			ClusterName: cluster.Name,
 		},
 	}
+
+	machine.Spec.Bootstrap = *bootstrapConfig
 
 	// Ensure the machine gets a UID to be used by dependant objects for creating OwnerReferences.
 	setUID(machine)
@@ -948,23 +1012,25 @@ func (f *FakeMachine) Objs(cluster *clusterv1.Cluster, generateCerts bool, machi
 		clusterv1.ClusterNameLabel: machine.Spec.ClusterName,
 	})
 
-	machineBootstrap.SetOwnerReferences([]metav1.OwnerReference{
-		{
-			APIVersion: machine.APIVersion,
-			Kind:       machine.Kind,
-			Name:       machine.Name,
-			UID:        machine.UID,
-		},
-	})
-	machineBootstrap.SetLabels(map[string]string{
-		clusterv1.ClusterNameLabel: machine.Spec.ClusterName,
-	})
-
 	objs := []client.Object{
 		machine,
 		machineInfrastructure,
-		machineBootstrap,
-		bootstrapDataSecret,
+	}
+
+	if machine.Spec.Bootstrap.ConfigRef != nil {
+		machineBootstrap.SetOwnerReferences([]metav1.OwnerReference{
+			{
+				APIVersion: machine.APIVersion,
+				Kind:       machine.Kind,
+				Name:       machine.Name,
+				UID:        machine.UID,
+			},
+		})
+		machineBootstrap.SetLabels(map[string]string{
+			clusterv1.ClusterNameLabel: machine.Spec.ClusterName,
+		})
+
+		objs = append(objs, bootstrapDataSecret, machineBootstrap)
 	}
 
 	objs = append(objs, additionalObjs...)

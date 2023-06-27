@@ -249,6 +249,54 @@ var moveTests = []struct {
 		wantErr: false,
 	},
 	{
+		name: "Cluster with MachineDeployment with a static bootstrap config",
+		fields: moveTestsFields{
+			objs: test.NewFakeCluster("ns1", "cluster1").
+				WithMachineDeployments(
+					test.NewFakeMachineDeployment("md1").
+						WithStaticBootstrapConfig().
+						WithMachineSets(
+							test.NewFakeMachineSet("ms1").
+								WithStaticBootstrapConfig().
+								WithMachines(
+									test.NewFakeMachine("m1").
+										WithStaticBootstrapConfig(),
+									test.NewFakeMachine("m2").
+										WithStaticBootstrapConfig(),
+								),
+						),
+				).Objs(),
+		},
+		wantMoveGroups: [][]string{
+			{ // group 1
+				"cluster.x-k8s.io/v1beta1, Kind=Cluster, ns1/cluster1",
+			},
+			{ // group 2 (objects with ownerReferences in group 1)
+				// owned by Clusters
+				"/v1, Kind=Secret, ns1/cluster1-ca",
+				"/v1, Kind=Secret, ns1/cluster1-kubeconfig",
+				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureCluster, ns1/cluster1",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1",
+			},
+			{ // group 3 (objects with ownerReferences in group 1,2)
+				// owned by MachineDeployments
+				"cluster.x-k8s.io/v1beta1, Kind=MachineSet, ns1/ms1",
+			},
+			{ // group 4 (objects with ownerReferences in group 1,2,3)
+				// owned by MachineSets
+				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m1",
+				"cluster.x-k8s.io/v1beta1, Kind=Machine, ns1/m2",
+			},
+			{ // group 5 (objects with ownerReferences in group 1,2,3,4)
+				// owned by Machines
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/m1",
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachine, ns1/m2",
+			},
+		},
+		wantErr: false,
+	},
+	{
 		name: "Cluster with Control Plane",
 		fields: moveTestsFields{
 			objs: test.NewFakeCluster("ns1", "cluster1").
@@ -825,7 +873,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 				oTo.SetKind(node.identity.Kind)
 
 				if err := csTo.Get(ctx, key, oTo); err != nil {
-					t.Errorf("error = %v when checking for %v created in target cluster", err, key)
+					t.Errorf("error = %v when checking for %s %v created in target cluster", err, oTo.GetKind(), key)
 					continue
 				}
 
@@ -853,7 +901,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 				oAfter.SetKind(node.identity.Kind)
 
 				if err := csAfter.Get(ctx, keyAfter, oAfter); err != nil {
-					t.Errorf("error = %v when checking for %v created in target cluster", err, key)
+					t.Errorf("error = %v when checking for %s %v created in target cluster", err, oAfter.GetKind(), key)
 					continue
 				}
 
@@ -1076,7 +1124,7 @@ func Test_objectMover_fromDirectory(t *testing.T) {
 				oTo.SetKind(node.identity.Kind)
 
 				if err := csTo.Get(ctx, key, oTo); err != nil {
-					t.Errorf("error = %v when checking for %v created in target cluster", err, key)
+					t.Errorf("error = %v when checking for %s %v created in target cluster", err, oTo.GetKind(), key)
 					continue
 				}
 			}
@@ -1164,7 +1212,7 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 				oFrom.SetKind(node.identity.Kind)
 
 				if err := csFrom.Get(ctx, key, oFrom); err != nil {
-					t.Errorf("error = %v when checking for %v kept in source cluster", err, key)
+					t.Errorf("error = %v when checking for %s %v kept in source cluster", err, oFrom.GetKind(), key)
 					continue
 				}
 
@@ -1176,11 +1224,11 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 				err := csTo.Get(ctx, key, oTo)
 				if err == nil {
 					if oFrom.GetNamespace() != "" {
-						t.Errorf("%v created in target cluster which should not", key)
+						t.Errorf("%s %v created in target cluster which should not", oFrom.GetKind(), key)
 						continue
 					}
 				} else if !apierrors.IsNotFound(err) {
-					t.Errorf("error = %v when checking for %v should not created ojects in target cluster", err, key)
+					t.Errorf("error = %v when checking for %s %v should not created ojects in target cluster", err, oFrom.GetKind(), key)
 					continue
 				}
 			}
@@ -1240,11 +1288,11 @@ func Test_objectMover_move(t *testing.T) {
 				err := csFrom.Get(ctx, key, oFrom)
 				if err == nil {
 					if !node.isGlobal && !node.isGlobalHierarchy {
-						t.Errorf("%v not deleted in source cluster", key)
+						t.Errorf("%s %v not deleted in source cluster", oFrom.GetKind(), key)
 						continue
 					}
 				} else if !apierrors.IsNotFound(err) {
-					t.Errorf("error = %v when checking for %v deleted in source cluster", err, key)
+					t.Errorf("error = %v when checking for %s %v deleted in source cluster", err, oFrom.GetKind(), key)
 					continue
 				}
 
@@ -1254,7 +1302,7 @@ func Test_objectMover_move(t *testing.T) {
 				oTo.SetKind(node.identity.Kind)
 
 				if err := csTo.Get(ctx, key, oTo); err != nil {
-					t.Errorf("error = %v when checking for %v created in target cluster", err, key)
+					t.Errorf("error = %v when checking for %s %v created in target cluster", err, oFrom.GetKind(), key)
 					continue
 				}
 			}
@@ -1349,11 +1397,11 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 				err := csFrom.Get(ctx, key, oFrom)
 				if err == nil {
 					if !node.isGlobal && !node.isGlobalHierarchy {
-						t.Errorf("%v not deleted in source cluster", key)
+						t.Errorf("%s %v not deleted in source cluster", oFrom.GetKind(), key)
 						continue
 					}
 				} else if !apierrors.IsNotFound(err) {
-					t.Errorf("error = %v when checking for %v deleted in source cluster", err, key)
+					t.Errorf("error = %v when checking for %s %v deleted in source cluster", err, oFrom.GetKind(), key)
 					continue
 				}
 
@@ -1366,7 +1414,7 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 				}
 
 				if err := csTo.Get(ctx, key, oTo); err != nil {
-					t.Errorf("error = %v when checking for %v created in target cluster", err, key)
+					t.Errorf("error = %v when checking for %s %v created in target cluster", err, oFrom.GetKind(), key)
 					continue
 				}
 				if fields, knownKind := updateKnownKinds[oTo.GetKind()]; knownKind {

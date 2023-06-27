@@ -397,6 +397,17 @@ func Test_Discovery(t *testing.T) {
 								test.NewFakeInfrastructureTemplate("md1"),
 							),
 					).
+					WithMachineDeployments(
+						test.NewFakeMachineDeployment("md2").
+							WithStaticBootstrapConfig().
+							WithMachineSets(
+								test.NewFakeMachineSet("ms2").
+									WithMachines(
+										test.NewFakeMachine("m3"),
+										test.NewFakeMachine("m4"),
+									),
+							),
+					).
 					Objs(),
 			},
 			wantTree: map[string][]string{
@@ -418,6 +429,7 @@ func Test_Discovery(t *testing.T) {
 				// Workers should have a machine deployment
 				"virtual.cluster.x-k8s.io/v1beta1, Kind=WorkerGroup, ns1/Workers": {
 					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1",
+					"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md2",
 				},
 				// Machine deployment should have a group of machines (grouping) and templates group
 				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md1": {
@@ -433,6 +445,17 @@ func Test_Discovery(t *testing.T) {
 				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md1": {},
 				// MachineDeployment BootstrapConfigRef should be a leaf
 				"bootstrap.cluster.x-k8s.io/v1beta1, Kind=GenericBootstrapConfigTemplate, ns1/md1": {},
+				// Machine deployment should have a group of machines (grouping) and templates group
+				"cluster.x-k8s.io/v1beta1, Kind=MachineDeployment, ns1/md2": {
+					"virtual.cluster.x-k8s.io/v1beta1, Kind=MachineGroup, ns1/zzz_",
+					"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md2",
+				},
+				// MachineDeployment TemplateGroup using static bootstrap will only have InfrastructureRef
+				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/md2": {
+					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md2",
+				},
+				// MachineDeployment InfrastructureRef should be a leaf
+				"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/md2": {},
 				// ControlPlane TemplateGroup should have a InfrastructureRef
 				"virtual.cluster.x-k8s.io/v1beta1, Kind=TemplateGroup, ns1/cp": {
 					"infrastructure.cluster.x-k8s.io/v1beta1, Kind=GenericInfrastructureMachineTemplate, ns1/cp",

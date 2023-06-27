@@ -241,8 +241,11 @@ func addMachineDeploymentToObjectTree(ctx context.Context, c client.Client, clus
 				templateParent = md
 			}
 
-			bootstrapTemplateRefObject := ObjectReferenceObject(md.Spec.Template.Spec.Bootstrap.ConfigRef)
-			tree.Add(templateParent, bootstrapTemplateRefObject, ObjectMetaName("BootstrapConfigTemplate"))
+			// md.Spec.Template.Spec.Bootstrap.ConfigRef is optional
+			if md.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
+				bootstrapTemplateRefObject := ObjectReferenceObject(md.Spec.Template.Spec.Bootstrap.ConfigRef)
+				tree.Add(templateParent, bootstrapTemplateRefObject, ObjectMetaName("BootstrapConfigTemplate"))
+			}
 
 			machineTemplateRefObject := ObjectReferenceObject(&md.Spec.Template.Spec.InfrastructureRef)
 			tree.Add(templateParent, machineTemplateRefObject, ObjectMetaName("MachineInfrastructureTemplate"))

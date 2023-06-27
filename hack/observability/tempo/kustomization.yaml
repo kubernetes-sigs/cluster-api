@@ -1,0 +1,16 @@
+resources:
+- ../namespace.yaml
+
+helmCharts:
+- name: tempo
+  repo: https://grafana.github.io/helm-charts
+  releaseName: tempo
+  namespace: observability
+  valuesFile: values.yaml
+  version: 1.3.1
+
+helmGlobals:
+  # Store chart in ".charts" folder instead of "charts".
+  # Otherwise "go mod tidy" picks up dependencies of go files contained in the Helm Chart.
+  # "go mod tidy" ignores folders that begin with ".": https://pkg.go.dev/cmd/go#hdr-Package_lists_and_patterns.
+  chartHome: .charts

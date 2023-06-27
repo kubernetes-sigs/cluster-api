@@ -38,7 +38,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -88,7 +88,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "sum(capi_clusterclass_info)",
@@ -103,7 +103,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -153,7 +153,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "sum(capi_cluster_info)",
@@ -168,7 +168,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -218,7 +218,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "sum(capi_kubeadmcontrolplane_info)",
@@ -233,7 +233,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -283,7 +283,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "sum(capi_machinedeployment_info)",
@@ -298,7 +298,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -348,7 +348,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "sum(capi_machineset_info)",
@@ -363,7 +363,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -413,7 +413,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "sum(capi_machinepool_info)",
@@ -429,7 +429,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -479,7 +479,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "sum(capi_machine_info)",
@@ -494,7 +494,7 @@
     {
       "datasource": {
         "type": "prometheus",
-        "uid": "PBFA97CFB590B2093"
+        "uid": "prometheus"
       },
       "fieldConfig": {
         "defaults": {
@@ -544,7 +544,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "editorMode": "code",
           "expr": "sum(capi_machinehealthcheck_info)",
@@ -569,7 +569,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -652,7 +652,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created) by (type)",
@@ -667,7 +667,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -750,7 +750,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "avg((min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () capi_cluster_created) by (type)",
@@ -765,7 +765,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -848,7 +848,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created) by (type)",
@@ -863,7 +863,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -946,7 +946,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "avg((min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () capi_kubeadmcontrolplane_created) by (type)",
@@ -961,7 +961,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -1044,7 +1044,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (type)",
@@ -1059,7 +1059,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -1142,7 +1142,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "avg((min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (type)",
@@ -1157,7 +1157,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -1240,7 +1240,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (type)",
@@ -1255,7 +1255,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -1338,7 +1338,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "avg((min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (type)",
@@ -1353,7 +1353,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -1436,7 +1436,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
@@ -1451,7 +1451,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -1534,7 +1534,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "avg((min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
@@ -1549,7 +1549,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -1632,7 +1632,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
@@ -1647,7 +1647,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -1730,7 +1730,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "avg((min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
@@ -1759,7 +1759,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -1835,7 +1835,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_cluster_info)",
@@ -1846,7 +1846,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_cluster_status_condition{status=\"True\"} == 1) by (type)",
@@ -1858,7 +1858,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_cluster_status_condition{status=\"False\"} == 1) by (type)",
@@ -1874,7 +1874,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -1950,7 +1950,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_cluster_info) by (topology_version)",
@@ -1965,7 +1965,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -2041,7 +2041,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_cluster_status_phase == 1) by (phase)",
@@ -2070,7 +2070,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -2146,7 +2146,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_kubeadmcontrolplane_info)",
@@ -2157,7 +2157,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_kubeadmcontrolplane_status_condition{status=\"True\"} == 1) by (type)",
@@ -2169,7 +2169,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_kubeadmcontrolplane_status_condition{status=\"False\"} == 1) by (type)",
@@ -2185,7 +2185,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -2261,7 +2261,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_kubeadmcontrolplane_info) by (version)",
@@ -2276,7 +2276,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -2352,7 +2352,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_kubeadmcontrolplane_spec_replicas)",
@@ -2363,7 +2363,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_kubeadmcontrolplane_status_replicas)",
@@ -2375,7 +2375,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_kubeadmcontrolplane_status_replicas_ready)",
@@ -2387,7 +2387,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_kubeadmcontrolplane_status_replicas_unavailable)",
@@ -2399,7 +2399,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_kubeadmcontrolplane_status_replicas_updated)",
@@ -2429,7 +2429,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -2505,7 +2505,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinedeployment_info)",
@@ -2516,7 +2516,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_machinedeployment_status_condition{status=\"True\"} == 1) by (type)",
@@ -2528,7 +2528,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_machinedeployment_status_condition{status=\"False\"} == 1) by (type)",
@@ -2544,7 +2544,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -2620,7 +2620,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinedeployment_info) by (version)",
@@ -2635,7 +2635,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -2711,7 +2711,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinedeployment_spec_replicas)",
@@ -2722,7 +2722,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinedeployment_status_replicas)",
@@ -2734,7 +2734,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinedeployment_status_replicas_ready)",
@@ -2746,7 +2746,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinedeployment_status_replicas_unavailable)",
@@ -2758,7 +2758,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinedeployment_status_replicas_updated)",
@@ -2770,7 +2770,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinedeployment_status_replicas_available)",
@@ -2786,7 +2786,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -2862,7 +2862,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_machinedeployment_status_phase == 1) by (phase)",
@@ -2891,7 +2891,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -2967,7 +2967,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machineset_info)",
@@ -2978,7 +2978,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_machineset_status_condition{status=\"True\"} == 1) by (type)",
@@ -2990,7 +2990,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_machineset_status_condition{status=\"False\"} == 1) by (type)",
@@ -3006,7 +3006,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -3082,7 +3082,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machineset_info) by (version)",
@@ -3097,7 +3097,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -3173,7 +3173,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machineset_spec_replicas)",
@@ -3184,7 +3184,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machineset_status_replicas)",
@@ -3196,7 +3196,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machineset_status_replicas_ready)",
@@ -3208,7 +3208,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machineset_status_replicas_available)",
@@ -3220,7 +3220,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machineset_status_replicas_fully_labeled)",
@@ -3250,7 +3250,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -3326,7 +3326,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinepool_info)",
@@ -3337,7 +3337,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_machinepool_status_condition{status=\"True\"} == 1) by (type)",
@@ -3349,7 +3349,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_machinepool_status_condition{status=\"False\"} == 1) by (type)",
@@ -3365,7 +3365,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -3441,7 +3441,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinepool_info) by (version)",
@@ -3456,7 +3456,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -3532,7 +3532,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinepool_spec_replicas)",
@@ -3543,7 +3543,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinepool_status_replicas)",
@@ -3555,7 +3555,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinepool_status_replicas_ready)",
@@ -3567,7 +3567,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinepool_status_replicas_unavailable)",
@@ -3579,7 +3579,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinepool_status_replicas_available)",
@@ -3595,7 +3595,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -3671,7 +3671,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_machinepool_status_phase == 1) by (phase)",
@@ -3700,7 +3700,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -3776,7 +3776,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_machine_info{control_plane_name!=\"\"})",
@@ -3787,7 +3787,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(avg(capi_machine_info{control_plane_name!=\"\"}) by (name) * on(name) group_right () (capi_machine_status_condition{status=\"True\"} == 1)) by (type)",
@@ -3799,7 +3799,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(avg(capi_machine_info{control_plane_name!=\"\"}) by (name) * on(name) group_right () (capi_machine_status_condition{status=\"False\"} == 1)) by (type)",
@@ -3815,7 +3815,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -3891,7 +3891,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machine_info{control_plane_name!=\"\"}) by (version)",
@@ -3906,7 +3906,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -3982,7 +3982,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(avg(capi_machine_info{control_plane_name!=\"\"}) by (name) * on (name) group_right () (capi_machine_status_phase == 1)) by (phase)",
@@ -3997,7 +3997,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -4073,7 +4073,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_machine_info{control_plane_name=\"\"})",
@@ -4084,7 +4084,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(avg(capi_machine_info{control_plane_name=\"\"}) by (name) * on(name) group_right () (capi_machine_status_condition{status=\"True\"} == 1)) by (type)",
@@ -4096,7 +4096,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(avg(capi_machine_info{control_plane_name=\"\"}) by (name) * on(name) group_right () (capi_machine_status_condition{status=\"False\"} == 1)) by (type)",
@@ -4112,7 +4112,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -4188,7 +4188,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machine_info{control_plane_name=\"\"}) by (version)",
@@ -4203,7 +4203,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -4279,7 +4279,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(avg(capi_machine_info{control_plane_name=\"\"}) by (name) * on (name) group_right () (capi_machine_status_phase == 1)) by (phase)",
@@ -4308,7 +4308,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -4384,7 +4384,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinehealthcheck_info)",
@@ -4395,7 +4395,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_machinehealthcheck_status_condition{status=\"True\"} == 1) by (type)",
@@ -4407,7 +4407,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum(capi_machinehealthcheck_status_condition{status=\"False\"} == 1) by (type)",
@@ -4423,7 +4423,7 @@
         {
           "datasource": {
             "type": "prometheus",
-            "uid": "PBFA97CFB590B2093"
+            "uid": "prometheus"
           },
           "fieldConfig": {
             "defaults": {
@@ -4499,7 +4499,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinehealthcheck_status_expected_machines)",
@@ -4510,7 +4510,7 @@
             {
               "datasource": {
                 "type": "prometheus",
-                "uid": "PBFA97CFB590B2093"
+                "uid": "prometheus"
               },
               "editorMode": "code",
               "expr": "sum (capi_machinehealthcheck_status_current_healthy)",

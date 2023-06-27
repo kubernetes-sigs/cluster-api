@@ -11,6 +11,13 @@ prometheus-node-exporter:
 prometheus-pushgateway:
   enabled: false
 
+server:
+  extraFlags:
+  # Required for configmap-reload.
+  - "web.enable-lifecycle"
+  # Used by tempo to write traces.
+  - "web.enable-remote-write-receiver"
+
 # Scrape metrics from deployed providers
 extraScrapeConfigs: |
   - job_name: 'capi-providers'

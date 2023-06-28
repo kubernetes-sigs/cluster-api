@@ -24,21 +24,94 @@ import (
 	"k8s.io/utils/pointer"
 )
 
-var _ = Describe("When scale testing using in-memory provider [Scale]", func() {
+// Stefan
+var _ = Describe("When scale testing using in-memory provider [Scale] [Small workload cluster]", func() {
 	scaleSpec(ctx, func() scaleSpecInput {
 		return scaleSpecInput{
-			E2EConfig:                e2eConfig,
-			ClusterctlConfigPath:     clusterctlConfigPath,
-			InfrastructureProvider:   pointer.String("in-memory"),
-			BootstrapClusterProxy:    bootstrapClusterProxy,
-			ArtifactFolder:           artifactFolder,
-			ClusterCount:             pointer.Int64(10),
-			Concurrency:              pointer.Int64(5),
-			Flavor:                   pointer.String(""),
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			InfrastructureProvider: pointer.String("in-memory"),
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			FailFast:               false,
+			SkipWaitForCreation:    false,
+			SkipCleanup:            true,
+			Flavor:                 pointer.String(""),
+			// per Scenario
+			Concurrency:              pointer.Int64(50),
+			ClusterCount:             pointer.Int64(2000),
 			ControlPlaneMachineCount: pointer.Int64(1),
+			MachineDeploymentCount:   pointer.Int64(0),
+			WorkerMachineCount:       pointer.Int64(0),
+		}
+	})
+})
+
+// Yuvaraj
+var _ = Describe("When scale testing using in-memory provider [Scale] [Small medium workload cluster]", func() {
+	scaleSpec(ctx, func() scaleSpecInput {
+		return scaleSpecInput{
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			InfrastructureProvider: pointer.String("in-memory"),
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			FailFast:               false,
+			SkipWaitForCreation:    false,
+			SkipCleanup:            true,
+			Flavor:                 pointer.String(""),
+			// per Scenario
+			Concurrency:              pointer.Int64(20),
+			ClusterCount:             pointer.Int64(200),
+			ControlPlaneMachineCount: pointer.Int64(3),
 			MachineDeploymentCount:   pointer.Int64(1),
-			WorkerMachineCount:       pointer.Int64(3),
-			SkipCleanup:              skipCleanup,
+			WorkerMachineCount:       pointer.Int64(10),
+		}
+	})
+})
+
+// Yuvaraj
+var _ = Describe("When scale testing using in-memory provider [Scale] [Medium workload cluster]", func() {
+	scaleSpec(ctx, func() scaleSpecInput {
+		return scaleSpecInput{
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			InfrastructureProvider: pointer.String("in-memory"),
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			FailFast:               false,
+			SkipWaitForCreation:    false,
+			SkipCleanup:            true,
+			Flavor:                 pointer.String(""),
+			// per Scenario
+			Concurrency:              pointer.Int64(5),
+			ClusterCount:             pointer.Int64(40),
+			ControlPlaneMachineCount: pointer.Int64(3),
+			MachineDeploymentCount:   pointer.Int64(1),
+			WorkerMachineCount:       pointer.Int64(50),
+		}
+	})
+})
+
+// Yuvaraj
+var _ = Describe("When scale testing using in-memory provider [Scale] [Large workload cluster]", func() {
+	scaleSpec(ctx, func() scaleSpecInput {
+		return scaleSpecInput{
+			E2EConfig:              e2eConfig,
+			ClusterctlConfigPath:   clusterctlConfigPath,
+			InfrastructureProvider: pointer.String("in-memory"),
+			BootstrapClusterProxy:  bootstrapClusterProxy,
+			ArtifactFolder:         artifactFolder,
+			FailFast:               false,
+			SkipWaitForCreation:    false,
+			SkipCleanup:            true,
+			Flavor:                 pointer.String(""),
+			// per Scenario
+			Concurrency:              pointer.Int64(1),
+			ClusterCount:             pointer.Int64(1),
+			ControlPlaneMachineCount: pointer.Int64(3),
+			MachineDeploymentCount:   pointer.Int64(500),
+			WorkerMachineCount:       pointer.Int64(2),
 		}
 	})
 })

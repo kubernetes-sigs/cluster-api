@@ -283,9 +283,17 @@ func tiltResources(ctx context.Context, ts *tiltSettings) error {
 	// NOTE: strictly speaking cert-manager is not a resource, however it is a dependency for most of the actual resources
 	// and running this is the same task group of the kustomize/provider tasks gives the maximum benefits in terms of reducing the total elapsed time.
 	if ts.DeployCertManager == nil || *ts.DeployCertManager {
-		tasks["cert-manager-cainjector"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-cainjector:%s", config.CertManagerDefaultVersion))
-		tasks["cert-manager-webhook"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-webhook:%s", config.CertManagerDefaultVersion))
-		tasks["cert-manager-controller"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-controller:%s", config.CertManagerDefaultVersion))
+		cfg, err := clientcmd.NewDefaultClientConfigLoadingRules().Load()
+		if err != nil {
+			return errors.Wrap(err, "failed to load KubeConfig file")
+		}
+		// The images can only be preloaded when the cluster is a kind cluster.
+		// Note: Not repeating the validation on the config already done in allowK8sConfig here.
+		if strings.HasPrefix(cfg.Contexts[cfg.CurrentContext].Cluster, "kind-") {
+			tasks["cert-manager-cainjector"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-cainjector:%s", config.CertManagerDefaultVersion))
+			tasks["cert-manager-webhook"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-webhook:%s", config.CertManagerDefaultVersion))
+			tasks["cert-manager-controller"] = preLoadImageTask(fmt.Sprintf("quay.io/jetstack/cert-manager-controller:%s", config.CertManagerDefaultVersion))
+		}
 		tasks["cert-manager"] = certManagerTask()
 	}
 

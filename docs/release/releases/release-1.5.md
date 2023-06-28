@@ -14,7 +14,7 @@ The following table shows the preliminary dates for the `v1.5` release cycle.
 | v1.5.0-beta.0 released                               | Release Lead | Tuesday 27th June 2023     | week 13  |
 | Communicate beta to providers                        | Comms Manager| Tuesday 27th June 2023     | week 13  |
 | *v1.3.x & v1.4.x released*                           | Release Lead | Tuesday 27th June 2023     | week 13  |
-| v1.5.0-beta.x released                               | Release Lead | Tuesday 4th July 2023      | week 14  |
+| v1.5.0-beta.x released                               | Release Lead | Tuesday 5th July 2023      | week 14  |
 | release-1.5 branch created (**Begin [Code Freeze]**) | Release Lead | Tuesday 11th July 2023     | week 15  |
 | v1.5.0-rc.0 released                                 | Release Lead | Tuesday 11th July 2023     | week 15  |
 | release-1.5 jobs created                             | CI Manager   | Tuesday 11th July 2023     | week 15  |

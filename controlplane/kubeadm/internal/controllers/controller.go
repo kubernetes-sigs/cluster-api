@@ -488,7 +488,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 		return ctrl.Result{}, err
 	}
 
-	if err := r.ensureCertificatesOwnerRef(ctx, util.ObjectKey(controlPlane.Cluster), certificates, *controllerRef); err != nil {
+	if err := r.ensureCertificatesOwnerRef(ctx, certificates, *controllerRef); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -928,38 +928,36 @@ func (r *KubeadmControlPlaneReconciler) adoptOwnedSecrets(ctx context.Context, k
 }
 
 // ensureCertificatesOwnerRef ensures an ownerReference to the owner is added on the Secrets holding certificates.
-func (r *KubeadmControlPlaneReconciler) ensureCertificatesOwnerRef(ctx context.Context, clusterKey client.ObjectKey, certificates secret.Certificates, owner metav1.OwnerReference) error {
+func (r *KubeadmControlPlaneReconciler) ensureCertificatesOwnerRef(ctx context.Context, certificates secret.Certificates, owner metav1.OwnerReference) error {
 	for _, c := range certificates {
-		s := &corev1.Secret{}
-		secretKey := client.ObjectKey{Namespace: clusterKey.Namespace, Name: secret.Name(clusterKey.Name, c.Purpose)}
-		if err := r.Client.Get(ctx, secretKey, s); err != nil {
-			return errors.Wrapf(err, "failed to get Secret %s", secretKey)
+		if c.Secret == nil {
+			continue
 		}
 
-		patchHelper, err := patch.NewHelper(s, r.Client)
+		patchHelper, err := patch.NewHelper(c.Secret, r.Client)
 		if err != nil {
-			return errors.Wrapf(err, "failed to create patchHelper for Secret %s", secretKey)
+			return errors.Wrapf(err, "failed to create patchHelper for Secret %s", klog.KObj(c.Secret))
 		}
 
-		controller := metav1.GetControllerOf(s)
+		controller := metav1.GetControllerOf(c.Secret)
 		// If the current controller is KCP, ensure the owner reference is up to date.
 		// Note: This ensures secrets created prior to v1alpha4 are updated to have the correct owner reference apiVersion.
 		if controller != nil && controller.Kind == kubeadmControlPlaneKind {
-			s.SetOwnerReferences(util.EnsureOwnerRef(s.GetOwnerReferences(), owner))
+			c.Secret.SetOwnerReferences(util.EnsureOwnerRef(c.Secret.GetOwnerReferences(), owner))
 		}
 
 		// If the Type doesn't match the type used for secrets created by core components continue without altering the owner reference further.
 		// Note: This ensures that control plane related secrets created by KubeadmConfig are eventually owned by KCP.
 		// TODO: Remove this logic once standalone control plane machines are no longer allowed.
-		if s.Type == clusterv1.ClusterSecretType {
+		if c.Secret.Type == clusterv1.ClusterSecretType {
 			// Remove the current controller if one exists.
 			if controller != nil {
-				s.SetOwnerReferences(util.RemoveOwnerRef(s.GetOwnerReferences(), *controller))
+				c.Secret.SetOwnerReferences(util.RemoveOwnerRef(c.Secret.GetOwnerReferences(), *controller))
 			}
-			s.SetOwnerReferences(util.EnsureOwnerRef(s.GetOwnerReferences(), owner))
+			c.Secret.SetOwnerReferences(util.EnsureOwnerRef(c.Secret.GetOwnerReferences(), owner))
 		}
-		if err := patchHelper.Patch(ctx, s); err != nil {
-			return errors.Wrapf(err, "failed to patch Secret %s with ownerReference %s", secretKey, owner.String())
+		if err := patchHelper.Patch(ctx, c.Secret); err != nil {
+			return errors.Wrapf(err, "failed to patch Secret %s with ownerReference %s", klog.KObj(c.Secret), owner.String())
 		}
 	}
 	return nil

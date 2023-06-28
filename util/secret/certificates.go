@@ -212,6 +212,7 @@ func (c Certificates) Lookup(ctx context.Context, ctrlclient client.Client, clus
 			return err
 		}
 		certificate.KeyPair = kp
+		certificate.Secret = s
 	}
 	return nil
 }
@@ -257,6 +258,7 @@ func (c Certificates) SaveGenerated(ctx context.Context, ctrlclient client.Clien
 		if err := ctrlclient.Create(ctx, s); err != nil {
 			return errors.WithStack(err)
 		}
+		certificate.Secret = s
 	}
 	return nil
 }
@@ -284,6 +286,7 @@ type Certificate struct {
 	Purpose           Purpose
 	KeyPair           *certs.KeyPair
 	CertFile, KeyFile string
+	Secret            *corev1.Secret
 }
 
 // Hashes hashes all the certificates stored in a CA certificate.

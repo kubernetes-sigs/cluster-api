@@ -22,6 +22,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	goruntime "runtime"
 	"time"
 
 	// +kubebuilder:scaffold:imports
@@ -73,6 +74,7 @@ var (
 	watchNamespace              string
 	watchFilterValue            string
 	profilerAddress             string
+	enableContentionProfiling   bool
 	concurrency                 int
 	syncPeriod                  time.Duration
 	restConfigQPS               float32
@@ -124,6 +126,9 @@ func initFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&profilerAddress, "profiler-address", "",
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
+
+	fs.BoolVar(&enableContentionProfiling, "contention-profiling", false,
+		"Enable block profiling, if profiler-address is set.")
 
 	fs.IntVar(&concurrency, "concurrency", 10,
 		"The number of docker machines to process simultaneously")
@@ -184,6 +189,10 @@ func main() {
 	var watchNamespaces []string
 	if watchNamespace != "" {
 		watchNamespaces = []string{watchNamespace}
+	}
+
+	if profilerAddress != "" && enableContentionProfiling {
+		goruntime.SetBlockProfileRate(1)
 	}
 
 	ctrlOptions := ctrl.Options{

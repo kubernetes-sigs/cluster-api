@@ -23,6 +23,7 @@ import (
 	"fmt"
 	_ "net/http/pprof"
 	"os"
+	goruntime "runtime"
 	"time"
 
 	// +kubebuilder:scaffold:imports
@@ -86,6 +87,7 @@ var (
 	watchFilterValue               string
 	watchNamespace                 string
 	profilerAddress                string
+	enableContentionProfiling      bool
 	kubeadmControlPlaneConcurrency int
 	syncPeriod                     time.Duration
 	restConfigQPS                  float32
@@ -123,6 +125,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&profilerAddress, "profiler-address", "",
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
+
+	fs.BoolVar(&enableContentionProfiling, "contention-profiling", false,
+		"Enable block profiling, if profiler-address is set.")
 
 	fs.IntVar(&kubeadmControlPlaneConcurrency, "kubeadmcontrolplane-concurrency", 10,
 		"Number of kubeadm control planes to process simultaneously")
@@ -186,6 +191,10 @@ func main() {
 	var watchNamespaces []string
 	if watchNamespace != "" {
 		watchNamespaces = []string{watchNamespace}
+	}
+
+	if profilerAddress != "" && enableContentionProfiling {
+		goruntime.SetBlockProfileRate(1)
 	}
 
 	ctrlOptions := ctrl.Options{

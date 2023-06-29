@@ -441,6 +441,24 @@ func (r *Reconciler) reconcileCluster(ctx context.Context, s *scope.Scope) error
 		return errors.Wrapf(err, "failed to patch %s", tlog.KObj{Obj: s.Current.Cluster})
 	}
 	r.recorder.Eventf(s.Current.Cluster, corev1.EventTypeNormal, updateEventReason, "Updated %q", tlog.KObj{Obj: s.Current.Cluster})
+
+	// Wait until Cluster is updated in the cache.
+	// Note: We have to do this because otherwise using a cached client in the Reconcile func could
+	// return a stale state of the Cluster we just patched (because the cache might be stale).
+	// Note: It is good enough to check that the resource version changed. Other controllers might have updated the
+	// Cluster as well, but the combination of the patch call above without a conflict and a changed resource
+	// version here guarantees that we see the changes of our own update.
+	err = wait.PollUntilContextTimeout(ctx, 5*time.Millisecond, 5*time.Second, true, func(ctx context.Context) (bool, error) {
+		key := client.ObjectKey{Namespace: s.Current.Cluster.GetNamespace(), Name: s.Current.Cluster.GetName()}
+		cachedCluster := &clusterv1.Cluster{}
+		if err := r.Client.Get(ctx, key, cachedCluster); err != nil {
+			return false, err
+		}
+		return s.Current.Cluster.GetResourceVersion() != cachedCluster.GetResourceVersion(), nil
+	})
+	if err != nil {
+		return errors.Wrapf(err, "failed waiting for Cluster %s to be updated in the cache after patch", tlog.KObj{Obj: s.Current.Cluster})
+	}
 	return nil
 }
 
@@ -578,7 +596,7 @@ func (r *Reconciler) createMachineDeployment(ctx context.Context, s *scope.Scope
 		return true, nil
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to create %s: failed waiting for MachineDeployment to be visible in cache", md.Object.Kind)
+		return errors.Wrapf(err, "failed waiting for MachineDeployment %s to be visible in the cache after create", md.Object.Kind)
 	}
 
 	// If the MachineDeployment has defined a MachineHealthCheck reconcile it.
@@ -667,7 +685,7 @@ func (r *Reconciler) updateMachineDeployment(ctx context.Context, s *scope.Scope
 		return currentMD.Object.GetResourceVersion() != cachedMD.GetResourceVersion(), nil
 	})
 	if err != nil {
-		return errors.Wrapf(err, "failed to patch %s: failed waiting for MachineDeployment to be updated in cache", tlog.KObj{Obj: currentMD.Object})
+		return errors.Wrapf(err, "failed waiting for MachineDeployment %s to be updated in the cache after patch", tlog.KObj{Obj: currentMD.Object})
 	}
 
 	// We want to call both cleanup functions even if one of them fails to clean up as much as possible.

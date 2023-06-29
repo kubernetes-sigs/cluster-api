@@ -38,11 +38,12 @@ var _ = Describe("When scale testing using in-memory provider [Scale] [Small wor
 			SkipCleanup:            true,
 			Flavor:                 pointer.String(""),
 			// per Scenario
-			Concurrency:              pointer.Int64(50),
-			ClusterCount:             pointer.Int64(2000),
-			ControlPlaneMachineCount: pointer.Int64(1),
-			MachineDeploymentCount:   pointer.Int64(0),
-			WorkerMachineCount:       pointer.Int64(0),
+			Concurrency:                 pointer.Int64(50),
+			ClusterCount:                pointer.Int64(2000),
+			ControlPlaneMachineCount:    pointer.Int64(1),
+			MachineDeploymentCount:      pointer.Int64(0),
+			WorkerMachineCount:          pointer.Int64(0),
+			SeparateNamespacePerCluster: true,
 		}
 	})
 })

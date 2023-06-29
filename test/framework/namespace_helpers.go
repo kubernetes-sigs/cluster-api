@@ -43,6 +43,11 @@ import (
 type CreateNamespaceInput struct {
 	Creator Creator
 	Name    string
+
+	// IgnoreAlreadyExists if set to true will ignore the "AlreadyExists" error if the function
+	// is trying to create a namespace that already exists.
+	// If false, it will error and cause test failure.
+	IgnoreAlreadyExists bool
 }
 
 // CreateNamespace is used to create a namespace object.
@@ -61,7 +66,13 @@ func CreateNamespace(ctx context.Context, input CreateNamespaceInput, intervals 
 	}
 	log.Logf("Creating namespace %s", input.Name)
 	Eventually(func() error {
-		return input.Creator.Create(ctx, ns)
+		if err := input.Creator.Create(ctx, ns); err != nil {
+			if input.IgnoreAlreadyExists && apierrors.IsAlreadyExists(err) {
+				return nil
+			}
+			return err
+		}
+		return nil
 	}, intervals...).Should(Succeed(), "Failed to create namespace %s", input.Name)
 
 	return ns
@@ -172,6 +183,11 @@ type CreateNamespaceAndWatchEventsInput struct {
 	ClientSet *kubernetes.Clientset
 	Name      string
 	LogFolder string
+
+	// IgnoreAlreadyExists if set to true will ignore the "AlreadyExists" error if the function
+	// is trying to create a namespace that already exists.
+	// If false, it will error and cause test failure.
+	IgnoreAlreadyExists bool
 }
 
 // CreateNamespaceAndWatchEvents creates a namespace and setups a watch for the namespace events.
@@ -182,7 +198,7 @@ func CreateNamespaceAndWatchEvents(ctx context.Context, input CreateNamespaceAnd
 	Expect(input.Name).ToNot(BeEmpty(), "Invalid argument. input.Name can't be empty when calling ClientSet")
 	Expect(os.MkdirAll(input.LogFolder, 0750)).To(Succeed(), "Invalid argument. input.LogFolder can't be created in CreateNamespaceAndWatchEvents")
 
-	namespace := CreateNamespace(ctx, CreateNamespaceInput{Creator: input.Creator, Name: input.Name}, "40s", "10s")
+	namespace := CreateNamespace(ctx, CreateNamespaceInput{Creator: input.Creator, Name: input.Name, IgnoreAlreadyExists: input.IgnoreAlreadyExists}, "40s", "10s")
 	Expect(namespace).ToNot(BeNil(), "Failed to create namespace %q", input.Name)
 
 	log.Logf("Creating event watcher for namespace %q", input.Name)

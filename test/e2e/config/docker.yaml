@@ -267,7 +267,6 @@ providers:
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-machine-pool.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-node-drain.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-upgrades.yaml"
-    - sourcePath: "../data/infrastructure-docker/main/cluster-template-upgrades-cgroupfs.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-upgrades-runtimesdk.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-kcp-scale-in.yaml"
     - sourcePath: "../data/infrastructure-docker/main/cluster-template-ipv6.yaml"

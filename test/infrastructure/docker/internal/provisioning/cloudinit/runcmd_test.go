@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
+	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
 func TestRunCmdUnmarshal(t *testing.T) {
@@ -32,7 +33,7 @@ runcmd:
 - [ ls, -l, / ]
 - "ls -l /"`
 	r := runCmd{}
-	err := r.Unmarshal([]byte(cloudData))
+	err := r.Unmarshal([]byte(cloudData), kind.Mapping{})
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(r.Cmds).To(HaveLen(2))
 
@@ -94,7 +95,7 @@ runcmd:
 - kubeadm init --config=/run/kubeadm/kubeadm.yaml
 - [ kubeadm, join, --config=/run/kubeadm/kubeadm-controlplane-join-config.yaml ]`
 	r := runCmd{}
-	err := r.Unmarshal([]byte(cloudData))
+	err := r.Unmarshal([]byte(cloudData), kind.Mapping{})
 	g.Expect(err).NotTo(HaveOccurred())
 	g.Expect(r.Cmds).To(HaveLen(2))
 

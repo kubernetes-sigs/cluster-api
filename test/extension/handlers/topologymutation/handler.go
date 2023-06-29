@@ -138,6 +138,8 @@ func patchDockerClusterTemplate(_ context.Context, dockerClusterTemplate *infrav
 // to work with older kind images.
 // It also sets the RolloutStrategy.RollingUpdate.MaxSurge if the kubeadmControlPlaneMaxSurge is provided.
 // NOTE: RolloutStrategy.RollingUpdate.MaxSurge patch is not required for any special reason, it is used for testing the patch machinery itself.
+// NOTE: cgroupfs patch is not required anymore after the introduction of the automatic setting kubeletExtraArgs for CAPD, however we keep it
+// as example of version aware patches.
 func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlplanev1.KubeadmControlPlaneTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -203,6 +205,8 @@ func patchKubeadmControlPlaneTemplate(ctx context.Context, kcpTemplate *controlp
 // patchKubeadmConfigTemplate patches the ControlPlaneTemplate.
 // Only for the templates linked to the default-worker MachineDeployment class, It sets KubeletExtraArgs["cgroup-driver"]
 // to cgroupfs for Kubernetes < 1.24; this patch is required for tests to work with older kind images.
+// NOTE: cgroupfs patch is not required anymore after the introduction of the automatic setting kubeletExtraArgs for CAPD, however we keep it
+// as example of version aware patches.
 func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfigTemplate, templateVariables map[string]apiextensionsv1.JSON) error {
 	log := ctrl.LoggerFrom(ctx)
 

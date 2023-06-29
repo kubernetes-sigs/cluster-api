@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	"sigs.k8s.io/cluster-api/test/infrastructure/docker/internal/provisioning"
+	"sigs.k8s.io/cluster-api/test/infrastructure/kind"
 )
 
 const (
@@ -49,19 +50,19 @@ func (a *actionFactory) action(name string) action {
 }
 
 type action interface {
-	Unmarshal(userData []byte) error
+	Unmarshal(userData []byte, mapping kind.Mapping) error
 	Commands() ([]provisioning.Cmd, error)
 }
 
 // RawCloudInitToProvisioningCommands converts a cloudconfig to a list of commands to run in sequence on the node.
-func RawCloudInitToProvisioningCommands(config []byte) ([]provisioning.Cmd, error) {
+func RawCloudInitToProvisioningCommands(config []byte, mapping kind.Mapping) ([]provisioning.Cmd, error) {
 	// validate cloudConfigScript is a valid yaml, as required by the cloud config specification
 	if err := yaml.Unmarshal(config, &map[string]interface{}{}); err != nil {
 		return nil, errors.Wrapf(err, "cloud-config is not valid yaml")
 	}
 
 	// parse the cloud config yaml into a slice of cloud config actions.
-	actions, err := getActions(config)
+	actions, err := getActions(config, mapping)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +81,7 @@ func RawCloudInitToProvisioningCommands(config []byte) ([]provisioning.Cmd, erro
 
 // getActions parses the cloud config yaml into a slice of actions to run.
 // Parsing manually is required because the order of the cloud config's actions must be maintained.
-func getActions(userData []byte) ([]action, error) {
+func getActions(userData []byte, mapping kind.Mapping) ([]action, error) {
 	actionRegEx := regexp.MustCompile(`^[a-zA-Z_]*:`)
 	lines := make([]string, 0)
 	actions := make([]action, 0)
@@ -97,7 +98,7 @@ func getActions(userData []byte) ([]action, error) {
 			// converts the file fragment scanned up to now into the current action, if any
 			if act != nil {
 				actionBlock := strings.Join(lines, "\n")
-				if err := act.Unmarshal([]byte(actionBlock)); err != nil {
+				if err := act.Unmarshal([]byte(actionBlock), mapping); err != nil {
 					return nil, errors.WithStack(err)
 				}
 				actions = append(actions, act)
@@ -115,7 +116,7 @@ func getActions(userData []byte) ([]action, error) {
 	// converts the last file fragment scanned into the current action, if any
 	if act != nil {
 		actionBlock := strings.Join(lines, "\n")
-		if err := act.Unmarshal([]byte(actionBlock)); err != nil {
+		if err := act.Unmarshal([]byte(actionBlock), mapping); err != nil {
 			return nil, errors.WithStack(err)
 		}
 		actions = append(actions, act)

@@ -220,11 +220,13 @@ type ProcessYAMLInput struct {
 }
 
 func ProcessYAML(input *ProcessYAMLInput) ([]byte, error) {
+	ctx := context.Background()
+
 	for n, v := range input.Env {
 		_ = os.Setenv(n, v)
 	}
 
-	c, err := clusterctlclient.New(input.ClusterctlConfigPath)
+	c, err := clusterctlclient.New(ctx, input.ClusterctlConfigPath)
 	if err != nil {
 		return nil, err
 	}
@@ -234,7 +236,7 @@ func ProcessYAML(input *ProcessYAMLInput) ([]byte, error) {
 		},
 	}
 
-	printer, err := c.ProcessYAML(options)
+	printer, err := c.ProcessYAML(ctx, options)
 	if err != nil {
 		return nil, err
 	}

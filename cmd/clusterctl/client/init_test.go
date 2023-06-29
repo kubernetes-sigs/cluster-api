@@ -170,7 +170,7 @@ func Test_clusterctlClient_InitImages(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := tt.field.client.InitImages(InitOptions{
+			got, err := tt.field.client.InitImages(ctx, InitOptions{
 				Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: tt.args.kubeconfigContext},
 				CoreProvider:            tt.args.coreProvider,
 				BootstrapProviders:      tt.args.bootstrapProvider,
@@ -196,7 +196,7 @@ func Test_clusterctlClient_InitImages(t *testing.T) {
 func Test_clusterctlClient_Init(t *testing.T) {
 	// create a config variables client which does not have the value for
 	// SOME_VARIABLE as expected in the infra components YAML
-	fconfig := newFakeConfig().
+	fconfig := newFakeConfig(ctx).
 		WithVar("ANOTHER_VARIABLE", "value").
 		WithProvider(capiProviderConfig).
 		WithProvider(infraProviderConfig)
@@ -538,10 +538,10 @@ func Test_clusterctlClient_Init(t *testing.T) {
 
 			if tt.field.hasCRD {
 				input := cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}
-				g.Expect(tt.field.client.clusters[input].ProviderInventory().EnsureCustomResourceDefinitions()).To(Succeed())
+				g.Expect(tt.field.client.clusters[input].ProviderInventory().EnsureCustomResourceDefinitions(ctx)).To(Succeed())
 			}
 
-			got, err := tt.field.client.Init(InitOptions{
+			got, err := tt.field.client.Init(ctx, InitOptions{
 				Kubeconfig:              Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"},
 				CoreProvider:            tt.args.coreProvider,
 				BootstrapProviders:      tt.args.bootstrapProvider,
@@ -578,7 +578,7 @@ var (
 func setupCluster(providers []Provider, certManagerClient cluster.CertManagerClient) (*fakeConfigClient, *fakeClient) {
 	// create a config variables client which does not have the value for
 	// SOME_VARIABLE as expected in the infra components YAML
-	cfg := newFakeConfig().
+	cfg := newFakeConfig(ctx).
 		WithVar("ANOTHER_VARIABLE", "value").
 		WithProvider(capiProviderConfig).
 		WithProvider(infraProviderConfig)
@@ -613,7 +613,7 @@ func fakeEmptyCluster() *fakeClient {
 }
 
 func fakeConfig(providers []config.Provider, variables map[string]string) *fakeConfigClient {
-	config := newFakeConfig()
+	config := newFakeConfig(ctx)
 	for _, p := range providers {
 		config = config.WithProvider(p)
 	}
@@ -635,7 +635,7 @@ func fakeCluster(config *fakeConfigClient, repos []*fakeRepositoryClient, certMa
 // fakeRepositories returns a base set of repositories for the different types
 // of providers.
 func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRepositoryClient {
-	repository1 := newFakeRepository(capiProviderConfig, config).
+	repository1 := newFakeRepository(ctx, capiProviderConfig, config).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v1.0.0").
 		WithFile("v0.9.0", "components.yaml", componentsYAML("ns1")).
@@ -658,7 +658,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 				{Major: 1, Minor: 1, Contract: test.CurrentCAPIContract},
 			},
 		})
-	repository2 := newFakeRepository(bootstrapProviderConfig, config).
+	repository2 := newFakeRepository(ctx, bootstrapProviderConfig, config).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
 		WithFile("v0.9.0", "components.yaml", componentsYAML("ns1")).
@@ -681,7 +681,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 				{Major: 2, Minor: 1, Contract: test.CurrentCAPIContract},
 			},
 		})
-	repository3 := newFakeRepository(controlPlaneProviderConfig, config).
+	repository3 := newFakeRepository(ctx, controlPlaneProviderConfig, config).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
 		WithFile("v0.9.0", "components.yaml", componentsYAML("ns1")).
@@ -704,7 +704,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 				{Major: 2, Minor: 1, Contract: test.CurrentCAPIContract},
 			},
 		})
-	repository4 := newFakeRepository(infraProviderConfig, config).
+	repository4 := newFakeRepository(ctx, infraProviderConfig, config).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v3.0.0").
 		WithFile("v0.9.0", "components.yaml", componentsYAML("ns1")).
@@ -733,7 +733,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 
 	for _, provider := range providers {
 		providerRepositories = append(providerRepositories,
-			newFakeRepository(provider, config).
+			newFakeRepository(ctx, provider, config).
 				WithPaths("root", "components.yaml").
 				WithDefaultVersion("v2.0.0").
 				WithFile("v2.0.0", "components.yaml", componentsYAML("ns2")).
@@ -748,7 +748,7 @@ func fakeRepositories(config *fakeConfigClient, providers []Provider) []*fakeRep
 }
 
 func fakeClusterCtlClient(config *fakeConfigClient, repos []*fakeRepositoryClient, clusters []*fakeClusterClient) *fakeClient {
-	client := newFakeClient(config)
+	client := newFakeClient(ctx, config)
 	for _, r := range repos {
 		client = client.WithRepository(r)
 	}

@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -54,17 +55,17 @@ type DeleteOptions struct {
 // ComponentsClient has methods to work with provider components in the cluster.
 type ComponentsClient interface {
 	// Create creates the provider components in the management cluster.
-	Create(objs []unstructured.Unstructured) error
+	Create(ctx context.Context, objs []unstructured.Unstructured) error
 
 	// Delete deletes the provider components from the management cluster.
 	// The operation is designed to prevent accidental deletion of user created objects, so
 	// it is required to explicitly opt-in for the deletion of the namespace where the provider components are hosted
 	// and for the deletion of the provider's CRDs.
-	Delete(options DeleteOptions) error
+	Delete(ctx context.Context, options DeleteOptions) error
 
 	// DeleteWebhookNamespace deletes the core provider webhook namespace (eg. capi-webhook-system).
 	// This is required when upgrading to v1alpha4 where webhooks are included in the controller itself.
-	DeleteWebhookNamespace() error
+	DeleteWebhookNamespace(ctx context.Context) error
 }
 
 // providerComponents implements ComponentsClient.
@@ -72,7 +73,7 @@ type providerComponents struct {
 	proxy Proxy
 }
 
-func (p *providerComponents) Create(objs []unstructured.Unstructured) error {
+func (p *providerComponents) Create(ctx context.Context, objs []unstructured.Unstructured) error {
 	createComponentObjectBackoff := newWriteBackoff()
 	for i := range objs {
 		obj := objs[i]
@@ -80,7 +81,7 @@ func (p *providerComponents) Create(objs []unstructured.Unstructured) error {
 		// Create the Kubernetes object.
 		// Nb. The operation is wrapped in a retry loop to make Create more resilient to unexpected conditions.
 		if err := retryWithExponentialBackoff(createComponentObjectBackoff, func() error {
-			return p.createObj(obj)
+			return p.createObj(ctx, obj)
 		}); err != nil {
 			return err
 		}
@@ -89,7 +90,7 @@ func (p *providerComponents) Create(objs []unstructured.Unstructured) error {
 	return nil
 }
 
-func (p *providerComponents) createObj(obj unstructured.Unstructured) error {
+func (p *providerComponents) createObj(ctx context.Context, obj unstructured.Unstructured) error {
 	log := logf.Log
 	c, err := p.proxy.NewClient()
 	if err != nil {
@@ -127,7 +128,7 @@ func (p *providerComponents) createObj(obj unstructured.Unstructured) error {
 	return nil
 }
 
-func (p *providerComponents) Delete(options DeleteOptions) error {
+func (p *providerComponents) Delete(ctx context.Context, options DeleteOptions) error {
 	log := logf.Log
 	log.Info("Deleting", "Provider", options.Provider.Name, "Version", options.Provider.Version, "Namespace", options.Provider.Namespace)
 
@@ -139,7 +140,7 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	}
 
 	namespaces := []string{options.Provider.Namespace}
-	resources, err := p.proxy.ListResources(labels, namespaces...)
+	resources, err := p.proxy.ListResources(ctx, labels, namespaces...)
 	if err != nil {
 		return err
 	}
@@ -234,7 +235,7 @@ func (p *providerComponents) Delete(options DeleteOptions) error {
 	return kerrors.NewAggregate(errList)
 }
 
-func (p *providerComponents) DeleteWebhookNamespace() error {
+func (p *providerComponents) DeleteWebhookNamespace(ctx context.Context) error {
 	const webhookNamespaceName = "capi-webhook-system"
 
 	log := logf.Log

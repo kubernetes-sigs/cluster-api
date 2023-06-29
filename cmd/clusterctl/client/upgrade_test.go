@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"sort"
 	"testing"
 
@@ -35,13 +36,15 @@ func Test_clusterctlClient_PlanCertUpgrade(t *testing.T) {
 	// create a fake config with a provider named P1 and a variable named var
 	repository1Config := config.NewProvider("p1", "url", clusterctlv1.CoreProviderType)
 
-	config1 := newFakeConfig().
+	ctx := context.Background()
+
+	config1 := newFakeConfig(ctx).
 		WithVar("var", "value").
 		WithProvider(repository1Config)
 
 	// create a fake repository with some YAML files in it (usually matching
 	// the list of providers defined in the config)
-	repository1 := newFakeRepository(repository1Config, config1).
+	repository1 := newFakeRepository(ctx, repository1Config, config1).
 		WithPaths("root", "components").
 		WithDefaultVersion("v1.0").
 		WithFile("v1.0", "components.yaml", []byte("content"))
@@ -56,7 +59,7 @@ func Test_clusterctlClient_PlanCertUpgrade(t *testing.T) {
 	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "cluster1"}, config1).
 		WithCertManagerClient(newFakeCertManagerClient(nil, nil).WithCertManagerPlan(certManagerPlan))
 
-	client := newFakeClient(config1).
+	client := newFakeClient(ctx, config1).
 		WithRepository(repository1).
 		WithCluster(cluster1)
 
@@ -75,10 +78,13 @@ func Test_clusterctlClient_PlanCertUpgrade(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			ctx := context.Background()
+
 			options := PlanUpgradeOptions{
 				Kubeconfig: Kubeconfig{Path: "cluster1"},
 			}
-			actualPlan, err := tt.client.PlanCertManagerUpgrade(options)
+			actualPlan, err := tt.client.PlanCertManagerUpgrade(ctx, options)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(actualPlan).To(BeComparableTo(CertManagerUpgradePlan{}))
@@ -133,7 +139,9 @@ func Test_clusterctlClient_PlanUpgrade(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			_, err := tt.fields.client.PlanUpgrade(tt.args.options)
+			ctx := context.Background()
+
+			_, err := tt.fields.client.PlanUpgrade(ctx, tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -274,7 +282,9 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.fields.client.ApplyUpgrade(tt.args.options)
+			ctx := context.Background()
+
+			err := tt.fields.client.ApplyUpgrade(ctx, tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -309,11 +319,13 @@ func fakeClientForUpgrade() *fakeClient {
 	core := config.NewProvider("cluster-api", "https://somewhere.com", clusterctlv1.CoreProviderType)
 	infra := config.NewProvider("infra", "https://somewhere.com", clusterctlv1.InfrastructureProviderType)
 
-	config1 := newFakeConfig().
+	ctx := context.Background()
+
+	config1 := newFakeConfig(ctx).
 		WithProvider(core).
 		WithProvider(infra)
 
-	repository1 := newFakeRepository(core, config1).
+	repository1 := newFakeRepository(ctx, core, config1).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v1.0.1").
 		WithFile("v1.0.1", "components.yaml", componentsYAML("ns2")).
@@ -323,7 +335,7 @@ func fakeClientForUpgrade() *fakeClient {
 				{Major: 1, Minor: 0, Contract: test.CurrentCAPIContract},
 			},
 		})
-	repository2 := newFakeRepository(infra, config1).
+	repository2 := newFakeRepository(ctx, infra, config1).
 		WithPaths("root", "components.yaml").
 		WithDefaultVersion("v2.0.0").
 		WithFile("v2.0.1", "components.yaml", componentsYAML("ns2")).
@@ -341,7 +353,7 @@ func fakeClientForUpgrade() *fakeClient {
 		WithProviderInventory(infra.Name(), infra.Type(), "v2.0.0", "infra-system").
 		WithObjs(test.FakeCAPISetupObjects()...)
 
-	client := newFakeClient(config1).
+	client := newFakeClient(ctx, config1).
 		WithRepository(repository1).
 		WithRepository(repository2).
 		WithCluster(cluster1)
@@ -376,7 +388,9 @@ func Test_parseUpgradeItem(t *testing.T) {
 		provider string
 	}
 
-	configClient := newFakeConfig()
+	ctx := context.Background()
+
+	configClient := newFakeConfig(ctx)
 	clusterClient := newFakeCluster(cluster.Kubeconfig{Path: "cluster1"}, configClient)
 	clusterClient.WithProviderInventory("best-provider", clusterctlv1.CoreProviderType, "v1.0.0", "best-provider-system")
 
@@ -469,7 +483,9 @@ func Test_parseUpgradeItem(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			got, err := parseUpgradeItem(clusterClient, tt.args.provider, clusterctlv1.CoreProviderType)
+			ctx := context.Background()
+
+			got, err := parseUpgradeItem(ctx, clusterClient, tt.args.provider, clusterctlv1.CoreProviderType)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

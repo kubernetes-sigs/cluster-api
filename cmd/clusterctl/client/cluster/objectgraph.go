@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -323,11 +324,11 @@ func (o *objectGraph) objMetaToNode(obj *unstructured.Unstructured, n *node) {
 
 // getDiscoveryTypes returns the list of TypeMeta to be considered for the move discovery phase.
 // This list includes all the types defines by the CRDs installed by clusterctl and the ConfigMap/Secret core types.
-func (o *objectGraph) getDiscoveryTypes() error {
+func (o *objectGraph) getDiscoveryTypes(ctx context.Context) error {
 	crdList := &apiextensionsv1.CustomResourceDefinitionList{}
 	getDiscoveryTypesBackoff := newReadBackoff()
 	if err := retryWithExponentialBackoff(getDiscoveryTypesBackoff, func() error {
-		return getCRDList(o.proxy, crdList)
+		return getCRDList(ctx, o.proxy, crdList)
 	}); err != nil {
 		return err
 	}
@@ -397,7 +398,7 @@ func getKindAPIString(typeMeta metav1.TypeMeta) string {
 	return fmt.Sprintf("%ss.%s", strings.ToLower(typeMeta.Kind), api)
 }
 
-func getCRDList(proxy Proxy, crdList *apiextensionsv1.CustomResourceDefinitionList) error {
+func getCRDList(ctx context.Context, proxy Proxy, crdList *apiextensionsv1.CustomResourceDefinitionList) error {
 	c, err := proxy.NewClient()
 	if err != nil {
 		return err
@@ -411,7 +412,7 @@ func getCRDList(proxy Proxy, crdList *apiextensionsv1.CustomResourceDefinitionLi
 
 // Discovery reads all the Kubernetes objects existing in a namespace (or in all namespaces if empty) for the types received in input, and then adds
 // everything to the objects graph.
-func (o *objectGraph) Discovery(namespace string) error {
+func (o *objectGraph) Discovery(ctx context.Context, namespace string) error {
 	log := logf.Log
 	log.Info("Discovering Cluster API objects")
 
@@ -426,14 +427,14 @@ func (o *objectGraph) Discovery(namespace string) error {
 		objList := new(unstructured.UnstructuredList)
 
 		if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
-			return getObjList(o.proxy, typeMeta, selectors, objList)
+			return getObjList(ctx, o.proxy, typeMeta, selectors, objList)
 		}); err != nil {
 			return err
 		}
 
 		// if we are discovering Secrets, also secrets from the providers namespace should be included.
 		if discoveryType.typeMeta.GetObjectKind().GroupVersionKind().GroupKind() == corev1.SchemeGroupVersion.WithKind("SecretList").GroupKind() {
-			providers, err := o.providerInventory.List()
+			providers, err := o.providerInventory.List(ctx)
 			if err != nil {
 				return err
 			}
@@ -442,7 +443,7 @@ func (o *objectGraph) Discovery(namespace string) error {
 					providerNamespaceSelector := []client.ListOption{client.InNamespace(p.Namespace)}
 					providerNamespaceSecretList := new(unstructured.UnstructuredList)
 					if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
-						return getObjList(o.proxy, typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
+						return getObjList(ctx, o.proxy, typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
 					}); err != nil {
 						return err
 					}
@@ -476,7 +477,7 @@ func (o *objectGraph) Discovery(namespace string) error {
 	return nil
 }
 
-func getObjList(proxy Proxy, typeMeta metav1.TypeMeta, selectors []client.ListOption, objList *unstructured.UnstructuredList) error {
+func getObjList(ctx context.Context, proxy Proxy, typeMeta metav1.TypeMeta, selectors []client.ListOption, objList *unstructured.UnstructuredList) error {
 	c, err := proxy.NewClient()
 	if err != nil {
 		return err

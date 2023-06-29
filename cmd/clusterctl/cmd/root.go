@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -59,9 +60,11 @@ var RootCmd = &cobra.Command{
 		Get started with Cluster API using clusterctl to create a management cluster,
 		install providers, and create templates for your workload cluster.`),
 	PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+		ctx := context.Background()
+
 		// Check if clusterctl needs an upgrade "AFTER" running each command
 		// and sub-command.
-		configClient, err := config.New(cfgFile)
+		configClient, err := config.New(ctx, cfgFile)
 		if err != nil {
 			return err
 		}
@@ -70,11 +73,11 @@ var RootCmd = &cobra.Command{
 			// version check is disabled. Return early.
 			return nil
 		}
-		checker, err := newVersionChecker(configClient.Variables())
+		checker, err := newVersionChecker(ctx, configClient.Variables())
 		if err != nil {
 			return err
 		}
-		output, err := checker.Check()
+		output, err := checker.Check(ctx)
 		if err != nil {
 			return errors.Wrap(err, "unable to verify clusterctl version")
 		}
@@ -148,9 +151,11 @@ func init() {
 }
 
 func initConfig() {
+	ctx := context.Background()
+
 	// check if the CLUSTERCTL_LOG_LEVEL was set via env var or in the config file
 	if *verbosity == 0 {
-		configClient, err := config.New(cfgFile)
+		configClient, err := config.New(ctx, cfgFile)
 		if err == nil {
 			v, err := configClient.Variables().Get("CLUSTERCTL_LOG_LEVEL")
 			if err == nil && v != "" {

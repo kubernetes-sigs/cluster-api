@@ -548,14 +548,14 @@ func preLoadImageTask(image string) taskFunction {
 // certManagerTask generates a task for installing cert-manager if not already present.
 func certManagerTask() taskFunction {
 	return func(ctx context.Context, prefix string, errCh chan error) {
-		config, err := config.New("")
+		config, err := config.New(ctx, "")
 		if err != nil {
 			errCh <- errors.Wrapf(err, "[%s] failed create clusterctl config", prefix)
 			return
 		}
 		cluster := cluster.New(cluster.Kubeconfig{}, config)
 
-		if err := cluster.CertManager().EnsureInstalled(); err != nil {
+		if err := cluster.CertManager().EnsureInstalled(ctx); err != nil {
 			errCh <- errors.Wrapf(err, "[%s] failed to install cert-manger", prefix)
 		}
 	}

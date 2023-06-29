@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -114,12 +115,15 @@ func Test_gitHubRepository_GetVersions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			ctx := context.Background()
+
 			resetCaches()
 
-			gRepo, err := NewGitHubRepository(tt.providerConfig, configVariablesClient, injectGithubClient(client), injectGoproxyClient(clientGoproxy))
+			gRepo, err := NewGitHubRepository(ctx, tt.providerConfig, configVariablesClient, injectGithubClient(client), injectGoproxyClient(clientGoproxy))
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := gRepo.GetVersions()
+			got, err := gRepo.GetVersions(ctx)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -214,7 +218,7 @@ func Test_githubRepository_newGitHubRepository(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gitHub, err := NewGitHubRepository(tt.field.providerConfig, tt.field.variableClient)
+			gitHub, err := NewGitHubRepository(context.Background(), tt.field.providerConfig, tt.field.variableClient)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -316,10 +320,10 @@ func Test_githubRepository_getFile(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gitHub, err := NewGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
+			gitHub, err := NewGitHubRepository(context.Background(), providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := gitHub.GetFile(tt.release, tt.fileName)
+			got, err := gitHub.GetFile(context.Background(), tt.release, tt.fileName)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -392,12 +396,15 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			ctx := context.Background()
+
 			resetCaches()
 
-			gitHub, err := NewGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
+			gitHub, err := NewGitHubRepository(ctx, tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := gitHub.(*gitHubRepository).getVersions()
+			got, err := gitHub.(*gitHubRepository).getVersions(ctx)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -504,10 +511,10 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gRepo, err := NewGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client), injectGoproxyClient(clientGoproxy))
+			gRepo, err := NewGitHubRepository(context.Background(), tt.field.providerConfig, configVariablesClient, injectGithubClient(client), injectGoproxyClient(clientGoproxy))
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := latestContractRelease(gRepo, tt.contract)
+			got, err := latestContractRelease(context.Background(), gRepo, tt.contract)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -591,12 +598,15 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			ctx := context.Background()
+
 			resetCaches()
 
-			gRepo, err := NewGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGoproxyClient(clientGoproxy))
+			gRepo, err := NewGitHubRepository(ctx, tt.field.providerConfig, configVariablesClient, injectGoproxyClient(clientGoproxy))
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := latestRelease(gRepo)
+			got, err := latestRelease(ctx, gRepo)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -673,12 +683,15 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			ctx := context.Background()
+
 			resetCaches()
 
-			gRepo, err := NewGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGoproxyClient(clientGoproxy))
+			gRepo, err := NewGitHubRepository(ctx, tt.field.providerConfig, configVariablesClient, injectGoproxyClient(clientGoproxy))
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := latestPatchRelease(gRepo, tt.major, tt.minor)
+			got, err := latestPatchRelease(ctx, gRepo, tt.major, tt.minor)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -734,12 +747,15 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
+
+			ctx := context.Background()
+
 			resetCaches()
 
-			gRepo, err := NewGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
+			gRepo, err := NewGitHubRepository(ctx, providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := gRepo.(*gitHubRepository).getReleaseByTag(tt.args.tag)
+			got, err := gRepo.(*gitHubRepository).getReleaseByTag(ctx, tt.args.tag)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -872,10 +888,10 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 			g := NewWithT(t)
 			resetCaches()
 
-			gRepo, err := NewGitHubRepository(tt.providerConfig, configVariablesClient, injectGithubClient(client))
+			gRepo, err := NewGitHubRepository(context.Background(), tt.providerConfig, configVariablesClient, injectGithubClient(client))
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := gRepo.(*gitHubRepository).downloadFilesFromRelease(tt.args.release, tt.args.fileName)
+			got, err := gRepo.(*gitHubRepository).downloadFilesFromRelease(context.Background(), tt.args.release, tt.args.fileName)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

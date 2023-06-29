@@ -17,6 +17,7 @@ limitations under the License.
 package test
 
 import (
+	"context"
 	"errors"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -96,7 +97,7 @@ func (f *FakeProxy) CheckClusterAvailable() error {
 }
 
 // ListResources returns all the resources known by the FakeProxy.
-func (f *FakeProxy) ListResources(labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {
+func (f *FakeProxy) ListResources(_ context.Context, labels map[string]string, namespaces ...string) ([]unstructured.Unstructured, error) {
 	var ret []unstructured.Unstructured //nolint:prealloc
 	for _, o := range f.objs {
 		u := unstructured.Unstructured{}
@@ -142,7 +143,7 @@ func (f *FakeProxy) GetContexts(_ string) ([]string, error) {
 	return nil, nil
 }
 
-func (f *FakeProxy) GetResourceNames(_, _ string, _ []client.ListOption, _ string) ([]string, error) {
+func (f *FakeProxy) GetResourceNames(_ context.Context, _, _ string, _ []client.ListOption, _ string) ([]string, error) {
 	return nil, nil
 }
 

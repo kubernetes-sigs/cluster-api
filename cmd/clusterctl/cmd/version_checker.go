@@ -51,14 +51,14 @@ type versionChecker struct {
 
 // newVersionChecker returns a versionChecker. Its behavior has been inspired
 // by https://github.com/cli/cli.
-func newVersionChecker(vc config.VariablesClient) (*versionChecker, error) {
+func newVersionChecker(ctx context.Context, vc config.VariablesClient) (*versionChecker, error) {
 	var client *github.Client
 	token, err := vc.Get("GITHUB_TOKEN")
 	if err == nil {
 		ts := oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: token},
 		)
-		tc := oauth2.NewClient(context.TODO(), ts)
+		tc := oauth2.NewClient(ctx, ts)
 		client = github.NewClient(tc)
 	} else {
 		client = github.NewClient(nil)
@@ -94,14 +94,14 @@ type VersionState struct {
 // release from github at most once during a 24 hour period and caches the
 // state by default in $XDG_CONFIG_HOME/cluster-api/state.yaml. If the clusterctl
 // version is the same or greater it returns nothing.
-func (v *versionChecker) Check() (string, error) {
+func (v *versionChecker) Check(ctx context.Context) (string, error) {
 	log := logf.Log
 	cliVer, err := semver.ParseTolerant(v.cliVersion().GitVersion)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to semver parse clusterctl GitVersion")
 	}
 
-	release, err := v.getLatestRelease()
+	release, err := v.getLatestRelease(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -137,7 +137,7 @@ New clusterctl version available: v%s -> v%s
 	return "", nil
 }
 
-func (v *versionChecker) getLatestRelease() (*ReleaseInfo, error) {
+func (v *versionChecker) getLatestRelease(ctx context.Context) (*ReleaseInfo, error) {
 	log := logf.Log
 	vs, err := readStateFile(v.versionFilePath)
 	if err != nil {
@@ -146,7 +146,7 @@ func (v *versionChecker) getLatestRelease() (*ReleaseInfo, error) {
 
 	// if there is no release info in the state file, pull latest release from github
 	if vs == nil {
-		release, _, err := v.githubClient.Repositories.GetLatestRelease(context.TODO(), "kubernetes-sigs", "cluster-api")
+		release, _, err := v.githubClient.Repositories.GetLatestRelease(ctx, "kubernetes-sigs", "cluster-api")
 		if err != nil {
 			log.V(1).Info("⚠️ Unable to get latest github release for clusterctl")
 			// failing silently here so we don't error out in air-gapped

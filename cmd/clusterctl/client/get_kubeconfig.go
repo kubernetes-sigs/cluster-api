@@ -17,6 +17,8 @@ limitations under the License.
 package client
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 )
 
@@ -33,7 +35,7 @@ type GetKubeconfigOptions struct {
 	WorkloadClusterName string
 }
 
-func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, error) {
+func (c *clusterctlClient) GetKubeconfig(ctx context.Context, options GetKubeconfigOptions) (string, error) {
 	// gets access to the management cluster
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
@@ -41,7 +43,7 @@ func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, 
 	}
 
 	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := clusterClient.ProviderInventory().CheckCAPIContract(); err != nil {
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx); err != nil {
 		return "", err
 	}
 
@@ -56,5 +58,5 @@ func (c *clusterctlClient) GetKubeconfig(options GetKubeconfigOptions) (string, 
 		options.Namespace = currentNamespace
 	}
 
-	return clusterClient.WorkloadCluster().GetKubeconfig(options.WorkloadClusterName, options.Namespace)
+	return clusterClient.WorkloadCluster().GetKubeconfig(ctx, options.WorkloadClusterName, options.Namespace)
 }

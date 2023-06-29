@@ -272,7 +272,7 @@ func Test_CRDMigrator(t *testing.T) {
 				Client: countingClient,
 			}
 
-			isMigrated, err := m.run(ctx, tt.newCRD)
+			isMigrated, err := m.run(context.Background(), tt.newCRD)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
@@ -289,7 +289,7 @@ func Test_CRDMigrator(t *testing.T) {
 
 				// Check storage versions has been cleaned up.
 				currentCRD := &apiextensionsv1.CustomResourceDefinition{}
-				err = c.Get(ctx, client.ObjectKeyFromObject(tt.newCRD), currentCRD)
+				err = c.Get(context.Background(), client.ObjectKeyFromObject(tt.newCRD), currentCRD)
 				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(currentCRD.Status.StoredVersions).To(Equal(tt.wantStoredVersions))
 			}

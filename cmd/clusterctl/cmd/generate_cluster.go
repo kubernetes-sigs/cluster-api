@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/pkg/errors"
@@ -145,7 +146,9 @@ func init() {
 }
 
 func runGenerateClusterTemplate(cmd *cobra.Command, name string) error {
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
@@ -186,7 +189,7 @@ func runGenerateClusterTemplate(cmd *cobra.Command, name string) error {
 		}
 	}
 
-	template, err := c.GetClusterTemplate(templateOptions)
+	template, err := c.GetClusterTemplate(ctx, templateOptions)
 	if err != nil {
 		return err
 	}

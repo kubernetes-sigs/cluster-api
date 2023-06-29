@@ -61,7 +61,7 @@ type InitInput struct {
 }
 
 // Init calls clusterctl init with the list of providers defined in the local repository.
-func Init(_ context.Context, input InitInput) {
+func Init(ctx context.Context, input InitInput) {
 	args := calculateClusterCtlInitArgs(input)
 	log.Logf("clusterctl %s", strings.Join(args, " "))
 
@@ -81,10 +81,10 @@ func Init(_ context.Context, input InitInput) {
 		WaitProviders:             true,
 	}
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-init.log", input.LogFolder)
+	clusterctlClient, log := getClusterctlClientWithLogger(ctx, input.ClusterctlConfigPath, "clusterctl-init.log", input.LogFolder)
 	defer log.Close()
 
-	_, err := clusterctlClient.Init(initOpt)
+	_, err := clusterctlClient.Init(ctx, initOpt)
 	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl init")
 }
 
@@ -209,10 +209,10 @@ func Upgrade(ctx context.Context, input UpgradeInput) {
 		WaitProviders:             true,
 	}
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-upgrade.log", input.LogFolder)
+	clusterctlClient, log := getClusterctlClientWithLogger(ctx, input.ClusterctlConfigPath, "clusterctl-upgrade.log", input.LogFolder)
 	defer log.Close()
 
-	err := clusterctlClient.ApplyUpgrade(upgradeOpt)
+	err := clusterctlClient.ApplyUpgrade(ctx, upgradeOpt)
 	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl upgrade")
 }
 
@@ -224,7 +224,7 @@ type DeleteInput struct {
 }
 
 // Delete calls clusterctl delete --all.
-func Delete(_ context.Context, input DeleteInput) {
+func Delete(ctx context.Context, input DeleteInput) {
 	log.Logf("clusterctl delete --all")
 
 	deleteOpts := clusterctlclient.DeleteOptions{
@@ -235,10 +235,10 @@ func Delete(_ context.Context, input DeleteInput) {
 		DeleteAll: true,
 	}
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-delete.log", input.LogFolder)
+	clusterctlClient, log := getClusterctlClientWithLogger(ctx, input.ClusterctlConfigPath, "clusterctl-delete.log", input.LogFolder)
 	defer log.Close()
 
-	err := clusterctlClient.Delete(deleteOpts)
+	err := clusterctlClient.Delete(ctx, deleteOpts)
 	Expect(err).ToNot(HaveOccurred(), "failed to run clusterctl upgrade")
 }
 
@@ -294,10 +294,10 @@ func ConfigCluster(ctx context.Context, input ConfigClusterInput) []byte {
 		input.ClusterctlConfigPath = outputPath
 	}
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName), input.LogFolder)
+	clusterctlClient, log := getClusterctlClientWithLogger(ctx, input.ClusterctlConfigPath, fmt.Sprintf("%s-cluster-template.yaml", input.ClusterName), input.LogFolder)
 	defer log.Close()
 
-	template, err := clusterctlClient.GetClusterTemplate(templateOptions)
+	template, err := clusterctlClient.GetClusterTemplate(ctx, templateOptions)
 	Expect(err).ToNot(HaveOccurred(), "Failed to run clusterctl config cluster")
 
 	yaml, err := template.Yaml()
@@ -403,7 +403,7 @@ func Move(ctx context.Context, input MoveInput) {
 		input.Namespace,
 	)
 
-	clusterctlClient, log := getClusterctlClientWithLogger(input.ClusterctlConfigPath, "clusterctl-move.log", logDir)
+	clusterctlClient, log := getClusterctlClientWithLogger(ctx, input.ClusterctlConfigPath, "clusterctl-move.log", logDir)
 	defer log.Close()
 	options := clusterctlclient.MoveOptions{
 		FromKubeconfig: clusterctlclient.Kubeconfig{Path: input.FromKubeconfigPath, Context: ""},
@@ -411,17 +411,17 @@ func Move(ctx context.Context, input MoveInput) {
 		Namespace:      input.Namespace,
 	}
 
-	Expect(clusterctlClient.Move(options)).To(Succeed(), "Failed to run clusterctl move")
+	Expect(clusterctlClient.Move(ctx, options)).To(Succeed(), "Failed to run clusterctl move")
 }
 
-func getClusterctlClientWithLogger(configPath, logName, logFolder string) (clusterctlclient.Client, *logger.LogFile) {
+func getClusterctlClientWithLogger(ctx context.Context, configPath, logName, logFolder string) (clusterctlclient.Client, *logger.LogFile) {
 	log := logger.OpenLogFile(logger.OpenLogFileInput{
 		LogFolder: logFolder,
 		Name:      logName,
 	})
 	clusterctllog.SetLogger(log.Logger())
 
-	c, err := clusterctlclient.New(configPath)
+	c, err := clusterctlclient.New(ctx, configPath)
 	Expect(err).ToNot(HaveOccurred(), "Failed to create the clusterctl client library")
 	return c, log
 }

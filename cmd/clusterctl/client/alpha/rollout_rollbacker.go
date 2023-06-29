@@ -17,6 +17,8 @@ limitations under the License.
 package alpha
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 
@@ -27,17 +29,17 @@ import (
 )
 
 // ObjectRollbacker will issue a rollback on the specified cluster-api resource.
-func (r *rollout) ObjectRollbacker(proxy cluster.Proxy, ref corev1.ObjectReference, toRevision int64) error {
+func (r *rollout) ObjectRollbacker(ctx context.Context, proxy cluster.Proxy, ref corev1.ObjectReference, toRevision int64) error {
 	switch ref.Kind {
 	case MachineDeployment:
-		deployment, err := getMachineDeployment(proxy, ref.Name, ref.Namespace)
+		deployment, err := getMachineDeployment(ctx, proxy, ref.Name, ref.Namespace)
 		if err != nil || deployment == nil {
 			return errors.Wrapf(err, "failed to get %v/%v", ref.Kind, ref.Name)
 		}
 		if deployment.Spec.Paused {
 			return errors.Errorf("can't rollback a paused MachineDeployment: please run 'clusterctl rollout resume %v/%v' first", ref.Kind, ref.Name)
 		}
-		if err := rollbackMachineDeployment(proxy, deployment, toRevision); err != nil {
+		if err := rollbackMachineDeployment(ctx, proxy, deployment, toRevision); err != nil {
 			return err
 		}
 	default:
@@ -47,7 +49,7 @@ func (r *rollout) ObjectRollbacker(proxy cluster.Proxy, ref corev1.ObjectReferen
 }
 
 // rollbackMachineDeployment will rollback to a previous MachineSet revision used by this MachineDeployment.
-func rollbackMachineDeployment(proxy cluster.Proxy, md *clusterv1.MachineDeployment, toRevision int64) error {
+func rollbackMachineDeployment(ctx context.Context, proxy cluster.Proxy, md *clusterv1.MachineDeployment, toRevision int64) error {
 	log := logf.Log
 	c, err := proxy.NewClient()
 	if err != nil {
@@ -57,7 +59,7 @@ func rollbackMachineDeployment(proxy cluster.Proxy, md *clusterv1.MachineDeploym
 	if toRevision < 0 {
 		return errors.Errorf("revision number cannot be negative: %v", toRevision)
 	}
-	msList, err := getMachineSetsForDeployment(proxy, md)
+	msList, err := getMachineSetsForDeployment(ctx, proxy, md)
 	if err != nil {
 		return err
 	}

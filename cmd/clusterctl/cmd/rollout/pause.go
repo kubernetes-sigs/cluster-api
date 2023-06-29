@@ -18,6 +18,8 @@ limitations under the License.
 package rollout
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
 
@@ -72,12 +74,14 @@ func NewCmdRolloutPause(cfgFile string) *cobra.Command {
 func runPause(cfgFile string, args []string) error {
 	pauseOpt.resources = args
 
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
 
-	return c.RolloutPause(client.RolloutPauseOptions{
+	return c.RolloutPause(ctx, client.RolloutPauseOptions{
 		Kubeconfig: client.Kubeconfig{Path: pauseOpt.kubeconfig, Context: pauseOpt.kubeconfigContext},
 		Namespace:  pauseOpt.namespace,
 		Resources:  pauseOpt.resources,

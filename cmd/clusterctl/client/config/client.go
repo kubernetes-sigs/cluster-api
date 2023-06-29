@@ -17,6 +17,8 @@ limitations under the License.
 package config
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 )
 
@@ -75,11 +77,11 @@ func InjectReader(reader Reader) Option {
 }
 
 // New returns a Client for interacting with the clusterctl configuration.
-func New(path string, options ...Option) (Client, error) {
-	return newConfigClient(path, options...)
+func New(ctx context.Context, path string, options ...Option) (Client, error) {
+	return newConfigClient(ctx, path, options...)
 }
 
-func newConfigClient(path string, options ...Option) (*configClient, error) {
+func newConfigClient(ctx context.Context, path string, options ...Option) (*configClient, error) {
 	client := &configClient{}
 	for _, o := range options {
 		o(client)
@@ -91,7 +93,7 @@ func newConfigClient(path string, options ...Option) (*configClient, error) {
 		if client.reader, err = newViperReader(); err != nil {
 			return nil, errors.Wrap(err, "failed to create the configuration reader")
 		}
-		if err = client.reader.Init(path); err != nil {
+		if err = client.reader.Init(ctx, path); err != nil {
 			return nil, errors.Wrap(err, "failed to initialize the configuration reader")
 		}
 	}
@@ -102,7 +104,7 @@ func newConfigClient(path string, options ...Option) (*configClient, error) {
 // Reader define the behaviours of a configuration reader.
 type Reader interface {
 	// Init allows to initialize the configuration reader.
-	Init(path string) error
+	Init(ctx context.Context, path string) error
 
 	// Get returns a configuration value of type string.
 	// In case the configuration value does not exists, it returns an error.

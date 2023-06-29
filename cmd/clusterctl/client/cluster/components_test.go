@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -256,7 +257,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 
 			c := newComponentsClient(proxy)
 
-			err := c.Delete(DeleteOptions{
+			err := c.Delete(context.Background(), DeleteOptions{
 				Provider:         tt.args.provider,
 				IncludeNamespace: tt.args.includeNamespace,
 				IncludeCRDs:      tt.args.includeCRD,
@@ -282,7 +283,7 @@ func Test_providerComponents_Delete(t *testing.T) {
 					Name:      want.object.Name,
 				}
 
-				err := cs.Get(ctx, key, obj)
+				err := cs.Get(context.Background(), key, obj)
 				if err != nil && !apierrors.IsNotFound(err) {
 					t.Fatalf("Failed to get %v from the cluster: %v", key, err)
 				}
@@ -325,15 +326,15 @@ func Test_providerComponents_DeleteCoreProviderWebhookNamespace(t *testing.T) {
 		var nsList corev1.NamespaceList
 
 		// assert length before deleting
-		_ = proxyClient.List(ctx, &nsList)
+		_ = proxyClient.List(context.Background(), &nsList)
 		g.Expect(nsList.Items).Should(HaveLen(1))
 
 		c := newComponentsClient(proxy)
-		err := c.DeleteWebhookNamespace()
+		err := c.DeleteWebhookNamespace(context.Background())
 		g.Expect(err).To(Not(HaveOccurred()))
 
 		// assert length after deleting
-		_ = proxyClient.List(ctx, &nsList)
+		_ = proxyClient.List(context.Background(), &nsList)
 		g.Expect(nsList.Items).Should(BeEmpty())
 	})
 }
@@ -448,7 +449,7 @@ func Test_providerComponents_Create(t *testing.T) {
 				}
 				unstructuredObjectsToCreate = append(unstructuredObjectsToCreate, *uns)
 			}
-			err := c.Create(unstructuredObjectsToCreate)
+			err := c.Create(context.Background(), unstructuredObjectsToCreate)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -468,7 +469,7 @@ func Test_providerComponents_Create(t *testing.T) {
 					Name:      item.GetName(),
 				}
 
-				err := cs.Get(ctx, key, obj)
+				err := cs.Get(context.Background(), key, obj)
 
 				if err != nil && !apierrors.IsNotFound(err) {
 					t.Fatalf("Failed to get %v from the cluster: %v", key, err)

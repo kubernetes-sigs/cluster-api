@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -26,13 +27,15 @@ import (
 )
 
 func Test_clusterctlClient_GetKubeconfig(t *testing.T) {
-	configClient := newFakeConfig()
+	ctx := context.Background()
+
+	configClient := newFakeConfig(ctx)
 	kubeconfig := cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}
 	clusterClient := newFakeCluster(cluster.Kubeconfig{Path: "cluster1"}, configClient)
 
 	// create a clusterctl client where the proxy returns an empty namespace
 	clusterClient.fakeProxy = test.NewFakeProxy().WithNamespace("").WithFakeCAPISetup()
-	badClient := newFakeClient(configClient).WithCluster(clusterClient)
+	badClient := newFakeClient(ctx, configClient).WithCluster(clusterClient)
 
 	tests := []struct {
 		name      string
@@ -57,7 +60,7 @@ func Test_clusterctlClient_GetKubeconfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			config, err := tt.client.GetKubeconfig(tt.options)
+			config, err := tt.client.GetKubeconfig(ctx, tt.options)
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return

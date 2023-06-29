@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -48,7 +49,9 @@ var initListImagesCmd = &cobra.Command{
 }
 
 func runInitListImages() error {
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
@@ -65,7 +68,7 @@ func runInitListImages() error {
 		LogUsageInstructions:      false,
 	}
 
-	images, err := c.InitImages(options)
+	images, err := c.InitImages(ctx, options)
 	if err != nil {
 		return err
 	}

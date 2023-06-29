@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -236,19 +237,21 @@ func Test_providerInstaller_Validate(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			configClient, _ := config.New("", config.InjectReader(fakeReader))
+			ctx := context.Background()
+
+			configClient, _ := config.New(ctx, "", config.InjectReader(fakeReader))
 
 			i := &providerInstaller{
 				configClient:      configClient,
 				proxy:             tt.fields.proxy,
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
-				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configClient, repository.InjectRepository(repositoryMap[provider.ManifestLabel()]))
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(ctx, provider, configClient, repository.InjectRepository(repositoryMap[provider.ManifestLabel()]))
 				},
 				installQueue: tt.fields.installQueue,
 			}
 
-			err := i.Validate()
+			err := i.Validate(ctx)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

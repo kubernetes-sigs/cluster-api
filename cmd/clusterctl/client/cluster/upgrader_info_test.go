@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -228,15 +229,15 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			configClient, _ := config.New("", config.InjectReader(tt.fields.reader))
+			configClient, _ := config.New(context.Background(), "", config.InjectReader(tt.fields.reader))
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repo))
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repo))
 				},
 			}
-			got, err := u.getUpgradeInfo(tt.args.provider)
+			got, err := u.getUpgradeInfo(context.Background(), tt.args.provider)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {

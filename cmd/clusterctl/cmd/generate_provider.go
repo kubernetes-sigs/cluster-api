@@ -17,6 +17,8 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -105,11 +107,13 @@ func init() {
 }
 
 func runGenerateProviderComponents() error {
+	ctx := context.Background()
+
 	providerName, providerType, err := parseProvider()
 	if err != nil {
 		return err
 	}
-	c, err := client.New(cfgFile)
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
@@ -119,7 +123,7 @@ func runGenerateProviderComponents() error {
 		SkipTemplateProcess: gpo.raw || gpo.textOutput,
 	}
 
-	components, err := c.GenerateProvider(providerName, providerType, options)
+	components, err := c.GenerateProvider(ctx, providerName, providerType, options)
 	if err != nil {
 		return err
 	}

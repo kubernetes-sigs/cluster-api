@@ -17,6 +17,8 @@ limitations under the License.
 package client
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
 
@@ -24,7 +26,7 @@ import (
 	clusterctlv1 "sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3"
 )
 
-func (c *clusterctlClient) GenerateProvider(provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error) {
+func (c *clusterctlClient) GenerateProvider(ctx context.Context, provider string, providerType clusterctlv1.ProviderType, options ComponentsOptions) (Components, error) {
 	providerName, providerVersion, err := parseProviderName(provider)
 	if err != nil {
 		return nil, err
@@ -35,7 +37,7 @@ func (c *clusterctlClient) GenerateProvider(provider string, providerType cluste
 		return nil, err
 	}
 
-	providerRepositoryClient, err := c.repositoryClientFactory(RepositoryClientFactoryInput{Provider: configRepository})
+	providerRepositoryClient, err := c.repositoryClientFactory(ctx, RepositoryClientFactoryInput{Provider: configRepository})
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +46,7 @@ func (c *clusterctlClient) GenerateProvider(provider string, providerType cluste
 		providerVersion = providerRepositoryClient.DefaultVersion()
 	}
 
-	latestMetadata, err := providerRepositoryClient.Metadata(providerVersion).Get()
+	latestMetadata, err := providerRepositoryClient.Metadata(providerVersion).Get(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -63,5 +65,5 @@ func (c *clusterctlClient) GenerateProvider(provider string, providerType cluste
 		return nil, errors.Errorf("current version of clusterctl is only compatible with %s providers, detected %s for provider %s", clusterv1.GroupVersion.Version, releaseSeries.Contract, providerName)
 	}
 
-	return c.GetProviderComponents(provider, providerType, options)
+	return c.GetProviderComponents(ctx, provider, providerType, options)
 }

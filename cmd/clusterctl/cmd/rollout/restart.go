@@ -17,6 +17,8 @@ limitations under the License.
 package rollout
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
 	"k8s.io/kubectl/pkg/util/templates"
 
@@ -71,12 +73,14 @@ func NewCmdRolloutRestart(cfgFile string) *cobra.Command {
 func runRestart(cfgFile string, _ *cobra.Command, args []string) error {
 	restartOpt.resources = args
 
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
 
-	return c.RolloutRestart(client.RolloutRestartOptions{
+	return c.RolloutRestart(ctx, client.RolloutRestartOptions{
 		Kubeconfig: client.Kubeconfig{Path: restartOpt.kubeconfig, Context: restartOpt.kubeconfigContext},
 		Namespace:  restartOpt.namespace,
 		Resources:  restartOpt.resources,

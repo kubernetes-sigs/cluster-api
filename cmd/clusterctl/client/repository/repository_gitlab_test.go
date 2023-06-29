@@ -17,6 +17,7 @@ limitations under the License.
 package repository
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -195,7 +196,7 @@ func Test_gitLabRepository_getFile(t *testing.T) {
 			gitLab.(*gitLabRepository).httpClient = client
 			g.Expect(err).ToNot(HaveOccurred())
 
-			got, err := gitLab.GetFile(tt.version, tt.fileName)
+			got, err := gitLab.GetFile(context.Background(), tt.version, tt.fileName)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return

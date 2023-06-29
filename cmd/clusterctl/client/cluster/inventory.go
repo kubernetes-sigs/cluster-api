@@ -94,34 +94,34 @@ type InventoryClient interface {
 	// EnsureCustomResourceDefinitions installs the CRD required for creating inventory items, if necessary.
 	// Nb. In order to provide a simpler out-of-the box experience, the inventory CRD
 	// is embedded in the clusterctl binary.
-	EnsureCustomResourceDefinitions() error
+	EnsureCustomResourceDefinitions(ctx context.Context) error
 
 	// Create an inventory item for a provider instance installed in the cluster.
-	Create(clusterctlv1.Provider) error
+	Create(context.Context, clusterctlv1.Provider) error
 
 	// List returns the inventory items for all the provider instances installed in the cluster.
-	List() (*clusterctlv1.ProviderList, error)
+	List(ctx context.Context) (*clusterctlv1.ProviderList, error)
 
 	// GetDefaultProviderName returns the default provider for a given ProviderType.
 	// In case there is only a single provider for a given type, e.g. only the AWS infrastructure Provider, it returns
 	// this as the default provider; In case there are more provider of the same type, there is no default provider.
-	GetDefaultProviderName(providerType clusterctlv1.ProviderType) (string, error)
+	GetDefaultProviderName(ctx context.Context, providerType clusterctlv1.ProviderType) (string, error)
 
 	// GetProviderVersion returns the version for a given provider.
-	GetProviderVersion(provider string, providerType clusterctlv1.ProviderType) (string, error)
+	GetProviderVersion(ctx context.Context, provider string, providerType clusterctlv1.ProviderType) (string, error)
 
 	// GetProviderNamespace returns the namespace for a given provider.
-	GetProviderNamespace(provider string, providerType clusterctlv1.ProviderType) (string, error)
+	GetProviderNamespace(ctx context.Context, provider string, providerType clusterctlv1.ProviderType) (string, error)
 
 	// CheckCAPIContract checks the Cluster API version installed in the management cluster, and fails if this version
 	// does not match the current one supported by clusterctl.
-	CheckCAPIContract(...CheckCAPIContractOption) error
+	CheckCAPIContract(context.Context, ...CheckCAPIContractOption) error
 
 	// CheckCAPIInstalled checks if Cluster API is installed on the management cluster.
-	CheckCAPIInstalled() (bool, error)
+	CheckCAPIInstalled(ctx context.Context) (bool, error)
 
 	// CheckSingleProviderInstance ensures that only one instance of a provider is running, returns error otherwise.
-	CheckSingleProviderInstance() error
+	CheckSingleProviderInstance(ctx context.Context) error
 }
 
 // inventoryClient implements InventoryClient.
@@ -141,7 +141,7 @@ func newInventoryClient(proxy Proxy, pollImmediateWaiter PollImmediateWaiter) *i
 	}
 }
 
-func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
+func (p *inventoryClient) EnsureCustomResourceDefinitions(ctx context.Context) error {
 	log := logf.Log
 
 	if err := p.proxy.ValidateKubernetesVersion(); err != nil {
@@ -164,7 +164,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 	listInventoryBackoff := newReadBackoff()
 	if err := retryWithExponentialBackoff(listInventoryBackoff, func() error {
 		var err error
-		crdIsIstalled, err = checkInventoryCRDs(p.proxy)
+		crdIsIstalled, err = checkInventoryCRDs(ctx, p.proxy)
 		return err
 	}); err != nil {
 		return err
@@ -190,7 +190,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 		// Create the Kubernetes object.
 		// Nb. The operation is wrapped in a retry loop to make EnsureCustomResourceDefinitions more resilient to unexpected conditions.
 		if err := retryWithExponentialBackoff(createInventoryObjectBackoff, func() error {
-			return p.createObj(o)
+			return p.createObj(ctx, o)
 		}); err != nil {
 			return err
 		}
@@ -225,7 +225,7 @@ func (p *inventoryClient) EnsureCustomResourceDefinitions() error {
 }
 
 // checkInventoryCRDs checks if the inventory CRDs are installed in the cluster.
-func checkInventoryCRDs(proxy Proxy) (bool, error) {
+func checkInventoryCRDs(ctx context.Context, proxy Proxy) (bool, error) {
 	c, err := proxy.NewClient()
 	if err != nil {
 		return false, err
@@ -247,7 +247,7 @@ func checkInventoryCRDs(proxy Proxy) (bool, error) {
 	return true, errors.Errorf("clusterctl inventory CRD does not defines the %s version", clusterctlv1.GroupVersion.Version)
 }
 
-func (p *inventoryClient) createObj(o unstructured.Unstructured) error {
+func (p *inventoryClient) createObj(ctx context.Context, o unstructured.Unstructured) error {
 	c, err := p.proxy.NewClient()
 	if err != nil {
 		return err
@@ -269,7 +269,7 @@ func (p *inventoryClient) createObj(o unstructured.Unstructured) error {
 	return nil
 }
 
-func (p *inventoryClient) Create(m clusterctlv1.Provider) error {
+func (p *inventoryClient) Create(ctx context.Context, m clusterctlv1.Provider) error {
 	// Create the Kubernetes object.
 	createInventoryObjectBackoff := newWriteBackoff()
 	return retryWithExponentialBackoff(createInventoryObjectBackoff, func() error {
@@ -306,12 +306,12 @@ func (p *inventoryClient) Create(m clusterctlv1.Provider) error {
 	})
 }
 
-func (p *inventoryClient) List() (*clusterctlv1.ProviderList, error) {
+func (p *inventoryClient) List(ctx context.Context) (*clusterctlv1.ProviderList, error) {
 	providerList := &clusterctlv1.ProviderList{}
 
 	listProvidersBackoff := newReadBackoff()
 	if err := retryWithExponentialBackoff(listProvidersBackoff, func() error {
-		return listProviders(p.proxy, providerList)
+		return listProviders(ctx, p.proxy, providerList)
 	}); err != nil {
 		return nil, err
 	}
@@ -320,7 +320,7 @@ func (p *inventoryClient) List() (*clusterctlv1.ProviderList, error) {
 }
 
 // listProviders retrieves the list of provider inventory objects.
-func listProviders(proxy Proxy, providerList *clusterctlv1.ProviderList) error {
+func listProviders(ctx context.Context, proxy Proxy, providerList *clusterctlv1.ProviderList) error {
 	cl, err := proxy.NewClient()
 	if err != nil {
 		return err
@@ -332,8 +332,8 @@ func listProviders(proxy Proxy, providerList *clusterctlv1.ProviderList) error {
 	return nil
 }
 
-func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.ProviderType) (string, error) {
-	providerList, err := p.List()
+func (p *inventoryClient) GetDefaultProviderName(ctx context.Context, providerType clusterctlv1.ProviderType) (string, error) {
+	providerList, err := p.List(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -353,8 +353,8 @@ func (p *inventoryClient) GetDefaultProviderName(providerType clusterctlv1.Provi
 	return "", nil
 }
 
-func (p *inventoryClient) GetProviderVersion(provider string, providerType clusterctlv1.ProviderType) (string, error) {
-	providerList, err := p.List()
+func (p *inventoryClient) GetProviderVersion(ctx context.Context, provider string, providerType clusterctlv1.ProviderType) (string, error) {
+	providerList, err := p.List(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -373,8 +373,8 @@ func (p *inventoryClient) GetProviderVersion(provider string, providerType clust
 	return "", nil
 }
 
-func (p *inventoryClient) GetProviderNamespace(provider string, providerType clusterctlv1.ProviderType) (string, error) {
-	providerList, err := p.List()
+func (p *inventoryClient) GetProviderNamespace(ctx context.Context, provider string, providerType clusterctlv1.ProviderType) (string, error) {
+	providerList, err := p.List(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -393,7 +393,7 @@ func (p *inventoryClient) GetProviderNamespace(provider string, providerType clu
 	return "", nil
 }
 
-func (p *inventoryClient) CheckCAPIContract(options ...CheckCAPIContractOption) error {
+func (p *inventoryClient) CheckCAPIContract(ctx context.Context, options ...CheckCAPIContractOption) error {
 	opt := &CheckCAPIContractOptions{}
 	for _, o := range options {
 		o.Apply(opt)
@@ -432,8 +432,8 @@ func (p *inventoryClient) CheckCAPIContract(options ...CheckCAPIContractOption) 
 	return errors.Errorf("failed to check Cluster API version")
 }
 
-func (p *inventoryClient) CheckCAPIInstalled() (bool, error) {
-	if err := p.CheckCAPIContract(AllowCAPIAnyContract{}); err != nil {
+func (p *inventoryClient) CheckCAPIInstalled(ctx context.Context) (bool, error) {
+	if err := p.CheckCAPIContract(ctx, AllowCAPIAnyContract{}); err != nil {
 		if apierrors.IsNotFound(err) {
 			// The expected CRDs are not installed on the management. This would mean that Cluster API is not installed on the cluster.
 			return false, nil
@@ -443,8 +443,8 @@ func (p *inventoryClient) CheckCAPIInstalled() (bool, error) {
 	return true, nil
 }
 
-func (p *inventoryClient) CheckSingleProviderInstance() error {
-	providers, err := p.List()
+func (p *inventoryClient) CheckSingleProviderInstance(ctx context.Context) error {
+	providers, err := p.List(ctx)
 	if err != nil {
 		return err
 	}

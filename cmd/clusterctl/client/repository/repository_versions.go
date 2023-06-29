@@ -17,6 +17,8 @@ limitations under the License.
 package repository
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -32,14 +34,14 @@ const (
 
 // latestContractRelease returns the latest patch release for a repository for the current API contract, according to
 // semantic version order of the release tag name.
-func latestContractRelease(repo Repository, contract string) (string, error) {
-	latest, err := latestRelease(repo)
+func latestContractRelease(ctx context.Context, repo Repository, contract string) (string, error) {
+	latest, err := latestRelease(ctx, repo)
 	if err != nil {
 		return latest, err
 	}
 	// Attempt to check if the latest release satisfies the API Contract
 	// This is a best-effort attempt to find the latest release for an older API contract if it's not the latest release.
-	file, err := repo.GetFile(latest, metadataFile)
+	file, err := repo.GetFile(ctx, latest, metadataFile)
 	// If an error occurs, we just return the latest release.
 	if err != nil {
 		if errors.Is(err, errNotFound) {
@@ -69,20 +71,20 @@ func latestContractRelease(repo Repository, contract string) (string, error) {
 	// If the Major or Minor version of the latest release doesn't match the release series for the current contract,
 	// return the latest patch release of the desired Major/Minor version.
 	if sv.Major() != releaseSeries.Major || sv.Minor() != releaseSeries.Minor {
-		return latestPatchRelease(repo, &releaseSeries.Major, &releaseSeries.Minor)
+		return latestPatchRelease(ctx, repo, &releaseSeries.Major, &releaseSeries.Minor)
 	}
 	return latest, nil
 }
 
 // latestRelease returns the latest release for a repository, according to
 // semantic version order of the release tag name.
-func latestRelease(repo Repository) (string, error) {
-	return latestPatchRelease(repo, nil, nil)
+func latestRelease(ctx context.Context, repo Repository) (string, error) {
+	return latestPatchRelease(ctx, repo, nil, nil)
 }
 
 // latestPatchRelease returns the latest patch release for a given Major and Minor version.
-func latestPatchRelease(repo Repository, major, minor *uint) (string, error) {
-	versions, err := repo.GetVersions()
+func latestPatchRelease(ctx context.Context, repo Repository, major, minor *uint) (string, error) {
+	versions, err := repo.GetVersions(ctx)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to get repository versions")
 	}

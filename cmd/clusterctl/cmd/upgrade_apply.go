@@ -17,6 +17,7 @@ limitations under the License.
 package cmd
 
 import (
+	"context"
 	"time"
 
 	"github.com/pkg/errors"
@@ -95,7 +96,9 @@ func init() {
 }
 
 func runUpgradeApply() error {
-	c, err := client.New(cfgFile)
+	ctx := context.Background()
+
+	c, err := client.New(ctx, cfgFile)
 	if err != nil {
 		return err
 	}
@@ -115,7 +118,7 @@ func runUpgradeApply() error {
 		return errors.New("The --contract flag can't be used in combination with --core, --bootstrap, --control-plane, --infrastructure, --ipam, --extension, --addon")
 	}
 
-	return c.ApplyUpgrade(client.ApplyUpgradeOptions{
+	return c.ApplyUpgrade(ctx, client.ApplyUpgradeOptions{
 		Kubeconfig:                client.Kubeconfig{Path: ua.kubeconfig, Context: ua.kubeconfigContext},
 		Contract:                  ua.contract,
 		CoreProvider:              ua.coreProvider,

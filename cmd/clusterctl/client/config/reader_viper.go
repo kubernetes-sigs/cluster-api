@@ -75,7 +75,7 @@ func newViperReader(opts ...viperReaderOption) (Reader, error) {
 }
 
 // Init initialize the viperReader.
-func (v *viperReader) Init(path string) error {
+func (v *viperReader) Init(ctx context.Context, path string) error {
 	log := logf.Log
 
 	// Configure viper for reading environment variables as well, and more specifically:
@@ -106,7 +106,7 @@ func (v *viperReader) Init(path string) error {
 			}
 
 			downloadConfigFile := filepath.Join(configDirectory, DownloadConfigFile)
-			err = downloadFile(url.String(), downloadConfigFile)
+			err = downloadFile(ctx, url.String(), downloadConfigFile)
 			if err != nil {
 				return err
 			}
@@ -141,9 +141,7 @@ func (v *viperReader) Init(path string) error {
 	return nil
 }
 
-func downloadFile(url string, filepath string) error {
-	ctx := context.TODO()
-
+func downloadFile(ctx context.Context, url string, filepath string) error {
 	// Create the file
 	out, err := os.Create(filepath) //nolint:gosec // No security issue: filepath is safe.
 	if err != nil {

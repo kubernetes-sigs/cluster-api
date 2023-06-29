@@ -101,7 +101,7 @@ func (g *gitHubRepository) DefaultVersion() string {
 }
 
 // GetVersions returns the list of versions that are available in a provider repository.
-func (g *gitHubRepository) GetVersions() ([]string, error) {
+func (g *gitHubRepository) GetVersions(ctx context.Context) ([]string, error) {
 	log := logf.Log
 
 	cacheID := fmt.Sprintf("%s/%s", g.owner, g.repository)
@@ -120,7 +120,7 @@ func (g *gitHubRepository) GetVersions() ([]string, error) {
 		gomodulePath := path.Join(githubDomain, g.owner, g.repository)
 
 		var parsedVersions semver.Versions
-		parsedVersions, err = goProxyClient.GetVersions(context.TODO(), gomodulePath)
+		parsedVersions, err = goProxyClient.GetVersions(ctx, gomodulePath)
 
 		// Log the error before fallback to github repository client happens.
 		if err != nil {
@@ -134,7 +134,7 @@ func (g *gitHubRepository) GetVersions() ([]string, error) {
 
 	// Fallback to github repository client if goProxyClient is nil or an error occurred.
 	if goProxyClient == nil || err != nil {
-		versions, err = g.getVersions()
+		versions, err = g.getVersions(ctx)
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to get repository versions")
 		}
@@ -155,8 +155,8 @@ func (g *gitHubRepository) ComponentsPath() string {
 }
 
 // GetFile returns a file for a given provider version.
-func (g *gitHubRepository) GetFile(version, path string) ([]byte, error) {
-	release, err := g.getReleaseByTag(version)
+func (g *gitHubRepository) GetFile(ctx context.Context, version, path string) ([]byte, error) {
+	release, err := g.getReleaseByTag(ctx, version)
 	if err != nil {
 		if errors.Is(err, errNotFound) {
 			// If it was ErrNotFound, then there is no release yet for the resolved tag.
@@ -167,7 +167,7 @@ func (g *gitHubRepository) GetFile(version, path string) ([]byte, error) {
 	}
 
 	// Download files from the release.
-	files, err := g.downloadFilesFromRelease(release, path)
+	files, err := g.downloadFilesFromRelease(ctx, release, path)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to download files from GitHub release %s", version)
 	}
@@ -176,7 +176,7 @@ func (g *gitHubRepository) GetFile(version, path string) ([]byte, error) {
 }
 
 // NewGitHubRepository returns a gitHubRepository implementation.
-func NewGitHubRepository(providerConfig config.Provider, configVariablesClient config.VariablesClient, opts ...githubRepositoryOption) (Repository, error) {
+func NewGitHubRepository(ctx context.Context, providerConfig config.Provider, configVariablesClient config.VariablesClient, opts ...githubRepositoryOption) (Repository, error) {
 	if configVariablesClient == nil {
 		return nil, errors.New("invalid arguments: configVariablesClient can't be nil")
 	}
@@ -228,11 +228,11 @@ func NewGitHubRepository(providerConfig config.Provider, configVariablesClient c
 	}
 
 	if token, err := configVariablesClient.Get(config.GitHubTokenVariable); err == nil {
-		repo.setClientToken(token)
+		repo.setClientToken(ctx, token)
 	}
 
 	if defaultVersion == githubLatestReleaseLabel {
-		repo.defaultVersion, err = latestContractRelease(repo, clusterv1.GroupVersion.Version)
+		repo.defaultVersion, err = latestContractRelease(ctx, repo, clusterv1.GroupVersion.Version)
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to get latest release")
 		}
@@ -275,22 +275,22 @@ func (g *gitHubRepository) getGoproxyClient() (*goproxy.Client, error) {
 }
 
 // setClientToken sets authenticatingHTTPClient field of gitHubRepository struct.
-func (g *gitHubRepository) setClientToken(token string) {
+func (g *gitHubRepository) setClientToken(ctx context.Context, token string) {
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: token},
 	)
-	g.authenticatingHTTPClient = oauth2.NewClient(context.TODO(), ts)
+	g.authenticatingHTTPClient = oauth2.NewClient(ctx, ts)
 }
 
 // getVersions returns all the release versions for a github repository.
-func (g *gitHubRepository) getVersions() ([]string, error) {
+func (g *gitHubRepository) getVersions(ctx context.Context) ([]string, error) {
 	client := g.getClient()
 
 	// Get all the releases.
 	// NB. currently Github API does not support result ordering, so it not possible to limit results
 	var allReleases []*github.RepositoryRelease
 	var retryError error
-	_ = wait.PollUntilContextTimeout(context.TODO(), retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
+	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
 		var listReleasesErr error
 		// Get the first page of GitHub releases.
 		releases, response, listReleasesErr := client.Repositories.ListReleases(ctx, g.owner, g.repository, &github.ListOptions{PerPage: githubListReleasesPerPageLimit})
@@ -343,7 +343,7 @@ func (g *gitHubRepository) getVersions() ([]string, error) {
 }
 
 // getReleaseByTag returns the github repository release with a specific tag name.
-func (g *gitHubRepository) getReleaseByTag(tag string) (*github.RepositoryRelease, error) {
+func (g *gitHubRepository) getReleaseByTag(ctx context.Context, tag string) (*github.RepositoryRelease, error) {
 	cacheID := fmt.Sprintf("%s/%s:%s", g.owner, g.repository, tag)
 	if release, ok := cacheReleases[cacheID]; ok {
 		return release, nil
@@ -353,7 +353,7 @@ func (g *gitHubRepository) getReleaseByTag(tag string) (*github.RepositoryReleas
 
 	var release *github.RepositoryRelease
 	var retryError error
-	_ = wait.PollUntilContextTimeout(context.TODO(), retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
+	_ = wait.PollUntilContextTimeout(ctx, retryableOperationInterval, retryableOperationTimeout, true, func(ctx context.Context) (bool, error) {
 		var getReleasesErr error
 		release, _, getReleasesErr = client.Repositories.GetReleaseByTag(ctx, g.owner, g.repository, tag)
 		if getReleasesErr != nil {
@@ -380,9 +380,7 @@ func (g *gitHubRepository) getReleaseByTag(tag string) (*github.RepositoryReleas
 }
 
 // downloadFilesFromRelease download a file from release.
-func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRelease, fileName string) ([]byte, error) {
-	ctx := context.TODO()
-
+func (g *gitHubRepository) downloadFilesFromRelease(ctx context.Context, release *github.RepositoryRelease, fileName string) ([]byte, error) {
 	cacheID := fmt.Sprintf("%s/%s:%s:%s", g.owner, g.repository, *release.TagName, fileName)
 	if content, ok := cacheFiles[cacheID]; ok {
 		return content, nil

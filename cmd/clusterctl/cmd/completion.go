@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -153,7 +154,7 @@ func runCompletionZsh(out io.Writer, cmd *cobra.Command) error {
 
 func contextCompletionFunc(kubeconfigFlag *pflag.Flag) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		configClient, err := config.New(cfgFile)
+		configClient, err := config.New(context.Background(), cfgFile)
 		if err != nil {
 			return completionError(err)
 		}
@@ -170,7 +171,9 @@ func contextCompletionFunc(kubeconfigFlag *pflag.Flag) func(cmd *cobra.Command, 
 
 func resourceNameCompletionFunc(kubeconfigFlag, contextFlag, namespaceFlag *pflag.Flag, groupVersion, kind string) func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
 	return func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
-		configClient, err := config.New(cfgFile)
+		ctx := context.Background()
+
+		configClient, err := config.New(ctx, cfgFile)
 		if err != nil {
 			return completionError(err)
 		}
@@ -189,7 +192,7 @@ func resourceNameCompletionFunc(kubeconfigFlag, contextFlag, namespaceFlag *pfla
 			}
 		}
 
-		comps, err := clusterClient.Proxy().GetResourceNames(groupVersion, kind, []client.ListOption{client.InNamespace(namespace)}, toComplete)
+		comps, err := clusterClient.Proxy().GetResourceNames(ctx, groupVersion, kind, []client.ListOption{client.InNamespace(namespace)}, toComplete)
 		if err != nil {
 			return completionError(err)
 		}

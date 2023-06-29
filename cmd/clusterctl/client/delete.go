@@ -17,6 +17,8 @@ limitations under the License.
 package client
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -65,24 +67,24 @@ type DeleteOptions struct {
 	SkipInventory bool
 }
 
-func (c *clusterctlClient) Delete(options DeleteOptions) error {
+func (c *clusterctlClient) Delete(ctx context.Context, options DeleteOptions) error {
 	clusterClient, err := c.clusterClientFactory(ClusterClientFactoryInput{Kubeconfig: options.Kubeconfig})
 	if err != nil {
 		return err
 	}
 
 	// Ensure this command only runs against management clusters with the current Cluster API contract.
-	if err := clusterClient.ProviderInventory().CheckCAPIContract(); err != nil {
+	if err := clusterClient.ProviderInventory().CheckCAPIContract(ctx); err != nil {
 		return err
 	}
 
 	// Ensure the custom resource definitions required by clusterctl are in place.
-	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(); err != nil {
+	if err := clusterClient.ProviderInventory().EnsureCustomResourceDefinitions(ctx); err != nil {
 		return err
 	}
 
 	// Get the list of installed providers.
-	installedProviders, err := clusterClient.ProviderInventory().List()
+	installedProviders, err := clusterClient.ProviderInventory().List(ctx)
 	if err != nil {
 		return err
 	}
@@ -132,7 +134,7 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 
 		for _, provider := range providers {
 			// Try to detect the namespace where the provider lives
-			provider.Namespace, err = clusterClient.ProviderInventory().GetProviderNamespace(provider.ProviderName, provider.GetProviderType())
+			provider.Namespace, err = clusterClient.ProviderInventory().GetProviderNamespace(ctx, provider.ProviderName, provider.GetProviderType())
 			if err != nil {
 				return err
 			}
@@ -141,7 +143,7 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 			}
 
 			if provider.Version != "" {
-				version, err := clusterClient.ProviderInventory().GetProviderVersion(provider.ProviderName, provider.GetProviderType())
+				version, err := clusterClient.ProviderInventory().GetProviderVersion(ctx, provider.ProviderName, provider.GetProviderType())
 				if err != nil {
 					return err
 				}
@@ -156,7 +158,7 @@ func (c *clusterctlClient) Delete(options DeleteOptions) error {
 
 	// Delete the selected providers.
 	for _, provider := range providersToDelete {
-		if err := clusterClient.ProviderComponents().Delete(cluster.DeleteOptions{Provider: provider, IncludeNamespace: options.IncludeNamespace, IncludeCRDs: options.IncludeCRDs, SkipInventory: options.SkipInventory}); err != nil {
+		if err := clusterClient.ProviderComponents().Delete(ctx, cluster.DeleteOptions{Provider: provider, IncludeNamespace: options.IncludeNamespace, IncludeCRDs: options.IncludeCRDs, SkipInventory: options.SkipInventory}); err != nil {
 			return err
 		}
 	}

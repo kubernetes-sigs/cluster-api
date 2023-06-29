@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -167,7 +168,9 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			err := tt.fields.client.Delete(tt.args.options)
+			ctx := context.Background()
+
+			err := tt.fields.client.Delete(ctx, tt.args.options)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -194,17 +197,19 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 
 // clusterctl client for a management cluster with capi and bootstrap provider.
 func fakeClusterForDelete() *fakeClient {
-	config1 := newFakeConfig().
+	ctx := context.Background()
+
+	config1 := newFakeConfig(ctx).
 		WithVar("var", "value").
 		WithProvider(capiProviderConfig).
 		WithProvider(bootstrapProviderConfig).
 		WithProvider(controlPlaneProviderConfig).
 		WithProvider(infraProviderConfig)
 
-	repository1 := newFakeRepository(capiProviderConfig, config1)
-	repository2 := newFakeRepository(bootstrapProviderConfig, config1)
-	repository3 := newFakeRepository(controlPlaneProviderConfig, config1)
-	repository4 := newFakeRepository(infraProviderConfig, config1)
+	repository1 := newFakeRepository(ctx, capiProviderConfig, config1)
+	repository2 := newFakeRepository(ctx, bootstrapProviderConfig, config1)
+	repository3 := newFakeRepository(ctx, controlPlaneProviderConfig, config1)
+	repository4 := newFakeRepository(ctx, infraProviderConfig, config1)
 
 	cluster1 := newFakeCluster(cluster.Kubeconfig{Path: "kubeconfig", Context: "mgmt-context"}, config1)
 	cluster1.fakeProxy.WithProviderInventory(capiProviderConfig.Name(), capiProviderConfig.Type(), providerVersion, "capi-system")
@@ -213,7 +218,7 @@ func fakeClusterForDelete() *fakeClient {
 	cluster1.fakeProxy.WithProviderInventory(infraProviderConfig.Name(), infraProviderConfig.Type(), providerVersion, namespace)
 	cluster1.fakeProxy.WithFakeCAPISetup()
 
-	client := newFakeClient(config1).
+	client := newFakeClient(ctx, config1).
 		// fake repository for capi, bootstrap, controlplane and infra provider (matching provider's config)
 		WithRepository(repository1).
 		WithRepository(repository2).

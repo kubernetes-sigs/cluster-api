@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -384,16 +385,18 @@ func Test_providerUpgrader_Plan(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			configClient, _ := config.New("", config.InjectReader(tt.fields.reader))
+			ctx := context.Background()
+
+			configClient, _ := config.New(ctx, "", config.InjectReader(tt.fields.reader))
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
 			}
-			got, err := u.Plan()
+			got, err := u.Plan(ctx)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -853,16 +856,18 @@ func Test_providerUpgrader_createCustomPlan(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			configClient, _ := config.New("", config.InjectReader(tt.fields.reader))
+			ctx := context.Background()
+
+			configClient, _ := config.New(ctx, "", config.InjectReader(tt.fields.reader))
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repository[provider.Name()]))
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.Name()]))
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
 			}
-			got, err := u.createCustomPlan(tt.args.providersToUpgrade)
+			got, err := u.createCustomPlan(ctx, tt.args.providersToUpgrade)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -970,16 +975,18 @@ func Test_providerUpgrader_ApplyPlan(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			configClient, _ := config.New("", config.InjectReader(tt.fields.reader))
+			ctx := context.Background()
+
+			configClient, _ := config.New(ctx, "", config.InjectReader(tt.fields.reader))
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
 			}
-			err := u.ApplyPlan(tt.opts, tt.contract)
+			err := u.ApplyPlan(ctx, tt.opts, tt.contract)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).Should(ContainSubstring(tt.errorMsg))
@@ -1109,16 +1116,18 @@ func Test_providerUpgrader_ApplyCustomPlan(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 
-			configClient, _ := config.New("", config.InjectReader(tt.fields.reader))
+			ctx := context.Background()
+
+			configClient, _ := config.New(ctx, "", config.InjectReader(tt.fields.reader))
 
 			u := &providerUpgrader{
 				configClient: configClient,
-				repositoryClientFactory: func(provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
-					return repository.New(provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
+				repositoryClientFactory: func(ctx context.Context, provider config.Provider, configClient config.Client, options ...repository.Option) (repository.Client, error) {
+					return repository.New(ctx, provider, configClient, repository.InjectRepository(tt.fields.repository[provider.ManifestLabel()]))
 				},
 				providerInventory: newInventoryClient(tt.fields.proxy, nil),
 			}
-			err := u.ApplyCustomPlan(tt.opts, tt.providersToUpgrade...)
+			err := u.ApplyCustomPlan(ctx, tt.opts, tt.providersToUpgrade...)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err.Error()).Should(ContainSubstring(tt.errorMsg))

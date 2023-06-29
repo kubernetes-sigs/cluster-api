@@ -17,6 +17,7 @@ limitations under the License.
 package cluster
 
 import (
+	"context"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -42,28 +43,28 @@ type OwnerGraphNode struct {
 // NOTE: this data structure is exposed to allow implementation of E2E tests verifying that CAPI can properly rebuild its
 // own owner references; there is no guarantee about the stability of this API. Using this test with providers may require
 // a custom implementation of this function, or the OwnerGraph it returns.
-func GetOwnerGraph(namespace, kubeconfigPath string) (OwnerGraph, error) {
+func GetOwnerGraph(ctx context.Context, namespace, kubeconfigPath string) (OwnerGraph, error) {
 	p := newProxy(Kubeconfig{Path: kubeconfigPath, Context: ""})
 	invClient := newInventoryClient(p, nil)
 
 	graph := newObjectGraph(p, invClient)
 
 	// Gets all the types defined by the CRDs installed by clusterctl plus the ConfigMap/Secret core types.
-	err := graph.getDiscoveryTypes()
+	err := graph.getDiscoveryTypes(ctx)
 	if err != nil {
 		return OwnerGraph{}, errors.Wrap(err, "failed to retrieve discovery types")
 	}
 
 	// graph.Discovery can not be used here as it will use the latest APIVersion for ownerReferences - not those
 	// present in the object 'metadata.ownerReferences`.
-	owners, err := discoverOwnerGraph(namespace, graph)
+	owners, err := discoverOwnerGraph(ctx, namespace, graph)
 	if err != nil {
 		return OwnerGraph{}, errors.Wrap(err, "failed to discovery ownerGraph types")
 	}
 	return owners, nil
 }
 
-func discoverOwnerGraph(namespace string, o *objectGraph) (OwnerGraph, error) {
+func discoverOwnerGraph(ctx context.Context, namespace string, o *objectGraph) (OwnerGraph, error) {
 	selectors := []client.ListOption{}
 	if namespace != "" {
 		selectors = append(selectors, client.InNamespace(namespace))
@@ -76,14 +77,14 @@ func discoverOwnerGraph(namespace string, o *objectGraph) (OwnerGraph, error) {
 		objList := new(unstructured.UnstructuredList)
 
 		if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
-			return getObjList(o.proxy, typeMeta, selectors, objList)
+			return getObjList(ctx, o.proxy, typeMeta, selectors, objList)
 		}); err != nil {
 			return nil, err
 		}
 
 		// if we are discovering Secrets, also secrets from the providers namespace should be included.
 		if discoveryType.typeMeta.GetObjectKind().GroupVersionKind().GroupKind() == corev1.SchemeGroupVersion.WithKind("SecretList").GroupKind() {
-			providers, err := o.providerInventory.List()
+			providers, err := o.providerInventory.List(ctx)
 			if err != nil {
 				return nil, err
 			}
@@ -92,7 +93,7 @@ func discoverOwnerGraph(namespace string, o *objectGraph) (OwnerGraph, error) {
 					providerNamespaceSelector := []client.ListOption{client.InNamespace(p.Namespace)}
 					providerNamespaceSecretList := new(unstructured.UnstructuredList)
 					if err := retryWithExponentialBackoff(discoveryBackoff, func() error {
-						return getObjList(o.proxy, typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
+						return getObjList(ctx, o.proxy, typeMeta, providerNamespaceSelector, providerNamespaceSecretList)
 					}); err != nil {
 						return nil, err
 					}

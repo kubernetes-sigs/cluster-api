@@ -308,16 +308,16 @@ func (r *Reconciler) getCurrentMachinePoolState(ctx context.Context, blueprintMa
 
 		// Retrieve the name which is assigned in Cluster's topology
 		// from a well-defined label.
-		mpTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachineDeploymentNameLabel]
+		mpTopologyName, ok := m.ObjectMeta.Labels[clusterv1.ClusterTopologyMachinePoolNameLabel]
 		if !ok || mpTopologyName == "" {
-			return nil, fmt.Errorf("failed to find label %s in %s", clusterv1.ClusterTopologyMachineDeploymentNameLabel, tlog.KObj{Obj: m})
+			return nil, fmt.Errorf("failed to find label %s in %s", clusterv1.ClusterTopologyMachinePoolNameLabel, tlog.KObj{Obj: m})
 		}
 
 		// Make sure that the name of the MachinePool stays unique.
 		// If we've already seen a MachinePool with the same name
 		// this is an error, probably caused from manual modifications or a race condition.
 		if _, ok := state[mpTopologyName]; ok {
-			return nil, fmt.Errorf("duplicate %s found for label %s: %s", tlog.KObj{Obj: m}, clusterv1.ClusterTopologyMachineDeploymentNameLabel, mpTopologyName)
+			return nil, fmt.Errorf("duplicate %s found for label %s: %s", tlog.KObj{Obj: m}, clusterv1.ClusterTopologyMachinePoolNameLabel, mpTopologyName)
 		}
 
 		// Gets the bootstrapRef.

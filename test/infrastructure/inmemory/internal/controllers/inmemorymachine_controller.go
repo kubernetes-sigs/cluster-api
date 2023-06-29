@@ -427,6 +427,9 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 				"tier":      "control-plane",
 			},
 		},
+		Spec: corev1.PodSpec{
+			NodeName: inMemoryMachine.Name,
+		},
 		Status: corev1.PodStatus{
 			Phase: corev1.PodRunning,
 			Conditions: []corev1.PodCondition{
@@ -443,7 +446,7 @@ func (r *InMemoryMachineReconciler) reconcileNormalETCD(ctx context.Context, clu
 		}
 
 		// Gets info about the current etcd cluster, if any.
-		info, err := r.inspectEtcd(ctx, cloudClient)
+		info, err := r.getEtcdInfo(ctx, cloudClient)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -527,7 +530,7 @@ type etcdInfo struct {
 	members   sets.Set[string]
 }
 
-func (r *InMemoryMachineReconciler) inspectEtcd(ctx context.Context, cloudClient cclient.Client) (etcdInfo, error) {
+func (r *InMemoryMachineReconciler) getEtcdInfo(ctx context.Context, cloudClient cclient.Client) (etcdInfo, error) {
 	etcdPods := &corev1.PodList{}
 	if err := cloudClient.List(ctx, etcdPods,
 		client.InNamespace(metav1.NamespaceSystem),
@@ -547,6 +550,9 @@ func (r *InMemoryMachineReconciler) inspectEtcd(ctx context.Context, cloudClient
 	}
 	var leaderFrom time.Time
 	for _, pod := range etcdPods.Items {
+		if _, ok := pod.Annotations[cloudv1.EtcdMemberRemoved]; ok {
+			continue
+		}
 		if info.clusterID == "" {
 			info.clusterID = pod.Annotations[cloudv1.EtcdClusterIDAnnotationName]
 		} else if pod.Annotations[cloudv1.EtcdClusterIDAnnotationName] != info.clusterID {
@@ -625,6 +631,9 @@ func (r *InMemoryMachineReconciler) reconcileNormalAPIServer(ctx context.Context
 				"component": "kube-apiserver",
 				"tier":      "control-plane",
 			},
+		},
+		Spec: corev1.PodSpec{
+			NodeName: inMemoryMachine.Name,
 		},
 		Status: corev1.PodStatus{
 			Phase: corev1.PodRunning,
@@ -712,6 +721,9 @@ func (r *InMemoryMachineReconciler) reconcileNormalScheduler(ctx context.Context
 				"tier":      "control-plane",
 			},
 		},
+		Spec: corev1.PodSpec{
+			NodeName: inMemoryMachine.Name,
+		},
 		Status: corev1.PodStatus{
 			Phase: corev1.PodRunning,
 			Conditions: []corev1.PodCondition{
@@ -756,6 +768,9 @@ func (r *InMemoryMachineReconciler) reconcileNormalControllerManager(ctx context
 				"component": "kube-controller-manager",
 				"tier":      "control-plane",
 			},
+		},
+		Spec: corev1.PodSpec{
+			NodeName: inMemoryMachine.Name,
 		},
 		Status: corev1.PodStatus{
 			Phase: corev1.PodRunning,
@@ -831,9 +846,12 @@ func (r *InMemoryMachineReconciler) reconcileNormalKubeadmObjects(ctx context.Co
 			Name:      "kubeadm-config",
 			Namespace: metav1.NamespaceSystem,
 		},
+		Data: map[string]string{
+			"ClusterConfiguration": "",
+		},
 	}
 	if err := cloudClient.Create(ctx, cm); err != nil && !apierrors.IsAlreadyExists(err) {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to create ubeadm-config ConfigMap")
+		return ctrl.Result{}, errors.Wrapf(err, "failed to create kubeadm-config ConfigMap")
 	}
 
 	return ctrl.Result{}, nil
@@ -1012,6 +1030,8 @@ func (r *InMemoryMachineReconciler) reconcileDeleteNode(ctx context.Context, clu
 			Name: inMemoryMachine.Name,
 		},
 	}
+
+	// TODO(killianmuldoon): check if we can drop this given that the MachineController is already draining pods and deleting nodes.
 	if err := cloudClient.Delete(ctx, node); err != nil && !apierrors.IsNotFound(err) {
 		return ctrl.Result{}, errors.Wrapf(err, "failed to delete Node")
 	}

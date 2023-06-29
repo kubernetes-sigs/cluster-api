@@ -35,6 +35,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -148,6 +149,23 @@ func TestAPI_corev1_CRUD(t *testing.T) {
 	g.Expect(nl.Items).To(HaveLen(1))
 	g.Expect(nl.Items[0].Name).To(Equal("foo"))
 
+	// list with nodeName selector on pod
+	g.Expect(c.Create(ctx, &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "bar", Namespace: metav1.NamespaceDefault},
+		Spec:       corev1.PodSpec{NodeName: n.Name},
+	})).To(Succeed())
+	g.Expect(c.Create(ctx, &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "notSelectedPod", Namespace: metav1.NamespaceDefault},
+	})).To(Succeed())
+
+	pl := &corev1.PodList{}
+	nodeNameSelector := &client.ListOptions{
+		FieldSelector: fields.SelectorFromSet(fields.Set{"spec.nodeName": n.Name}),
+	}
+	g.Expect(c.List(ctx, pl, nodeNameSelector)).To(Succeed())
+	g.Expect(pl.Items).To(HaveLen(1))
+	g.Expect(pl.Items[0].Name).To(Equal("bar"))
+
 	// get
 
 	n = &corev1.Node{}
@@ -162,17 +180,15 @@ func TestAPI_corev1_CRUD(t *testing.T) {
 	g.Expect(err).ToNot(HaveOccurred())
 
 	n3 := n2.DeepCopy()
-	// TODO: n doesn't have taints, so not sure what we are testing here.
-	taints := []corev1.Taint{}
-	for _, taint := range n.Spec.Taints {
-		if taint.Key == "foo" {
-			continue
-		}
-		taints = append(taints, taint)
-	}
+	taints := []corev1.Taint{{Key: "foo"}}
+
 	n3.Spec.Taints = taints
 	err = c.Patch(ctx, n3, client.StrategicMergeFrom(n2))
 	g.Expect(err).ToNot(HaveOccurred())
+
+	node := &corev1.Node{}
+	g.Expect(c.Get(ctx, client.ObjectKeyFromObject(n3), node)).To(Succeed())
+	g.Expect(node.Spec.Taints).To(Equal(taints))
 
 	// delete
 

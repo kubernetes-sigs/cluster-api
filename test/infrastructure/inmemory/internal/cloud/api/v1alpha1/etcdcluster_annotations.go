@@ -34,4 +34,7 @@ const (
 	// By using this mechanism leadership can be forwarded to another pod with an atomic operation
 	// (add/update of the annotation to the pod/etcd member we are forwarding leadership to).
 	EtcdLeaderFromAnnotationName = "etcd.inmemory.infrastructure.cluster.x-k8s.io/leader-from"
+
+	// EtcdMemberRemoved is added to etcd pods which have been removed from the etcd cluster.
+	EtcdMemberRemoved = "etcd.inmemory.infrastructure.cluster.x-k8s.io/member-removed"
 )

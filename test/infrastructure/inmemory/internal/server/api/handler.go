@@ -30,6 +30,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
@@ -252,6 +253,16 @@ func (h *apiServerHandler) apiV1List(req *restful.Request, resp *restful.Respons
 		listOpts = append(listOpts, client.InNamespace(req.PathParameter("namespace")))
 	}
 
+	// TODO: The only field selector which works is for `spec.nodeName` on pods.
+	selector, err := fields.ParseSelector(req.QueryParameter("fieldSelector"))
+	if err != nil {
+		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		return
+	}
+	if selector != nil {
+		listOpts = append(listOpts, client.MatchingFieldsSelector{Selector: selector})
+	}
+
 	if err := cloudClient.List(ctx, list, listOpts...); err != nil {
 		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
 		return
@@ -412,6 +423,10 @@ func (h *apiServerHandler) apiV1Patch(req *restful.Request, resp *restful.Respon
 	obj.SetName(req.PathParameter("name"))
 	obj.SetNamespace(req.PathParameter("namespace"))
 
+	if err := cloudClient.Get(ctx, client.ObjectKeyFromObject(obj), obj); err != nil {
+		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
+		return
+	}
 	if err := cloudClient.Patch(ctx, obj, patch); err != nil {
 		_ = resp.WriteErrorString(http.StatusInternalServerError, err.Error())
 		return

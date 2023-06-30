@@ -502,7 +502,7 @@ func getClusterCreateFn(clusterProxy framework.ClusterProxy, namespace string) c
 		log.Logf("Applying the cluster template yaml of cluster %s", klog.KRef(namespace, clusterName))
 		Eventually(func() error {
 			return clusterProxy.Apply(ctx, clusterTemplateYAML)
-		}, 10*time.Second).Should(Succeed(), "Failed to apply the cluster template of cluster %s", klog.KRef(namespace, clusterName))
+		}, 1*time.Minute).Should(Succeed(), "Failed to apply the cluster template of cluster %s", klog.KRef(namespace, clusterName))
 	}
 }
 

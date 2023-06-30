@@ -202,8 +202,9 @@ func TestGetWorkloadCluster(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 
 			m := Management{
-				Client:  env.GetClient(),
-				Tracker: tracker,
+				Client:              env.GetClient(),
+				SecretCachingClient: secretCachingClient,
+				Tracker:             tracker,
 			}
 
 			workloadCluster, err := m.GetWorkloadCluster(ctx, tt.clusterKey)

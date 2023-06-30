@@ -68,8 +68,15 @@ var ErrClusterLocked = errors.New("cluster is locked already")
 type ClusterCacheTracker struct {
 	log                   logr.Logger
 	clientUncachedObjects []client.Object
-	client                client.Client
-	scheme                *runtime.Scheme
+
+	client client.Client
+
+	// SecretCachingClient is a client which caches secrets.
+	// If set it will be used to read the kubeconfig secret.
+	// Otherwise the default client from the manager will be used.
+	secretCachingClient client.Client
+
+	scheme *runtime.Scheme
 
 	// clusterAccessorsLock is used to lock the access to the clusterAccessors map.
 	clusterAccessorsLock sync.RWMutex
@@ -95,6 +102,11 @@ type ClusterCacheTracker struct {
 // ClusterCacheTrackerOptions defines options to configure
 // a ClusterCacheTracker.
 type ClusterCacheTrackerOptions struct {
+	// SecretCachingClient is a client which caches secrets.
+	// If set it will be used to read the kubeconfig secret.
+	// Otherwise the default client from the manager will be used.
+	SecretCachingClient client.Client
+
 	// Log is the logger used throughout the lifecycle of caches.
 	// Defaults to a no-op logger if it's not set.
 	Log *logr.Logger
@@ -155,6 +167,7 @@ func NewClusterCacheTracker(manager ctrl.Manager, options ClusterCacheTrackerOpt
 		log:                   *options.Log,
 		clientUncachedObjects: options.ClientUncachedObjects,
 		client:                manager.GetClient(),
+		secretCachingClient:   options.SecretCachingClient,
 		scheme:                manager.GetScheme(),
 		clusterAccessors:      make(map[client.ObjectKey]*clusterAccessor),
 		clusterLock:           newKeyedMutex(),
@@ -271,8 +284,13 @@ func (t *ClusterCacheTracker) getClusterAccessor(ctx context.Context, cluster cl
 func (t *ClusterCacheTracker) newClusterAccessor(ctx context.Context, cluster client.ObjectKey, indexes ...Index) (*clusterAccessor, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	// Get a rest config for the remote cluster
-	config, err := RESTConfig(ctx, t.controllerName, t.client, cluster)
+	// Get a rest config for the remote cluster.
+	// Use the secretCachingClient if set.
+	secretClient := t.client
+	if t.secretCachingClient != nil {
+		secretClient = t.secretCachingClient
+	}
+	config, err := RESTConfig(ctx, t.controllerName, secretClient, cluster)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error fetching REST client config for remote cluster %q", cluster.String())
 	}

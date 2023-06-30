@@ -78,8 +78,9 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	setKCPHealthy(kcp)
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:   env,
-		recorder: record.NewFakeRecorder(32),
+		Client:              env,
+		SecretCachingClient: secretCachingClient,
+		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
 			Workload: fakeWorkloadCluster{
@@ -227,6 +228,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 	fmc.Reader = fakeClient
 	r := &KubeadmControlPlaneReconciler{
 		Client:                    fakeClient,
+		SecretCachingClient:       fakeClient,
 		managementCluster:         fmc,
 		managementClusterUncached: fmc,
 	}

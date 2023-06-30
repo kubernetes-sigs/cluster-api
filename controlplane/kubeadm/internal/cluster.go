@@ -25,6 +25,7 @@ import (
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -51,10 +52,11 @@ type ManagementCluster interface {
 
 // Management holds operations on the management cluster.
 type Management struct {
-	Client          client.Reader
-	Tracker         *remote.ClusterCacheTracker
-	EtcdDialTimeout time.Duration
-	EtcdCallTimeout time.Duration
+	Client              client.Reader
+	SecretCachingClient client.Reader
+	Tracker             *remote.ClusterCacheTracker
+	EtcdDialTimeout     time.Duration
+	EtcdCallTimeout     time.Duration
 }
 
 // RemoteClusterConnectionError represents a failure to connect to a remote cluster.
@@ -181,9 +183,21 @@ func (m *Management) getEtcdCAKeyPair(ctx context.Context, clusterKey client.Obj
 		Namespace: clusterKey.Namespace,
 		Name:      fmt.Sprintf("%s-etcd", clusterKey.Name),
 	}
-	if err := m.Client.Get(ctx, etcdCAObjectKey, etcdCASecret); err != nil {
-		return nil, nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
+
+	// Try to get the certificate via the cached client.
+	err := m.SecretCachingClient.Get(ctx, etcdCAObjectKey, etcdCASecret)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			// Return error if we got an errors which is not a NotFound error.
+			return nil, nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
+		}
+
+		// Try to get the certificate via the uncached client.
+		if err := m.Client.Get(ctx, etcdCAObjectKey, etcdCASecret); err != nil {
+			return nil, nil, errors.Wrapf(err, "failed to get secret; etcd CA bundle %s/%s", etcdCAObjectKey.Namespace, etcdCAObjectKey.Name)
+		}
 	}
+
 	crtData, ok := etcdCASecret.Data[secret.TLSCrtDataName]
 	if !ok {
 		return nil, nil, errors.Errorf("etcd tls crt does not exist for cluster %s/%s", clusterKey.Namespace, clusterKey.Name)

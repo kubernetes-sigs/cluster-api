@@ -87,8 +87,9 @@ func TestClusterToKubeadmControlPlane(t *testing.T) {
 	}
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		recorder: record.NewFakeRecorder(32),
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+		recorder:            record.NewFakeRecorder(32),
 	}
 
 	got := r.ClusterToKubeadmControlPlane(ctx, cluster)
@@ -102,8 +103,9 @@ func TestClusterToKubeadmControlPlaneNoControlPlane(t *testing.T) {
 	cluster := newCluster(&types.NamespacedName{Name: "foo", Namespace: metav1.NamespaceDefault})
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		recorder: record.NewFakeRecorder(32),
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+		recorder:            record.NewFakeRecorder(32),
 	}
 
 	got := r.ClusterToKubeadmControlPlane(ctx, cluster)
@@ -125,8 +127,9 @@ func TestClusterToKubeadmControlPlaneOtherControlPlane(t *testing.T) {
 	}
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		recorder: record.NewFakeRecorder(32),
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+		recorder:            record.NewFakeRecorder(32),
 	}
 
 	got := r.ClusterToKubeadmControlPlane(ctx, cluster)
@@ -147,8 +150,9 @@ func TestReconcileReturnErrorWhenOwnerClusterIsMissing(t *testing.T) {
 	}(kcp, ns)
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:   env,
-		recorder: record.NewFakeRecorder(32),
+		Client:              env,
+		SecretCachingClient: secretCachingClient,
+		recorder:            record.NewFakeRecorder(32),
 	}
 
 	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -169,9 +173,10 @@ func TestReconcileUpdateObservedGeneration(t *testing.T) {
 
 	g := NewWithT(t)
 	r := &KubeadmControlPlaneReconciler{
-		Client:            env,
-		recorder:          record.NewFakeRecorder(32),
-		managementCluster: &internal.Management{Client: env.Client, Tracker: nil},
+		Client:              env,
+		SecretCachingClient: secretCachingClient,
+		recorder:            record.NewFakeRecorder(32),
+		managementCluster:   &internal.Management{Client: env.Client, Tracker: nil},
 	}
 
 	ns, err := env.CreateNamespace(ctx, "test-reconcile-upd-og")
@@ -251,8 +256,9 @@ func TestReconcileNoClusterOwnerRef(t *testing.T) {
 
 	fakeClient := newFakeClient(kcp.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		recorder: record.NewFakeRecorder(32),
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+		recorder:            record.NewFakeRecorder(32),
 	}
 
 	result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -287,8 +293,9 @@ func TestReconcileNoKCP(t *testing.T) {
 
 	fakeClient := newFakeClient()
 	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		recorder: record.NewFakeRecorder(32),
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+		recorder:            record.NewFakeRecorder(32),
 	}
 
 	_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -328,8 +335,9 @@ func TestReconcileNoCluster(t *testing.T) {
 
 	fakeClient := newFakeClient(kcp.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		recorder: record.NewFakeRecorder(32),
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+		recorder:            record.NewFakeRecorder(32),
 	}
 
 	_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -377,8 +385,9 @@ func TestReconcilePaused(t *testing.T) {
 	g.Expect(err).NotTo(HaveOccurred())
 	fakeClient := newFakeClient(kcp.DeepCopy(), cluster.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		recorder: record.NewFakeRecorder(32),
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+		recorder:            record.NewFakeRecorder(32),
 	}
 
 	_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: util.ObjectKey(kcp)})
@@ -432,8 +441,9 @@ func TestReconcileClusterNoEndpoints(t *testing.T) {
 
 	fakeClient := newFakeClient(kcp.DeepCopy(), cluster.DeepCopy())
 	r := &KubeadmControlPlaneReconciler{
-		Client:   fakeClient,
-		recorder: record.NewFakeRecorder(32),
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: fakeClient},
 			Workload:   fakeWorkloadCluster{},
@@ -515,6 +525,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fmc.Reader = fakeClient
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
+			SecretCachingClient:       fakeClient,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 		}
@@ -610,6 +621,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fmc.Reader = fakeClient
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
+			SecretCachingClient:       fakeClient,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 		}
@@ -695,6 +707,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		fmc.Reader = fakeClient
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
+			SecretCachingClient:       fakeClient,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
 		}
@@ -747,6 +760,7 @@ func TestKubeadmControlPlaneReconciler_adoption(t *testing.T) {
 		recorder := record.NewFakeRecorder(32)
 		r := &KubeadmControlPlaneReconciler{
 			Client:                    fakeClient,
+			SecretCachingClient:       fakeClient,
 			recorder:                  recorder,
 			managementCluster:         fmc,
 			managementClusterUncached: fmc,
@@ -823,7 +837,10 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 
 		fakeClient := newFakeClient(objs...)
 
-		r := KubeadmControlPlaneReconciler{Client: fakeClient}
+		r := KubeadmControlPlaneReconciler{
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
+		}
 		err = r.ensureCertificatesOwnerRef(ctx, certificates, kcpOwner)
 		g.Expect(err).To(BeNil())
 
@@ -869,7 +886,10 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 
 		fakeClient := newFakeClient(objs...)
 
-		r := KubeadmControlPlaneReconciler{Client: fakeClient}
+		r := KubeadmControlPlaneReconciler{
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
+		}
 		err := r.ensureCertificatesOwnerRef(ctx, certificates, kcpOwner)
 		g.Expect(err).To(BeNil())
 
@@ -917,7 +937,10 @@ func TestKubeadmControlPlaneReconciler_ensureOwnerReferences(t *testing.T) {
 
 		fakeClient := newFakeClient(objs...)
 
-		r := KubeadmControlPlaneReconciler{Client: fakeClient}
+		r := KubeadmControlPlaneReconciler{
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
+		}
 		err := r.ensureCertificatesOwnerRef(ctx, certificates, kcpOwner)
 		g.Expect(err).To(BeNil())
 
@@ -1112,8 +1135,9 @@ func TestReconcileCertificateExpiries(t *testing.T) {
 	}
 
 	r := &KubeadmControlPlaneReconciler{
-		Client:            fakeClient,
-		managementCluster: managementCluster,
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
+		managementCluster:   managementCluster,
 	}
 
 	controlPlane, err := internal.NewControlPlane(ctx, managementCluster, fakeClient, cluster, kcp, ownedMachines)
@@ -1287,8 +1311,9 @@ kubernetesVersion: metav1.16.1`,
 
 	expectedLabels := map[string]string{clusterv1.ClusterNameLabel: "foo"}
 	r := &KubeadmControlPlaneReconciler{
-		Client:   env,
-		recorder: record.NewFakeRecorder(32),
+		Client:              env,
+		SecretCachingClient: secretCachingClient,
+		recorder:            record.NewFakeRecorder(32),
 		managementCluster: &fakeManagementCluster{
 			Management: &internal.Management{Client: env},
 			Workload: fakeWorkloadCluster{
@@ -1599,7 +1624,11 @@ func TestKubeadmControlPlaneReconciler_syncMachines(t *testing.T) {
 
 	// Run syncMachines to clean up managed fields and have proper field ownership
 	// for Machines, InfrastructureMachines and KubeadmConfigs.
-	reconciler := &KubeadmControlPlaneReconciler{Client: env, ssaCache: ssa.NewCache()}
+	reconciler := &KubeadmControlPlaneReconciler{
+		Client:              env,
+		SecretCachingClient: secretCachingClient,
+		ssaCache:            ssa.NewCache(),
+	}
 	g.Expect(reconciler.syncMachines(ctx, controlPlane)).To(Succeed())
 
 	// The inPlaceMutatingMachine should have cleaned up managed fields.
@@ -2042,7 +2071,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		fakeClient := newFakeClient(initObjs...)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client: fakeClient,
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Management: &internal.Management{Client: fakeClient},
 				Workload:   fakeWorkloadCluster{},
@@ -2105,7 +2135,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		fakeClient := newFakeClient(initObjs...)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client: fakeClient,
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Management: &internal.Management{Client: fakeClient},
 				Workload:   fakeWorkloadCluster{},
@@ -2162,7 +2193,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		fakeClient := newFakeClient(initObjs...)
 
 		r := &KubeadmControlPlaneReconciler{
-			Client: fakeClient,
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Management: &internal.Management{Client: fakeClient},
 				Workload:   fakeWorkloadCluster{},
@@ -2199,7 +2231,8 @@ func TestKubeadmControlPlaneReconciler_reconcileDelete(t *testing.T) {
 		fakeClient := newFakeClient(cluster.DeepCopy(), kcp.DeepCopy())
 
 		r := &KubeadmControlPlaneReconciler{
-			Client: fakeClient,
+			Client:              fakeClient,
+			SecretCachingClient: fakeClient,
 			managementCluster: &fakeManagementCluster{
 				Management: &internal.Management{Client: fakeClient},
 				Workload:   fakeWorkloadCluster{},

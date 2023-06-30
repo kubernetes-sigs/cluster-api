@@ -17,6 +17,8 @@ limitations under the License.
 package controllers
 
 import (
+	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -28,17 +30,31 @@ import (
 )
 
 var (
-	env *envtest.Environment
-	ctx = ctrl.SetupSignalHandler()
+	env                 *envtest.Environment
+	ctx                 = ctrl.SetupSignalHandler()
+	secretCachingClient client.Client
 )
 
 func TestMain(m *testing.M) {
+	setupReconcilers := func(ctx context.Context, mgr ctrl.Manager) {
+		var err error
+		secretCachingClient, err = client.New(mgr.GetConfig(), client.Options{
+			HTTPClient: mgr.GetHTTPClient(),
+			Cache: &client.CacheOptions{
+				Reader: mgr.GetCache(),
+			},
+		})
+		if err != nil {
+			panic(fmt.Sprintf("unable to create secretCachingClient: %v", err))
+		}
+	}
 	os.Exit(envtest.Run(ctx, envtest.RunInput{
 		M: m,
 		ManagerUncachedObjs: []client.Object{
 			&corev1.ConfigMap{},
 			&corev1.Secret{},
 		},
-		SetupEnv: func(e *envtest.Environment) { env = e },
+		SetupEnv:         func(e *envtest.Environment) { env = e },
+		SetupReconcilers: setupReconcilers,
 	}))
 }

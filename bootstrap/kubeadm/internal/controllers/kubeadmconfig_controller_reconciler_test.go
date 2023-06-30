@@ -47,7 +47,8 @@ func TestKubeadmConfigReconciler(t *testing.T) {
 			}(cluster, machine, config, ns)
 
 			reconciler := KubeadmConfigReconciler{
-				Client: env,
+				Client:              env,
+				SecretCachingClient: secretCachingClient,
 			}
 			t.Log("Calling reconcile should requeue")
 			result, err := reconciler.Reconcile(ctx, ctrl.Request{

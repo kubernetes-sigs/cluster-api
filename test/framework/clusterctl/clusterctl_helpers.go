@@ -373,7 +373,7 @@ func ApplyCustomClusterTemplateAndWait(ctx context.Context, input ApplyCustomClu
 	log.Logf("Applying the cluster template yaml of cluster %s", klog.KRef(input.Namespace, input.ClusterName))
 	Eventually(func() error {
 		return input.ClusterProxy.Apply(ctx, input.CustomTemplateYAML, input.Args...)
-	}, 10*time.Second).Should(Succeed(), "Failed to apply the cluster template")
+	}, 1*time.Minute).Should(Succeed(), "Failed to apply the cluster template")
 
 	// Once we applied the cluster template we can run PreWaitForCluster.
 	// Note: This can e.g. be used to verify the BeforeClusterCreate lifecycle hook is executed

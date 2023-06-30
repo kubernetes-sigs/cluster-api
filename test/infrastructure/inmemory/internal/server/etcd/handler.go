@@ -98,27 +98,27 @@ func (m *maintenanceServer) Status(ctx context.Context, _ *pb.StatusRequest) (*p
 }
 
 func (m *maintenanceServer) Defragment(_ context.Context, _ *pb.DefragmentRequest) (*pb.DefragmentResponse, error) {
-	panic("implement me")
+	return nil, fmt.Errorf("not implemented: Defragment")
 }
 
 func (m *maintenanceServer) Hash(_ context.Context, _ *pb.HashRequest) (*pb.HashResponse, error) {
-	panic("implement me")
+	return nil, fmt.Errorf("not implemented: Hash")
 }
 
 func (m *maintenanceServer) HashKV(_ context.Context, _ *pb.HashKVRequest) (*pb.HashKVResponse, error) {
-	panic("implement me")
+	return nil, fmt.Errorf("not implemented: HashKV")
 }
 
 func (m *maintenanceServer) Snapshot(_ *pb.SnapshotRequest, _ pb.Maintenance_SnapshotServer) error {
-	panic("implement me")
+	return fmt.Errorf("not implemented: Snapshot")
 }
 
 func (m *maintenanceServer) MoveLeader(_ context.Context, _ *pb.MoveLeaderRequest) (*pb.MoveLeaderResponse, error) {
-	panic("implement me")
+	return nil, fmt.Errorf("not implemented: MoveLeader")
 }
 
 func (m *maintenanceServer) Downgrade(_ context.Context, _ *pb.DowngradeRequest) (*pb.DowngradeResponse, error) {
-	panic("implement me")
+	return nil, fmt.Errorf("not implemented: Downgrade")
 }
 
 // clusterServerServer implements the ClusterServer grpc server.
@@ -127,15 +127,15 @@ type clusterServerServer struct {
 }
 
 func (c *clusterServerServer) MemberAdd(_ context.Context, _ *pb.MemberAddRequest) (*pb.MemberAddResponse, error) {
-	panic("implement me")
+	return nil, fmt.Errorf("not implemented: MemberAdd")
 }
 
 func (c *clusterServerServer) MemberRemove(_ context.Context, _ *pb.MemberRemoveRequest) (*pb.MemberRemoveResponse, error) {
-	panic("implement me")
+	return nil, fmt.Errorf("not implemented: MemberRemove")
 }
 
 func (c *clusterServerServer) MemberUpdate(_ context.Context, _ *pb.MemberUpdateRequest) (*pb.MemberUpdateResponse, error) {
-	panic("implement me")
+	return nil, fmt.Errorf("not implemented: MemberUpdate")
 }
 
 func (c *clusterServerServer) MemberList(ctx context.Context, _ *pb.MemberListRequest) (*pb.MemberListResponse, error) {
@@ -155,7 +155,7 @@ func (c *clusterServerServer) MemberList(ctx context.Context, _ *pb.MemberListRe
 }
 
 func (c *clusterServerServer) MemberPromote(_ context.Context, _ *pb.MemberPromoteRequest) (*pb.MemberPromoteResponse, error) {
-	panic("implement me")
+	return nil, fmt.Errorf("not implemented: MemberPromote")
 }
 
 type baseServer struct {

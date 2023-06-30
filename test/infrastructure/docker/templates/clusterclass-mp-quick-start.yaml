@@ -23,21 +23,6 @@ spec:
       name: quick-start-cluster
       namespace: default
   workers:
-    machineDeployments:
-    - class: default-worker
-      template:
-        bootstrap:
-          ref:
-            apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-            kind: KubeadmConfigTemplate
-            name: quick-start-default-worker-bootstraptemplate
-            namespace: default
-        infrastructure:
-          ref:
-            apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: DockerMachineTemplate
-            name: quick-start-default-worker-machinetemplate
-            namespace: default
     machinePools:
     - class: default-mp
       template:
@@ -287,31 +272,6 @@ kind: DockerMachinePool
 metadata:
   name: worker-dmp-0
   namespace: default
----
-apiVersion: cluster.x-k8s.io/v1beta1
-kind: MachinePool
-metadata:
-  name: worker-mp-0
-  namespace: default
-spec:
-  clusterName: quick-start-cluster
-  replicas: 2
-  template:
-    spec:
-      version: v1.27.1
-      clusterName: quick-start-cluster
-      bootstrap:
-        configRef:
-          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-          kind: KubeadmConfig
-          name: worker-mp-0-config
-          namespace: default
-        dataSecretName: worker-mp-0-config
-      infrastructureRef:
-        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: DockerMachinePool
-        name: worker-dmp-0
-        namespace: default
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
 kind: KubeadmConfig

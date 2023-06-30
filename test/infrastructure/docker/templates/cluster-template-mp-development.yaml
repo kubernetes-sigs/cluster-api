@@ -1,0 +1,65 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: "${CLUSTER_NAME}"
+  namespace: "${NAMESPACE}"
+spec:
+  clusterNetwork:
+    services:
+      cidrBlocks: ${SERVICE_CIDR:=["10.128.0.0/12"]}
+    pods:
+      cidrBlocks: ${POD_CIDR:=["192.168.0.0/16"]}
+    serviceDomain: ${SERVICE_DOMAIN:="cluster.local"}
+  topology:
+    class: quick-start
+    controlPlane:
+      metadata: {}
+      replicas: 1
+    variables:
+    - name: imageRepository
+      value: ""
+    - name: etcdImageTag
+      value: ""
+    - name: coreDNSImageTag
+      value: ""
+    - name: podSecurityStandard
+      value:
+        enabled: ${POD_SECURITY_STANDARD_ENABLED:=true}
+        enforce: "baseline"
+        audit: "restricted"
+        warn: "restricted"
+    version: 1.27.1
+    workers:
+      # machineDeployments:
+      # - class: default-worker
+      #   name: md-0
+      #   replicas: ${WORKER_MACHINE_COUNT}
+      machinePools:
+      - class: default-mp
+        name: mp-0
+        replicas: 1
+---
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: MachinePool
+metadata:
+  name: worker-mp-0
+  namespace: default
+spec:
+  clusterName: "${CLUSTER_NAME}"
+  replicas: 2
+  template:
+    spec:
+      version: v1.27.1
+      clusterName: "${CLUSTER_NAME}"
+      bootstrap:
+        configRef:
+          apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
+          kind: KubeadmConfig
+          name: worker-mp-0-config
+          namespace: default
+        dataSecretName: worker-mp-0-config
+      infrastructureRef:
+        apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
+        kind: DockerMachinePool
+        name: worker-dmp-0
+        namespace: default

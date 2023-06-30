@@ -29,7 +29,9 @@ import (
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	cliflag "k8s.io/component-base/cli/flag"
@@ -261,6 +263,9 @@ func main() {
 		goruntime.SetBlockProfileRate(1)
 	}
 
+	req, _ := labels.NewRequirement(clusterv1.ClusterNameLabel, selection.Exists, nil)
+	clusterSecretCacheSelector := labels.NewSelector().Add(*req)
+
 	ctrlOptions := ctrl.Options{
 		Scheme:                     scheme,
 		MetricsBindAddress:         metricsBindAddr,
@@ -275,6 +280,14 @@ func main() {
 		Cache: cache.Options{
 			Namespaces: watchNamespaces,
 			SyncPeriod: &syncPeriod,
+			ByObject: map[client.Object]cache.ByObject{
+				// Note: Only Secrets with the cluster name label are cached.
+				// The default client of the manager won't use the cache for secrets at all (see Client.Cache.DisableFor).
+				// The cached secrets will only be used by the secretCachingClient we create below.
+				&corev1.Secret{}: {
+					Label: clusterSecretCacheSelector,
+				},
+			},
 		},
 		Client: client.Options{
 			Cache: &client.CacheOptions{
@@ -335,15 +348,27 @@ func setupIndexes(ctx context.Context, mgr ctrl.Manager) {
 }
 
 func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
+	secretCachingClient, err := client.New(mgr.GetConfig(), client.Options{
+		HTTPClient: mgr.GetHTTPClient(),
+		Cache: &client.CacheOptions{
+			Reader: mgr.GetCache(),
+		},
+	})
+	if err != nil {
+		setupLog.Error(err, "unable to create secret caching client")
+		os.Exit(1)
+	}
+
 	// Set up a ClusterCacheTracker and ClusterCacheReconciler to provide to controllers
 	// requiring a connection to a remote cluster
 	log := ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")
 	tracker, err := remote.NewClusterCacheTracker(
 		mgr,
 		remote.ClusterCacheTrackerOptions{
-			ControllerName: controllerName,
-			Log:            &log,
-			Indexes:        []remote.Index{remote.NodeProviderIDIndex},
+			SecretCachingClient: secretCachingClient,
+			ControllerName:      controllerName,
+			Log:                 &log,
+			Indexes:             []remote.Index{remote.NodeProviderIDIndex},
 		},
 	)
 	if err != nil {

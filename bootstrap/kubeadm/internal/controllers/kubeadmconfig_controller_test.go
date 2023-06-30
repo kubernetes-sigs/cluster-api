@@ -78,7 +78,8 @@ func TestKubeadmConfigReconciler_MachineToBootstrapMapFuncReturn(t *testing.T) {
 	}
 	fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 	reconciler := &KubeadmConfigReconciler{
-		Client: fakeClient,
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
 	}
 	for i := 0; i < 3; i++ {
 		o := machineObjs[i]
@@ -110,7 +111,8 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfKubeadmConfigIsReady(t *
 	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
 
 	k := &KubeadmConfigReconciler{
-		Client: myclient,
+		Client:              myclient,
+		SecretCachingClient: myclient,
 	}
 
 	request := ctrl.Request{
@@ -163,7 +165,8 @@ func TestKubeadmConfigReconciler_TestSecretOwnerReferenceReconciliation(t *testi
 	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 	k := &KubeadmConfigReconciler{
-		Client: myclient,
+		Client:              myclient,
+		SecretCachingClient: myclient,
 	}
 
 	request := ctrl.Request{
@@ -241,7 +244,8 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfReferencedMachineIsNotFoun
 	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
 
 	k := &KubeadmConfigReconciler{
-		Client: myclient,
+		Client:              myclient,
+		SecretCachingClient: myclient,
 	}
 
 	request := ctrl.Request{
@@ -277,7 +281,8 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasDataSecretName
 	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 	k := &KubeadmConfigReconciler{
-		Client: myclient,
+		Client:              myclient,
+		SecretCachingClient: myclient,
 	}
 
 	request := ctrl.Request{
@@ -320,7 +325,8 @@ func TestKubeadmConfigReconciler_ReturnEarlyIfClusterInfraNotReady(t *testing.T)
 	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 	k := &KubeadmConfigReconciler{
-		Client: myclient,
+		Client:              myclient,
+		SecretCachingClient: myclient,
 	}
 
 	request := ctrl.Request{
@@ -354,7 +360,8 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnEarlyIfMachineHasNoCluster(t *t
 	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
 
 	k := &KubeadmConfigReconciler{
-		Client: myclient,
+		Client:              myclient,
+		SecretCachingClient: myclient,
 	}
 
 	request := ctrl.Request{
@@ -388,7 +395,8 @@ func TestKubeadmConfigReconciler_Reconcile_ReturnNilIfAssociatedClusterIsNotFoun
 	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
 
 	k := &KubeadmConfigReconciler{
-		Client: myclient,
+		Client:              myclient,
+		SecretCachingClient: myclient,
 	}
 
 	request := ctrl.Request{
@@ -455,8 +463,9 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueJoiningNodesIfControlPlaneNotI
 			myclient := fake.NewClientBuilder().WithObjects(tc.objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 			k := &KubeadmConfigReconciler{
-				Client:          myclient,
-				KubeadmInitLock: &myInitLocker{},
+				Client:              myclient,
+				SecretCachingClient: myclient,
+				KubeadmInitLock:     &myInitLocker{},
 			}
 
 			result, err := k.Reconcile(ctx, tc.request)
@@ -497,9 +506,10 @@ func TestKubeadmConfigReconciler_Reconcile_GenerateCloudConfigData(t *testing.T)
 	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 	k := &KubeadmConfigReconciler{
-		Client:          myclient,
-		Tracker:         remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
-		KubeadmInitLock: &myInitLocker{},
+		Client:              myclient,
+		SecretCachingClient: myclient,
+		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		KubeadmInitLock:     &myInitLocker{},
 	}
 
 	request := ctrl.Request{
@@ -558,9 +568,10 @@ func TestKubeadmConfigReconciler_Reconcile_ErrorIfJoiningControlPlaneHasInvalidC
 	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 	k := &KubeadmConfigReconciler{
-		Client:          myclient,
-		Tracker:         remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
-		KubeadmInitLock: &myInitLocker{},
+		Client:              myclient,
+		SecretCachingClient: myclient,
+		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		KubeadmInitLock:     &myInitLocker{},
 	}
 
 	request := ctrl.Request{
@@ -602,8 +613,9 @@ func TestKubeadmConfigReconciler_Reconcile_RequeueIfControlPlaneIsMissingAPIEndp
 	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 	k := &KubeadmConfigReconciler{
-		Client:          myclient,
-		KubeadmInitLock: &myInitLocker{},
+		Client:              myclient,
+		SecretCachingClient: myclient,
+		KubeadmInitLock:     &myInitLocker{},
 	}
 
 	request := ctrl.Request{
@@ -679,9 +691,10 @@ func TestReconcileIfJoinCertificatesAvailableConditioninNodesAndControlPlaneIsRe
 			objects = append(objects, createSecrets(t, cluster, config)...)
 			myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 			k := &KubeadmConfigReconciler{
-				Client:          myclient,
-				Tracker:         remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
-				KubeadmInitLock: &myInitLocker{},
+				Client:              myclient,
+				SecretCachingClient: myclient,
+				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				KubeadmInitLock:     &myInitLocker{},
 			}
 
 			request := ctrl.Request{
@@ -756,9 +769,10 @@ func TestReconcileIfJoinNodePoolsAndControlPlaneIsReady(t *testing.T) {
 			objects = append(objects, createSecrets(t, cluster, config)...)
 			myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 			k := &KubeadmConfigReconciler{
-				Client:          myclient,
-				Tracker:         remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
-				KubeadmInitLock: &myInitLocker{},
+				Client:              myclient,
+				SecretCachingClient: myclient,
+				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				KubeadmInitLock:     &myInitLocker{},
 			}
 
 			request := ctrl.Request{
@@ -856,9 +870,10 @@ func TestBootstrapDataFormat(t *testing.T) {
 			myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 
 			k := &KubeadmConfigReconciler{
-				Client:          myclient,
-				Tracker:         remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
-				KubeadmInitLock: &myInitLocker{},
+				Client:              myclient,
+				SecretCachingClient: myclient,
+				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				KubeadmInitLock:     &myInitLocker{},
 			}
 			request := ctrl.Request{
 				NamespacedName: client.ObjectKey{
@@ -936,9 +951,10 @@ func TestKubeadmConfigSecretCreatedStatusNotPatched(t *testing.T) {
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
 	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 	k := &KubeadmConfigReconciler{
-		Client:          myclient,
-		Tracker:         remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
-		KubeadmInitLock: &myInitLocker{},
+		Client:              myclient,
+		SecretCachingClient: myclient,
+		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		KubeadmInitLock:     &myInitLocker{},
 	}
 	request := ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -1013,10 +1029,11 @@ func TestBootstrapTokenTTLExtension(t *testing.T) {
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
 	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}, &clusterv1.Machine{}).Build()
 	k := &KubeadmConfigReconciler{
-		Client:          myclient,
-		Tracker:         remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
-		KubeadmInitLock: &myInitLocker{},
-		TokenTTL:        DefaultTokenTTL,
+		Client:              myclient,
+		SecretCachingClient: myclient,
+		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		KubeadmInitLock:     &myInitLocker{},
+		TokenTTL:            DefaultTokenTTL,
 	}
 	request := ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -1214,10 +1231,11 @@ func TestBootstrapTokenRotationMachinePool(t *testing.T) {
 	objects = append(objects, createSecrets(t, cluster, initConfig)...)
 	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}, &expv1.MachinePool{}).Build()
 	k := &KubeadmConfigReconciler{
-		Client:          myclient,
-		Tracker:         remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
-		KubeadmInitLock: &myInitLocker{},
-		TokenTTL:        DefaultTokenTTL,
+		Client:              myclient,
+		SecretCachingClient: myclient,
+		Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+		KubeadmInitLock:     &myInitLocker{},
+		TokenTTL:            DefaultTokenTTL,
 	}
 	request := ctrl.Request{
 		NamespacedName: client.ObjectKey{
@@ -1497,9 +1515,10 @@ func TestKubeadmConfigReconciler_Reconcile_DiscoveryReconcileBehaviors(t *testin
 
 			fakeClient := fake.NewClientBuilder().Build()
 			k := &KubeadmConfigReconciler{
-				Client:          fakeClient,
-				Tracker:         remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), fakeClient, fakeClient.Scheme(), client.ObjectKey{Name: tc.cluster.Name, Namespace: tc.cluster.Namespace}),
-				KubeadmInitLock: &myInitLocker{},
+				Client:              fakeClient,
+				SecretCachingClient: fakeClient,
+				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), fakeClient, fakeClient.Scheme(), client.ObjectKey{Name: tc.cluster.Name, Namespace: tc.cluster.Namespace}),
+				KubeadmInitLock:     &myInitLocker{},
 			}
 
 			res, err := k.reconcileDiscovery(ctx, tc.cluster, tc.config, secret.Certificates{})
@@ -1713,9 +1732,10 @@ func TestKubeadmConfigReconciler_Reconcile_AlwaysCheckCAVerificationUnlessReques
 
 			myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
 			reconciler := KubeadmConfigReconciler{
-				Client:          myclient,
-				Tracker:         remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
-				KubeadmInitLock: &myInitLocker{},
+				Client:              myclient,
+				SecretCachingClient: myclient,
+				Tracker:             remote.NewTestClusterCacheTracker(logr.New(log.NullLogSink{}), myclient, myclient.Scheme(), client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}),
+				KubeadmInitLock:     &myInitLocker{},
 			}
 
 			wc := newWorkerJoinKubeadmConfig(metav1.NamespaceDefault, "worker-join-cfg")
@@ -1767,7 +1787,8 @@ func TestKubeadmConfigReconciler_ClusterToKubeadmConfigs(t *testing.T) {
 	}
 	fakeClient := fake.NewClientBuilder().WithObjects(objs...).Build()
 	reconciler := &KubeadmConfigReconciler{
-		Client: fakeClient,
+		Client:              fakeClient,
+		SecretCachingClient: fakeClient,
 	}
 	configs := reconciler.ClusterToKubeadmConfigs(ctx, cluster)
 	names := make([]string, 6)
@@ -1806,8 +1827,9 @@ func TestKubeadmConfigReconciler_Reconcile_DoesNotFailIfCASecretsAlreadyExist(t 
 	}
 	fakec := fake.NewClientBuilder().WithObjects(cluster, m, c, scrt).Build()
 	reconciler := &KubeadmConfigReconciler{
-		Client:          fakec,
-		KubeadmInitLock: &myInitLocker{},
+		Client:              fakec,
+		SecretCachingClient: fakec,
+		KubeadmInitLock:     &myInitLocker{},
 	}
 	req := ctrl.Request{
 		NamespacedName: client.ObjectKey{Namespace: metav1.NamespaceDefault, Name: configName},
@@ -1840,8 +1862,9 @@ func TestKubeadmConfigReconciler_Reconcile_ExactlyOneControlPlaneMachineInitiali
 	}
 	myclient := fake.NewClientBuilder().WithObjects(objects...).WithStatusSubresource(&bootstrapv1.KubeadmConfig{}).Build()
 	k := &KubeadmConfigReconciler{
-		Client:          myclient,
-		KubeadmInitLock: &myInitLocker{},
+		Client:              myclient,
+		SecretCachingClient: myclient,
+		KubeadmInitLock:     &myInitLocker{},
 	}
 
 	request := ctrl.Request{
@@ -1906,8 +1929,9 @@ func TestKubeadmConfigReconciler_Reconcile_PatchWhenErrorOccurred(t *testing.T) 
 
 	myclient := fake.NewClientBuilder().WithObjects(objects...).Build()
 	k := &KubeadmConfigReconciler{
-		Client:          myclient,
-		KubeadmInitLock: &myInitLocker{},
+		Client:              myclient,
+		SecretCachingClient: myclient,
+		KubeadmInitLock:     &myInitLocker{},
 	}
 
 	request := ctrl.Request{
@@ -2042,8 +2066,9 @@ func TestKubeadmConfigReconciler_ResolveFiles(t *testing.T) {
 
 			myclient := fake.NewClientBuilder().WithObjects(tc.objects...).Build()
 			k := &KubeadmConfigReconciler{
-				Client:          myclient,
-				KubeadmInitLock: &myInitLocker{},
+				Client:              myclient,
+				SecretCachingClient: myclient,
+				KubeadmInitLock:     &myInitLocker{},
 			}
 
 			// make a list of files we expect to be sourced from secrets
@@ -2168,8 +2193,9 @@ func TestKubeadmConfigReconciler_ResolveUsers(t *testing.T) {
 
 			myclient := fake.NewClientBuilder().WithObjects(tc.objects...).Build()
 			k := &KubeadmConfigReconciler{
-				Client:          myclient,
-				KubeadmInitLock: &myInitLocker{},
+				Client:              myclient,
+				SecretCachingClient: myclient,
+				KubeadmInitLock:     &myInitLocker{},
 			}
 
 			// make a list of password we expect to be sourced from secrets

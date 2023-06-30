@@ -70,10 +70,11 @@ const (
 
 // KubeadmControlPlaneReconciler reconciles a KubeadmControlPlane object.
 type KubeadmControlPlaneReconciler struct {
-	Client     client.Client
-	controller controller.Controller
-	recorder   record.EventRecorder
-	Tracker    *remote.ClusterCacheTracker
+	Client              client.Client
+	SecretCachingClient client.Client
+	controller          controller.Controller
+	recorder            record.EventRecorder
+	Tracker             *remote.ClusterCacheTracker
 
 	EtcdDialTimeout time.Duration
 	EtcdCallTimeout time.Duration
@@ -121,10 +122,11 @@ func (r *KubeadmControlPlaneReconciler) SetupWithManager(ctx context.Context, mg
 			return errors.New("cluster cache tracker is nil, cannot create the internal management cluster resource")
 		}
 		r.managementCluster = &internal.Management{
-			Client:          r.Client,
-			Tracker:         r.Tracker,
-			EtcdDialTimeout: r.EtcdDialTimeout,
-			EtcdCallTimeout: r.EtcdCallTimeout,
+			Client:              r.Client,
+			SecretCachingClient: r.SecretCachingClient,
+			Tracker:             r.Tracker,
+			EtcdDialTimeout:     r.EtcdDialTimeout,
+			EtcdCallTimeout:     r.EtcdCallTimeout,
 		}
 	}
 
@@ -482,7 +484,7 @@ func (r *KubeadmControlPlaneReconciler) reconcileClusterCertificates(ctx context
 	}
 	certificates := secret.NewCertificatesForInitialControlPlane(config.ClusterConfiguration)
 	controllerRef := metav1.NewControllerRef(controlPlane.KCP, controlplanev1.GroupVersion.WithKind(kubeadmControlPlaneKind))
-	if err := certificates.LookupOrGenerate(ctx, r.Client, util.ObjectKey(controlPlane.Cluster), *controllerRef); err != nil {
+	if err := certificates.LookupOrGenerateCached(ctx, r.SecretCachingClient, r.Client, util.ObjectKey(controlPlane.Cluster), *controllerRef); err != nil {
 		log.Error(err, "unable to lookup or create cluster certificates")
 		conditions.MarkFalse(controlPlane.KCP, controlplanev1.CertificatesAvailableCondition, controlplanev1.CertificatesGenerationFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
 		return ctrl.Result{}, err
@@ -626,35 +628,40 @@ func (r *KubeadmControlPlaneReconciler) syncMachines(ctx context.Context, contro
 			{"f:metadata", "f:annotations"},
 			{"f:metadata", "f:labels"},
 		}
-		infraMachine := controlPlane.InfraResources[machineName]
-		// Cleanup managed fields of all InfrastructureMachines to drop ownership of labels and annotations
-		// from "manager". We do this so that InfrastructureMachines that are created using the Create method
-		// can also work with SSA. Otherwise, labels and annotations would be co-owned by our "old" "manager"
-		// and "capi-kubeadmcontrolplane" and then we would not be able to e.g. drop labels and annotations.
-		if err := ssa.DropManagedFields(ctx, r.Client, infraMachine, kcpManagerName, labelsAndAnnotationsManagedFieldPaths); err != nil {
-			return errors.Wrapf(err, "failed to clean up managedFields of InfrastructureMachine %s", klog.KObj(infraMachine))
-		}
-		// Update in-place mutating fields on InfrastructureMachine.
-		if err := r.updateExternalObject(ctx, infraMachine, controlPlane.KCP, controlPlane.Cluster); err != nil {
-			return errors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
+		infraMachine, infraMachineFound := controlPlane.InfraResources[machineName]
+		// Only update the InfraMachine if it is already found, otherwise just skip it.
+		// This could happen e.g. if the cache is not up-to-date yet.
+		if infraMachineFound {
+			// Cleanup managed fields of all InfrastructureMachines to drop ownership of labels and annotations
+			// from "manager". We do this so that InfrastructureMachines that are created using the Create method
+			// can also work with SSA. Otherwise, labels and annotations would be co-owned by our "old" "manager"
+			// and "capi-kubeadmcontrolplane" and then we would not be able to e.g. drop labels and annotations.
+			if err := ssa.DropManagedFields(ctx, r.Client, infraMachine, kcpManagerName, labelsAndAnnotationsManagedFieldPaths); err != nil {
+				return errors.Wrapf(err, "failed to clean up managedFields of InfrastructureMachine %s", klog.KObj(infraMachine))
+			}
+			// Update in-place mutating fields on InfrastructureMachine.
+			if err := r.updateExternalObject(ctx, infraMachine, controlPlane.KCP, controlPlane.Cluster); err != nil {
+				return errors.Wrapf(err, "failed to update InfrastructureMachine %s", klog.KObj(infraMachine))
+			}
 		}
 
-		kubeadmConfig, ok := controlPlane.GetKubeadmConfig(machineName)
-		if !ok || kubeadmConfig == nil {
-			return errors.Wrapf(err, "failed to retrieve KubeadmConfig for machine %s", machineName)
-		}
-		// Note: Set the GroupVersionKind because updateExternalObject depends on it.
-		kubeadmConfig.SetGroupVersionKind(m.Spec.Bootstrap.ConfigRef.GroupVersionKind())
-		// Cleanup managed fields of all KubeadmConfigs to drop ownership of labels and annotations
-		// from "manager". We do this so that KubeadmConfigs that are created using the Create method
-		// can also work with SSA. Otherwise, labels and annotations would be co-owned by our "old" "manager"
-		// and "capi-kubeadmcontrolplane" and then we would not be able to e.g. drop labels and annotations.
-		if err := ssa.DropManagedFields(ctx, r.Client, kubeadmConfig, kcpManagerName, labelsAndAnnotationsManagedFieldPaths); err != nil {
-			return errors.Wrapf(err, "failed to clean up managedFields of KubeadmConfig %s", klog.KObj(kubeadmConfig))
-		}
-		// Update in-place mutating fields on BootstrapConfig.
-		if err := r.updateExternalObject(ctx, kubeadmConfig, controlPlane.KCP, controlPlane.Cluster); err != nil {
-			return errors.Wrapf(err, "failed to update KubeadmConfig %s", klog.KObj(kubeadmConfig))
+		kubeadmConfig, kubeadmConfigFound := controlPlane.KubeadmConfigs[machineName]
+		// Only update the KubeadmConfig if it is already found, otherwise just skip it.
+		// This could happen e.g. if the cache is not up-to-date yet.
+		if kubeadmConfigFound {
+			// Note: Set the GroupVersionKind because updateExternalObject depends on it.
+			kubeadmConfig.SetGroupVersionKind(m.Spec.Bootstrap.ConfigRef.GroupVersionKind())
+			// Cleanup managed fields of all KubeadmConfigs to drop ownership of labels and annotations
+			// from "manager". We do this so that KubeadmConfigs that are created using the Create method
+			// can also work with SSA. Otherwise, labels and annotations would be co-owned by our "old" "manager"
+			// and "capi-kubeadmcontrolplane" and then we would not be able to e.g. drop labels and annotations.
+			if err := ssa.DropManagedFields(ctx, r.Client, kubeadmConfig, kcpManagerName, labelsAndAnnotationsManagedFieldPaths); err != nil {
+				return errors.Wrapf(err, "failed to clean up managedFields of KubeadmConfig %s", klog.KObj(kubeadmConfig))
+			}
+			// Update in-place mutating fields on BootstrapConfig.
+			if err := r.updateExternalObject(ctx, kubeadmConfig, controlPlane.KCP, controlPlane.Cluster); err != nil {
+				return errors.Wrapf(err, "failed to update KubeadmConfig %s", klog.KObj(kubeadmConfig))
+			}
 		}
 	}
 	// Update the patch helpers.

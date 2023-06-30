@@ -97,7 +97,8 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 	h.log.Info(fmt.Sprintf("Serving Watch for %v", req.Request.URL))
 	// With an unbuffered event channel RemoveEventHandler could be blocked because it requires a lock on the informer.
 	// When Run stops reading from the channel the informer could be blocked with an unbuffered chanel and then RemoveEventHandler never goes through.
-	events := make(chan *Event, 10)
+	// 1000 is used to avoid deadlocks in clusters with a higher number of Machines/Nodes.
+	events := make(chan *Event, 1000)
 	watcher := &WatchEventDispatcher{
 		resourceGroup: resourceGroup,
 		events:        events,
@@ -109,8 +110,8 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 
 	// Defer cleanup which removes the event handler and ensures the channel is empty of events.
 	defer func() {
-		reterr = i.RemoveEventHandler(watcher)
 		// Doing this to ensure the channel is empty.
+		// This reduces the probability of a deadlock when removing the event handler.
 	L:
 		for {
 			select {
@@ -119,6 +120,8 @@ func (h *apiServerHandler) watchForResource(req *restful.Request, resp *restful.
 				break L
 			}
 		}
+		reterr = i.RemoveEventHandler(watcher)
+		// Note: After we removed the handler, no new events will be written to the events channel.
 	}()
 
 	return watcher.Run(ctx, queryTimeout, resp)

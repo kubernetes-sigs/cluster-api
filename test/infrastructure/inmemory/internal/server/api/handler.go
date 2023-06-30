@@ -542,7 +542,7 @@ func requestToGVK(req *restful.Request) (*schema.GroupVersionKind, error) {
 	}
 	gv, err := schema.ParseGroupVersion(resourceList.GroupVersion)
 	if err != nil {
-		panic(fmt.Sprintf("invalid group version in APIResourceList: %s", resourceList.GroupVersion))
+		return nil, errors.Errorf("invalid group version in APIResourceList: %s", resourceList.GroupVersion)
 	}
 
 	resource := req.PathParameter("resource")

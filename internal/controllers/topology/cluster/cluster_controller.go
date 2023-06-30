@@ -135,11 +135,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Fetch the Cluster instance.
 	cluster := &clusterv1.Cluster{}
-	// Use the live client here so that we do not reconcile a stale cluster object.
-	// Example: If 2 reconcile loops are triggered in quick succession (one from the cluster and the other from the clusterclass)
-	// the first reconcile loop could update the cluster object (set the infrastructure cluster ref and control plane ref). If we
-	// do not use the live client the second reconcile loop could potentially pick up the stale cluster object from the cache.
-	if err := r.APIReader.Get(ctx, req.NamespacedName, cluster); err != nil {
+	if err := r.Client.Get(ctx, req.NamespacedName, cluster); err != nil {
 		if apierrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}

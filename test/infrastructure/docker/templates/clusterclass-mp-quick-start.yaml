@@ -29,8 +29,8 @@ spec:
         bootstrap:
           ref:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-            kind: KubeadmConfigTemplate
-            name: quick-start-default-worker-bootstraptemplate
+            kind: KubeadmConfig
+            name: worker-mp-0-config
             namespace: default
         infrastructure:
           ref:
@@ -255,17 +255,6 @@ spec:
       extraMounts:
       - containerPath: "/var/run/docker.sock"
         hostPath: "/var/run/docker.sock"
----
-apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-kind: KubeadmConfigTemplate
-metadata:
-  name: quick-start-default-worker-bootstraptemplate
-  namespace: default
-spec:
-  template:
-    spec:
-      joinConfiguration:
-        nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachinePool

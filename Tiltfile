@@ -454,6 +454,10 @@ def deploy_observability():
         k8s_yaml(read_file("./.tiltbuild/yaml/parca.observability.yaml"), allow_duplicates = True)
         k8s_resource(workload = "parca", new_name = "parca", port_forwards = "7070", extra_pod_selectors = [{"app": "parca"}], labels = ["observability"], objects = ["parca:serviceaccount"])
 
+    if "metrics-server" in settings.get("deploy_observability", []):
+        k8s_yaml(read_file("./.tiltbuild/yaml/metrics-server.observability.yaml"), allow_duplicates = True)
+        k8s_resource(workload = "metrics-server", new_name = "metrics-server", extra_pod_selectors = [{"app": "metrics-server"}], labels = ["observability"], objects = ["metrics-server:serviceaccount"])
+
     if "visualizer" in settings.get("deploy_observability", []):
         k8s_yaml(read_file("./.tiltbuild/yaml/visualizer.observability.yaml"), allow_duplicates = True)
         k8s_resource(

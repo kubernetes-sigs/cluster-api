@@ -203,6 +203,7 @@ Supported values are:
   * `grafana`*: To create dashboards and query `loki`, `prometheus` and `tempo`.
   * `kube-state-metrics`: For exposing metrics for Kubernetes and CAPI resources to `prometheus`.
   * `loki`: To receive and store logs.
+  * `metrics-server`: To enable `kubectl top node/pod`.
   * `prometheus`*: For collecting metrics from Kubernetes.
   * `promtail`: For providing pod logs to `loki`.
   * `parca`*: For visualizing profiling data.

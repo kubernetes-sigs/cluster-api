@@ -143,8 +143,9 @@ func (r *DockerMachineReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		}
 	}()
 
-	// Add finalizer first if not exist to avoid the race condition between init and delete
-	if !controllerutil.ContainsFinalizer(dockerMachine, infrav1.MachineFinalizer) {
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
+	if dockerMachine.ObjectMeta.DeletionTimestamp.IsZero() && !controllerutil.ContainsFinalizer(dockerMachine, infrav1.MachineFinalizer) {
 		controllerutil.AddFinalizer(dockerMachine, infrav1.MachineFinalizer)
 		return ctrl.Result{}, nil
 	}

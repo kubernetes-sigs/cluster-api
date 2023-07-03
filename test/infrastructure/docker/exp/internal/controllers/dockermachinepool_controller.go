@@ -119,15 +119,16 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		}
 	}()
 
-	// Add finalizer first if not exist to avoid the race condition between init and delete
-	if !controllerutil.ContainsFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer) {
-		controllerutil.AddFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
-		return ctrl.Result{}, nil
-	}
-
 	// Handle deleted machines
 	if !dockerMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, cluster, machinePool, dockerMachinePool)
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
+	if !controllerutil.ContainsFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer) {
+		controllerutil.AddFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
+		return ctrl.Result{}, nil
 	}
 
 	// Handle non-deleted machines

@@ -136,8 +136,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return r.reconcileDelete(ctx, ms)
 	}
 
-	// If the MachineSet is not being deleted ensure the finalizer is set.
-	controllerutil.AddFinalizer(ms, clusterv1.MachineSetTopologyFinalizer)
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
+	if !controllerutil.ContainsFinalizer(ms, clusterv1.MachineSetTopologyFinalizer) {
+		controllerutil.AddFinalizer(ms, clusterv1.MachineSetTopologyFinalizer)
+		return ctrl.Result{}, nil
+	}
 
 	return ctrl.Result{}, nil
 }

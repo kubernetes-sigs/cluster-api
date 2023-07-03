@@ -169,15 +169,16 @@ func (r *InMemoryMachineReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		}
 	}()
 
-	// Add finalizer first if not exist to avoid the race condition between init and delete
-	if !controllerutil.ContainsFinalizer(inMemoryMachine, infrav1.MachineFinalizer) {
-		controllerutil.AddFinalizer(inMemoryMachine, infrav1.MachineFinalizer)
-		return ctrl.Result{}, nil
-	}
-
 	// Handle deleted machines
 	if !inMemoryMachine.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, cluster, machine, inMemoryMachine)
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
+	if !controllerutil.ContainsFinalizer(inMemoryMachine, infrav1.MachineFinalizer) {
+		controllerutil.AddFinalizer(inMemoryMachine, infrav1.MachineFinalizer)
+		return ctrl.Result{}, nil
 	}
 
 	// Handle non-deleted machines

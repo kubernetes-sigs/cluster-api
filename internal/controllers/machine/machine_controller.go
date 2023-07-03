@@ -195,12 +195,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 	}
 	m.Labels[clusterv1.ClusterNameLabel] = m.Spec.ClusterName
 
-	// Add finalizer first if not exist to avoid the race condition between init and delete
-	if !controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer) {
-		controllerutil.AddFinalizer(m, clusterv1.MachineFinalizer)
-		return ctrl.Result{}, nil
-	}
-
 	// Handle deletion reconciliation loop.
 	if !m.ObjectMeta.DeletionTimestamp.IsZero() {
 		res, err := r.reconcileDelete(ctx, cluster, m)
@@ -211,6 +205,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			return ctrl.Result{Requeue: true}, nil
 		}
 		return res, err
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
+	if !controllerutil.ContainsFinalizer(m, clusterv1.MachineFinalizer) {
+		controllerutil.AddFinalizer(m, clusterv1.MachineFinalizer)
+		return ctrl.Result{}, nil
 	}
 
 	// Handle normal reconciliation loop.

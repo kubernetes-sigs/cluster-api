@@ -264,6 +264,25 @@ func MachineDeploymentClassesAreUnique(clusterClass *clusterv1.ClusterClass) fie
 	return allErrs
 }
 
+// MachinePoolClassesAreUnique checks that no two MachinePoolClasses in a ClusterClass share a name.
+func MachinePoolClassesAreUnique(clusterClass *clusterv1.ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+	classes := sets.Set[string]{}
+	for i, class := range clusterClass.Spec.Workers.MachinePools {
+		if classes.Has(class.Class) {
+			allErrs = append(allErrs,
+				field.Invalid(
+					field.NewPath("spec", "workers", "machinePools").Index(i).Child("class"),
+					class.Class,
+					fmt.Sprintf("MachinePool class must be unique. MachinePool with class %q is defined more than once", class.Class),
+				),
+			)
+		}
+		classes.Insert(class.Class)
+	}
+	return allErrs
+}
+
 // MachineDeploymentTopologiesAreValidAndDefinedInClusterClass checks that each MachineDeploymentTopology name is not empty
 // and unique, and each class in use is defined in ClusterClass.spec.Workers.MachineDeployments.
 func MachineDeploymentTopologiesAreValidAndDefinedInClusterClass(desired *clusterv1.Cluster, clusterClass *clusterv1.ClusterClass) field.ErrorList {

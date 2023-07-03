@@ -493,7 +493,7 @@ func DefaultAndValidateVariables(cluster *clusterv1.Cluster, clusterClass *clust
 			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
 				continue
 			}
-			allErrs = append(allErrs, variables.ValidateMachineDeploymentVariables(md.Variables.Overrides, clusterClass.Status.Variables,
+			allErrs = append(allErrs, variables.ValidateMachineVariables(md.Variables.Overrides, clusterClass.Status.Variables,
 				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))...)
 		}
 		for i, mp := range cluster.Spec.Topology.Workers.MachinePools {
@@ -501,7 +501,7 @@ func DefaultAndValidateVariables(cluster *clusterv1.Cluster, clusterClass *clust
 			if mp.Variables == nil || len(mp.Variables.Overrides) == 0 {
 				continue
 			}
-			allErrs = append(allErrs, variables.ValidateMachineDeploymentVariables(mp.Variables.Overrides, clusterClass.Status.Variables,
+			allErrs = append(allErrs, variables.ValidateMachineVariables(mp.Variables.Overrides, clusterClass.Status.Variables,
 				field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("variables", "overrides"))...)
 		}
 	}
@@ -531,7 +531,7 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 			if md.Variables == nil || len(md.Variables.Overrides) == 0 {
 				continue
 			}
-			defaultedVariables, errs := variables.DefaultMachineDeploymentVariables(md.Variables.Overrides, clusterClass.Status.Variables,
+			defaultedVariables, errs := variables.DefaultMachineVariables(md.Variables.Overrides, clusterClass.Status.Variables,
 				field.NewPath("spec", "topology", "workers", "machineDeployments").Index(i).Child("variables", "overrides"))
 			if len(errs) > 0 {
 				allErrs = append(allErrs, errs...)
@@ -544,7 +544,7 @@ func DefaultVariables(cluster *clusterv1.Cluster, clusterClass *clusterv1.Cluste
 			if mp.Variables == nil || len(mp.Variables.Overrides) == 0 {
 				continue
 			}
-			defaultedVariables, errs := variables.DefaultMachineDeploymentVariables(mp.Variables.Overrides, clusterClass.Status.Variables,
+			defaultedVariables, errs := variables.DefaultMachineVariables(mp.Variables.Overrides, clusterClass.Status.Variables,
 				field.NewPath("spec", "topology", "workers", "machinePools").Index(i).Child("variables", "overrides"))
 			if len(errs) > 0 {
 				allErrs = append(allErrs, errs...)

@@ -182,7 +182,7 @@ func (r *Reconciler) reconcileExternalReferences(ctx context.Context, clusterCla
 	// Nb. Some external objects can be referenced multiple times in the ClusterClass,
 	// but we only want to set the owner reference once per unique external object.
 	// For example the same KubeadmConfigTemplate could be referenced in multiple MachineDeployment
-	// classes.
+	// or MachinePool classes.
 	errs := []error{}
 	reconciledRefs := sets.Set[string]{}
 	outdatedRefs := map[*corev1.ObjectReference]*corev1.ObjectReference{}

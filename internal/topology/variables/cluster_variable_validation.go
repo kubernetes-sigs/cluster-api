@@ -35,8 +35,8 @@ func ValidateClusterVariables(values []clusterv1.ClusterVariable, definitions []
 	return validateClusterVariables(values, definitions, true, fldPath)
 }
 
-// ValidateMachineDeploymentVariables validates ValidateMachineDeploymentVariables.
-func ValidateMachineDeploymentVariables(values []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, fldPath *field.Path) field.ErrorList {
+// ValidateMachineVariables validates MachineDeployment and MachinePool variables.
+func ValidateMachineVariables(values []clusterv1.ClusterVariable, definitions []clusterv1.ClusterClassStatusVariable, fldPath *field.Path) field.ErrorList {
 	return validateClusterVariables(values, definitions, false, fldPath)
 }
 

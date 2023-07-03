@@ -77,6 +77,12 @@ func (webhook *ClusterClass) Default(_ context.Context, obj runtime.Object) erro
 		defaultNamespace(in.Spec.Workers.MachineDeployments[i].Template.Bootstrap.Ref, in.Namespace)
 		defaultNamespace(in.Spec.Workers.MachineDeployments[i].Template.Infrastructure.Ref, in.Namespace)
 	}
+
+	for i := range in.Spec.Workers.MachinePools {
+		defaultNamespace(in.Spec.Workers.MachinePools[i].Template.Bootstrap.Ref, in.Namespace)
+		defaultNamespace(in.Spec.Workers.MachinePools[i].Template.Infrastructure.Ref, in.Namespace)
+	}
+
 	return nil
 }
 
@@ -145,6 +151,9 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 	// Ensure all MachineDeployment classes are unique.
 	allErrs = append(allErrs, check.MachineDeploymentClassesAreUnique(newClusterClass)...)
 
+	// Ensure all MachinePool classes are unique.
+	allErrs = append(allErrs, check.MachinePoolClassesAreUnique(newClusterClass)...)
+
 	// Ensure MachineHealthChecks are valid.
 	allErrs = append(allErrs, validateMachineHealthCheckClasses(newClusterClass)...)
 
@@ -172,6 +181,10 @@ func (webhook *ClusterClass) validate(ctx context.Context, oldClusterClass, newC
 		// Ensure no MachineDeploymentClass currently in use has been removed from the ClusterClass.
 		allErrs = append(allErrs,
 			webhook.validateRemovedMachineDeploymentClassesAreNotUsed(clusters, oldClusterClass, newClusterClass)...)
+
+		// Ensure no MachinePoolClass currently in use has been removed from the ClusterClass.
+		allErrs = append(allErrs,
+			webhook.validateRemovedMachinePoolClassesAreNotUsed(clusters, oldClusterClass, newClusterClass)...)
 
 		// Ensure no MachineHealthCheck currently in use has been removed from the ClusterClass.
 		allErrs = append(allErrs,
@@ -274,22 +287,61 @@ func (webhook *ClusterClass) validateRemovedMachineDeploymentClassesAreNotUsed(c
 	return allErrs
 }
 
+func (webhook *ClusterClass) validateRemovedMachinePoolClassesAreNotUsed(clusters []clusterv1.Cluster, oldClusterClass, newClusterClass *clusterv1.ClusterClass) field.ErrorList {
+	var allErrs field.ErrorList
+
+	removedClasses := webhook.removedMachineClasses(oldClusterClass, newClusterClass)
+	// If no classes have been removed return early as no further checks are needed.
+	if len(removedClasses) == 0 {
+		return nil
+	}
+	// Error if any Cluster using the ClusterClass uses a MachinePoolClass that has been removed.
+	for _, c := range clusters {
+		for _, machinePoolTopology := range c.Spec.Topology.Workers.MachinePools {
+			if removedClasses.Has(machinePoolTopology.Class) {
+				// TODO: Same as above for MachineDeployments
+				allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "workers", "machinePools"),
+					fmt.Sprintf("MachinePoolClass %q cannot be deleted because it is used by Cluster %q",
+						machinePoolTopology.Class, c.Name),
+				))
+			}
+		}
+	}
+	return allErrs
+}
+
 func (webhook *ClusterClass) removedMachineClasses(oldClusterClass, newClusterClass *clusterv1.ClusterClass) sets.Set[string] {
 	removedClasses := sets.Set[string]{}
 
-	classes := webhook.classNamesFromWorkerClass(newClusterClass.Spec.Workers)
+	mdClasses := webhook.classNamesFromMDWorkerClass(newClusterClass.Spec.Workers)
 	for _, oldClass := range oldClusterClass.Spec.Workers.MachineDeployments {
-		if !classes.Has(oldClass.Class) {
+		if !mdClasses.Has(oldClass.Class) {
+			removedClasses.Insert(oldClass.Class)
+		}
+	}
+
+	mpClasses := webhook.classNamesFromMPWorkerClass(newClusterClass.Spec.Workers)
+	for _, oldClass := range oldClusterClass.Spec.Workers.MachinePools {
+		if !mpClasses.Has(oldClass.Class) {
 			removedClasses.Insert(oldClass.Class)
 		}
 	}
 	return removedClasses
 }
 
-// classNamesFromWorkerClass returns the set of MachineDeployment class names.
-func (webhook *ClusterClass) classNamesFromWorkerClass(w clusterv1.WorkersClass) sets.Set[string] {
+// classNamesFromMDWorkerClass returns the set of MachineDeployment class names.
+func (webhook *ClusterClass) classNamesFromMDWorkerClass(w clusterv1.WorkersClass) sets.Set[string] {
 	classes := sets.Set[string]{}
 	for _, class := range w.MachineDeployments {
+		classes.Insert(class.Class)
+	}
+	return classes
+}
+
+// classNamesFromMPWorkerClass returns the set of MachinePool class names.
+func (webhook *ClusterClass) classNamesFromMPWorkerClass(w clusterv1.WorkersClass) sets.Set[string] {
+	classes := sets.Set[string]{}
+	for _, class := range w.MachinePools {
 		classes.Insert(class.Class)
 	}
 	return classes

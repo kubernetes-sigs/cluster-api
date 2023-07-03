@@ -32,12 +32,12 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/discovery"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/yaml"
 
 	clusterv1alpha3 "sigs.k8s.io/cluster-api/api/v1alpha3"
 	clusterv1alpha4 "sigs.k8s.io/cluster-api/api/v1alpha4"
@@ -473,7 +473,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName},
 			)
 			Expect(err).NotTo(HaveOccurred())
-			return matchUnstructuredLists(preUpgradeMachineList, postUpgradeMachineList)
+			return validateMachineRollout(preUpgradeMachineList, postUpgradeMachineList)
 		}, "3m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
 
 		// After upgrading we are sure the version is the latest version of the API,
@@ -739,25 +739,56 @@ func waitForClusterDeletedV1alpha4(ctx context.Context, input waitForClusterDele
 	}, intervals...).Should(BeTrue())
 }
 
-func matchUnstructuredLists(l1 *unstructured.UnstructuredList, l2 *unstructured.UnstructuredList) bool {
-	if l1 == nil && l2 == nil {
+// validateMachineRollout compares preMachineList and postMachineList to detect a rollout.
+// Note: we are using unstructured lists because the Machines have different apiVersions.
+func validateMachineRollout(preMachineList, postMachineList *unstructured.UnstructuredList) bool {
+	if preMachineList == nil && postMachineList == nil {
 		return true
 	}
-	if l1 == nil || l2 == nil {
+	if preMachineList == nil || postMachineList == nil {
 		return false
 	}
-	if len(l1.Items) != len(l2.Items) {
-		return false
+
+	if names(preMachineList).Equal(names(postMachineList)) {
+		return true
 	}
-	s1 := sets.Set[string]{}
-	for _, i := range l1.Items {
-		s1.Insert(types.NamespacedName{Namespace: i.GetNamespace(), Name: i.GetName()}.String())
+
+	log.Logf("Rollout detected")
+	newMachines := names(postMachineList).Difference(names(preMachineList))
+	deletedMachines := names(preMachineList).Difference(names(postMachineList))
+
+	if len(newMachines) > 0 {
+		log.Logf("Detected new Machines")
+		for _, obj := range postMachineList.Items {
+			obj := obj
+			if newMachines.Has(obj.GetName()) {
+				resourceYAML, err := yaml.Marshal(obj)
+				Expect(err).ToNot(HaveOccurred())
+				log.Logf("New Machine %s:\n%s", klog.KObj(&obj), resourceYAML)
+			}
+		}
 	}
-	s2 := sets.Set[string]{}
-	for _, i := range l2.Items {
-		s2.Insert(types.NamespacedName{Namespace: i.GetNamespace(), Name: i.GetName()}.String())
+
+	if len(deletedMachines) > 0 {
+		log.Logf("Detected deleted Machines")
+		for _, obj := range preMachineList.Items {
+			obj := obj
+			if deletedMachines.Has(obj.GetName()) {
+				resourceYAML, err := yaml.Marshal(obj)
+				Expect(err).ToNot(HaveOccurred())
+				log.Logf("Deleted Machine %s:\n%s", klog.KObj(&obj), resourceYAML)
+			}
+		}
 	}
-	return s1.Equal(s2)
+	return false
+}
+
+func names(objs *unstructured.UnstructuredList) sets.Set[string] {
+	ret := sets.Set[string]{}
+	for _, obj := range objs.Items {
+		ret.Insert(obj.GetName())
+	}
+	return ret
 }
 
 // getValueOrFallback returns the input value unless it is empty, then it returns the fallback input.

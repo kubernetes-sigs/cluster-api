@@ -129,8 +129,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return r.reconcileDelete(ctx, md)
 	}
 
-	// If the MachineDeployment is not being deleted ensure the finalizer is set.
-	controllerutil.AddFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
+	if !controllerutil.ContainsFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer) {
+		controllerutil.AddFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)
+		return ctrl.Result{}, nil
+	}
 
 	return ctrl.Result{}, nil
 }

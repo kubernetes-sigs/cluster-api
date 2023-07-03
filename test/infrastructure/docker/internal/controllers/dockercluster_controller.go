@@ -106,15 +106,16 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// In the case of Docker, failure domains don't mean much so we simply copy the Spec into the Status.
 	dockerCluster.Status.FailureDomains = dockerCluster.Spec.FailureDomains
 
-	// Add finalizer first if not exist to avoid the race condition between init and delete
-	if !controllerutil.ContainsFinalizer(dockerCluster, infrav1.ClusterFinalizer) {
-		controllerutil.AddFinalizer(dockerCluster, infrav1.ClusterFinalizer)
-		return ctrl.Result{}, nil
-	}
-
 	// Handle deleted clusters
 	if !dockerCluster.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, dockerCluster, externalLoadBalancer)
+	}
+
+	// Add finalizer first if not set to avoid the race condition between init and delete.
+	// Note: Finalizers in general can only be added when the deletionTimestamp is not set.
+	if !controllerutil.ContainsFinalizer(dockerCluster, infrav1.ClusterFinalizer) {
+		controllerutil.AddFinalizer(dockerCluster, infrav1.ClusterFinalizer)
+		return ctrl.Result{}, nil
 	}
 
 	// Handle non-deleted clusters

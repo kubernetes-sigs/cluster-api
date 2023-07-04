@@ -28,6 +28,7 @@ import (
 	"github.com/adrg/xdg"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	kubectlcmd "k8s.io/kubectl/pkg/cmd"
 
 	"sigs.k8s.io/cluster-api/cmd/clusterctl/client/config"
 	logf "sigs.k8s.io/cluster-api/cmd/clusterctl/log"
@@ -141,6 +142,8 @@ func init() {
 	RootCmd.SetCompletionCommandGroupID(groupOther)
 
 	cobra.OnInitialize(initConfig, registerCompletionFuncForCommonFlags)
+
+	handlePlugins()
 }
 
 func initConfig() {
@@ -179,6 +182,39 @@ func registerCompletionFuncForCommonFlags() {
 			}
 		}
 	})
+}
+
+func handlePlugins() {
+	args := os.Args
+	pluginHandler := kubectlcmd.NewDefaultPluginHandler([]string{"clusterctl"})
+	if len(args) > 1 {
+		cmdPathPieces := args[1:]
+
+		// only look for suitable extension executables if
+		// the specified command does not already exist
+		if _, _, err := RootCmd.Find(cmdPathPieces); err != nil {
+			// Also check the commands that will be added by Cobra.
+			// These commands are only added once rootCmd.Execute() is called, so we
+			// need to check them explicitly here.
+			var cmdName string // first "non-flag" arguments
+			for _, arg := range cmdPathPieces {
+				if !strings.HasPrefix(arg, "-") {
+					cmdName = arg
+					break
+				}
+			}
+
+			switch cmdName {
+			case "help", cobra.ShellCompRequestCmd, cobra.ShellCompNoDescRequestCmd:
+				// Don't search for a plugin
+			default:
+				if err := kubectlcmd.HandlePluginCommand(pluginHandler, cmdPathPieces, false); err != nil {
+					fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+					os.Exit(1)
+				}
+			}
+		}
+	}
 }
 
 const indentation = `  `

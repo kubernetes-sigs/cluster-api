@@ -1039,9 +1039,10 @@ spec:
                 minLength: 1
                 type: string
               minReadySeconds:
-                description: Minimum number of seconds for which a newly created machine
-                  should be ready. Defaults to 0 (machine will be considered available
-                  as soon as it is ready)
+                description: MinReadySeconds is the minimum number of seconds for
+                  which a Node for a newly created machine should be ready before
+                  considering the replica available. Defaults to 0 (machine will be
+                  considered available as soon as the Node is ready)
                 format: int32
                 type: integer
               paused:

@@ -78,6 +78,7 @@
         - [Metadata propagation](./developer/architecture/controllers/metadata-propagation.md)
         - [Multi-tenancy](./developer/architecture/controllers/multi-tenancy.md)
         - [Support multiple instances](./developer/architecture/controllers/support-multiple-instances.md)
+        - [Tuning controllers](./developer/architecture/controllers/tuning.md)
     - [Provider Implementers](./developer/providers/implementers.md)
         - [Version migration](./developer/providers/version-migration.md)
           - [v0.3 to v0.4](./developer/providers/v0.3-to-v0.4.md)

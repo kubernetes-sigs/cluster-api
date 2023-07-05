@@ -16,3 +16,4 @@ configMapGenerator:
   - dashboards/cluster-api-performance.json
   - dashboards/cluster-api-state.json
   - dashboards/controller-runtime.json
+  - dashboards/cluster-api-traces.json

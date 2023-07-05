@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -103,6 +104,7 @@ var (
 	syncPeriod                    time.Duration
 	restConfigQPS                 float32
 	restConfigBurst               int
+	nodeDrainClientTimeout        time.Duration
 	webhookPort                   int
 	webhookCertDir                string
 	healthAddr                    string
@@ -205,6 +207,9 @@ func InitFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&restConfigBurst, "kube-api-burst", 30,
 		"Maximum number of queries that should be allowed in one burst from the controller client to the Kubernetes API server. Default 30")
 
+	fs.DurationVar(&nodeDrainClientTimeout, "node-drain-client-timeout-duration", time.Second*10,
+		"The timeout of the client used for draining nodes. Defaults to 10s")
+
 	fs.IntVar(&webhookPort, "webhook-port", 9443,
 		"Webhook Server port")
 
@@ -237,6 +242,11 @@ func main() {
 	restConfig.QPS = restConfigQPS
 	restConfig.Burst = restConfigBurst
 	restConfig.UserAgent = remote.DefaultClusterAPIUserAgent(controllerName)
+
+	if nodeDrainClientTimeout <= 0 {
+		setupLog.Error(errors.New("node drain client timeout must be greater than zero"), "unable to start manager")
+		os.Exit(1)
+	}
 
 	minVer := version.MinimumKubernetesVersion
 	if feature.Gates.Enabled(feature.ClusterTopology) {
@@ -475,6 +485,7 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		APIReader:                 mgr.GetAPIReader(),
 		Tracker:                   tracker,
 		WatchFilterValue:          watchFilterValue,
+		NodeDrainClientTimeout:    nodeDrainClientTimeout,
 	}).SetupWithManager(ctx, mgr, concurrency(machineConcurrency)); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Machine")
 		os.Exit(1)

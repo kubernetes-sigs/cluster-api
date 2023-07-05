@@ -22,6 +22,9 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"net/url"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
@@ -30,6 +33,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -37,6 +41,10 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/httpstream"
 	"k8s.io/apimachinery/pkg/util/httpstream/spdy"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apiserver/pkg/endpoints/metrics"
+	"k8s.io/apiserver/pkg/endpoints/request"
+	"k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/tools/portforward"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -55,6 +63,9 @@ func NewAPIServerHandler(manager cmanager.Manager, log logr.Logger, resolver Res
 		manager:               manager,
 		log:                   log,
 		resourceGroupResolver: resolver,
+		requestInfoResolver: server.NewRequestInfoResolver(&server.Config{
+			LegacyAPIGroupPrefixes: sets.NewString(server.DefaultLegacyAPIPrefix),
+		}),
 	}
 
 	apiServer.container.Filter(apiServer.globalLogging)
@@ -120,6 +131,7 @@ type apiServerHandler struct {
 	manager               cmanager.Manager
 	log                   logr.Logger
 	resourceGroupResolver ResourceGroupResolver
+	requestInfoResolver   *request.RequestInfoFactory
 }
 
 func (h *apiServerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -127,8 +139,56 @@ func (h *apiServerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *apiServerHandler) globalLogging(req *restful.Request, resp *restful.Response, chain *restful.FilterChain) {
-	h.log.Info("Serving", "method", req.Request.Method, "url", req.Request.URL, "contentType", req.HeaderParameter("Content-Type"))
+	h.log.V(4).Info("Serving", "method", req.Request.Method, "url", req.Request.URL, "contentType", req.HeaderParameter("Content-Type"))
+
+	start := time.Now()
+
+	defer func() {
+		// Note: The following is based on k8s.io/apiserver/pkg/endpoints/metrics.MonitorRequest
+		requestInfo, err := h.requestInfoResolver.NewRequestInfo(req.Request)
+		if err != nil {
+			h.log.Error(err, "Couldn't get RequestInfo from request", "url", req.Request.URL)
+			requestInfo = &request.RequestInfo{Verb: req.Request.Method, Path: req.Request.URL.Path}
+		}
+
+		// Base label values which are also available in upstream kube-apiserver metrics.
+		dryRun := cleanDryRun(req.Request.URL)
+		scope := metrics.CleanScope(requestInfo)
+		verb := metrics.CleanVerb(metrics.CanonicalVerb(strings.ToUpper(req.Request.Method), scope), req.Request, requestInfo)
+		component := metrics.APIServerComponent
+		baseLabelValues := []string{verb, dryRun, requestInfo.APIGroup, requestInfo.APIVersion, requestInfo.Resource, requestInfo.Subresource, scope, component}
+		requestTotalLabelValues := append(baseLabelValues, strconv.Itoa(resp.StatusCode()))
+		requestLatencyLabelValues := baseLabelValues
+
+		// Additional CAPIM specific label values.
+		wclName, _ := h.resourceGroupResolver(req.Request.Host)
+		userAgent := req.Request.Header.Get("User-Agent")
+		requestTotalLabelValues = append(requestTotalLabelValues, req.Request.Method, req.Request.Host, req.SelectedRoutePath(), wclName, userAgent)
+		requestLatencyLabelValues = append(requestLatencyLabelValues, req.Request.Method, req.Request.Host, req.SelectedRoutePath(), wclName, userAgent)
+
+		requestTotal.WithLabelValues(requestTotalLabelValues...).Inc()
+		requestLatency.WithLabelValues(requestLatencyLabelValues...).Observe(time.Since(start).Seconds())
+	}()
+
 	chain.ProcessFilter(req, resp)
+}
+
+// cleanDryRun gets dryrun from a URL.
+// Note: This is a copy of k8s.io/apiserver/pkg/endpoints/metrics.cleanDryRun.
+func cleanDryRun(u *url.URL) string {
+	// avoid allocating when we don't see dryRun in the query
+	if !strings.Contains(u.RawQuery, "dryRun") {
+		return ""
+	}
+	dryRun := u.Query()["dryRun"]
+	if errs := validation.ValidateDryRun(nil, dryRun); len(errs) > 0 {
+		return "invalid"
+	}
+	// Since dryRun could be valid with any arbitrarily long length
+	// we have to dedup and sort the elements before joining them together
+	// TODO: this is a fairly large allocation for what it does, consider
+	//   a sort and dedup in a single pass
+	return strings.Join(sets.NewString(dryRun...).List(), ",")
 }
 
 func (h *apiServerHandler) apiDiscovery(_ *restful.Request, resp *restful.Response) {

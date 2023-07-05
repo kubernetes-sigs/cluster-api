@@ -71,24 +71,40 @@ type maintenanceServer struct {
 }
 
 func (m *maintenanceServer) Alarm(ctx context.Context, _ *pb.AlarmRequest) (*pb.AlarmResponse, error) {
-	resourceGroup, etcdMember, err := m.getResourceGroupAndMember(ctx)
+	var resourceGroup string
+	start := time.Now()
+	defer func() {
+		requestLatency.WithLabelValues("Alarm", resourceGroup).Observe(time.Since(start).Seconds())
+	}()
+
+	var etcdMember string
+	var err error
+	resourceGroup, etcdMember, err = m.getResourceGroupAndMember(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	m.log.Info("Etcd: Alarm", "resourceGroup", resourceGroup, "etcdMember", etcdMember)
+	m.log.V(4).Info("Etcd: Alarm", "resourceGroup", resourceGroup, "etcdMember", etcdMember)
 
 	return &pb.AlarmResponse{}, nil
 }
 
 func (m *maintenanceServer) Status(ctx context.Context, _ *pb.StatusRequest) (*pb.StatusResponse, error) {
-	resourceGroup, etcdMember, err := m.getResourceGroupAndMember(ctx)
+	var resourceGroup string
+	start := time.Now()
+	defer func() {
+		requestLatency.WithLabelValues("Status", resourceGroup).Observe(time.Since(start).Seconds())
+	}()
+
+	var etcdMember string
+	var err error
+	resourceGroup, etcdMember, err = m.getResourceGroupAndMember(ctx)
 	if err != nil {
 		return nil, err
 	}
 	cloudClient := m.manager.GetResourceGroup(resourceGroup).GetClient()
 
-	m.log.Info("Etcd: Status", "resourceGroup", resourceGroup, "etcdMember", etcdMember)
+	m.log.V(4).Info("Etcd: Status", "resourceGroup", resourceGroup, "etcdMember", etcdMember)
 	_, statusResponse, err := m.inspectEtcd(ctx, cloudClient, etcdMember)
 	if err != nil {
 		return nil, err
@@ -114,8 +130,15 @@ func (m *maintenanceServer) Snapshot(_ *pb.SnapshotRequest, _ pb.Maintenance_Sna
 }
 
 func (m *maintenanceServer) MoveLeader(ctx context.Context, req *pb.MoveLeaderRequest) (*pb.MoveLeaderResponse, error) {
+	var resourceGroup string
+	start := time.Now()
+	defer func() {
+		requestLatency.WithLabelValues("MoveLeader", resourceGroup).Observe(time.Since(start).Seconds())
+	}()
+
 	out := new(pb.MoveLeaderResponse)
-	resourceGroup, _, err := m.getResourceGroupAndMember(ctx)
+	var err error
+	resourceGroup, _, err = m.getResourceGroupAndMember(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -171,8 +194,15 @@ func (c *clusterServerServer) MemberAdd(_ context.Context, _ *pb.MemberAddReques
 }
 
 func (c *clusterServerServer) MemberRemove(ctx context.Context, req *pb.MemberRemoveRequest) (*pb.MemberRemoveResponse, error) {
+	var resourceGroup string
+	start := time.Now()
+	defer func() {
+		requestLatency.WithLabelValues("MemberRemove", resourceGroup).Observe(time.Since(start).Seconds())
+	}()
+
 	out := new(pb.MemberRemoveResponse)
-	resourceGroup, _, err := c.getResourceGroupAndMember(ctx)
+	var err error
+	resourceGroup, _, err = c.getResourceGroupAndMember(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -210,13 +240,21 @@ func (c *clusterServerServer) MemberUpdate(_ context.Context, _ *pb.MemberUpdate
 }
 
 func (c *clusterServerServer) MemberList(ctx context.Context, _ *pb.MemberListRequest) (*pb.MemberListResponse, error) {
-	resourceGroup, etcdMember, err := c.getResourceGroupAndMember(ctx)
+	var resourceGroup string
+	start := time.Now()
+	defer func() {
+		requestLatency.WithLabelValues("MemberList", resourceGroup).Observe(time.Since(start).Seconds())
+	}()
+
+	var etcdMember string
+	var err error
+	resourceGroup, etcdMember, err = c.getResourceGroupAndMember(ctx)
 	if err != nil {
 		return nil, err
 	}
 	cloudClient := c.manager.GetResourceGroup(resourceGroup).GetClient()
 
-	c.log.Info("Etcd: MemberList", "resourceGroup", resourceGroup, "etcdMember", etcdMember)
+	c.log.V(4).Info("Etcd: MemberList", "resourceGroup", resourceGroup, "etcdMember", etcdMember)
 	memberList, _, err := c.inspectEtcd(ctx, cloudClient, etcdMember)
 	if err != nil {
 		return nil, err

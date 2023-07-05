@@ -50,6 +50,8 @@ const (
 )
 
 var (
+	errNotFound = errors.New("404 Not Found")
+
 	// Caches used to limit the number of GitHub API calls.
 
 	cacheVersions              = map[string][]string{}
@@ -156,6 +158,11 @@ func (g *gitHubRepository) ComponentsPath() string {
 func (g *gitHubRepository) GetFile(version, path string) ([]byte, error) {
 	release, err := g.getReleaseByTag(version)
 	if err != nil {
+		if errors.Is(err, errNotFound) {
+			// If it was ErrNotFound, then there is no release yet for the resolved tag.
+			// Ref: https://github.com/kubernetes-sigs/cluster-api/issues/7889
+			return nil, errors.Wrapf(err, "release not found for version %s, please retry later or set \"GOPROXY=off\" to get the current stable release", version)
+		}
 		return nil, errors.Wrapf(err, "failed to get GitHub release %s", version)
 	}
 
@@ -227,7 +234,7 @@ func NewGitHubRepository(providerConfig config.Provider, configVariablesClient c
 	if defaultVersion == githubLatestReleaseLabel {
 		repo.defaultVersion, err = latestContractRelease(repo, clusterv1.GroupVersion.Version)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get GitHub latest version")
+			return nil, errors.Wrap(err, "failed to get latest release")
 		}
 	}
 
@@ -351,6 +358,10 @@ func (g *gitHubRepository) getReleaseByTag(tag string) (*github.RepositoryReleas
 		release, _, getReleasesErr = client.Repositories.GetReleaseByTag(context.TODO(), g.owner, g.repository, tag)
 		if getReleasesErr != nil {
 			retryError = g.handleGithubErr(getReleasesErr, "failed to read release %q", tag)
+			// Return immediately if not found
+			if errors.Is(retryError, errNotFound) {
+				return false, retryError
+			}
 			// Return immediately if we are rate limited.
 			if _, ok := getReleasesErr.(*github.RateLimitError); ok {
 				return false, retryError
@@ -436,6 +447,11 @@ func (g *gitHubRepository) downloadFilesFromRelease(release *github.RepositoryRe
 func (g *gitHubRepository) handleGithubErr(err error, message string, args ...interface{}) error {
 	if _, ok := err.(*github.RateLimitError); ok {
 		return errors.New("rate limit for github api has been reached. Please wait one hour or get a personal API token and assign it to the GITHUB_TOKEN environment variable")
+	}
+	if ghErr, ok := err.(*github.ErrorResponse); ok {
+		if ghErr.Response.StatusCode == http.StatusNotFound {
+			return errNotFound
+		}
 	}
 	return errors.Wrapf(err, message, args...)
 }

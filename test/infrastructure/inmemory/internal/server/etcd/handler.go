@@ -113,8 +113,48 @@ func (m *maintenanceServer) Snapshot(_ *pb.SnapshotRequest, _ pb.Maintenance_Sna
 	return fmt.Errorf("not implemented: Snapshot")
 }
 
-func (m *maintenanceServer) MoveLeader(_ context.Context, _ *pb.MoveLeaderRequest) (*pb.MoveLeaderResponse, error) {
-	return nil, fmt.Errorf("not implemented: MoveLeader")
+func (m *maintenanceServer) MoveLeader(ctx context.Context, req *pb.MoveLeaderRequest) (*pb.MoveLeaderResponse, error) {
+	out := new(pb.MoveLeaderResponse)
+	resourceGroup, _, err := m.getResourceGroupAndMember(ctx)
+	if err != nil {
+		return nil, err
+	}
+	etcdPods := &corev1.PodList{}
+	cloudClient := m.manager.GetResourceGroup(resourceGroup).GetClient()
+	if err := cloudClient.List(ctx, etcdPods,
+		client.InNamespace(metav1.NamespaceSystem),
+		client.MatchingLabels{
+			"component": "etcd",
+			"tier":      "control-plane"},
+	); err != nil {
+		return nil, errors.Wrap(err, "failed to list etcd members")
+	}
+
+	if len(etcdPods.Items) == 0 {
+		return nil, errors.New("failed to list etcd members: no etcd pods found")
+	}
+
+	for i := range etcdPods.Items {
+		pod := &etcdPods.Items[i]
+		for k, v := range pod.GetAnnotations() {
+			if k == cloudv1.EtcdMemberIDAnnotationName {
+				target := strconv.FormatInt(int64(req.TargetID), 10)
+				if v == target {
+					updatedPod := pod.DeepCopy()
+					annotations := updatedPod.GetAnnotations()
+					annotations[cloudv1.EtcdLeaderFromAnnotationName] = time.Now().Format(time.RFC3339)
+					updatedPod.SetAnnotations(annotations)
+					err := cloudClient.Patch(ctx, updatedPod, client.MergeFrom(pod))
+					if err != nil {
+						return nil, err
+					}
+					return out, nil
+				}
+			}
+		}
+	}
+	// If we reach this point leadership was not moved.
+	return nil, errors.Errorf("etcd member with ID %d did not become the leader: expected etcd Pod not found", req.TargetID)
 }
 
 func (m *maintenanceServer) Downgrade(_ context.Context, _ *pb.DowngradeRequest) (*pb.DowngradeResponse, error) {
@@ -130,8 +170,39 @@ func (c *clusterServerServer) MemberAdd(_ context.Context, _ *pb.MemberAddReques
 	return nil, fmt.Errorf("not implemented: MemberAdd")
 }
 
-func (c *clusterServerServer) MemberRemove(_ context.Context, _ *pb.MemberRemoveRequest) (*pb.MemberRemoveResponse, error) {
-	return nil, fmt.Errorf("not implemented: MemberRemove")
+func (c *clusterServerServer) MemberRemove(ctx context.Context, req *pb.MemberRemoveRequest) (*pb.MemberRemoveResponse, error) {
+	out := new(pb.MemberRemoveResponse)
+	resourceGroup, _, err := c.getResourceGroupAndMember(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cloudClient := c.manager.GetResourceGroup(resourceGroup).GetClient()
+
+	etcdPods := &corev1.PodList{}
+
+	if err := cloudClient.List(ctx, etcdPods,
+		client.InNamespace(metav1.NamespaceSystem),
+		client.MatchingLabels{
+			"component": "etcd",
+			"tier":      "control-plane"},
+	); err != nil {
+		return nil, errors.Wrap(err, "failed to list etcd members")
+	}
+
+	for i := range etcdPods.Items {
+		pod := etcdPods.Items[i]
+		memberID := pod.Annotations[cloudv1.EtcdMemberIDAnnotationName]
+		if memberID != fmt.Sprintf("%d", req.ID) {
+			continue
+		}
+		updatedPod := pod.DeepCopy()
+		updatedPod.Annotations[cloudv1.EtcdMemberRemoved] = ""
+		if err := cloudClient.Patch(ctx, updatedPod, client.MergeFrom(&pod)); err != nil {
+			return nil, err
+		}
+		return out, nil
+	}
+	return nil, errors.Errorf("no etcd member with id %d found", req.ID)
 }
 
 func (c *clusterServerServer) MemberUpdate(_ context.Context, _ *pb.MemberUpdateRequest) (*pb.MemberUpdateResponse, error) {
@@ -197,6 +268,12 @@ func (b *baseServer) inspectEtcd(ctx context.Context, cloudClient cclient.Client
 	var leaderID int
 	var leaderFrom time.Time
 	for _, pod := range etcdPods.Items {
+		if _, ok := pod.Annotations[cloudv1.EtcdMemberRemoved]; ok {
+			if pod.Name == fmt.Sprintf("%s%s", "etcd-", etcdMember) {
+				return nil, nil, errors.New("inspect called on etcd which has been removed")
+			}
+			continue
+		}
 		if clusterID == 0 {
 			var err error
 			clusterID, err = strconv.Atoi(pod.Annotations[cloudv1.EtcdClusterIDAnnotationName])
@@ -224,7 +301,6 @@ func (b *baseServer) inspectEtcd(ctx context.Context, cloudClient cclient.Client
 				ClusterId: uint64(clusterID),
 				MemberId:  uint64(memberID),
 			}
-
 			statusResponse.Header = memberList.Header
 		}
 		memberList.Members = append(memberList.Members, &pb.Member{

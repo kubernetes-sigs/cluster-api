@@ -172,14 +172,14 @@ func Test_clusterctlClient_Delete(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			input := cluster.Kubeconfig(tt.args.options.Kubeconfig)
 			proxy := tt.fields.client.clusters[input].Proxy()
 			gotProviders := &clusterctlv1.ProviderList{}
 
 			c, err := proxy.NewClient()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(c.List(ctx, gotProviders)).To(Succeed())
 
 			gotProvidersSet := sets.Set[string]{}

@@ -146,7 +146,7 @@ func (c *controller) Start(ctx context.Context) error {
 			go func() {
 				atomic.AddInt64(&workers, 1)
 				defer wg.Done()
-				for c.processNextWorkItem(ctx) { //nolint:revive
+				for c.processNextWorkItem(ctx) {
 				}
 			}()
 		}

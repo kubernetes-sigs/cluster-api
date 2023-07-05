@@ -114,10 +114,10 @@ func TestMachineSetLabelSelectorMatchValidation(t *testing.T) {
 				g.Expect(warnings).To(BeEmpty())
 			} else {
 				warnings, err := ms.ValidateCreate()
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 				warnings, err = ms.ValidateUpdate(ms)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
 		})
@@ -165,7 +165,7 @@ func TestMachineSetClusterNameImmutable(t *testing.T) {
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(warnings).To(BeEmpty())
 		})
@@ -228,10 +228,10 @@ func TestMachineSetVersionValidation(t *testing.T) {
 				g.Expect(warnings).To(BeEmpty())
 			} else {
 				warnings, err := md.ValidateCreate()
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 				warnings, err = md.ValidateUpdate(md)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
 		})
@@ -300,9 +300,9 @@ func TestValidateSkippedMachineSetPreflightChecks(t *testing.T) {
 			g := NewWithT(t)
 			err := validateSkippedMachineSetPreflightChecks(tt.ms)
 			if tt.expectErr {
-				g.Expect(err).NotTo(BeNil())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).To(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}

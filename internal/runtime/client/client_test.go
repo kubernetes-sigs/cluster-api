@@ -202,7 +202,7 @@ func TestClient_httpCall(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -325,7 +325,7 @@ func TestURLForExtension(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(u.Scheme).To(Equal(tt.want.scheme))
 				g.Expect(u.Host).To(Equal(tt.want.host))
 				g.Expect(u.Path).To(Equal(tt.want.path))
@@ -783,7 +783,7 @@ func TestClient_CallExtension(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -1067,7 +1067,7 @@ func TestClient_CallAllExtensions(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -1108,7 +1108,7 @@ func Test_client_matchNamespace(t *testing.T) {
 			},
 		},
 	})
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 	notMatchingMatchExpressions, err := metav1.LabelSelectorAsSelector(&metav1.LabelSelector{
 		MatchExpressions: []metav1.LabelSelectorRequirement{
 			{
@@ -1118,7 +1118,7 @@ func Test_client_matchNamespace(t *testing.T) {
 			},
 		},
 	})
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 	tests := []struct {
 		name               string
 		selector           labels.Selector

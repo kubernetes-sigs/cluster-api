@@ -69,10 +69,10 @@ func TestKubeadmConfigTemplateValidation(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			g := NewWithT(t)
 			warnings, err := tt.in.ValidateCreate()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 			warnings, err = tt.in.ValidateUpdate(nil)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 		})
 	}

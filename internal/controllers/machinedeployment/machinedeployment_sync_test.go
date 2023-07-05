@@ -577,7 +577,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 
 		g := NewWithT(t)
 		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, nil, nil, log)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		assertMachineSet(g, actualMS, expectedMS)
 	})
 
@@ -590,7 +590,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 
 		g := NewWithT(t)
 		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, nil, []*clusterv1.MachineSet{oldMS}, log)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		assertMachineSet(g, actualMS, expectedMS)
 	})
 
@@ -627,7 +627,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 
 		g := NewWithT(t)
 		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, existingMS, nil, log)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		assertMachineSet(g, actualMS, expectedMS)
 	})
 
@@ -668,7 +668,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 
 		g := NewWithT(t)
 		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, existingMS, []*clusterv1.MachineSet{oldMS}, log)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		assertMachineSet(g, actualMS, expectedMS)
 	})
 
@@ -714,7 +714,7 @@ func TestComputeDesiredMachineSet(t *testing.T) {
 
 		g := NewWithT(t)
 		actualMS, err := (&Reconciler{}).computeDesiredMachineSet(deployment, existingMS, nil, log)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		assertMachineSet(g, actualMS, expectedMS)
 	})
 }

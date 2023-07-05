@@ -235,11 +235,11 @@ func TestUpdateKubeProxyImageInfo(t *testing.T) {
 			if tt.expectErr {
 				gs.Expect(err).To(HaveOccurred())
 			} else {
-				gs.Expect(err).NotTo(HaveOccurred())
+				gs.Expect(err).ToNot(HaveOccurred())
 			}
 
 			proxyImage, err := getProxyImageInfo(ctx, w.Client)
-			gs.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(err).ToNot(HaveOccurred())
 			if tt.expectImage != "" {
 				gs.Expect(proxyImage).To(Equal(tt.expectImage))
 			}

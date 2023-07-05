@@ -51,7 +51,7 @@ func TestMachineSetReconciler(t *testing.T) {
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, "test-machine-set-reconciler")
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		t.Log("Creating the Cluster")
 		cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: ns.Name, Name: testClusterName}}
@@ -300,7 +300,7 @@ func TestMachineSetReconciler(t *testing.T) {
 		// Verify that in-place mutable fields propagate form MachineSet to Machines.
 		t.Log("Updating NodeDrainTimeout on MachineSet")
 		patchHelper, err := patch.NewHelper(instance, env)
-		g.Expect(err).Should(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		instance.Spec.Template.Spec.NodeDrainTimeout = duration5m
 		g.Expect(patchHelper.Patch(ctx, instance)).Should(Succeed())
 
@@ -480,7 +480,7 @@ func TestMachineSetOwnerReference(t *testing.T) {
 			if tc.expectReconcileErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 
 			key := client.ObjectKey{Namespace: tc.ms.Namespace, Name: tc.ms.Name}
@@ -526,7 +526,7 @@ func TestMachineSetReconcile(t *testing.T) {
 			recorder:                  record.NewFakeRecorder(32),
 		}
 		result, err := msr.Reconcile(ctx, request)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result).To(Equal(reconcile.Result{}))
 	})
 
@@ -573,7 +573,7 @@ func TestMachineSetReconcile(t *testing.T) {
 			recorder:                  rec,
 		}
 		_, err := msr.Reconcile(ctx, request)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 	})
 }
 
@@ -961,7 +961,7 @@ func TestMachineSetReconciler_updateStatusResizedCondition(t *testing.T) {
 				recorder:                  record.NewFakeRecorder(32),
 			}
 			err := msr.updateStatus(ctx, cluster, tc.machineSet, tc.machines)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			gotCond := conditions.Get(tc.machineSet, clusterv1.ResizedCondition)
 			g.Expect(gotCond).ToNot(BeNil())
 			g.Expect(gotCond.Status).To(Equal(corev1.ConditionFalse))
@@ -977,7 +977,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, "test-machine-set-reconciler-sync-machines")
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		t.Log("Creating the Cluster")
 		cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: ns.Name, Name: testClusterName}}
@@ -1202,7 +1202,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 
 	// The inPlaceMutatingMachine should have cleaned up managed fields.
 	updatedInPlaceMutatingMachine := inPlaceMutatingMachine.DeepCopy()
-	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine))
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
 	// Verify ManagedFields
 	g.Expect(updatedInPlaceMutatingMachine.ManagedFields).Should(
 		ContainElement(ssa.MatchManagedFieldsEntry(machineSetManagerName, metav1.ManagedFieldsOperationApply)),
@@ -1216,7 +1216,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// The InfrastructureMachine should have ownership of "labels" and "annotations" transferred to
 	// "capi-machineset" manager.
 	updatedInfraMachine := infraMachine.DeepCopy()
-	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine))
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
 
 	// Verify ManagedFields
 	g.Expect(updatedInfraMachine.GetManagedFields()).Should(
@@ -1233,7 +1233,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// The BootstrapConfig should have ownership of "labels" and "annotations" transferred to
 	// "capi-machineset" manager.
 	updatedBootstrapConfig := bootstrapConfig.DeepCopy()
-	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedBootstrapConfig), updatedBootstrapConfig))
+	g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedBootstrapConfig), updatedBootstrapConfig)).To(Succeed())
 
 	// Verify ManagedFields
 	g.Expect(updatedBootstrapConfig.GetManagedFields()).Should(
@@ -1277,7 +1277,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// Verify in-place mutable fields are updated on the Machine.
 	updatedInPlaceMutatingMachine = inPlaceMutatingMachine.DeepCopy()
 	g.Eventually(func(g Gomega) {
-		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine))
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInPlaceMutatingMachine), updatedInPlaceMutatingMachine)).To(Succeed())
 		// Verify Labels
 		g.Expect(updatedInPlaceMutatingMachine.Labels).Should(Equal(expectedLabels))
 		// Verify Annotations
@@ -1300,7 +1300,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// Verify in-place mutable fields are updated on InfrastructureMachine
 	updatedInfraMachine = infraMachine.DeepCopy()
 	g.Eventually(func(g Gomega) {
-		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine))
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedInfraMachine), updatedInfraMachine)).To(Succeed())
 		// Verify Labels
 		g.Expect(updatedInfraMachine.GetLabels()).Should(Equal(expectedLabels))
 		// Verify Annotations
@@ -1312,7 +1312,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	// Verify in-place mutable fields are updated on the BootstrapConfig.
 	updatedBootstrapConfig = bootstrapConfig.DeepCopy()
 	g.Eventually(func(g Gomega) {
-		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedBootstrapConfig), updatedBootstrapConfig))
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedBootstrapConfig), updatedBootstrapConfig)).To(Succeed())
 		// Verify Labels
 		g.Expect(updatedBootstrapConfig.GetLabels()).Should(Equal(expectedLabels))
 		// Verify Annotations
@@ -1326,7 +1326,7 @@ func TestMachineSetReconciler_syncMachines(t *testing.T) {
 	g.Consistently(func(g Gomega) {
 		// The deleting machine should not change.
 		updatedDeletingMachine := deletingMachine.DeepCopy()
-		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine))
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(updatedDeletingMachine), updatedDeletingMachine)).To(Succeed())
 
 		// Verify ManagedFields
 		g.Expect(updatedDeletingMachine.ManagedFields).ShouldNot(
@@ -1399,7 +1399,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			UnstructuredCachingClient: fakeClient,
 		}
 		_, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, machines)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		// Verify the unhealthy machine is deleted.
 		m := &clusterv1.Machine{}
 		err = r.Client.Get(ctx, client.ObjectKeyFromObject(unhealthyMachine), m)
@@ -1460,7 +1460,7 @@ func TestMachineSetReconciler_reconcileUnhealthyMachines(t *testing.T) {
 			UnstructuredCachingClient: fakeClient,
 		}
 		_, err := r.reconcileUnhealthyMachines(ctx, cluster, machineSet, machines)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		// Verify the unhealthy machine has the updated condition.
 		condition := clusterv1.MachineOwnerRemediatedCondition
@@ -1520,7 +1520,7 @@ func TestMachineSetReconciler_syncReplicas(t *testing.T) {
 			UnstructuredCachingClient: fakeClient,
 		}
 		result, err := r.syncReplicas(ctx, cluster, machineSet, nil)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(result.IsZero()).To(BeFalse(), "syncReplicas should not return a 'zero' result")
 
 		// Verify the proper condition is set on the MachineSet.

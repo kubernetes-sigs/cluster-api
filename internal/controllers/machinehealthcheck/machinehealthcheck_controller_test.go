@@ -247,7 +247,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 		cluster := createCluster(g, ns.Name)
 
 		patchHelper, err := patch.NewHelper(cluster, env.Client)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		conditions.MarkFalse(cluster, clusterv1.InfrastructureReadyCondition, "SomeReason", clusterv1.ConditionSeverityError, "")
 		g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
@@ -1329,7 +1329,7 @@ func TestMachineHealthCheck_Reconcile(t *testing.T) {
 			machine := unhealthyMachine.DeepCopy()
 			err := env.Get(ctx, util.ObjectKey(unhealthyMachine), machine)
 			return apierrors.IsNotFound(err) || !machine.DeletionTimestamp.IsZero()
-		}, timeout, 100*time.Millisecond)
+		}, timeout, 100*time.Millisecond).Should(BeTrue())
 	})
 
 	t.Run("when a machine is paused", func(t *testing.T) {
@@ -2275,7 +2275,7 @@ func createCluster(g *WithT, namespaceName string) *clusterv1.Cluster {
 
 	// This is required for MHC to perform checks
 	patchHelper, err := patch.NewHelper(cluster, env.Client)
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 	conditions.MarkTrue(cluster, clusterv1.InfrastructureReadyCondition)
 	g.Expect(patchHelper.Patch(ctx, cluster)).To(Succeed())
 
@@ -2450,7 +2450,7 @@ func createMachinesWithNodes(
 		}, timeout, 100*time.Millisecond).ShouldNot(BeNil())
 
 		machinePatchHelper, err := patch.NewHelper(machine, env.Client)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		if o.createNodeRefForMachine {
 			// Create node
@@ -2468,7 +2468,7 @@ func createMachinesWithNodes(
 
 			// Patch node status
 			nodePatchHelper, err := patch.NewHelper(node, env.Client)
-			g.Expect(err).To(BeNil())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			node.Status.Conditions = []corev1.NodeCondition{
 				{
@@ -2511,7 +2511,7 @@ func createMachinesWithNodes(
 		fmt.Println("Cleaning up nodes, machines and infra machines.")
 		for _, n := range nodes {
 			if err := env.Delete(ctx, n); !apierrors.IsNotFound(err) {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		}
 		for _, m := range machines {
@@ -2519,7 +2519,7 @@ func createMachinesWithNodes(
 		}
 		for _, im := range infraMachines {
 			if err := env.Delete(ctx, im); !apierrors.IsNotFound(err) {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		}
 	}
@@ -2623,7 +2623,7 @@ func TestPatchTargets(t *testing.T) {
 
 	// Target with wrong patch helper will fail but the other one will be patched.
 	g.Expect(r.patchUnhealthyTargets(context.TODO(), logr.New(log.NullLogSink{}), []healthCheckTarget{target1, target3}, defaultCluster, mhc)).ToNot(BeEmpty())
-	g.Expect(cl.Get(ctx, client.ObjectKey{Name: machine2.Name, Namespace: machine2.Namespace}, machine2)).NotTo(HaveOccurred())
+	g.Expect(cl.Get(ctx, client.ObjectKey{Name: machine2.Name, Namespace: machine2.Namespace}, machine2)).ToNot(HaveOccurred())
 	g.Expect(conditions.Get(machine2, clusterv1.MachineOwnerRemediatedCondition).Status).To(Equal(corev1.ConditionFalse))
 
 	// Target with wrong patch helper will fail but the other one will be patched.

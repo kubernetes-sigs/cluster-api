@@ -49,7 +49,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(ControlPlane().StatusVersion().Path()).To(Equal(Path{"status", "version"}))
 
 		err := ControlPlane().StatusVersion().Set(obj, "1.2.3")
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		got, err := ControlPlane().StatusVersion().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -62,7 +62,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(ControlPlane().Ready().Path()).To(Equal(Path{"status", "ready"}))
 
 		err := ControlPlane().Ready().Set(obj, true)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		got, err := ControlPlane().Ready().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -75,7 +75,7 @@ func TestControlPlane(t *testing.T) {
 		g.Expect(ControlPlane().Initialized().Path()).To(Equal(Path{"status", "initialized"}))
 
 		err := ControlPlane().Initialized().Set(obj, true)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		got, err := ControlPlane().Initialized().Get(obj)
 		g.Expect(err).ToNot(HaveOccurred())
@@ -492,7 +492,7 @@ func TestControlPlaneIsScaling(t *testing.T) {
 			g := NewWithT(t)
 
 			actual, err := ControlPlane().IsScaling(tt.obj)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(actual).To(Equal(tt.wantScaling))
 		})
 	}

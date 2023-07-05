@@ -162,12 +162,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 		return ctrl.Result{}, nil
 	}
 
-	result, err := r.reconcile(ctx, cluster, deployment)
+	err = r.reconcile(ctx, cluster, deployment)
 	if err != nil {
 		log.Error(err, "Failed to reconcile MachineDeployment")
 		r.recorder.Eventf(deployment, corev1.EventTypeWarning, "ReconcileError", "%v", err)
 	}
-	return result, err
+	return ctrl.Result{}, err
 }
 
 func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *clusterv1.MachineDeployment, options ...patch.Option) error {
@@ -188,7 +188,7 @@ func patchMachineDeployment(ctx context.Context, patchHelper *patch.Helper, md *
 	return patchHelper.Patch(ctx, md, options...)
 }
 
-func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, md *clusterv1.MachineDeployment) (ctrl.Result, error) {
+func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, md *clusterv1.MachineDeployment) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.V(4).Info("Reconcile MachineDeployment")
 
@@ -215,18 +215,18 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 	// Make sure to reconcile the external infrastructure reference.
 	if err := reconcileExternalTemplateReference(ctx, r.UnstructuredCachingClient, cluster, &md.Spec.Template.Spec.InfrastructureRef); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 	// Make sure to reconcile the external bootstrap reference, if any.
 	if md.Spec.Template.Spec.Bootstrap.ConfigRef != nil {
 		if err := reconcileExternalTemplateReference(ctx, r.UnstructuredCachingClient, cluster, md.Spec.Template.Spec.Bootstrap.ConfigRef); err != nil {
-			return ctrl.Result{}, err
+			return err
 		}
 	}
 
 	msList, err := r.getMachineSetsForDeployment(ctx, md)
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	// If not already present, add a label specifying the MachineDeployment name to MachineSets.
@@ -242,11 +242,11 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 
 		helper, err := patch.NewHelper(machineSet, r.Client)
 		if err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
+			return errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
 		}
 		machineSet.Labels[clusterv1.MachineDeploymentNameLabel] = md.Name
 		if err := helper.Patch(ctx, machineSet); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
+			return errors.Wrapf(err, "failed to apply %s label to MachineSet %q", clusterv1.MachineDeploymentNameLabel, machineSet.Name)
 		}
 	}
 
@@ -259,30 +259,30 @@ func (r *Reconciler) reconcile(ctx context.Context, cluster *clusterv1.Cluster, 
 	for idx := range msList {
 		machineSet := msList[idx]
 		if err := ssa.CleanUpManagedFieldsForSSAAdoption(ctx, r.Client, machineSet, machineDeploymentManagerName); err != nil {
-			return ctrl.Result{}, errors.Wrapf(err, "failed to clean up managedFields of MachineSet %s", klog.KObj(machineSet))
+			return errors.Wrapf(err, "failed to clean up managedFields of MachineSet %s", klog.KObj(machineSet))
 		}
 	}
 
 	if md.Spec.Paused {
-		return ctrl.Result{}, r.sync(ctx, md, msList)
+		return r.sync(ctx, md, msList)
 	}
 
 	if md.Spec.Strategy == nil {
-		return ctrl.Result{}, errors.Errorf("missing MachineDeployment strategy")
+		return errors.Errorf("missing MachineDeployment strategy")
 	}
 
 	if md.Spec.Strategy.Type == clusterv1.RollingUpdateMachineDeploymentStrategyType {
 		if md.Spec.Strategy.RollingUpdate == nil {
-			return ctrl.Result{}, errors.Errorf("missing MachineDeployment settings for strategy type: %s", md.Spec.Strategy.Type)
+			return errors.Errorf("missing MachineDeployment settings for strategy type: %s", md.Spec.Strategy.Type)
 		}
-		return ctrl.Result{}, r.rolloutRolling(ctx, md, msList)
+		return r.rolloutRolling(ctx, md, msList)
 	}
 
 	if md.Spec.Strategy.Type == clusterv1.OnDeleteMachineDeploymentStrategyType {
-		return ctrl.Result{}, r.rolloutOnDelete(ctx, md, msList)
+		return r.rolloutOnDelete(ctx, md, msList)
 	}
 
-	return ctrl.Result{}, errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Strategy.Type)
+	return errors.Errorf("unexpected deployment strategy type: %s", md.Spec.Strategy.Type)
 }
 
 // getMachineSetsForDeployment returns a list of MachineSets associated with a MachineDeployment.

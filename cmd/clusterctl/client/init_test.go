@@ -186,7 +186,7 @@ func Test_clusterctlClient_InitImages(t *testing.T) {
 				g.Expect(err.Error()).To(ContainSubstring(tt.expectedErrorMessage))
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(HaveLen(len(tt.expectedImages)))
 			g.Expect(got).To(ConsistOf(tt.expectedImages))
 		})
@@ -553,7 +553,7 @@ func Test_clusterctlClient_Init(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got).To(HaveLen(len(tt.want)))
 			for i, gItem := range got {

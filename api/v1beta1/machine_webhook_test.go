@@ -206,7 +206,7 @@ func TestMachineClusterNameImmutable(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
 		})

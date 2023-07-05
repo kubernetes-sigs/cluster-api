@@ -100,7 +100,7 @@ func TestNewClusterClient(t *testing.T) {
 		gs.Expect(err).To(MatchError(ContainSubstring("no such host")))
 
 		restConfig, err := RESTConfig(ctx, "test-source", client, clusterWithValidKubeConfig)
-		gs.Expect(err).NotTo(HaveOccurred())
+		gs.Expect(err).ToNot(HaveOccurred())
 		gs.Expect(restConfig.Host).To(Equal("https://test-cluster-api.nodomain.example.com:6443"))
 		gs.Expect(restConfig.UserAgent).To(MatchRegexp("remote.test/unknown test-source (.*) cluster.x-k8s.io/unknown"))
 		gs.Expect(restConfig.Timeout).To(Equal(10 * time.Second))

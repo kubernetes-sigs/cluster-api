@@ -578,7 +578,7 @@ func (c *E2EConfig) GetVariable(varName string) string {
 	}
 
 	value, ok := c.Variables[varName]
-	Expect(ok).NotTo(BeFalse())
+	Expect(ok).To(BeTrue())
 	return value
 }
 
@@ -590,7 +590,7 @@ func (c *E2EConfig) GetInt64PtrVariable(varName string) *int64 {
 	}
 
 	wCount, err := strconv.ParseInt(wCountStr, 10, 64)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	return pointer.Int64(wCount)
 }
 
@@ -602,7 +602,7 @@ func (c *E2EConfig) GetInt32PtrVariable(varName string) *int32 {
 	}
 
 	wCount, err := strconv.ParseUint(wCountStr, 10, 32)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	return pointer.Int32(int32(wCount))
 }
 

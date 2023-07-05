@@ -72,7 +72,7 @@ func TestClusterClassExists(t *testing.T) {
 			c, _ := client.Proxy().NewClient()
 
 			actual, err := clusterClassExists(c, tt.clusterClass, metav1.NamespaceDefault)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(actual).To(Equal(tt.want))
 		})
 	}

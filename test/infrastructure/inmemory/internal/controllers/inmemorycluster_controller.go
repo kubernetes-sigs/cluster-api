@@ -92,8 +92,8 @@ func (r *InMemoryClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// If the controller is restarting and there is already an existing set of InMemoryClusters,
 	// tries to rebuild the internal state of the APIServerMux accordingly.
-	if ret, err := r.reconcileHotRestart(ctx); !ret.IsZero() || err != nil {
-		return ret, err
+	if err := r.reconcileHotRestart(ctx); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	// Always attempt to Patch the InMemoryCluster object and status after each reconciliation.
@@ -108,7 +108,7 @@ func (r *InMemoryClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 
 	// Handle deleted clusters
 	if !inMemoryCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, cluster, inMemoryCluster)
+		return ctrl.Result{}, r.reconcileDelete(ctx, cluster, inMemoryCluster)
 	}
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
@@ -119,17 +119,17 @@ func (r *InMemoryClusterReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 	}
 
 	// Handle non-deleted clusters
-	return r.reconcileNormal(ctx, cluster, inMemoryCluster)
+	return ctrl.Result{}, r.reconcileNormal(ctx, cluster, inMemoryCluster)
 }
 
 // reconcileHotRestart tries to setup the APIServerMux according to an existing sets of InMemoryCluster.
 // NOTE: This is done at best effort in order to make iterative development workflow easier.
-func (r *InMemoryClusterReconciler) reconcileHotRestart(ctx context.Context) (ctrl.Result, error) {
+func (r *InMemoryClusterReconciler) reconcileHotRestart(ctx context.Context) error {
 	r.hotRestartLock.RLock()
 	if r.hotRestartDone {
 		// Return if the hot restart was already done.
 		r.hotRestartLock.RUnlock()
-		return ctrl.Result{}, nil
+		return nil
 	}
 	r.hotRestartLock.RUnlock()
 
@@ -138,22 +138,22 @@ func (r *InMemoryClusterReconciler) reconcileHotRestart(ctx context.Context) (ct
 
 	// Check again if another go routine did the hot restart before we got the write lock.
 	if r.hotRestartDone {
-		return ctrl.Result{}, nil
+		return nil
 	}
 
 	inMemoryClusterList := &infrav1.InMemoryClusterList{}
 	if err := r.Client.List(ctx, inMemoryClusterList); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 	if err := r.APIServerMux.HotRestart(inMemoryClusterList); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	r.hotRestartDone = true
-	return ctrl.Result{}, nil
+	return nil
 }
 
-func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.InMemoryCluster) (ctrl.Result, error) {
+func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.InMemoryCluster) error {
 	// Compute the resource group unique name.
 	resourceGroup := klog.KObj(cluster).String()
 
@@ -173,7 +173,7 @@ func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *
 	// the same name is used by the current implementation of the resourceGroup resolvers in the APIServerMux.
 	listener, err := r.APIServerMux.InitWorkloadClusterListener(resourceGroup)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to init the listener for the workload cluster")
+		return errors.Wrap(err, "failed to init the listener for the workload cluster")
 	}
 
 	// Surface the control plane endpoint
@@ -185,10 +185,10 @@ func (r *InMemoryClusterReconciler) reconcileNormal(_ context.Context, cluster *
 	// Mark the InMemoryCluster ready
 	inMemoryCluster.Status.Ready = true
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
-func (r *InMemoryClusterReconciler) reconcileDelete(_ context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.InMemoryCluster) (ctrl.Result, error) {
+func (r *InMemoryClusterReconciler) reconcileDelete(_ context.Context, cluster *clusterv1.Cluster, inMemoryCluster *infrav1.InMemoryCluster) error {
 	// Compute the resource group unique name.
 	resourceGroup := klog.KObj(cluster).String()
 
@@ -197,11 +197,11 @@ func (r *InMemoryClusterReconciler) reconcileDelete(_ context.Context, cluster *
 
 	// Delete the listener for the workload cluster;
 	if err := r.APIServerMux.DeleteWorkloadClusterListener(resourceGroup); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	controllerutil.RemoveFinalizer(inMemoryCluster, infrav1.ClusterFinalizer)
-	return ctrl.Result{}, nil
+	return nil
 }
 
 // SetupWithManager will add watches for this controller.

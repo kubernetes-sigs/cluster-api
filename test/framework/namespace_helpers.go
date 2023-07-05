@@ -146,7 +146,7 @@ func WatchNamespaceEvents(ctx context.Context, input WatchNamespaceEventsInput) 
 	Expect(os.MkdirAll(filepath.Dir(logFile), 0750)).To(Succeed())
 
 	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	defer f.Close()
 
 	informerFactory := informers.NewSharedInformerFactoryWithOptions(
@@ -168,7 +168,7 @@ func WatchNamespaceEvents(ctx context.Context, input WatchNamespaceEventsInput) 
 		},
 		DeleteFunc: func(obj interface{}) {},
 	})
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 
 	stopInformer := make(chan struct{})
 	defer close(stopInformer)

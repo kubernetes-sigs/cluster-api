@@ -49,7 +49,7 @@ func TestMachineDeploymentReconciler(t *testing.T) {
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, machineDeploymentNamespace)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		t.Log("Creating the Cluster")
 		cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: ns.Name, Name: "test-cluster"}}
@@ -473,7 +473,7 @@ func TestMachineDeploymentReconciler_CleanUpManagedFieldsForSSAAdoption(t *testi
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, machineDeploymentNamespace)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		t.Log("Creating the Cluster")
 		cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Namespace: ns.Name, Name: "test-cluster"}}
@@ -958,7 +958,7 @@ func TestGetMachineSetsForDeployment(t *testing.T) {
 			}
 
 			got, err := r.getMachineSetsForDeployment(ctx, &tc.machineDeployment)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(HaveLen(len(tc.expected)))
 
 			for idx, res := range got {

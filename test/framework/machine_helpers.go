@@ -268,7 +268,7 @@ func WaitForMachineStatusCheck(ctx context.Context, input WaitForMachineStatusCh
 			Name:      input.Machine.Name,
 		}
 		err := input.Getter.Get(ctx, key, machine)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 
 		for _, statusCheck := range input.StatusChecks {
 			err := statusCheck(machine)

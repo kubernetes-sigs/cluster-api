@@ -121,7 +121,7 @@ func (r *DockerMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	// Handle deleted machines
 	if !dockerMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, cluster, machinePool, dockerMachinePool)
+		return ctrl.Result{}, r.reconcileDelete(ctx, cluster, machinePool, dockerMachinePool)
 	}
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
@@ -171,18 +171,18 @@ func (r *DockerMachinePoolReconciler) SetupWithManager(ctx context.Context, mgr 
 	return nil
 }
 
-func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (ctrl.Result, error) {
+func (r *DockerMachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) error {
 	pool, err := docker.NewNodePool(ctx, r.Client, cluster, machinePool, dockerMachinePool)
 	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to build new node pool")
+		return errors.Wrap(err, "failed to build new node pool")
 	}
 
 	if err := pool.Delete(ctx); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to delete all machines in the node pool")
+		return errors.Wrap(err, "failed to delete all machines in the node pool")
 	}
 
 	controllerutil.RemoveFinalizer(dockerMachinePool, infraexpv1.MachinePoolFinalizer)
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *DockerMachinePoolReconciler) reconcileNormal(ctx context.Context, cluster *clusterv1.Cluster, machinePool *expv1.MachinePool, dockerMachinePool *infraexpv1.DockerMachinePool) (ctrl.Result, error) {

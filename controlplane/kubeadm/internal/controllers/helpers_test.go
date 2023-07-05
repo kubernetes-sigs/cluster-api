@@ -298,7 +298,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, "test-applykubeadmconfig")
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		return ns
 	}
@@ -380,7 +380,7 @@ func TestCloneConfigsAndGenerateMachine(t *testing.T) {
 		g.Expect(m.Name).To(HavePrefix(kcp.Name))
 
 		infraObj, err := external.Get(ctx, r.Client, &m.Spec.InfrastructureRef, m.Spec.InfrastructureRef.Namespace)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromNameAnnotation, genericInfrastructureMachineTemplate.GetName()))
 		g.Expect(infraObj.GetAnnotations()).To(HaveKeyWithValue(clusterv1.TemplateClonedFromGroupKindAnnotation, genericInfrastructureMachineTemplate.GroupVersionKind().GroupKind().String()))
 
@@ -530,7 +530,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 			infraRef, bootstrapRef,
 			failureDomain, nil,
 		)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		expectedMachineSpec := clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
@@ -607,7 +607,7 @@ func TestKubeadmControlPlaneReconciler_computeDesiredMachine(t *testing.T) {
 			infraRef, bootstrapRef,
 			existingMachine.Spec.FailureDomain, existingMachine,
 		)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		expectedMachineSpec := clusterv1.MachineSpec{
 			ClusterName: cluster.Name,
@@ -689,7 +689,7 @@ func TestKubeadmControlPlaneReconciler_generateKubeadmConfig(t *testing.T) {
 	}
 
 	got, err := r.generateKubeadmConfig(ctx, kcp, cluster, spec.DeepCopy())
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(got).NotTo(BeNil())
 	g.Expect(got.Name).To(HavePrefix(kcp.Name))
 	g.Expect(got.Namespace).To(Equal(kcp.Namespace))
@@ -796,8 +796,8 @@ func TestKubeadmControlPlaneReconciler_adoptKubeconfigSecret(t *testing.T) {
 			}
 			g.Expect(r.adoptKubeconfigSecret(ctx, tt.configSecret, kcp)).To(Succeed())
 			actualSecret := &corev1.Secret{}
-			g.Expect(fakeClient.Get(ctx, client.ObjectKey{Namespace: tt.configSecret.Namespace, Name: tt.configSecret.Namespace}, actualSecret))
-			g.Expect(tt.configSecret.GetOwnerReferences()).To(ConsistOf(tt.expectedOwnerRef))
+			g.Expect(fakeClient.Get(ctx, client.ObjectKey{Namespace: tt.configSecret.Namespace, Name: tt.configSecret.Name}, actualSecret)).To(Succeed())
+			g.Expect(actualSecret.GetOwnerReferences()).To(ConsistOf(tt.expectedOwnerRef))
 		})
 	}
 }

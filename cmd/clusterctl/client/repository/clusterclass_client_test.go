@@ -175,14 +175,14 @@ func Test_ClusterClassClient_Get(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got.Variables()).To(Equal(tt.want.variables))
 			g.Expect(got.TargetNamespace()).To(Equal(tt.want.targetNamespace))
 
 			// check variable replaced in yaml
 			yaml, err := got.Yaml()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			if !tt.args.listVariablesOnly {
 				g.Expect(yaml).To(ContainSubstring(fmt.Sprintf("variable: %s", variableValue)))

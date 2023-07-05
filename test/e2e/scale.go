@@ -185,7 +185,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 		if input.E2EConfig.HasVariable(scaleControlPlaneMachineCount) {
 			controlPlaneMachineCountStr := input.E2EConfig.GetVariable(scaleControlPlaneMachineCount)
 			controlPlaneMachineCountInt, err := strconv.Atoi(controlPlaneMachineCountStr)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 			controlPlaneMachineCount = pointer.Int64(int64(controlPlaneMachineCountInt))
 		}
 
@@ -197,7 +197,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 		if input.E2EConfig.HasVariable(scaleWorkerMachineCount) {
 			workerMachineCountStr := input.E2EConfig.GetVariable(scaleWorkerMachineCount)
 			workerMachineCountInt, err := strconv.Atoi(workerMachineCountStr)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 			workerMachineCount = pointer.Int64(int64(workerMachineCountInt))
 		}
 
@@ -209,7 +209,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 		if input.E2EConfig.HasVariable(scaleMachineDeploymentCount) {
 			machineDeploymentCountStr := input.E2EConfig.GetVariable(scaleMachineDeploymentCount)
 			machineDeploymentCountInt, err := strconv.Atoi(machineDeploymentCountStr)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 			machineDeploymentCount = pointer.Int64(int64(machineDeploymentCountInt))
 		}
 
@@ -378,7 +378,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 
 func extractClusterClassAndClusterFromTemplate(rawYAML []byte) ([]byte, []byte) {
 	objs, err := yaml.ToUnstructured(rawYAML)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	clusterObj := unstructured.Unstructured{}
 	clusterClassAndTemplates := []unstructured.Unstructured{}
 	for _, obj := range objs {
@@ -389,9 +389,9 @@ func extractClusterClassAndClusterFromTemplate(rawYAML []byte) ([]byte, []byte) 
 		}
 	}
 	clusterYAML, err := yaml.FromUnstructured([]unstructured.Unstructured{clusterObj})
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	clusterClassYAML, err := yaml.FromUnstructured(clusterClassAndTemplates)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	return clusterClassYAML, clusterYAML
 }
 
@@ -658,7 +658,7 @@ func modifyMachineDeployments(baseClusterTemplateYAML []byte, count int) []byte 
 	Expect(count).To(BeNumerically(">=", 0), "Invalid argument. count cannot be less than 0 when calling modifyMachineDeployments")
 
 	objs, err := yaml.ToUnstructured(baseClusterTemplateYAML)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	Expect(objs).To(HaveLen(1), "Unexpected number of objects found in baseClusterTemplateYAML")
 
 	scheme := runtime.NewScheme()
@@ -684,7 +684,7 @@ func modifyMachineDeployments(baseClusterTemplateYAML []byte, count int) []byte 
 	u := &unstructured.Unstructured{}
 	Expect(scheme.Convert(cluster, u, nil)).To(Succeed())
 	modifiedClusterYAML, err := yaml.FromUnstructured([]unstructured.Unstructured{*u})
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 
 	return modifiedClusterYAML
 }

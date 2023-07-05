@@ -33,7 +33,7 @@ func TestKubeadmConfigReconciler(t *testing.T) {
 			g := NewWithT(t)
 
 			ns, err := env.CreateNamespace(ctx, "test-kubeadm-config-reconciler")
-			g.Expect(err).To(BeNil())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			cluster := builder.Cluster(ns.Name, "cluster1").Build()
 			g.Expect(env.Create(ctx, cluster)).To(Succeed())

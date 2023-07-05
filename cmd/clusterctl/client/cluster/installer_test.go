@@ -252,7 +252,7 @@ func Test_providerInstaller_Validate(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -295,7 +295,7 @@ func Test_providerInstaller_ValidateCRDName(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}

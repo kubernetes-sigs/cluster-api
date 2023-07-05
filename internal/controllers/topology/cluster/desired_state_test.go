@@ -587,7 +587,7 @@ func TestComputeControlPlane(t *testing.T) {
 				r := &Reconciler{}
 
 				obj, err := r.computeControlPlane(ctx, s, nil)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(obj).NotTo(BeNil())
 				assertNestedField(g, obj, tt.expectedVersion, contract.ControlPlane().Version().Path()...)
 			})
@@ -863,9 +863,9 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 				}
 				version, err := r.computeControlPlaneVersion(ctx, s)
 				if tt.wantErr {
-					g.Expect(err).NotTo(BeNil())
+					g.Expect(err).To(HaveOccurred())
 				} else {
-					g.Expect(err).To(BeNil())
+					g.Expect(err).ToNot(HaveOccurred())
 					g.Expect(version).To(Equal(tt.expectedVersion))
 					// Verify that if the upgrade is pending it is captured in the upgrade tracker.
 					upgradePending := tt.expectedVersion != tt.topologyVersion
@@ -1245,7 +1245,7 @@ func TestComputeControlPlaneVersion(t *testing.T) {
 
 		desiredVersion, err := r.computeControlPlaneVersion(ctx, s)
 		g := NewWithT(t)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		// When successfully picking up the new version the intent to call AfterControlPlaneUpgrade and AfterClusterUpgrade hooks should be registered.
 		g.Expect(desiredVersion).To(Equal("v1.2.3"))
 		g.Expect(hooks.IsPending(runtimehooksv1.AfterControlPlaneUpgrade, s.Current.Cluster)).To(BeTrue())
@@ -1685,7 +1685,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 				}
 				s.UpgradeTracker.MachineDeployments.MarkUpgrading(tt.upgradingMachineDeployments...)
 				obj, err := computeMachineDeployment(ctx, s, mdTopology)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(*obj.Object.Spec.Template.Spec.Version).To(Equal(tt.expectedVersion))
 			})
 		}
@@ -1701,7 +1701,7 @@ func TestComputeMachineDeployment(t *testing.T) {
 		}
 
 		actual, err := computeMachineDeployment(ctx, scope, mdTopology)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		// Check that the ClusterName and selector are set properly for the MachineHealthCheck.
 		g.Expect(actual.MachineHealthCheck.Spec.ClusterName).To(Equal(cluster.Name))
 		g.Expect(actual.MachineHealthCheck.Spec.Selector).To(Equal(metav1.LabelSelector{MatchLabels: map[string]string{
@@ -2121,11 +2121,11 @@ func assertTemplateToObject(g *WithT, in assertTemplateInput) {
 	}
 	// Spec
 	expectedSpec, ok, err := unstructured.NestedMap(in.template.UnstructuredContent(), "spec", "template", "spec")
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ok).To(BeTrue())
 
 	cloneSpec, ok, err := unstructured.NestedMap(in.obj.UnstructuredContent(), "spec")
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ok).To(BeTrue())
 	for k, v := range expectedSpec {
 		g.Expect(cloneSpec).To(HaveKeyWithValue(k, v))
@@ -2157,11 +2157,11 @@ func assertTemplateToTemplate(g *WithT, in assertTemplateInput) {
 	}
 	// Spec
 	expectedSpec, ok, err := unstructured.NestedMap(in.template.UnstructuredContent(), "spec")
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ok).To(BeTrue())
 
 	cloneSpec, ok, err := unstructured.NestedMap(in.obj.UnstructuredContent(), "spec")
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(ok).To(BeTrue())
 	g.Expect(cloneSpec).To(Equal(expectedSpec))
 }

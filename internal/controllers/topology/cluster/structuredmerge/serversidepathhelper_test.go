@@ -664,7 +664,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			if tt.defaultOriginal {
 				g.Eventually(ctx, func(g Gomega) {
 					patchKCT := &bootstrapv1.KubeadmConfigTemplate{}
-					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT))
+					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT)).To(Succeed())
 
 					if patchKCT.Labels == nil {
 						patchKCT.Labels = map[string]string{}
@@ -674,13 +674,13 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 					g.Expect(env.Patch(ctx, patchKCT, client.MergeFrom(kct))).To(Succeed())
 
 					// Ensure patchKCT was defaulted.
-					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT))
+					g.Expect(env.Get(ctx, client.ObjectKeyFromObject(kct), patchKCT)).To(Succeed())
 					g.Expect(patchKCT.Spec.Template.Spec.Users).To(Equal([]bootstrapv1.User{{Name: "default-user"}}))
 				}, 5*time.Second).Should(Succeed())
 			}
 			// Get original for the update.
 			original := kct.DeepCopy()
-			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original))
+			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
 
 			// Calculate modified for the update.
 			modified := kct.DeepCopy()
@@ -703,7 +703,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 			// Note: It might take a bit for the cache to be up-to-date.
 			g.Eventually(func(g Gomega) {
 				got := original.DeepCopy()
-				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(got), got))
+				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(got), got)).To(Succeed())
 
 				// topology controller should express opinions on spec.template.spec.
 				fieldV1 := getTopologyManagedFields(got)
@@ -734,7 +734,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 
 				// Get original.
 				original = kct.DeepCopy()
-				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original))
+				g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
 
 				countBefore := defaulter.Counter
 
@@ -761,7 +761,7 @@ func TestServerSideApplyWithDefaulting(t *testing.T) {
 
 			// Get original.
 			original = kct.DeepCopy()
-			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original))
+			g.Expect(env.Get(ctx, client.ObjectKeyFromObject(original), original)).To(Succeed())
 
 			countBefore := defaulter.Counter
 

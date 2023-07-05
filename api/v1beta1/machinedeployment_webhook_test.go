@@ -401,10 +401,10 @@ func TestMachineDeploymentValidation(t *testing.T) {
 				g.Expect(warnings).To(BeEmpty())
 			} else {
 				warnings, err := md.ValidateCreate()
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 				warnings, err = md.ValidateUpdate(md)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
 		})
@@ -519,7 +519,7 @@ func TestMachineDeploymentClusterNameImmutable(t *testing.T) {
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(warnings).To(BeEmpty())
 		})
@@ -549,7 +549,7 @@ func defaultValidateTestCustomDefaulter(object admission.Validator, customDefaul
 			g := NewWithT(t)
 			g.Expect(customDefaulter.Default(ctx, createCopy)).To(Succeed())
 			warnings, err := createCopy.ValidateCreate()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 		})
 		t.Run("validate-on-update", func(t *testing.T) {
@@ -557,14 +557,14 @@ func defaultValidateTestCustomDefaulter(object admission.Validator, customDefaul
 			g.Expect(customDefaulter.Default(ctx, defaultingUpdateCopy)).To(Succeed())
 			g.Expect(customDefaulter.Default(ctx, updateCopy)).To(Succeed())
 			warnings, err := defaultingUpdateCopy.ValidateUpdate(updateCopy)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 		})
 		t.Run("validate-on-delete", func(t *testing.T) {
 			g := NewWithT(t)
 			g.Expect(customDefaulter.Default(ctx, deleteCopy)).To(Succeed())
 			warnings, err := deleteCopy.ValidateDelete()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 		})
 	}

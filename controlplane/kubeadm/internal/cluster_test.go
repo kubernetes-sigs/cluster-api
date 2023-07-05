@@ -58,12 +58,12 @@ func TestGetMachinesForCluster(t *testing.T) {
 		},
 	}
 	machines, err := m.GetMachinesForCluster(ctx, cluster)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(3))
 
 	// Test the ControlPlaneMachines works
 	machines, err = m.GetMachinesForCluster(ctx, cluster, collections.ControlPlaneMachines("my-cluster"))
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 
 	// Test that the filters use AND logic instead of OR logic
@@ -71,7 +71,7 @@ func TestGetMachinesForCluster(t *testing.T) {
 		return cluster.Name == "first-machine"
 	}
 	machines, err = m.GetMachinesForCluster(ctx, cluster, collections.ControlPlaneMachines("my-cluster"), nameFilter)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(machines).To(HaveLen(1))
 }
 

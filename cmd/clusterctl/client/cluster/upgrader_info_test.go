@@ -240,7 +240,7 @@ func Test_providerUpgrader_getUpgradeInfo(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(got).To(Equal(tt.want))
 		})

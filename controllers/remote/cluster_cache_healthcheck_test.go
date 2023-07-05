@@ -61,7 +61,7 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 				Scheme:             scheme.Scheme,
 				MetricsBindAddress: "0",
 			})
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			mgrContext, mgrCancel = context.WithCancel(ctx)
 			t.Log("Starting the manager")
@@ -78,11 +78,11 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 				Log:     &log,
 				Indexes: []Index{NodeProviderIDIndex},
 			})
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Creating a namespace for the test")
 			ns, err := env.CreateNamespace(ctx, "cluster-cache-health-test")
-			g.Expect(err).To(BeNil())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Creating a test cluster")
 			testCluster := &clusterv1.Cluster{
@@ -218,9 +218,9 @@ func TestClusterCacheHealthCheck(t *testing.T) {
 
 			// Set the host to a random free port on localhost
 			addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			l, err := net.ListenTCP("tcp", addr)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(l.Close()).To(Succeed())
 
 			config := rest.CopyConfig(env.Config)

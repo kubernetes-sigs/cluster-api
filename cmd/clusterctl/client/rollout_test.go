@@ -174,7 +174,7 @@ func Test_clusterctlClient_RolloutRestart(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
@@ -257,7 +257,7 @@ func Test_clusterctlClient_RolloutPause(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
@@ -340,7 +340,7 @@ func Test_clusterctlClient_RolloutResume(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }

@@ -108,7 +108,7 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 
 	// Handle deleted clusters
 	if !dockerCluster.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, dockerCluster, externalLoadBalancer)
+		return ctrl.Result{}, r.reconcileDelete(ctx, dockerCluster, externalLoadBalancer)
 	}
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
@@ -119,7 +119,7 @@ func (r *DockerClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	}
 
 	// Handle non-deleted clusters
-	return r.reconcileNormal(ctx, dockerCluster, externalLoadBalancer)
+	return ctrl.Result{}, r.reconcileNormal(ctx, dockerCluster, externalLoadBalancer)
 }
 
 func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCluster *infrav1.DockerCluster) error {
@@ -143,18 +143,18 @@ func patchDockerCluster(ctx context.Context, patchHelper *patch.Helper, dockerCl
 	)
 }
 
-func (r *DockerClusterReconciler) reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
+func (r *DockerClusterReconciler) reconcileNormal(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) error {
 	// Create the docker container hosting the load balancer.
 	if err := externalLoadBalancer.Create(ctx); err != nil {
 		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		return ctrl.Result{}, errors.Wrap(err, "failed to create load balancer")
+		return errors.Wrap(err, "failed to create load balancer")
 	}
 
 	// Set APIEndpoints with the load balancer IP so the Cluster API Cluster Controller can pull it
 	lbIP, err := externalLoadBalancer.IP(ctx)
 	if err != nil {
 		conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, infrav1.LoadBalancerProvisioningFailedReason, clusterv1.ConditionSeverityWarning, err.Error())
-		return ctrl.Result{}, errors.Wrap(err, "failed to get ip for the load balancer")
+		return errors.Wrap(err, "failed to get ip for the load balancer")
 	}
 
 	if dockerCluster.Spec.ControlPlaneEndpoint.Host == "" {
@@ -167,32 +167,32 @@ func (r *DockerClusterReconciler) reconcileNormal(ctx context.Context, dockerClu
 	dockerCluster.Status.Ready = true
 	conditions.MarkTrue(dockerCluster, infrav1.LoadBalancerAvailableCondition)
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
-func (r *DockerClusterReconciler) reconcileDelete(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) (ctrl.Result, error) {
+func (r *DockerClusterReconciler) reconcileDelete(ctx context.Context, dockerCluster *infrav1.DockerCluster, externalLoadBalancer *docker.LoadBalancer) error {
 	// Set the LoadBalancerAvailableCondition reporting delete is started, and issue a patch in order to make
 	// this visible to the users.
 	// NB. The operation in docker is fast, so there is the chance the user will not notice the status change;
 	// nevertheless we are issuing a patch so we can test a pattern that will be used by other providers as well
 	patchHelper, err := patch.NewHelper(dockerCluster, r.Client)
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 	conditions.MarkFalse(dockerCluster, infrav1.LoadBalancerAvailableCondition, clusterv1.DeletingReason, clusterv1.ConditionSeverityInfo, "")
 	if err := patchDockerCluster(ctx, patchHelper, dockerCluster); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to patch DockerCluster")
+		return errors.Wrap(err, "failed to patch DockerCluster")
 	}
 
 	// Delete the docker container hosting the load balancer
 	if err := externalLoadBalancer.Delete(ctx); err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to delete load balancer")
+		return errors.Wrap(err, "failed to delete load balancer")
 	}
 
 	// Cluster is deleted so remove the finalizer.
 	controllerutil.RemoveFinalizer(dockerCluster, infrav1.ClusterFinalizer)
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 // SetupWithManager will add watches for this controller.

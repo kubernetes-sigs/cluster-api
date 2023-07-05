@@ -135,7 +135,7 @@ func Test_gitLabRepository_newGitLabRepository(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gitLab).To(Equal(tt.want))
 		})
 	}
@@ -193,7 +193,7 @@ func Test_gitLabRepository_getFile(t *testing.T) {
 
 			gitLab, err := NewGitLabRepository(providerConfig, configVariablesClient)
 			gitLab.(*gitLabRepository).httpClient = client
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			got, err := gitLab.GetFile(tt.version, tt.fileName)
 			if tt.wantErr {
@@ -201,7 +201,7 @@ func Test_gitLabRepository_getFile(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}

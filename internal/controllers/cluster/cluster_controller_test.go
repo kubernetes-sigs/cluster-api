@@ -70,7 +70,7 @@ func TestClusterReconciler(t *testing.T) {
 		key := client.ObjectKey{Namespace: instance.Namespace, Name: instance.Name}
 		defer func() {
 			err := env.Delete(ctx, instance)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		}()
 
 		// Make sure the Cluster exists.
@@ -96,7 +96,7 @@ func TestClusterReconciler(t *testing.T) {
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
 			err := env.Delete(ctx, cluster)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		}()
 
 		// Wait for reconciliation to happen.
@@ -110,7 +110,7 @@ func TestClusterReconciler(t *testing.T) {
 		// Patch
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			cluster.Spec.InfrastructureRef = &corev1.ObjectReference{Name: "test"}
 			cluster.Spec.ControlPlaneRef = &corev1.ObjectReference{Name: "test-too"}
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -142,7 +142,7 @@ func TestClusterReconciler(t *testing.T) {
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
 			err := env.Delete(ctx, cluster)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		}()
 
 		// Wait for reconciliation to happen.
@@ -156,7 +156,7 @@ func TestClusterReconciler(t *testing.T) {
 		// Patch
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
@@ -187,7 +187,7 @@ func TestClusterReconciler(t *testing.T) {
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
 			err := env.Delete(ctx, cluster)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		}()
 
 		// Wait for reconciliation to happen.
@@ -201,7 +201,7 @@ func TestClusterReconciler(t *testing.T) {
 		// Patch
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			cluster.Status.InfrastructureReady = true
 			cluster.Spec.InfrastructureRef = &corev1.ObjectReference{Name: "test"}
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
@@ -234,7 +234,7 @@ func TestClusterReconciler(t *testing.T) {
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
 			err := env.Delete(ctx, cluster)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		}()
 
 		// Wait for reconciliation to happen.
@@ -248,7 +248,7 @@ func TestClusterReconciler(t *testing.T) {
 		// Remove finalizers
 		g.Eventually(func() bool {
 			ph, err := patch.NewHelper(cluster, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			cluster.SetFinalizers([]string{})
 			g.Expect(ph.Patch(ctx, cluster, patch.WithStatusObservedGeneration{})).To(Succeed())
 			return true
@@ -280,7 +280,7 @@ func TestClusterReconciler(t *testing.T) {
 		key := client.ObjectKey{Name: cluster.Name, Namespace: cluster.Namespace}
 		defer func() {
 			err := env.Delete(ctx, cluster)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		}()
 		g.Expect(env.CreateKubeconfigSecret(ctx, cluster)).To(Succeed())
 
@@ -326,7 +326,7 @@ func TestClusterReconciler(t *testing.T) {
 		key = client.ObjectKey{Name: machine.Name, Namespace: machine.Namespace}
 		defer func() {
 			err := env.Delete(ctx, machine)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		}()
 
 		// Wait for machine to be ready.
@@ -724,7 +724,7 @@ func TestFilterOwnedDescendants(t *testing.T) {
 	}
 
 	actual, err := d.filterOwnedDescendants(&c)
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	expected := []client.Object{
 		&mp2OwnedByCluster,
@@ -805,6 +805,6 @@ func TestReconcileControlPlaneInitializedControlPlaneRef(t *testing.T) {
 	r := &Reconciler{}
 	res, err := r.reconcileControlPlaneInitialized(ctx, c)
 	g.Expect(res.IsZero()).To(BeTrue())
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(conditions.Has(c, clusterv1.ControlPlaneInitializedCondition)).To(BeFalse())
 }

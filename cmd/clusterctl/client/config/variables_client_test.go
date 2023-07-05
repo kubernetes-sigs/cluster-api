@@ -71,7 +71,7 @@ func Test_variables_Get(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}

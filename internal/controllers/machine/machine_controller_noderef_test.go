@@ -52,7 +52,7 @@ func TestGetNode(t *testing.T) {
 		},
 	}
 
-	g.Expect(env.Create(ctx, testCluster)).To(BeNil())
+	g.Expect(env.Create(ctx, testCluster)).To(Succeed())
 	g.Expect(env.CreateKubeconfigSecret(ctx, testCluster)).To(Succeed())
 	defer func(do ...client.Object) {
 		g.Expect(env.Cleanup(ctx, do...)).To(Succeed())
@@ -117,7 +117,7 @@ func TestGetNode(t *testing.T) {
 
 	nodesToCleanup := make([]client.Object, 0, len(testCases))
 	for _, tc := range testCases {
-		g.Expect(env.Create(ctx, tc.node)).To(BeNil())
+		g.Expect(env.Create(ctx, tc.node)).To(Succeed())
 		nodesToCleanup = append(nodesToCleanup, tc.node)
 	}
 	defer func(do ...client.Object) {

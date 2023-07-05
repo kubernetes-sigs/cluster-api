@@ -704,7 +704,7 @@ func createCASecret(t *testing.T, cluster *clusterv1.Cluster, purpose secretutil
 	g := NewWithT(t)
 
 	cert, key, err := newCertificateAuthority()
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{

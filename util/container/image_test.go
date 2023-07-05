@@ -145,7 +145,7 @@ func TestParseImageName(t *testing.T) {
 			if tc.wantError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(image.Repository).To(Equal(tc.repo))
 				g.Expect(image.Name).To(Equal(tc.imageName))
 				g.Expect(image.Tag).To(Equal(tc.tag))
@@ -217,7 +217,7 @@ func TestModifyImageRepository(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				g.Expect(err).To(MatchError(ContainSubstring(tc.wantErrMessage)))
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(res).To(Equal(tc.want))
 			}
 		})
@@ -230,14 +230,14 @@ func TestModifyImageTag(t *testing.T) {
 		testTag := "v1.17.4+build1"
 		image := "example.com/image:1.17.3"
 		res, err := ModifyImageTag(image, testTag)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res).To(Equal("example.com/image:v1.17.4_build1"))
 	})
 	t.Run("should ensure image is a docker compatible tag with docker.io", func(t *testing.T) {
 		testTag := "v1.17.4+build1"
 		image := "docker.io/dev/image:1.17.3"
 		res, err := ModifyImageTag(image, testTag)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(res).To(Equal("docker.io/dev/image:v1.17.4_build1"))
 	})
 }

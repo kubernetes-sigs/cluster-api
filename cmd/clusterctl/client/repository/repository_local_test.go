@@ -113,7 +113,7 @@ func Test_localRepository_newLocalRepository(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got.basepath).To(Equal(tt.want.basepath))
 			g.Expect(got.providerLabel).To(Equal(tt.want.providerLabel))
@@ -166,7 +166,7 @@ func Test_localRepository_newLocalRepository_Latest(t *testing.T) {
 	p2 := config.NewProvider("foo", p2URLLatestAbs, clusterctlv1.BootstrapProviderType)
 
 	got, err := newLocalRepository(p2, test.NewFakeVariableClient())
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	g.Expect(got.basepath).To(Equal(tmpDir))
 	g.Expect(got.providerLabel).To(Equal("bootstrap-foo"))
@@ -296,7 +296,7 @@ func Test_localRepository_GetFile(t *testing.T) {
 			g := NewWithT(t)
 
 			r, err := newLocalRepository(tt.fields.provider, tt.fields.configVariablesClient)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			got, err := r.GetFile(tt.args.version, tt.args.fileName)
 			if tt.wantErr {
@@ -304,7 +304,7 @@ func Test_localRepository_GetFile(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(string(got)).To(Equal(tt.want.contents))
 		})
 	}
@@ -371,14 +371,14 @@ func Test_localRepository_GetVersions(t *testing.T) {
 			g := NewWithT(t)
 
 			r, err := newLocalRepository(tt.fields.provider, tt.fields.configVariablesClient)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			got, err := r.GetVersions()
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got).To(ConsistOf(tt.want.versions))
 		})

@@ -60,7 +60,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 
 		for _, name := range []string{"ext1", "ext2", "ext3"} {
 			server, err := fakeSecureExtensionServer(discoveryHandler("first", "second", "third"))
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			defer server.Close()
 			extensionConfig := fakeExtensionConfigForURL(ns.Name, name, server.URL)
 			extensionConfig.Annotations[runtimev1.InjectCAFromSecretAnnotation] = caCertSecret.GetNamespace() + "/" + caCertSecret.GetName()
@@ -105,7 +105,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 	t.Run("fail to warm up registry on Start with broken extension", func(t *testing.T) {
 		// This test should time out and throw a failure.
 		ns, err := env.CreateNamespace(ctx, "test-runtime-extension")
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		caCertSecret := fakeCASecret(ns.Name, "ext1-webhook", testcerts.CACert)
 		// Create the secret which contains the ca certificate.
@@ -127,7 +127,7 @@ func Test_warmupRunnable_Start(t *testing.T) {
 				continue
 			}
 			server, err := fakeSecureExtensionServer(discoveryHandler("first", "second", "third"))
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			defer server.Close()
 
 			extensionConfig := fakeExtensionConfigForURL(ns.Name, name, server.URL)

@@ -48,7 +48,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-rollout-scaleup")
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		return ns
 	}
@@ -104,7 +104,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 
 	result, err := r.initializeControlPlane(ctx, controlPlane)
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	// initial setup
 	initialMachine := &clusterv1.MachineList{}
@@ -126,7 +126,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 	controlPlane.Machines = needingUpgrade
 	result, err = r.upgradeControlPlane(ctx, controlPlane, needingUpgrade)
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 	bothMachines := &clusterv1.MachineList{}
 	g.Eventually(func(g Gomega) {
 		g.Expect(env.List(ctx, bothMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
@@ -167,7 +167,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleUp(t *testing.T) {
 
 	// run upgrade the second time, expect we scale down
 	result, err = r.upgradeControlPlane(ctx, controlPlane, machinesRequireUpgrade)
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
 	finalMachine := &clusterv1.MachineList{}
 	g.Eventually(func(g Gomega) {
@@ -242,7 +242,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 
 	result, err := r.reconcile(ctx, controlPlane)
 	g.Expect(result).To(Equal(ctrl.Result{}))
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
@@ -260,7 +260,7 @@ func TestKubeadmControlPlaneReconciler_RolloutStrategy_ScaleDown(t *testing.T) {
 
 	result, err = r.upgradeControlPlane(ctx, controlPlane, needingUpgrade)
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 	remainingMachines := &clusterv1.MachineList{}
 	g.Expect(fakeClient.List(ctx, remainingMachines, client.InNamespace(cluster.Namespace))).To(Succeed())
 	g.Expect(remainingMachines.Items).To(HaveLen(2))

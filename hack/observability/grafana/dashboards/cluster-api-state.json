@@ -564,1196 +564,6 @@
         "x": 0,
         "y": 5
       },
-      "id": 42,
-      "panels": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 1,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 6
-          },
-          "id": 49,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "min",
-                "max",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "asc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "avg(min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_cluster_created) by (type)",
-              "legendFormat": "{{type}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Cluster time until condition first true since creationTimestamp (all)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 1,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 6
-          },
-          "id": 43,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "min",
-                "max",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "asc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "avg((min_over_time(capi_cluster_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () capi_cluster_created) by (type)",
-              "legendFormat": "{{type}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Cluster time until condition first true since creationTimestamp (last 5m)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 1,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 14
-          },
-          "id": 45,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "min",
-                "max",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "asc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "avg(min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () capi_kubeadmcontrolplane_created) by (type)",
-              "legendFormat": "{{type}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "KubeadmControlPlane time until condition first true since creationTimestamp (all)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 1,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 14
-          },
-          "id": 50,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "min",
-                "max",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "asc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "avg((min_over_time(capi_kubeadmcontrolplane_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () capi_kubeadmcontrolplane_created) by (type)",
-              "legendFormat": "{{type}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "KubeadmControlPlane time until condition first true since creationTimestamp (last 5m)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 1,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 22
-          },
-          "id": 44,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "min",
-                "max",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "asc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (type)",
-              "legendFormat": "{{type}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Control Plane Machine time until condition first true since creationTimestamp (all)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 1,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 22
-          },
-          "id": 51,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "min",
-                "max",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "asc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "avg((min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name!=\"\"}) by (name))) by (type)",
-              "legendFormat": "{{type}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Control Plane Machine time until condition first true since creationTimestamp (last 5m)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 1,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 30
-          },
-          "id": 48,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "min",
-                "max",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "asc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "avg(min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (type)",
-              "legendFormat": "{{type}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Worker Machine time until condition first true since creationTimestamp (all)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 1,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 30
-          },
-          "id": 52,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "min",
-                "max",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "asc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "avg((min_over_time(capi_machine_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_machine_created * on (name) group_right avg(capi_machine_info{control_plane_name=\"\"}) by (name))) by (type)",
-              "legendFormat": "{{type}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Worker Machine time until condition first true since creationTimestamp (last 5m)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 1,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 38
-          },
-          "id": 46,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "min",
-                "max",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "asc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
-              "legendFormat": "{{type}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Control Plane KubeadmConfig time until condition first true since creationTimestamp (all)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 1,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 38
-          },
-          "id": 53,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "min",
-                "max",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "asc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "avg((min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name!=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
-              "legendFormat": "{{type}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Control Plane KubeadmConfig time until condition first true since creationTimestamp (last 5m)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 1,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 0,
-            "y": 46
-          },
-          "id": 47,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "min",
-                "max",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "asc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "avg(min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h]) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
-              "legendFormat": "{{type}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Worker KubeadmConfig time until condition first true since creationTimestamp (all)",
-          "type": "timeseries"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "fieldConfig": {
-            "defaults": {
-              "color": {
-                "mode": "palette-classic"
-              },
-              "custom": {
-                "axisCenteredZero": false,
-                "axisColorMode": "text",
-                "axisLabel": "",
-                "axisPlacement": "auto",
-                "barAlignment": 0,
-                "drawStyle": "line",
-                "fillOpacity": 0,
-                "gradientMode": "none",
-                "hideFrom": {
-                  "legend": false,
-                  "tooltip": false,
-                  "viz": false
-                },
-                "lineInterpolation": "linear",
-                "lineWidth": 1,
-                "pointSize": 1,
-                "scaleDistribution": {
-                  "type": "linear"
-                },
-                "showPoints": "auto",
-                "spanNulls": false,
-                "stacking": {
-                  "group": "A",
-                  "mode": "none"
-                },
-                "thresholdsStyle": {
-                  "mode": "off"
-                }
-              },
-              "mappings": [],
-              "thresholds": {
-                "mode": "absolute",
-                "steps": [
-                  {
-                    "color": "green",
-                    "value": null
-                  },
-                  {
-                    "color": "red",
-                    "value": 80
-                  }
-                ]
-              },
-              "unit": "s"
-            },
-            "overrides": []
-          },
-          "gridPos": {
-            "h": 8,
-            "w": 12,
-            "x": 12,
-            "y": 46
-          },
-          "id": 54,
-          "options": {
-            "legend": {
-              "calcs": [
-                "mean",
-                "min",
-                "max",
-                "lastNotNull"
-              ],
-              "displayMode": "table",
-              "placement": "right",
-              "showLegend": true
-            },
-            "tooltip": {
-              "mode": "multi",
-              "sort": "asc"
-            }
-          },
-          "targets": [
-            {
-              "datasource": {
-                "type": "prometheus",
-                "uid": "prometheus"
-              },
-              "editorMode": "code",
-              "expr": "avg((min_over_time(capi_kubeadmconfig_status_condition_last_transition_time{status=\"True\"}[168h])>= time() - 60*5) - on(name) group_left () (capi_kubeadmconfig_created * on (name) group_right ()  (avg(label_replace(capi_machine_info{control_plane_name=\"\"}, \"name\", \"$0\", \"bootstrap_reference_name\", \".*\")) by (name)))) by (type)",
-              "legendFormat": "{{type}}",
-              "range": true,
-              "refId": "A"
-            }
-          ],
-          "title": "Worker KubeadmConfig time until condition first true since creationTimestamp (last 5m)",
-          "type": "timeseries"
-        }
-      ],
-      "title": "Performance",
-      "type": "row"
-    },
-    {
-      "collapsed": true,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 6
-      },
       "id": 22,
       "panels": [
         {
@@ -1801,7 +611,8 @@
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green"
+                    "color": "green",
+                    "value": null
                   },
                   {
                     "color": "red",
@@ -1816,7 +627,7 @@
             "h": 8,
             "w": 6,
             "x": 0,
-            "y": 7
+            "y": 6
           },
           "id": 11,
           "options": {
@@ -1931,7 +742,7 @@
             "h": 8,
             "w": 6,
             "x": 6,
-            "y": 7
+            "y": 6
           },
           "id": 12,
           "options": {
@@ -2022,7 +833,7 @@
             "h": 8,
             "w": 6,
             "x": 18,
-            "y": 7
+            "y": 6
           },
           "id": 10,
           "options": {
@@ -2063,7 +874,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 7
+        "y": 6
       },
       "id": 21,
       "panels": [
@@ -2127,7 +938,7 @@
             "h": 8,
             "w": 6,
             "x": 0,
-            "y": 8
+            "y": 7
           },
           "id": 13,
           "options": {
@@ -2242,7 +1053,7 @@
             "h": 8,
             "w": 6,
             "x": 6,
-            "y": 8
+            "y": 7
           },
           "id": 1,
           "options": {
@@ -2333,7 +1144,7 @@
             "h": 8,
             "w": 6,
             "x": 12,
-            "y": 8
+            "y": 7
           },
           "id": 14,
           "options": {
@@ -2422,7 +1233,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 8
+        "y": 7
       },
       "id": 20,
       "panels": [
@@ -2486,7 +1297,7 @@
             "h": 8,
             "w": 6,
             "x": 0,
-            "y": 9
+            "y": 8
           },
           "id": 15,
           "options": {
@@ -2601,7 +1412,7 @@
             "h": 8,
             "w": 6,
             "x": 6,
-            "y": 9
+            "y": 8
           },
           "id": 16,
           "options": {
@@ -2692,7 +1503,7 @@
             "h": 8,
             "w": 6,
             "x": 12,
-            "y": 9
+            "y": 8
           },
           "id": 17,
           "options": {
@@ -2843,7 +1654,7 @@
             "h": 8,
             "w": 6,
             "x": 18,
-            "y": 9
+            "y": 8
           },
           "id": 18,
           "options": {
@@ -2884,7 +1695,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 8
       },
       "id": 19,
       "panels": [
@@ -2948,7 +1759,7 @@
             "h": 8,
             "w": 6,
             "x": 0,
-            "y": 10
+            "y": 9
           },
           "id": 23,
           "options": {
@@ -3063,7 +1874,7 @@
             "h": 8,
             "w": 6,
             "x": 6,
-            "y": 10
+            "y": 9
           },
           "id": 24,
           "options": {
@@ -3154,7 +1965,7 @@
             "h": 8,
             "w": 6,
             "x": 12,
-            "y": 10
+            "y": 9
           },
           "id": 25,
           "options": {
@@ -3243,7 +2054,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 10
+        "y": 9
       },
       "id": 35,
       "panels": [
@@ -3307,7 +2118,7 @@
             "h": 8,
             "w": 6,
             "x": 0,
-            "y": 11
+            "y": 10
           },
           "id": 36,
           "options": {
@@ -3422,7 +2233,7 @@
             "h": 8,
             "w": 6,
             "x": 6,
-            "y": 11
+            "y": 10
           },
           "id": 37,
           "options": {
@@ -3513,7 +2324,7 @@
             "h": 8,
             "w": 6,
             "x": 12,
-            "y": 11
+            "y": 10
           },
           "id": 38,
           "options": {
@@ -3652,7 +2463,7 @@
             "h": 8,
             "w": 6,
             "x": 18,
-            "y": 11
+            "y": 10
           },
           "id": 39,
           "options": {
@@ -3693,9 +2504,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 11
+        "y": 10
       },
-      "id": 27,
+      "id": 42,
       "panels": [
         {
           "datasource": {
@@ -3757,7 +2568,7 @@
             "h": 8,
             "w": 6,
             "x": 0,
-            "y": 12
+            "y": 11
           },
           "id": 28,
           "options": {
@@ -3872,7 +2683,7 @@
             "h": 8,
             "w": 6,
             "x": 6,
-            "y": 12
+            "y": 11
           },
           "id": 29,
           "options": {
@@ -3963,7 +2774,7 @@
             "h": 8,
             "w": 6,
             "x": 18,
-            "y": 12
+            "y": 11
           },
           "id": 30,
           "options": {
@@ -3993,7 +2804,21 @@
           ],
           "title": "Control Plane Machine by status phase",
           "type": "timeseries"
-        },
+        }
+      ],
+      "title": "Control Plane Machine",
+      "type": "row"
+    },
+    {
+      "collapsed": true,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 11
+      },
+      "id": 27,
+      "panels": [
         {
           "datasource": {
             "type": "prometheus",
@@ -4054,7 +2879,7 @@
             "h": 8,
             "w": 6,
             "x": 0,
-            "y": 20
+            "y": 12
           },
           "id": 31,
           "options": {
@@ -4169,7 +2994,7 @@
             "h": 8,
             "w": 6,
             "x": 6,
-            "y": 20
+            "y": 12
           },
           "id": 32,
           "options": {
@@ -4260,7 +3085,7 @@
             "h": 8,
             "w": 6,
             "x": 18,
-            "y": 20
+            "y": 12
           },
           "id": 33,
           "options": {
@@ -4292,7 +3117,7 @@
           "type": "timeseries"
         }
       ],
-      "title": "Machine",
+      "title": "Worker Machine",
       "type": "row"
     },
     {
@@ -4365,7 +3190,7 @@
             "h": 8,
             "w": 6,
             "x": 0,
-            "y": 20
+            "y": 12
           },
           "id": 40,
           "options": {
@@ -4480,7 +3305,7 @@
             "h": 8,
             "w": 6,
             "x": 12,
-            "y": 20
+            "y": 12
           },
           "id": 41,
           "options": {
@@ -4541,8 +3366,8 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "Cluster API",
-  "uid": "db3b854f-73eb-4000-b4a7-5ee887f5ae77",
+  "title": "Cluster API State",
+  "uid": "f782099f-f732-4d48-80ed-5fb7d9148d9f",
   "version": 1,
   "weekStart": ""
 }

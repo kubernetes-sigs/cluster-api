@@ -201,7 +201,7 @@ If both `maxUnhealthy` and `unhealthyRange` are specified, `unhealthyRange` take
 
 If `unhealthyRange` is set to `[3-5]` and there are 10 Machines being checked:
 - If 2 or fewer nodes are unhealthy, remediation will not be performed.
-- If 5 or more nodes are unhealthy, remediation will not be performed.
+- If 6 or more nodes are unhealthy, remediation will not be performed.
 - In all other cases, remediation will be performed.
 
 Note, the above example had 10 machines as sample set. But, this would work the same way for any other number.

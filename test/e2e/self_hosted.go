@@ -287,7 +287,7 @@ func SelfHostedSpec(ctx context.Context, inputGetter func() SelfHostedSpecInput)
 				client.MatchingLabels{clusterv1.ClusterNameLabel: workloadClusterName},
 			)
 			Expect(err).NotTo(HaveOccurred(), "Failed to list machines after move")
-			return matchUnstructuredLists(preMoveMachineList, postMoveMachineList)
+			return validateMachineRollout(preMoveMachineList, postMoveMachineList)
 		}, "3m", "30s").Should(BeTrue(), "Machines should not roll out after move to self-hosted cluster")
 
 		if input.SkipUpgrade {

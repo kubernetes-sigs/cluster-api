@@ -3,7 +3,6 @@
 envsubst_cmd = "./hack/tools/bin/envsubst"
 clusterctl_cmd = "./bin/clusterctl"
 kubectl_cmd = "kubectl"
-default_build_engine = "docker"
 kubernetes_version = "v1.27.3"
 
 load("ext://uibutton", "cmd_button", "location", "text_input")
@@ -15,7 +14,7 @@ settings = {
     "enable_providers": ["docker"],
     "kind_cluster_name": os.getenv("CAPI_KIND_CLUSTER_NAME", "capi-test"),
     "debug": {},
-    "build_engine": default_build_engine,
+    "build_engine": "docker",
 }
 
 # global settings
@@ -34,7 +33,7 @@ if str(local("command -v " + kubectl_cmd + " || true", quiet = True)) == "":
 
 # detect if docker images should be built using podman
 if "Podman Engine" in str(local("docker version || podman version", quiet = True)):
-    default_build_engine = "podman"
+    settings["build_engine"] = "podman"
 
 os_name = str(local("go env GOOS")).rstrip("\n")
 os_arch = str(local("go env GOARCH")).rstrip("\n")

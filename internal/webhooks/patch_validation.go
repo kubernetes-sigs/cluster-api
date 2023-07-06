@@ -167,7 +167,8 @@ func validateSelectors(selector clusterv1.PatchSelector, class *clusterv1.Cluste
 
 	// Return an error if none of the possible selectors are enabled.
 	if !(selector.MatchResources.InfrastructureCluster || selector.MatchResources.ControlPlane ||
-		(selector.MatchResources.MachineDeploymentClass != nil && len(selector.MatchResources.MachineDeploymentClass.Names) > 0)) {
+		(selector.MatchResources.MachineDeploymentClass != nil && len(selector.MatchResources.MachineDeploymentClass.Names) > 0) ||
+		(selector.MatchResources.MachinePoolClass != nil && len(selector.MatchResources.MachinePoolClass.Names) > 0)) {
 		return append(allErrs,
 			field.Invalid(
 				path,
@@ -458,6 +459,17 @@ var builtinVariables = sets.Set[string]{}.Insert(
 	// MachineDeployment ref builtins.
 	"builtin.machineDeployment.bootstrap.configRef.name",
 	"builtin.machineDeployment.infrastructureRef.name",
+
+	// MachinePool builtins.
+	"builtin.machinePool",
+	"builtin.machinePool.class",
+	"builtin.machinePool.name",
+	"builtin.machinePool.replicas",
+	"builtin.machinePool.topologyName",
+	"builtin.machinePool.version",
+	// MachinePool ref builtins.
+	"builtin.machinePool.bootstrap.configRef.name",
+	"builtin.machinePool.infrastructureRef.name",
 )
 
 // validateIndexAccess checks to see if the jsonPath is attempting to add an element in the array i.e. access by number

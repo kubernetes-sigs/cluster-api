@@ -212,14 +212,19 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 
 	// Only patch the customImage if this DockerMachineTemplate belongs to a MachineDeployment with class "default-class"
 	// NOTE: This works by checking the existence of a builtin variable that exists only for templates liked to MachineDeployments.
-	mdClass, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.class")
+	mdClass, mdFound, err := topologymutation.GetStringVariable(templateVariables, "builtin.machineDeployment.class")
+	if err != nil {
+		return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
+	}
+
+	mpClass, mpFound, err := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.class")
 	if err != nil {
 		return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
 	}
 
 	// This is a required variable. Return an error if it's not found.
 	// NOTE: this should never happen because it is enforced by the patch engine.
-	if !found {
+	if !mdFound && !mpFound {
 		return errors.New("could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs: variable \"builtin.machineDeployment.class\" not found")
 	}
 
@@ -256,6 +261,41 @@ func patchKubeadmConfigTemplate(ctx context.Context, k *bootstrapv1.KubeadmConfi
 			k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
 		}
 	}
+
+	if mpClass == "default-worker" {
+		// If the Kubernetes version from builtin.machinePool.version is below 1.24.0 set "cgroup-driver": "cgroupDriverCgroupfs" to
+		//    - InitConfiguration.KubeletExtraArgs
+		//    - JoinConfiguration.KubeletExtraArgs
+		// NOTE: machinePool version might be different than Cluster.version or other machinePool's versions;
+		// the builtin variables provides the right version to use.
+		mpVersion, found, err := topologymutation.GetStringVariable(templateVariables, "builtin.machinePool.version")
+		if err != nil {
+			return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
+		}
+
+		// This is a required variable. Return an error if it's not found.
+		if !found {
+			return errors.New("could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs: variable \"builtin.machinePool.version\" not found")
+		}
+		machinePoolVersion, err := version.ParseMajorMinorPatchTolerant(mpVersion)
+		if err != nil {
+			return errors.Wrap(err, "could not set cgroup-driver to KubeadmConfigTemplate template kubeletExtraArgs")
+		}
+		if version.Compare(machinePoolVersion, cgroupDriverPatchVersionCeiling) == -1 {
+			log.Info(fmt.Sprintf("Setting KubeadmConfigTemplate cgroup-driver to %q", cgroupDriverCgroupfs))
+
+			// Set the cgroupDriver in the JoinConfiguration.
+			if k.Spec.Template.Spec.JoinConfiguration == nil {
+				k.Spec.Template.Spec.JoinConfiguration = &bootstrapv1.JoinConfiguration{}
+			}
+			if k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs == nil {
+				k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs = map[string]string{}
+			}
+
+			k.Spec.Template.Spec.JoinConfiguration.NodeRegistration.KubeletExtraArgs["cgroup-driver"] = cgroupDriverCgroupfs
+		}
+	}
+
 	return nil
 }
 

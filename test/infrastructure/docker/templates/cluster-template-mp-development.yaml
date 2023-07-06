@@ -28,14 +28,10 @@ spec:
         enforce: "baseline"
         audit: "restricted"
         warn: "restricted"
-    version: 1.27.1
+    version: ${KUBERNETES_VERSION}
     workers:
-      # machineDeployments:
-      # - class: default-worker
-      #   name: md-0
-      #   replicas: ${WORKER_MACHINE_COUNT}
       machinePools:
-      - class: default-mp
+      - class: default-worker
         name: mp-0
         replicas: 1
 # ---

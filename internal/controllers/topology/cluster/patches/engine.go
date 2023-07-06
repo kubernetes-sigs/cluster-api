@@ -233,7 +233,7 @@ func addVariablesForPatch(blueprint *scope.ClusterBlueprint, desired *scope.Clus
 			}
 
 			// Calculate MachinePool variables.
-			mpVariables, err := variables.MachinePool(mpTopology, mp.Object, mp.BootstrapTemplate, mp.InfrastructureMachineTemplate, definitionFrom, patchVariableDefinitions)
+			mpVariables, err := variables.MachinePool(mpTopology, mp.Object, mp.BootstrapObject, mp.InfrastructureMachineTemplate, definitionFrom, patchVariableDefinitions)
 			if err != nil {
 				return errors.Wrapf(err, "failed to calculate variables for %s", klog.KObj(mp.Object))
 			}
@@ -528,7 +528,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 	var err error
 
 	// Update the InfrastructureCluster.
-	infrastructureClusterTemplate, err := getTemplateAsUnstructured(req, "Cluster", "spec.infrastructureRef", "")
+	infrastructureClusterTemplate, err := getTemplateAsUnstructured(req, "Cluster", "spec.infrastructureRef", requestTopologyName{})
 	if err != nil {
 		return err
 	}
@@ -537,7 +537,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 	}
 
 	// Update the ControlPlane.
-	controlPlaneTemplate, err := getTemplateAsUnstructured(req, "Cluster", "spec.controlPlaneRef", "")
+	controlPlaneTemplate, err := getTemplateAsUnstructured(req, "Cluster", "spec.controlPlaneRef", requestTopologyName{})
 	if err != nil {
 		return err
 	}
@@ -556,7 +556,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 	// If the ClusterClass mandates the ControlPlane has InfrastructureMachines,
 	// update the InfrastructureMachineTemplate for ControlPlane machines.
 	if blueprint.HasControlPlaneInfrastructureMachine() {
-		infrastructureMachineTemplate, err := getTemplateAsUnstructured(req, desired.ControlPlane.Object.GetKind(), strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(), "."), "")
+		infrastructureMachineTemplate, err := getTemplateAsUnstructured(req, desired.ControlPlane.Object.GetKind(), strings.Join(contract.ControlPlane().MachineTemplate().InfrastructureRef().Path(), "."), requestTopologyName{})
 		if err != nil {
 			return err
 		}
@@ -567,8 +567,9 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 
 	// Update the templates for all MachineDeployments.
 	for mdTopologyName, md := range desired.MachineDeployments {
+		topologyName := requestTopologyName{mdTopologyName: mdTopologyName}
 		// Update the BootstrapConfigTemplate.
-		bootstrapTemplate, err := getTemplateAsUnstructured(req, "MachineDeployment", "spec.template.spec.bootstrap.configRef", mdTopologyName)
+		bootstrapTemplate, err := getTemplateAsUnstructured(req, "MachineDeployment", "spec.template.spec.bootstrap.configRef", topologyName)
 		if err != nil {
 			return err
 		}
@@ -577,7 +578,7 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 		}
 
 		// Update the InfrastructureMachineTemplate.
-		infrastructureMachineTemplate, err := getTemplateAsUnstructured(req, "MachineDeployment", "spec.template.spec.infrastructureRef", mdTopologyName)
+		infrastructureMachineTemplate, err := getTemplateAsUnstructured(req, "MachineDeployment", "spec.template.spec.infrastructureRef", topologyName)
 		if err != nil {
 			return err
 		}
@@ -588,17 +589,18 @@ func updateDesiredState(ctx context.Context, req *runtimehooksv1.GeneratePatches
 
 	// Update the templates for all MachinePools.
 	for mpTopologyName, mp := range desired.MachinePools {
+		topologyName := requestTopologyName{mpTopologyName: mpTopologyName}
 		// Update the BootstrapConfigTemplate.
-		bootstrapTemplate, err := getTemplateAsUnstructured(req, "MachinePools", "spec.template.spec.bootstrap.configRef", mpTopologyName)
+		bootstrapTemplate, err := getTemplateAsUnstructured(req, "MachinePool", "spec.template.spec.bootstrap.configRef", topologyName)
 		if err != nil {
 			return err
 		}
-		if err := patchTemplate(ctx, mp.BootstrapTemplate, bootstrapTemplate); err != nil {
+		if err := patchObject(ctx, mp.BootstrapObject, bootstrapTemplate); err != nil {
 			return err
 		}
 
 		// Update the InfrastructureMachineTemplate.
-		infrastructureMachineTemplate, err := getTemplateAsUnstructured(req, "MachinePools", "spec.template.spec.infrastructureRef", mpTopologyName)
+		infrastructureMachineTemplate, err := getTemplateAsUnstructured(req, "MachinePool", "spec.template.spec.infrastructureRef", topologyName)
 		if err != nil {
 			return err
 		}

@@ -2,42 +2,36 @@ apiVersion: cluster.x-k8s.io/v1beta1
 kind: ClusterClass
 metadata:
   name: quick-start
-  namespace: default
 spec:
   controlPlane:
     ref:
       apiVersion: controlplane.cluster.x-k8s.io/v1beta1
       kind: KubeadmControlPlaneTemplate
       name: quick-start-control-plane
-      namespace: default
     machineInfrastructure:
       ref:
         kind: DockerMachineTemplate
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         name: quick-start-control-plane
-        namespace: default
   infrastructure:
     ref:
       apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
       kind: DockerClusterTemplate
       name: quick-start-cluster
-      namespace: default
   workers:
     machinePools:
-    - class: default-mp
+    - class: default-worker
       template:
         bootstrap:
           ref:
             apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-            kind: KubeadmConfig
-            name: worker-mp-0-config
-            namespace: default
+            kind: KubeadmConfigTemplate
+            name: quick-start-default-worker-bootstraptemplate
         infrastructure:
           ref:
             apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-            kind: DockerMachinePool
-            name: worker-dmp-0
-            namespace: default
+            kind: DockerMachinePoolTemplate
+            name: quick-start-default-worker-machinepooltemplate
   variables:
   - name: imageRepository
     required: true
@@ -130,13 +124,13 @@ spec:
           template: |
             imageTag: {{ .coreDNSImageTag }}
   - name: customImage
-    description: "Sets the container image that is used for running dockerMachines for the controlPlane and default-worker machineDeployments."
+    description: "Sets the container image that is used for running dockerMachines for the controlPlane and default-worker machinePools."
     definitions:
     - selector:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-        kind: DockerMachineTemplate
+        kind: DockerMachinePoolMachineTemplate
         matchResources:
-          machineDeploymentClass:
+          machinePoolClass:
             names:
             - default-worker
       jsonPatches:
@@ -144,7 +138,7 @@ spec:
         path: "/spec/template/spec/customImage"
         valueFrom:
           template: |
-            kindest/node:{{ .builtin.machineDeployment.version | replace "+" "_" }}
+            kindest/node:{{ .builtin.machinePool.version | replace "+" "_" }}
     - selector:
         apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
         kind: DockerMachineTemplate
@@ -207,7 +201,6 @@ apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerClusterTemplate
 metadata:
   name: quick-start-cluster
-  namespace: default
 spec:
   template:
     spec: {}
@@ -216,7 +209,6 @@ kind: KubeadmControlPlaneTemplate
 apiVersion: controlplane.cluster.x-k8s.io/v1beta1
 metadata:
   name: quick-start-control-plane
-  namespace: default
 spec:
   template:
     spec:
@@ -230,13 +222,14 @@ spec:
         initConfiguration:
           nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
         joinConfiguration:
-          nodeRegistration: {} # node registration parameters are automatically injected by CAPD according to the kindest/node image in use.
+          nodeRegistration:
+            kubeletExtraArgs:
+              eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
 kind: DockerMachineTemplate
 metadata:
   name: quick-start-control-plane
-  namespace: default
 spec:
   template:
     spec:
@@ -245,30 +238,21 @@ spec:
         hostPath: "/var/run/docker.sock"
 ---
 apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-kind: DockerMachineTemplate
+kind: DockerMachinePoolTemplate
 metadata:
-  namespace: default
-  name: quick-start-default-worker-machinetemplate
+  name: quick-start-default-worker-machinepooltemplate
 spec:
   template:
-    spec:
-      extraMounts:
-      - containerPath: "/var/run/docker.sock"
-        hostPath: "/var/run/docker.sock"
----
-apiVersion: infrastructure.cluster.x-k8s.io/v1beta1
-kind: DockerMachinePool
-metadata:
-  name: worker-dmp-0
-  namespace: default
+    spec: {}
 ---
 apiVersion: bootstrap.cluster.x-k8s.io/v1beta1
-kind: KubeadmConfig
+kind: KubeadmConfigTemplate
 metadata:
-  name: worker-mp-0-config
-  namespace: default
+  name: quick-start-default-worker-bootstraptemplate
 spec:
-  joinConfiguration:
-    nodeRegistration:
-      kubeletExtraArgs:
-        eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%
+  template:
+    spec:
+      joinConfiguration:
+        nodeRegistration:
+          kubeletExtraArgs:
+            eviction-hard: nodefs.available<0%,nodefs.inodesFree<0%,imagefs.available<0%

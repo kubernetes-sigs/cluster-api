@@ -95,6 +95,7 @@ func (in *MachinePoolSpec) DeepCopyInto(out *MachinePoolSpec) {
 		*out = new(int32)
 		**out = **in
 	}
+	in.Selector.DeepCopyInto(&out.Selector)
 	in.Template.DeepCopyInto(&out.Template)
 	if in.MinReadySeconds != nil {
 		in, out := &in.MinReadySeconds, &out.MinReadySeconds

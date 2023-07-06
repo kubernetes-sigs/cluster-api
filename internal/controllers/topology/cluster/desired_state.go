@@ -926,28 +926,28 @@ func computeMachinePool(_ context.Context, s *scope.Scope, desiredControlPlaneSt
 	// Compute the bootstrap template.
 	currentMachinePool := s.Current.MachinePools[machinePoolTopology.Name]
 	var currentBootstrapTemplateRef *corev1.ObjectReference
-	if currentMachinePool != nil && currentMachinePool.BootstrapTemplate != nil {
+	if currentMachinePool != nil && currentMachinePool.BootstrapObject != nil {
 		currentBootstrapTemplateRef = currentMachinePool.Object.Spec.Template.Spec.Bootstrap.ConfigRef
 	}
-	desiredMachinePool.BootstrapTemplate = templateToTemplate(templateToInput{
+	var err error
+	desiredMachinePool.BootstrapObject, err = templateToObject(templateToInput{
 		template:              machinePoolBlueprint.BootstrapTemplate,
 		templateClonedFromRef: contract.ObjToRef(machinePoolBlueprint.BootstrapTemplate),
 		cluster:               s.Current.Cluster,
 		namePrefix:            bootstrapTemplateNamePrefix(s.Current.Cluster.Name, machinePoolTopology.Name),
 		currentObjectRef:      currentBootstrapTemplateRef,
-		// Note: we are adding an ownerRef to Cluster so the template will be automatically garbage collected
-		// in case of errors in between creating this template and creating/updating the MachinePool object
-		// with the reference to the ControlPlane object using this template.
-		ownerRef: ownerReferenceTo(s.Current.Cluster),
 	})
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to compute bootstrap template for topology %q", machinePoolTopology.Name)
+	}
 
-	bootstrapTemplateLabels := desiredMachinePool.BootstrapTemplate.GetLabels()
+	bootstrapTemplateLabels := desiredMachinePool.BootstrapObject.GetLabels()
 	if bootstrapTemplateLabels == nil {
 		bootstrapTemplateLabels = map[string]string{}
 	}
 	// Add ClusterTopologyMachinePoolLabel to the generated Bootstrap template
 	bootstrapTemplateLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
-	desiredMachinePool.BootstrapTemplate.SetLabels(bootstrapTemplateLabels)
+	desiredMachinePool.BootstrapObject.SetLabels(bootstrapTemplateLabels)
 
 	// Compute the Infrastructure template.
 	var currentInfraMachineTemplateRef *corev1.ObjectReference
@@ -997,7 +997,7 @@ func computeMachinePool(_ context.Context, s *scope.Scope, desiredControlPlaneSt
 	// }
 
 	// Compute the MachinePool object.
-	desiredBootstrapTemplateRef, err := calculateRefDesiredAPIVersion(currentBootstrapTemplateRef, desiredMachinePool.BootstrapTemplate)
+	desiredBootstrapTemplateRef, err := calculateRefDesiredAPIVersion(currentBootstrapTemplateRef, desiredMachinePool.BootstrapObject)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to calculate desired bootstrap template ref")
 	}
@@ -1064,10 +1064,10 @@ func computeMachinePool(_ context.Context, s *scope.Scope, desiredControlPlaneSt
 	// Set the selector with the subset of labels identifying controlled machines.
 	// NOTE: this prevents the web hook to add cluster.x-k8s.io/pool-name label, that is
 	// redundant for managed MachinePool given that we already have topology.cluster.x-k8s.io/pool-name.
-	//desiredMachineDeploymentObj.Spec.Selector.MatchLabels = map[string]string{}
-	//desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = s.Current.Cluster.Name
-	//desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
-	//desiredMachineDeploymentObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachineDeploymentNameLabel] = machineDeploymentTopology.Name
+	desiredMachinePoolObj.Spec.Selector.MatchLabels = map[string]string{}
+	desiredMachinePoolObj.Spec.Selector.MatchLabels[clusterv1.ClusterNameLabel] = s.Current.Cluster.Name
+	desiredMachinePoolObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyOwnedLabel] = ""
+	desiredMachinePoolObj.Spec.Selector.MatchLabels[clusterv1.ClusterTopologyMachinePoolNameLabel] = machinePoolTopology.Name
 
 	// Set the desired replicas.
 	desiredMachinePoolObj.Spec.Replicas = machinePoolTopology.Replicas

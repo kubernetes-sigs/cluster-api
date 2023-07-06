@@ -156,8 +156,8 @@ type MachinePoolState struct {
 	// Object holds the MachinePool object.
 	Object *expv1.MachinePool
 
-	// BootstrapTemplate holds the bootstrap template referenced by the MachinePool object.
-	BootstrapTemplate *unstructured.Unstructured
+	// BootstrapObject holds the MachinePool bootstrap object.
+	BootstrapObject *unstructured.Unstructured
 
 	// InfrastructureMachineTemplate holds the infrastructure machine template referenced by the MachinePool object.
 	InfrastructureMachineTemplate *unstructured.Unstructured

@@ -42,6 +42,11 @@ type MachinePoolSpec struct {
 	// +optional
 	Replicas *int32 `json:"replicas,omitempty"`
 
+	// Label selector for machines. Existing MachineSets whose machines are
+	// selected by this will be the ones affected by this deployment.
+	// It must match the machine template's labels.
+	Selector metav1.LabelSelector `json:"selector"`
+
 	// Template describes the machines that will be created.
 	Template clusterv1.MachineTemplateSpec `json:"template"`
 

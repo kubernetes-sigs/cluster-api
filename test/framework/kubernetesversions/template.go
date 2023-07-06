@@ -74,6 +74,7 @@ func GenerateCIArtifactsInjectedTemplateForDebian(input GenerateCIArtifactsInjec
 	}
 	input.ArtifactsDirectory = framework.ResolveArtifactsDirectory(input.ArtifactsDirectory)
 	if input.KubeadmConfigTemplateName == "" {
+		// TODO: adapt this to machinepools
 		input.KubeadmConfigTemplateName = "${CLUSTER_NAME}-md-0"
 	}
 	if input.KubeadmControlPlaneName == "" {

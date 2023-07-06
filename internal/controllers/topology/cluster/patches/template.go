@@ -42,6 +42,11 @@ type requestItemBuilder struct {
 	holder   runtimehooksv1.HolderReference
 }
 
+type requestTopologyName struct {
+	mdTopologyName string
+	mpTopologyName string
+}
+
 // newRequestItemBuilder returns a new requestItemBuilder.
 func newRequestItemBuilder(template *unstructured.Unstructured) *requestItemBuilder {
 	return &requestItemBuilder{
@@ -86,12 +91,12 @@ func (t *requestItemBuilder) Build() (*runtimehooksv1.GeneratePatchesRequestItem
 
 // getTemplateAsUnstructured is a utility func that returns a template matching the holderKind, holderFieldPath
 // and mdTopologyName from a GeneratePatchesRequest.
-func getTemplateAsUnstructured(req *runtimehooksv1.GeneratePatchesRequest, holderKind, holderFieldPath, mdTopologyName string) (*unstructured.Unstructured, error) {
+func getTemplateAsUnstructured(req *runtimehooksv1.GeneratePatchesRequest, holderKind, holderFieldPath string, topologyNames requestTopologyName) (*unstructured.Unstructured, error) {
 	// Find the requestItem.
-	requestItem := getRequestItem(req, holderKind, holderFieldPath, mdTopologyName)
+	requestItem := getRequestItem(req, holderKind, holderFieldPath, topologyNames)
 
 	if requestItem == nil {
-		return nil, errors.Errorf("failed to get request item with holder kind %q, holder field path %q and MD topology name %q", holderKind, holderFieldPath, mdTopologyName)
+		return nil, errors.Errorf("failed to get request item with holder kind %q, holder field path %q, MD topology name %q, and MP topology name %q", holderKind, holderFieldPath, topologyNames.mdTopologyName, topologyNames.mpTopologyName)
 	}
 
 	// Unmarshal the template.
@@ -114,7 +119,7 @@ func getRequestItemByUID(req *runtimehooksv1.GeneratePatchesRequest, uid types.U
 }
 
 // getRequestItem is a utility func that returns a template matching the holderKind, holderFiledPath and mdTopologyName from a GeneratePatchesRequest.
-func getRequestItem(req *runtimehooksv1.GeneratePatchesRequest, holderKind, holderFieldPath, mdTopologyName string) *runtimehooksv1.GeneratePatchesRequestItem {
+func getRequestItem(req *runtimehooksv1.GeneratePatchesRequest, holderKind, holderFieldPath string, topologyNames requestTopologyName) *runtimehooksv1.GeneratePatchesRequestItem {
 	for _, template := range req.Items {
 		if holderKind != "" && template.HolderReference.Kind != holderKind {
 			continue
@@ -122,11 +127,17 @@ func getRequestItem(req *runtimehooksv1.GeneratePatchesRequest, holderKind, hold
 		if holderFieldPath != "" && template.HolderReference.FieldPath != holderFieldPath {
 			continue
 		}
-		if mdTopologyName != "" {
+		if topologyNames.mdTopologyName != "" {
 			templateVariables := toMap(template.Variables)
-
 			v, err := variables.GetVariableValue(templateVariables, "builtin.machineDeployment.topologyName")
-			if err != nil || string(v.Raw) != strconv.Quote(mdTopologyName) {
+			if err != nil || string(v.Raw) != strconv.Quote(topologyNames.mdTopologyName) {
+				continue
+			}
+		}
+		if topologyNames.mpTopologyName != "" {
+			templateVariables := toMap(template.Variables)
+			v, err := variables.GetVariableValue(templateVariables, "builtin.machinePool.topologyName")
+			if err != nil || string(v.Raw) != strconv.Quote(topologyNames.mpTopologyName) {
 				continue
 			}
 		}

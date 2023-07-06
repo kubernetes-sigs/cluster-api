@@ -757,10 +757,10 @@ func (r *Reconciler) createMachinePool(ctx context.Context, cluster *clusterv1.C
 		return errors.Wrapf(err, "failed to create %s", mp.Object.Kind)
 	}
 
-	bootstrapCtx, _ := log.WithObject(mp.BootstrapTemplate).Into(ctx)
-	if err := r.reconcileReferencedTemplate(bootstrapCtx, reconcileReferencedTemplateInput{
+	bootstrapCtx, _ := log.WithObject(mp.BootstrapObject).Into(ctx)
+	if err := r.reconcileReferencedObject(bootstrapCtx, reconcileReferencedObjectInput{
 		cluster: cluster,
-		desired: mp.BootstrapTemplate,
+		desired: mp.BootstrapObject,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to create %s", mp.Object.Kind)
 	}
@@ -772,6 +772,7 @@ func (r *Reconciler) createMachinePool(ctx context.Context, cluster *clusterv1.C
 		return createErrorWithoutObjectName(ctx, err, mp.Object)
 	}
 	if err := helper.Patch(ctx); err != nil {
+		log.Infof("EEEE: Failed to create MachinePool")
 		return createErrorWithoutObjectName(ctx, err, mp.Object)
 	}
 	r.recorder.Eventf(cluster, corev1.EventTypeNormal, createEventReason, "Created %q", tlog.KObj{Obj: mp.Object})
@@ -795,14 +796,12 @@ func (r *Reconciler) updateMachinePool(ctx context.Context, cluster *clusterv1.C
 		return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: currentMP.Object})
 	}
 
-	bootstrapCtx, _ := log.WithObject(desiredMP.BootstrapTemplate).Into(ctx)
-	if err := r.reconcileReferencedTemplate(bootstrapCtx, reconcileReferencedTemplateInput{
-		cluster:              cluster,
-		ref:                  desiredMP.Object.Spec.Template.Spec.Bootstrap.ConfigRef,
-		current:              currentMP.BootstrapTemplate,
-		desired:              desiredMP.BootstrapTemplate,
-		templateNamePrefix:   bootstrapTemplateNamePrefix(cluster.Name, mpTopologyName),
-		compatibilityChecker: check.ObjectsAreInTheSameNamespace,
+	bootstrapCtx, _ := log.WithObject(desiredMP.BootstrapObject).Into(ctx)
+	if err := r.reconcileReferencedObject(bootstrapCtx, reconcileReferencedObjectInput{
+		cluster:       cluster,
+		current:       currentMP.BootstrapObject,
+		desired:       desiredMP.BootstrapObject,
+		versionGetter: contract.ControlPlane().Version().Get,
 	}); err != nil {
 		return errors.Wrapf(err, "failed to reconcile %s", tlog.KObj{Obj: currentMP.Object})
 	}

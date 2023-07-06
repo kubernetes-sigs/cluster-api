@@ -44,6 +44,10 @@ func Convert_v1alpha3_MachinePool_To_v1beta1_MachinePool(in *MachinePool, out *e
 	return nil
 }
 
+func Convert_v1beta1_MachinePoolSpec_To_v1alpha3_MachinePoolSpec(in *expv1.MachinePoolSpec, out *MachinePoolSpec, s apimachineryconversion.Scope) error {
+	return autoConvert_v1beta1_MachinePoolSpec_To_v1alpha3_MachinePoolSpec(in, out, s)
+}
+
 func Convert_v1beta1_MachinePool_To_v1alpha3_MachinePool(in *expv1.MachinePool, out *MachinePool, s apimachineryconversion.Scope) error {
 	if err := autoConvert_v1beta1_MachinePool_To_v1alpha3_MachinePool(in, out, s); err != nil {
 		return err

@@ -23,6 +23,7 @@ import (
 
 	bootstrapv1 "sigs.k8s.io/cluster-api/bootstrap/kubeadm/api/v1beta1"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/cloudinit"
+	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/ignition/butane"
 	"sigs.k8s.io/cluster-api/bootstrap/kubeadm/internal/ignition/clc"
 )
 
@@ -111,5 +112,12 @@ func render(input *cloudinit.BaseUserData, ignitionConfig *bootstrapv1.IgnitionS
 		clcConfig = ignitionConfig.ContainerLinuxConfig
 	}
 
+	if ignitionConfig != nil && ignitionConfig.Transpiler == "butane" {
+		butaneConfig := &bootstrapv1.ButaneConfig{}
+		if ignitionConfig.ButaneConfig != nil {
+			butaneConfig = ignitionConfig.ButaneConfig
+		}
+		return butane.Render(input, butaneConfig, kubeadmConfig)
+	}
 	return clc.Render(input, clcConfig, kubeadmConfig)
 }

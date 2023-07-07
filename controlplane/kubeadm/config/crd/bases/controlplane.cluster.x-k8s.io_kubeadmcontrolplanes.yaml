@@ -2951,6 +2951,20 @@ spec:
                   ignition:
                     description: Ignition contains Ignition specific configuration.
                     properties:
+                      butaneConfig:
+                        description: ButaneConfig contains butane specific configuration.
+                        properties:
+                          additionalConfig:
+                            description: "AdditionalConfig contains additional configuration
+                              to be merged with the Ignition configuration generated
+                              by the bootstrapper controller. More info: https://coreos.github.io/ignition/operator-notes/#config-merging
+                              \n The data format is documented here: https://kinvolk.io/docs/flatcar-container-linux/latest/provisioning/cl-config/"
+                            type: string
+                          strict:
+                            description: Strict controls if AdditionalConfig should
+                              be strictly parsed. If so, warnings are treated as errors.
+                            type: boolean
+                        type: object
                       containerLinuxConfig:
                         description: ContainerLinuxConfig contains CLC specific configuration.
                         properties:
@@ -2965,6 +2979,12 @@ spec:
                               be strictly parsed. If so, warnings are treated as errors.
                             type: boolean
                         type: object
+                      transpiler:
+                        description: Ignition version, Default to clc
+                        enum:
+                        - clc
+                        - butane
+                        type: string
                     type: object
                   initConfiguration:
                     description: InitConfiguration along with ClusterConfiguration

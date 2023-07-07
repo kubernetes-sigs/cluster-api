@@ -25,7 +25,7 @@ require (
 	github.com/onsi/gomega v1.27.10
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/cobra v1.7.0
-	github.com/spf13/pflag v1.0.5
+	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace
 	github.com/spf13/viper v1.16.0
 	github.com/valyala/fastjson v1.6.4
 	go.etcd.io/etcd/api/v3 v3.5.9
@@ -59,9 +59,9 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/coredns/caddy v1.1.0 // indirect
-	github.com/coreos/go-semver v0.3.0 // indirect
+	github.com/coreos/go-semver v0.3.1 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
-	github.com/coreos/go-systemd/v22 v22.4.0 // indirect
+	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/evanphx/json-patch v5.6.0+incompatible // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20151013193312-d6023ce2651d // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
@@ -144,9 +144,18 @@ require (
 )
 
 require (
+	github.com/coreos/butane v0.18.0
+	github.com/coreos/ignition/v2 v2.15.0
+)
+
+require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
+	github.com/aws/aws-sdk-go v1.44.204 // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
+	github.com/clarketm/json v1.17.1 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
+	github.com/coreos/go-json v0.0.0-20230131223807-18775e0fb4fb // indirect
+	github.com/coreos/vcontext v0.0.0-20230201181013-d72178a18687 // indirect
 	github.com/daviddengcn/go-colortext v1.0.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
 	github.com/fatih/camelcase v1.0.0 // indirect
@@ -159,7 +168,9 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/pelletier/go-toml/v2 v2.0.8 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/stretchr/testify v1.8.3 // indirect
 	golang.org/x/tools v0.9.3 // indirect
 	k8s.io/component-helpers v0.27.2 // indirect
 	k8s.io/metrics v0.27.2 // indirect

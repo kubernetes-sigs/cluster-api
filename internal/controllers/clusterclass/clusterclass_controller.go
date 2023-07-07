@@ -128,21 +128,21 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 			return
 		}
 	}()
-	return r.reconcile(ctx, clusterClass)
+	return ctrl.Result{}, r.reconcile(ctx, clusterClass)
 }
 
-func (r *Reconciler) reconcile(ctx context.Context, clusterClass *clusterv1.ClusterClass) (ctrl.Result, error) {
+func (r *Reconciler) reconcile(ctx context.Context, clusterClass *clusterv1.ClusterClass) error {
 	if err := r.reconcileVariables(ctx, clusterClass); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 	outdatedRefs, err := r.reconcileExternalReferences(ctx, clusterClass)
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	reconcileConditions(clusterClass, outdatedRefs)
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *Reconciler) reconcileExternalReferences(ctx context.Context, clusterClass *clusterv1.ClusterClass) (map[*corev1.ObjectReference]*corev1.ObjectReference, error) {

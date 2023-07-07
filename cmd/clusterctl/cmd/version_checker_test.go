@@ -37,11 +37,11 @@ func TestVersionChecker_newVersionChecker(t *testing.T) {
 
 	versionChecker, err := newVersionChecker(test.NewFakeVariableClient())
 
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	configHome, err := xdg.ConfigFile("cluster-api")
 
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	expectedStateFilePath := filepath.Join(configHome, "version.yaml")
 	g.Expect(versionChecker.versionFilePath).To(Equal(expectedStateFilePath))
@@ -247,7 +247,7 @@ https://github.com/foo/bar/releases/v0.3.8-alpha.1
 			)
 			defer cleanup()
 			versionChecker, err := newVersionChecker(test.NewFakeVariableClient())
-			g.Expect(err).To(BeNil())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			versionChecker.cliVersion = tt.cliVersion
 			versionChecker.githubClient = fakeGithubClient
@@ -281,7 +281,7 @@ func TestVersionChecker_WriteStateFile(t *testing.T) {
 	defer cleanDir()
 
 	versionChecker, err := newVersionChecker(test.NewFakeVariableClient())
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 	versionChecker.versionFilePath = tmpVersionFile
 	versionChecker.githubClient = fakeGithubClient
 
@@ -313,7 +313,7 @@ func TestVersionChecker_ReadFromStateFile(t *testing.T) {
 	)
 	defer cleanup1()
 	versionChecker, err := newVersionChecker(test.NewFakeVariableClient())
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 	versionChecker.versionFilePath = tmpVersionFile
 	versionChecker.githubClient = fakeGithubClient1
 
@@ -370,7 +370,7 @@ func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 	)
 	defer cleanup1()
 	versionChecker, err := newVersionChecker(test.NewFakeVariableClient())
-	g.Expect(err).To(BeNil())
+	g.Expect(err).ToNot(HaveOccurred())
 	versionChecker.versionFilePath = tmpVersionFile
 	versionChecker.githubClient = fakeGithubClient1
 
@@ -387,7 +387,7 @@ func TestVersionChecker_ReadFromStateFileWithin24Hrs(t *testing.T) {
 
 func generateTempVersionFilePath(g *WithT) (string, func()) {
 	dir, err := os.MkdirTemp("", "clusterctl")
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	// don't create the state file, just have a path to the file
 	tmpVersionFile := filepath.Join(dir, "clusterctl", "state.yaml")
 

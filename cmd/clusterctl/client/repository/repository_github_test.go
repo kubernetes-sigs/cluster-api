@@ -117,14 +117,14 @@ func Test_gitHubRepository_GetVersions(t *testing.T) {
 			resetCaches()
 
 			gRepo, err := NewGitHubRepository(tt.providerConfig, configVariablesClient, injectGithubClient(client), injectGoproxyClient(clientGoproxy))
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			got, err := gRepo.GetVersions()
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -220,7 +220,7 @@ func Test_githubRepository_newGitHubRepository(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gitHub).To(Equal(tt.want))
 		})
 	}
@@ -317,7 +317,7 @@ func Test_githubRepository_getFile(t *testing.T) {
 			resetCaches()
 
 			gitHub, err := NewGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			got, err := gitHub.GetFile(tt.release, tt.fileName)
 			if tt.wantErr {
@@ -325,7 +325,7 @@ func Test_githubRepository_getFile(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -395,14 +395,14 @@ func Test_gitHubRepository_getVersions(t *testing.T) {
 			resetCaches()
 
 			gitHub, err := NewGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client))
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			got, err := gitHub.(*gitHubRepository).getVersions()
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got).To(ConsistOf(tt.want))
 		})
@@ -505,14 +505,14 @@ func Test_gitHubRepository_getLatestContractRelease(t *testing.T) {
 			resetCaches()
 
 			gRepo, err := NewGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGithubClient(client), injectGoproxyClient(clientGoproxy))
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			got, err := latestContractRelease(gRepo, tt.contract)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -594,14 +594,14 @@ func Test_gitHubRepository_getLatestRelease(t *testing.T) {
 			resetCaches()
 
 			gRepo, err := NewGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGoproxyClient(clientGoproxy))
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			got, err := latestRelease(gRepo)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 			g.Expect(gRepo.(*gitHubRepository).defaultVersion).To(Equal(tt.want))
 		})
@@ -676,14 +676,14 @@ func Test_gitHubRepository_getLatestPatchRelease(t *testing.T) {
 			resetCaches()
 
 			gRepo, err := NewGitHubRepository(tt.field.providerConfig, configVariablesClient, injectGoproxyClient(clientGoproxy))
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			got, err := latestPatchRelease(gRepo, tt.major, tt.minor)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
@@ -737,14 +737,14 @@ func Test_gitHubRepository_getReleaseByTag(t *testing.T) {
 			resetCaches()
 
 			gRepo, err := NewGitHubRepository(providerConfig, configVariablesClient, injectGithubClient(client))
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			got, err := gRepo.(*gitHubRepository).getReleaseByTag(tt.args.tag)
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			if tt.wantTagName == nil {
 				g.Expect(got).To(BeNil())
@@ -873,7 +873,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 			resetCaches()
 
 			gRepo, err := NewGitHubRepository(tt.providerConfig, configVariablesClient, injectGithubClient(client))
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			got, err := gRepo.(*gitHubRepository).downloadFilesFromRelease(tt.args.release, tt.args.fileName)
 			if tt.wantErr {
@@ -881,7 +881,7 @@ func Test_gitHubRepository_downloadFilesFromRelease(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}

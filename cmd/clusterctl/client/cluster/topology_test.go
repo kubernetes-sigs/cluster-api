@@ -281,7 +281,7 @@ func Test_topologyClient_Plan(t *testing.T) {
 				return
 			}
 			// The plan should function should not return any error.
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// Check affected ClusterClasses.
 			g.Expect(res.ClusterClasses).To(HaveLen(len(tt.want.affectedClusterClasses)))

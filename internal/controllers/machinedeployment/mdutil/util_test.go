@@ -591,7 +591,7 @@ func TestResolveFenceposts(t *testing.T) {
 			if test.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(surge).To(Equal(test.expectSurge))
 			g.Expect(unavail).To(Equal(test.expectUnavailable))
@@ -642,7 +642,7 @@ func TestNewMSNewReplicas(t *testing.T) {
 			}
 			*(newRC.Spec.Replicas) = test.newMSReplicas
 			ms, err := NewMSNewReplicas(&newDeployment, []*clusterv1.MachineSet{&rs5}, *newRC.Spec.Replicas)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(ms).To(Equal(test.expected))
 		})
 	}
@@ -942,9 +942,9 @@ func TestComputeMachineSetAnnotations(t *testing.T) {
 			g := NewWithT(t)
 			got, err := ComputeMachineSetAnnotations(log, tt.deployment, tt.oldMSs, tt.ms)
 			if tt.wantErr {
-				g.Expect(err).ShouldNot(BeNil())
+				g.Expect(err).ShouldNot(HaveOccurred())
 			} else {
-				g.Expect(err).Should(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(got).Should(Equal(tt.want))
 			}
 		})

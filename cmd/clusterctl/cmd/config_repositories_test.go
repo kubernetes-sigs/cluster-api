@@ -32,7 +32,7 @@ func Test_runGetRepositories(t *testing.T) {
 		g := NewWithT(t)
 
 		tmpDir, err := os.MkdirTemp("", "cc")
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		defer os.RemoveAll(tmpDir)
 
 		path := filepath.Join(tmpDir, "clusterctl.yaml")
@@ -71,7 +71,7 @@ func Test_runGetRepositories(t *testing.T) {
 		g := NewWithT(t)
 
 		tmpDir, err := os.MkdirTemp("", "cc")
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		defer os.RemoveAll(tmpDir)
 
 		path := filepath.Join(tmpDir, "clusterctl.yaml")

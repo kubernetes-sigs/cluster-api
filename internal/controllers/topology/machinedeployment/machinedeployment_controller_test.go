@@ -83,7 +83,7 @@ func TestMachineDeploymentTopologyFinalizer(t *testing.T) {
 			_, err := mdr.Reconcile(ctx, reconcile.Request{
 				NamespacedName: util.ObjectKey(tc.md),
 			})
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			key := client.ObjectKey{Namespace: tc.md.Namespace, Name: tc.md.Name}
 			var actual clusterv1.MachineDeployment
@@ -125,7 +125,7 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 			Client:    fakeClient,
 			APIReader: fakeClient,
 		}
-		_, err := r.reconcileDelete(ctx, md)
+		err := r.reconcileDelete(ctx, md)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(controllerutil.ContainsFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
@@ -152,7 +152,7 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 			Client:    fakeClient,
 			APIReader: fakeClient,
 		}
-		_, err := r.reconcileDelete(ctx, mdWithoutBootstrapTemplate)
+		err := r.reconcileDelete(ctx, mdWithoutBootstrapTemplate)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(controllerutil.ContainsFinalizer(mdWithoutBootstrapTemplate, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
@@ -182,7 +182,7 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 			Client:    fakeClient,
 			APIReader: fakeClient,
 		}
-		_, err := r.reconcileDelete(ctx, md)
+		err := r.reconcileDelete(ctx, md)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(controllerutil.ContainsFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())
@@ -204,7 +204,7 @@ func TestMachineDeploymentReconciler_ReconcileDelete(t *testing.T) {
 			Client:    fakeClient,
 			APIReader: fakeClient,
 		}
-		_, err := r.reconcileDelete(ctx, md)
+		err := r.reconcileDelete(ctx, md)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(controllerutil.ContainsFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)).To(BeFalse())

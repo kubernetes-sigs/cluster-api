@@ -213,7 +213,7 @@ func TestParseClusterYaml(t *testing.T) {
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
 			file, err := createTempFile(testcase.contents)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			defer os.Remove(file)
 
 			c, err := Parse(ParseInput{File: file})
@@ -222,7 +222,7 @@ func TestParseClusterYaml(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(c.Clusters).NotTo(BeEmpty())
 			g.Expect(c.Clusters[0].Name).To(Equal(testcase.expectedName))
 		})
@@ -287,7 +287,7 @@ func TestParseMachineYaml(t *testing.T) {
 	for _, testcase := range testcases {
 		t.Run(testcase.name, func(t *testing.T) {
 			file, err := createTempFile(testcase.contents)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			defer os.Remove(file)
 
 			out, err := Parse(ParseInput{File: file})
@@ -296,7 +296,7 @@ func TestParseMachineYaml(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(out.Machines).To(HaveLen(testcase.expectedMachineCount))
 		})
 	}

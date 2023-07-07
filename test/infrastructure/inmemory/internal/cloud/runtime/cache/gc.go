@@ -56,7 +56,7 @@ func (c *cache) startGarbageCollector(ctx context.Context) error {
 			go func() {
 				atomic.AddInt64(&workers, 1)
 				defer wg.Done()
-				for c.processGarbageCollectorWorkItem(ctx) { //nolint:revive
+				for c.processGarbageCollectorWorkItem(ctx) {
 				}
 			}()
 		}

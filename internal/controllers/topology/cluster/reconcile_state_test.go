@@ -1137,11 +1137,11 @@ func TestReconcileInfrastructureCluster(t *testing.T) {
 
 			// Spec
 			wantSpec, ok, err := unstructured.NestedMap(tt.want.UnstructuredContent(), "spec")
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(ok).To(BeTrue())
 
 			gotSpec, ok, err := unstructured.NestedMap(got.UnstructuredContent(), "spec")
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(ok).To(BeTrue())
 			for k, v := range wantSpec {
 				g.Expect(gotSpec).To(HaveKeyWithValue(k, v))
@@ -1433,12 +1433,12 @@ func TestReconcileControlPlane(t *testing.T) {
 
 			// Get the spec from the ControlPlaneObject we are expecting
 			wantControlPlaneObjectSpec, ok, err := unstructured.NestedMap(tt.want.Object.UnstructuredContent(), "spec")
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(ok).To(BeTrue())
 
 			// Get the spec from the ControlPlaneObject we got from the client.Get
 			gotControlPlaneObjectSpec, ok, err := unstructured.NestedMap(gotControlPlaneObject.UnstructuredContent(), "spec")
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(ok).To(BeTrue())
 
 			for k, v := range wantControlPlaneObjectSpec {
@@ -1456,7 +1456,7 @@ func TestReconcileControlPlane(t *testing.T) {
 				if gotRotation {
 					pattern := fmt.Sprintf("%s.*", controlPlaneInfrastructureMachineTemplateNamePrefix(s.Current.Cluster.Name))
 					ok, err := regexp.Match(pattern, []byte(gotInfrastructureMachineRef.Name))
-					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(err).ToNot(HaveOccurred())
 					g.Expect(ok).To(BeTrue())
 				}
 
@@ -1468,12 +1468,12 @@ func TestReconcileControlPlane(t *testing.T) {
 
 				// Get the spec from the InfrastructureMachineTemplate we are expecting
 				wantInfrastructureMachineTemplateSpec, ok, err := unstructured.NestedMap(tt.want.InfrastructureMachineTemplate.UnstructuredContent(), "spec")
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(ok).To(BeTrue())
 
 				// Get the spec from the InfrastructureMachineTemplate we got from the client.Get
 				gotInfrastructureMachineTemplateSpec, ok, err := unstructured.NestedMap(gotInfrastructureMachineTemplate.UnstructuredContent(), "spec")
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(ok).To(BeTrue())
 
 				// Compare all keys and values in the InfrastructureMachineTemplate Spec

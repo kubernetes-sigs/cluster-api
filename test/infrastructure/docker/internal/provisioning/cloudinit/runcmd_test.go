@@ -34,7 +34,7 @@ runcmd:
 - "ls -l /"`
 	r := runCmd{}
 	err := r.Unmarshal([]byte(cloudData), kind.Mapping{})
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(r.Cmds).To(HaveLen(2))
 
 	expected0 := provisioning.Cmd{Cmd: "ls", Args: []string{"-l", "/"}}
@@ -81,7 +81,7 @@ func TestRunCmdRun(t *testing.T) {
 			g := NewWithT(t)
 
 			commands, err := rt.r.Commands()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(rt.expectedCmds).To(Equal(commands))
 		})
 	}
@@ -96,7 +96,7 @@ runcmd:
 - [ kubeadm, join, --config=/run/kubeadm/kubeadm-controlplane-join-config.yaml ]`
 	r := runCmd{}
 	err := r.Unmarshal([]byte(cloudData), kind.Mapping{})
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(r.Cmds).To(HaveLen(2))
 
 	r.Cmds[0] = hackKubeadmIgnoreErrors(r.Cmds[0])

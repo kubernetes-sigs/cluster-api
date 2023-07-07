@@ -183,14 +183,14 @@ func (r *MachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Handle deletion reconciliation loop.
 	if !mp.ObjectMeta.DeletionTimestamp.IsZero() {
-		res, err := r.reconcileDelete(ctx, cluster, mp)
+		err := r.reconcileDelete(ctx, cluster, mp)
 		// Requeue if the reconcile failed because the ClusterCacheTracker was locked for
 		// the current cluster because of concurrent access.
 		if errors.Is(err, remote.ErrClusterLocked) {
 			log.V(5).Info("Requeuing because another worker has the lock on the ClusterCacheTracker")
 			return ctrl.Result{Requeue: true}, nil
 		}
-		return res, err
+		return ctrl.Result{}, err
 	}
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
@@ -243,20 +243,20 @@ func (r *MachinePoolReconciler) reconcile(ctx context.Context, cluster *clusterv
 	return res, kerrors.NewAggregate(errs)
 }
 
-func (r *MachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) (ctrl.Result, error) {
+func (r *MachinePoolReconciler) reconcileDelete(ctx context.Context, cluster *clusterv1.Cluster, mp *expv1.MachinePool) error {
 	if ok, err := r.reconcileDeleteExternal(ctx, mp); !ok || err != nil {
 		// Return early and don't remove the finalizer if we got an error or
 		// the external reconciliation deletion isn't ready.
-		return ctrl.Result{}, err
+		return err
 	}
 
 	if err := r.reconcileDeleteNodes(ctx, cluster, mp); err != nil {
 		// Return early and don't remove the finalizer if we got an error.
-		return ctrl.Result{}, err
+		return err
 	}
 
 	controllerutil.RemoveFinalizer(mp, expv1.MachinePoolFinalizer)
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *MachinePoolReconciler) reconcileDeleteNodes(ctx context.Context, cluster *clusterv1.Cluster, machinepool *expv1.MachinePool) error {

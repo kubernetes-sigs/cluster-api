@@ -228,7 +228,7 @@ func TestObjectGraph_getDiscoveryTypeMetaList(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(graph.types).To(Equal(tt.want))
 		})
 	}
@@ -1730,7 +1730,7 @@ func TestObjectGraph_addObj_WithFakeObjects(t *testing.T) {
 			g := NewWithT(t)
 
 			graph, err := getDetachedObjectGraphWihObjs(tt.args.objs)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// call setSoftOwnership so there is functional parity with discovery
 			graph.setSoftOwnership()
@@ -1794,7 +1794,7 @@ func TestObjectGraph_Discovery(t *testing.T) {
 
 			// Get all the types to be considered for discovery
 			err := getFakeDiscoveryTypes(graph)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// finally test discovery
 			err = graph.Discovery("")
@@ -1803,7 +1803,7 @@ func TestObjectGraph_Discovery(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			assertGraph(t, graph, tt.want)
 		})
 	}
@@ -1950,7 +1950,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 
 			// Get all the types to be considered for discovery
 			err := getFakeDiscoveryTypes(graph)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// finally test discovery
 			err = graph.Discovery(tt.args.namespace)
@@ -1959,7 +1959,7 @@ func TestObjectGraph_DiscoveryByNamespace(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			assertGraph(t, graph, tt.want)
 		})
 	}
@@ -2120,7 +2120,7 @@ func Test_objectGraph_setSoftOwnership(t *testing.T) {
 			g := NewWithT(t)
 
 			graph, err := getDetachedObjectGraphWihObjs(tt.fields.objs)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			graph.setSoftOwnership()
 
@@ -2323,7 +2323,7 @@ func Test_objectGraph_setClusterTenants(t *testing.T) {
 			g := NewWithT(t)
 
 			gb, err := getDetachedObjectGraphWihObjs(tt.fields.objs)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// we want to check that soft dependent nodes are considered part of the cluster, so we make sure to call SetSoftDependants before SetClusterTenants
 			gb.setSoftOwnership()
@@ -2426,7 +2426,7 @@ func Test_objectGraph_setCRSTenants(t *testing.T) {
 			g := NewWithT(t)
 
 			gb, err := getDetachedObjectGraphWihObjs(tt.fields.objs)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			gb.setTenants()
 
@@ -2486,7 +2486,7 @@ func Test_objectGraph_setGlobalIdentityTenants(t *testing.T) {
 			g := NewWithT(t)
 
 			gb, err := getDetachedObjectGraphWihObjs(tt.fields.objs)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			gb.setTenants()
 

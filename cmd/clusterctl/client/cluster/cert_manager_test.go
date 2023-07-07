@@ -62,7 +62,7 @@ func Test_getManifestObjs(t *testing.T) {
 	g := NewWithT(t)
 
 	defaultConfigClient, err := config.New("", config.InjectReader(test.NewFakeReader().WithImageMeta(config.CertManagerImageComponent, "bar-repository.io", "")))
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	type fields struct {
 		configClient config.Client
@@ -140,7 +140,7 @@ func Test_getManifestObjs(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			for i := range got {
 				o := &got[i]

@@ -92,7 +92,7 @@ func CreateKindBootstrapClusterAndLoadImages(ctx context.Context, input CreateKi
 	})
 	if err != nil {
 		clusterProvider.Dispose(ctx)
-		Expect(err).NotTo(HaveOccurred()) // re-surface the error to fail the test
+		Expect(err).ToNot(HaveOccurred()) // re-surface the error to fail the test
 	}
 
 	return clusterProvider

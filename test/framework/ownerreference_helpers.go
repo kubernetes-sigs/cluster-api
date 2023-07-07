@@ -85,7 +85,7 @@ func AssertOwnerReferences(namespace, kubeconfigPath string, assertFuncs ...map[
 	Eventually(func() error {
 		allErrs := []error{}
 		graph, err := clusterctlcluster.GetOwnerGraph(namespace, kubeconfigPath)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		for _, v := range graph {
 			if _, ok := allAssertFuncs[v.Object.Kind]; !ok {
 				allErrs = append(allErrs, fmt.Errorf("kind %s does not have an associated ownerRef assertion function", v.Object.Kind))
@@ -341,7 +341,7 @@ func forceClusterClassReconcile(ctx context.Context, cli client.Client, clusterK
 
 func removeOwnerReferences(ctx context.Context, proxy ClusterProxy, namespace string) {
 	graph, err := clusterctlcluster.GetOwnerGraph(namespace, proxy.GetKubeconfigPath())
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	for _, object := range graph {
 		ref := object.Object
 		obj := new(unstructured.Unstructured)
@@ -351,7 +351,7 @@ func removeOwnerReferences(ctx context.Context, proxy ClusterProxy, namespace st
 
 		Expect(proxy.GetClient().Get(ctx, client.ObjectKey{Namespace: namespace, Name: object.Object.Name}, obj)).To(Succeed())
 		helper, err := patch.NewHelper(obj, proxy.GetClient())
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		obj.SetOwnerReferences([]metav1.OwnerReference{})
 		Expect(helper.Patch(ctx, obj)).To(Succeed())
 	}

@@ -73,7 +73,7 @@ func (c *cache) startSyncer(ctx context.Context) error {
 			go func() {
 				atomic.AddInt64(&workers, 1)
 				defer wg.Done()
-				for c.processSyncWorkItem(ctx) { //nolint:revive
+				for c.processSyncWorkItem(ctx) {
 				}
 			}()
 		}

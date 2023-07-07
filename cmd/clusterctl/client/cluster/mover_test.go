@@ -753,7 +753,7 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 					return
 				}
 
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				// objects are stored and serialized correctly in the temporary directory
 				expectedFilename := node.getFilename()
@@ -765,13 +765,13 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 				path := filepath.Join(dir, expectedFilename)
 				fileContents, err := os.ReadFile(path) //nolint:gosec
 				if err != nil {
-					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(err).ToNot(HaveOccurred())
 					return
 				}
 
 				firstFileStat, err := os.Stat(path)
 				if err != nil {
-					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(err).ToNot(HaveOccurred())
 					return
 				}
 
@@ -788,11 +788,11 @@ func Test_objectMover_backupTargetObject(t *testing.T) {
 					return
 				}
 
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				secondFileStat, err := os.Stat(path)
 				if err != nil {
-					g.Expect(err).NotTo(HaveOccurred())
+					g.Expect(err).ToNot(HaveOccurred())
 					return
 				}
 
@@ -811,7 +811,7 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 			// temporary directory
 			dir, err := os.MkdirTemp("/tmp", "cluster-api")
 			if err != nil {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			defer os.RemoveAll(dir)
 
@@ -835,18 +835,18 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 			// Write go string slice to directory
 			for _, file := range tt.files {
 				tempFile, err := os.CreateTemp(dir, "obj")
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				_, err = tempFile.WriteString(file)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(tempFile.Close()).To(Succeed())
 			}
 
 			objs, err := mover.filesToObjs(dir)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			for i := range objs {
-				g.Expect(graph.addRestoredObj(&objs[i])).NotTo(HaveOccurred())
+				g.Expect(graph.addRestoredObj(&objs[i])).ToNot(HaveOccurred())
 			}
 
 			for _, node := range graph.uidToNode {
@@ -856,11 +856,11 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 					return
 				}
 
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				// Check objects are in new restored cluster
 				csTo, err := toProxy.NewClient()
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				key := client.ObjectKey{
 					Namespace: node.identity.Namespace,
@@ -884,11 +884,11 @@ func Test_objectMover_restoreTargetObject(t *testing.T) {
 					return
 				}
 
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				// Check objects are in new restored cluster
 				csAfter, err := toProxy.NewClient()
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				keyAfter := client.ObjectKey{
 					Namespace: node.identity.Namespace,
@@ -947,11 +947,11 @@ func Test_objectMover_toDirectory(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// check that the objects are stored in the temporary directory but not deleted from the source cluster
 			csFrom, err := graph.proxy.NewClient()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			missingFiles := []string{}
 			for _, node := range graph.uidToNode {
@@ -966,11 +966,11 @@ func Test_objectMover_toDirectory(t *testing.T) {
 				oFrom.SetKind(node.identity.Kind)
 
 				err := csFrom.Get(ctx, key, oFrom)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				// objects are stored in the temporary directory with the expected filename
 				files, err := os.ReadDir(dir)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				expectedFilename := node.getFilename()
 				found := false
@@ -1010,7 +1010,7 @@ func Test_objectMover_filesToObjs(t *testing.T) {
 				}
 
 				_, err = file.WriteString(tt.files[fileName])
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(file.Close()).To(Succeed())
 			}
 
@@ -1028,7 +1028,7 @@ func Test_objectMover_filesToObjs(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			missingObjs := []unstructured.Unstructured{}
 			for _, obj := range objs {
@@ -1058,7 +1058,7 @@ func Test_objectMover_fromDirectory(t *testing.T) {
 			// temporary directory
 			dir, err := os.MkdirTemp("/tmp", "cluster-api")
 			if err != nil {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			defer os.RemoveAll(dir)
 
@@ -1079,18 +1079,18 @@ func Test_objectMover_fromDirectory(t *testing.T) {
 			// Write go string slice to directory
 			for _, file := range tt.files {
 				tempFile, err := os.CreateTemp(dir, "obj")
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				_, err = tempFile.WriteString(file)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(tempFile.Close()).To(Succeed())
 			}
 
 			objs, err := mover.filesToObjs(dir)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			for i := range objs {
-				g.Expect(graph.addRestoredObj(&objs[i])).NotTo(HaveOccurred())
+				g.Expect(graph.addRestoredObj(&objs[i])).ToNot(HaveOccurred())
 			}
 
 			// fromDirectory works on the target cluster which does not yet have objs to discover
@@ -1106,11 +1106,11 @@ func Test_objectMover_fromDirectory(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// Check objects are in new restored cluster
 			csTo, err := toProxy.NewClient()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			for _, node := range graph.uidToNode {
 				key := client.ObjectKey{
@@ -1193,14 +1193,14 @@ func Test_objectMover_move_dryRun(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// check that the objects are kept in the source cluster and are not created in the target cluster
 			csFrom, err := graph.proxy.NewClient()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			csTo, err := toProxy.NewClient()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			for _, node := range graph.uidToNode {
 				key := client.ObjectKey{
 					Namespace: node.identity.Namespace,
@@ -1265,14 +1265,14 @@ func Test_objectMover_move(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// check that the objects are removed from the source cluster and are created in the target cluster
 			csFrom, err := graph.proxy.NewClient()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			csTo, err := toProxy.NewClient()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			for _, node := range graph.uidToNode {
 				key := client.ObjectKey{
@@ -1342,7 +1342,7 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 				if fields, knownKind := updateKnownKinds[u.GetKind()]; knownKind {
 					for _, nsField := range fields {
 						_, exists, err := unstructured.NestedFieldNoCopy(u.Object, nsField...)
-						g.Expect(err).To(BeNil())
+						g.Expect(err).ToNot(HaveOccurred())
 						if exists {
 							g.Expect(unstructured.SetNestedField(u.Object, toNamespace, nsField...)).To(Succeed())
 						}
@@ -1374,14 +1374,14 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// check that the objects are removed from the source cluster and are created in the target cluster
 			csFrom, err := graph.proxy.NewClient()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			csTo, err := toProxy.NewClient()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			for _, node := range graph.uidToNode {
 				key := client.ObjectKey{
@@ -1420,7 +1420,7 @@ func Test_objectMover_move_with_Mutator(t *testing.T) {
 				if fields, knownKind := updateKnownKinds[oTo.GetKind()]; knownKind {
 					for _, nsField := range fields {
 						value, exists, err := unstructured.NestedFieldNoCopy(oTo.Object, nsField...)
-						g.Expect(err).To(BeNil())
+						g.Expect(err).ToNot(HaveOccurred())
 						if exists {
 							g.Expect(value).To(Equal(toNamespace))
 						}
@@ -1650,7 +1650,7 @@ func Test_objectMover_checkProvisioningCompleted(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -1732,7 +1732,7 @@ func Test_objectsMoverService_checkTargetProviders(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -1783,7 +1783,7 @@ func Test_objectMoverService_ensureNamespace(t *testing.T) {
 			}
 
 			err := mover.ensureNamespace(tt.args.toProxy, tt.args.namespace)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// Check that the namespaces either existed or were created in the
 			// target.
@@ -1888,7 +1888,7 @@ func Test_objectMoverService_ensureNamespaces(t *testing.T) {
 			}
 
 			err := mover.ensureNamespaces(graph, tt.args.toProxy)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// Check that the namespaces either existed or were created in the
 			// target.
@@ -2138,10 +2138,10 @@ func Test_createTargetObject(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			toClient, err := tt.args.toProxy.NewClient()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			tt.want(g, toClient)
 		})
@@ -2279,10 +2279,10 @@ func Test_deleteSourceObject(t *testing.T) {
 			}
 
 			err := mover.deleteSourceObject(tt.args.node)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			fromClient, err := tt.args.fromProxy.NewClient()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			tt.want(g, fromClient)
 		})

@@ -109,10 +109,10 @@ func TestMachinePoolBootstrapValidation(t *testing.T) {
 				g.Expect(warnings).To(BeEmpty())
 			} else {
 				warnings, err := m.ValidateCreate()
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 				warnings, err = m.ValidateUpdate(m)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
 		})
@@ -185,10 +185,10 @@ func TestMachinePoolNamespaceValidation(t *testing.T) {
 				g.Expect(warnings).To(BeEmpty())
 			} else {
 				warnings, err := m.ValidateCreate()
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 				warnings, err = m.ValidateUpdate(m)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
 		})
@@ -249,7 +249,7 @@ func TestMachinePoolClusterNameImmutable(t *testing.T) {
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(warnings).To(BeEmpty())
 		})
@@ -311,10 +311,10 @@ func TestMachinePoolVersionValidation(t *testing.T) {
 				g.Expect(warnings).To(BeEmpty())
 			} else {
 				warnings, err := m.ValidateCreate()
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 				warnings, err = m.ValidateUpdate(m)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
 		})

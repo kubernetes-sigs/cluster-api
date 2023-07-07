@@ -46,7 +46,7 @@ func TestClusterClassReconciler_reconcile(t *testing.T) {
 	timeout := 30 * time.Second
 
 	ns, err := env.CreateNamespace(ctx, "test-topology-clusterclass-reconciler")
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	clusterClassName := "class1"
 	workerClassName1 := "linux-worker-1"
@@ -540,7 +540,7 @@ func TestReconciler_reconcileVariables(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(tt.clusterClass.Status.Variables).To(Equal(tt.want), cmp.Diff(tt.clusterClass.Status.Variables, tt.want))
 		})
 	}

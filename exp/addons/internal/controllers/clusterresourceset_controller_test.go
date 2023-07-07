@@ -629,7 +629,7 @@ metadata:
 
 		binding := &addonsv1.ClusterResourceSetBinding{}
 		err := env.Get(ctx, clusterResourceSetBindingKey, binding)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		resourceHashes := map[string]string{}
 		for _, r := range binding.Spec.Bindings[0].Resources {
 			resourceHashes[r.Name] = r.Hash
@@ -664,7 +664,7 @@ metadata:
 		)
 
 		resourceConfigMap1Content, err := yaml.Marshal(resourceConfigMap1)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		testConfigmap := configMap(
 			configmapName,
@@ -683,7 +683,7 @@ metadata:
 		)
 
 		resourceConfigMap2Content, err := yaml.Marshal(resourceConfigMap2)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		testSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -803,7 +803,7 @@ metadata:
 		)
 
 		resourceConfigMap1Content, err := yaml.Marshal(resourceConfigMap1)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		resourceConfigMapWithMissingNamespace := configMap(
 			"cm-missing-namespace",
@@ -814,7 +814,7 @@ metadata:
 		)
 
 		resourceConfigMapMissingNamespaceContent, err := yaml.Marshal(resourceConfigMapWithMissingNamespace)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		testConfigmap := configMap(
 			configmapName,

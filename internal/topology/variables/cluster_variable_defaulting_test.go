@@ -1335,7 +1335,7 @@ func Test_getAllVariables(t *testing.T) {
 		}
 
 		valuesIndex, err := newValuesIndex(values)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		got := getAllVariables(values, valuesIndex, definitions)
 		g.Expect(got).To(Equal(expectedValues))
 	})

@@ -88,8 +88,8 @@ func TestClusterClassWebhook_Succeed_Create(t *testing.T) {
 
 	// Clean up the resources once the test is finished.
 	t.Cleanup(func() {
-		g.Expect(env.Cleanup(ctx, clusterClass1))
-		g.Expect(env.Cleanup(ctx, ns))
+		g.Expect(env.Cleanup(ctx, clusterClass1)).To(Succeed())
+		g.Expect(env.Cleanup(ctx, ns)).To(Succeed())
 	})
 
 	// Create the ClusterClass in the API server. Expect no error.
@@ -502,7 +502,7 @@ func TestClusterClassWebhook_Delete_MultipleExistingClusters(t *testing.T) {
 					if apierrors.IsNotFound(err) {
 						continue
 					}
-					g.Expect(err).To(BeNil())
+					g.Expect(err).ToNot(HaveOccurred())
 				}
 			}
 		}

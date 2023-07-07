@@ -17,7 +17,6 @@ linters:
   - bidichk
   - bodyclose
   - containedctx
-  - depguard
   - dogsled
   - dupword
   - durationcheck
@@ -60,13 +59,6 @@ linters:
 linters-settings:
   gci:
     local-prefixes: "sigs.k8s.io/cluster-api"
-  ginkgolinter:
-    # Suppress the wrong length assertion warning.
-    suppress-len-assertion: false
-    # Suppress the wrong nil assertion warning.
-    suppress-nil-assertion: false
-    # Suppress the wrong error assertion warning.
-    suppress-err-assertion: true
   godot:
     #   declarations - for top level declaration comments (default);
     #   toplevel     - for top level comments;

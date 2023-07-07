@@ -344,7 +344,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		bootstrapConfig.SetNamespace(ns.Name)
 		infraMachine := defaultInfra.DeepCopy()
 		infraMachine.SetNamespace(ns.Name)
-		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID"))
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
 
@@ -418,7 +418,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		bootstrapConfig.SetNamespace(ns.Name)
 		infraMachine := defaultInfra.DeepCopy()
 		infraMachine.SetNamespace(ns.Name)
-		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID"))
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
 
@@ -491,7 +491,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		bootstrapConfig.SetNamespace(ns.Name)
 		infraMachine := defaultInfra.DeepCopy()
 		infraMachine.SetNamespace(ns.Name)
-		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID"))
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
 		// Set Machine ProviderID.
@@ -549,7 +549,7 @@ func TestReconcileMachinePhases(t *testing.T) {
 		bootstrapConfig.SetNamespace(ns.Name)
 		infraMachine := defaultInfra.DeepCopy()
 		infraMachine.SetNamespace(ns.Name)
-		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID"))
+		g.Expect(unstructured.SetNestedField(infraMachine.Object, nodeProviderID, "spec", "providerID")).To(Succeed())
 		machine := defaultMachine.DeepCopy()
 		machine.Namespace = ns.Name
 
@@ -915,9 +915,9 @@ func TestReconcileBootstrap(t *testing.T) {
 			res, err := r.reconcileBootstrap(ctx, s)
 			g.Expect(res).To(Equal(tc.expectResult))
 			if tc.expectError {
-				g.Expect(err).NotTo(BeNil())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).To(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 
 			if tc.expected != nil {
@@ -1128,9 +1128,9 @@ func TestReconcileInfrastructure(t *testing.T) {
 			r.reconcilePhase(ctx, tc.machine)
 			g.Expect(result).To(Equal(tc.expectResult))
 			if tc.expectError {
-				g.Expect(err).NotTo(BeNil())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).To(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 
 			if tc.expected != nil {

@@ -76,7 +76,7 @@ func TestGetConfigOwner(t *testing.T) {
 				},
 			}
 			configOwner, err := getFn(ctx, c, obj)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(configOwner).ToNot(BeNil())
 			g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
 			g.Expect(configOwner.IsInfrastructureReady()).To(BeTrue())
@@ -126,7 +126,7 @@ func TestGetConfigOwner(t *testing.T) {
 				},
 			}
 			configOwner, err := getFn(ctx, c, obj)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(configOwner).ToNot(BeNil())
 			g.Expect(configOwner.ClusterName()).To(BeEquivalentTo("my-cluster"))
 			g.Expect(configOwner.IsInfrastructureReady()).To(BeTrue())
@@ -167,7 +167,7 @@ func TestGetConfigOwner(t *testing.T) {
 				},
 			}
 			configOwner, err := getFn(ctx, c, obj)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(configOwner).To(BeNil())
 		})
 	}

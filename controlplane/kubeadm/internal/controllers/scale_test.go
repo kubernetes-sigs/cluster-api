@@ -45,7 +45,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 
 		t.Log("Creating the namespace")
 		ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-initializecontrolplane")
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		return ns
 	}
@@ -80,7 +80,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 
 	result, err := r.initializeControlPlane(ctx, controlPlane)
 	g.Expect(result).To(Equal(ctrl.Result{Requeue: true}))
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	machineList := &clusterv1.MachineList{}
 	g.Expect(env.GetAPIReader().List(ctx, machineList, client.InNamespace(cluster.Namespace))).To(Succeed())
@@ -88,7 +88,7 @@ func TestKubeadmControlPlaneReconciler_initializeControlPlane(t *testing.T) {
 
 	res, err := collections.GetFilteredMachinesForCluster(ctx, env.GetAPIReader(), cluster, collections.OwnedMachines(kcp))
 	g.Expect(res).To(HaveLen(1))
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 
 	g.Expect(machineList.Items[0].Namespace).To(Equal(cluster.Namespace))
 	g.Expect(machineList.Items[0].Name).To(HavePrefix(kcp.Name))
@@ -111,7 +111,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 			t.Log("Creating the namespace")
 			ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-scaleupcontrolplane")
-			g.Expect(err).To(BeNil())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			return ns
 		}
@@ -172,7 +172,7 @@ func TestKubeadmControlPlaneReconciler_scaleUpControlPlane(t *testing.T) {
 
 			t.Log("Creating the namespace")
 			ns, err := env.CreateNamespace(ctx, "test-kcp-reconciler-scaleupcontrolplane")
-			g.Expect(err).To(BeNil())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			return ns
 		}
@@ -472,7 +472,7 @@ func TestSelectMachineForScaleDown(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(tc.expectedMachine.Name).To(Equal(selectedMachine.Name))
 		})
 	}
@@ -580,7 +580,7 @@ func TestPreflightChecks(t *testing.T) {
 				Machines: collections.FromMachines(tt.machines...),
 			}
 			result, err := r.preflightChecks(context.TODO(), controlPlane)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result).To(Equal(tt.expectResult))
 		})
 	}
@@ -643,7 +643,7 @@ func TestPreflightCheckCondition(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }

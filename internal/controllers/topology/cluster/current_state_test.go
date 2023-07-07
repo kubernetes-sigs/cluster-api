@@ -826,7 +826,7 @@ func TestGetCurrentState(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			if tt.want == nil {
 				g.Expect(got).To(BeNil())

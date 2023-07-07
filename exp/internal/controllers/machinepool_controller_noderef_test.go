@@ -183,9 +183,9 @@ func TestMachinePoolGetNodeReference(t *testing.T) {
 
 			result, err := r.getNodeReferences(ctx, client, test.providerIDList)
 			if test.err == nil {
-				g.Expect(err).To(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(BeNil())
+				g.Expect(err).To(HaveOccurred())
 				g.Expect(err).To(Equal(test.err), "Expected error %v, got %v", test.err, err)
 			}
 
@@ -413,9 +413,9 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 
 			err := r.patchNodes(ctx, fakeClient, test.nodeRefs, test.machinePool)
 			if test.err == nil {
-				g.Expect(err).To(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(BeNil())
+				g.Expect(err).To(HaveOccurred())
 				g.Expect(err).To(Equal(test.err), "Expected error %v, got %v", test.err, err)
 			}
 
@@ -423,7 +423,7 @@ func TestMachinePoolPatchNodes(t *testing.T) {
 			for _, expected := range test.expectedNodes {
 				node := &corev1.Node{}
 				err := fakeClient.Get(ctx, client.ObjectKey{Name: expected.Name}, node)
-				g.Expect(err).To(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(node.Annotations).To(Equal(expected.Annotations))
 				g.Expect(node.Spec.Taints).To(Equal(expected.Spec.Taints))
 			}

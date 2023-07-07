@@ -57,7 +57,7 @@ func TestReconcileUnhealthyMachines(t *testing.T) {
 		patchHelper, err := patch.NewHelper(m, env.GetClient())
 		g.Expect(err).ToNot(HaveOccurred())
 		m.ObjectMeta.Finalizers = nil
-		g.Expect(patchHelper.Patch(ctx, m))
+		g.Expect(patchHelper.Patch(ctx, m)).To(Succeed())
 	}
 
 	t.Run("It cleans up stuck remediation on previously unhealthy machines", func(t *testing.T) {
@@ -956,7 +956,7 @@ func TestReconcileUnhealthyMachinesSequences(t *testing.T) {
 		patchHelper, err := patch.NewHelper(m, env.GetClient())
 		g.Expect(err).ToNot(HaveOccurred())
 		m.ObjectMeta.Finalizers = nil
-		g.Expect(patchHelper.Patch(ctx, m))
+		g.Expect(patchHelper.Patch(ctx, m)).To(Succeed())
 	}
 
 	t.Run("Remediates the first CP machine having problems to come up", func(t *testing.T) {
@@ -1726,7 +1726,7 @@ func createMachine(ctx context.Context, g *WithT, namespace, name string, option
 		opt(m)
 	}
 
-	g.Expect(patchHelper.Patch(ctx, m))
+	g.Expect(patchHelper.Patch(ctx, m)).To(Succeed())
 	return m
 }
 

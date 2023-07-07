@@ -121,7 +121,7 @@ func TestValidateRequest(t *testing.T) {
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -169,7 +169,7 @@ func TestValidateResponse(t *testing.T) {
 			if tt.wantError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}

@@ -80,7 +80,7 @@ func TestKubeadmControlPlaneTemplateValidationFeatureGateEnabled(t *testing.T) {
 			},
 		}
 		warnings, err := kcpTemplate.ValidateCreate()
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(warnings).To(BeEmpty())
 	})
 }

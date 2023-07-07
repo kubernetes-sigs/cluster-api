@@ -100,10 +100,10 @@ func TestMachineHealthCheckLabelSelectorAsSelectorValidation(t *testing.T) {
 				g.Expect(warnings).To(BeEmpty())
 			} else {
 				warnings, err := mhc.ValidateCreate()
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 				warnings, err = mhc.ValidateUpdate(mhc)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
 		})
@@ -172,7 +172,7 @@ func TestMachineHealthCheckClusterNameImmutable(t *testing.T) {
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(warnings).To(BeEmpty())
 		})
@@ -229,10 +229,10 @@ func TestMachineHealthCheckUnhealthyConditions(t *testing.T) {
 				g.Expect(warnings).To(BeEmpty())
 			} else {
 				warnings, err := mhc.ValidateCreate()
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 				warnings, err = mhc.ValidateUpdate(mhc)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(warnings).To(BeEmpty())
 			}
 		})
@@ -312,10 +312,10 @@ func TestMachineHealthCheckNodeStartupTimeout(t *testing.T) {
 			g.Expect(warnings).To(BeEmpty())
 		} else {
 			warnings, err := mhc.ValidateCreate()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 			warnings, err = mhc.ValidateUpdate(mhc)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 		}
 	}
@@ -379,10 +379,10 @@ func TestMachineHealthCheckMaxUnhealthy(t *testing.T) {
 			g.Expect(warnings).To(BeEmpty())
 		} else {
 			warnings, err := mhc.ValidateCreate()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 			warnings, err = mhc.ValidateUpdate(mhc)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(warnings).To(BeEmpty())
 		}
 	}
@@ -401,7 +401,7 @@ func TestMachineHealthCheckSelectorValidation(t *testing.T) {
 		},
 	}
 	err := mhc.validate(nil)
-	g.Expect(err).ToNot(BeNil())
+	g.Expect(err).To(HaveOccurred())
 	g.Expect(err.Error()).To(ContainSubstring("selector must not be empty"))
 }
 

@@ -133,7 +133,7 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// Handle deletion reconciliation loop.
 	if !clusterResourceSet.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, clusters, clusterResourceSet)
+		return ctrl.Result{}, r.reconcileDelete(ctx, clusters, clusterResourceSet)
 	}
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
@@ -173,7 +173,7 @@ func (r *ClusterResourceSetReconciler) Reconcile(ctx context.Context, req ctrl.R
 }
 
 // reconcileDelete removes the deleted ClusterResourceSet from all the ClusterResourceSetBindings it is added to.
-func (r *ClusterResourceSetReconciler) reconcileDelete(ctx context.Context, clusters []*clusterv1.Cluster, crs *addonsv1.ClusterResourceSet) (ctrl.Result, error) {
+func (r *ClusterResourceSetReconciler) reconcileDelete(ctx context.Context, clusters []*clusterv1.Cluster, crs *addonsv1.ClusterResourceSet) error {
 	for _, cluster := range clusters {
 		log := ctrl.LoggerFrom(ctx, "Cluster", klog.KObj(cluster))
 
@@ -184,16 +184,16 @@ func (r *ClusterResourceSetReconciler) reconcileDelete(ctx context.Context, clus
 		}
 		if err := r.Client.Get(ctx, clusterResourceSetBindingKey, clusterResourceSetBinding); err != nil {
 			if !apierrors.IsNotFound(err) {
-				return ctrl.Result{}, errors.Wrapf(err, "failed to get ClusterResourceSetBinding during ClusterResourceSet deletion")
+				return errors.Wrapf(err, "failed to get ClusterResourceSetBinding during ClusterResourceSet deletion")
 			}
 			controllerutil.RemoveFinalizer(crs, addonsv1.ClusterResourceSetFinalizer)
-			return ctrl.Result{}, nil
+			return nil
 		}
 
 		// Initialize the patch helper.
 		patchHelper, err := patch.NewHelper(clusterResourceSetBinding, r.Client)
 		if err != nil {
-			return ctrl.Result{}, err
+			return err
 		}
 
 		clusterResourceSetBinding.DeleteBinding(crs)
@@ -206,12 +206,12 @@ func (r *ClusterResourceSetReconciler) reconcileDelete(ctx context.Context, clus
 			}
 		} else if err := patchHelper.Patch(ctx, clusterResourceSetBinding); err != nil {
 			log.Error(err, "failed to patch ClusterResourceSetBinding")
-			return ctrl.Result{}, err
+			return err
 		}
 	}
 
 	controllerutil.RemoveFinalizer(crs, addonsv1.ClusterResourceSetFinalizer)
-	return ctrl.Result{}, nil
+	return nil
 }
 
 // getClustersByClusterResourceSetSelector fetches Clusters matched by the ClusterResourceSet's label selector that are in the same namespace as the ClusterResourceSet object.

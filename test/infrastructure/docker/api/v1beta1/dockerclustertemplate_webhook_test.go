@@ -43,7 +43,7 @@ func TestDockerClusterTemplateValidationFeatureGateEnabled(t *testing.T) {
 			},
 		}
 		warnings, err := dct.ValidateCreate()
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(warnings).To(BeEmpty())
 	})
 }

@@ -31,7 +31,7 @@ import (
 
 func TestOverrides(t *testing.T) {
 	configDirectory, err := xdg.ConfigFile(config.ConfigFolderXDG)
-	NewWithT(t).Expect(err).To(BeNil())
+	NewWithT(t).Expect(err).ToNot(HaveOccurred())
 
 	tests := []struct {
 		name            string
@@ -90,7 +90,7 @@ func TestOverrides(t *testing.T) {
 			})
 
 			overridePath, err := override.Path()
-			g.Expect(err).To(BeNil())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(overridePath).To(Equal(tt.expectedPath))
 		})
 	}

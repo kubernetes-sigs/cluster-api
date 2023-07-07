@@ -117,7 +117,7 @@ I8eun6k9HNyEieJTVaB9AVnykoZ78UbCQaipm9W7i4Q=
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
@@ -139,7 +139,7 @@ func TestDecodeCertPEM(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }

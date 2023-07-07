@@ -95,7 +95,7 @@ func TestWriteFiles(t *testing.T) {
 			g := NewWithT(t)
 
 			cmds, err := rt.w.Commands()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(rt.expectedCmds).To(Equal(cmds))
 		})
 	}
@@ -407,7 +407,7 @@ func TestFixContent(t *testing.T) {
 			if rt.expectedError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 
 			g.Expect(rt.expectedContent).To(Equal(c))

@@ -106,7 +106,7 @@ func TestGetorCreateClusterResourceSetBinding(t *testing.T) {
 			gs := NewWithT(t)
 
 			clusterResourceSetBinding, err := r.getOrCreateClusterResourceSetBinding(context.TODO(), tt.cluster, &addonsv1.ClusterResourceSet{})
-			gs.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(err).ToNot(HaveOccurred())
 
 			gs.Expect(clusterResourceSetBinding.Spec.Bindings).To(HaveLen(tt.numOfClusterResourceSets))
 		})
@@ -157,7 +157,7 @@ func TestGetSecretFromNamespacedName(t *testing.T) {
 				gs.Expect(err).To(HaveOccurred())
 				return
 			}
-			gs.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(err).ToNot(HaveOccurred())
 
 			gs.Expect(*got).To(Equal(*tt.want))
 		})
@@ -214,7 +214,7 @@ func TestGetConfigMapFromNamespacedName(t *testing.T) {
 				gs.Expect(err).To(HaveOccurred())
 				return
 			}
-			gs.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(err).ToNot(HaveOccurred())
 
 			gs.Expect(*got).To(Equal(*tt.want))
 		})
@@ -267,7 +267,7 @@ func TestEnsureKubernetesServiceCreated(t *testing.T) {
 				gs.Expect(err).To(HaveOccurred())
 				return
 			}
-			gs.Expect(err).NotTo(HaveOccurred())
+			gs.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }

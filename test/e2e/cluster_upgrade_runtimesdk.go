@@ -332,7 +332,7 @@ func machineSetPreflightChecksTestHandler(ctx context.Context, c client.Client, 
 	// Note: It is fair to assume that the Cluster is ClusterClass based since RuntimeSDK
 	// is only supported for ClusterClass based Clusters.
 	patchHelper, err := patch.NewHelper(md, c)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	// Scale up the MachineDeployment.
 	// IMPORTANT: Since the MachineDeployment is pending an upgrade at this point the topology controller will not push any changes
@@ -354,7 +354,7 @@ func machineSetPreflightChecksTestHandler(ctx context.Context, c client.Client, 
 		}).Should(Succeed(), "Failed to get MachineDeployment %s", klog.KObj(md))
 		// Verify replicas are not overridden.
 		g.Expect(targetMD.Spec.Replicas).To(Equal(md.Spec.Replicas))
-	}, 10*time.Second, 1*time.Second)
+	}, 10*time.Second, 1*time.Second).Should(Succeed())
 
 	// Since the MachineDeployment is scaled up (overriding the topology controller) at this point the MachineSet would
 	// also scale up. However, a new Machine creation would be blocked by one of the MachineSet preflight checks (KubeadmVersionSkew).
@@ -384,12 +384,12 @@ func machineSetPreflightChecksTestHandler(ctx context.Context, c client.Client, 
 			MachineDeployment: *md,
 		})
 		g.Expect(machines).To(HaveLen(originalReplicas), "New Machines should not be created")
-	}, 10*time.Second, time.Second)
+	}, 10*time.Second, time.Second).Should(Succeed())
 
 	// Scale down the MachineDeployment to the original replicas to restore to the state of the MachineDeployment
 	// it existed in before this test block.
 	patchHelper, err = patch.NewHelper(md, c)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	*md.Spec.Replicas--
 	Eventually(func() error {
 		return patchHelper.Patch(ctx, md)

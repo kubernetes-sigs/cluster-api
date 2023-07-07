@@ -126,7 +126,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 	// Handle deletion reconciliation loop.
 	if !md.ObjectMeta.DeletionTimestamp.IsZero() {
-		return r.reconcileDelete(ctx, md)
+		return ctrl.Result{}, r.reconcileDelete(ctx, md)
 	}
 
 	// Add finalizer first if not set to avoid the race condition between init and delete.
@@ -141,37 +141,37 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (_ ctrl.Re
 
 // reconcileDelete deletes templates referenced in a MachineDeployment, if the templates are not used by other
 // MachineDeployments or MachineSets.
-func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineDeployment) (ctrl.Result, error) {
+func (r *Reconciler) reconcileDelete(ctx context.Context, md *clusterv1.MachineDeployment) error {
 	// Get the corresponding MachineSets.
 	msList, err := machineset.GetMachineSetsForDeployment(ctx, r.APIReader, client.ObjectKeyFromObject(md))
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	// Calculate which templates are still in use by MachineDeployments or MachineSets which are not in deleting state.
 	templatesInUse, err := machineset.CalculateTemplatesInUse(md, msList)
 	if err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	// Delete unused templates.
 	ref := md.Spec.Template.Spec.Bootstrap.ConfigRef
 	if err := machineset.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to delete bootstrap template for %s", tlog.KObj{Obj: md})
+		return errors.Wrapf(err, "failed to delete bootstrap template for %s", tlog.KObj{Obj: md})
 	}
 	ref = &md.Spec.Template.Spec.InfrastructureRef
 	if err := machineset.DeleteTemplateIfUnused(ctx, r.Client, templatesInUse, ref); err != nil {
-		return ctrl.Result{}, errors.Wrapf(err, "failed to delete infrastructure template for %s", tlog.KObj{Obj: md})
+		return errors.Wrapf(err, "failed to delete infrastructure template for %s", tlog.KObj{Obj: md})
 	}
 
 	// If the MachineDeployment has a MachineHealthCheck delete it.
 	if err := r.deleteMachineHealthCheckForMachineDeployment(ctx, md); err != nil {
-		return ctrl.Result{}, err
+		return err
 	}
 
 	controllerutil.RemoveFinalizer(md, clusterv1.MachineDeploymentTopologyFinalizer)
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *Reconciler) deleteMachineHealthCheckForMachineDeployment(ctx context.Context, md *clusterv1.MachineDeployment) error {

@@ -97,7 +97,7 @@ func TestMachineSetTopologyFinalizer(t *testing.T) {
 			_, err := msr.Reconcile(ctx, reconcile.Request{
 				NamespacedName: util.ObjectKey(tc.ms),
 			})
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			key := client.ObjectKey{Namespace: tc.ms.Namespace, Name: tc.ms.Name}
 			var actual clusterv1.MachineSet
@@ -150,7 +150,7 @@ func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 			Client:    fakeClient,
 			APIReader: fakeClient,
 		}
-		_, err := r.reconcileDelete(ctx, ms)
+		err := r.reconcileDelete(ctx, ms)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(controllerutil.ContainsFinalizer(ms, clusterv1.MachineSetTopologyFinalizer)).To(BeFalse())
@@ -187,7 +187,7 @@ func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 			Client:    fakeClient,
 			APIReader: fakeClient,
 		}
-		_, err := r.reconcileDelete(ctx, msWithoutBootstrapTemplate)
+		err := r.reconcileDelete(ctx, msWithoutBootstrapTemplate)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(controllerutil.ContainsFinalizer(msWithoutBootstrapTemplate, clusterv1.MachineSetTopologyFinalizer)).To(BeFalse())
@@ -214,7 +214,7 @@ func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 			Client:    fakeClient,
 			APIReader: fakeClient,
 		}
-		_, err := r.reconcileDelete(ctx, ms)
+		err := r.reconcileDelete(ctx, ms)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(controllerutil.ContainsFinalizer(ms, clusterv1.MachineSetTopologyFinalizer)).To(BeFalse())
@@ -258,7 +258,7 @@ func TestMachineSetReconciler_ReconcileDelete(t *testing.T) {
 			Client:    fakeClient,
 			APIReader: fakeClient,
 		}
-		_, err := r.reconcileDelete(ctx, ms)
+		err := r.reconcileDelete(ctx, ms)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(controllerutil.ContainsFinalizer(ms, clusterv1.MachineSetTopologyFinalizer)).To(BeFalse())

@@ -55,7 +55,7 @@ func TestPatch(t *testing.T) {
 		// 2. Update the object and verify that the request was not cached as the object was changed.
 		// Get the original object.
 		originalObject := initialObject.DeepCopy()
-		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject))
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject)).To(Succeed())
 		// Modify the object
 		modifiedObject := initialObject.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modifiedObject.Object, "baz", "spec", "foo")).To(Succeed())
@@ -72,7 +72,7 @@ func TestPatch(t *testing.T) {
 		// 3. Repeat the same update and verify that the request was cached as the object was not changed.
 		// Get the original object.
 		originalObject = initialObject.DeepCopy()
-		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject))
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject)).To(Succeed())
 		// Modify the object
 		modifiedObject = initialObject.DeepCopy()
 		g.Expect(unstructured.SetNestedField(modifiedObject.Object, "baz", "spec", "foo")).To(Succeed())
@@ -132,12 +132,12 @@ func TestPatch(t *testing.T) {
 		createObjectWithStatus := createObject.DeepCopy()
 		createObjectWithStatus.Status.BootstrapReady = false
 		createObjectWithStatus.Status.InfrastructureReady = false
-		g.Expect(env.Status().Patch(ctx, createObjectWithStatus, client.MergeFrom(createObject)))
+		g.Expect(env.Status().Patch(ctx, createObjectWithStatus, client.MergeFrom(createObject))).To(Succeed())
 
 		// 2. Update the object and verify that the request was not cached as the object was changed.
 		// Get the original object.
 		originalObject := initialObject.DeepCopy()
-		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject))
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject)).To(Succeed())
 		// Modify the object
 		modifiedObject := initialObject.DeepCopy()
 		modifiedObject.Spec.NodeDrainTimeout = &metav1.Duration{Duration: 5 * time.Second}
@@ -154,7 +154,7 @@ func TestPatch(t *testing.T) {
 		// 3. Repeat the same update and verify that the request was cached as the object was not changed.
 		// Get the original object.
 		originalObject = initialObject.DeepCopy()
-		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject))
+		g.Expect(env.GetAPIReader().Get(ctx, client.ObjectKeyFromObject(originalObject), originalObject)).To(Succeed())
 		// Modify the object
 		modifiedObject = initialObject.DeepCopy()
 		modifiedObject.Spec.NodeDrainTimeout = &metav1.Duration{Duration: 5 * time.Second}

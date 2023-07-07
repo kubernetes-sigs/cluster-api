@@ -171,7 +171,7 @@ func NodeDrainTimeoutSpec(ctx context.Context, inputGetter func() NodeDrainTimeo
 
 func getDrainAndDeleteInterval(deleteInterval []interface{}, drainTimeout *metav1.Duration, replicas int) []interface{} {
 	deleteTimeout, err := time.ParseDuration(deleteInterval[0].(string))
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 	// We add the drain timeout to the specified delete timeout per replica.
 	intervalDuration := (drainTimeout.Duration + deleteTimeout) * time.Duration(replicas)
 	res := []interface{}{intervalDuration.String(), deleteInterval[1]}

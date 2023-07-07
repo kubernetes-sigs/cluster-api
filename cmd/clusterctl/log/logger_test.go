@@ -100,7 +100,7 @@ func TestFlatten(t *testing.T) {
 				Level:  0,
 				Values: tt.args.kvList,
 			})
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}

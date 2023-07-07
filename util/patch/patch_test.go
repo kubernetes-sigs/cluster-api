@@ -81,7 +81,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Modifying the OwnerReferences")
 			refs := []metav1.OwnerReference{
@@ -99,7 +99,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Validating that the status has been preserved")
 			ready, err := external.IsReady(obj)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(ready).To(BeTrue())
 
 			t.Log("Validating the object has been updated")
@@ -143,7 +143,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Appending a new condition")
 			condition := corev1.NodeCondition{
@@ -197,7 +197,7 @@ func TestPatchHelper(t *testing.T) {
 
 				t.Log("Creating a new patch helper")
 				patcher, err := NewHelper(obj, env)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
 				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
@@ -244,7 +244,7 @@ func TestPatchHelper(t *testing.T) {
 
 				t.Log("Creating a new patch helper")
 				patcher, err := NewHelper(obj, env)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
 				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
@@ -306,7 +306,7 @@ func TestPatchHelper(t *testing.T) {
 
 				t.Log("Creating a new patch helper")
 				patcher, err := NewHelper(obj, env)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Changing the object spec, status, and adding Ready=True condition")
 				obj.Spec.Paused = true
@@ -374,7 +374,7 @@ func TestPatchHelper(t *testing.T) {
 
 				t.Log("Creating a new patch helper")
 				patcher, err := NewHelper(obj, env)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
 				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
@@ -429,7 +429,7 @@ func TestPatchHelper(t *testing.T) {
 
 				t.Log("Creating a new patch helper")
 				patcher, err := NewHelper(obj, env)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
 				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
@@ -478,7 +478,7 @@ func TestPatchHelper(t *testing.T) {
 
 				t.Log("Creating a new patch helper")
 				patcher, err := NewHelper(obj, env)
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				t.Log("Marking Ready=True")
 				conditions.MarkTrue(obj, clusterv1.ReadyCondition)
@@ -528,7 +528,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Adding a finalizer")
 			obj.Finalizers = append(obj.Finalizers, clusterv1.ClusterFinalizer)
@@ -568,7 +568,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Removing the finalizers")
 			obj.SetFinalizers(nil)
@@ -607,7 +607,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
 			obj.Spec.Paused = true
@@ -652,7 +652,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object status")
 			obj.Status.InfrastructureReady = true
@@ -690,7 +690,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
 			obj.Spec.Paused = true
@@ -759,7 +759,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
 			obj.Spec.Replicas = pointer.Int32(10)
@@ -799,7 +799,7 @@ func TestPatchHelper(t *testing.T) {
 
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Updating the object spec")
 			obj.Spec.Replicas = pointer.Int32(10)
@@ -849,11 +849,11 @@ func TestPatchHelper(t *testing.T) {
 
 			obj.Status.ObservedGeneration = obj.GetGeneration()
 			lastGeneration := obj.GetGeneration()
-			g.Expect(env.Status().Update(ctx, obj))
+			g.Expect(env.Status().Update(ctx, obj)).To(Succeed())
 
 			t.Log("Creating a new patch helper")
 			patcher, err := NewHelper(obj, env)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Patching the object")
 			g.Expect(patcher.Patch(ctx, obj, WithStatusObservedGeneration{})).To(Succeed())
@@ -904,7 +904,7 @@ func TestPatchHelper(t *testing.T) {
 		}()
 
 		patcher, err := NewHelper(cluster, env)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 
 		g.Expect(patcher.Patch(ctx, machineSet)).NotTo(Succeed())
 	})
@@ -914,7 +914,7 @@ func TestNewHelperNil(t *testing.T) {
 	var x *appsv1.Deployment
 	g := NewWithT(t)
 	_, err := NewHelper(x, nil)
-	g.Expect(err).NotTo(BeNil())
+	g.Expect(err).To(HaveOccurred())
 	_, err = NewHelper(nil, nil)
-	g.Expect(err).NotTo(BeNil())
+	g.Expect(err).To(HaveOccurred())
 }

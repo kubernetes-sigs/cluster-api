@@ -106,9 +106,9 @@ func TestIsUpgrading(t *testing.T) {
 			}
 			got, err := mdState.IsUpgrading(ctx, fakeClient)
 			if tt.wantErr {
-				g.Expect(err).NotTo(BeNil())
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).To(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 				g.Expect(got).To(Equal(tt.want))
 			}
 		})
@@ -151,7 +151,7 @@ func TestUpgrading(t *testing.T) {
 		want := []string{"upgradingMD"}
 
 		got, err := mdsStateMap.Upgrading(ctx, fakeClient)
-		g.Expect(err).To(BeNil())
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(got).To(BeComparableTo(want))
 	})
 }

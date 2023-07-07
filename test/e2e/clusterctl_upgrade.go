@@ -418,7 +418,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 			client.InNamespace(testNamespace.Name),
 			client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName},
 		)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 		// Check if the user want a custom upgrade
 		isCustomUpgrade := input.CoreProvider != "" ||
 			len(input.BootstrapProviders) > 0 ||
@@ -472,7 +472,7 @@ func ClusterctlUpgradeSpec(ctx context.Context, inputGetter func() ClusterctlUpg
 				client.InNamespace(testNamespace.Name),
 				client.MatchingLabels{clusterv1.ClusterNameLabel: workLoadClusterName},
 			)
-			Expect(err).NotTo(HaveOccurred())
+			Expect(err).ToNot(HaveOccurred())
 			return validateMachineRollout(preUpgradeMachineList, postUpgradeMachineList)
 		}, "3m", "30s").Should(BeTrue(), "Machines should remain the same after the upgrade")
 

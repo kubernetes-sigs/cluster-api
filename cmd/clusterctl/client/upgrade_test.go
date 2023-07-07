@@ -138,7 +138,7 @@ func Test_clusterctlClient_PlanUpgrade(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
@@ -279,7 +279,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			// converting between client and cluster alias for Kubeconfig
 			input := cluster.Kubeconfig(tt.args.options.Kubeconfig)
@@ -287,7 +287,7 @@ func Test_clusterctlClient_ApplyUpgrade(t *testing.T) {
 			gotProviders := &clusterctlv1.ProviderList{}
 
 			c, err := proxy.NewClient()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(c.List(ctx, gotProviders)).To(Succeed())
 
@@ -474,7 +474,7 @@ func Test_parseUpgradeItem(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got).To(Equal(tt.want))
 		})

@@ -234,7 +234,7 @@ func TestMachinePoolOwnerReference(t *testing.T) {
 
 			// this first requeue is to add finalizer
 			result, err := mr.Reconcile(ctx, tc.request)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(result).To(Equal(ctrl.Result{}))
 			g.Expect(mr.Client.Get(ctx, key, &actual)).To(Succeed())
 			g.Expect(actual.Finalizers).To(ContainElement(expv1.MachinePoolFinalizer))
@@ -431,7 +431,7 @@ func TestReconcileMachinePoolRequest(t *testing.T) {
 			if tc.expected.err {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 
 			g.Expect(result).To(Equal(tc.expected.result))
@@ -552,7 +552,7 @@ func TestReconcileMachinePoolDeleteExternal(t *testing.T) {
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -867,12 +867,12 @@ func TestMachinePoolConditions(t *testing.T) {
 
 			_, err := r.Reconcile(ctx, reconcile.Request{NamespacedName: util.ObjectKey(machinePool)})
 			if !tt.expectError {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 
 			m := &expv1.MachinePool{}
 			machinePoolKey := client.ObjectKeyFromObject(machinePool)
-			g.Expect(r.Client.Get(ctx, machinePoolKey, m)).NotTo(HaveOccurred())
+			g.Expect(r.Client.Get(ctx, machinePoolKey, m)).ToNot(HaveOccurred())
 
 			tt.conditionAssertFunc(t, m)
 		})

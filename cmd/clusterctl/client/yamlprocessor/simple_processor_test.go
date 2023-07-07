@@ -271,7 +271,7 @@ func TestSimpleProcessor_Process(t *testing.T) {
 				g.Expect(got).To(Equal(tt.args.yaml))
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			g.Expect(got).To(Equal(tt.want))
 		})

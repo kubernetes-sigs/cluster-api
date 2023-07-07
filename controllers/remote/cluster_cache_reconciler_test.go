@@ -71,7 +71,7 @@ func TestClusterCacheReconciler(t *testing.T) {
 
 			t.Log("Creating a clusterAccessor for the cluster")
 			_, err := cct.GetClient(ctx, testClusterKey)
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		}
 
 		setup := func(t *testing.T, g *WithT) *corev1.Namespace {
@@ -83,11 +83,11 @@ func TestClusterCacheReconciler(t *testing.T) {
 				Scheme:             scheme.Scheme,
 				MetricsBindAddress: "0",
 			})
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Setting up a ClusterCacheTracker")
 			cct, err = NewClusterCacheTracker(mgr, ClusterCacheTrackerOptions{})
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Creating the ClusterCacheReconciler")
 			r := &ClusterCacheReconciler{
@@ -107,7 +107,7 @@ func TestClusterCacheReconciler(t *testing.T) {
 
 			t.Log("Creating a namespace for the test")
 			ns, err := env.CreateNamespace(ctx, "cluster-cache-test")
-			g.Expect(err).To(BeNil())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			t.Log("Creating clusters to test with")
 			createAndWatchCluster("cluster-1", ns, g)

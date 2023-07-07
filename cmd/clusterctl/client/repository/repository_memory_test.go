@@ -132,7 +132,7 @@ releaseSeries:
 			g.Expect(r.GetFile("latest", r.ComponentsPath())).To(Equal(tt.want.latestVersion))
 
 			got, err := r.GetVersions()
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got).To(ConsistOf(tt.want.versions))
 		})
 	}

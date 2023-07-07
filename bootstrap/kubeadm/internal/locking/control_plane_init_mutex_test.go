@@ -203,7 +203,7 @@ func TestControlPlaneInitMutex_LockWithMachineDeletion(t *testing.T) {
 				}, cm)).To(Succeed())
 
 				info, err := semaphore{cm}.information()
-				g.Expect(err).To(BeNil())
+				g.Expect(err).ToNot(HaveOccurred())
 
 				g.Expect(info.MachineName).To(Equal(tc.expectedMachineName))
 				return nil

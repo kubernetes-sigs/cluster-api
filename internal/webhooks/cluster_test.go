@@ -1592,7 +1592,7 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			if tt.wantWarnings {
 				g.Expect(warnings).ToNot(BeEmpty())
@@ -2019,7 +2019,7 @@ func TestClusterTopologyValidationForTopologyClassChange(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 			g.Expect(warnings).To(BeEmpty())
 		})

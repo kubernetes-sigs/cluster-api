@@ -106,17 +106,17 @@ func WaitForMachineDeploymentNodesToExist(ctx context.Context, input WaitForMach
 	By("Waiting for the workload nodes to exist")
 	Eventually(func(g Gomega) {
 		selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		ms := &clusterv1.MachineSetList{}
 		err = input.Lister.List(ctx, ms, client.InNamespace(input.Cluster.Namespace), client.MatchingLabels(selectorMap))
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		g.Expect(ms.Items).NotTo(BeEmpty())
 		machineSet := ms.Items[0]
 		selectorMap, err = metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		machines := &clusterv1.MachineList{}
 		err = input.Lister.List(ctx, machines, client.InNamespace(machineSet.Namespace), client.MatchingLabels(selectorMap))
-		g.Expect(err).NotTo(HaveOccurred())
+		g.Expect(err).ToNot(HaveOccurred())
 		count := 0
 		for _, machine := range machines.Items {
 			if machine.Status.NodeRef != nil {
@@ -145,7 +145,7 @@ func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMach
 
 	Byf("Checking all the machines controlled by %s are in the %q failure domain", input.MachineDeployment.Name, machineDeploymentFD)
 	selectorMap, err := metav1.LabelSelectorAsMap(&input.MachineDeployment.Spec.Selector)
-	Expect(err).NotTo(HaveOccurred())
+	Expect(err).ToNot(HaveOccurred())
 
 	ms := &clusterv1.MachineSetList{}
 	Eventually(func() error {
@@ -157,7 +157,7 @@ func AssertMachineDeploymentFailureDomains(ctx context.Context, input AssertMach
 		Expect(machineSetFD).To(Equal(machineDeploymentFD), "MachineSet %s is in the %q failure domain, expecting %q", machineSet.Name, machineSetFD, machineDeploymentFD)
 
 		selectorMap, err = metav1.LabelSelectorAsMap(&machineSet.Spec.Selector)
-		Expect(err).NotTo(HaveOccurred())
+		Expect(err).ToNot(HaveOccurred())
 
 		machines := &clusterv1.MachineList{}
 		Eventually(func() error {

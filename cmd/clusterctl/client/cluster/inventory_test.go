@@ -79,7 +79,7 @@ func Test_inventoryClient_CheckInventoryCRDs(t *testing.T) {
 			if tt.wantErr {
 				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(err).NotTo(HaveOccurred())
+				g.Expect(err).ToNot(HaveOccurred())
 			}
 		})
 	}
@@ -121,7 +121,7 @@ func Test_inventoryClient_List(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(got.Items).To(ConsistOf(tt.want))
 		})
 	}
@@ -186,7 +186,7 @@ func Test_inventoryClient_Create(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			got, err := p.List()
 			if tt.wantErr {
@@ -194,7 +194,7 @@ func Test_inventoryClient_Create(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 
 			for i := range got.Items {
 				tt.wantProviders[i].ResourceVersion = got.Items[i].ResourceVersion
@@ -356,7 +356,7 @@ func Test_CheckCAPIContract(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 				return
 			}
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }
@@ -404,7 +404,7 @@ func Test_inventoryClient_CheckSingleProviderInstance(t *testing.T) {
 				return
 			}
 
-			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(err).ToNot(HaveOccurred())
 		})
 	}
 }

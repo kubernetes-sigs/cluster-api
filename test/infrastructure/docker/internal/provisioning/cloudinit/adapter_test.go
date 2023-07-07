@@ -145,7 +145,7 @@ write_files:
 
 	commands, err := RawCloudInitToProvisioningCommands(cloudData, kind.Mapping{KubernetesVersion: semver.MustParse("1.13.6")})
 
-	g.Expect(err).NotTo(HaveOccurred())
+	g.Expect(err).ToNot(HaveOccurred())
 	g.Expect(commands).To(HaveLen(len(expectedCmds)))
 
 	for i, cmd := range commands {

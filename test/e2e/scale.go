@@ -53,6 +53,10 @@ const (
 	scaleControlPlaneMachineCount = "CAPI_SCALE_CONTROL_PLANE_MACHINE_COUNT"
 	scaleWorkerMachineCount       = "CAPI_SCALE_WORKER_MACHINE_COUNT"
 	scaleMachineDeploymentCount   = "CAPI_SCALE_MACHINE_DEPLOYMENT_COUNT"
+
+	// Note: Names must consist of lower case alphanumeric characters or '-'.
+	scaleClusterNamePlaceholder      = "scale-cluster-name-placeholder"
+	scaleClusterNamespacePlaceholder = "scale-cluster-namespace-placeholder"
 )
 
 // scaleSpecInput is the input for scaleSpec.
@@ -78,6 +82,10 @@ type scaleSpecInput struct {
 	// If unspecified, defaults to 10.
 	// Can be overridden by variable CAPI_SCALE_CLUSTER_COUNT.
 	ClusterCount *int64
+
+	// DeployClusterInSeparateNamespaces defines if each cluster should be deployed into its separate namespace.
+	// In this case The namespace name will be the name of the cluster.
+	DeployClusterInSeparateNamespaces bool
 
 	// Concurrency is the maximum concurrency of each of the scale operations.
 	// If unspecified it defaults to 5.
@@ -237,15 +245,14 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 		// Therefore, it is not advised to call this functions across all the concurrency workers.
 		// To avoid this problem we chose to run ConfigCluster once and reuse its output across all the workers.
 		log.Logf("Generating YAML for base Cluster and ClusterClass")
-		baseClusterName := fmt.Sprintf("%s-base", specName)
 		baseWorkloadClusterTemplate := clusterctl.ConfigCluster(ctx, clusterctl.ConfigClusterInput{
 			LogFolder:                filepath.Join(input.ArtifactFolder, "clusters", input.BootstrapClusterProxy.GetName()),
 			ClusterctlConfigPath:     input.ClusterctlConfigPath,
 			KubeconfigPath:           input.BootstrapClusterProxy.GetKubeconfigPath(),
 			InfrastructureProvider:   infrastructureProvider,
 			Flavor:                   flavor,
-			Namespace:                namespace.Name,
-			ClusterName:              baseClusterName,
+			Namespace:                scaleClusterNamespacePlaceholder,
+			ClusterName:              scaleClusterNamePlaceholder,
 			KubernetesVersion:        input.E2EConfig.GetVariable(KubernetesVersion),
 			ControlPlaneMachineCount: controlPlaneMachineCount,
 			WorkerMachineCount:       workerMachineCount,
@@ -258,19 +265,23 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 		// if the resource has to be created or updated before actually executing the operation. If another worker changes
 		// the status of the cluster during this timeframe the operation will fail.
 		log.Logf("Extract ClusterClass and Cluster from template YAML")
-		clusterClassYAML, baseClusterTemplateYAML := extractClusterClassAndClusterFromTemplate(baseWorkloadClusterTemplate)
+		baseClusterClassYAML, baseClusterTemplateYAML := extractClusterClassAndClusterFromTemplate(baseWorkloadClusterTemplate)
 
 		// Modify the baseClusterTemplateYAML so that it has the desired number of machine deployments.
-		modifiedBaseTemplateYAML := modifyMachineDeployments(baseClusterTemplateYAML, int(*machineDeploymentCount))
+		baseClusterTemplateYAML = modifyMachineDeployments(baseClusterTemplateYAML, int(*machineDeploymentCount))
 
-		if len(clusterClassYAML) > 0 {
-			// Apply the ClusterClass.
-			log.Logf("Create ClusterClass")
-			Eventually(func() error {
-				return input.BootstrapClusterProxy.Apply(ctx, clusterClassYAML)
-			}).Should(Succeed())
-		} else {
-			log.Logf("ClusterClass already exists. Skipping creation.")
+		// If all clusters should be deployed in the same namespace (namespace.Name),
+		// then deploy the ClusterClass in this namespace.
+		if !input.DeployClusterInSeparateNamespaces {
+			if len(baseClusterClassYAML) > 0 {
+				clusterClassYAML := bytes.Replace(baseClusterClassYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespace.Name), -1)
+				log.Logf("Apply ClusterClass")
+				Eventually(func() error {
+					return input.BootstrapClusterProxy.Apply(ctx, clusterClassYAML)
+				}, 1*time.Minute).Should(Succeed())
+			} else {
+				log.Logf("ClusterClass already exists. Skipping creation.")
+			}
 		}
 
 		By("Create workload clusters concurrently")
@@ -291,7 +302,6 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 		// use the "create only" creator function.
 		creator := getClusterCreateAndWaitFn(clusterctl.ApplyCustomClusterTemplateAndWaitInput{
 			ClusterProxy:                 input.BootstrapClusterProxy,
-			Namespace:                    namespace.Name,
 			WaitForClusterIntervals:      input.E2EConfig.GetIntervals(specName, "wait-cluster"),
 			WaitForControlPlaneIntervals: input.E2EConfig.GetIntervals(specName, "wait-control-plane"),
 			WaitForMachineDeployments:    input.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
@@ -300,7 +310,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			if !input.SkipCleanup {
 				log.Logf("WARNING! Using SkipWaitForCreation=true while SkipCleanup=false can lead to workload clusters getting deleted before they are fully provisioned.")
 			}
-			creator = getClusterCreateFn(input.BootstrapClusterProxy, namespace.Name)
+			creator = getClusterCreateFn(input.BootstrapClusterProxy)
 		}
 
 		clusterCreateResults, err := workConcurrentlyAndWait(ctx, workConcurrentlyAndWaitInput{
@@ -308,7 +318,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			Concurrency:  concurrency,
 			FailFast:     input.FailFast,
 			WorkerFunc: func(ctx context.Context, inputChan chan string, resultChan chan workResult, wg *sync.WaitGroup) {
-				createClusterWorker(ctx, inputChan, resultChan, wg, modifiedBaseTemplateYAML, baseClusterName, creator)
+				createClusterWorker(ctx, input.BootstrapClusterProxy, inputChan, resultChan, wg, namespace.Name, input.DeployClusterInSeparateNamespaces, baseClusterClassYAML, baseClusterTemplateYAML, creator)
 			},
 		})
 		if err != nil {
@@ -341,7 +351,7 @@ func scaleSpec(ctx context.Context, inputGetter func() scaleSpecInput) {
 			Concurrency:  concurrency,
 			FailFast:     input.FailFast,
 			WorkerFunc: func(ctx context.Context, inputChan chan string, resultChan chan workResult, wg *sync.WaitGroup) {
-				deleteClusterAndWaitWorker(ctx, inputChan, resultChan, wg, input.BootstrapClusterProxy.GetClient(), namespace.Name)
+				deleteClusterAndWaitWorker(ctx, inputChan, resultChan, wg, input.BootstrapClusterProxy.GetClient(), namespace.Name, input.DeployClusterInSeparateNamespaces)
 			},
 		})
 		if err != nil {
@@ -471,10 +481,10 @@ outer:
 	return results, kerrors.NewAggregate(errs)
 }
 
-type clusterCreator func(ctx context.Context, clusterName string, clusterTemplateYAML []byte)
+type clusterCreator func(ctx context.Context, namespace, clusterName string, clusterTemplateYAML []byte)
 
 func getClusterCreateAndWaitFn(input clusterctl.ApplyCustomClusterTemplateAndWaitInput) clusterCreator {
-	return func(ctx context.Context, clusterName string, clusterTemplateYAML []byte) {
+	return func(ctx context.Context, namespace, clusterName string, clusterTemplateYAML []byte) {
 		clusterResources := &clusterctl.ApplyCustomClusterTemplateAndWaitResult{}
 		// Nb. We cannot directly modify and use `input` in this closure function because this function
 		// will be called multiple times and this closure will keep modifying the same `input` multiple
@@ -483,7 +493,7 @@ func getClusterCreateAndWaitFn(input clusterctl.ApplyCustomClusterTemplateAndWai
 			ClusterProxy:                 input.ClusterProxy,
 			CustomTemplateYAML:           clusterTemplateYAML,
 			ClusterName:                  clusterName,
-			Namespace:                    input.Namespace,
+			Namespace:                    namespace,
 			CNIManifestPath:              input.CNIManifestPath,
 			WaitForClusterIntervals:      input.WaitForClusterIntervals,
 			WaitForControlPlaneIntervals: input.WaitForControlPlaneIntervals,
@@ -497,8 +507,8 @@ func getClusterCreateAndWaitFn(input clusterctl.ApplyCustomClusterTemplateAndWai
 	}
 }
 
-func getClusterCreateFn(clusterProxy framework.ClusterProxy, namespace string) clusterCreator {
-	return func(ctx context.Context, clusterName string, clusterTemplateYAML []byte) {
+func getClusterCreateFn(clusterProxy framework.ClusterProxy) clusterCreator {
+	return func(ctx context.Context, namespace, clusterName string, clusterTemplateYAML []byte) {
 		log.Logf("Applying the cluster template yaml of cluster %s", klog.KRef(namespace, clusterName))
 		Eventually(func() error {
 			return clusterProxy.Apply(ctx, clusterTemplateYAML)
@@ -506,7 +516,7 @@ func getClusterCreateFn(clusterProxy framework.ClusterProxy, namespace string) c
 	}
 }
 
-func createClusterWorker(ctx context.Context, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, baseTemplate []byte, baseClusterName string, create clusterCreator) {
+func createClusterWorker(ctx context.Context, clusterProxy framework.ClusterProxy, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, defaultNamespace string, deployClusterInSeparateNamespaces bool, baseClusterClassYAML, baseClusterTemplateYAML []byte, create clusterCreator) {
 	defer wg.Done()
 
 	for {
@@ -533,9 +543,37 @@ func createClusterWorker(ctx context.Context, inputChan <-chan string, resultCha
 					}
 				}()
 
-				// Create the cluster template YAML with the target cluster name.
-				clusterTemplateYAML := bytes.Replace(baseTemplate, []byte(baseClusterName), []byte(clusterName), -1)
-				create(ctx, clusterName, clusterTemplateYAML)
+				// Calculate namespace.
+				namespaceName := defaultNamespace
+				if deployClusterInSeparateNamespaces {
+					namespaceName = clusterName
+				}
+
+				// If every cluster should be deployed in a separate namespace:
+				// * Adjust namespace in ClusterClass YAML.
+				// * Create new namespace.
+				// * Deploy ClusterClass in new namespace.
+				if deployClusterInSeparateNamespaces {
+					log.Logf("Create namespace %", namespaceName)
+					_ = framework.CreateNamespace(ctx, framework.CreateNamespaceInput{
+						Creator:             clusterProxy.GetClient(),
+						Name:                namespaceName,
+						IgnoreAlreadyExists: true,
+					}, "40s", "10s")
+
+					log.Logf("Apply ClusterClass in namespace %", namespaceName)
+					clusterClassYAML := bytes.Replace(baseClusterClassYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName), -1)
+					Eventually(func() error {
+						return clusterProxy.Apply(ctx, clusterClassYAML)
+					}, 1*time.Minute).Should(Succeed())
+				}
+
+				// Adjust namespace and name in Cluster YAML
+				clusterTemplateYAML := bytes.Replace(baseClusterTemplateYAML, []byte(scaleClusterNamespacePlaceholder), []byte(namespaceName), -1)
+				clusterTemplateYAML = bytes.Replace(clusterTemplateYAML, []byte(scaleClusterNamePlaceholder), []byte(clusterName), -1)
+
+				// Deploy Cluster.
+				create(ctx, namespaceName, clusterName, clusterTemplateYAML)
 				return false
 			}
 		}()
@@ -545,7 +583,7 @@ func createClusterWorker(ctx context.Context, inputChan <-chan string, resultCha
 	}
 }
 
-func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, c client.Client, namespace string) {
+func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, resultChan chan<- workResult, wg *sync.WaitGroup, c client.Client, defaultNamespace string, deployClusterInSeparateNamespaces bool) {
 	defer wg.Done()
 
 	for {
@@ -572,10 +610,16 @@ func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, re
 					}
 				}()
 
+				// Calculate namespace.
+				namespaceName := defaultNamespace
+				if deployClusterInSeparateNamespaces {
+					namespaceName = clusterName
+				}
+
 				cluster := &clusterv1.Cluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      clusterName,
-						Namespace: namespace,
+						Namespace: namespaceName,
 					},
 				}
 				framework.DeleteCluster(ctx, framework.DeleteClusterInput{
@@ -586,6 +630,15 @@ func deleteClusterAndWaitWorker(ctx context.Context, inputChan <-chan string, re
 					Getter:  c,
 					Cluster: cluster,
 				})
+
+				// Note: We only delete the namespace in this case because in the case where all clusters are deployed
+				// to the same namespace deleting the Namespace will lead to deleting all clusters.
+				if deployClusterInSeparateNamespaces {
+					framework.DeleteNamespace(ctx, framework.DeleteNamespaceInput{
+						Deleter: c,
+						Name:    namespaceName,
+					})
+				}
 				return false
 			}
 		}()

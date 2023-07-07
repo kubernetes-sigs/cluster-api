@@ -69,8 +69,10 @@ If you prefer JSON, you can create a `tilt-settings.json` file instead. YAML wil
 **allowed_contexts** (Array, default=[]): A list of kubeconfig contexts Tilt is allowed to use. See the Tilt documentation on
 [allow_k8s_contexts](https://docs.tilt.dev/api.html#api.allow_k8s_contexts) for more details.
 
-**default_registry** (String, default=""): The image registry to use if you need to push images. See the [Tilt
+**default_registry** (String, default=[]): The image registry to use if you need to push images. See the [Tilt
 documentation](https://docs.tilt.dev/api.html#api.default_registry) for more details.
+Please note that, in case you are not using a local registry, this value is required; additionally, the Cluster API
+Tiltfile protects you from accidental push on `gcr.io/k8s-staging-cluster-api`.
 
 **build_engine** (String, default="docker"): The engine used to build images. Can either be `docker` or `podman`.
 NB: the default is dynamic and will be "podman" if the string "Podman Engine" is found in `docker version` (or in `podman version` if the command fails).

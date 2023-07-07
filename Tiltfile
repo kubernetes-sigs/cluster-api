@@ -42,7 +42,16 @@ os_arch = str(local("go env GOARCH")).rstrip("\n")
 if settings.get("trigger_mode") == "manual":
     trigger_mode(TRIGGER_MODE_MANUAL)
 
-if settings.get("default_registry") != "":
+usingLocalRegistry = str(local(kubectl_cmd + " get cm -n kube-public local-registry-hosting || true", quiet = True))
+if not usingLocalRegistry:
+    if settings.get("default_registry", "") == "":
+        fail("default_registry is required when not using a local registry, please add it to your tilt-settings.yaml/json")
+
+    protectedRegistries = ["gcr.io/k8s-staging-cluster-api"]
+    if settings.get("default_registry") in protectedRegistries:
+        fail("current default_registry '{}' is protected, tilt cannot push images to it. Please select another default_registry in your tilt-settings.yaml/json".format(settings.get("default_registry")))
+
+if settings.get("default_registry", "") != "":
     default_registry(settings.get("default_registry"))
 
 always_enable_providers = ["core"]

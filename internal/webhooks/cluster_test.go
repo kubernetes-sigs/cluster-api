@@ -17,9 +17,11 @@ limitations under the License.
 package webhooks
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,6 +30,7 @@ import (
 	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
 	"sigs.k8s.io/cluster-api/feature"
@@ -1004,7 +1007,8 @@ func TestClusterValidation(t *testing.T) {
 			// Create the webhook.
 			webhook := &Cluster{}
 
-			_, err := webhook.validate(ctx, tt.old, tt.in)
+			warnings, err := webhook.validate(ctx, tt.old, tt.in)
+			g.Expect(warnings).To(BeEmpty())
 			if tt.expectErr {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -1286,11 +1290,13 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 	g := NewWithT(t)
 
 	tests := []struct {
-		name    string
-		cluster *clusterv1.Cluster
-		class   *clusterv1.ClusterClass
-		objects []client.Object
-		wantErr bool
+		name            string
+		cluster         *clusterv1.Cluster
+		class           *clusterv1.ClusterClass
+		classReconciled bool
+		objects         []client.Object
+		wantErr         bool
+		wantWarnings    bool
 	}{
 		{
 			name: "Accept a cluster with an existing ClusterClass named in cluster.spec.topology.class",
@@ -1304,10 +1310,11 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				Build(),
-			wantErr: false,
+			classReconciled: true,
+			wantErr:         false,
 		},
 		{
-			name: "Accept a cluster with non-existent ClusterClass referenced cluster.spec.topology.class",
+			name: "Warning for a cluster with non-existent ClusterClass referenced cluster.spec.topology.class",
 			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
 				WithTopology(
 					builder.ClusterTopology().
@@ -1318,7 +1325,26 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				Build(),
-			wantErr: false,
+			// There should be a warning for a ClusterClass which can not be found.
+			wantWarnings: true,
+			wantErr:      false,
+		},
+		{
+			name: "Warning for a cluster with an unreconciled ClusterClass named in cluster.spec.topology.class",
+			cluster: builder.Cluster(metav1.NamespaceDefault, "cluster1").
+				WithTopology(
+					builder.ClusterTopology().
+						WithClass("clusterclass").
+						WithVersion("v1.22.2").
+						WithControlPlaneReplicas(3).
+						Build()).
+				Build(),
+			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
+				Build(),
+			classReconciled: false,
+			// There should be a warning for a ClusterClass which is not yet reconciled.
+			wantWarnings: true,
+			wantErr:      false,
 		},
 		{
 			name: "Reject a cluster that has MHC enabled for control plane but is missing MHC definition in cluster topology and clusterclass",
@@ -1335,7 +1361,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				Build(),
-			wantErr: true,
+			classReconciled: true,
+			wantErr:         true,
 		},
 		{
 			name: "Reject a cluster that MHC override defined for control plane but is missing unhealthy conditions",
@@ -1354,7 +1381,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				Build(),
-			wantErr: true,
+			classReconciled: true,
+			wantErr:         true,
 		},
 		{
 			name: "Reject a cluster that MHC override defined for control plane but is set when control plane is missing machineInfrastructure",
@@ -1378,7 +1406,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 				Build(),
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				Build(),
-			wantErr: true,
+			classReconciled: true,
+			wantErr:         true,
 		},
 		{
 			name: "Accept a cluster that has MHC enabled for control plane with control plane MHC defined in ClusterClass",
@@ -1396,7 +1425,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				WithControlPlaneMachineHealthCheck(&clusterv1.MachineHealthCheckClass{}).
 				Build(),
-			wantErr: false,
+			classReconciled: true,
+			wantErr:         false,
 		},
 		{
 			name: "Accept a cluster that has MHC enabled for control plane with control plane MHC defined in cluster topology",
@@ -1422,7 +1452,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			class: builder.ClusterClass(metav1.NamespaceDefault, "clusterclass").
 				WithControlPlaneInfrastructureMachineTemplate(&unstructured.Unstructured{}).
 				Build(),
-			wantErr: false,
+			classReconciled: true,
+			wantErr:         false,
 		},
 		{
 			name: "Reject a cluster that has MHC enabled for machine deployment but is missing MHC definition in cluster topology and ClusterClass",
@@ -1447,7 +1478,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 					*builder.MachineDeploymentClass("worker-class").Build(),
 				).
 				Build(),
-			wantErr: true,
+			classReconciled: true,
+			wantErr:         true,
 		},
 		{
 			name: "Reject a cluster that has MHC override defined for machine deployment but is missing unhealthy conditions",
@@ -1474,7 +1506,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 					*builder.MachineDeploymentClass("worker-class").Build(),
 				).
 				Build(),
-			wantErr: true,
+			classReconciled: true,
+			wantErr:         true,
 		},
 		{
 			name: "Accept a cluster that has MHC enabled for machine deployment with machine deployment MHC defined in ClusterClass",
@@ -1501,7 +1534,8 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 						Build(),
 				).
 				Build(),
-			wantErr: false,
+			classReconciled: true,
+			wantErr:         false,
 		},
 		{
 			name: "Accept a cluster that has MHC enabled for machine deployment with machine deployment MHC defined in cluster topology",
@@ -1534,13 +1568,16 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 					*builder.MachineDeploymentClass("worker-class").Build(),
 				).
 				Build(),
-			wantErr: false,
+			classReconciled: true,
+			wantErr:         false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Mark this condition to true so the webhook sees the ClusterClass as up to date.
-			conditions.MarkTrue(tt.class, clusterv1.ClusterClassVariablesReconciledCondition)
+			if tt.classReconciled {
+				conditions.MarkTrue(tt.class, clusterv1.ClusterClassVariablesReconciledCondition)
+			}
 			// Sets up the fakeClient for the test case.
 			fakeClient := fake.NewClientBuilder().
 				WithObjects(tt.class).
@@ -1557,7 +1594,11 @@ func TestClusterTopologyValidationWithClient(t *testing.T) {
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
-			g.Expect(warnings).To(BeEmpty())
+			if tt.wantWarnings {
+				g.Expect(warnings).ToNot(BeEmpty())
+			} else {
+				g.Expect(warnings).To(BeEmpty())
+			}
 		})
 	}
 }
@@ -2102,8 +2143,9 @@ func TestMovingBetweenManagedAndUnmanaged(t *testing.T) {
 				g.Expect(err).To(HaveOccurred())
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
+				// Errors may be duplicated as warnings. There should be no warnings in this case if there are no errors.
+				g.Expect(warnings).To(BeEmpty())
 			}
-			g.Expect(warnings).To(BeEmpty())
 		})
 	}
 }
@@ -2153,7 +2195,9 @@ func TestClusterClassPollingErrors(t *testing.T) {
 		cluster        *clusterv1.Cluster
 		oldCluster     *clusterv1.Cluster
 		clusterClasses []*clusterv1.ClusterClass
+		injectedErr    interceptor.Funcs
 		wantErr        bool
+		wantWarnings   bool
 	}{
 		{
 			name:           "Pass on create if ClusterClass is fully reconciled",
@@ -2166,18 +2210,21 @@ func TestClusterClassPollingErrors(t *testing.T) {
 			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
 			clusterClasses: []*clusterv1.ClusterClass{ccGenerationMismatch},
 			wantErr:        false,
+			wantWarnings:   true,
 		},
 		{
 			name:           "Pass on create if ClusterClass generation matches observedGeneration but VariablesReconciled=False",
 			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
 			clusterClasses: []*clusterv1.ClusterClass{ccVariablesReconciledFalse},
 			wantErr:        false,
+			wantWarnings:   true,
 		},
 		{
 			name:           "Pass on create if ClusterClass is not found",
 			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(notFoundTopology).Build(),
 			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled},
 			wantErr:        false,
+			wantWarnings:   true,
 		},
 		{
 			name:           "Pass on update if oldCluster ClusterClass is fully reconciled",
@@ -2206,6 +2253,41 @@ func TestClusterClassPollingErrors(t *testing.T) {
 			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
 			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled},
 			wantErr:        true,
+			wantWarnings:   true,
+		},
+		{
+			name:           "Fail on update if new ClusterClass returns connection error",
+			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(secondTopology).Build(),
+			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
+			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled, secondFullyReconciled},
+			injectedErr: interceptor.Funcs{
+				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					// Throw an error if the second ClusterClass `class2` used as the new ClusterClass is being retrieved.
+					if key.Name == secondTopology.Class {
+						return errors.New("connection error")
+					}
+					return client.Get(ctx, key, obj)
+				},
+			},
+			wantErr:      true,
+			wantWarnings: false,
+		},
+		{
+			name:           "Fail on update if old ClusterClass returns connection error",
+			cluster:        builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(secondTopology).Build(),
+			oldCluster:     builder.Cluster(metav1.NamespaceDefault, "cluster1").WithTopology(topology).Build(),
+			clusterClasses: []*clusterv1.ClusterClass{ccFullyReconciled, secondFullyReconciled},
+			injectedErr: interceptor.Funcs{
+				Get: func(ctx context.Context, client client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+					// Throw an error if the ClusterClass `class1` used as the old ClusterClass is being retrieved.
+					if key.Name == topology.Class {
+						return errors.New("connection error")
+					}
+					return client.Get(ctx, key, obj)
+				},
+			},
+			wantErr:      true,
+			wantWarnings: false,
 		},
 	}
 
@@ -2217,9 +2299,11 @@ func TestClusterClassPollingErrors(t *testing.T) {
 				objs = append(objs, cc)
 			}
 			c := &Cluster{Client: fake.NewClientBuilder().
-				WithObjects(objs...).
+				WithInterceptorFuncs(tt.injectedErr).
 				WithScheme(fakeScheme).
-				Build()}
+				WithObjects(objs...).
+				Build(),
+			}
 
 			// Checks the return error.
 			warnings, err := c.validate(ctx, tt.oldCluster, tt.cluster)
@@ -2228,7 +2312,11 @@ func TestClusterClassPollingErrors(t *testing.T) {
 			} else {
 				g.Expect(err).ToNot(HaveOccurred())
 			}
-			g.Expect(warnings).To(BeEmpty())
+			if tt.wantWarnings {
+				g.Expect(warnings).NotTo(BeNil())
+			} else {
+				g.Expect(warnings).To(BeNil())
+			}
 		})
 	}
 }

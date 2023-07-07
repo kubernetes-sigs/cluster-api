@@ -423,6 +423,33 @@ func TestClusterClassesAreCompatible(t *testing.T) {
 		wantErr bool
 	}{
 		{
+			name:    "error if current is nil",
+			current: nil,
+			desired: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(
+					refToUnstructured(ref)).
+				Build(),
+			wantErr: true,
+		},
+		{
+			name: "error if desired is nil",
+			current: builder.ClusterClass(metav1.NamespaceDefault, "class1").
+				WithInfrastructureClusterTemplate(
+					builder.InfrastructureClusterTemplate(metav1.NamespaceDefault, "infra1").Build()).
+				WithControlPlaneTemplate(
+					refToUnstructured(ref)).
+				WithControlPlaneInfrastructureMachineTemplate(
+					refToUnstructured(ref)).
+				Build(),
+			desired: nil,
+			wantErr: true,
+		},
+
+		{
 			name: "pass for compatible clusterClasses",
 			current: builder.ClusterClass(metav1.NamespaceDefault, "class1").
 				WithInfrastructureClusterTemplate(

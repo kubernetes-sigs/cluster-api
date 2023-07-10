@@ -213,6 +213,59 @@ func TestMachineClusterNameImmutable(t *testing.T) {
 	}
 }
 
+func TestIsMachinePoolMachine(t *testing.T) {
+	tests := []struct {
+		name    string
+		machine Machine
+		isMPM   bool
+	}{
+		{
+			name: "machine is a MachinePoolMachine",
+			machine: Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind: "MachinePool",
+						},
+					},
+				},
+			},
+			isMPM: true,
+		},
+		{
+			name: "machine is not a MachinePoolMachine",
+			machine: Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: []metav1.OwnerReference{
+						{
+							Kind: "NotMachinePool",
+						},
+					},
+				},
+			},
+			isMPM: false,
+		},
+		{
+			name: "machine is not a MachinePoolMachine, no owner references",
+			machine: Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					OwnerReferences: nil,
+				},
+			},
+			isMPM: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+
+			result := isMachinePoolMachine(&tt.machine)
+			g.Expect(result).To(Equal(tt.isMPM))
+		})
+	}
+}
+
 func TestMachineVersionValidation(t *testing.T) {
 	tests := []struct {
 		name      string

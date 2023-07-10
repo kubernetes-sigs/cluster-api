@@ -20,14 +20,21 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	kerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
@@ -35,6 +42,7 @@ import (
 	"sigs.k8s.io/cluster-api/controllers/external"
 	capierrors "sigs.k8s.io/cluster-api/errors"
 	expv1 "sigs.k8s.io/cluster-api/exp/api/v1beta1"
+	capilabels "sigs.k8s.io/cluster-api/internal/labels"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	"sigs.k8s.io/cluster-api/util/conditions"
@@ -274,6 +282,10 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 		conditions.WithFallbackValue(ready, clusterv1.WaitingForInfrastructureFallbackReason, clusterv1.ConditionSeverityInfo, ""),
 	)
 
+	if err := r.reconcileMachines(ctx, mp, infraConfig); err != nil {
+		return ctrl.Result{}, errors.Wrapf(err, "failed to reconcile Machines for MachinePool %s", klog.KObj(mp))
+	}
+
 	if !mp.Status.InfrastructureReady {
 		log.Info("Infrastructure provider is not yet ready", infraConfig.GetKind(), klog.KObj(infraConfig))
 		return ctrl.Result{}, nil
@@ -306,4 +318,260 @@ func (r *MachinePoolReconciler) reconcileInfrastructure(ctx context.Context, clu
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// reconcileMachines reconciles Machines associated with a MachinePool.
+//
+// Note: In the case of MachinePools the machines are created in order to surface in CAPI what exists in the
+// infrastructure while instead on MachineDeployments, machines are created in CAPI first and then the
+// infrastructure is created accordingly.
+// Note: When supported by the cloud provider implementation of the MachinePool, machines will provide a means to interact
+// with the corresponding infrastructure (e.g. delete a specific machine in case MachineHealthCheck detects it is unhealthy).
+func (r *MachinePoolReconciler) reconcileMachines(ctx context.Context, mp *expv1.MachinePool, infraMachinePool *unstructured.Unstructured) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	var infraMachineKind string
+	if err := util.UnstructuredUnmarshalField(infraMachinePool, &infraMachineKind, "status", "infrastructureMachineKind"); err != nil {
+		if errors.Is(err, util.ErrUnstructuredFieldNotFound) {
+			log.V(4).Info("MachinePool Machines not supported, no infraMachineKind found")
+			return nil
+		}
+
+		return errors.Wrapf(err, "failed to retrieve infraMachineKind from infrastructure provider for MachinePool %s", klog.KObj(mp))
+	}
+
+	infraMachineSelector := metav1.LabelSelector{
+		MatchLabels: map[string]string{
+			clusterv1.MachinePoolNameLabel: capilabels.MustFormatValue(mp.Name),
+			clusterv1.ClusterNameLabel:     mp.Spec.ClusterName,
+		},
+	}
+
+	log.V(4).Info("Reconciling MachinePool Machines", "infrastructureMachineKind", infraMachineKind, "infrastructureMachineSelector", infraMachineSelector)
+	var infraMachineList unstructured.UnstructuredList
+
+	// Get the list of infraMachines, which are maintained by the InfraMachinePool controller.
+	infraMachineList.SetAPIVersion(infraMachinePool.GetAPIVersion())
+	infraMachineList.SetKind(infraMachineKind + "List")
+	if err := r.Client.List(ctx, &infraMachineList, client.InNamespace(mp.Namespace), client.MatchingLabels(infraMachineSelector.MatchLabels)); err != nil {
+		return errors.Wrapf(err, "failed to list infra machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+	}
+
+	// Add watcher for infraMachine, if there isn't one already; this will allow this controller to reconcile
+	// immediately changes made by the InfraMachinePool controller.
+	sampleInfraMachine := &unstructured.Unstructured{}
+	sampleInfraMachine.SetAPIVersion(infraMachinePool.GetAPIVersion())
+	sampleInfraMachine.SetKind(infraMachineKind)
+
+	// Add watcher for infraMachine, if there isn't one already.
+	if err := r.externalTracker.Watch(log, sampleInfraMachine, handler.EnqueueRequestsFromMapFunc(r.infraMachineToMachinePoolMapper)); err != nil {
+		return err
+	}
+
+	// Get the list of machines managed by this controller, and align it with the infra machines managed by
+	// the InfraMachinePool controller.
+	machineList := &clusterv1.MachineList{}
+	if err := r.Client.List(ctx, machineList, client.InNamespace(mp.Namespace), client.MatchingLabels(infraMachineSelector.MatchLabels)); err != nil {
+		return err
+	}
+
+	updatedMachines, err := r.createMachinesIfNotExists(ctx, mp, machineList.Items, infraMachineList.Items)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+	}
+
+	if err := r.ensureInfraMachineOnwerRefs(ctx, updatedMachines, infraMachineList.Items); err != nil {
+		return errors.Wrapf(err, "failed to create machines for MachinePool %q in namespace %q", mp.Name, mp.Namespace)
+	}
+
+	return nil
+}
+
+// createMachinesIfNotExists creates a MachinePool Machine for each infraMachine if it doesn't already exist and sets the owner reference and infraRef.
+func (r *MachinePoolReconciler) createMachinesIfNotExists(ctx context.Context, mp *expv1.MachinePool, machines []clusterv1.Machine, infraMachines []unstructured.Unstructured) ([]clusterv1.Machine, error) {
+	log := ctrl.LoggerFrom(ctx)
+
+	// Construct a set of names of infraMachines that already have a Machine.
+	infraRefNames := sets.Set[string]{}
+	for _, machine := range machines {
+		infraRef := machine.Spec.InfrastructureRef
+		infraRefNames.Insert(infraRef.Name)
+	}
+
+	createdMachines := []clusterv1.Machine{}
+	var errs []error
+	for i := range infraMachines {
+		infraMachine := &infraMachines[i]
+		// If infraMachine already has a Machine, skip it.
+		if infraRefNames.Has(infraMachine.GetName()) {
+			log.V(4).Info("Machine already exists for infraMachine", "infraMachine", klog.KObj(infraMachine))
+			continue
+		}
+		// Otherwise create a new Machine for the infraMachine.
+		log.Info("Creating new Machine for infraMachine", infraMachine.GroupVersionKind().Kind, klog.KObj(infraMachine))
+		machine := getNewMachine(mp, infraMachine)
+		if err := r.Client.Create(ctx, machine); err != nil {
+			errs = append(errs, errors.Wrapf(err, "failed to create new Machine for infraMachine %q in namespace %q", infraMachine.GetName(), infraMachine.GetNamespace()))
+			continue
+		}
+		createdMachines = append(createdMachines, *machine)
+	}
+	machines = append(machines, createdMachines...)
+	if err := r.waitForMachineCreation(ctx, createdMachines); err != nil {
+		errs = append(errs, errors.Wrapf(err, "failed to wait for machines to be created"))
+	}
+	if len(errs) > 0 {
+		return nil, kerrors.NewAggregate(errs)
+	}
+
+	return machines, nil
+}
+
+// ensureInfraMachineOnwerRefs sets the ownerReferences on the each infraMachine to its associated MachinePool Machine if it hasn't already been done.
+func (r *MachinePoolReconciler) ensureInfraMachineOnwerRefs(ctx context.Context, updatedMachines []clusterv1.Machine, infraMachines []unstructured.Unstructured) error {
+	log := ctrl.LoggerFrom(ctx)
+	infraMachineNameToMachine := make(map[string]clusterv1.Machine)
+	for _, machine := range updatedMachines {
+		infraRef := machine.Spec.InfrastructureRef
+		infraMachineNameToMachine[infraRef.Name] = machine
+	}
+
+	for i := range infraMachines {
+		infraMachine := &infraMachines[i]
+		ownerRefs := infraMachine.GetOwnerReferences()
+
+		machine, ok := infraMachineNameToMachine[infraMachine.GetName()]
+		if !ok {
+			return errors.Errorf("failed to patch ownerRef for infraMachine %q because no Machine has an infraRef pointing to it", infraMachine.GetName())
+		}
+		machineRef := metav1.NewControllerRef(&machine, machine.GroupVersionKind())
+		if !util.HasOwnerRef(ownerRefs, *machineRef) {
+			log.V(2).Info("Setting ownerRef on infraMachine", "infraMachine", infraMachine.GetName(), "namespace", infraMachine.GetNamespace(), "machine", machine.GetName())
+
+			patchHelper, err := patch.NewHelper(infraMachine, r.Client)
+			if err != nil {
+				return errors.Wrapf(err, "failed to create patch helper for %s", klog.KObj(infraMachine))
+			}
+
+			ownerRefs = util.EnsureOwnerRef(ownerRefs, *machineRef)
+			infraMachine.SetOwnerReferences(ownerRefs)
+
+			if err := patchHelper.Patch(ctx, infraMachine); err != nil {
+				return errors.Wrapf(err, "failed to patch %s", klog.KObj(infraMachine))
+			}
+		}
+	}
+
+	return nil
+}
+
+// getNewMachine creates a new Machine object.
+func getNewMachine(mp *expv1.MachinePool, infraMachine *unstructured.Unstructured) *clusterv1.Machine {
+	infraRef := corev1.ObjectReference{
+		APIVersion: infraMachine.GetAPIVersion(),
+		Kind:       infraMachine.GetKind(),
+		Name:       infraMachine.GetName(),
+		Namespace:  infraMachine.GetNamespace(),
+	}
+
+	machine := &clusterv1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: names.SimpleNameGenerator.GenerateName(fmt.Sprintf("%s-", mp.Name)),
+			// Note: by setting the ownerRef on creation we signal to the Machine controller that this is not a stand-alone Machine.
+			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(mp, mp.GroupVersionKind())},
+			Namespace:       mp.Namespace,
+			Labels:          make(map[string]string),
+			Annotations:     make(map[string]string),
+		},
+		Spec: clusterv1.MachineSpec{
+			ClusterName:       mp.Spec.ClusterName,
+			InfrastructureRef: infraRef,
+		},
+	}
+
+	for k, v := range mp.Spec.Template.Annotations {
+		machine.Annotations[k] = v
+	}
+
+	// Set the labels from machinePool.Spec.Template.Labels as labels for the new Machine.
+	// Note: We can't just set `machinePool.Spec.Template.Labels` directly and thus "share" the labels
+	// map between Machine and machinePool.Spec.Template.Labels. This would mean that adding the
+	// MachinePoolNameLabel later on the Machine would also add the labels to machinePool.Spec.Template.Labels
+	// and thus modify the labels of the MachinePool.
+	for k, v := range mp.Spec.Template.Labels {
+		machine.Labels[k] = v
+	}
+
+	// Enforce that the MachinePoolNameLabel and ClusterNameLabel are present on the Machine.
+	machine.Labels[clusterv1.MachinePoolNameLabel] = capilabels.MustFormatValue(mp.Name)
+	machine.Labels[clusterv1.ClusterNameLabel] = mp.Spec.ClusterName
+
+	return machine
+}
+
+// infraMachineToMachinePoolMapper is a mapper function that maps an InfraMachine to the MachinePool that owns it.
+// This is used to trigger an update of the MachinePool when a InfraMachine is changed.
+func (r *MachinePoolReconciler) infraMachineToMachinePoolMapper(ctx context.Context, o client.Object) []ctrl.Request {
+	log := ctrl.LoggerFrom(ctx)
+
+	machinePoolList := &expv1.MachinePoolList{}
+	labels := o.GetLabels()
+	selector := map[string]string{}
+	if clusterName, ok := labels[clusterv1.ClusterNameLabel]; ok {
+		selector = map[string]string{clusterv1.ClusterNameLabel: clusterName}
+	}
+
+	if poolNameHash, ok := labels[clusterv1.MachinePoolNameLabel]; ok {
+		if err := r.Client.List(ctx, machinePoolList, client.InNamespace(o.GetNamespace()), client.MatchingLabels(selector)); err != nil {
+			log.Error(err, "failed to get MachinePool for InfraMachine")
+			return nil
+		}
+
+		for _, mp := range machinePoolList.Items {
+			if capilabels.MustFormatValue(mp.Name) == poolNameHash {
+				return []ctrl.Request{
+					{
+						NamespacedName: client.ObjectKey{
+							Namespace: mp.Namespace,
+							Name:      mp.Name,
+						},
+					},
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (r *MachinePoolReconciler) waitForMachineCreation(ctx context.Context, machineList []clusterv1.Machine) error {
+	_ = ctrl.LoggerFrom(ctx)
+
+	// waitForCacheUpdateTimeout is the amount of time allowed to wait for desired state.
+	const waitForCacheUpdateTimeout = 10 * time.Second
+
+	// waitForCacheUpdateInterval is the amount of time between polling for the desired state.
+	// The polling is against a local memory cache.
+	const waitForCacheUpdateInterval = 100 * time.Millisecond
+
+	for i := 0; i < len(machineList); i++ {
+		machine := machineList[i]
+		pollErr := wait.PollUntilContextTimeout(ctx, waitForCacheUpdateInterval, waitForCacheUpdateTimeout, true, func(ctx context.Context) (bool, error) {
+			key := client.ObjectKey{Namespace: machine.Namespace, Name: machine.Name}
+			if err := r.Client.Get(ctx, key, &clusterv1.Machine{}); err != nil {
+				if apierrors.IsNotFound(err) {
+					return false, nil
+				}
+				return false, err
+			}
+
+			return true, nil
+		})
+
+		if pollErr != nil {
+			return errors.Wrapf(pollErr, "failed waiting for machine object %v to be created", klog.KObj(&machine))
+		}
+	}
+
+	return nil
 }

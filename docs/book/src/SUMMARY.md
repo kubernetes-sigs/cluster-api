@@ -59,6 +59,7 @@
     - [clusterctl Configuration](clusterctl/configuration.md)
     - [clusterctl Provider Contract](clusterctl/provider-contract.md)
     - [clusterctl for Developers](clusterctl/developers.md)
+    - [clusterctl Extensions with Plugins](clusterctl/plugins.md)
 - [Developer Guide](./developer/guide.md)
     - [Repository Layout](./developer/repository-layout.md)
     - [Rapid iterative development with Tilt](./developer/tilt.md)

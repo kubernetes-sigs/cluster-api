@@ -83,6 +83,7 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 		For(&expv1.MachinePool{}).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.GetExpressionMatcher().Matches(ctrl.LoggerFrom(ctx))).
 		Watches(
 			&clusterv1.Cluster{},
 			handler.EnqueueRequestsFromMapFunc(clusterToMachinePools),
@@ -91,6 +92,7 @@ func (r *MachinePoolReconciler) SetupWithManager(ctx context.Context, mgr ctrl.M
 				predicates.All(ctrl.LoggerFrom(ctx),
 					predicates.ClusterUnpaused(ctrl.LoggerFrom(ctx)),
 					predicates.ResourceHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue),
+					predicates.GetExpressionMatcher().Matches(ctrl.LoggerFrom(ctx)),
 				),
 			),
 		).

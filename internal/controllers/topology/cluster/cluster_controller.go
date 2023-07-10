@@ -105,6 +105,7 @@ func (r *Reconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, opt
 		).
 		WithOptions(options).
 		WithEventFilter(predicates.ResourceNotPausedAndHasFilterLabel(ctrl.LoggerFrom(ctx), r.WatchFilterValue)).
+		WithEventFilter(predicates.GetExpressionMatcher().Matches(ctrl.LoggerFrom(ctx))).
 		Build(r)
 
 	if err != nil {

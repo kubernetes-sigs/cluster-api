@@ -71,6 +71,7 @@ import (
 	runtimeregistry "sigs.k8s.io/cluster-api/internal/runtime/registry"
 	runtimewebhooks "sigs.k8s.io/cluster-api/internal/webhooks/runtime"
 	"sigs.k8s.io/cluster-api/util/flags"
+	"sigs.k8s.io/cluster-api/util/predicates"
 	"sigs.k8s.io/cluster-api/version"
 	"sigs.k8s.io/cluster-api/webhooks"
 )
@@ -89,6 +90,7 @@ var (
 	leaderElectionRetryPeriod     time.Duration
 	watchNamespace                string
 	watchFilterValue              string
+	watchExpressionValue          string
 	profilerAddress               string
 	enableContentionProfiling     bool
 	clusterTopologyConcurrency    int
@@ -161,6 +163,9 @@ func InitFlags(fs *pflag.FlagSet) {
 
 	fs.StringVar(&watchFilterValue, "watch-filter", "",
 		fmt.Sprintf("Label value that the controller watches to reconcile cluster-api objects. Label key is always %s. If unspecified, the controller watches for all cluster-api objects.", clusterv1.WatchLabel))
+
+	fs.StringVar(&watchExpressionValue, "watch-expression", "",
+		"More generic version of watch-filter which allows to pass a CEL expression evaluating to boolean result to filter reconcled objects. If unspecified, then the behavior defaults to watch-filter argument")
 
 	fs.StringVar(&profilerAddress, "profiler-address", "",
 		"Bind address to expose the pprof profiler (e.g. localhost:6060)")
@@ -385,6 +390,12 @@ func setupReconcilers(ctx context.Context, mgr ctrl.Manager) {
 		setupLog.Error(err, "unable to create cluster cache tracker")
 		os.Exit(1)
 	}
+
+	if err := predicates.InitExpressionMatcher(setupLog, watchExpressionValue); err != nil {
+		setupLog.Error(err, "unable to create expression matcher from provided expression %s", watchExpressionValue)
+		os.Exit(1)
+	}
+
 	if err := (&remote.ClusterCacheReconciler{
 		Client:           mgr.GetClient(),
 		Tracker:          tracker,
